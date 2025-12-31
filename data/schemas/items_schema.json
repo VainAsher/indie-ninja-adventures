@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://vainashergaming.com/schemas/items.json",
+  "title": "Items Database Schema",
+  "description": "Schema for validating item database JSON files",
+  "type": "object",
+  "required": ["version", "items"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version number (e.g., 0.6.0)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the database"
+    },
+    "items": {
+      "type": "array",
+      "description": "Array of item definitions",
+      "items": {
+        "$ref": "#/$defs/item"
+      },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": ["item_id", "item_type", "rarity", "display_name", "description", "max_stack", "value"],
+      "properties": {
+        "item_id": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Unique item identifier (lowercase, underscores only)"
+        },
+        "item_type": {
+          "type": "string",
+          "enum": ["consumable", "weapon", "armor", "material", "key_item", "quest_item", "currency"],
+          "description": "Type of item"
+        },
+        "rarity": {
+          "type": "string",
+          "enum": ["common", "uncommon", "rare", "epic", "legendary"],
+          "description": "Item rarity tier"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Display name shown to player"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Item description text"
+        },
+        "max_stack": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99999,
+          "description": "Maximum stack size"
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Base value in currency"
+        },
+        "consumable": {
+          "type": "boolean",
+          "description": "Whether item is consumable"
+        },
+        "health_restore": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "HP restored when consumed"
+        },
+        "health_bonus": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Permanent HP increase"
+        },
+        "attack_bonus": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Attack stat bonus"
+        },
+        "defense_bonus": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Defense stat bonus"
+        },
+        "speed_bonus": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Speed multiplier bonus"
+        },
+        "temporary_buff": {
+          "type": "string",
+          "enum": ["speed", "invincibility", "poison_resist"],
+          "description": "Temporary buff type"
+        },
+        "buff_duration": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Buff duration in seconds"
+        }
+      },
+      "dependencies": {
+        "temporary_buff": ["buff_duration"]
+      }
+    }
+  }
+}

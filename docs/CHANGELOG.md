@@ -1,0 +1,426 @@
+# Changelog
+**Vain Asher Gaming's: Indie Ninja Adventures**
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.4.0-dev] - 2025-12-12
+
+### Added - Camera System & Collision Improvements
+
+- **Camera System** (`systems/camera_system.py`):
+  - Multi-mode camera: WORLD_CLAMP, ROOM_CLAMP, FREE, LOCKED
+  - Smooth following with configurable lerp and deadzone
+  - Responsive letterboxing for any window size
+  - Virtual resolution (1280x720) scaled to physical display
+  - Bounds clamping for world and room modes
+  - In-game mode cycling with 'C' key
+
+- **Player Size Adjustments**:
+  - Changed player to 28x56 pixels (2:1 height:width ratio)
+  - Proper platformer proportions
+  - Crouch reduces height to 28x28 pixels (half height)
+
+- **Tile Scaling**:
+  - Scaled tiles to 32x32 pixels (industry standard)
+  - World size: 5120x5120 pixels (160x160 tiles)
+  - Physics tuned for larger tiles (gravity 0.4, max fall 12px)
+
+### Fixed - Collision System
+
+- **Platform Collision Fix**:
+  - Changed from center-based to feet-based detection
+  - Now works correctly with tall player (56px height)
+  - Fixed: `entity_rect.bottom <= platform.bottom` instead of center check
+  - Location: [collision_system.py:283-291](../systems/collision_system.py#L283-L291)
+
+- **Wall Climbing Bug Fix** (Critical):
+  - Fixed infinite wall climbing when walking into walls
+  - Corner detection now requires `abs(vy) > abs(vx) * 1.5` (must be falling)
+  - Both overlap_x AND overlap_y must be small (4-14px)
+  - Ground detection requires `overlap_y < overlap_x` (more horizontal = landing on top)
+  - Locations:
+    - Corner detection: [collision_system.py:135-148](../systems/collision_system.py#L135-L148)
+    - Ground detection: [collision_system.py:227-246](../systems/collision_system.py#L227-L246)
+
+- **Vertical Tunneling Prevention**:
+  - Reduced max fall speed from 22px to 12px (< half tile)
+  - Reduced gravity from 0.7 to 0.4
+  - Ensures physics speed stays below tunneling threshold
+
+### Changed - Documentation
+
+- Updated [ARCHITECTURE.md](ARCHITECTURE.md) with camera system and phase completion
+- Updated [WORLD_GENERATION.md](WORLD_GENERATION.md) with 16x16 zone grid
+- Updated [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) with camera API
+- Created [HANDOVER.md](HANDOVER.md) - comprehensive project handover document
+- Refreshed docs (SUMMARY, QUICK_START, INDEX, README, PROJECT_ORGANIZATION) for v0.4.0-dev, headless note, and wall-slide-disabled status
+- Moved historical collision/playability notes to `docs/legacy/` (WALL_COLLISION_FIX, PLATFORM_COLLISION_SUMMARY, PLAYABILITY_TESTING)
+- Added headless flag documentation and roadmapping for CI runs
+- Added input command/snapshot serializers and replay record/playback harness (demo flags: --record/--replay/--show-replay)
+- Added env override for logs (`NINJADASH_LOG_DIR`) to keep logs in the project or a custom path
+
+### Changed - Wall Interaction & Input Safety
+
+- Disabled wall slide mechanic during rework; enabled wall friction clamp plus wall-jump coyote buffer (player orchestrator)
+- Ground detection tuned to avoid wall contact setting `on_ground`; predictive ground snap constrained to narrow gaps
+- Input handling hardened to accept sparse/dict key data (integration tests updated)
+- Full test suite passing (`python run_tests.py`)
+
+### Added - Phase B: Procedural World Generation
+
+- **World Generation System** (`systems/world_generation.py`):
+  - Seed-based deterministic procedural generation
+  - Hierarchical structure: World -> Biomes -> Rooms -> Zones -> Tilemap
+  - Multi-biome support (DUNGEON, CAVE, BUILDING themes)
+  - Frontier-based room graph generation (organic, connected layouts)
+  - Room type system (START, EXIT, SHOP, COMBAT, PLATFORM, TREASURE, BOSS)
+  - Door port system with multi-door support and proper alignment
+  - Performance: Generates 30-room world in ~2-5ms
+
+- **Zone Planning System** (`systems/zone_planning.py`):
+  - 16x16 zone grid layout per room (256 zones -> 160x160 tiles)
+  - Intelligent feature placement (shops, save points, loot)
+  - BFS connectivity validation (guarantees all critical zones are reachable)
+  - Room type-specific zone patterns
+  - Zone roles: WALK, FILL, PLAT, DOOR, SAVE, SHOP, LOOT, VOID
+  - Pathfinding ensures no isolated zones
+  - Increased from 5x5 to 16x16 for finer granularity and more complex layouts
+
+- **Room Generation System** (`systems/room_generation.py`):
+  - Zone -> Tilemap conversion (each zone expands to 10x10 tiles)
+  - 160x160 tilemap per room
+  - Door carving system (creates passable connections between rooms)
+  - Tile types: TILE_EMPTY (0), TILE_SOLID (1), TILE_PLATFORM (2)
+  - Collision integration helper (`tilemap_to_collision_rects()`)
+
+- **Placeholder Tile Assets** (`assets/generate_placeholder_tiles.py`):
+  - 30 generated placeholder tiles (10 types  3 biomes)
+  - 8x8 pixel PNG files with colored squares
+  - Simple borders for visual distinction
+  - Organized in `assets/biomes/dungeon/`, `cave/`, `building/`
+
+- **Demo Integration** (`demo_game.py`):
+  - Command-line flag: `--procedural` to enable procedural world mode
+  - Command-line flag: `--seed 12345` to specify generation seed
+  - In-game toggle: P key switches between static and procedural modes
+  - HUD display: Mode indicator (STATIC/PROCEDURAL) and seed display
+  - Seamless integration with existing collision, physics, and player systems
+
+### Fixed - Bug Fixes & Enhancements (v0.4.0)
+
+- **Player Spawn System**:
+  - Fixed player falling through procedurally generated worlds
+  - Smart spawn point search finds safe floor tiles with empty space above
+  - Calculates spawn in tilemap coordinates, converts to screen space
+  - Fallback to center if no safe floor found
+
+- **ASCII Visualization** (`systems/room_generation.py`):
+  - Added `print_tilemap_ascii()` function for console output
+  - Downsamples 160x160 tilemaps to 40x40 ASCII visualization
+  - Shows generated room layouts during world creation
+  - Symbols: `#`=Solid, `-`=Platform, (space)=Empty
+
+- **Zone Generation Complexity** (`systems/zone_planning.py`):
+  - Room-type-specific probability distributions for zone roles
+  - PLATFORM rooms: 55% platforms, 22% fill, 22% walk (high density)
+  - COMBAT rooms: 45% platforms, 14% fill, 22% walk (medium density)
+  - TREASURE rooms: 35% platforms, 10% fill, 22% walk (moderate)
+  - BOSS rooms: 30% platforms, 12% fill, 22% walk (arena-like)
+  - Default rooms: 25% platforms, 8% fill, 22% walk (open)
+
+- **Room Boundaries** (`systems/room_generation.py`):
+  - Added walls around all room edges (top, bottom, left, right)
+  - Added base floor platform near bottom (like source project)
+  - Ensures rooms are always navigable and contained
+  - Prevents players from leaving room bounds
+
+- **Platform Collision** (`systems/collision_system.py`, `demo_game.py`):
+  - Implemented one-way platform collision (TILE_PLATFORM type 2)
+  - Platforms only collide when player falls onto them from above
+  - Player can jump up through platforms from below
+  - Separate rendering for platforms (lighter gray, half-height visual)
+  - Collision system now handles both solid tiles and platform tiles
+  - Platforms work with all player mechanics (jump, double-jump, wall-jump, dash)
+
+- **Zone Grid Enhancement** (`systems/world_generation.py`, `systems/zone_planning.py`, `systems/room_generation.py`):
+  - Increased zone grid from 5x5 to 16x16 for finer granularity
+  - 256 zones per room (more than before)
+  - Each zone now 10x10 tiles instead of 32x32
+  - Maintains 160x160 room size while providing much more detail
+  - Allows for more complex and varied platform arrangements
+  - Better control over obstacle placement and room complexity
+
+### Technical Details - World Generation
+
+- **Data Structures**:
+  - `World`: Top-level container with biomes, seed, room graph, bounds
+  - `Biome`: Thematic grouping with BiomeTheme enum
+  - `RoomNode`: Individual room with position, type, neighbors, tilemap, zone_grid
+  - `DoorPort`: Door connection point with center position and span
+
+- **Generation Pipeline**:
+  1. WorldGenerator creates room graph with frontier algorithm
+  2. Rooms divided into biomes by clustering
+  3. ZonePlanner assigns 16x16 zone grid to each room
+  4. RoomGenerator converts zones to 160x160 tilemap
+  5. Demo converts tilemap to collision rects for physics
+
+- **BFS Connectivity Algorithm**:
+  - Ensures all doors can reach each other
+  - All features (shop, save, loot) reachable from doors
+  - Creates walkable paths by converting DECOR  WALK zones
+  - Validates playability before tilemap generation
+
+- **Performance Metrics**:
+  - World generation: 2-5ms for 30 rooms
+  - Zone planning: <1ms per room
+  - Tilemap generation: <1ms per room
+  - Total pipeline: <10ms for complete world
+  - Memory: ~1.5MB for 30-room world
+  - Demo FPS: Stable 60 FPS with 1568 collision tiles
+
+### Bug Fixes - World Generation
+
+- Fixed Unicode encoding error (replaced  with "[OK]" for Windows console compatibility)
+- Fixed StopIteration error when generating single room (added fallback logic in `_create_biomes()`)
+- Fixed tilemap scaling for demo (scale down by factor of 4 to fit 160x160 room in viewport)
+
+### Documentation - Phase B
+
+- **NEW**: `docs/WORLD_GENERATION.md` - Complete API documentation
+  - Architecture overview
+  - API reference (WorldGenerator, ZonePlanner, RoomGenerator)
+  - Complete pipeline example
+  - Performance metrics
+  - Design patterns (seed-based determinism, frontier generation, BFS validation)
+  - Future enhancements
+- **Updated**: `docs/DEVLOG.md` - Session 2025-12-12 (Afternoon) entry
+  - Source system analysis
+  - Design decisions log
+  - Implementation details
+  - Testing results
+  - Problems solved
+  - Code highlights
+- **Updated**: `docs/ROADMAP.md` - Added Phase B tasks and progress tracking
+
+### Planned
+- Input system refactor with command pattern
+- Camera system integration
+- Sprite rendering and animation system
+- HUD and menu systems
+- Level progression and exit system
+- Pickup system (coins, health, power-ups)
+- Particle effects and visual polish
+- Room transition system (door-based room switching)
+- Platform collision (TILE_PLATFORM integration)
+- Minimap system (Phase D)
+- Autotiling system (9-slice, Phase C)
+
+---
+
+## [0.3.2] - 2025-12-12
+
+### Added
+
+- **Movement System**: Smooth interpolation-based movement eliminates jitter
+  - High acceleration constant (2600.0) for responsive, tight controls
+  - Interpolation formula: `vx += (target_vx - vx) * smooth_factor`
+  - Frame-rate independent with dt scaling
+  - Professional polish matching commercial platformers
+- **Fast-Fall Mechanic**: Variable gravity when holding down while falling
+  - Gravity multiplier (1.7x) improves air control and landing precision
+  - Integrated into Player physics system
+  - Source: Dynamic dungeon platformer project
+
+### Changed
+
+- **Movement Mechanic** (`mechanics/movement.py`):
+  - Replaced discrete acceleration steps with smooth interpolation
+  - Unified ground and air physics (same algorithm for both)
+  - Removed separate ground/air acceleration constants
+  - Added MOVEMENT_ACCEL constant (2600.0)
+- **Player Physics** (`entities/player.py`):
+  - Added fast-fall gravity multiplier (1.7x)
+  - Added down key tracking for fast-fall activation
+  - Fast-fall only activates when falling (vy > 0) and in air
+- **Physics System** (`systems/physics_system.py`):
+  - Updated FAST_FALL_MULT from 2.4 to 1.7 (matches source implementation)
+
+### Technical Details
+
+- **Movement Algorithm**: Smooth interpolation to target velocity
+  - `target_vx = direction * MAX_SPEED * multiplier`
+  - `smooth_factor = min(1.0, ACCEL * dt / max(MAX_SPEED, 1.0))`
+  - `vx += (target_vx - vx) * smooth_factor`
+- **Fast-Fall Conditions**: vy > 0 (falling) AND not on_ground AND down key held
+- **Benefits**:
+  - Eliminates jitter from discrete acceleration
+  - More responsive feel from high acceleration constant
+  - Better air control with fast-fall mechanic
+  - Smoother acceleration/deceleration curves
+
+### Documentation Updates
+
+- **ROADMAP.md**: Added Phase 4.5 (Movement Enhancement) with detailed tasks
+- **DEVLOG.md**: Added 2025-12-12 session with source system analysis
+- **Movement Docstring**: Updated to reflect smooth interpolation approach
+
+---
+
+## [0.3.1] - 2025-12-11
+
+### Fixed
+- **Collision System**: Fixed wall clipping bug where players could get stuck in walls
+- **Collision System**: Refined corner collision detection to prevent jitter when landing on platform edges
+- **Collision System**: Added sophisticated overlap-based collision detection with special case handling for falling
+- **Jump Mechanic**: Blocked all jump types (ground, wall, double) while crouching to prevent fall-through bug
+- **Crouch Mechanic**: Fixed collision box height issues that caused players to fall through floor when jumping while crouched
+
+### Changed
+- **Collision System**: Improved horizontal vs vertical collision classification using overlap calculations
+- **Collision System**: Added falling preference for corner collisions (overlap_x >= 8, overlap_x <= 15, overlap_y <= 20, diff <= 8)
+- **Jump Mechanic**: Added crouch blocking to `_try_double_jump()` and `_try_wall_jump()` methods
+
+---
+
+## [0.3.0] - 2025-12-11
+
+### Added - Architecture
+-  **Event-Driven Architecture**: Complete pub/sub system with priority handlers
+-  **Modular Mechanic System**: Self-contained, reusable mechanics
+-  **Component-Based Entities**: Reusable components across all entity types
+-  **Mod/Plugin Support**: Full plugin architecture with component registration
+-  **Fixed 60Hz Physics**: Deterministic physics simulation (Glenn Fiedler pattern)
+
+### Added - Core Systems
+-  **Event Bus** (`core/event_bus.py`): Priority-based pub/sub with queue processing
+-  **Logging System** (`core/logger.py`): Persistent file-based logging with user-configurable location
+-  **Game Clock** (`core/clock.py`): Fixed 60Hz timestep with variable render rate
+-  **State Management** (`core/state.py`): JSON-serializable state with snapshot/restore
+-  **Entity System** (`core/entity_system.py`): Component-based architecture with fast queries
+-  **Mod System** (`core/mod_system.py`): Plugin lifecycle management
+
+### Added - Collision
+-  **Collision System** (`systems/collision_system.py`): Universal AABB collision for all entities
+-  **Collision Events**: Event-driven collision response
+-  **Advanced Queries**: Radius searches and raycasting
+-  **Penetration Resolution**: Automatic collision resolution with normal vectors
+
+### Added - Physics
+-  **Physics System** (`systems/physics_system.py`): Gravity application and velocity integration
+-  **Fall Speed Capping**: Configurable maximum fall velocity
+-  **Fixed Timestep**: Deterministic 60Hz simulation
+
+### Added - Player Mechanics
+-  **Jump Mechanic** (`mechanics/jump.py`):
+  - Ground jump (14.5 units/tick)
+  - Coyote time (0.12s grace period)
+  - Jump buffering (0.14s input window)
+  - Double jump (configurable air jumps)
+  - Wall jump (8.5x horizontal, 14.5y vertical)
+  - Crouch modifier (0.7x power)
+
+-  **Movement Mechanic** (`mechanics/movement.py`):
+  - Ground physics (0.9 acceleration, responsive)
+  - Air physics (0.5 acceleration, floaty)
+  - Max speed (8.0 units/tick)
+  - Smooth acceleration/deceleration
+
+-  **Dash Mechanic** (`mechanics/dash.py`):
+  - Speed (16.0 units/tick, 2x normal)
+  - Duration (0.16s, ~10 frames)
+  - Cooldown (0.45s, ~27 frames)
+  - Wall collision cancel
+
+-  **Wall Slide Mechanic** (`mechanics/wall_slide.py`):
+  - Stamina system (3.0s max, 2.0s regen)
+  - Slide speed (2.2 units/tick controlled descent)
+  - Min stamina requirement (0.3s to prevent spam)
+
+-  **Crouch Mechanic** (`mechanics/crouch.py`):
+  - Stealth movement (60% speed, 80% acceleration)
+  - Collision box changes (50% height)
+  - Ceiling detection
+  - Jump power modifier (70%)
+
+### Added - Entities
+-  **Player Class** (`entities/player.py`): Orchestrates all player mechanics
+-  **Reusable Components** (`entities/components.py`):
+  - HealthComponent (damage, healing, invincibility)
+  - PatrolComponent (back-and-forth movement)
+  - FollowComponent (entity tracking)
+  - ProjectileComponent (velocity-based projectiles)
+  - PickupComponent (collectibles with auto-collection)
+  - AIComponent (state machine for NPCs/enemies)
+
+### Added - Testing
+-  **14 Comprehensive Test Suites**: Full coverage of all systems
+-  **Integration Tests**: Player + all mechanics working together
+-  **Collision Edge Cases**: Corner cases, wall clipping, falling jitter
+-  **Physics Tests**: Gravity, velocity, fall capping
+
+### Added - Documentation
+-  **SYSTEM_OVERVIEW.md**: Complete guide with API reference
+-  **ARCHITECTURE.md**: Design patterns and component examples
+-  **MODDING_GUIDE.md**: Plugin development guide
+-  **README.md**: Quick start and feature overview
+
+### Added - Demo
+-  **Playable Demo** (`demo_game.py`): All systems integrated and working
+-  **Controls**: Arrow keys/WASD, Space, Shift, Crouch toggle
+-  **Level**: Platform layout with walls, ground, and obstacles
+
+### Changed
+-  **Migration**: Moved original files to `legacy/` folder for reference
+-  **Project Name**: Renamed to "Vain Asher Gaming's: Indie Ninja Adventures"
+
+### Technical Details
+- **Language**: Python 3.11+
+- **Graphics**: Pygame 2.6+
+- **Architecture**: Component-based entity system, event-driven
+- **Physics**: Fixed 60Hz deterministic simulation
+- **State**: Serializable with JSON support
+
+---
+
+## [0.2.0] - Previous Version (Legacy)
+
+### Added
+- Basic player movement
+- Monolithic player class
+- Simple collision detection
+- Procedural level generation
+- Camera system
+- UI elements
+
+### Deprecated
+- Original monolithic architecture (moved to `legacy/` folder)
+- All code preserved for reference and potential integration
+
+---
+
+## Version History Summary
+
+- **v0.4.0-dev** (2025-12-12): Procedural world generation (16x16 grid), camera system, tile/player scaling, collision fixes
+- **v0.3.1** (2025-12-11): Collision bug fixes, crouch-jump fix, wall clipping prevention
+- **v0.3.0** (2025-12-11): Complete modular refactor, all core systems implemented
+- **v0.2.0** (Previous): Original monolithic implementation
+
+---
+
+## Versioning Scheme
+
+- **Major** (X.0.0): Breaking API changes, major architecture changes
+- **Minor** (0.X.0): New features, systems, mechanics (backwards compatible)
+- **Patch** (0.0.X): Bug fixes, refinements, optimizations
+
+---
+
+**Last Updated**: 2025-12-12
+**Current Version**: 0.4.0-dev
+**Project**: Vain Asher Gaming's: Indie Ninja Adventures

@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# PyInstaller
+build/dist/
+build/build/
+*.spec.bak
+*.manifest
+*.spec~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Game Data (user-specific)
+user_data/saves/
+user_data/replays/
+user_data/logs/
+user_data/settings/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Distribution
+dist/
+*.egg-info/
+
+# Claude Code
+.claude/plans/
+.claude/cache/
+
+# Audit and documentation (optional - uncomment if you don't want to track these)
+# AUDIT_*.md
+# DEVELOPMENT_SUMMARY*.md
+
+# Windows reserved filenames
+nul
+tests/nul

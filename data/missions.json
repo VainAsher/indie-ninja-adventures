@@ -1,0 +1,1655 @@
+{
+  "version": "0.7.0",
+  "regions": {
+    "forest": {
+      "display_name": "Whispering Forest",
+      "description": "Ancient woodland full of secrets.",
+      "biome_theme": "dungeon",
+      "hub_room_count": 8,
+      "required_missions_completed": 0,
+      "required_abilities": []
+    },
+    "town": {
+      "display_name": "Ashenvale Town",
+      "description": "A troubled town under corruption.",
+      "biome_theme": "building",
+      "hub_room_count": 8,
+      "required_missions_completed": 0,
+      "required_abilities": []
+    },
+    "caves": {
+      "display_name": "Crystal Caverns",
+      "description": "Luminous caverns beneath the surface.",
+      "biome_theme": "cave",
+      "hub_room_count": 8,
+      "required_missions_completed": 0,
+      "required_abilities": []
+    },
+    "castle": {
+      "display_name": "Obsidian Castle",
+      "description": "A fortress of stone and shadow.",
+      "biome_theme": "building",
+      "hub_room_count": 8,
+      "required_missions_completed": 0,
+      "required_abilities": []
+    },
+    "sewer": {
+      "display_name": "Shadow Sewers",
+      "description": "Toxic tunnels beneath the city.",
+      "biome_theme": "dungeon",
+      "hub_room_count": 8,
+      "required_missions_completed": 0,
+      "required_abilities": []
+    },
+    "hollow_depths": {
+      "display_name": "Hollow Depths",
+      "description": "Empty void where light struggles to exist. Recovery through connection.",
+      "biome_theme": "cave",
+      "hub_room_count": 6,
+      "required_missions_completed": 0,
+      "required_abilities": []
+    }
+  },
+  "missions": [
+    {
+      "mission_id": "demo_coin_run",
+      "mission_name": "Coin Run",
+      "region": "forest",
+      "difficulty": 1,
+      "room_count": 6,
+      "shape": "grid",
+      "description": "Collect coins and reach the exit.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Collect coins",
+          "item": "coin",
+          "count": 5
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 40,
+        "items": [
+          {
+            "id": "health_potion_small",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "forest_1",
+      "mission_name": "Forest Patrol",
+      "region": "forest",
+      "difficulty": 1,
+      "room_count": 8,
+      "shape": "snake",
+      "description": "Scout the forest perimeter and eliminate basic threats.",
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat all goblins",
+          "target": 5
+        },
+        {
+          "type": "collect_items",
+          "description": "Collect forest keys",
+          "item": "forest_key",
+          "count": 3
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump"
+      ],
+      "unlock_abilities": [
+        "double_jump"
+      ],
+      "rewards": {
+        "currency": 50,
+        "items": [
+          {
+            "id": "health_potion_small",
+            "quantity": 2
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "forest_2",
+      "mission_name": "Ancient Clearing",
+      "region": "forest",
+      "difficulty": 2,
+      "room_count": 10,
+      "shape": "blob",
+      "description": "Explore the ancient clearing and retrieve the sacred relic.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the shrine",
+          "location": "shrine"
+        },
+        {
+          "type": "collect_items",
+          "description": "Collect sacred relics",
+          "item": "relic",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 75,
+        "items": [
+          {
+            "id": "sword_iron",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin",
+        "bat"
+      ],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "forest_1"
+      ],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "forest_3",
+      "mission_name": "Treant's Domain",
+      "region": "forest",
+      "difficulty": 2,
+      "room_count": 12,
+      "shape": "snake",
+      "description": "Navigate the treant's territory and activate ancient switches.",
+      "objectives": [
+        {
+          "type": "activate_switches",
+          "description": "Activate all switches",
+          "count": 4
+        },
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Forest Guardian",
+          "boss": "forest_guardian"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump"
+      ],
+      "unlock_abilities": [
+        "dash"
+      ],
+      "rewards": {
+        "currency": 100,
+        "items": [
+          {
+            "id": "armor_leather",
+            "quantity": 1
+          },
+          {
+            "id": "max_hp_upgrade",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin",
+        "bat",
+        "slime"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "forest_1",
+        "forest_2"
+      ],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "forest_4",
+      "mission_name": "Speed Trial",
+      "region": "forest",
+      "difficulty": 3,
+      "room_count": 10,
+      "shape": "linear",
+      "description": "Race through the forest before time runs out!",
+      "objectives": [
+        {
+          "type": "time_challenge",
+          "description": "Reach the exit within 3 minutes",
+          "time_limit": 180.0
+        },
+        {
+          "type": "reach_location",
+          "description": "Reach the exit portal",
+          "location": "exit"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 150,
+        "items": [
+          {
+            "id": "speed_boots",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": 180.0,
+      "unlock_requirements": [
+        "forest_3"
+      ],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "forest_5",
+      "mission_name": "Hidden Grove",
+      "region": "forest",
+      "difficulty": 3,
+      "room_count": 15,
+      "shape": "blob",
+      "description": "Explore every corner of the hidden grove.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Collect all treasure",
+          "item": "treasure_chest",
+          "count": 5
+        },
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat all enemies",
+          "target": 12
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 200,
+        "items": [
+          {
+            "id": "sword_steel",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_medium",
+            "quantity": 3
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin",
+        "bat",
+        "slime"
+      ],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "forest_3"
+      ],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "town_1",
+      "mission_name": "Market Defense",
+      "region": "town",
+      "difficulty": 2,
+      "room_count": 10,
+      "shape": "blob",
+      "description": "Protect the market from bandits!",
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat all bandits",
+          "target": 8
+        },
+        {
+          "type": "reach_location",
+          "description": "Secure the market square",
+          "location": "market_square"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 100,
+        "items": [
+          {
+            "id": "health_potion_medium",
+            "quantity": 2
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 0,
+      "story_trigger": "veil_maiden_introduction",
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "town_2",
+      "mission_name": "Rooftop Chase",
+      "region": "town",
+      "difficulty": 3,
+      "room_count": 12,
+      "shape": "linear",
+      "description": "Chase the thief across the rooftops!",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Catch the thief",
+          "location": "thief_location"
+        },
+        {
+          "type": "collect_items",
+          "description": "Recover stolen goods",
+          "item": "stolen_goods",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 125,
+        "items": [
+          {
+            "id": "dagger_quick",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin"
+      ],
+      "hazards": [
+        "void",
+        "spike"
+      ],
+      "time_limit": 240.0,
+      "unlock_requirements": [
+        "town_1"
+      ],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "town_3",
+      "mission_name": "Underground Tunnels",
+      "region": "town",
+      "difficulty": 3,
+      "room_count": 14,
+      "shape": "snake",
+      "description": "Navigate the dark tunnels beneath the town.",
+      "objectives": [
+        {
+          "type": "activate_switches",
+          "description": "Activate tunnel lights",
+          "count": 6
+        },
+        {
+          "type": "kill_all_enemies",
+          "description": "Clear the tunnels",
+          "target": 10
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash"
+      ],
+      "unlock_abilities": [
+        "wall_jump"
+      ],
+      "rewards": {
+        "currency": 150,
+        "items": [
+          {
+            "id": "torch",
+            "quantity": 1
+          },
+          {
+            "id": "armor_chain",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin",
+        "slime"
+      ],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "town_1",
+        "town_2"
+      ],
+      "act": 0,
+      "story_trigger": null,
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "town_4",
+      "mission_name": "Bell Tower Ascent",
+      "region": "town",
+      "difficulty": 4,
+      "room_count": 10,
+      "shape": "vertical",
+      "description": "Climb the bell tower and ring the alarm.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the bell tower top",
+          "location": "bell_tower_top"
+        },
+        {
+          "type": "activate_switches",
+          "description": "Ring the alarm bell",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 175,
+        "items": [
+          {
+            "id": "climbing_gloves",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "bat",
+        "goblin"
+      ],
+      "hazards": [
+        "void",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "town_3"
+      ],
+      "act": 0,
+      "story_trigger": "act_0_final",
+      "hub_impact": {
+        "degradation_increase": 1
+      }
+    },
+    {
+      "mission_id": "town_5",
+      "mission_name": "Mayor's Corruption",
+      "region": "town",
+      "difficulty": 4,
+      "room_count": 15,
+      "shape": "blob",
+      "description": "Confront the corrupt mayor and his guards.",
+      "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Corrupt Mayor",
+          "boss": "corrupt_mayor"
+        },
+        {
+          "type": "collect_items",
+          "description": "Retrieve stolen tax money",
+          "item": "tax_money",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 250,
+        "items": [
+          {
+            "id": "sword_silver",
+            "quantity": 1
+          },
+          {
+            "id": "max_hp_upgrade",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 2
+          }
+        ]
+      },
+      "enemy_types": [
+        "goblin",
+        "skeleton"
+      ],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "town_1",
+        "town_2",
+        "town_3",
+        "town_4"
+      ],
+      "act": 1,
+      "story_trigger": "act_1_begins",
+      "hub_impact": null
+    },
+    {
+      "mission_id": "town_6",
+      "mission_name": "Festival Fireworks",
+      "region": "town",
+      "difficulty": 3,
+      "room_count": 12,
+      "shape": "blob",
+      "description": "Set off fireworks for the festival celebration!",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Collect firework canisters",
+          "item": "firework",
+          "count": 8
+        },
+        {
+          "type": "activate_switches",
+          "description": "Light the launch platforms",
+          "count": 4
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 200,
+        "items": [
+          {
+            "id": "party_hat",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_medium",
+            "quantity": 4
+          }
+        ]
+      },
+      "enemy_types": [],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "town_5"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "caves_1",
+      "mission_name": "Crystal Descent",
+      "region": "caves",
+      "difficulty": 4,
+      "room_count": 12,
+      "shape": "vertical",
+      "description": "Descend into the crystal caverns.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the crystal chamber",
+          "location": "crystal_chamber"
+        },
+        {
+          "type": "collect_items",
+          "description": "Harvest crystals",
+          "item": "crystal",
+          "count": 5
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 150,
+        "items": [
+          {
+            "id": "crystal_pendant",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "bat",
+        "slime"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 1,
+      "story_trigger": "veil_maiden_scripted_defeat",
+      "hub_impact": {
+        "yin_yang_consumed": true
+      }
+    },
+    {
+      "mission_id": "caves_2",
+      "mission_name": "Underground River",
+      "region": "caves",
+      "difficulty": 4,
+      "room_count": 14,
+      "shape": "snake",
+      "description": "Navigate across the underground river.",
+      "objectives": [
+        {
+          "type": "activate_switches",
+          "description": "Raise the water bridges",
+          "count": 5
+        },
+        {
+          "type": "kill_all_enemies",
+          "description": "Clear the cave creatures",
+          "target": 12
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 175,
+        "items": [
+          {
+            "id": "water_boots",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_medium",
+            "quantity": 3
+          }
+        ]
+      },
+      "enemy_types": [
+        "bat",
+        "slime"
+      ],
+      "hazards": [
+        "poison",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "caves_1"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "caves_3",
+      "mission_name": "Vertical Shafts",
+      "region": "caves",
+      "difficulty": 5,
+      "room_count": 15,
+      "shape": "vertical",
+      "description": "Climb the treacherous vertical shafts.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the upper caves",
+          "location": "upper_caves"
+        },
+        {
+          "type": "collect_items",
+          "description": "Collect ancient artifacts",
+          "item": "artifact",
+          "count": 3
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 200,
+        "items": [
+          {
+            "id": "armor_plate",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "bat"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "caves_1",
+        "caves_2"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "caves_4",
+      "mission_name": "Golem's Lair",
+      "region": "caves",
+      "difficulty": 5,
+      "room_count": 12,
+      "shape": "blob",
+      "description": "Face the Crystal Golem in its domain.",
+      "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Crystal Golem",
+          "boss": "crystal_golem"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 300,
+        "items": [
+          {
+            "id": "crystal_sword",
+            "quantity": 1
+          },
+          {
+            "id": "max_hp_upgrade",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 3
+          }
+        ]
+      },
+      "enemy_types": [
+        "slime"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "caves_3"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "caves_5",
+      "mission_name": "Hidden Treasure",
+      "region": "caves",
+      "difficulty": 4,
+      "room_count": 18,
+      "shape": "blob",
+      "description": "Find all the hidden treasure in the caves.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Find all treasure chests",
+          "item": "treasure_chest",
+          "count": 8
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 400,
+        "items": [
+          {
+            "id": "treasure_map",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 2
+          }
+        ]
+      },
+      "enemy_types": [
+        "bat",
+        "slime"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "caves_4"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "castle_1",
+      "mission_name": "Outer Walls",
+      "region": "castle",
+      "difficulty": 5,
+      "room_count": 14,
+      "shape": "snake",
+      "description": "Breach the castle's outer defenses.",
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat the castle guards",
+          "target": 15
+        },
+        {
+          "type": "reach_location",
+          "description": "Reach the inner courtyard",
+          "location": "courtyard"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 200,
+        "items": [
+          {
+            "id": "knight_sword",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "skeleton",
+        "goblin"
+      ],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "castle_2",
+      "mission_name": "Tower Siege",
+      "region": "castle",
+      "difficulty": 5,
+      "room_count": 16,
+      "shape": "vertical",
+      "description": "Storm the castle towers.",
+      "objectives": [
+        {
+          "type": "activate_switches",
+          "description": "Lower the drawbridges",
+          "count": 4
+        },
+        {
+          "type": "kill_all_enemies",
+          "description": "Clear the towers",
+          "target": 18
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 250,
+        "items": [
+          {
+            "id": "tower_shield",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 2
+          }
+        ]
+      },
+      "enemy_types": [
+        "skeleton",
+        "goblin"
+      ],
+      "hazards": [
+        "spike",
+        "poison",
+        "void"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "castle_1"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "castle_3",
+      "mission_name": "Throne Room Assault",
+      "region": "castle",
+      "difficulty": 6,
+      "room_count": 12,
+      "shape": "blob",
+      "description": "Fight through to the throne room.",
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat the royal guards",
+          "target": 20
+        },
+        {
+          "type": "reach_location",
+          "description": "Reach the throne room",
+          "location": "throne_room"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 300,
+        "items": [
+          {
+            "id": "royal_armor",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "skeleton"
+      ],
+      "hazards": [
+        "poison",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "castle_1",
+        "castle_2"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "castle_4",
+      "mission_name": "Dark Knight",
+      "region": "castle",
+      "difficulty": 6,
+      "room_count": 10,
+      "shape": "arena",
+      "description": "Duel the Dark Knight in single combat.",
+      "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Dark Knight",
+          "boss": "dark_knight"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 400,
+        "items": [
+          {
+            "id": "dark_sword",
+            "quantity": 1
+          },
+          {
+            "id": "max_hp_upgrade",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 4
+          }
+        ]
+      },
+      "enemy_types": [],
+      "hazards": [
+        "poison",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "castle_3"
+      ],
+      "act": 3,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "castle_5",
+      "mission_name": "Treasury Heist",
+      "region": "castle",
+      "difficulty": 5,
+      "room_count": 20,
+      "shape": "blob",
+      "description": "Raid the castle treasury!",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Collect royal treasures",
+          "item": "royal_treasure",
+          "count": 10
+        },
+        {
+          "type": "activate_switches",
+          "description": "Unlock treasure vaults",
+          "count": 5
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 500,
+        "items": [
+          {
+            "id": "crown",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 3
+          }
+        ]
+      },
+      "enemy_types": [
+        "skeleton"
+      ],
+      "hazards": [
+        "spike",
+        "poison"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "castle_4"
+      ],
+      "act": 3,
+      "story_trigger": "act_3_complete",
+      "hub_impact": null
+    },
+    {
+      "mission_id": "castle_6",
+      "mission_name": "King's Challenge",
+      "region": "castle",
+      "difficulty": 6,
+      "room_count": 15,
+      "shape": "gauntlet",
+      "description": "Complete the king's ultimate challenge!",
+      "objectives": [
+        {
+          "type": "time_challenge",
+          "description": "Complete within 5 minutes",
+          "time_limit": 300.0
+        },
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat all challengers",
+          "target": 25
+        },
+        {
+          "type": "reach_location",
+          "description": "Reach the victory podium",
+          "location": "podium"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 600,
+        "items": [
+          {
+            "id": "legendary_sword",
+            "quantity": 1
+          },
+          {
+            "id": "legendary_armor",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "skeleton"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": 300.0,
+      "unlock_requirements": [
+        "castle_4",
+        "castle_5"
+      ],
+      "act": 4,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "sewer_1",
+      "mission_name": "Toxic Depths",
+      "region": "sewer",
+      "difficulty": 6,
+      "room_count": 18,
+      "shape": "snake",
+      "description": "Navigate the poison-filled sewers.",
+      "objectives": [
+        {
+          "type": "activate_switches",
+          "description": "Drain the toxic water",
+          "count": 8
+        },
+        {
+          "type": "kill_all_enemies",
+          "description": "Clear the sewer creatures",
+          "target": 30
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 400,
+        "items": [
+          {
+            "id": "poison_resist_charm",
+            "quantity": 1
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 5
+          }
+        ]
+      },
+      "enemy_types": [
+        "slime"
+      ],
+      "hazards": [
+        "poison",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 4,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "sewer_2",
+      "mission_name": "Plague Rat King",
+      "region": "sewer",
+      "difficulty": 7,
+      "room_count": 15,
+      "shape": "arena",
+      "description": "Face the Plague Rat King and his swarm!",
+      "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Plague Rat King",
+          "boss": "plague_rat"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 600,
+        "items": [
+          {
+            "id": "plague_antidote",
+            "quantity": 1
+          },
+          {
+            "id": "max_hp_upgrade",
+            "quantity": 2
+          },
+          {
+            "id": "health_potion_large",
+            "quantity": 6
+          }
+        ]
+      },
+      "enemy_types": [
+        "slime"
+      ],
+      "hazards": [
+        "poison",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "sewer_1"
+      ],
+      "act": 4,
+      "story_trigger": null,
+      "hub_impact": null
+    },
+    {
+      "mission_id": "sewer_3",
+      "mission_name": "Ancient Secrets",
+      "region": "sewer",
+      "difficulty": 7,
+      "room_count": 25,
+      "shape": "labyrinth",
+      "description": "Uncover the ancient secrets beneath the castle.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Find all ancient tablets",
+          "item": "ancient_tablet",
+          "count": 12
+        },
+        {
+          "type": "activate_switches",
+          "description": "Unlock the final chamber",
+          "count": 10
+        },
+        {
+          "type": "reach_location",
+          "description": "Discover the secret chamber",
+          "location": "secret_chamber"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 1000,
+        "items": [
+          {
+            "id": "ancient_artifact",
+            "quantity": 1
+          },
+          {
+            "id": "ultimate_weapon",
+            "quantity": 1
+          },
+          {
+            "id": "ultimate_armor",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "slime",
+        "wolf"
+      ],
+      "hazards": [
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "sewer_1",
+        "sewer_2"
+      ],
+      "act": 4,
+      "story_trigger": "final_confrontation",
+      "hub_impact": null
+    },
+    {
+      "mission_id": "hollow_1",
+      "mission_name": "Awakening",
+      "region": "hollow_depths",
+      "difficulty": 3,
+      "room_count": 8,
+      "shape": "linear",
+      "description": "Wake up alone in the darkness. Find a way forward.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Find the light",
+          "location": "first_lantern"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 0,
+        "items": []
+      },
+      "enemy_types": [],
+      "hazards": [
+        "void"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 2,
+      "story_trigger": "meet_first_lantern",
+      "hub_impact": {
+        "lanterns_met": 1,
+        "brightness_increase": 0.1
+      }
+    },
+    {
+      "mission_id": "hollow_2",
+      "mission_name": "Shared Burdens",
+      "region": "hollow_depths",
+      "difficulty": 4,
+      "room_count": 10,
+      "shape": "vertical",
+      "description": "Climb through the emptiness. You're not alone in this.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Find other Lanterns",
+          "location": "lantern_gathering"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 0,
+        "items": []
+      },
+      "enemy_types": [],
+      "hazards": [
+        "void",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "hollow_1"
+      ],
+      "act": 2,
+      "story_trigger": "meet_lanterns_group",
+      "hub_impact": {
+        "lanterns_met": 3,
+        "brightness_increase": 0.2
+      }
+    },
+    {
+      "mission_id": "hollow_3",
+      "mission_name": "Steps Forward",
+      "region": "hollow_depths",
+      "difficulty": 4,
+      "room_count": 12,
+      "shape": "snake",
+      "description": "Navigate the depths with newfound support. Recovery isn't linear.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Find the path back",
+          "location": "exit_path"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 0,
+        "items": []
+      },
+      "enemy_types": [],
+      "hazards": [
+        "void",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "hollow_1",
+        "hollow_2"
+      ],
+      "act": 2,
+      "story_trigger": "path_to_recovery",
+      "hub_impact": {
+        "lanterns_met": 5,
+        "brightness_increase": 0.3
+      }
+    },
+    {
+      "mission_id": "hollow_4",
+      "mission_name": "Return to Light",
+      "region": "hollow_depths",
+      "difficulty": 5,
+      "room_count": 14,
+      "shape": "vertical",
+      "description": "Ascend from the Hollow Depths. The hub awaits, changed but hopeful.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Return to the Central Hub",
+          "location": "hub_entrance"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 0,
+        "items": [
+          {
+            "id": "lantern_emblem",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [],
+      "hazards": [
+        "void",
+        "spike"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "hollow_1",
+        "hollow_2",
+        "hollow_3"
+      ],
+      "act": 2,
+      "story_trigger": "act_2_complete",
+      "hub_impact": {
+        "act_transition": 3,
+        "hub_restored": true
+      }
+    }
+  ]
+}

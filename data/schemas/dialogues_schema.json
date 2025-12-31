@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://vainashergaming.com/schemas/dialogues.json",
+  "title": "Dialogues Database Schema",
+  "description": "Schema for validating dialogue tree JSON files",
+  "type": "object",
+  "patternProperties": {
+    "^[a-z_][a-z0-9_]*$": {
+      "$ref": "#/$defs/dialogue"
+    }
+  },
+  "minProperties": 1,
+  "$defs": {
+    "dialogue": {
+      "type": "object",
+      "required": ["dialogue_id", "root_node_id", "nodes"],
+      "properties": {
+        "dialogue_id": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Unique dialogue identifier"
+        },
+        "root_node_id": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "ID of the root/starting node"
+        },
+        "nodes": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "$ref": "#/$defs/dialogue_node"
+            }
+          },
+          "minProperties": 1,
+          "description": "Dialogue nodes keyed by node_id"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dialogue_node": {
+      "type": "object",
+      "required": ["node_id", "speaker", "text"],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Unique node identifier within dialogue"
+        },
+        "speaker": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Name of speaker"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Dialogue text"
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dialogue_choice"
+          },
+          "minItems": 1,
+          "maxItems": 6,
+          "description": "Choices available to player"
+        },
+        "next_node_id": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            }
+          ],
+          "description": "Next node ID for auto-advance nodes (null = exit)"
+        },
+        "on_exit_event": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Event to emit when exiting this node"
+        },
+        "requires_item": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Item required to access this node"
+        },
+        "gives_item": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Item given when reaching this node"
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": ["choices"]
+        },
+        {
+          "required": ["next_node_id"]
+        }
+      ]
+    },
+    "dialogue_choice": {
+      "type": "object",
+      "required": ["choice_text"],
+      "properties": {
+        "choice_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Text shown for this choice"
+        },
+        "next_node_id": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            }
+          ],
+          "description": "Next node ID (null = exit dialogue)"
+        },
+        "requires_item": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Item required to show this choice"
+        },
+        "consumes_item": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Item consumed when selecting this choice"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

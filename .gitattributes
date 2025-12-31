@@ -1,0 +1,22 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Force batch files to have CRLF (Windows)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Force shell scripts to have LF (Unix)
+*.sh text eol=lf
+
+# Python files
+*.py text eol=lf
+*.pyi text eol=lf
+
+# JSON files
+*.json text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# Spec files
+*.spec text eol=lf

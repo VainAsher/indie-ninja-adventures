@@ -1,0 +1,316 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://vainashergaming.com/schemas/missions.json",
+  "title": "Missions Database Schema",
+  "description": "Schema for validating mission database JSON files",
+  "type": "object",
+  "required": [
+    "version",
+    "regions",
+    "missions"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version number (e.g., 0.6.0)"
+    },
+    "regions": {
+      "type": "object",
+      "description": "Region definitions",
+      "patternProperties": {
+        "^[a-z_]+$": {
+          "$ref": "#/$defs/region"
+        }
+      },
+      "minProperties": 1
+    },
+    "missions": {
+      "type": "array",
+      "description": "Array of mission definitions",
+      "items": {
+        "$ref": "#/$defs/mission"
+      },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "region": {
+      "type": "object",
+      "required": [
+        "display_name",
+        "description",
+        "biome_theme",
+        "hub_room_count",
+        "required_missions_completed",
+        "required_abilities"
+      ],
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Display name of region"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Region description"
+        },
+        "biome_theme": {
+          "type": "string",
+          "enum": [
+            "dungeon",
+            "cave",
+            "building",
+            "forest",
+            "sewer"
+          ],
+          "description": "Visual theme for region"
+        },
+        "hub_room_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of hub rooms"
+        },
+        "required_missions_completed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Missions required to unlock region"
+        },
+        "required_abilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "description": "Abilities required to access region"
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "required": [
+        "mission_id",
+        "mission_name",
+        "region",
+        "difficulty",
+        "room_count",
+        "shape",
+        "description",
+        "objectives",
+        "required_abilities",
+        "unlock_abilities",
+        "rewards",
+        "enemy_types",
+        "hazards",
+        "unlock_requirements"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Unique mission identifier"
+        },
+        "mission_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Display name of mission"
+        },
+        "region": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Region this mission belongs to"
+        },
+        "difficulty": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Mission difficulty (1-10)"
+        },
+        "room_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Number of rooms in mission"
+        },
+        "shape": {
+          "type": "string",
+          "enum": [
+            "arena",
+            "blob",
+            "branching",
+            "gauntlet",
+            "grid",
+            "labyrinth",
+            "linear",
+            "snake",
+            "vertical"
+          ],
+          "description": "Layout shape of mission"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "description": "Mission description"
+        },
+        "objectives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/objective"
+          },
+          "minItems": 1,
+          "description": "Mission objectives"
+        },
+        "required_abilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "description": "Abilities required to complete mission"
+        },
+        "unlock_abilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "description": "Abilities unlocked upon completion"
+        },
+        "rewards": {
+          "$ref": "#/$defs/rewards"
+        },
+        "enemy_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "description": "Enemy types in this mission"
+        },
+        "hazards": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "description": "Environmental hazards"
+        },
+        "time_limit": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number",
+              "minimum": 0
+            }
+          ],
+          "description": "Time limit in seconds (null = no limit)"
+        },
+        "unlock_requirements": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_][a-z0-9_]*$"
+          },
+          "description": "Mission IDs required to unlock this mission"
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "required": [
+        "type",
+        "description"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "activate_switches",
+            "collect_items",
+            "defeat_boss",
+            "kill_all_enemies",
+            "reach_location",
+            "survive_waves",
+            "time_challenge"
+          ],
+          "description": "Type of objective"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Objective description"
+        },
+        "item": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Item ID for collect objectives"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Count for collection/activation objectives"
+        },
+        "target": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Target count for kill objectives"
+        },
+        "location": {
+          "type": "string",
+          "description": "Location identifier for reach objectives"
+        },
+        "boss": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Boss identifier for defeat objectives"
+        }
+      }
+    },
+    "rewards": {
+      "type": "object",
+      "required": [
+        "currency",
+        "items"
+      ],
+      "properties": {
+        "currency": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Currency reward amount"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "quantity"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z_][a-z0-9_]*$",
+                "description": "Item ID"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Quantity of item"
+              }
+            }
+          },
+          "description": "Item rewards"
+        }
+      }
+    }
+  }
+}

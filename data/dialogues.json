@@ -1,0 +1,1112 @@
+{
+  "tutorial_elder": {
+    "dialogue_id": "tutorial_elder",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Elder Guardian",
+        "text": "Welcome, young ninja! I sense great potential within you. The path ahead is dangerous, but I can guide you.",
+        "choices": [
+          {
+            "choice_text": "Teach me the basics",
+            "next_node_id": "tutorial_basics"
+          },
+          {
+            "choice_text": "Tell me about this place",
+            "next_node_id": "hub_lore"
+          },
+          {
+            "choice_text": "I'm ready for adventure",
+            "next_node_id": "adventure_ready"
+          },
+          {
+            "choice_text": "Goodbye",
+            "next_node_id": null
+          }
+        ]
+      },
+      "tutorial_basics": {
+        "node_id": "tutorial_basics",
+        "speaker": "Elder Guardian",
+        "text": "Use arrow keys to move, space to jump. Press space again in mid-air for a double jump! Shift unleashes your dash ability.",
+        "choices": [
+          {
+            "choice_text": "What else should I know?",
+            "next_node_id": "combat_tips"
+          },
+          {
+            "choice_text": "Tell me about this place",
+            "next_node_id": "hub_lore"
+          },
+          {
+            "choice_text": "Thanks, I'm ready now",
+            "next_node_id": null
+          }
+        ]
+      },
+      "combat_tips": {
+        "node_id": "combat_tips",
+        "speaker": "Elder Guardian",
+        "text": "Dash through enemies to strike them! Land on enemies from above for a powerful jump attack. Watch your health hearts!",
+        "choices": [
+          {
+            "choice_text": "Any other advice?",
+            "next_node_id": "final_advice"
+          },
+          {
+            "choice_text": "Tell me about this place",
+            "next_node_id": "hub_lore"
+          },
+          {
+            "choice_text": "I understand, thank you",
+            "next_node_id": null
+          }
+        ]
+      },
+      "final_advice": {
+        "node_id": "final_advice",
+        "speaker": "Elder Guardian",
+        "text": "Explore every room, defeat enemies for health potions, and seek out the mission givers. They will test your skills!",
+        "choices": [
+          {
+            "choice_text": "Anything else?",
+            "next_node_id": "greeting"
+          },
+          {
+            "choice_text": "I'm ready to begin",
+            "next_node_id": null
+          }
+        ]
+      },
+      "hub_lore": {
+        "node_id": "hub_lore",
+        "speaker": "Elder Guardian",
+        "text": "This is the Central Hub, a safe haven for ninjas. From here, portals lead to different regions. Each holds unique challenges and treasures.",
+        "choices": [
+          {
+            "choice_text": "What are the regions?",
+            "next_node_id": "regions_info"
+          },
+          {
+            "choice_text": "How do I progress?",
+            "next_node_id": "progression_info"
+          },
+          {
+            "choice_text": "Thanks for the info",
+            "next_node_id": "greeting"
+          }
+        ]
+      },
+      "regions_info": {
+        "node_id": "regions_info",
+        "speaker": "Elder Guardian",
+        "text": "The Forest is for beginners. Then comes the Town, Caves, Castle, and finally the dark Sewers. Each region grows more dangerous.",
+        "choices": [
+          {
+            "choice_text": "How do I unlock them?",
+            "next_node_id": "progression_info"
+          },
+          {
+            "choice_text": "I see. What else?",
+            "next_node_id": "hub_lore"
+          },
+          {
+            "choice_text": "I understand",
+            "next_node_id": "greeting"
+          }
+        ]
+      },
+      "progression_info": {
+        "node_id": "progression_info",
+        "speaker": "Elder Guardian",
+        "text": "Complete missions from NPCs to unlock new regions. Collect abilities, upgrade your gear, and grow stronger with each victory!",
+        "choices": [
+          {
+            "choice_text": "Tell me more about regions",
+            "next_node_id": "regions_info"
+          },
+          {
+            "choice_text": "Anything else?",
+            "next_node_id": "hub_lore"
+          },
+          {
+            "choice_text": "Thanks, I'm ready",
+            "next_node_id": null
+          }
+        ]
+      },
+      "adventure_ready": {
+        "node_id": "adventure_ready",
+        "speaker": "Elder Guardian",
+        "text": "Your courage is admirable! Seek out the mission givers throughout the hub. They will guide you to your first trials. May fortune favor you!",
+        "next_node_id": null,
+        "on_exit_event": "tutorial_completed"
+      }
+    }
+  },
+  "forest_ranger": {
+    "dialogue_id": "forest_ranger",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Forest Ranger",
+        "text": "Greetings, traveler! The forest calls for brave souls. I have missions that will test your mettle. Interested?",
+        "choices": [
+          {
+            "choice_text": "Show me your missions",
+            "next_node_id": "open_missions"
+          },
+          {
+            "choice_text": "Tell me about the forest",
+            "next_node_id": "forest_info"
+          },
+          {
+            "choice_text": "Not right now",
+            "next_node_id": null
+          }
+        ]
+      },
+      "forest_info": {
+        "node_id": "forest_info",
+        "speaker": "Forest Ranger",
+        "text": "The Whispering Woods are ancient and full of secrets. Goblins infest the deeper groves, and a guardian spirit watches over all.",
+        "choices": [
+          {
+            "choice_text": "I'm ready for missions",
+            "next_node_id": "open_missions"
+          },
+          {
+            "choice_text": "Thanks for the info",
+            "next_node_id": null
+          }
+        ]
+      },
+      "open_missions": {
+        "node_id": "open_missions",
+        "speaker": "Forest Ranger",
+        "text": "Excellent! Let me show you what needs doing...",
+        "next_node_id": null,
+        "on_exit_event": "open_mission_menu"
+      }
+    }
+  },
+  "town_historian": {
+    "dialogue_id": "town_historian",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Town Historian",
+        "text": "Ah, a visitor! Welcome to our humble town. I preserve the history of this place. Would you like to hear a tale?",
+        "choices": [
+          {
+            "choice_text": "Tell me about the town",
+            "next_node_id": "town_history"
+          },
+          {
+            "choice_text": "What happened here?",
+            "next_node_id": "corruption_tale"
+          },
+          {
+            "choice_text": "Maybe later",
+            "next_node_id": null
+          }
+        ]
+      },
+      "town_history": {
+        "node_id": "town_history",
+        "speaker": "Town Historian",
+        "text": "This town was once prosperous, a hub of trade. But darkness crept in, corrupting the mayor. Now shadows linger in every corner.",
+        "choices": [
+          {
+            "choice_text": "How can I help?",
+            "next_node_id": "help_needed"
+          },
+          {
+            "choice_text": "Tell me more",
+            "next_node_id": "corruption_tale"
+          },
+          {
+            "choice_text": "I see, thank you",
+            "next_node_id": null
+          }
+        ]
+      },
+      "corruption_tale": {
+        "node_id": "corruption_tale",
+        "speaker": "Town Historian",
+        "text": "The corruption started small - whispers in the night, missing citizens. Then the mayor changed. His eyes grew dark, his orders cruel.",
+        "choices": [
+          {
+            "choice_text": "What can be done?",
+            "next_node_id": "help_needed"
+          },
+          {
+            "choice_text": "Go back",
+            "next_node_id": "greeting"
+          },
+          {
+            "choice_text": "That's terrible",
+            "next_node_id": null
+          }
+        ]
+      },
+      "help_needed": {
+        "node_id": "help_needed",
+        "speaker": "Town Historian",
+        "text": "Brave soul! Seek the Town Captain. He leads the resistance and has missions to reclaim our home. Beware the corrupted guards!",
+        "next_node_id": null,
+        "on_exit_event": "town_lore_learned"
+      }
+    }
+  },
+  "elder_act2": {
+    "dialogue_id": "elder_act2",
+    "root_node_id": "greeting_act2",
+    "nodes": {
+      "greeting_act2": {
+        "node_id": "greeting_act2",
+        "speaker": "Elder Guardian",
+        "text": "You've returned... but you've changed. I can see the emptiness where your light once shone. The Veil Maiden took something precious from you.",
+        "choices": [
+          {
+            "choice_text": "I lost them... Yin and Yang are gone",
+            "next_node_id": "acknowledge_loss"
+          },
+          {
+            "choice_text": "I feel hollow inside",
+            "next_node_id": "understand_pain"
+          },
+          {
+            "choice_text": "How do I move forward?",
+            "next_node_id": "path_forward"
+          },
+          {
+            "choice_text": "I need to be alone",
+            "next_node_id": null
+          }
+        ]
+      },
+      "acknowledge_loss": {
+        "node_id": "acknowledge_loss",
+        "speaker": "Elder Guardian",
+        "text": "Yes... I felt their absence the moment you arrived. Those gentle spirits were part of you. Their loss is real, and your grief is valid.",
+        "choices": [
+          {
+            "choice_text": "Will they ever come back?",
+            "next_node_id": "truth_about_loss"
+          },
+          {
+            "choice_text": "I should have been stronger",
+            "next_node_id": "not_your_fault"
+          },
+          {
+            "choice_text": "What do I do now?",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "understand_pain": {
+        "node_id": "understand_pain",
+        "speaker": "Elder Guardian",
+        "text": "The Hollow Depths leave their mark on all who pass through. That emptiness you feel... it's the absence of connection, of light, of purpose.",
+        "choices": [
+          {
+            "choice_text": "How do I fill this void?",
+            "next_node_id": "path_forward"
+          },
+          {
+            "choice_text": "I've lost everything",
+            "next_node_id": "not_everything"
+          },
+          {
+            "choice_text": "Tell me about the Hollow Depths",
+            "next_node_id": "depths_explanation"
+          }
+        ]
+      },
+      "truth_about_loss": {
+        "node_id": "truth_about_loss",
+        "speaker": "Elder Guardian",
+        "text": "I cannot lie to you. The Yin and Yang you knew... they cannot return as they were. The Veil Maiden's power consumed them utterly.",
+        "choices": [
+          {
+            "choice_text": "Then there's no hope?",
+            "next_node_id": "there_is_hope"
+          },
+          {
+            "choice_text": "I understand",
+            "next_node_id": "acceptance_path"
+          }
+        ]
+      },
+      "not_your_fault": {
+        "node_id": "not_your_fault",
+        "speaker": "Elder Guardian",
+        "text": "No, young one. You fought with all your strength. The Veil Maiden's battle was designed for you to lose. She isolates, she manipulates, she takes.",
+        "choices": [
+          {
+            "choice_text": "She planned this all along?",
+            "next_node_id": "veil_maiden_nature"
+          },
+          {
+            "choice_text": "I still feel responsible",
+            "next_node_id": "shared_burden"
+          },
+          {
+            "choice_text": "How do I stop her?",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "not_everything": {
+        "node_id": "not_everything",
+        "speaker": "Elder Guardian",
+        "text": "You haven't lost everything. You're still here. You're still standing. And look around... others have walked this path. You're not alone.",
+        "choices": [
+          {
+            "choice_text": "Others have been hollowed too?",
+            "next_node_id": "the_lanterns"
+          },
+          {
+            "choice_text": "It doesn't feel like enough",
+            "next_node_id": "one_step"
+          },
+          {
+            "choice_text": "What should I do?",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "path_forward": {
+        "node_id": "path_forward",
+        "speaker": "Elder Guardian",
+        "text": "The path forward is not one of vengeance, but of healing. Seek out The Lanterns - those who understand your pain. Together, you'll find strength.",
+        "choices": [
+          {
+            "choice_text": "Who are The Lanterns?",
+            "next_node_id": "the_lanterns"
+          },
+          {
+            "choice_text": "I want revenge on the Veil Maiden",
+            "next_node_id": "revenge_warning"
+          },
+          {
+            "choice_text": "I'll try to heal",
+            "next_node_id": "encouragement"
+          }
+        ]
+      },
+      "there_is_hope": {
+        "node_id": "there_is_hope",
+        "speaker": "Elder Guardian",
+        "text": "There is always hope, but it comes in forms we don't expect. Yin and Yang may be gone, but their essence... that can endure in different ways.",
+        "choices": [
+          {
+            "choice_text": "What do you mean?",
+            "next_node_id": "essence_endures"
+          },
+          {
+            "choice_text": "I'll find a way forward",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "acceptance_path": {
+        "node_id": "acceptance_path",
+        "speaker": "Elder Guardian",
+        "text": "Understanding is the first step. Acceptance will come with time. For now, focus on rebuilding - yourself, and your connections to others.",
+        "choices": [
+          {
+            "choice_text": "How do I rebuild?",
+            "next_node_id": "path_forward"
+          },
+          {
+            "choice_text": "Thank you, Elder",
+            "next_node_id": null
+          }
+        ]
+      },
+      "veil_maiden_nature": {
+        "node_id": "veil_maiden_nature",
+        "speaker": "Elder Guardian",
+        "text": "The Veil Maiden isolates her victims, cuts them off from support, makes them dependent... then takes everything. She's done this before.",
+        "choices": [
+          {
+            "choice_text": "Then I'll make her pay",
+            "next_node_id": "revenge_warning"
+          },
+          {
+            "choice_text": "Has she done this to others?",
+            "next_node_id": "the_lanterns"
+          },
+          {
+            "choice_text": "How do I become stronger?",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "shared_burden": {
+        "node_id": "shared_burden",
+        "speaker": "Elder Guardian",
+        "text": "Responsibility is not yours alone to bear. We all saw the signs, the hub emptying, the light fading. We should have intervened sooner.",
+        "choices": [
+          {
+            "choice_text": "It's not your fault either",
+            "next_node_id": "mutual_understanding"
+          },
+          {
+            "choice_text": "What matters now is moving forward",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "the_lanterns": {
+        "node_id": "the_lanterns",
+        "speaker": "Elder Guardian",
+        "text": "The Lanterns are ninjas who've also faced the Hollow Depths. They understand isolation, loss, and the slow climb back to the light. Seek them out.",
+        "choices": [
+          {
+            "choice_text": "Where can I find them?",
+            "next_node_id": "find_lanterns"
+          },
+          {
+            "choice_text": "Can they help me fight?",
+            "next_node_id": "lanterns_purpose"
+          },
+          {
+            "choice_text": "I'll look for them",
+            "next_node_id": null
+          }
+        ]
+      },
+      "one_step": {
+        "node_id": "one_step",
+        "speaker": "Elder Guardian",
+        "text": "Recovery doesn't happen all at once. One step, one conversation, one small victory. That's how the light returns.",
+        "choices": [
+          {
+            "choice_text": "I'll try",
+            "next_node_id": "encouragement"
+          },
+          {
+            "choice_text": "Where do I start?",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "revenge_warning": {
+        "node_id": "revenge_warning",
+        "speaker": "Elder Guardian",
+        "text": "Vengeance born from pain leads only to more darkness. If you face her again, do so from a place of strength and healing, not hollow rage.",
+        "choices": [
+          {
+            "choice_text": "You're right. I need to heal first",
+            "next_node_id": "path_forward"
+          },
+          {
+            "choice_text": "I'll remember that",
+            "next_node_id": null
+          }
+        ]
+      },
+      "encouragement": {
+        "node_id": "encouragement",
+        "speaker": "Elder Guardian",
+        "text": "That's all I ask. Take your time, reach out when you're ready, and remember - the hub may be dimmer, but it's not empty. We're still here.",
+        "next_node_id": null,
+        "on_exit_event": "act2_elder_conversation_complete"
+      },
+      "essence_endures": {
+        "node_id": "essence_endures",
+        "speaker": "Elder Guardian",
+        "text": "Their memory, their impact on you, the love you shared - these cannot be consumed. In time, you may see them in new ways. As stars, perhaps.",
+        "choices": [
+          {
+            "choice_text": "Stars?",
+            "next_node_id": "constellation_hint"
+          },
+          {
+            "choice_text": "I'll hold onto their memory",
+            "next_node_id": "encouragement"
+          }
+        ]
+      },
+      "mutual_understanding": {
+        "node_id": "mutual_understanding",
+        "speaker": "Elder Guardian",
+        "text": "We share this burden, then. And together, we'll ensure no one else falls victim to the Veil Maiden's manipulation.",
+        "choices": [
+          {
+            "choice_text": "Together",
+            "next_node_id": "path_forward"
+          },
+          {
+            "choice_text": "Thank you",
+            "next_node_id": null
+          }
+        ]
+      },
+      "depths_explanation": {
+        "node_id": "depths_explanation",
+        "speaker": "Elder Guardian",
+        "text": "The Hollow Depths is where the Veil Maiden sends those she breaks. A place of emptiness, where light struggles to exist. You escaped. That's remarkable.",
+        "choices": [
+          {
+            "choice_text": "It felt like drowning",
+            "next_node_id": "validation"
+          },
+          {
+            "choice_text": "How do I recover from it?",
+            "next_node_id": "path_forward"
+          }
+        ]
+      },
+      "find_lanterns": {
+        "node_id": "find_lanterns",
+        "speaker": "Elder Guardian",
+        "text": "Some have returned to the hub. Others gather in quiet corners. Speak to them - they won't judge. They've been where you are.",
+        "choices": [
+          {
+            "choice_text": "I will",
+            "next_node_id": null
+          },
+          {
+            "choice_text": "What if I'm not ready?",
+            "next_node_id": "take_your_time"
+          }
+        ]
+      },
+      "lanterns_purpose": {
+        "node_id": "lanterns_purpose",
+        "speaker": "Elder Guardian",
+        "text": "They're not warriors, but supporters. They'll listen, share their stories, remind you that recovery is possible. That's a different kind of strength.",
+        "choices": [
+          {
+            "choice_text": "I understand",
+            "next_node_id": "encouragement"
+          },
+          {
+            "choice_text": "I'll seek them out",
+            "next_node_id": null
+          }
+        ]
+      },
+      "constellation_hint": {
+        "node_id": "constellation_hint",
+        "speaker": "Elder Guardian",
+        "text": "Just a thought. Sometimes what we lose doesn't disappear - it transforms. Becomes distant, but still visible. Still watching over us.",
+        "choices": [
+          {
+            "choice_text": "That's... comforting",
+            "next_node_id": "encouragement"
+          },
+          {
+            "choice_text": "I hope you're right",
+            "next_node_id": null
+          }
+        ]
+      },
+      "validation": {
+        "node_id": "validation",
+        "speaker": "Elder Guardian",
+        "text": "And you survived. That alone shows your strength. Now, let that strength rebuild what was lost.",
+        "choices": [
+          {
+            "choice_text": "I'll try",
+            "next_node_id": "path_forward"
+          },
+          {
+            "choice_text": "Thank you for understanding",
+            "next_node_id": null
+          }
+        ]
+      },
+      "take_your_time": {
+        "node_id": "take_your_time",
+        "speaker": "Elder Guardian",
+        "text": "Then wait until you are. Healing has no timeline. When you're ready, they'll be there. We'll all be here.",
+        "next_node_id": null,
+        "on_exit_event": "act2_elder_patience_shown"
+      }
+    }
+  },
+  "elder_act3": {
+    "dialogue_id": "elder_act3",
+    "root_node_id": "greeting_act3",
+    "nodes": {
+      "greeting_act3": {
+        "node_id": "greeting_act3",
+        "speaker": "Elder Guardian",
+        "text": "Look at you! The light has returned to your eyes. The Lanterns have helped you find your strength again. I'm proud of how far you've come.",
+        "choices": [
+          {
+            "choice_text": "I couldn't have done it alone",
+            "next_node_id": "community_strength"
+          },
+          {
+            "choice_text": "I'm ready to face her again",
+            "next_node_id": "rematch_discussion"
+          },
+          {
+            "choice_text": "The hub feels alive again",
+            "next_node_id": "hub_restored"
+          },
+          {
+            "choice_text": "Thank you for believing in me",
+            "next_node_id": "always_believed"
+          }
+        ]
+      },
+      "community_strength": {
+        "node_id": "community_strength",
+        "speaker": "Elder Guardian",
+        "text": "And that's the lesson the Veil Maiden never learned. True strength comes from connection, not isolation. You've rebuilt what she tried to destroy.",
+        "choices": [
+          {
+            "choice_text": "The Lanterns saved me",
+            "next_node_id": "lanterns_impact"
+          },
+          {
+            "choice_text": "I want to help others now",
+            "next_node_id": "pay_it_forward"
+          },
+          {
+            "choice_text": "What's next for me?",
+            "next_node_id": "final_preparation"
+          }
+        ]
+      },
+      "rematch_discussion": {
+        "node_id": "rematch_discussion",
+        "speaker": "Elder Guardian",
+        "text": "Your resolve is clear, but remember - this battle isn't just about defeating her. It's about proving that light can endure even after darkness.",
+        "choices": [
+          {
+            "choice_text": "What do you mean?",
+            "next_node_id": "battle_meaning"
+          },
+          {
+            "choice_text": "I'm stronger than before",
+            "next_node_id": "acknowledge_growth"
+          },
+          {
+            "choice_text": "Will I be ready?",
+            "next_node_id": "ready_assessment"
+          }
+        ]
+      },
+      "hub_restored": {
+        "node_id": "hub_restored",
+        "speaker": "Elder Guardian",
+        "text": "It does, doesn't it? The NPCs have returned, the portals glow brightly once more. The hub reflects your inner state - and you're healing beautifully.",
+        "choices": [
+          {
+            "choice_text": "It feels like home again",
+            "next_node_id": "home_reflection"
+          },
+          {
+            "choice_text": "But Yin and Yang are still gone",
+            "next_node_id": "bittersweet_reality"
+          },
+          {
+            "choice_text": "I'm ready for what comes next",
+            "next_node_id": "final_preparation"
+          }
+        ]
+      },
+      "always_believed": {
+        "node_id": "always_believed",
+        "speaker": "Elder Guardian",
+        "text": "Even in the darkest moments, I saw the spark within you. You just needed time to find it again. And you did.",
+        "choices": [
+          {
+            "choice_text": "What happens now?",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "I'm grateful for your support",
+            "next_node_id": null
+          }
+        ]
+      },
+      "lanterns_impact": {
+        "node_id": "lanterns_impact",
+        "speaker": "Elder Guardian",
+        "text": "They reminded you that you're not alone, that others have walked this path. That's the power of shared experience - it breaks the isolation.",
+        "choices": [
+          {
+            "choice_text": "I want to be a Lantern for others",
+            "next_node_id": "pay_it_forward"
+          },
+          {
+            "choice_text": "Their stories gave me hope",
+            "next_node_id": "hope_restored"
+          }
+        ]
+      },
+      "pay_it_forward": {
+        "node_id": "pay_it_forward",
+        "speaker": "Elder Guardian",
+        "text": "And you will be. Your journey - from loss to recovery - will inspire others who face the Hollow Depths. You're proof that healing is possible.",
+        "choices": [
+          {
+            "choice_text": "First, I need to stop the Veil Maiden",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "That gives my suffering meaning",
+            "next_node_id": "meaning_in_pain"
+          }
+        ]
+      },
+      "battle_meaning": {
+        "node_id": "battle_meaning",
+        "speaker": "Elder Guardian",
+        "text": "The Veil Maiden is hollow herself - broken, manipulative, feeding on others' light. When you face her, you'll have a choice to make.",
+        "choices": [
+          {
+            "choice_text": "What choice?",
+            "next_node_id": "moral_choice_hint"
+          },
+          {
+            "choice_text": "I'll destroy her for what she did",
+            "next_node_id": "vengeance_path"
+          },
+          {
+            "choice_text": "Can she be saved?",
+            "next_node_id": "redemption_path"
+          }
+        ]
+      },
+      "acknowledge_growth": {
+        "node_id": "acknowledge_growth",
+        "speaker": "Elder Guardian",
+        "text": "You are. Not just in power, but in wisdom. You understand now that strength isn't about never falling - it's about rising again.",
+        "choices": [
+          {
+            "choice_text": "I won't fall again",
+            "next_node_id": "confidence_response"
+          },
+          {
+            "choice_text": "What should I prepare for?",
+            "next_node_id": "final_preparation"
+          }
+        ]
+      },
+      "ready_assessment": {
+        "node_id": "ready_assessment",
+        "speaker": "Elder Guardian",
+        "text": "You're ready now. You've regained your abilities, strengthened your resolve, and most importantly - you're not fighting alone anymore.",
+        "choices": [
+          {
+            "choice_text": "The Lanterns will support me?",
+            "next_node_id": "support_network"
+          },
+          {
+            "choice_text": "Then let's finish this",
+            "next_node_id": "final_preparation"
+          }
+        ]
+      },
+      "home_reflection": {
+        "node_id": "home_reflection",
+        "speaker": "Elder Guardian",
+        "text": "Home isn't just a place - it's the people, the connections, the sense of belonging. You've rebuilt all of that. The hub is whole because you are.",
+        "choices": [
+          {
+            "choice_text": "I understand now",
+            "next_node_id": "wisdom_gained"
+          },
+          {
+            "choice_text": "What's the final step?",
+            "next_node_id": "final_preparation"
+          }
+        ]
+      },
+      "bittersweet_reality": {
+        "node_id": "bittersweet_reality",
+        "speaker": "Elder Guardian",
+        "text": "Yes. And that pain will always be part of you. But pain doesn't erase joy, and loss doesn't erase love. They coexist, as light and shadow do.",
+        "choices": [
+          {
+            "choice_text": "I'll carry them with me",
+            "next_node_id": "carrying_memory"
+          },
+          {
+            "choice_text": "Is there any way to honor them?",
+            "next_node_id": "honor_memory"
+          },
+          {
+            "choice_text": "I'm ready to move forward",
+            "next_node_id": "final_preparation"
+          }
+        ]
+      },
+      "hope_restored": {
+        "node_id": "hope_restored",
+        "speaker": "Elder Guardian",
+        "text": "Hope is the antidote to hollowness. You found it again, not through denial of your pain, but through connection despite it.",
+        "choices": [
+          {
+            "choice_text": "I want to face the Veil Maiden",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Thank you, Elder",
+            "next_node_id": null
+          }
+        ]
+      },
+      "meaning_in_pain": {
+        "node_id": "meaning_in_pain",
+        "speaker": "Elder Guardian",
+        "text": "Not all suffering has meaning, but you've chosen to give yours purpose. That's the mark of a true guardian.",
+        "choices": [
+          {
+            "choice_text": "I'm ready for the final battle",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Your words mean a lot",
+            "next_node_id": null
+          }
+        ]
+      },
+      "moral_choice_hint": {
+        "node_id": "moral_choice_hint",
+        "speaker": "Elder Guardian",
+        "text": "When you defeat her - and you will - you'll decide her fate. Destroy the threat forever, or offer her the redemption no one gave her. Neither choice is wrong.",
+        "choices": [
+          {
+            "choice_text": "How will I know what to choose?",
+            "next_node_id": "trust_yourself"
+          },
+          {
+            "choice_text": "She doesn't deserve redemption",
+            "next_node_id": "vengeance_understanding"
+          },
+          {
+            "choice_text": "Everyone deserves a second chance",
+            "next_node_id": "mercy_understanding"
+          }
+        ]
+      },
+      "vengeance_path": {
+        "node_id": "vengeance_path",
+        "speaker": "Elder Guardian",
+        "text": "Your anger is justified. She took everything from you. But remember - acting from rage makes you more like her. Act from strength instead.",
+        "choices": [
+          {
+            "choice_text": "I'll be mindful of that",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Justice isn't the same as rage",
+            "next_node_id": "justice_distinction"
+          }
+        ]
+      },
+      "redemption_path": {
+        "node_id": "redemption_path",
+        "speaker": "Elder Guardian",
+        "text": "Perhaps. She's broken, hollow, feeding on others because she has nothing within. Saving her won't bring Yin and Yang back, but it may break the cycle.",
+        "choices": [
+          {
+            "choice_text": "I'll decide when the time comes",
+            "next_node_id": "trust_yourself"
+          },
+          {
+            "choice_text": "Breaking the cycle matters",
+            "next_node_id": "cycle_breaker"
+          }
+        ]
+      },
+      "confidence_response": {
+        "node_id": "confidence_response",
+        "speaker": "Elder Guardian",
+        "text": "Confidence is good, but remember - falling isn't failure. What matters is that you know how to rise, and who will help you when you do.",
+        "choices": [
+          {
+            "choice_text": "You're right",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "I won't forget the Lanterns",
+            "next_node_id": null
+          }
+        ]
+      },
+      "support_network": {
+        "node_id": "support_network",
+        "speaker": "Elder Guardian",
+        "text": "Not in battle - this is your fight. But they'll be here when you return, regardless of the outcome. You'll never face emptiness alone again.",
+        "choices": [
+          {
+            "choice_text": "That's all I need",
+            "next_node_id": null
+          },
+          {
+            "choice_text": "Then I'm ready",
+            "next_node_id": "final_preparation"
+          }
+        ]
+      },
+      "wisdom_gained": {
+        "node_id": "wisdom_gained",
+        "speaker": "Elder Guardian",
+        "text": "You've learned what many never do - that wholeness comes from connection, not perfection. That's wisdom the Veil Maiden lacks.",
+        "choices": [
+          {
+            "choice_text": "I'll use that against her",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Thank you for teaching me",
+            "next_node_id": null
+          }
+        ]
+      },
+      "carrying_memory": {
+        "node_id": "carrying_memory",
+        "speaker": "Elder Guardian",
+        "text": "As you should. They're part of your story now, woven into who you've become. Loss doesn't diminish love - it transforms it.",
+        "choices": [
+          {
+            "choice_text": "I'm ready to finish this journey",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "That's beautiful",
+            "next_node_id": null
+          }
+        ]
+      },
+      "honor_memory": {
+        "node_id": "honor_memory",
+        "speaker": "Elder Guardian",
+        "text": "Live fully. Help others. Break the cycle of isolation. That's how you honor them - by being the light they represented.",
+        "choices": [
+          {
+            "choice_text": "I will",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Thank you",
+            "next_node_id": null
+          }
+        ]
+      },
+      "trust_yourself": {
+        "node_id": "trust_yourself",
+        "speaker": "Elder Guardian",
+        "text": "Trust yourself in that moment. You've grown enough to make the right choice - whatever that choice may be.",
+        "choices": [
+          {
+            "choice_text": "I will",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Your faith means everything",
+            "next_node_id": null
+          }
+        ]
+      },
+      "vengeance_understanding": {
+        "node_id": "vengeance_understanding",
+        "speaker": "Elder Guardian",
+        "text": "I understand. The choice is yours to make, and I'll support whatever you decide. Just ensure it comes from your healed self, not your hollow one.",
+        "choices": [
+          {
+            "choice_text": "I understand the difference now",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Thank you for not judging",
+            "next_node_id": null
+          }
+        ]
+      },
+      "mercy_understanding": {
+        "node_id": "mercy_understanding",
+        "speaker": "Elder Guardian",
+        "text": "Your compassion, even for one who hurt you, shows how far you've come. That's the light the Veil Maiden could never extinguish.",
+        "choices": [
+          {
+            "choice_text": "I hope I can hold onto it",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "The Lanterns taught me that",
+            "next_node_id": null
+          }
+        ]
+      },
+      "justice_distinction": {
+        "node_id": "justice_distinction",
+        "speaker": "Elder Guardian",
+        "text": "You're right. Justice seeks balance, while rage seeks only to inflict pain. Make sure you know which one drives you when the moment comes.",
+        "choices": [
+          {
+            "choice_text": "I will be mindful",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "Thank you for the wisdom",
+            "next_node_id": null
+          }
+        ]
+      },
+      "cycle_breaker": {
+        "node_id": "cycle_breaker",
+        "speaker": "Elder Guardian",
+        "text": "Then you understand the larger picture. This isn't just about you and her - it's about preventing future victims. That's true heroism.",
+        "choices": [
+          {
+            "choice_text": "I'm ready to face her",
+            "next_node_id": "final_preparation"
+          },
+          {
+            "choice_text": "I'll do what's right",
+            "next_node_id": null
+          }
+        ]
+      },
+      "final_preparation": {
+        "node_id": "final_preparation",
+        "speaker": "Elder Guardian",
+        "text": "The path to the Veil Maiden lies ahead. When you're ready, seek out the final challenges. And remember - whatever happens, you've already won by reclaiming yourself.",
+        "choices": [
+          {
+            "choice_text": "I'll make you proud",
+            "next_node_id": "final_blessing"
+          },
+          {
+            "choice_text": "Any final advice?",
+            "next_node_id": "final_advice"
+          },
+          {
+            "choice_text": "I'm ready now",
+            "next_node_id": null
+          }
+        ]
+      },
+      "final_blessing": {
+        "node_id": "final_blessing",
+        "speaker": "Elder Guardian",
+        "text": "You already have. Now go, finish this journey, and return to us. The light awaits your victory.",
+        "next_node_id": null,
+        "on_exit_event": "act3_final_blessing_received"
+      },
+      "final_advice": {
+        "node_id": "final_advice",
+        "speaker": "Elder Guardian",
+        "text": "Remember who you are - not the hollowed ninja who fell, but the one who rose. That's your true strength. Now go, and may the stars watch over you.",
+        "next_node_id": null,
+        "on_exit_event": "act3_elder_final_conversation"
+      }
+    }
+  }
+}

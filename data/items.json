@@ -1,0 +1,883 @@
+{
+  "version": "0.6.0",
+  "description": "Item database for Indie Ninja Adventures - Mission-Based Metroidvania",
+  "items": [
+    {
+      "item_id": "health_potion_small",
+      "item_type": "consumable",
+      "rarity": "common",
+      "display_name": "Small Health Potion",
+      "description": "Restores 1 HP",
+      "max_stack": 10,
+      "value": 10,
+      "consumable": true,
+      "health_restore": 1
+    },
+    {
+      "item_id": "health_potion_medium",
+      "item_type": "consumable",
+      "rarity": "uncommon",
+      "display_name": "Medium Health Potion",
+      "description": "Restores 2 HP",
+      "max_stack": 10,
+      "value": 25,
+      "consumable": true,
+      "health_restore": 2
+    },
+    {
+      "item_id": "health_potion_large",
+      "item_type": "consumable",
+      "rarity": "rare",
+      "display_name": "Large Health Potion",
+      "description": "Restores 3 HP",
+      "max_stack": 10,
+      "value": 50,
+      "consumable": true,
+      "health_restore": 3
+    },
+    {
+      "item_id": "max_hp_upgrade",
+      "item_type": "consumable",
+      "rarity": "epic",
+      "display_name": "Heart Container",
+      "description": "Permanently increases max HP by 1",
+      "max_stack": 1,
+      "value": 200,
+      "consumable": true,
+      "health_bonus": 1
+    },
+    {
+      "item_id": "speed_boost_potion",
+      "item_type": "consumable",
+      "rarity": "uncommon",
+      "display_name": "Speed Boost Potion",
+      "description": "Increases movement speed for 30 seconds",
+      "max_stack": 5,
+      "value": 30,
+      "consumable": true,
+      "temporary_buff": "speed",
+      "buff_duration": 30.0,
+      "speed_bonus": 0.5
+    },
+    {
+      "item_id": "invincibility_potion",
+      "item_type": "consumable",
+      "rarity": "rare",
+      "display_name": "Invincibility Potion",
+      "description": "Grants invincibility for 10 seconds",
+      "max_stack": 3,
+      "value": 100,
+      "consumable": true,
+      "temporary_buff": "invincibility",
+      "buff_duration": 10.0
+    },
+    {
+      "item_id": "weapon_dagger",
+      "item_type": "weapon",
+      "rarity": "common",
+      "display_name": "Iron Dagger",
+      "description": "A simple iron dagger. +1 Attack",
+      "max_stack": 1,
+      "value": 25,
+      "attack_bonus": 1
+    },
+    {
+      "item_id": "weapon_sword",
+      "item_type": "weapon",
+      "rarity": "uncommon",
+      "display_name": "Iron Sword",
+      "description": "A well-crafted iron sword. +2 Attack",
+      "max_stack": 1,
+      "value": 75,
+      "attack_bonus": 2
+    },
+    {
+      "item_id": "weapon_steel_sword",
+      "item_type": "weapon",
+      "rarity": "rare",
+      "display_name": "Steel Sword",
+      "description": "A sturdy steel sword. +3 Attack",
+      "max_stack": 1,
+      "value": 150,
+      "attack_bonus": 3
+    },
+    {
+      "item_id": "weapon_nature_bow",
+      "item_type": "weapon",
+      "rarity": "rare",
+      "display_name": "Nature's Bow",
+      "description": "Bow crafted from living wood. +3 Attack, +0.1 Speed",
+      "max_stack": 1,
+      "value": 200,
+      "attack_bonus": 3,
+      "speed_bonus": 0.1
+    },
+    {
+      "item_id": "weapon_crystal_blade",
+      "item_type": "weapon",
+      "rarity": "epic",
+      "display_name": "Crystal Blade",
+      "description": "Blade forged from cave crystals. +4 Attack",
+      "max_stack": 1,
+      "value": 300,
+      "attack_bonus": 4
+    },
+    {
+      "item_id": "weapon_dark_blade",
+      "item_type": "weapon",
+      "rarity": "epic",
+      "display_name": "Dark Blade",
+      "description": "Sword of the Dark Knight. +5 Attack",
+      "max_stack": 1,
+      "value": 400,
+      "attack_bonus": 5
+    },
+    {
+      "item_id": "weapon_legendary_sword",
+      "item_type": "weapon",
+      "rarity": "legendary",
+      "display_name": "Legendary Blade",
+      "description": "The ultimate weapon. +6 Attack, +1 Defense, +0.2 Speed",
+      "max_stack": 1,
+      "value": 1000,
+      "attack_bonus": 6,
+      "defense_bonus": 1,
+      "speed_bonus": 0.2
+    },
+    {
+      "item_id": "armor_cloth",
+      "item_type": "armor",
+      "rarity": "common",
+      "display_name": "Cloth Armor",
+      "description": "Basic cloth protection. +1 Defense",
+      "max_stack": 1,
+      "value": 20,
+      "defense_bonus": 1
+    },
+    {
+      "item_id": "armor_leather",
+      "item_type": "armor",
+      "rarity": "uncommon",
+      "display_name": "Leather Armor",
+      "description": "Hardened leather armor. +2 Defense",
+      "max_stack": 1,
+      "value": 60,
+      "defense_bonus": 2
+    },
+    {
+      "item_id": "armor_chain_mail",
+      "item_type": "armor",
+      "rarity": "rare",
+      "display_name": "Chain Mail",
+      "description": "Interlocking metal rings. +3 Defense",
+      "max_stack": 1,
+      "value": 120,
+      "defense_bonus": 3
+    },
+    {
+      "item_id": "armor_bark_plate",
+      "item_type": "armor",
+      "rarity": "rare",
+      "display_name": "Bark Plate Armor",
+      "description": "Armor made from ancient tree bark. +3 Defense, +1 HP",
+      "max_stack": 1,
+      "value": 180,
+      "defense_bonus": 3,
+      "health_bonus": 1
+    },
+    {
+      "item_id": "armor_crystal_plate",
+      "item_type": "armor",
+      "rarity": "epic",
+      "display_name": "Crystal Plate Armor",
+      "description": "Heavy armor with crystal plating. +4 Defense",
+      "max_stack": 1,
+      "value": 250,
+      "defense_bonus": 4
+    },
+    {
+      "item_id": "armor_dark_plate",
+      "item_type": "armor",
+      "rarity": "epic",
+      "display_name": "Dark Plate Armor",
+      "description": "The Dark Knight's armor. +5 Defense, +1 HP",
+      "max_stack": 1,
+      "value": 350,
+      "defense_bonus": 5,
+      "health_bonus": 1
+    },
+    {
+      "item_id": "armor_legendary_set",
+      "item_type": "armor",
+      "rarity": "legendary",
+      "display_name": "Legendary Armor Set",
+      "description": "The ultimate protection. +6 Defense, +2 HP, +0.1 Speed",
+      "max_stack": 1,
+      "value": 800,
+      "defense_bonus": 6,
+      "health_bonus": 2,
+      "speed_bonus": 0.1
+    },
+    {
+      "item_id": "material_cloth",
+      "item_type": "material",
+      "rarity": "common",
+      "display_name": "Cloth Scrap",
+      "description": "Basic crafting material",
+      "max_stack": 99,
+      "value": 2
+    },
+    {
+      "item_id": "material_leather",
+      "item_type": "material",
+      "rarity": "uncommon",
+      "display_name": "Leather Hide",
+      "description": "Useful crafting material",
+      "max_stack": 99,
+      "value": 5
+    },
+    {
+      "item_id": "material_iron",
+      "item_type": "material",
+      "rarity": "uncommon",
+      "display_name": "Iron Ore",
+      "description": "Metal crafting material",
+      "max_stack": 99,
+      "value": 8
+    },
+    {
+      "item_id": "material_crystal",
+      "item_type": "material",
+      "rarity": "rare",
+      "display_name": "Crystal Shard",
+      "description": "Rare crafting material from caves",
+      "max_stack": 99,
+      "value": 15
+    },
+    {
+      "item_id": "material_dark_essence",
+      "item_type": "material",
+      "rarity": "epic",
+      "display_name": "Dark Essence",
+      "description": "Powerful crafting material",
+      "max_stack": 50,
+      "value": 25
+    },
+    {
+      "item_id": "key_item_forest_heart",
+      "item_type": "key_item",
+      "rarity": "legendary",
+      "display_name": "Forest Heart",
+      "description": "Core of the Forest Guardian. Unlocks nature abilities.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_item_town_seal",
+      "item_type": "key_item",
+      "rarity": "legendary",
+      "display_name": "Town Seal",
+      "description": "Official seal from the Corrupt Mayor. Grants passage.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_item_crystal_core",
+      "item_type": "key_item",
+      "rarity": "legendary",
+      "display_name": "Crystal Core",
+      "description": "Heart of the Crystal Golem. Enables crystal sight.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_item_dark_key",
+      "item_type": "key_item",
+      "rarity": "legendary",
+      "display_name": "Dark Key",
+      "description": "The Dark Knight's master key. Opens all castle doors.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_item_plague_cure",
+      "item_type": "key_item",
+      "rarity": "legendary",
+      "display_name": "Plague Cure",
+      "description": "Cure derived from the Plague Rat. Saves the kingdom.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_forest_bronze",
+      "item_type": "key_item",
+      "rarity": "uncommon",
+      "display_name": "Bronze Forest Key",
+      "description": "Opens bronze doors in Forest region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_forest_silver",
+      "item_type": "key_item",
+      "rarity": "rare",
+      "display_name": "Silver Forest Key",
+      "description": "Opens silver doors in Forest region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_town_bronze",
+      "item_type": "key_item",
+      "rarity": "uncommon",
+      "display_name": "Bronze Town Key",
+      "description": "Opens bronze doors in Town region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_town_silver",
+      "item_type": "key_item",
+      "rarity": "rare",
+      "display_name": "Silver Town Key",
+      "description": "Opens silver doors in Town region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_caves_bronze",
+      "item_type": "key_item",
+      "rarity": "uncommon",
+      "display_name": "Bronze Cave Key",
+      "description": "Opens bronze doors in Caves region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_caves_silver",
+      "item_type": "key_item",
+      "rarity": "rare",
+      "display_name": "Silver Cave Key",
+      "description": "Opens silver doors in Caves region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_castle_bronze",
+      "item_type": "key_item",
+      "rarity": "uncommon",
+      "display_name": "Bronze Castle Key",
+      "description": "Opens bronze doors in Castle region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_castle_silver",
+      "item_type": "key_item",
+      "rarity": "rare",
+      "display_name": "Silver Castle Key",
+      "description": "Opens silver doors in Castle region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_sewer_bronze",
+      "item_type": "key_item",
+      "rarity": "uncommon",
+      "display_name": "Bronze Sewer Key",
+      "description": "Opens bronze doors in Sewer region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "key_sewer_silver",
+      "item_type": "key_item",
+      "rarity": "rare",
+      "display_name": "Silver Sewer Key",
+      "description": "Opens silver doors in Sewer region",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "quest_ancient_scroll",
+      "item_type": "quest_item",
+      "rarity": "rare",
+      "display_name": "Ancient Scroll",
+      "description": "A scroll with cryptic writing. Quest item.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "quest_lost_ring",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Lost Wedding Ring",
+      "description": "A golden ring. Someone is missing this. Quest item.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "quest_mystic_gem",
+      "item_type": "quest_item",
+      "rarity": "rare",
+      "display_name": "Mystic Gem",
+      "description": "A glowing gemstone. Quest item.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "quest_stolen_goods",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Stolen Goods",
+      "description": "Recovered stolen merchandise. Quest item.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "quest_rare_herb",
+      "item_type": "quest_item",
+      "rarity": "rare",
+      "display_name": "Rare Medicinal Herb",
+      "description": "Needed for healing potions. Quest item.",
+      "max_stack": 5,
+      "value": 0
+    },
+    {
+      "item_id": "quest_monster_claw",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Monster Claw",
+      "description": "Proof of defeating a monster. Quest item.",
+      "max_stack": 10,
+      "value": 0
+    },
+    {
+      "item_id": "ability_double_jump",
+      "item_type": "key_item",
+      "rarity": "epic",
+      "display_name": "Double Jump Boots",
+      "description": "Allows double jumping. Unlocked from Forest missions.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "ability_wall_jump",
+      "item_type": "key_item",
+      "rarity": "epic",
+      "display_name": "Wall Jump Gloves",
+      "description": "Allows wall jumping. Unlocked from Town missions.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "ability_dash",
+      "item_type": "key_item",
+      "rarity": "epic",
+      "display_name": "Dash Cloak",
+      "description": "Enables dashing ability. Unlocked from Caves missions.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "ability_crouch",
+      "item_type": "key_item",
+      "rarity": "uncommon",
+      "display_name": "Stealth Training Manual",
+      "description": "Teaches crouching. Basic ability.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "treasure_gold_bar",
+      "item_type": "material",
+      "rarity": "rare",
+      "display_name": "Gold Bar",
+      "description": "Pure gold ingot. Sells for high price.",
+      "max_stack": 10,
+      "value": 100
+    },
+    {
+      "item_id": "treasure_ruby",
+      "item_type": "material",
+      "rarity": "epic",
+      "display_name": "Ruby",
+      "description": "Precious gemstone. Very valuable.",
+      "max_stack": 10,
+      "value": 150
+    },
+    {
+      "item_id": "treasure_diamond",
+      "item_type": "material",
+      "rarity": "legendary",
+      "display_name": "Diamond",
+      "description": "The most precious gem. Extremely valuable.",
+      "max_stack": 5,
+      "value": 500
+    },
+    {
+      "item_id": "forest_key",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Forest Key",
+      "description": "A key recovered from the forest.",
+      "max_stack": 10,
+      "value": 0
+    },
+    {
+      "item_id": "relic",
+      "item_type": "quest_item",
+      "rarity": "rare",
+      "display_name": "Sacred Relic",
+      "description": "An ancient relic from the forest shrine.",
+      "max_stack": 5,
+      "value": 0
+    },
+    {
+      "item_id": "treasure_chest",
+      "item_type": "material",
+      "rarity": "rare",
+      "display_name": "Treasure Chest",
+      "description": "A chest filled with valuables.",
+      "max_stack": 10,
+      "value": 100
+    },
+    {
+      "item_id": "stolen_goods",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Stolen Goods",
+      "description": "Recovered stolen merchandise.",
+      "max_stack": 10,
+      "value": 0
+    },
+    {
+      "item_id": "tax_money",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Tax Money",
+      "description": "Collected tax payments.",
+      "max_stack": 20,
+      "value": 0
+    },
+    {
+      "item_id": "firework",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Firework Canister",
+      "description": "A canister of festival fireworks.",
+      "max_stack": 10,
+      "value": 0
+    },
+    {
+      "item_id": "crystal",
+      "item_type": "material",
+      "rarity": "rare",
+      "display_name": "Crystal",
+      "description": "A luminous crystal shard.",
+      "max_stack": 99,
+      "value": 15
+    },
+    {
+      "item_id": "artifact",
+      "item_type": "quest_item",
+      "rarity": "rare",
+      "display_name": "Ancient Artifact",
+      "description": "A mysterious ancient artifact.",
+      "max_stack": 5,
+      "value": 0
+    },
+    {
+      "item_id": "royal_treasure",
+      "item_type": "material",
+      "rarity": "epic",
+      "display_name": "Royal Treasure",
+      "description": "Valuable treasure from the royal vaults.",
+      "max_stack": 5,
+      "value": 200
+    },
+    {
+      "item_id": "ancient_tablet",
+      "item_type": "quest_item",
+      "rarity": "epic",
+      "display_name": "Ancient Tablet",
+      "description": "A stone tablet etched with runes.",
+      "max_stack": 5,
+      "value": 0
+    },
+    {
+      "item_id": "sword_iron",
+      "item_type": "weapon",
+      "rarity": "uncommon",
+      "display_name": "Iron Sword",
+      "description": "A sturdy iron sword. +2 Attack",
+      "max_stack": 1,
+      "value": 75,
+      "attack_bonus": 2
+    },
+    {
+      "item_id": "sword_silver",
+      "item_type": "weapon",
+      "rarity": "rare",
+      "display_name": "Silver Sword",
+      "description": "A refined silver sword. +3 Attack",
+      "max_stack": 1,
+      "value": 150,
+      "attack_bonus": 3
+    },
+    {
+      "item_id": "sword_steel",
+      "item_type": "weapon",
+      "rarity": "rare",
+      "display_name": "Steel Sword",
+      "description": "A sturdy steel sword. +3 Attack",
+      "max_stack": 1,
+      "value": 150,
+      "attack_bonus": 3
+    },
+    {
+      "item_id": "dagger_quick",
+      "item_type": "weapon",
+      "rarity": "common",
+      "display_name": "Quick Dagger",
+      "description": "A light dagger. +1 Attack",
+      "max_stack": 1,
+      "value": 25,
+      "attack_bonus": 1
+    },
+    {
+      "item_id": "knight_sword",
+      "item_type": "weapon",
+      "rarity": "epic",
+      "display_name": "Knight Sword",
+      "description": "A knight's blade. +4 Attack",
+      "max_stack": 1,
+      "value": 250,
+      "attack_bonus": 4
+    },
+    {
+      "item_id": "crystal_sword",
+      "item_type": "weapon",
+      "rarity": "epic",
+      "display_name": "Crystal Sword",
+      "description": "A sword forged from crystal. +4 Attack",
+      "max_stack": 1,
+      "value": 300,
+      "attack_bonus": 4
+    },
+    {
+      "item_id": "dark_sword",
+      "item_type": "weapon",
+      "rarity": "epic",
+      "display_name": "Dark Sword",
+      "description": "A blade of the dark order. +5 Attack",
+      "max_stack": 1,
+      "value": 400,
+      "attack_bonus": 5
+    },
+    {
+      "item_id": "legendary_sword",
+      "item_type": "weapon",
+      "rarity": "legendary",
+      "display_name": "Legendary Sword",
+      "description": "A legendary blade. +6 Attack",
+      "max_stack": 1,
+      "value": 1000,
+      "attack_bonus": 6
+    },
+    {
+      "item_id": "ultimate_weapon",
+      "item_type": "weapon",
+      "rarity": "legendary",
+      "display_name": "Ultimate Weapon",
+      "description": "The ultimate weapon. +7 Attack, +1 Defense",
+      "max_stack": 1,
+      "value": 1500,
+      "attack_bonus": 7,
+      "defense_bonus": 1
+    },
+    {
+      "item_id": "armor_chain",
+      "item_type": "armor",
+      "rarity": "rare",
+      "display_name": "Chain Armor",
+      "description": "Interlocking chain armor. +3 Defense",
+      "max_stack": 1,
+      "value": 120,
+      "defense_bonus": 3
+    },
+    {
+      "item_id": "armor_plate",
+      "item_type": "armor",
+      "rarity": "epic",
+      "display_name": "Plate Armor",
+      "description": "Heavy plate armor. +4 Defense",
+      "max_stack": 1,
+      "value": 250,
+      "defense_bonus": 4
+    },
+    {
+      "item_id": "royal_armor",
+      "item_type": "armor",
+      "rarity": "epic",
+      "display_name": "Royal Armor",
+      "description": "Armor fit for royalty. +5 Defense",
+      "max_stack": 1,
+      "value": 350,
+      "defense_bonus": 5
+    },
+    {
+      "item_id": "legendary_armor",
+      "item_type": "armor",
+      "rarity": "legendary",
+      "display_name": "Legendary Armor",
+      "description": "Legendary armor set. +6 Defense, +2 HP",
+      "max_stack": 1,
+      "value": 800,
+      "defense_bonus": 6,
+      "health_bonus": 2
+    },
+    {
+      "item_id": "ultimate_armor",
+      "item_type": "armor",
+      "rarity": "legendary",
+      "display_name": "Ultimate Armor",
+      "description": "Ultimate protection. +7 Defense, +3 HP",
+      "max_stack": 1,
+      "value": 1200,
+      "defense_bonus": 7,
+      "health_bonus": 3
+    },
+    {
+      "item_id": "tower_shield",
+      "item_type": "armor",
+      "rarity": "rare",
+      "display_name": "Tower Shield",
+      "description": "A massive shield. +3 Defense",
+      "max_stack": 1,
+      "value": 140,
+      "defense_bonus": 3
+    },
+    {
+      "item_id": "speed_boots",
+      "item_type": "armor",
+      "rarity": "uncommon",
+      "display_name": "Speed Boots",
+      "description": "Boots that boost speed. +0.1 Speed",
+      "max_stack": 1,
+      "value": 80,
+      "defense_bonus": 1,
+      "speed_bonus": 0.1
+    },
+    {
+      "item_id": "water_boots",
+      "item_type": "armor",
+      "rarity": "uncommon",
+      "display_name": "Water Boots",
+      "description": "Boots for wet terrain. +0.05 Speed",
+      "max_stack": 1,
+      "value": 70,
+      "defense_bonus": 1,
+      "speed_bonus": 0.05
+    },
+    {
+      "item_id": "climbing_gloves",
+      "item_type": "armor",
+      "rarity": "uncommon",
+      "display_name": "Climbing Gloves",
+      "description": "Gloves that aid climbing. +0.05 Speed",
+      "max_stack": 1,
+      "value": 70,
+      "defense_bonus": 1,
+      "speed_bonus": 0.05
+    },
+    {
+      "item_id": "party_hat",
+      "item_type": "armor",
+      "rarity": "common",
+      "display_name": "Party Hat",
+      "description": "A festive party hat.",
+      "max_stack": 1,
+      "value": 10,
+      "defense_bonus": 0
+    },
+    {
+      "item_id": "ancient_artifact",
+      "item_type": "quest_item",
+      "rarity": "epic",
+      "display_name": "Ancient Artifact",
+      "description": "A powerful ancient artifact.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "crystal_pendant",
+      "item_type": "quest_item",
+      "rarity": "rare",
+      "display_name": "Crystal Pendant",
+      "description": "A pendant infused with crystal energy.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "crown",
+      "item_type": "quest_item",
+      "rarity": "epic",
+      "display_name": "Royal Crown",
+      "description": "A jeweled crown of the castle.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "treasure_map",
+      "item_type": "quest_item",
+      "rarity": "uncommon",
+      "display_name": "Treasure Map",
+      "description": "A map leading to hidden treasure.",
+      "max_stack": 1,
+      "value": 0
+    },
+    {
+      "item_id": "torch",
+      "item_type": "consumable",
+      "rarity": "common",
+      "display_name": "Torch",
+      "description": "A basic torch for dark areas.",
+      "max_stack": 5,
+      "value": 5,
+      "consumable": true
+    },
+    {
+      "item_id": "poison_resist_charm",
+      "item_type": "consumable",
+      "rarity": "rare",
+      "display_name": "Poison Resist Charm",
+      "description": "Grants poison resistance for a short time.",
+      "max_stack": 3,
+      "value": 120,
+      "consumable": true,
+      "temporary_buff": "poison_resist",
+      "buff_duration": 30.0
+    },
+    {
+      "item_id": "plague_antidote",
+      "item_type": "consumable",
+      "rarity": "epic",
+      "display_name": "Plague Antidote",
+      "description": "Cures the plague and restores health.",
+      "max_stack": 3,
+      "value": 150,
+      "consumable": true,
+      "health_restore": 2
+    },
+    {
+      "item_id": "coin",
+      "item_type": "currency",
+      "rarity": "common",
+      "display_name": "Coin",
+      "description": "Standard currency for trading.",
+      "max_stack": 99999,
+      "value": 1
+    }
+  ]
+}

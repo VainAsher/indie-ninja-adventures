@@ -1,0 +1,380 @@
+{
+  "description": "Hub visual states and NPC spawn configurations for The Hollowed Ninja story",
+  "version": "1.0.0",
+
+  "act_states": {
+    "act_0": {
+      "name": "Rising Grounds",
+      "description": "Hub starts vibrant, gradually empties as Veil Maiden isolates player",
+      "brightness": 1.0,
+      "atmosphere": "vibrant",
+      "hub_music": "hub_peaceful",
+      "degradation_levels": {
+        "0": {
+          "brightness": 1.0,
+          "atmosphere": "vibrant",
+          "npcs_active": ["elder", "shopkeeper_weapons", "shopkeeper_armor", "townsperson_1", "townsperson_2", "townsperson_3", "townsperson_4", "townsperson_5", "guard_1", "guard_2", "merchant_1", "merchant_2", "blacksmith"]
+        },
+        "3": {
+          "brightness": 0.85,
+          "atmosphere": "dimming",
+          "npcs_active": ["elder", "shopkeeper_weapons", "shopkeeper_armor", "townsperson_3", "townsperson_4", "guard_1", "merchant_1", "blacksmith"]
+        },
+        "6": {
+          "brightness": 0.55,
+          "atmosphere": "dark",
+          "npcs_active": ["elder", "shopkeeper_weapons", "shopkeeper_armor", "guard_1"]
+        },
+        "9": {
+          "brightness": 0.2,
+          "atmosphere": "dark",
+          "npcs_active": ["veil_maiden"],
+          "comment": "Final state: Only Veil Maiden remains"
+        }
+      }
+    },
+
+    "act_1": {
+      "name": "The Veil Descends",
+      "description": "Hub is empty and dark before scripted defeat",
+      "brightness": 0.2,
+      "atmosphere": "dark",
+      "hub_music": "hub_ominous",
+      "npcs_active": ["veil_maiden"]
+    },
+
+    "act_2": {
+      "name": "The Hollow Depths",
+      "description": "Hub gradually brightens as The Lanterns appear",
+      "initial_brightness": 0.3,
+      "atmosphere": "recovering",
+      "hub_music": "hub_somber",
+      "lantern_progression": {
+        "0": {
+          "brightness": 0.3,
+          "npcs_active": [],
+          "comment": "Initial state: Alone"
+        },
+        "1": {
+          "brightness": 0.4,
+          "npcs_active": ["lantern_1_keeper"],
+          "comment": "First Lantern: The Keeper (kinship)"
+        },
+        "2": {
+          "brightness": 0.5,
+          "npcs_active": ["lantern_1_keeper", "lantern_2_listener"],
+          "comment": "Second Lantern: The Listener (understanding)"
+        },
+        "3": {
+          "brightness": 0.6,
+          "npcs_active": ["lantern_1_keeper", "lantern_2_listener", "lantern_3_guide"],
+          "comment": "Third Lantern: The Guide (direction)"
+        },
+        "4": {
+          "brightness": 0.65,
+          "npcs_active": ["lantern_1_keeper", "lantern_2_listener", "lantern_3_guide", "lantern_4_warrior"],
+          "comment": "Fourth Lantern: The Warrior (strength)"
+        },
+        "5": {
+          "brightness": 0.7,
+          "npcs_active": ["lantern_1_keeper", "lantern_2_listener", "lantern_3_guide", "lantern_4_warrior", "lantern_5_elder"],
+          "comment": "Fifth Lantern: The Elder (wisdom)"
+        }
+      }
+    },
+
+    "act_3": {
+      "name": "Ascending Paths",
+      "description": "Hub restored with The Lanterns community",
+      "brightness": 0.9,
+      "atmosphere": "restored",
+      "hub_music": "hub_hopeful",
+      "npcs_active": [
+        "lantern_1_keeper",
+        "lantern_2_listener",
+        "lantern_3_guide",
+        "lantern_4_warrior",
+        "lantern_5_elder",
+        "lantern_6_healer",
+        "lantern_7_smith",
+        "shopkeeper_weapons",
+        "shopkeeper_armor"
+      ]
+    },
+
+    "act_4": {
+      "name": "Winding Skyroad",
+      "description": "Hub remains strong, preparing for final confrontation",
+      "brightness": 0.9,
+      "atmosphere": "restored",
+      "hub_music": "hub_determined",
+      "npcs_active": [
+        "lantern_1_keeper",
+        "lantern_2_listener",
+        "lantern_3_guide",
+        "lantern_4_warrior",
+        "lantern_5_elder",
+        "lantern_6_healer",
+        "lantern_7_smith",
+        "shopkeeper_weapons",
+        "shopkeeper_armor"
+      ]
+    },
+
+    "postgame": {
+      "name": "After the End",
+      "description": "Hub remains, Yin/Yang visible as constellation",
+      "brightness": 0.95,
+      "atmosphere": "bittersweet",
+      "hub_music": "hub_peaceful",
+      "npcs_active": [
+        "lantern_1_keeper",
+        "lantern_2_listener",
+        "lantern_3_guide",
+        "lantern_4_warrior",
+        "lantern_5_elder",
+        "lantern_6_healer",
+        "lantern_7_smith",
+        "shopkeeper_weapons",
+        "shopkeeper_armor",
+        "veil_maiden_redeemed"
+      ],
+      "special_visual": "constellation_yin_yang"
+    }
+  },
+
+  "npc_definitions": {
+    "act_0_npcs": {
+      "elder": {
+        "display_name": "Village Elder",
+        "position": [400, 300],
+        "sprite": "npc_elder",
+        "dialogue_id": "tutorial_elder",
+        "role": "tutorial"
+      },
+      "shopkeeper_weapons": {
+        "display_name": "Weapons Shop",
+        "position": [600, 320],
+        "sprite": "npc_shopkeeper",
+        "dialogue_id": "shop_weapons",
+        "role": "shop_weapons"
+      },
+      "shopkeeper_armor": {
+        "display_name": "Armor Shop",
+        "position": [800, 320],
+        "sprite": "npc_shopkeeper",
+        "dialogue_id": "shop_armor",
+        "role": "shop_armor"
+      },
+      "townsperson_1": {
+        "display_name": "Townsperson",
+        "position": [350, 400],
+        "sprite": "npc_townsperson",
+        "dialogue_id": "townsperson_generic",
+        "role": "ambient"
+      },
+      "townsperson_2": {
+        "display_name": "Townsperson",
+        "position": [500, 380],
+        "sprite": "npc_townsperson",
+        "dialogue_id": "townsperson_generic",
+        "role": "ambient"
+      },
+      "townsperson_3": {
+        "display_name": "Townsperson",
+        "position": [700, 390],
+        "sprite": "npc_townsperson",
+        "dialogue_id": "townsperson_generic",
+        "role": "ambient"
+      },
+      "townsperson_4": {
+        "display_name": "Townsperson",
+        "position": [850, 400],
+        "sprite": "npc_townsperson",
+        "dialogue_id": "townsperson_generic",
+        "role": "ambient"
+      },
+      "townsperson_5": {
+        "display_name": "Townsperson",
+        "position": [450, 450],
+        "sprite": "npc_townsperson",
+        "dialogue_id": "townsperson_generic",
+        "role": "ambient"
+      },
+      "guard_1": {
+        "display_name": "Guard",
+        "position": [300, 350],
+        "sprite": "npc_guard",
+        "dialogue_id": "guard_generic",
+        "role": "ambient"
+      },
+      "guard_2": {
+        "display_name": "Guard",
+        "position": [900, 350],
+        "sprite": "npc_guard",
+        "dialogue_id": "guard_generic",
+        "role": "ambient"
+      },
+      "merchant_1": {
+        "display_name": "Traveling Merchant",
+        "position": [550, 420],
+        "sprite": "npc_merchant",
+        "dialogue_id": "merchant_generic",
+        "role": "ambient"
+      },
+      "merchant_2": {
+        "display_name": "Traveling Merchant",
+        "position": [750, 430],
+        "sprite": "npc_merchant",
+        "dialogue_id": "merchant_generic",
+        "role": "ambient"
+      },
+      "blacksmith": {
+        "display_name": "Blacksmith",
+        "position": [650, 340],
+        "sprite": "npc_blacksmith",
+        "dialogue_id": "blacksmith_generic",
+        "role": "ambient"
+      },
+      "veil_maiden": {
+        "display_name": "The Veil Maiden",
+        "position": [600, 350],
+        "sprite": "npc_veil_maiden",
+        "dialogue_id": "veil_maiden_act0",
+        "role": "story_critical"
+      }
+    },
+
+    "the_lanterns": {
+      "lantern_1_keeper": {
+        "display_name": "The Keeper",
+        "position": [500, 350],
+        "sprite": "npc_lantern_keeper",
+        "dialogue_id": "lantern_keeper",
+        "role": "story_lantern",
+        "description": "First to reach out, offers kinship"
+      },
+      "lantern_2_listener": {
+        "display_name": "The Listener",
+        "position": [400, 380],
+        "sprite": "npc_lantern_listener",
+        "dialogue_id": "lantern_listener",
+        "role": "story_lantern",
+        "description": "Understands without judgment"
+      },
+      "lantern_3_guide": {
+        "display_name": "The Guide",
+        "position": [700, 370],
+        "sprite": "npc_lantern_guide",
+        "dialogue_id": "lantern_guide",
+        "role": "story_lantern",
+        "description": "Provides direction and purpose"
+      },
+      "lantern_4_warrior": {
+        "display_name": "The Warrior",
+        "position": [550, 420],
+        "sprite": "npc_lantern_warrior",
+        "dialogue_id": "lantern_warrior",
+        "role": "story_lantern",
+        "description": "Represents strength through vulnerability"
+      },
+      "lantern_5_elder": {
+        "display_name": "The Lantern Elder",
+        "position": [600, 300],
+        "sprite": "npc_lantern_elder",
+        "dialogue_id": "lantern_elder",
+        "role": "story_lantern",
+        "description": "Wisdom and perspective"
+      },
+      "lantern_6_healer": {
+        "display_name": "The Healer",
+        "position": [450, 400],
+        "sprite": "npc_lantern_healer",
+        "dialogue_id": "lantern_healer",
+        "role": "story_lantern",
+        "description": "Emotional support and recovery"
+      },
+      "lantern_7_smith": {
+        "display_name": "The Smith",
+        "position": [750, 390],
+        "sprite": "npc_lantern_smith",
+        "dialogue_id": "lantern_smith",
+        "role": "story_lantern",
+        "description": "Rebuilding and crafting new paths"
+      }
+    },
+
+    "special_npcs": {
+      "veil_maiden_redeemed": {
+        "display_name": "Maiden",
+        "position": [800, 360],
+        "sprite": "npc_veil_maiden_redeemed",
+        "dialogue_id": "veil_maiden_postgame",
+        "role": "story_critical",
+        "spawn_condition": "ending_save_chosen"
+      }
+    }
+  },
+
+  "visual_effects": {
+    "brightness_overlay": {
+      "description": "Dark overlay that dims the hub based on brightness value",
+      "blend_mode": "multiply",
+      "color": [0, 0, 0],
+      "alpha_calculation": "1.0 - brightness"
+    },
+
+    "portal_dimming": {
+      "description": "Portals dim and color-shift based on hub atmosphere",
+      "vibrant": {
+        "glow_intensity": 1.0,
+        "color_shift": [1.0, 1.0, 1.0]
+      },
+      "dimming": {
+        "glow_intensity": 0.7,
+        "color_shift": [0.9, 0.9, 1.0]
+      },
+      "dark": {
+        "glow_intensity": 0.3,
+        "color_shift": [0.7, 0.7, 0.9]
+      },
+      "recovering": {
+        "glow_intensity": 0.5,
+        "color_shift": [0.8, 0.9, 1.0]
+      },
+      "restored": {
+        "glow_intensity": 0.95,
+        "color_shift": [1.0, 1.0, 1.0]
+      },
+      "bittersweet": {
+        "glow_intensity": 1.0,
+        "color_shift": [1.0, 0.95, 0.9]
+      }
+    },
+
+    "constellation_yin_yang": {
+      "description": "Yin and Yang appear as constellation in sky (postgame)",
+      "position": [640, 100],
+      "star_count": 8,
+      "yin_color": [220, 220, 255],
+      "yang_color": [255, 220, 150],
+      "twinkle_speed": 2.0,
+      "alpha_range": [0.7, 1.0]
+    }
+  },
+
+  "audio_cues": {
+    "act_transitions": {
+      "act_0_to_act_1": "sfx_hub_darkens",
+      "act_1_to_act_2": "sfx_defeat_echo",
+      "act_2_to_act_3": "sfx_hub_brightens",
+      "act_3_to_act_4": "sfx_determination",
+      "act_4_to_postgame": "sfx_constellation"
+    },
+
+    "npc_spawn": {
+      "lantern_appears": "sfx_gentle_chime",
+      "npc_leaves": "sfx_fading_steps"
+    }
+  }
+}
