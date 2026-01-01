@@ -48,13 +48,14 @@ from game.story_manager import StoryManager
 from game.game_state import GameStateManager, GameState
 from game.inventory_system import initialize_item_manager, get_item_manager, Inventory
 from game.objective_tracker import ObjectiveTracker
-from config.build_config import build_config
+from config.build_config import get_build_config
 
-# Import constants from physics_constants (GAME_WIDTH, GAME_HEIGHT are there)
-try:
-    from config.constants import GAME_WIDTH, GAME_HEIGHT
-except ImportError:
-    from config.physics_constants import GAME_WIDTH, GAME_HEIGHT
+# Get build config instance
+build_config = get_build_config()
+
+# Display settings (virtual game resolution)
+GAME_WIDTH = 1280
+GAME_HEIGHT = 720
 
 # Import event types for CameraEffectsHandler
 from core.event_bus import CollisionEvent, VelocityChangeEvent

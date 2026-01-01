@@ -414,135 +414,77 @@ def main():
         print("  - Procedural world generation")
     print("="*60)
 
-    # Initialize pygame
-    pygame.init()
+    # Initialize pygame and rendering systems
+    screen, clock_pygame, window_width, window_height = initialize_pygame(headless=headless)
 
-    if headless:
-        window_width, window_height = GAME_WIDTH, GAME_HEIGHT
-        screen = pygame.Surface((window_width, window_height))
-        clock_pygame = pygame.time.Clock()
-    else:
-        # Get recommended window size
-        window_width, window_height = get_recommended_window_size()
-        screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
-        pygame.display.set_caption("Vain Asher Gaming's: Indie Ninja Adventures - Responsive Demo")
-        clock_pygame = pygame.time.Clock()
-    sprite_manager = SpriteManager()  # Loads from assets/sprites/player/
-    tile_loader = TileLoader()  # Loads and scales tiles from assets/biomes/
-    particles = ParticleSystem()
-    hud = HUDRenderer()
-    inventory_ui = InventoryUI()
-    npc_prompt_renderer = NPCPromptRenderer()  # Renders "Press E to talk" prompts
-    npc_indicator_renderer = NPCIndicatorRenderer()  # Renders NPC indicators (!, $, ?)
+    rendering_systems = create_rendering_systems()
+    sprite_manager = rendering_systems["sprite_manager"]
+    tile_loader = rendering_systems["tile_loader"]
+    particles = rendering_systems["particles"]
+    hud = rendering_systems["hud"]
+    inventory_ui = rendering_systems["inventory_ui"]
+    npc_prompt_renderer = rendering_systems["npc_prompt_renderer"]
+    npc_indicator_renderer = rendering_systems["npc_indicator_renderer"]
 
     # Initialize core systems
-    bus = EventBus()
-    logger = GameLogger()
-    game_clock = GameClock(bus, logger=logger.get_logger("clock"))
-    entity_manager = EntityManager(bus, logger.get_logger("entity_manager"))
+    core_systems = create_core_systems()
+    bus = core_systems["bus"]
+    logger = core_systems["logger"]
+    game_clock = core_systems["game_clock"]
+    entity_manager = core_systems["entity_manager"]
 
-    # Initialize save system early (needed for campaign data/inventory)
-    save_manager = SaveManager()
-    save_manager.load()  # Load existing save or create new
+    # Calculate base_hub_seed early for manager initialization
+    # (needed before calling create_game_managers)
+    save_manager_temp = SaveManager()
+    save_manager_temp.load()
+    campaign_data_temp = save_manager_temp.data.campaign if save_manager_temp and save_manager_temp.data else None
 
-    # Initialize pickup manager
-    pickup_manager = PickupManager(bus)
-
-    # Initialize hazard manager
-    hazard_manager = HazardManager(bus)
-
-    # Initialize NPC manager (v0.6.0 - Phase 2)
-    npc_manager = NPCManager(bus)
-
-    # Initialize dialogue system (v0.6.0 - Phase 2)
-    dialogue_manager = DialogueManager(bus)
-    dialogue_manager.load_dialogues("data/dialogues.json")
-    dialogue_ui = DialogueUI(GAME_WIDTH, GAME_HEIGHT)
-
-    # Initialize developer tools (DEV build only)
-    dev_console = None
-    hot_reload = None
-
-    if build_config.enable_dev_console:
-        from dev_tools import DevConsole
-        dev_console = DevConsole(enabled=True)
-        dev_console.initialize_font()
-        print("[DEV BUILD] Developer console enabled (press ` to toggle)")
-
-    if build_config.enable_hot_reload:
-        from dev_tools import HotReloadWatcher
-        hot_reload = HotReloadWatcher()
-        # Note: We'll watch settings.json if it exists, but this game doesn't currently use GameSettings
-        # You can add watches for other config files here
-        print("[DEV BUILD] Hot reload enabled")
-
-    # Initialize mission menu UI (Phase 2 integration)
-    mission_menu_ui = MissionMenuUI()
-    active_mission_pool: list[str] = []
-
-    # Initialize shop UI and trading (Phase 2 integration)
-    shop_ui = ShopUI()
-    trading_manager = TradingManager(bus, current_seed if current_seed else 0)
-    active_shop_npc_id = None
-
-    # Initialize inventory system for player (for shops)
-    initialize_item_manager()
-    item_manager = get_item_manager()
-    try:
-        with open("data/items.json", "r", encoding="utf-8") as f:
-            items_data = json.load(f)
-            item_manager.load_from_dict(items_data)
-    except FileNotFoundError:
-        print("[WARNING] items.json not found; shop items will be empty")
-
-    campaign_data = save_manager.data.campaign if save_manager and save_manager.data else None
-    if campaign_data and campaign_data.player_inventory:
-        player_inventory = Inventory.from_dict(campaign_data.player_inventory, max_slots=20)
-    else:
-        player_inventory = Inventory(max_slots=20)
-    player_inventory.set_item_database(item_manager)
-    if campaign_data:
-        player_inventory.currency = campaign_data.currency
-        player_inventory.equipped_weapon = campaign_data.equipped_weapon
-        player_inventory.equipped_armor = campaign_data.equipped_armor
-
-    def apply_shuriken_capacity_bonus():
-        """Set shuriken max based on equipped armor."""
-        base = 10
-        armor_bonus = 0
-        armor_id = getattr(player_inventory, "equipped_armor", None)
-        if armor_id and item_manager:
-            itm = item_manager.get_item(armor_id)
-            if itm:
-                bonus_map = {
-                    "armor_cloth": 0,
-                    "armor_leather": 2,
-                    "armor_chain_mail": 4,
-                    "armor_bark_plate": 4,
-                    "armor_crystal_plate": 6,
-                    "armor_dark_plate": 8,
-                    "armor_legendary_set": 12,
-                }
-                armor_bonus = bonus_map.get(armor_id, 0)
-        player.state.shuriken_max = base + armor_bonus
-        player.state.shuriken_ammo = min(player.state.shuriken_ammo, player.state.shuriken_max)
-
-    # Hub/portal systems
     # Normalize campaign world seed (treat 0 as unset)
-    if campaign_data and getattr(campaign_data, "world_seed", 0) == 0:
-        campaign_data.world_seed = current_seed if current_seed is not None else random.randint(1, 999999)
-        save_manager.mark_dirty()
+    if campaign_data_temp and getattr(campaign_data_temp, "world_seed", 0) == 0:
+        campaign_data_temp.world_seed = current_seed if current_seed is not None else random.randint(1, 999999)
+        save_manager_temp.mark_dirty()
 
     if replay_world_seed is not None:
         base_hub_seed = replay_world_seed
     else:
         base_hub_seed = (
-            campaign_data.world_seed
-            if campaign_data and getattr(campaign_data, "world_seed", 0) != 0
+            campaign_data_temp.world_seed
+            if campaign_data_temp and getattr(campaign_data_temp, "world_seed", 0) != 0
             else (current_seed if current_seed is not None else random.randint(1, 999999))
         )
-    hub_manager = HubManager(base_hub_seed)
-    portal_manager = PortalManager(bus)
+
+    # Initialize all game managers using extracted function
+    game_managers = create_game_managers(bus, logger, current_seed, base_hub_seed)
+    save_manager = game_managers["save_manager"]
+    pickup_manager = game_managers["pickup_manager"]
+    hazard_manager = game_managers["hazard_manager"]
+    npc_manager = game_managers["npc_manager"]
+    dialogue_manager = game_managers["dialogue_manager"]
+    dialogue_ui = game_managers["dialogue_ui"]
+    dev_console = game_managers["dev_console"]
+    hot_reload = game_managers["hot_reload"]
+    mission_menu_ui = game_managers["mission_menu_ui"]
+    shop_ui = game_managers["shop_ui"]
+    trading_manager = game_managers["trading_manager"]
+    menu_manager = game_managers["menu_manager"]
+    item_manager = game_managers["item_manager"]
+    player_inventory = game_managers["player_inventory"]
+    campaign_data = game_managers["campaign_data"]
+    hub_manager = game_managers["hub_manager"]
+    portal_manager = game_managers["portal_manager"]
+    objective_tracker = game_managers["objective_tracker"]
+    objective_hud_renderer = game_managers["objective_hud_renderer"]
+    game_state_manager = game_managers["game_state_manager"]
+    story_manager = game_managers["story_manager"]
+    companion_orbs = game_managers["companion_orbs"]
+    hub_effects = game_managers["hub_effects"]
+    ending_manager = game_managers["ending_manager"]
+    tutorial_manager = game_managers["tutorial_manager"]
+    controls_hint = game_managers["controls_hint"]
+
+    # Additional variables needed in main loop
+    active_mission_pool: list[str] = []
+    active_shop_npc_id = None
     current_hub_id = replay_hub_id or (campaign_data.current_hub_id if campaign_data and campaign_data.current_hub_id else "central_hub")
     current_world_context = replay_world_context or "hub"  # hub | mission | arcade
     show_minimap = True
@@ -571,10 +513,6 @@ def main():
             save_manager.data.campaign.story_state = story_manager.to_dict()
             save_manager.mark_dirty()
 
-    # Objective tracking (create up-front for mission flows)
-    objective_tracker = ObjectiveTracker(bus)
-    objective_hud_renderer = ObjectiveHUDRenderer()
-
     # Track last key states for dialogue input (to detect key press, not hold)
     prev_key_state = {k: False for k in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT,
                                          pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d,
@@ -597,25 +535,6 @@ def main():
 
     # Subscribe to dialogue events
     bus.subscribe(DialogueStartEvent, on_dialogue_start)
-
-    # Initialize game state manager
-    game_state_manager = GameStateManager(initial_state=GameState.PLAYING)
-
-    # Initialize story system (v0.7.0 - The Hollowed Ninja)
-    # Load story state from save (if exists)
-    if save_manager and save_manager.data and save_manager.data.campaign and save_manager.data.campaign.story_state:
-        story_manager = StoryManager.from_dict(save_manager.data.campaign.story_state)
-        print(f"[STORY] Loaded story state: Act {story_manager.current_act}")
-    else:
-        story_manager = StoryManager()
-        print("[STORY] No saved story state, starting fresh")
-
-    story_manager.event_bus = bus  # Connect to event bus
-    companion_orbs = CompanionOrbs()
-    hub_effects = HubEffectsRenderer()
-    ending_manager = story_manager.ending_manager  # Get ending manager reference
-
-    print("[STORY] Story systems initialized")
 
     # Mission menu open handler
     def on_mission_menu_open(event: MissionMenuOpenEvent):
@@ -818,42 +737,18 @@ def main():
 
     bus.subscribe(PortalTravelEvent, on_portal_travel)
 
-    # Initialize menu system (but start directly in campaign hub)
-    menu_manager = MenuManager(GAME_WIDTH, GAME_HEIGHT)
-
-    # Initialize tutorial system
-    first_run = not save_manager.data.player_progress.tutorials_seen
-    tutorial_manager = TutorialManager(GAME_WIDTH, GAME_HEIGHT, save_manager)
-    controls_hint = ControlsHintOverlay(
-        GAME_WIDTH,
-        GAME_HEIGHT,
-        start_visible=first_run,
-        auto_fade=first_run
-    )
-
-    # Trigger welcome tutorial if first time
-    if first_run:
-        tutorial_manager.trigger_tutorial("welcome")
-
-    # Initialize game systems
-    physics_system = PhysicsSystem(bus, entity_manager, logger.get_logger("physics"))
-    collision_system = CollisionSystem(bus, entity_manager, logger.get_logger("collision"))
-    enemy_manager = EnemyManager(bus, current_seed if current_seed else base_hub_seed)
+    # Initialize physics, collision, and enemy systems
+    physics_collision = create_physics_and_collision(bus, entity_manager, logger, current_seed if current_seed else base_hub_seed)
+    physics_system = physics_collision["physics_system"]
+    collision_system = physics_collision["collision_system"]
+    enemy_manager = physics_collision["enemy_manager"]
 
     # Initialize objective tracker for campaign/playtest modes (v0.6.0)
     if mission_definition:  # Only if in campaign or playtest mode
         objective_tracker.start_mission_objectives(args.mission)
 
     # Initialize camera system
-    camera_config = CameraConfig(
-        game_width=GAME_WIDTH,
-        game_height=GAME_HEIGHT,
-        follow_speed=0.1,
-        deadzone_width=200,
-        deadzone_height=150
-    )
-    camera = CameraSystem(camera_config)
-    camera.handle_resize(window_width, window_height)
+    camera = create_camera_system(window_width, window_height)
 
     # Create level containers
     world = None
@@ -865,45 +760,26 @@ def main():
     spawn_y = GAME_HEIGHT - 100
 
     # Player + level manager setup (player will be teleported after world regen)
-    level_manager = LevelManager(bus)
-    player = Player(
-        player_id=0,
+    player, player_entity, level_manager = create_player(
         spawn_x=spawn_x,
         spawn_y=spawn_y,
-        event_bus=bus,
-        logger_factory=logger,
+        bus=bus,
+        logger=logger,
         collision_system=collision_system,
-        feature_flags={
-            "double_jump": True,
-            "wall_jump": True,
-            "dash": True,
-            "crouch": True,
-            "shuriken": True,
-            "teleport": True,
-            "ninjutsu": True
-        }
-    )
-    # Wire mechanic contexts
-    player.shuriken.set_context(enemy_manager=enemy_manager)
-    player.teleport.set_collision_system(collision_system)
-    player.ninjutsu.set_hazard_manager(hazard_manager)
-    apply_shuriken_capacity_bonus()
-
-    # Add player entity to entity manager so PhysicsSystem can process it
-    player_entity = entity_manager.create_entity(
-        entity_type=EntityType.PLAYER,
-        physics=player.state.physics
+        entity_manager=entity_manager,
+        enemy_manager=enemy_manager,
+        hazard_manager=hazard_manager
     )
 
-    # Combat handling (dash/jump attacks and contact damage)
-    combat_mechanic = CombatMechanic(player_entity.entity_id, bus, logger.get_logger("combat"))
+    # Apply shuriken capacity bonus based on equipped armor
+    apply_shuriken_capacity_bonus(player, player_inventory, item_manager)
+
+    # Combat handling and camera effects
+    combat_mechanic, camera_effects = create_combat_system(player_entity.entity_id, bus, logger, camera)
     attack_cooldown = 0.35  # seconds between sword swings
     attack_timer = 0.0
     attack_fx_timer = 0.0
     attack_fx_rect = None
-
-    # Create camera effects handler
-    camera_effects = CameraEffectsHandler(camera, bus, player_entity.entity_id)
 
     # Initial hub generation (central hub by default)
     initial_hub_def = hub_manager.get_hub_definition(current_hub_id)

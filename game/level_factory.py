@@ -23,10 +23,9 @@ from config.physics_constants import (
     TILES_PER_ZONE,
 )
 
-try:
-    from config.constants import GAME_WIDTH, GAME_HEIGHT
-except ImportError:
-    from config.physics_constants import GAME_WIDTH, GAME_HEIGHT
+# Display settings (virtual game resolution)
+GAME_WIDTH = 1280
+GAME_HEIGHT = 720
 
 from systems.world_generation import WorldGenerator, generate_world_tilemaps, WorldShape
 from systems.room_generation import TILE_SOLID, TILE_PLATFORM, TILE_EMPTY
