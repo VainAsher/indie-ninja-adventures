@@ -117,6 +117,12 @@ from game.level_factory import (
     spawn_objective_collectibles,
 )
 from game.world_builder import regenerate_world_state
+from game.game_helpers import (
+    persist_player_inventory,
+    persist_story_state,
+    get_arcade_seed,
+    update_replay_metadata,
+)
 
 
 # Display settings (virtual game resolution)
@@ -493,25 +499,12 @@ def main():
     arcade_depth = 0
     arcade_rooms = 8
 
-    def persist_player_inventory():
-        """Persist current inventory/currency into campaign save data."""
-        if save_manager and save_manager.data and save_manager.data.campaign:
-            inv_dict = {}
-            for slot in player_inventory.slots:
-                if slot:
-                    inv_dict[slot.item_id] = inv_dict.get(slot.item_id, 0) + slot.quantity
-            save_manager.save_inventory(
-                inv_dict,
-                player_inventory.equipped_weapon,
-                player_inventory.equipped_armor,
-                player_inventory.currency
-            )
+    # Local wrapper functions for game helpers (definitions in game/game_helpers.py)
+    def persist_player_inventory_wrapper():
+        persist_player_inventory(save_manager, player_inventory)
 
-    def persist_story_state():
-        """Persist current story state into campaign save data (v0.7.0)."""
-        if save_manager and save_manager.data and save_manager.data.campaign:
-            save_manager.data.campaign.story_state = story_manager.to_dict()
-            save_manager.mark_dirty()
+    def persist_story_state_wrapper():
+        persist_story_state(save_manager, story_manager)
 
     # Track last key states for dialogue input (to detect key press, not hold)
     prev_key_state = {k: False for k in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT,
@@ -643,7 +636,7 @@ def main():
                     print(f"[SHOP] Purchased {item_id}")
                     if campaign_data:
                         campaign_data.currency = player_inventory.currency
-                    persist_player_inventory()
+                    persist_player_inventory_wrapper()
                 else:
                     print(f"[SHOP] Could not purchase {item_id}")
             return
@@ -656,7 +649,7 @@ def main():
                     print(f"[SHOP] Sold {item_id}")
                     if campaign_data:
                         campaign_data.currency = player_inventory.currency
-                    persist_player_inventory()
+                    persist_player_inventory_wrapper()
                 else:
                     print(f"[SHOP] Could not sell {item_id}")
             return
@@ -673,7 +666,7 @@ def main():
             arcade_rooms = 8
             current_world_context = "arcade"
             current_play_mode = PlayMode.ARCADE
-            arcade_seed = get_arcade_seed(arcade_depth)
+            arcade_seed = get_arcade_seed_wrapper(arcade_depth)
             tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
                 seed=arcade_seed,
                 shape="snake",
@@ -694,7 +687,7 @@ def main():
                 GAME_HEIGHT=GAME_HEIGHT
             )
             game_state_manager.transition_to(GameState.PLAYING)
-            update_replay_metadata()
+            update_replay_metadata_wrapper()
             print("[ARCADE] Entered arcade loop from hub")
             return
 
@@ -732,7 +725,7 @@ def main():
             save_manager.mark_dirty()
 
         game_state_manager.transition_to(GameState.PLAYING)
-        update_replay_metadata()
+        update_replay_metadata_wrapper()
         print(f"[PORTAL] Traveled to {dest_hub}")
 
     bus.subscribe(PortalTravelEvent, on_portal_travel)
@@ -855,7 +848,7 @@ def main():
             save_manager.mark_dirty()
         if reason:
             print(f"[RESPAWN] Returned to {target_hub} ({reason})")
-        update_replay_metadata()
+        update_replay_metadata_wrapper()
 
     print(f"\n[OK] All systems initialized")
     print(f"[OK] Player spawned at ({spawn_x}, {spawn_y})")
@@ -898,24 +891,16 @@ def main():
         log_path=log_input_path,
     )
 
-    def get_arcade_seed(depth: int) -> int:
-        """Derive deterministic arcade seed for a given depth."""
-        base_seed = SeedDerivation.derive_region_seed(hub_manager.world_seed, "arcade_loop")
-        return SeedDerivation.derive_seed(base_seed, f"depth:{depth}")
+    def get_arcade_seed_wrapper(depth: int) -> int:
+        return get_arcade_seed_wrapper(hub_manager, depth)
 
-    def update_replay_metadata(mission_id: str | None = None):
-        """Capture current context into replay metadata for determinism."""
-        ctx = {
-            "mode": current_play_mode.value if 'current_play_mode' in locals() and current_play_mode else None,
-            "hub_id": current_hub_id,
-            "world_context": current_world_context,
-            "current_seed": current_seed,
-            "world_seed": hub_manager.world_seed if 'hub_manager' in locals() and hub_manager else current_seed,
-            "mission_id": mission_id,
-        }
-        input_pipeline.metadata.update(ctx)
+    def update_replay_metadata_wrapper(mission_id: str | None = None):
+        update_replay_metadata(
+            input_pipeline, current_play_mode, current_hub_id,
+            current_world_context, current_seed, hub_manager, mission_id
+        )
 
-    update_replay_metadata()
+    update_replay_metadata_wrapper()
 
     # Start level timer
     import time
@@ -997,7 +982,7 @@ def main():
                         # Advance arcade loop with bigger room count
                         arcade_depth += 1
                         arcade_rooms = min(8 + arcade_depth * 2, 24)
-                        arcade_seed = get_arcade_seed(arcade_depth)
+                        arcade_seed = get_arcade_seed_wrapper(arcade_depth)
                         tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
                             seed=arcade_seed,
                             shape="snake",
@@ -1019,7 +1004,7 @@ def main():
                         )
                         current_seed = arcade_seed
                         current_world_context = "arcade"
-                        update_replay_metadata()
+                        update_replay_metadata_wrapper()
                         print(f"[ARCADE] Generated new level (depth {arcade_depth}, rooms {arcade_rooms}, seed {current_seed})")
                     else:
                         # Hub victory (should not normally trigger) just respawns player
@@ -1128,7 +1113,7 @@ def main():
                             used = True
                             break
             if used:
-                persist_player_inventory()
+                persist_player_inventory_wrapper()
 
         # Handle menu input if menu is active
         selected_mode = None
@@ -1207,7 +1192,7 @@ def main():
                         GAME_HEIGHT=GAME_HEIGHT
                     )
                     current_world_context = "hub"
-                    update_replay_metadata()
+                    update_replay_metadata_wrapper()
 
                     # Start game
                     game_state_manager.start_game()
@@ -1220,7 +1205,7 @@ def main():
                     arcade_depth = 0
 
                     # Generate new arcade world
-                    arcade_seed = get_arcade_seed(arcade_depth)
+                    arcade_seed = get_arcade_seed_wrapper(arcade_depth)
 
                     print(f"[ARCADE] Generating procedural level (seed: {arcade_seed})...")
 
@@ -1245,7 +1230,7 @@ def main():
                         GAME_HEIGHT=GAME_HEIGHT
                     )
                     current_world_context = "arcade"
-                    update_replay_metadata()
+                    update_replay_metadata_wrapper()
 
                     # Start game
                     game_state_manager.start_game()
@@ -1706,7 +1691,7 @@ def main():
                         victory_screen.reset()
                         arcade_depth += 1
                         arcade_rooms = min(8 + arcade_depth * 2, 24)
-                        arcade_seed = get_arcade_seed(arcade_depth)
+                        arcade_seed = get_arcade_seed_wrapper(arcade_depth)
                         tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
                             seed=arcade_seed,
                             shape="snake",
@@ -1728,7 +1713,7 @@ def main():
                         )
                         current_seed = arcade_seed
                         level_complete = False
-                        update_replay_metadata()
+                        update_replay_metadata_wrapper()
                         print(f"[ARCADE] Advanced to depth {arcade_depth} (rooms={arcade_rooms})")
                     else:
                         level_complete = True
@@ -1743,7 +1728,7 @@ def main():
                             stats['collectibles'],
                             stats['deaths']
                         )
-                        persist_story_state()  # Save story state (v0.7.0)
+                        persist_story_state_wrapper()  # Save story state (v0.7.0)
                         save_manager.save(force=True)  # Save immediately on level complete
 
                         print(f"\n[VICTORY] Level complete!")
@@ -2565,7 +2550,7 @@ def main():
             game_surface.blit(shared_text, shared_rect)
 
         # Auto-save periodically
-        persist_story_state()  # Update story state before auto-save (v0.7.0)
+        persist_story_state_wrapper()  # Update story state before auto-save (v0.7.0)
         save_manager.auto_save(time.time())
 
         # Present game surface to window with letterboxing
@@ -2581,7 +2566,7 @@ def main():
 
     # Final save on exit
     if save_manager.needs_save:
-        persist_story_state()  # Save story state (v0.7.0)
+        persist_story_state_wrapper()  # Save story state (v0.7.0)
         save_manager.save(force=True)
         print("[SAVE] Final save on exit")
 
