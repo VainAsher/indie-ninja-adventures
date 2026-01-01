@@ -11,7 +11,7 @@ Reference: https://gafferongames.com/post/fix_your_timestep/
 
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from core.event_bus import EventBus, RenderEvent, TickEvent
 

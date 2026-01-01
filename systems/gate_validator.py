@@ -216,7 +216,7 @@ class GateValidator:
         """
         # BFS to find path
         queue = deque([start])
-        visited = set([start])
+        visited = {start}
 
         while queue:
             current_x, current_y = queue.popleft()
@@ -327,7 +327,7 @@ def find_path_with_abilities(
         List of tile positions forming path, or None if no path exists
     """
     queue = deque([(start, [start])])
-    visited = set([start])
+    visited = {start}
 
     while queue:
         current, path = queue.popleft()

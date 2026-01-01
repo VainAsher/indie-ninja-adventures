@@ -10,6 +10,10 @@ import time
 from collections import defaultdict, deque
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from network.commands import InputCommand
 
 # ============================================================================
 # Event Base Classes

@@ -14,7 +14,6 @@ Coverage:
 Test philosophy: Verify UI logic, not visual rendering
 """
 
-
 import pygame
 import pytest
 

@@ -25,9 +25,7 @@ from pathlib import Path
 class ValidationError:
     """Represents a validation error"""
 
-    def __init__(
-        self, severity: str, category: str, message: str, mission_id: str | None = None
-    ):
+    def __init__(self, severity: str, category: str, message: str, mission_id: str | None = None):
         self.severity = severity  # 'ERROR', 'WARNING', 'INFO'
         self.category = category  # 'CIRCULAR_DEP', 'UNREACHABLE', etc.
         self.message = message
@@ -148,9 +146,7 @@ class CampaignValidator:
                 dependencies[mission_id].append(req_id)
 
         # Check for cycles using DFS
-        def has_cycle_from(
-            node: str, visited: set[str], rec_stack: set[str]
-        ) -> list[str] | None:
+        def has_cycle_from(node: str, visited: set[str], rec_stack: set[str]) -> list[str] | None:
             visited.add(node)
             rec_stack.add(node)
 

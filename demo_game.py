@@ -532,7 +532,41 @@ def main():
         persist_story_state(save_manager, story_manager)
 
     # Track last key states for dialogue input (to detect key press, not hold)
-    prev_key_state = dict.fromkeys([pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT, pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT, pygame.K_p, pygame.K_c, pygame.K_ESCAPE, pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_j, pygame.K_k, pygame.K_f, pygame.K_l, pygame.K_q, pygame.K_TAB, pygame.K_m, pygame.K_r, pygame.K_i, pygame.K_F3, pygame.K_h, pygame.K_LALT, pygame.K_RALT], False)
+    prev_key_state = dict.fromkeys(
+        [
+            pygame.K_UP,
+            pygame.K_DOWN,
+            pygame.K_LEFT,
+            pygame.K_RIGHT,
+            pygame.K_w,
+            pygame.K_a,
+            pygame.K_s,
+            pygame.K_d,
+            pygame.K_SPACE,
+            pygame.K_LSHIFT,
+            pygame.K_RSHIFT,
+            pygame.K_p,
+            pygame.K_c,
+            pygame.K_ESCAPE,
+            pygame.K_e,
+            pygame.K_RETURN,
+            pygame.K_KP_ENTER,
+            pygame.K_j,
+            pygame.K_k,
+            pygame.K_f,
+            pygame.K_l,
+            pygame.K_q,
+            pygame.K_TAB,
+            pygame.K_m,
+            pygame.K_r,
+            pygame.K_i,
+            pygame.K_F3,
+            pygame.K_h,
+            pygame.K_LALT,
+            pygame.K_RALT,
+        ],
+        False,
+    )
 
     # Event handler for dialogue start
     def on_dialogue_start(event: DialogueStartEvent):
@@ -2101,7 +2135,9 @@ def main():
 
                     # Calculate pulse intensity (0 to 1)
                     definition = enemy.get_definition()
-                    _progress = enemy.attack_substate_timer / definition.attack_windup_time  # Unused
+                    _progress = (
+                        enemy.attack_substate_timer / definition.attack_windup_time
+                    )  # Unused
                     pulse = abs(math.sin(enemy.attack_substate_timer * 10.0))  # Fast pulse
 
                     # Red glow overlay on enemy

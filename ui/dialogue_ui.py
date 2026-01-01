@@ -10,7 +10,6 @@ Renders dialogue box at bottom of screen with:
 Version: v0.6.0
 """
 
-
 import pygame
 
 from game.dialogue_system import DialogueChoice, DialogueNode
@@ -45,7 +44,7 @@ class DialogueUI:
             self.text_font = pygame.font.SysFont("consolas", 16)
             self.choice_font = pygame.font.SysFont("consolas", 15)
             self.hint_font = pygame.font.SysFont("consolas", 14)
-        except:
+        except Exception:
             # Fallback to default font
             self.title_font = pygame.font.Font(None, 24)
             self.text_font = pygame.font.Font(None, 20)

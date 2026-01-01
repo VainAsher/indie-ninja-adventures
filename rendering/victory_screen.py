@@ -47,7 +47,7 @@ class VictoryScreen:
                 self.title_font = pygame.font.Font(None, 72)  # Large title
                 self.stat_font = pygame.font.Font(None, 36)  # Stats
                 self.prompt_font = pygame.font.Font(None, 28)  # Prompt
-            except:
+            except Exception:
                 # Fallback if font loading fails
                 self.title_font = pygame.font.SysFont("arial", 72, bold=True)
                 self.stat_font = pygame.font.SysFont("arial", 36)

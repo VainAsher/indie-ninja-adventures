@@ -14,6 +14,10 @@ Based on: Dynamic dungeon platformer anchor system
 
 from collections import deque
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from systems.world_generation import RoomNode
 
 
 @dataclass

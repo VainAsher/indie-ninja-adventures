@@ -250,7 +250,7 @@ def test_raycast():
         assert hit_x >= wall.x, "Should hit wall"
     else:
         print("No hit")
-        assert False, "Raycast should hit wall"
+        raise AssertionError("Raycast should hit wall")
 
     # Raycast that misses
     start_x, start_y = 50, 200

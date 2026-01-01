@@ -2,7 +2,6 @@
 Ninjutsu Mechanic - Stance/select/cast with Purify effect.
 """
 
-
 from config.physics_constants import TILE_SIZE
 from core.event_bus import EventBus
 from core.logger import MechanicLogger

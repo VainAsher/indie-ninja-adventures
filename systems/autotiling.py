@@ -10,7 +10,6 @@ Usage:
     # Returns: "top_left", "mid_mid", "bottom_right", etc.
 """
 
-
 # 9-slice shape names (matches asset structure)
 SHAPES_3X3 = [
     "top_left",

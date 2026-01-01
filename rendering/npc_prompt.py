@@ -4,7 +4,6 @@ NPC Interaction Prompt Renderer
 Displays "Press E to talk" prompt above NPCs when player is in interaction range.
 """
 
-
 import pygame
 
 from entities.npc import NPCManager

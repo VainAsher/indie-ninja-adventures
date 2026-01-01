@@ -6,7 +6,6 @@ Displayed after clicking "Start Game" on main menu.
 Version: v0.6.0
 """
 
-
 import pygame
 
 from ui.menu_system import BaseMenu, MenuAction

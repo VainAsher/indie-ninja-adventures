@@ -13,7 +13,6 @@ Features:
 Enhanced: Increased zone grid to 16x16 for finer granularity
 """
 
-
 from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES, TILES_PER_ZONE
 from systems.world_generation import RoomNode
 from systems.zone_planning import (

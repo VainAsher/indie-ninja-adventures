@@ -289,9 +289,7 @@ class GateManager:
         self.gates: dict[str, AbilityGate] = {}
         self.next_gate_id = 0
 
-    def add_gate(
-        self, gate_type: GateType, x: float, y: float, key_id: str | None = None
-    ) -> str:
+    def add_gate(self, gate_type: GateType, x: float, y: float, key_id: str | None = None) -> str:
         """
         Add a gate to the level.
 

@@ -742,9 +742,7 @@ class CollisionSystem:
                 candidates.extend(lookup.get((cx, cy), []))
         return candidates if candidates else tiles
 
-    def raycast(
-        self, start_x: float, start_y: float, end_x: float, end_y: float
-    ) -> tuple | None:
+    def raycast(self, start_x: float, start_y: float, end_x: float, end_y: float) -> tuple | None:
         """
         Raycast from start to end point
 

@@ -16,7 +16,6 @@ Coverage:
 Test philosophy: Verify rendering doesn't crash, not pixel accuracy
 """
 
-
 import pygame
 import pytest
 
