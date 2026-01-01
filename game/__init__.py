@@ -7,13 +7,13 @@ High-level game coordination:
 - State machine (menu/play/pause)
 """
 
-from .level_manager import LevelManager, LevelState, LevelCompletionEvent
-from .game_state import GameStateManager, GameState
+from .game_state import GameState, GameStateManager
+from .level_manager import LevelCompletionEvent, LevelManager, LevelState
 
 __all__ = [
-    'LevelManager',
-    'LevelState',
-    'LevelCompletionEvent',
-    'GameStateManager',
-    'GameState',
+    "LevelManager",
+    "LevelState",
+    "LevelCompletionEvent",
+    "GameStateManager",
+    "GameState",
 ]

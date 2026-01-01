@@ -15,17 +15,21 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from core import (
-    EventBus, GameLogger, GameClock, StateManager,
-    TickEvent, RenderEvent, CollisionEvent,
-    PlayerState, PhysicsState
+    CollisionEvent,
+    EventBus,
+    GameClock,
+    GameLogger,
+    RenderEvent,
+    StateManager,
+    TickEvent,
 )
 
 
 def test_event_bus():
     """Test event bus functionality"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Event Bus")
-    print("="*60)
+    print("=" * 60)
 
     # Create event bus
     bus = EventBus()
@@ -40,7 +44,9 @@ def test_event_bus():
 
     def on_collision(event: CollisionEvent):
         collision_events.append(event)
-        print(f"  [OK] Received CollisionEvent: entity={event.entity_id}, type={event.collision_type}")
+        print(
+            f"  [OK] Received CollisionEvent: entity={event.entity_id}, type={event.collision_type}"
+        )
 
     # Subscribe
     bus.subscribe(TickEvent, on_tick)
@@ -49,7 +55,7 @@ def test_event_bus():
     # Emit events
     print("\nEmitting events...")
     bus.emit(TickEvent(dt=0.0167, tick_number=1))
-    bus.emit(CollisionEvent(entity_id=0, collision_type='ground', normal=(0, -1)))
+    bus.emit(CollisionEvent(entity_id=0, collision_type="ground", normal=(0, -1)))
     bus.emit(TickEvent(dt=0.0167, tick_number=2))
 
     # Process queue
@@ -60,21 +66,21 @@ def test_event_bus():
     assert len(tick_events) == 2, f"Expected 2 tick events, got {len(tick_events)}"
     assert len(collision_events) == 1, f"Expected 1 collision event, got {len(collision_events)}"
 
-    print(f"\n[PASS] Event Bus Test PASSED")
+    print("\n[PASS] Event Bus Test PASSED")
     print(f"   - Tick events received: {len(tick_events)}")
     print(f"   - Collision events received: {len(collision_events)}")
 
 
 def test_logger():
     """Test logger functionality"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Logger System")
-    print("="*60)
+    print("=" * 60)
 
     # Create logger
     logger = GameLogger()
 
-    print(f"\nLogger initialized:")
+    print("\nLogger initialized:")
     print(f"  - Log directory: {logger.log_dir}")
     print(f"  - Log file: {logger.log_file.name}")
 
@@ -90,16 +96,16 @@ def test_logger():
     # Verify log file exists
     assert logger.log_file.exists(), "Log file was not created"
 
-    print(f"\n[PASS] Logger Test PASSED")
+    print("\n[PASS] Logger Test PASSED")
     print(f"   - Log file created: {logger.log_file}")
     print(f"   - Log file size: {logger.log_file.stat().st_size} bytes")
 
 
 def test_clock():
     """Test game clock functionality"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Game Clock")
-    print("="*60)
+    print("=" * 60)
 
     # Create event bus and logger
     bus = EventBus()
@@ -126,12 +132,13 @@ def test_clock():
     # Run a few ticks
     print("\nRunning 5 frames...")
     import time
+
     for _ in range(5):
         time.sleep(0.02)  # Sleep 20ms to allow accumulator to build up
         clock.tick()
         bus.process()
 
-    print(f"\nClock statistics:")
+    print("\nClock statistics:")
     print(f"  - Physics ticks: {tick_count}")
     print(f"  - Render frames: {render_count}")
     print(f"  - Current tick: {clock.get_current_tick()}")
@@ -140,14 +147,14 @@ def test_clock():
     assert render_count == 5, f"Expected 5 render events, got {render_count}"
     assert tick_count > 0, f"Expected some tick events, got {tick_count}"
 
-    print(f"\n[PASS] Clock Test PASSED")
+    print("\n[PASS] Clock Test PASSED")
 
 
 def test_state():
     """Test state serialization"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing State Management")
-    print("="*60)
+    print("=" * 60)
 
     # Create state manager
     state_manager = StateManager()
@@ -160,7 +167,7 @@ def test_state():
     player = state_manager.get_player_state(0)
     assert player is not None, "Player not found"
 
-    print(f"Player state:")
+    print("Player state:")
     print(f"  - ID: {player.player_id}")
     print(f"  - Position: ({player.physics.x}, {player.physics.y})")
     print(f"  - Health: {player.health_state.current_hp}/{player.health_state.max_hp}")
@@ -175,10 +182,10 @@ def test_state():
     snapshot = state_manager.snapshot()
 
     # Verify snapshot
-    player_snapshot = snapshot['players'][0]
-    assert player_snapshot['physics']['x'] == 100.0
-    assert player_snapshot['physics']['vx'] == 5.0
-    assert player_snapshot['health_state']['current_hp'] == 3
+    player_snapshot = snapshot["players"][0]
+    assert player_snapshot["physics"]["x"] == 100.0
+    assert player_snapshot["physics"]["vx"] == 5.0
+    assert player_snapshot["health_state"]["current_hp"] == 3
 
     # Restore from snapshot
     print("Restoring from snapshot...")
@@ -189,17 +196,17 @@ def test_state():
     assert restored_player.physics.vx == 5.0
     assert restored_player.health_state.current_hp == 3
 
-    print(f"\n[PASS] State Test PASSED")
-    print(f"   - Serialization: OK")
-    print(f"   - Deserialization: OK")
-    print(f"   - State restore: OK")
+    print("\n[PASS] State Test PASSED")
+    print("   - Serialization: OK")
+    print("   - Deserialization: OK")
+    print("   - State restore: OK")
 
 
 def test_integration():
     """Test all systems working together"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Integrated Systems")
-    print("="*60)
+    print("=" * 60)
 
     # Create all core systems
     bus = EventBus()
@@ -223,6 +230,7 @@ def test_integration():
     # Run simulation
     print("\nRunning integrated simulation for 10 frames...")
     import time
+
     for _ in range(10):
         time.sleep(0.02)  # Sleep 20ms to allow accumulator to build up
         clock.tick()
@@ -230,24 +238,24 @@ def test_integration():
 
     # Check player fell
     player = state_manager.get_player_state(0)
-    print(f"\nPlayer state after simulation:")
+    print("\nPlayer state after simulation:")
     print(f"  - Position: ({player.physics.x:.1f}, {player.physics.y:.1f})")
     print(f"  - Velocity: ({player.physics.vx:.1f}, {player.physics.vy:.1f})")
 
     assert player.physics.y > 0, "Player should have fallen"
     assert player.physics.vy > 0, "Player should have downward velocity"
 
-    print(f"\n[PASS] Integration Test PASSED")
-    print(f"   - Event bus + Clock: OK")
-    print(f"   - Clock + State: OK")
-    print(f"   - Full pipeline: OK")
+    print("\n[PASS] Integration Test PASSED")
+    print("   - Event bus + Clock: OK")
+    print("   - Clock + State: OK")
+    print("   - Full pipeline: OK")
 
 
 def main():
     """Run all tests"""
-    print("\n" + "#"*60)
+    print("\n" + "#" * 60)
     print("#  NINJA DASH - PHASE 1 CORE INFRASTRUCTURE TEST")
-    print("#"*60)
+    print("#" * 60)
 
     try:
         test_event_bus()
@@ -256,9 +264,9 @@ def main():
         test_state()
         test_integration()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("[PASS] ALL TESTS PASSED")
-        print("="*60)
+        print("=" * 60)
         print("\nPhase 1 core infrastructure is working correctly!")
         print("Next steps:")
         print("  - Phase 2: Implement collision system")
@@ -268,6 +276,7 @@ def main():
     except Exception as e:
         print(f"\n[FAIL] TEST FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

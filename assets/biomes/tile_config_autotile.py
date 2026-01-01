@@ -17,22 +17,26 @@ Usage:
 """
 
 from pathlib import Path
-from typing import List, Dict, Optional
-import random
 
 # Tile sizes
-ORIGINAL_TILE_SIZE = 8   # 8×8 pixels in tileset
-GAME_TILE_SIZE = 32      # 32×32 pixels in game
+ORIGINAL_TILE_SIZE = 8  # 8×8 pixels in tileset
+GAME_TILE_SIZE = 32  # 32×32 pixels in game
 
 # 9-slice autotile shapes
 AUTOTILE_SHAPES = [
-    "top_left", "top_mid", "top_right",
-    "mid_left", "mid_mid", "mid_right",
-    "bottom_left", "bottom_mid", "bottom_right",
+    "top_left",
+    "top_mid",
+    "top_right",
+    "mid_left",
+    "mid_mid",
+    "mid_right",
+    "bottom_left",
+    "bottom_mid",
+    "bottom_right",
 ]
 
 
-def get_all_tiles_in_biome(biome: str) -> List[str]:
+def get_all_tiles_in_biome(biome: str) -> list[str]:
     """
     Get all tile filenames in a biome directory
 
@@ -43,17 +47,17 @@ def get_all_tiles_in_biome(biome: str) -> List[str]:
         List of tile filenames (sorted)
     """
     project_root = Path(__file__).parent.parent.parent
-    biome_dir = project_root / 'assets' / 'biomes' / biome
+    biome_dir = project_root / "assets" / "biomes" / biome
 
     if not biome_dir.exists():
         return []
 
     # Get all PNG files
-    tiles = sorted([f.name for f in biome_dir.glob('tile_*.png')])
+    tiles = sorted([f.name for f in biome_dir.glob("tile_*.png")])
     return tiles
 
 
-def _build_autotile_config() -> Dict[str, Dict[str, Dict[str, List[str]]]]:
+def _build_autotile_config() -> dict[str, dict[str, dict[str, list[str]]]]:
     """
     Build autotile configuration from extracted tiles
 
@@ -66,7 +70,7 @@ def _build_autotile_config() -> Dict[str, Dict[str, Dict[str, List[str]]]]:
     Returns:
         Dictionary mapping biomes → tile types → shapes → variants
     """
-    biomes = ['dungeon', 'cave', 'building']
+    biomes = ["dungeon", "cave", "building"]
     config = {}
 
     for biome in biomes:
@@ -74,20 +78,20 @@ def _build_autotile_config() -> Dict[str, Dict[str, Dict[str, List[str]]]]:
 
         if not all_tiles:
             config[biome] = {
-                'solid': {shape: [] for shape in AUTOTILE_SHAPES},
-                'platform': {shape: [] for shape in AUTOTILE_SHAPES},
+                "solid": {shape: [] for shape in AUTOTILE_SHAPES},
+                "platform": {shape: [] for shape in AUTOTILE_SHAPES},
             }
             continue
 
         # Split tiles between solid and platform
         # Use all tiles for solid, first 25% for platform
         solid_tiles = all_tiles
-        platform_tiles = all_tiles[:len(all_tiles) // 4] if all_tiles else []
+        platform_tiles = all_tiles[: len(all_tiles) // 4] if all_tiles else []
 
         # Assign all variants to all shapes
         config[biome] = {
-            'solid': {shape: solid_tiles for shape in AUTOTILE_SHAPES},
-            'platform': {shape: platform_tiles for shape in AUTOTILE_SHAPES},
+            "solid": dict.fromkeys(AUTOTILE_SHAPES, solid_tiles),
+            "platform": dict.fromkeys(AUTOTILE_SHAPES, platform_tiles),
         }
 
     return config
@@ -97,7 +101,7 @@ def _build_autotile_config() -> Dict[str, Dict[str, Dict[str, List[str]]]]:
 AUTOTILE_CONFIG = _build_autotile_config()
 
 
-def get_autotile_variants(biome: str, tile_type: str, shape: str) -> List[str]:
+def get_autotile_variants(biome: str, tile_type: str, shape: str) -> list[str]:
     """
     Get all tile variants for a specific autotile shape
 
@@ -113,8 +117,9 @@ def get_autotile_variants(biome: str, tile_type: str, shape: str) -> List[str]:
     return variants
 
 
-def get_autotile_path(biome: str, tile_type: str, shape: str,
-                     variant_index: int = 0) -> Optional[Path]:
+def get_autotile_path(
+    biome: str, tile_type: str, shape: str, variant_index: int = 0
+) -> Path | None:
     """
     Get path to a specific autotile variant
 
@@ -137,7 +142,7 @@ def get_autotile_path(biome: str, tile_type: str, shape: str,
     filename = variants[index]
 
     project_root = Path(__file__).parent.parent.parent
-    return project_root / 'assets' / 'biomes' / biome / filename
+    return project_root / "assets" / "biomes" / biome / filename
 
 
 def get_variant_count(biome: str, tile_type: str, shape: str) -> int:
@@ -145,8 +150,7 @@ def get_variant_count(biome: str, tile_type: str, shape: str) -> int:
     return len(get_autotile_variants(biome, tile_type, shape))
 
 
-def deterministic_variant_index(x: int, y: int, seed: int,
-                                num_variants: int) -> int:
+def deterministic_variant_index(x: int, y: int, seed: int, num_variants: int) -> int:
     """
     Calculate deterministic variant index from position and seed
 
@@ -181,11 +185,11 @@ if __name__ == "__main__":
     print(f"Autotile shapes: {len(AUTOTILE_SHAPES)}")
     print()
 
-    for biome in ['dungeon', 'cave', 'building']:
+    for biome in ["dungeon", "cave", "building"]:
         print(f"{biome.upper()}:")
-        for tile_type in ['solid', 'platform']:
+        for tile_type in ["solid", "platform"]:
             for shape in AUTOTILE_SHAPES[:3]:  # Show first 3 shapes
                 count = get_variant_count(biome, tile_type, shape)
                 print(f"  {tile_type:8s} / {shape:12s}: {count:3d} variants")
-            print(f"  ... (6 more shapes)")
+            print("  ... (6 more shapes)")
         print()

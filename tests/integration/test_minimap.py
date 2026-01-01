@@ -11,21 +11,22 @@ Tests:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import pygame
-from systems.world_generation import WorldGenerator, WorldShape
+
+from rendering.minimap import MinimapConfig, MinimapRenderer, get_current_room_coords
 from systems.megamap import build_megamap
-from systems.world_generation import generate_world_tilemaps
-from rendering.minimap import MinimapRenderer, MinimapConfig, get_current_room_coords
+from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
 
 
 def test_minimap_rendering():
     """Test minimap rendering with various world shapes"""
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("PHASE 6: ENHANCED MINIMAP TEST")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize pygame
     pygame.init()
@@ -70,14 +71,14 @@ def test_minimap_rendering():
             show_connections=True,
             show_player=True,
             highlight_current=True,
-            scale=20  # Larger for testing
+            scale=20,  # Larger for testing
         )
         minimap = MinimapRenderer(config)
 
         # Test player at different positions
         test_positions = [
             ("START", world.start_room, (0.5, 0.5)),  # Center of start room
-            ("EXIT", world.exit_room, (0.8, 0.2)),    # Near top-right of exit room
+            ("EXIT", world.exit_room, (0.8, 0.2)),  # Near top-right of exit room
         ]
 
         for pos_name, room, (norm_x, norm_y) in test_positions:
@@ -106,7 +107,7 @@ def test_minimap_rendering():
             screen.fill((0, 0, 0))
             minimap.render(screen, world, megamap, (player_x, player_y), current_room)
 
-            print(f"  Minimap rendered successfully!")
+            print("  Minimap rendered successfully!")
 
         # Count room types
         room_type_counts = {}
@@ -114,16 +115,16 @@ def test_minimap_rendering():
             room_type = room.room_type.value
             room_type_counts[room_type] = room_type_counts.get(room_type, 0) + 1
 
-        print(f"\n[ROOM TYPES] Distribution:")
+        print("\n[ROOM TYPES] Distribution:")
         for room_type, count in sorted(room_type_counts.items()):
             print(f"  {room_type}: {count}")
 
         print(f"\n[SUCCESS] {shape_name.upper()} world minimap test passed!")
 
     pygame.quit()
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ALL MINIMAP TESTS PASSED!")
-    print("="*60)
+    print("=" * 60)
     print("\nFeatures Tested:")
     print("  - Room type color coding (7 types)")
     print("  - Player position indicator (white dot)")
@@ -131,7 +132,7 @@ def test_minimap_rendering():
     print("  - Current room highlight (white border)")
     print("  - Multiple world shapes (snake, tree, grid)")
     print("\n[PHASE 6] Enhanced Minimap - COMPLETE")
-    print("="*60)
+    print("=" * 60)
 
 
 if __name__ == "__main__":

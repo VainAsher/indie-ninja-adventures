@@ -7,30 +7,24 @@ Entity definitions and management:
 - Hazard entities (spikes, voids)
 """
 
+from .hazards import HazardManager, PlayerDamageEvent, PlayerDeathEvent, SpikeHazard, VoidHazard
 from .pickups import (
     CoinPickup,
-    HealthPickup,
     CollectiblePickup,
+    HealthPickup,
+    PickupCollectedEvent,
     PickupManager,
-    PickupCollectedEvent
-)
-from .hazards import (
-    SpikeHazard,
-    VoidHazard,
-    HazardManager,
-    PlayerDamageEvent,
-    PlayerDeathEvent
 )
 
 __all__ = [
-    'CoinPickup',
-    'HealthPickup',
-    'CollectiblePickup',
-    'PickupManager',
-    'PickupCollectedEvent',
-    'SpikeHazard',
-    'VoidHazard',
-    'HazardManager',
-    'PlayerDamageEvent',
-    'PlayerDeathEvent',
+    "CoinPickup",
+    "HealthPickup",
+    "CollectiblePickup",
+    "PickupManager",
+    "PickupCollectedEvent",
+    "SpikeHazard",
+    "VoidHazard",
+    "HazardManager",
+    "PlayerDamageEvent",
+    "PlayerDeathEvent",
 ]

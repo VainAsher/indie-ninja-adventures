@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+
 import pygame
 
 from .commands import InputCommand
@@ -84,11 +84,11 @@ class InputPipeline:
 
     def __init__(
         self,
-        record_path: Optional[str] = None,
-        replay_path: Optional[str] = None,
-        metadata: Optional[Dict] = None,
+        record_path: str | None = None,
+        replay_path: str | None = None,
+        metadata: dict | None = None,
         log_commands: bool = False,
-        log_path: Optional[str] = None,
+        log_path: str | None = None,
     ):
         self.record_path = record_path
         self.replay_path = replay_path
@@ -115,8 +115,8 @@ class InputPipeline:
         self,
         keys_state,
         frame: int,
-        keydown_keys: Optional[set[int]] = None,
-    ) -> Tuple[object, InputCommand]:
+        keydown_keys: set[int] | None = None,
+    ) -> tuple[object, InputCommand]:
         """
         Return a key-like object and the InputCommand for this frame.
 
@@ -145,9 +145,7 @@ class InputPipeline:
         """Persist recorded commands to disk if recording."""
         if self.record_path and self._recording:
             payload = {**self.metadata, "commands": self._recording}
-            Path(self.record_path).write_text(
-                json.dumps(payload, indent=2), encoding="utf-8"
-            )
+            Path(self.record_path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
         if self.log_commands and self._log_buffer and self.log_path:
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
             with self.log_path.open("w", encoding="utf-8") as f:
@@ -169,7 +167,11 @@ class InputPipeline:
             command.left = True
         if pygame.K_RIGHT in keydown_keys or pygame.K_d in keydown_keys:
             command.right = True
-        if pygame.K_SPACE in keydown_keys or pygame.K_w in keydown_keys or pygame.K_UP in keydown_keys:
+        if (
+            pygame.K_SPACE in keydown_keys
+            or pygame.K_w in keydown_keys
+            or pygame.K_UP in keydown_keys
+        ):
             command.jump = True
         if pygame.K_LSHIFT in keydown_keys or pygame.K_RSHIFT in keydown_keys:
             command.dash = True
@@ -218,6 +220,6 @@ class InputPipeline:
             return True
         return self._replay_done
 
-    def get_terminated_frame(self) -> Optional[int]:
+    def get_terminated_frame(self) -> int | None:
         """Return the recorded termination frame if present."""
         return self._terminated_frame

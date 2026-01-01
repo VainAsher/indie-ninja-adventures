@@ -14,18 +14,20 @@ Version: v0.7.0
 
 import json
 import sys
-from pathlib import Path
-from typing import Dict, List, Set, Tuple, Optional
 from collections import defaultdict, deque
-
+from pathlib import Path
 
 # ============================================================
 # Validation Result Classes
 # ============================================================
 
+
 class ValidationError:
     """Represents a validation error"""
-    def __init__(self, severity: str, category: str, message: str, mission_id: Optional[str] = None):
+
+    def __init__(
+        self, severity: str, category: str, message: str, mission_id: str | None = None
+    ):
         self.severity = severity  # 'ERROR', 'WARNING', 'INFO'
         self.category = category  # 'CIRCULAR_DEP', 'UNREACHABLE', etc.
         self.message = message
@@ -39,19 +41,20 @@ class ValidationError:
 
 class ValidationReport:
     """Validation report with errors and warnings"""
+
     def __init__(self):
-        self.errors: List[ValidationError] = []
-        self.warnings: List[ValidationError] = []
-        self.info: List[ValidationError] = []
+        self.errors: list[ValidationError] = []
+        self.warnings: list[ValidationError] = []
+        self.info: list[ValidationError] = []
 
-    def add_error(self, category: str, message: str, mission_id: Optional[str] = None):
-        self.errors.append(ValidationError('ERROR', category, message, mission_id))
+    def add_error(self, category: str, message: str, mission_id: str | None = None):
+        self.errors.append(ValidationError("ERROR", category, message, mission_id))
 
-    def add_warning(self, category: str, message: str, mission_id: Optional[str] = None):
-        self.warnings.append(ValidationError('WARNING', category, message, mission_id))
+    def add_warning(self, category: str, message: str, mission_id: str | None = None):
+        self.warnings.append(ValidationError("WARNING", category, message, mission_id))
 
-    def add_info(self, category: str, message: str, mission_id: Optional[str] = None):
-        self.info.append(ValidationError('INFO', category, message, mission_id))
+    def add_info(self, category: str, message: str, mission_id: str | None = None):
+        self.info.append(ValidationError("INFO", category, message, mission_id))
 
     def is_valid(self) -> bool:
         """Check if campaign is valid (no errors)"""
@@ -65,6 +68,7 @@ class ValidationReport:
 # ============================================================
 # Campaign Validator
 # ============================================================
+
 
 class CampaignValidator:
     """
@@ -81,8 +85,8 @@ class CampaignValidator:
             missions_data: Loaded missions.json data
         """
         self.data = missions_data
-        self.missions = {m['mission_id']: m for m in missions_data.get('missions', [])}
-        self.regions = missions_data.get('regions', {})
+        self.missions = {m["mission_id"]: m for m in missions_data.get("missions", [])}
+        self.regions = missions_data.get("regions", {})
         self.report = ValidationReport()
 
     def validate_all(self) -> ValidationReport:
@@ -116,12 +120,12 @@ class CampaignValidator:
 
         for mission_id, mission in self.missions.items():
             # Check unlock requirements
-            for req_id in mission.get('unlock_requirements', []):
+            for req_id in mission.get("unlock_requirements", []):
                 if req_id not in mission_ids:
                     self.report.add_error(
-                        'INVALID_REFERENCE',
+                        "INVALID_REFERENCE",
                         f"References non-existent mission: {req_id}",
-                        mission_id
+                        mission_id,
                     )
 
     def _validate_region_references(self):
@@ -129,12 +133,10 @@ class CampaignValidator:
         region_ids = set(self.regions.keys())
 
         for mission_id, mission in self.missions.items():
-            region = mission.get('region')
+            region = mission.get("region")
             if region not in region_ids:
                 self.report.add_error(
-                    'INVALID_REGION',
-                    f"References non-existent region: {region}",
-                    mission_id
+                    "INVALID_REGION", f"References non-existent region: {region}", mission_id
                 )
 
     def _validate_circular_dependencies(self):
@@ -142,11 +144,13 @@ class CampaignValidator:
         # Build dependency graph
         dependencies = defaultdict(list)
         for mission_id, mission in self.missions.items():
-            for req_id in mission.get('unlock_requirements', []):
+            for req_id in mission.get("unlock_requirements", []):
                 dependencies[mission_id].append(req_id)
 
         # Check for cycles using DFS
-        def has_cycle_from(node: str, visited: Set[str], rec_stack: Set[str]) -> Optional[List[str]]:
+        def has_cycle_from(
+            node: str, visited: set[str], rec_stack: set[str]
+        ) -> list[str] | None:
             visited.add(node)
             rec_stack.add(node)
 
@@ -169,23 +173,21 @@ class CampaignValidator:
                 if cycle:
                     cycle_str = " -> ".join(reversed(cycle))
                     self.report.add_error(
-                        'CIRCULAR_DEPENDENCY',
+                        "CIRCULAR_DEPENDENCY",
                         f"Circular mission dependency: {cycle_str}",
-                        cycle[-1]
+                        cycle[-1],
                     )
 
     def _validate_reachability(self):
         """Validate all missions are reachable from starting missions"""
         # Find starting missions (no unlock requirements)
         starting_missions = [
-            m_id for m_id, m in self.missions.items()
-            if not m.get('unlock_requirements', [])
+            m_id for m_id, m in self.missions.items() if not m.get("unlock_requirements", [])
         ]
 
         if not starting_missions:
             self.report.add_error(
-                'NO_STARTING_MISSIONS',
-                "No missions without unlock requirements found"
+                "NO_STARTING_MISSIONS", "No missions without unlock requirements found"
             )
             return
 
@@ -196,7 +198,7 @@ class CampaignValidator:
         # Build reverse dependency graph (what each mission unlocks)
         unlocks = defaultdict(list)
         for mission_id, mission in self.missions.items():
-            for req_id in mission.get('unlock_requirements', []):
+            for req_id in mission.get("unlock_requirements", []):
                 unlocks[req_id].append(mission_id)
 
         while queue:
@@ -205,7 +207,7 @@ class CampaignValidator:
             for unlocked_id in unlocks.get(current, []):
                 if unlocked_id not in reachable:
                     # Check if all requirements are met
-                    requirements = self.missions[unlocked_id].get('unlock_requirements', [])
+                    requirements = self.missions[unlocked_id].get("unlock_requirements", [])
                     if all(req in reachable for req in requirements):
                         reachable.add(unlocked_id)
                         queue.append(unlocked_id)
@@ -214,15 +216,14 @@ class CampaignValidator:
         unreachable = set(self.missions.keys()) - reachable
         for mission_id in unreachable:
             self.report.add_error(
-                'UNREACHABLE_MISSION',
-                f"Mission cannot be reached from starting missions",
-                mission_id
+                "UNREACHABLE_MISSION",
+                "Mission cannot be reached from starting missions",
+                mission_id,
             )
 
         # Info about reachability
         self.report.add_info(
-            'REACHABILITY',
-            f"{len(reachable)}/{len(self.missions)} missions reachable"
+            "REACHABILITY", f"{len(reachable)}/{len(self.missions)} missions reachable"
         )
 
     def _validate_ability_progression(self):
@@ -232,14 +233,14 @@ class CampaignValidator:
         all_unlocked_abilities = set()
 
         for mission_id, mission in self.missions.items():
-            required = mission.get('required_abilities', [])
-            unlocked = mission.get('unlock_abilities', [])
+            required = mission.get("required_abilities", [])
+            unlocked = mission.get("unlock_abilities", [])
 
             all_required_abilities.update(required)
             all_unlocked_abilities.update(unlocked)
 
         # Base abilities (always available)
-        base_abilities = {'basic_movement', 'jump'}
+        base_abilities = {"basic_movement", "jump"}
 
         # Check for orphaned abilities (required but never unlocked)
         available_abilities = base_abilities | all_unlocked_abilities
@@ -247,23 +248,21 @@ class CampaignValidator:
 
         for ability in orphaned:
             self.report.add_error(
-                'ORPHANED_ABILITY',
-                f"Ability '{ability}' is required but never unlocked"
+                "ORPHANED_ABILITY", f"Ability '{ability}' is required but never unlocked"
             )
 
         # Check for unused unlocked abilities
         unused = all_unlocked_abilities - all_required_abilities
         for ability in unused:
             self.report.add_warning(
-                'UNUSED_ABILITY',
-                f"Ability '{ability}' is unlocked but never required"
+                "UNUSED_ABILITY", f"Ability '{ability}' is unlocked but never required"
             )
 
         # Info about abilities
         self.report.add_info(
-            'ABILITIES',
+            "ABILITIES",
             f"{len(all_unlocked_abilities)} abilities unlocked, "
-            f"{len(all_required_abilities)} abilities required"
+            f"{len(all_required_abilities)} abilities required",
         )
 
     def _validate_region_accessibility(self):
@@ -272,26 +271,26 @@ class CampaignValidator:
         completed_missions = 0
 
         for region_id, region in self.regions.items():
-            required_count = region.get('required_missions_completed', 0)
-            required_abilities = region.get('required_abilities', [])
+            required_count = region.get("required_missions_completed", 0)
+            required_abilities = region.get("required_abilities", [])
 
             # Check if requirements are reasonable
             total_missions = len(self.missions)
             if required_count > total_missions:
                 self.report.add_error(
-                    'IMPOSSIBLE_REGION',
+                    "IMPOSSIBLE_REGION",
                     f"Region '{region_id}' requires {required_count} missions "
                     f"but only {total_missions} exist",
-                    None
+                    None,
                 )
 
             # Warn if region requires too many missions
             if required_count > total_missions * 0.8:
                 self.report.add_warning(
-                    'LATE_REGION',
+                    "LATE_REGION",
                     f"Region '{region_id}' requires {required_count}/{total_missions} missions "
                     "(may be inaccessible until very late game)",
-                    None
+                    None,
                 )
 
     def _validate_difficulty_progression(self):
@@ -302,7 +301,7 @@ class CampaignValidator:
         # Check if difficulty generally increases with depth
         for mission_id, mission in self.missions.items():
             depth = depths.get(mission_id, 0)
-            difficulty = mission.get('difficulty', 1)
+            difficulty = mission.get("difficulty", 1)
 
             # Very rough heuristic: difficulty should be near depth
             expected_difficulty_min = max(1, depth - 2)
@@ -310,36 +309,35 @@ class CampaignValidator:
 
             if difficulty < expected_difficulty_min:
                 self.report.add_warning(
-                    'DIFFICULTY_TOO_LOW',
+                    "DIFFICULTY_TOO_LOW",
                     f"Difficulty {difficulty} seems low for mission depth {depth}",
-                    mission_id
+                    mission_id,
                 )
             elif difficulty > expected_difficulty_max:
                 self.report.add_warning(
-                    'DIFFICULTY_TOO_HIGH',
+                    "DIFFICULTY_TOO_HIGH",
                     f"Difficulty {difficulty} seems high for mission depth {depth}",
-                    mission_id
+                    mission_id,
                 )
 
     # ============================================================
     # Helper Methods
     # ============================================================
 
-    def _calculate_mission_depths(self) -> Dict[str, int]:
+    def _calculate_mission_depths(self) -> dict[str, int]:
         """Calculate depth of each mission in unlock tree (BFS distance from start)"""
         # Find starting missions
         starting_missions = [
-            m_id for m_id, m in self.missions.items()
-            if not m.get('unlock_requirements', [])
+            m_id for m_id, m in self.missions.items() if not m.get("unlock_requirements", [])
         ]
 
-        depths = {m_id: 0 for m_id in starting_missions}
+        depths = dict.fromkeys(starting_missions, 0)
         queue = deque(starting_missions)
 
         # Build forward dependency graph
         unlocks = defaultdict(list)
         for mission_id, mission in self.missions.items():
-            for req_id in mission.get('unlock_requirements', []):
+            for req_id in mission.get("unlock_requirements", []):
                 unlocks[req_id].append(mission_id)
 
         while queue:
@@ -348,7 +346,7 @@ class CampaignValidator:
 
             for unlocked_id in unlocks.get(current, []):
                 if unlocked_id not in depths:
-                    requirements = self.missions[unlocked_id].get('unlock_requirements', [])
+                    requirements = self.missions[unlocked_id].get("unlock_requirements", [])
                     # Depth is max of all requirement depths + 1
                     if all(req in depths for req in requirements):
                         new_depth = max(depths[req] for req in requirements) + 1
@@ -362,10 +360,11 @@ class CampaignValidator:
 # Command Line Interface
 # ============================================================
 
+
 def load_missions_data(file_path: Path) -> dict:
     """Load missions.json file"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         print(f"ERROR: File not found: {file_path}")

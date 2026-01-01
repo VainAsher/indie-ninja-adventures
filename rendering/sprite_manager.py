@@ -8,23 +8,25 @@ Sprite sheets location: assets/sprites/player/
 """
 
 from dataclasses import dataclass
-from typing import Dict, Tuple, List, Optional
 from pathlib import Path
+
 import pygame
 
 
 @dataclass
 class SpriteFrame:
     """Single animation frame with optional offset"""
+
     surface: pygame.Surface
-    offset: Tuple[int, int] = (0, 0)  # Anchor point offset
+    offset: tuple[int, int] = (0, 0)  # Anchor point offset
 
 
 @dataclass
 class SpriteAnimation:
     """Animation definition with frames and timing"""
+
     name: str
-    frames: List[SpriteFrame]
+    frames: list[SpriteFrame]
     fps: int = 12  # Frames per second
     loop: bool = True
 
@@ -63,7 +65,7 @@ class SpriteSheet:
         self.frame_width = self.sheet_width // frame_count
         self.frame_height = self.sheet_height
 
-    def get_frames(self) -> List[pygame.Surface]:
+    def get_frames(self) -> list[pygame.Surface]:
         """Extract all frames from the sprite sheet"""
         frames = []
         for i in range(self.frame_count):
@@ -89,36 +91,36 @@ class SpriteManager:
 
     # Animation definitions: (filename, frame_count, fps, loop)
     ANIMATION_DEFS = {
-        'idle': ('idle_spritesheet.png', 2, 8, True),
-        'walk': ('walk_spritesheet.png', 4, 10, True),
-        'run': ('run_spritesheet.png', 6, 12, True),
-        'slow_walk': ('walk_spritesheet.png', 4, 8, True),
-        'jump': ('jumpfall_spritesheet.png', 2, 10, False),  # Use first frame
-        'fall': ('jumpfall_spritesheet.png', 2, 10, False),  # Use second frame
-        'crouch': ('idle_spritesheet.png', 2, 6, True),  # Reuse idle, will scale
-        'dash': ('run_spritesheet.png', 6, 20, True),  # Fast run animation
-        'wall_slide': ('jumpfall_spritesheet.png', 2, 8, True),  # Reuse jump/fall
-        'wall_hang': ('jumpfall_spritesheet.png', 2, 6, True),
-        'ceiling_hang': ('jumpfall_spritesheet.png', 2, 6, True),
-        'air_spin': ('jumpfall_spritesheet.png', 2, 10, True),
-        'hurt': ('hurt_spritesheet.png', 3, 12, False),
-        'hurt2': ('hurt_spritesheet.png', 3, 12, False),
-        'death': ('death_spritesheet.png', 5, 12, False),
-        'attack': ('attack-sword_spritesheet.png', 6, 15, False),
-        'slash1': ('attack-sword_spritesheet.png', 6, 15, False),
-        'slash2': ('attack-sword_spritesheet.png', 6, 15, False),
-        'slash3': ('attack-sword_spritesheet.png', 6, 15, False),
-        'slash_air': ('attack-sword_spritesheet.png', 6, 15, False),
-        'jump_slash': ('attack-sword_spritesheet.png', 6, 15, False),
-        'throw_ground': ('attack-sword_spritesheet.png', 4, 12, False),
-        'throw_crouch': ('attack-sword_spritesheet.png', 4, 12, False),
-        'throw_air': ('attack-sword_spritesheet.png', 4, 12, False),
-        'teleport': ('attack-sword_spritesheet.png', 4, 12, False),
-        'ninjutsu_hand': ('attack-sword_spritesheet.png', 4, 10, False),
-        'ninjutsu_summon': ('attack-sword_spritesheet.png', 4, 10, False),
+        "idle": ("idle_spritesheet.png", 2, 8, True),
+        "walk": ("walk_spritesheet.png", 4, 10, True),
+        "run": ("run_spritesheet.png", 6, 12, True),
+        "slow_walk": ("walk_spritesheet.png", 4, 8, True),
+        "jump": ("jumpfall_spritesheet.png", 2, 10, False),  # Use first frame
+        "fall": ("jumpfall_spritesheet.png", 2, 10, False),  # Use second frame
+        "crouch": ("idle_spritesheet.png", 2, 6, True),  # Reuse idle, will scale
+        "dash": ("run_spritesheet.png", 6, 20, True),  # Fast run animation
+        "wall_slide": ("jumpfall_spritesheet.png", 2, 8, True),  # Reuse jump/fall
+        "wall_hang": ("jumpfall_spritesheet.png", 2, 6, True),
+        "ceiling_hang": ("jumpfall_spritesheet.png", 2, 6, True),
+        "air_spin": ("jumpfall_spritesheet.png", 2, 10, True),
+        "hurt": ("hurt_spritesheet.png", 3, 12, False),
+        "hurt2": ("hurt_spritesheet.png", 3, 12, False),
+        "death": ("death_spritesheet.png", 5, 12, False),
+        "attack": ("attack-sword_spritesheet.png", 6, 15, False),
+        "slash1": ("attack-sword_spritesheet.png", 6, 15, False),
+        "slash2": ("attack-sword_spritesheet.png", 6, 15, False),
+        "slash3": ("attack-sword_spritesheet.png", 6, 15, False),
+        "slash_air": ("attack-sword_spritesheet.png", 6, 15, False),
+        "jump_slash": ("attack-sword_spritesheet.png", 6, 15, False),
+        "throw_ground": ("attack-sword_spritesheet.png", 4, 12, False),
+        "throw_crouch": ("attack-sword_spritesheet.png", 4, 12, False),
+        "throw_air": ("attack-sword_spritesheet.png", 4, 12, False),
+        "teleport": ("attack-sword_spritesheet.png", 4, 12, False),
+        "ninjutsu_hand": ("attack-sword_spritesheet.png", 4, 10, False),
+        "ninjutsu_summon": ("attack-sword_spritesheet.png", 4, 10, False),
     }
 
-    def __init__(self, sprites_dir: Optional[Path] = None):
+    def __init__(self, sprites_dir: Path | None = None):
         """
         Initialize sprite manager
 
@@ -127,11 +129,11 @@ class SpriteManager:
         """
         if sprites_dir is None:
             project_root = Path(__file__).parent.parent
-            sprites_dir = project_root / 'assets' / 'sprites' / 'player'
+            sprites_dir = project_root / "assets" / "sprites" / "player"
 
         self.sprites_dir = sprites_dir
-        self.animations: Dict[str, SpriteAnimation] = {}
-        self.cache: Dict[Tuple[str, int], List[SpriteFrame]] = {}
+        self.animations: dict[str, SpriteAnimation] = {}
+        self.cache: dict[tuple[str, int], list[SpriteFrame]] = {}
         self.fallback_size = (28, 56)  # Player hitbox size
 
         self._load_animations()
@@ -151,27 +153,23 @@ class SpriteManager:
                 raw_frames = sheet.get_frames()
 
                 # Special handling for jump/fall (split jumpfall sheet)
-                if anim_name == 'jump':
+                if anim_name == "jump":
                     raw_frames = [raw_frames[0]]  # First frame
-                elif anim_name == 'fall':
+                elif anim_name == "fall":
                     raw_frames = [raw_frames[1]]  # Second frame
 
                 # Wrap in SpriteFrame objects
                 frames = [SpriteFrame(surface=surf) for surf in raw_frames]
 
                 self.animations[anim_name] = SpriteAnimation(
-                    name=anim_name,
-                    frames=frames,
-                    fps=fps,
-                    loop=loop
+                    name=anim_name, frames=frames, fps=fps, loop=loop
                 )
 
                 # Cache both facing directions
                 self.cache[(anim_name, 1)] = frames
                 flipped = [
                     SpriteFrame(
-                        surface=pygame.transform.flip(f.surface, True, False),
-                        offset=f.offset
+                        surface=pygame.transform.flip(f.surface, True, False), offset=f.offset
                     )
                     for f in frames
                 ]
@@ -184,38 +182,38 @@ class SpriteManager:
     def _create_fallback_animation(self, anim_name: str, frame_count: int, fps: int, loop: bool):
         """Create colored placeholder animation if sprite sheet missing"""
         state_colors = {
-            'idle': (255, 255, 255),
-            'walk': (200, 200, 255),
-            'run': (80, 200, 255),
-            'slow_walk': (120, 200, 255),
-            'jump': (120, 240, 120),
-            'fall': (200, 180, 80),
-            'wall_slide': (255, 140, 120),
-            'wall_hang': (255, 160, 120),
-            'ceiling_hang': (255, 160, 120),
-            'air_spin': (120, 200, 200),
-            'crouch': (180, 180, 255),
-            'dash': (255, 120, 255),
-            'hurt': (255, 100, 100),
-            'hurt2': (255, 110, 110),
-            'death': (128, 128, 128),
-            'attack': (255, 200, 100),
-            'slash1': (255, 200, 120),
-            'slash2': (255, 180, 120),
-            'slash3': (255, 160, 120),
-            'slash_air': (255, 220, 140),
-            'jump_slash': (255, 220, 140),
-            'throw_ground': (180, 220, 255),
-            'throw_crouch': (160, 200, 255),
-            'throw_air': (140, 180, 255),
-            'teleport': (180, 120, 255),
-            'ninjutsu_hand': (200, 160, 255),
-            'ninjutsu_summon': (220, 180, 255),
+            "idle": (255, 255, 255),
+            "walk": (200, 200, 255),
+            "run": (80, 200, 255),
+            "slow_walk": (120, 200, 255),
+            "jump": (120, 240, 120),
+            "fall": (200, 180, 80),
+            "wall_slide": (255, 140, 120),
+            "wall_hang": (255, 160, 120),
+            "ceiling_hang": (255, 160, 120),
+            "air_spin": (120, 200, 200),
+            "crouch": (180, 180, 255),
+            "dash": (255, 120, 255),
+            "hurt": (255, 100, 100),
+            "hurt2": (255, 110, 110),
+            "death": (128, 128, 128),
+            "attack": (255, 200, 100),
+            "slash1": (255, 200, 120),
+            "slash2": (255, 180, 120),
+            "slash3": (255, 160, 120),
+            "slash_air": (255, 220, 140),
+            "jump_slash": (255, 220, 140),
+            "throw_ground": (180, 220, 255),
+            "throw_crouch": (160, 200, 255),
+            "throw_air": (140, 180, 255),
+            "teleport": (180, 120, 255),
+            "ninjutsu_hand": (200, 160, 255),
+            "ninjutsu_summon": (220, 180, 255),
         }
 
         color = state_colors.get(anim_name, (200, 200, 200))
         w, h = self.fallback_size
-        if anim_name == 'crouch':
+        if anim_name == "crouch":
             h = h // 2
 
         frames = []
@@ -229,18 +227,12 @@ class SpriteManager:
             frames.append(SpriteFrame(surface=surf))
 
         self.animations[anim_name] = SpriteAnimation(
-            name=anim_name,
-            frames=frames,
-            fps=fps,
-            loop=loop
+            name=anim_name, frames=frames, fps=fps, loop=loop
         )
 
         self.cache[(anim_name, 1)] = frames
         flipped = [
-            SpriteFrame(
-                surface=pygame.transform.flip(f.surface, True, False),
-                offset=f.offset
-            )
+            SpriteFrame(surface=pygame.transform.flip(f.surface, True, False), offset=f.offset)
             for f in frames
         ]
         self.cache[(anim_name, -1)] = flipped
@@ -262,7 +254,7 @@ class SpriteManager:
 
         if not frames:
             # Fallback to idle if state not found
-            frames = self.cache.get(('idle', facing), self.cache.get(('idle', 1), []))
+            frames = self.cache.get(("idle", facing), self.cache.get(("idle", 1), []))
 
         if not frames:
             # Ultimate fallback: create emergency placeholder
@@ -291,8 +283,9 @@ class SpriteManager:
         idx = (time_ms // 150) % len(frames)
         return frames[idx]
 
-    def get_scaled_frame(self, state: str, facing: int, time_ms: int,
-                        target_size: Optional[Tuple[int, int]] = None) -> SpriteFrame:
+    def get_scaled_frame(
+        self, state: str, facing: int, time_ms: int, target_size: tuple[int, int] | None = None
+    ) -> SpriteFrame:
         """
         Get animation frame scaled to target size
 
@@ -313,10 +306,10 @@ class SpriteManager:
         scaled_surface = pygame.transform.scale(frame.surface, target_size)
         return SpriteFrame(surface=scaled_surface, offset=frame.offset)
 
-    def get_animation_info(self, state: str) -> Optional[SpriteAnimation]:
+    def get_animation_info(self, state: str) -> SpriteAnimation | None:
         """Get animation definition for debugging/info"""
         return self.animations.get(state)
 
-    def list_animations(self) -> List[str]:
+    def list_animations(self) -> list[str]:
         """List all available animation names"""
         return list(self.animations.keys())

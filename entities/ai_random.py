@@ -8,7 +8,6 @@ Version: v1.0.0
 """
 
 import random
-from typing import Optional
 
 
 class AIRandom:
@@ -85,7 +84,8 @@ class AIRandom:
 # AI Timing Helper Functions
 # ============================================================
 
-def get_varied_patrol_wait(ai_random: Optional[AIRandom], base_time: float = 1.0) -> float:
+
+def get_varied_patrol_wait(ai_random: AIRandom | None, base_time: float = 1.0) -> float:
     """
     Get varied patrol wait time for natural behavior.
 
@@ -103,7 +103,7 @@ def get_varied_patrol_wait(ai_random: Optional[AIRandom], base_time: float = 1.0
     return ai_random.uniform(base_time * 0.7, base_time * 1.3)
 
 
-def get_varied_chase_interval(ai_random: Optional[AIRandom], base_interval: float = 0.5) -> float:
+def get_varied_chase_interval(ai_random: AIRandom | None, base_interval: float = 0.5) -> float:
     """
     Get varied chase update interval for natural tracking.
 
@@ -121,7 +121,7 @@ def get_varied_chase_interval(ai_random: Optional[AIRandom], base_interval: floa
     return ai_random.uniform(base_interval * 0.8, base_interval * 1.2)
 
 
-def get_varied_attack_cooldown(ai_random: Optional[AIRandom], base_cooldown: float = 1.0) -> float:
+def get_varied_attack_cooldown(ai_random: AIRandom | None, base_cooldown: float = 1.0) -> float:
     """
     Get varied attack cooldown for natural combat rhythm.
 
@@ -139,7 +139,7 @@ def get_varied_attack_cooldown(ai_random: Optional[AIRandom], base_cooldown: flo
     return ai_random.uniform(base_cooldown * 0.85, base_cooldown * 1.15)
 
 
-def get_varied_idle_duration(ai_random: Optional[AIRandom], base_duration: float = 1.0) -> float:
+def get_varied_idle_duration(ai_random: AIRandom | None, base_duration: float = 1.0) -> float:
     """
     Get varied idle duration before patrol starts.
 
@@ -161,6 +161,7 @@ def get_varied_idle_duration(ai_random: Optional[AIRandom], base_duration: float
 # Seed Derivation
 # ============================================================
 
+
 def derive_ai_seed(base_seed: int, enemy_id: str) -> int:
     """
     Derive deterministic AI seed from base seed and enemy ID.
@@ -179,4 +180,4 @@ def derive_ai_seed(base_seed: int, enemy_id: str) -> int:
     hash_bytes = hashlib.sha256(seed_string.encode()).digest()
 
     # Convert first 4 bytes to int
-    return int.from_bytes(hash_bytes[:4], byteorder='big', signed=False)
+    return int.from_bytes(hash_bytes[:4], byteorder="big", signed=False)

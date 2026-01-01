@@ -3,8 +3,8 @@ Platform-specific utilities for file operations.
 """
 
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -24,14 +24,14 @@ def open_folder_in_explorer(folder_path: Path):
         return
 
     try:
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             # Windows: use explorer
             os.startfile(str(folder_path))
-        elif sys.platform == 'darwin':
+        elif sys.platform == "darwin":
             # macOS: use open
-            subprocess.Popen(['open', str(folder_path)])
+            subprocess.Popen(["open", str(folder_path)])
         else:
             # Linux: try xdg-open
-            subprocess.Popen(['xdg-open', str(folder_path)])
+            subprocess.Popen(["xdg-open", str(folder_path)])
     except Exception as e:
         print(f"Warning: Could not open folder {folder_path}: {e}")

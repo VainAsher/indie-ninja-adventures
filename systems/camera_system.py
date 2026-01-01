@@ -12,25 +12,27 @@ Features:
 - Camera effects (screen shake, pan, springy lerp)
 """
 
-import pygame
-import random
 import math
-from typing import Optional, Tuple
+import random
 from dataclasses import dataclass
 from enum import Enum
+
+import pygame
 
 
 class CameraMode(Enum):
     """Camera follow modes"""
+
     WORLD_CLAMP = "world_clamp"  # Follow player, clamp to world boundaries
-    ROOM_CLAMP = "room_clamp"    # Follow player, clamp to current room boundaries
-    FREE = "free"                 # Free camera, no following or clamping
-    LOCKED = "locked"             # Camera fixed in place
+    ROOM_CLAMP = "room_clamp"  # Follow player, clamp to current room boundaries
+    FREE = "free"  # Free camera, no following or clamping
+    LOCKED = "locked"  # Camera fixed in place
 
 
 @dataclass
 class CameraConfig:
     """Camera configuration"""
+
     # Virtual game resolution (internal rendering resolution)
     game_width: int = 1280
     game_height: int = 720
@@ -65,7 +67,7 @@ class CameraSystem:
     by rendering to a virtual resolution and scaling with letterboxing.
     """
 
-    def __init__(self, config: Optional[CameraConfig] = None):
+    def __init__(self, config: CameraConfig | None = None):
         self.config = config or CameraConfig()
 
         # Camera mode
@@ -231,14 +233,22 @@ class CameraSystem:
 
         # Update target position based on deadzone
         if target_x < deadzone_left:
-            self.target_x = target_x - (self.config.game_width / 2) + (self.config.deadzone_width / 2)
+            self.target_x = (
+                target_x - (self.config.game_width / 2) + (self.config.deadzone_width / 2)
+            )
         elif target_x > deadzone_right:
-            self.target_x = target_x - (self.config.game_width / 2) - (self.config.deadzone_width / 2)
+            self.target_x = (
+                target_x - (self.config.game_width / 2) - (self.config.deadzone_width / 2)
+            )
 
         if target_y < deadzone_top:
-            self.target_y = target_y - (self.config.game_height / 2) + (self.config.deadzone_height / 2)
+            self.target_y = (
+                target_y - (self.config.game_height / 2) + (self.config.deadzone_height / 2)
+            )
         elif target_y > deadzone_bottom:
-            self.target_y = target_y - (self.config.game_height / 2) - (self.config.deadzone_height / 2)
+            self.target_y = (
+                target_y - (self.config.game_height / 2) - (self.config.deadzone_height / 2)
+            )
 
         # Smooth lerp to target with optional spring overshoot
         if self.config.enable_spring and self.config.spring_stiffness > 0:
@@ -282,11 +292,13 @@ class CameraSystem:
                 self.x = max(min_x, min(self.x, max_x))
 
             if self.config.room_height <= self.config.game_height:
-                self.y = self.config.room_y - (self.config.game_height - self.config.room_height) / 2
+                self.y = (
+                    self.config.room_y - (self.config.game_height - self.config.room_height) / 2
+                )
             else:
                 self.y = max(min_y, min(self.y, max_y))
 
-    def world_to_screen(self, world_x: float, world_y: float) -> Tuple[float, float]:
+    def world_to_screen(self, world_x: float, world_y: float) -> tuple[float, float]:
         """
         Convert world coordinates to screen coordinates
 
@@ -307,7 +319,7 @@ class CameraSystem:
 
         return (screen_x, screen_y)
 
-    def screen_to_world(self, screen_x: float, screen_y: float) -> Tuple[float, float]:
+    def screen_to_world(self, screen_x: float, screen_y: float) -> tuple[float, float]:
         """
         Convert screen coordinates to world coordinates
 
@@ -336,7 +348,7 @@ class CameraSystem:
             rect.x - int(self.x) + int(self.shake_offset_x + self.pan_offset_x),
             rect.y - int(self.y) + int(self.shake_offset_y + self.pan_offset_y),
             rect.width,
-            rect.height
+            rect.height,
         )
 
     def handle_resize(self, window_width: int, window_height: int):
@@ -383,18 +395,14 @@ class CameraSystem:
 
         # Scale and blit game surface with letterboxing
         scaled_surface = pygame.transform.scale(
-            self.game_surface,
-            (self.render_width, self.render_height)
+            self.game_surface, (self.render_width, self.render_height)
         )
         screen.blit(scaled_surface, (self.letterbox_left, self.letterbox_top))
 
     def get_viewport_rect(self) -> pygame.Rect:
         """Get the current viewport rectangle in world space"""
         return pygame.Rect(
-            int(self.x),
-            int(self.y),
-            self.config.game_width,
-            self.config.game_height
+            int(self.x), int(self.y), self.config.game_width, self.config.game_height
         )
 
 
@@ -413,7 +421,7 @@ SCREEN_PRESETS = {
 }
 
 
-def get_recommended_window_size() -> Tuple[int, int]:
+def get_recommended_window_size() -> tuple[int, int]:
     """
     Get recommended window size based on display
 

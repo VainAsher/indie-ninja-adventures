@@ -1,11 +1,14 @@
 """Test to find the right threshold for corner collision"""
+
 import pygame
-from systems.collision_system import CollisionSystem
-from core.entity_system import Entity, EntityType, EntityManager
-from core.state import PhysicsState
+
+from core.entity_system import Entity, EntityManager, EntityType
 from core.event_bus import EventBus
+from core.state import PhysicsState
+from systems.collision_system import CollisionSystem
 
 pygame.init()
+
 
 def test_scenario(name, player_x, player_y, vx, vy, tile_rect):
     """Test a collision scenario"""
@@ -17,7 +20,7 @@ def test_scenario(name, player_x, player_y, vx, vy, tile_rect):
     player = Entity(
         entity_id=0,
         entity_type=EntityType.PLAYER,
-        physics=PhysicsState(x=player_x, y=player_y, vx=vx, vy=vy, width=20, height=20)
+        physics=PhysicsState(x=player_x, y=player_y, vx=vx, vy=vy, width=20, height=20),
     )
 
     player_rect = player.physics.get_rect()
@@ -47,11 +50,12 @@ def test_scenario(name, player_x, player_y, vx, vy, tile_rect):
             print(f"  FAIL: Should preserve horizontal (ground), but vx={new_vx}")
             return False
         else:
-            print(f"  PASS: Collision handled correctly")
+            print("  PASS: Collision handled correctly")
             return True
     else:
         print(f"\n{name}: No collision")
         return True
+
 
 print("=" * 60)
 print("Testing different collision scenarios")
@@ -59,28 +63,14 @@ print("=" * 60)
 
 # Test 1: Clear wall collision (small X overlap, should stop)
 test_scenario(
-    "Wall collision (side approach)",
-    85.0, 505.0, 3.0, 5.0,
-    pygame.Rect(100, 500, 32, 32)
+    "Wall collision (side approach)", 85.0, 505.0, 3.0, 5.0, pygame.Rect(100, 500, 32, 32)
 )
 
 # Test 2: Landing on platform edge (moderate overlaps)
-test_scenario(
-    "Platform edge landing",
-    50.0, 595.0, 5.0, 10.0,
-    pygame.Rect(60, 600, 32, 32)
-)
+test_scenario("Platform edge landing", 50.0, 595.0, 5.0, 10.0, pygame.Rect(60, 600, 32, 32))
 
 # Test 3: Landing flat on ground (large X overlap, small Y)
-test_scenario(
-    "Flat ground landing",
-    100.0, 670.0, 5.0, 10.0,
-    pygame.Rect(0, 688, 640, 32)
-)
+test_scenario("Flat ground landing", 100.0, 670.0, 5.0, 10.0, pygame.Rect(0, 688, 640, 32))
 
 # Test 4: Very corner collision (equal overlaps)
-test_scenario(
-    "Perfect corner collision",
-    92.0, 592.0, 5.0, 8.0,
-    pygame.Rect(100, 600, 32, 32)
-)
+test_scenario("Perfect corner collision", 92.0, 592.0, 5.0, 8.0, pygame.Rect(100, 600, 32, 32))

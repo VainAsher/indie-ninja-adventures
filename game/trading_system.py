@@ -11,24 +11,21 @@ This module provides NPC trading and shop functionality:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
-from enum import Enum
 import random
+from dataclasses import dataclass, field
+from enum import Enum
 
-from game.inventory_system import (
-    Inventory, ItemDefinition, ItemType, ItemRarity,
-    get_item_manager
-)
 from core import EventBus
-
+from game.inventory_system import Inventory, ItemDefinition, ItemRarity, ItemType, get_item_manager
 
 # ============================================================
 # Shop Configuration
 # ============================================================
 
+
 class ShopTier(Enum):
     """Shop tier levels (higher = better items)"""
+
     TIER_1 = 1  # Forest hub - basic items
     TIER_2 = 2  # Town hub - uncommon items
     TIER_3 = 3  # Caves hub - rare items
@@ -43,12 +40,13 @@ class ShopItemPool:
 
     Defines which items can appear in shops of each tier.
     """
+
     tier: ShopTier
-    allowed_item_ids: List[str]
-    allowed_rarities: List[ItemRarity]
+    allowed_item_ids: list[str]
+    allowed_rarities: list[ItemRarity]
     min_items: int = 5
     max_items: int = 10
-    stock_range: Tuple[int, int] = (1, 3)  # Stock quantity per item
+    stock_range: tuple[int, int] = (1, 3)  # Stock quantity per item
 
 
 # ============================================================
@@ -62,54 +60,46 @@ SHOP_TIER_POOLS = {
             # Basic weapons
             "weapon_dagger",
             "weapon_sword",
-
             # Basic armor
             "armor_cloth",
             "armor_leather",
-
             # Consumables
             "health_potion_small",
             "health_potion_medium",
             "speed_boost_potion",
-
             # Materials
             "material_cloth",
             "material_leather",
-            "material_iron"
+            "material_iron",
         ],
         allowed_rarities=[ItemRarity.COMMON, ItemRarity.UNCOMMON],
         min_items=6,
         max_items=10,
-        stock_range=(2, 5)
+        stock_range=(2, 5),
     ),
-
     ShopTier.TIER_2: ShopItemPool(
         tier=ShopTier.TIER_2,
         allowed_item_ids=[
             # Better weapons
             "weapon_sword",
             "weapon_steel_sword",
-
             # Better armor
             "armor_leather",
             "armor_chain_mail",
-
             # Consumables
             "health_potion_medium",
             "health_potion_large",
             "speed_boost_potion",
             "invincibility_potion",
-
             # Materials
             "material_iron",
-            "material_crystal"
+            "material_crystal",
         ],
         allowed_rarities=[ItemRarity.COMMON, ItemRarity.UNCOMMON, ItemRarity.RARE],
         min_items=7,
         max_items=12,
-        stock_range=(1, 4)
+        stock_range=(1, 4),
     ),
-
     ShopTier.TIER_3: ShopItemPool(
         tier=ShopTier.TIER_3,
         allowed_item_ids=[
@@ -117,81 +107,70 @@ SHOP_TIER_POOLS = {
             "weapon_steel_sword",
             "weapon_nature_bow",
             "weapon_crystal_blade",
-
             # Advanced armor
             "armor_chain_mail",
             "armor_bark_plate",
             "armor_crystal_plate",
-
             # Rare consumables
             "health_potion_large",
             "max_hp_upgrade",
             "invincibility_potion",
-
             # Rare materials
             "material_crystal",
             "material_dark_essence",
-            "quest_ancient_scroll"
+            "quest_ancient_scroll",
         ],
         allowed_rarities=[ItemRarity.UNCOMMON, ItemRarity.RARE, ItemRarity.EPIC],
         min_items=8,
         max_items=14,
-        stock_range=(1, 3)
+        stock_range=(1, 3),
     ),
-
     ShopTier.TIER_4: ShopItemPool(
         tier=ShopTier.TIER_4,
         allowed_item_ids=[
             # Epic weapons
             "weapon_crystal_blade",
             "weapon_dark_blade",
-
             # Epic armor
             "armor_crystal_plate",
             "armor_dark_plate",
-
             # Epic consumables
             "max_hp_upgrade",
             "invincibility_potion",
-
             # Epic materials
             "material_crystal",
             "material_dark_essence",
             "quest_ancient_scroll",
-            "treasure_ruby"
+            "treasure_ruby",
         ],
         allowed_rarities=[ItemRarity.RARE, ItemRarity.EPIC],
         min_items=6,
         max_items=10,
-        stock_range=(1, 2)
+        stock_range=(1, 2),
     ),
-
     ShopTier.TIER_5: ShopItemPool(
         tier=ShopTier.TIER_5,
         allowed_item_ids=[
             # Legendary weapons
             "weapon_dark_blade",
             "weapon_legendary_sword",
-
             # Legendary armor
             "armor_dark_plate",
             "armor_legendary_set",
-
             # Endgame consumables
             "max_hp_upgrade",
             "poison_resist_charm",
-
             # Legendary materials
             "material_dark_essence",
             "treasure_diamond",
             "ultimate_weapon",
-            "ultimate_armor"
+            "ultimate_armor",
         ],
         allowed_rarities=[ItemRarity.EPIC, ItemRarity.LEGENDARY],
         min_items=5,
         max_items=8,
-        stock_range=(1, 2)
-    )
+        stock_range=(1, 2),
+    ),
 }
 
 
@@ -205,7 +184,7 @@ RARITY_PRICE_MULTIPLIERS = {
     ItemRarity.UNCOMMON: 2.0,
     ItemRarity.RARE: 4.0,
     ItemRarity.EPIC: 8.0,
-    ItemRarity.LEGENDARY: 16.0
+    ItemRarity.LEGENDARY: 16.0,
 }
 
 # Sell value percentage (player sells to NPC)
@@ -219,9 +198,11 @@ BUY_PRICE_PERCENT = 1.0  # 100% of item value
 # Shop Inventory
 # ============================================================
 
+
 @dataclass
 class ShopItem:
     """Item in a shop with stock and pricing"""
+
     item_id: str
     stock: int
     price: int  # Buy price (what player pays)
@@ -234,9 +215,10 @@ class NPCInventory:
 
     Manages shop items, stock levels, and transactions.
     """
+
     npc_id: str
     shop_tier: ShopTier
-    items: List[ShopItem] = field(default_factory=list)
+    items: list[ShopItem] = field(default_factory=list)
     currency: int = 10000  # NPC has plenty of money
 
     # Generation seed for deterministic inventory
@@ -281,11 +263,7 @@ class NPCInventory:
             stock = rng.randint(pool_config.stock_range[0], pool_config.stock_range[1])
             price = self.calculate_buy_price(item_def)
 
-            self.items.append(ShopItem(
-                item_id=item_def.item_id,
-                stock=stock,
-                price=price
-            ))
+            self.items.append(ShopItem(item_id=item_def.item_id, stock=stock, price=price))
 
     def calculate_buy_price(self, item_def: ItemDefinition) -> int:
         """
@@ -314,7 +292,7 @@ class NPCInventory:
         buy_price = self.calculate_buy_price(item_def)
         return int(buy_price * SELL_VALUE_PERCENT)
 
-    def get_shop_item(self, item_id: str) -> Optional[ShopItem]:
+    def get_shop_item(self, item_id: str) -> ShopItem | None:
         """Get shop item by ID"""
         for item in self.items:
             if item.item_id == item_id:
@@ -434,37 +412,33 @@ class NPCInventory:
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
-            'npc_id': self.npc_id,
-            'shop_tier': self.shop_tier.value,
-            'items': [
-                {
-                    'item_id': item.item_id,
-                    'stock': item.stock,
-                    'price': item.price
-                }
+            "npc_id": self.npc_id,
+            "shop_tier": self.shop_tier.value,
+            "items": [
+                {"item_id": item.item_id, "stock": item.stock, "price": item.price}
                 for item in self.items
             ],
-            'currency': self.currency,
-            'generation_seed': self.generation_seed
+            "currency": self.currency,
+            "generation_seed": self.generation_seed,
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'NPCInventory':
+    def from_dict(data: dict) -> "NPCInventory":
         """Deserialize from dictionary"""
         inventory = NPCInventory(
-            npc_id=data['npc_id'],
-            shop_tier=ShopTier(data['shop_tier']),
-            currency=data.get('currency', 10000),
-            generation_seed=data.get('generation_seed', 0)
+            npc_id=data["npc_id"],
+            shop_tier=ShopTier(data["shop_tier"]),
+            currency=data.get("currency", 10000),
+            generation_seed=data.get("generation_seed", 0),
         )
 
         # Restore items
-        for item_data in data.get('items', []):
-            inventory.items.append(ShopItem(
-                item_id=item_data['item_id'],
-                stock=item_data['stock'],
-                price=item_data['price']
-            ))
+        for item_data in data.get("items", []):
+            inventory.items.append(
+                ShopItem(
+                    item_id=item_data["item_id"], stock=item_data["stock"], price=item_data["price"]
+                )
+            )
 
         return inventory
 
@@ -473,9 +447,11 @@ class NPCInventory:
 # Trading Events
 # ============================================================
 
+
 @dataclass
 class TradeEvent:
     """Event emitted when trade occurs"""
+
     npc_id: str
     item_id: str
     quantity: int
@@ -486,6 +462,7 @@ class TradeEvent:
 @dataclass
 class ShopOpenEvent:
     """Event emitted when shop UI opens"""
+
     npc_id: str
     shop_tier: ShopTier
 
@@ -493,12 +470,14 @@ class ShopOpenEvent:
 @dataclass
 class ShopCloseEvent:
     """Event emitted when shop UI closes"""
+
     npc_id: str
 
 
 # ============================================================
 # Trading Manager
 # ============================================================
+
 
 class TradingManager:
     """
@@ -517,7 +496,7 @@ class TradingManager:
         """
         self.event_bus = event_bus
         self.world_seed = world_seed
-        self.npc_shops: Dict[str, NPCInventory] = {}
+        self.npc_shops: dict[str, NPCInventory] = {}
 
     def create_shop(self, npc_id: str, shop_tier: ShopTier) -> NPCInventory:
         """
@@ -534,11 +513,7 @@ class TradingManager:
         generation_seed = hash(f"{self.world_seed}:{npc_id}") & 0x7FFFFFFF
 
         # Create shop inventory
-        shop = NPCInventory(
-            npc_id=npc_id,
-            shop_tier=shop_tier,
-            generation_seed=generation_seed
-        )
+        shop = NPCInventory(npc_id=npc_id, shop_tier=shop_tier, generation_seed=generation_seed)
 
         # Generate initial inventory
         shop.generate_inventory()
@@ -548,7 +523,7 @@ class TradingManager:
 
         return shop
 
-    def get_shop(self, npc_id: str) -> Optional[NPCInventory]:
+    def get_shop(self, npc_id: str) -> NPCInventory | None:
         """Get shop by NPC ID"""
         return self.npc_shops.get(npc_id)
 
@@ -567,10 +542,7 @@ class TradingManager:
             self.create_shop(npc_id, shop_tier)
 
         # Emit open event
-        self.event_bus.emit(ShopOpenEvent(
-            npc_id=npc_id,
-            shop_tier=shop_tier
-        ))
+        self.event_bus.emit(ShopOpenEvent(npc_id=npc_id, shop_tier=shop_tier))
 
     def close_shop(self, npc_id: str):
         """
@@ -581,8 +553,9 @@ class TradingManager:
         """
         self.event_bus.emit(ShopCloseEvent(npc_id=npc_id))
 
-    def buy_item(self, npc_id: str, item_id: str, quantity: int,
-                 player_inventory: Inventory) -> bool:
+    def buy_item(
+        self, npc_id: str, item_id: str, quantity: int, player_inventory: Inventory
+    ) -> bool:
         """
         Process player buying item from shop.
 
@@ -610,18 +583,21 @@ class TradingManager:
         if success:
             # Emit trade event
             total_cost = shop_item.price * quantity
-            self.event_bus.emit(TradeEvent(
-                npc_id=npc_id,
-                item_id=item_id,
-                quantity=quantity,
-                total_cost=total_cost,
-                is_purchase=True
-            ))
+            self.event_bus.emit(
+                TradeEvent(
+                    npc_id=npc_id,
+                    item_id=item_id,
+                    quantity=quantity,
+                    total_cost=total_cost,
+                    is_purchase=True,
+                )
+            )
 
         return success
 
-    def sell_item(self, npc_id: str, item_id: str, quantity: int,
-                  player_inventory: Inventory) -> bool:
+    def sell_item(
+        self, npc_id: str, item_id: str, quantity: int, player_inventory: Inventory
+    ) -> bool:
         """
         Process player selling item to shop.
 
@@ -653,13 +629,15 @@ class TradingManager:
 
         if success:
             # Emit trade event
-            self.event_bus.emit(TradeEvent(
-                npc_id=npc_id,
-                item_id=item_id,
-                quantity=quantity,
-                total_cost=total_payment,
-                is_purchase=False
-            ))
+            self.event_bus.emit(
+                TradeEvent(
+                    npc_id=npc_id,
+                    item_id=item_id,
+                    quantity=quantity,
+                    total_cost=total_payment,
+                    is_purchase=False,
+                )
+            )
 
         return success
 
@@ -676,10 +654,7 @@ class TradingManager:
 
     def save_shops(self) -> dict:
         """Save all shop states"""
-        return {
-            npc_id: shop.to_dict()
-            for npc_id, shop in self.npc_shops.items()
-        }
+        return {npc_id: shop.to_dict() for npc_id, shop in self.npc_shops.items()}
 
     def load_shops(self, data: dict):
         """Load shop states"""
@@ -692,7 +667,7 @@ class TradingManager:
 # Global Trading Manager Instance
 # ============================================================
 
-_trading_manager: Optional[TradingManager] = None
+_trading_manager: TradingManager | None = None
 
 
 def initialize_trading_manager(event_bus: EventBus, world_seed: int):
@@ -701,6 +676,6 @@ def initialize_trading_manager(event_bus: EventBus, world_seed: int):
     _trading_manager = TradingManager(event_bus, world_seed)
 
 
-def get_trading_manager() -> Optional[TradingManager]:
+def get_trading_manager() -> TradingManager | None:
     """Get the global trading manager instance"""
     return _trading_manager

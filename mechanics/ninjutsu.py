@@ -2,12 +2,12 @@
 Ninjutsu Mechanic - Stance/select/cast with Purify effect.
 """
 
-from typing import Optional
-from mechanics.base import BaseMechanic
+
+from config.physics_constants import TILE_SIZE
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
-from config.physics_constants import TILE_SIZE
+from mechanics.base import BaseMechanic
 
 
 class NinjutsuMechanic(BaseMechanic):
@@ -16,7 +16,9 @@ class NinjutsuMechanic(BaseMechanic):
     PURIFY_MANA_COST = 25.0
     PURIFY_RADIUS_TILES = 5
 
-    def __init__(self, entity_id: int, event_bus: EventBus, logger: MechanicLogger, hazard_manager=None):
+    def __init__(
+        self, entity_id: int, event_bus: EventBus, logger: MechanicLogger, hazard_manager=None
+    ):
         super().__init__(entity_id, event_bus, logger)
         self.hazard_manager = hazard_manager
         self.stance_requested = False
@@ -29,7 +31,7 @@ class NinjutsuMechanic(BaseMechanic):
     def request_stance(self):
         self.stance_requested = True
 
-    def request_cast(self, selected: Optional[str] = None):
+    def request_cast(self, selected: str | None = None):
         self.cast_requested = True
         if selected:
             self.selected = selected
@@ -74,17 +76,17 @@ class NinjutsuMechanic(BaseMechanic):
         # Clear hazard (permanent)
         if self.hazard_manager:
             radius_px = self.PURIFY_RADIUS_TILES * TILE_SIZE
-            self.hazard_manager.clear_poison_area(
-                state.physics.x,
-                state.physics.y,
-                radius_px
-            )
+            self.hazard_manager.clear_poison_area(state.physics.x, state.physics.y, radius_px)
         state.ninjutsu_casting = False
 
     def can_activate(self, state: PlayerState) -> bool:
         if not self.enabled:
             return False
-        cd = state.ninjutsu_cooldowns.get("purify", 0.0) if isinstance(state.ninjutsu_cooldowns, dict) else 0.0
+        cd = (
+            state.ninjutsu_cooldowns.get("purify", 0.0)
+            if isinstance(state.ninjutsu_cooldowns, dict)
+            else 0.0
+        )
         return cd <= 0.0 and state.mana >= self.PURIFY_MANA_COST
 
     def reset(self, state: PlayerState):

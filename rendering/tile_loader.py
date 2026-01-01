@@ -11,29 +11,25 @@ Usage:
 """
 
 import logging
-from pathlib import Path
-from typing import Dict, Tuple, Optional
-import pygame
-from PIL import Image
 
 # Import tile configuration
 import sys
+from pathlib import Path
+
+import pygame
+from PIL import Image
+
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
-from assets.biomes.tile_config import (
-    BIOME_TILES,
-    ORIGINAL_TILE_SIZE,
-    GAME_TILE_SIZE,
-    get_tile_path
-)
+
+from assets.biomes.tile_config import BIOME_TILES, GAME_TILE_SIZE, ORIGINAL_TILE_SIZE, get_tile_path
 from assets.biomes.tile_config_autotile import (
+    AUTOTILE_SHAPES,
+    deterministic_variant_index,
     get_autotile_path,
     get_variant_count,
-    deterministic_variant_index,
-    AUTOTILE_SHAPES
 )
-from systems.autotiling import autotile_key, get_tile_type_name
-from typing import List
+from systems.autotiling import autotile_key
 
 logger = logging.getLogger(__name__)
 # Debug info emitted at debug level to avoid noisy stdout during tests
@@ -69,8 +65,8 @@ class TileLoader:
             target_tile_size: Target size for scaled tiles (default: 32)
         """
         self.target_tile_size = target_tile_size
-        self.cache: Dict[Tuple[str, str, int], pygame.Surface] = {}
-        self.fallback_tiles: Dict[Tuple[str, str], pygame.Surface] = {}
+        self.cache: dict[tuple[str, str, int], pygame.Surface] = {}
+        self.fallback_tiles: dict[tuple[str, str], pygame.Surface] = {}
 
         # Ensure pygame is initialized for surface creation
         if not pygame.get_init():
@@ -135,8 +131,7 @@ class TileLoader:
 
         # Scale using LANCZOS for quality
         scaled_image = pil_image.resize(
-            (self.target_tile_size, self.target_tile_size),
-            Image.LANCZOS
+            (self.target_tile_size, self.target_tile_size), Image.LANCZOS
         )
 
         # Convert PIL image to pygame surface
@@ -145,16 +140,12 @@ class TileLoader:
         data = scaled_image.tobytes()
 
         # Create pygame surface with alpha channel
-        if mode == 'RGBA':
+        if mode == "RGBA":
             surface = pygame.image.fromstring(data, size, mode)
         else:
             # Convert to RGBA if needed
-            scaled_rgba = scaled_image.convert('RGBA')
-            surface = pygame.image.fromstring(
-                scaled_rgba.tobytes(),
-                scaled_rgba.size,
-                'RGBA'
-            )
+            scaled_rgba = scaled_image.convert("RGBA")
+            surface = pygame.image.fromstring(scaled_rgba.tobytes(), scaled_rgba.size, "RGBA")
 
         return surface.convert_alpha()
 
@@ -176,20 +167,20 @@ class TileLoader:
 
         # Define colors by biome and type
         biome_colors = {
-            'dungeon': {
-                'solid': (100, 100, 120),      # Gray stone
-                'platform': (139, 69, 19),      # Brown
-                'decorative': (150, 100, 50),  # Bronze
+            "dungeon": {
+                "solid": (100, 100, 120),  # Gray stone
+                "platform": (139, 69, 19),  # Brown
+                "decorative": (150, 100, 50),  # Bronze
             },
-            'cave': {
-                'solid': (101, 67, 33),        # Brown earth
-                'platform': (121, 87, 53),     # Light brown
-                'liquid': (255, 100, 0),       # Orange lava
+            "cave": {
+                "solid": (101, 67, 33),  # Brown earth
+                "platform": (121, 87, 53),  # Light brown
+                "liquid": (255, 100, 0),  # Orange lava
             },
-            'building': {
-                'solid': (64, 64, 64),          # Dark Gray
-                'platform': (160, 120, 80),    # Light wood
-                'decorative': (180, 150, 100), # Pale wood
+            "building": {
+                "solid": (64, 64, 64),  # Dark Gray
+                "platform": (160, 120, 80),  # Light wood
+                "decorative": (180, 150, 100),  # Pale wood
             },
         }
 
@@ -203,10 +194,7 @@ class TileLoader:
         # Add border for visual distinction
         border_color = tuple(min(c + 30, 255) for c in color)
         pygame.draw.rect(
-            surface,
-            border_color,
-            (0, 0, self.target_tile_size, self.target_tile_size),
-            1
+            surface, border_color, (0, 0, self.target_tile_size, self.target_tile_size), 1
         )
 
         # Cache fallback
@@ -214,9 +202,16 @@ class TileLoader:
 
         return surface
 
-    def get_autotiled_tile(self, biome: str, tile_type: str,
-                          tilemap: List[List[int]], x: int, y: int,
-                          tile_id: int, seed: int = 0) -> pygame.Surface:
+    def get_autotiled_tile(
+        self,
+        biome: str,
+        tile_type: str,
+        tilemap: list[list[int]],
+        x: int,
+        y: int,
+        tile_id: int,
+        seed: int = 0,
+    ) -> pygame.Surface:
         """
         Get tile with 3×3 autotiling based on neighbors
 
@@ -265,7 +260,7 @@ class TileLoader:
         variant_idx = deterministic_variant_index(x, y, seed, num_variants)
 
         # Check cache
-        cache_key = (biome, tile_type, shape, variant_idx, 'autotile')
+        cache_key = (biome, tile_type, shape, variant_idx, "autotile")
         if cache_key in self.cache:
             return self.cache[cache_key]
 
@@ -307,7 +302,7 @@ class TileLoader:
         self.cache.clear()
         self.fallback_tiles.clear()
 
-    def get_cache_stats(self) -> Dict[str, int]:
+    def get_cache_stats(self) -> dict[str, int]:
         """
         Get cache statistics
 
@@ -315,7 +310,7 @@ class TileLoader:
             Dictionary with cache info
         """
         return {
-            'cached_tiles': len(self.cache),
-            'fallback_tiles': len(self.fallback_tiles),
-            'total_cached': len(self.cache) + len(self.fallback_tiles),
+            "cached_tiles": len(self.cache),
+            "fallback_tiles": len(self.fallback_tiles),
+            "total_cached": len(self.cache) + len(self.fallback_tiles),
         }

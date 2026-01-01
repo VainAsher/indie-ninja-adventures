@@ -8,15 +8,14 @@ Version: v1.0.0
 """
 
 import json
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
 import sys
-
+from pathlib import Path
 
 # Try to import jsonschema (it's a common library)
 try:
     import jsonschema
-    from jsonschema import validate, ValidationError, SchemaError
+    from jsonschema import SchemaError, ValidationError, validate
+
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
     JSONSCHEMA_AVAILABLE = False
@@ -38,7 +37,8 @@ SCHEMA_DIR = DATA_DIR / "schemas"
 # Schema Loading
 # ============================================================
 
-def load_schema(schema_name: str) -> Optional[Dict]:
+
+def load_schema(schema_name: str) -> dict | None:
     """
     Load a JSON schema from the schemas directory.
 
@@ -55,7 +55,7 @@ def load_schema(schema_name: str) -> Optional[Dict]:
         return None
 
     try:
-        with open(schema_path, 'r', encoding='utf-8') as f:
+        with open(schema_path, encoding="utf-8") as f:
             schema = json.load(f)
         return schema
     except json.JSONDecodeError as e:
@@ -66,7 +66,7 @@ def load_schema(schema_name: str) -> Optional[Dict]:
         return None
 
 
-def load_data_file(file_path: Path) -> Optional[Dict]:
+def load_data_file(file_path: Path) -> dict | None:
     """
     Load a JSON data file.
 
@@ -81,7 +81,7 @@ def load_data_file(file_path: Path) -> Optional[Dict]:
         return None
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
         return data
     except json.JSONDecodeError as e:
@@ -97,7 +97,8 @@ def load_data_file(file_path: Path) -> Optional[Dict]:
 # Validation Functions
 # ============================================================
 
-def validate_data(data: Dict, schema: Dict, data_name: str) -> Tuple[bool, List[str]]:
+
+def validate_data(data: dict, schema: dict, data_name: str) -> tuple[bool, list[str]]:
     """
     Validate data against a schema.
 
@@ -124,7 +125,7 @@ def validate_data(data: Dict, schema: Dict, data_name: str) -> Tuple[bool, List[
         errors.append(error_msg)
 
         # Add context from failing instance
-        if hasattr(e, 'instance'):
+        if hasattr(e, "instance"):
             errors.append(f"  Problematic value: {e.instance}")
 
         return False, errors
@@ -136,7 +137,7 @@ def validate_data(data: Dict, schema: Dict, data_name: str) -> Tuple[bool, List[
         return False, errors
 
 
-def validate_items_file(file_path: Optional[Path] = None) -> Tuple[bool, List[str]]:
+def validate_items_file(file_path: Path | None = None) -> tuple[bool, list[str]]:
     """
     Validate items.json file.
 
@@ -171,7 +172,7 @@ def validate_items_file(file_path: Optional[Path] = None) -> Tuple[bool, List[st
     return is_valid, errors
 
 
-def validate_missions_file(file_path: Optional[Path] = None) -> Tuple[bool, List[str]]:
+def validate_missions_file(file_path: Path | None = None) -> tuple[bool, list[str]]:
     """
     Validate missions.json file.
 
@@ -206,7 +207,7 @@ def validate_missions_file(file_path: Optional[Path] = None) -> Tuple[bool, List
     return is_valid, errors
 
 
-def validate_dialogues_file(file_path: Optional[Path] = None) -> Tuple[bool, List[str]]:
+def validate_dialogues_file(file_path: Path | None = None) -> tuple[bool, list[str]]:
     """
     Validate dialogues.json file.
 
@@ -245,7 +246,8 @@ def validate_dialogues_file(file_path: Optional[Path] = None) -> Tuple[bool, Lis
 # Custom Validation Rules
 # ============================================================
 
-def _validate_items_custom(data: Dict) -> List[str]:
+
+def _validate_items_custom(data: dict) -> list[str]:
     """
     Additional custom validation for items.
 
@@ -272,7 +274,7 @@ def _validate_items_custom(data: Dict) -> List[str]:
     return errors
 
 
-def _validate_missions_custom(data: Dict) -> List[str]:
+def _validate_missions_custom(data: dict) -> list[str]:
     """
     Additional custom validation for missions.
 
@@ -297,19 +299,23 @@ def _validate_missions_custom(data: Dict) -> List[str]:
     for mission in data.get("missions", []):
         mission_region = mission.get("region")
         if mission_region not in regions:
-            errors.append(f"Mission '{mission.get('mission_id')}' references unknown region: {mission_region}")
+            errors.append(
+                f"Mission '{mission.get('mission_id')}' references unknown region: {mission_region}"
+            )
 
     # Validate unlock requirements (check circular dependencies)
     mission_ids = {m.get("mission_id") for m in data.get("missions", [])}
     for mission in data.get("missions", []):
         for required_mission in mission.get("unlock_requirements", []):
             if required_mission not in mission_ids:
-                errors.append(f"Mission '{mission.get('mission_id')}' requires unknown mission: {required_mission}")
+                errors.append(
+                    f"Mission '{mission.get('mission_id')}' requires unknown mission: {required_mission}"
+                )
 
     return errors
 
 
-def _validate_dialogues_custom(data: Dict) -> List[str]:
+def _validate_dialogues_custom(data: dict) -> list[str]:
     """
     Additional custom validation for dialogues.
 
@@ -335,13 +341,17 @@ def _validate_dialogues_custom(data: Dict) -> List[str]:
             # Check direct next_node_id
             next_id = node.get("next_node_id")
             if next_id is not None and next_id not in nodes:
-                errors.append(f"Dialogue '{dialogue_id}' node '{node_id}' references unknown node: {next_id}")
+                errors.append(
+                    f"Dialogue '{dialogue_id}' node '{node_id}' references unknown node: {next_id}"
+                )
 
             # Check choice next_node_ids
             for choice in node.get("choices", []):
                 choice_next = choice.get("next_node_id")
                 if choice_next is not None and choice_next not in nodes:
-                    errors.append(f"Dialogue '{dialogue_id}' node '{node_id}' choice references unknown node: {choice_next}")
+                    errors.append(
+                        f"Dialogue '{dialogue_id}' node '{node_id}' choice references unknown node: {choice_next}"
+                    )
 
     return errors
 
@@ -350,7 +360,8 @@ def _validate_dialogues_custom(data: Dict) -> List[str]:
 # Batch Validation
 # ============================================================
 
-def validate_all_data_files() -> Tuple[bool, Dict[str, List[str]]]:
+
+def validate_all_data_files() -> tuple[bool, dict[str, list[str]]]:
     """
     Validate all game data files.
 
@@ -385,11 +396,12 @@ def validate_all_data_files() -> Tuple[bool, Dict[str, List[str]]]:
 # Command Line Interface
 # ============================================================
 
+
 def main():
     """Run validation from command line"""
-    print("="*60)
+    print("=" * 60)
     print("GAME DATA VALIDATION")
-    print("="*60)
+    print("=" * 60)
     print()
 
     all_valid, results = validate_all_data_files()
@@ -403,7 +415,7 @@ def main():
                 print(f"   - {error}")
         print()
 
-    print("="*60)
+    print("=" * 60)
     if all_valid:
         print("[PASS] ALL DATA FILES VALID")
         return 0

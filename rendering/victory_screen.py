@@ -4,8 +4,9 @@ Victory Screen - Level Completion UI
 Displays victory message and level statistics when player completes a level.
 """
 
+from typing import Any
+
 import pygame
-from typing import Dict, Any, Optional
 
 
 class VictoryScreen:
@@ -31,9 +32,9 @@ class VictoryScreen:
         self.highlight_color = (80, 255, 80)  # Green
 
         # Fonts (will be created when first needed)
-        self.title_font: Optional[pygame.font.Font] = None
-        self.stat_font: Optional[pygame.font.Font] = None
-        self.prompt_font: Optional[pygame.font.Font] = None
+        self.title_font: pygame.font.Font | None = None
+        self.stat_font: pygame.font.Font | None = None
+        self.prompt_font: pygame.font.Font | None = None
 
         # Animation
         self.show_time = 0.0
@@ -44,15 +45,15 @@ class VictoryScreen:
         if self.title_font is None:
             try:
                 self.title_font = pygame.font.Font(None, 72)  # Large title
-                self.stat_font = pygame.font.Font(None, 36)   # Stats
+                self.stat_font = pygame.font.Font(None, 36)  # Stats
                 self.prompt_font = pygame.font.Font(None, 28)  # Prompt
             except:
                 # Fallback if font loading fails
-                self.title_font = pygame.font.SysFont('arial', 72, bold=True)
-                self.stat_font = pygame.font.SysFont('arial', 36)
-                self.prompt_font = pygame.font.SysFont('arial', 28)
+                self.title_font = pygame.font.SysFont("arial", 72, bold=True)
+                self.stat_font = pygame.font.SysFont("arial", 36)
+                self.prompt_font = pygame.font.SysFont("arial", 28)
 
-    def render(self, surface: pygame.Surface, stats: Dict[str, Any], dt: float):
+    def render(self, surface: pygame.Surface, stats: dict[str, Any], dt: float):
         """
         Render the victory screen.
 
@@ -132,9 +133,7 @@ class VictoryScreen:
         if self.show_time % 1.0 < 0.5:  # Blink every second
             y_offset += 80
             prompt_text = self.prompt_font.render(
-                "Press SPACE for next level or ESC to quit",
-                True,
-                self.text_color
+                "Press SPACE for next level or ESC to quit", True, self.text_color
             )
             prompt_rect = prompt_text.get_rect(center=(center_x, y_offset))
             surface.blit(prompt_text, prompt_rect)

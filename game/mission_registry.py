@@ -8,17 +8,17 @@ Version: v0.6.0 (Phase 7)
 
 import json
 import os
-from typing import Dict, List, Optional, Set
 from dataclasses import dataclass
 from enum import Enum
-
 
 # ============================================================
 # Objective Types
 # ============================================================
 
+
 class ObjectiveType(Enum):
     """Mission objective types"""
+
     KILL_ALL_ENEMIES = "kill_all_enemies"
     COLLECT_ITEMS = "collect_items"
     ACTIVATE_SWITCHES = "activate_switches"
@@ -31,56 +31,57 @@ class ObjectiveType(Enum):
 # Mission Data Structures
 # ============================================================
 
+
 @dataclass
 class MissionObjective:
     """Single mission objective"""
+
     objective_type: ObjectiveType
     description: str
-    target: Optional[int] = None
-    item: Optional[str] = None
-    count: Optional[int] = None
-    location: Optional[str] = None
-    boss: Optional[str] = None
-    time_limit: Optional[float] = None
+    target: int | None = None
+    item: str | None = None
+    count: int | None = None
+    location: str | None = None
+    boss: str | None = None
+    time_limit: float | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'MissionObjective':
+    def from_dict(cls, data: dict) -> "MissionObjective":
         """Create objective from dictionary"""
-        obj_type = ObjectiveType(data['type'])
+        obj_type = ObjectiveType(data["type"])
         return cls(
             objective_type=obj_type,
-            description=data.get('description', ''),
-            target=data.get('target'),
-            item=data.get('item'),
-            count=data.get('count'),
-            location=data.get('location'),
-            boss=data.get('boss'),
-            time_limit=data.get('time_limit')
+            description=data.get("description", ""),
+            target=data.get("target"),
+            item=data.get("item"),
+            count=data.get("count"),
+            location=data.get("location"),
+            boss=data.get("boss"),
+            time_limit=data.get("time_limit"),
         )
 
 
 @dataclass
 class MissionRewards:
     """Mission completion rewards"""
+
     currency: int = 0
-    items: List[Dict[str, any]] = None
+    items: list[dict[str, any]] = None
 
     def __post_init__(self):
         if self.items is None:
             self.items = []
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'MissionRewards':
+    def from_dict(cls, data: dict) -> "MissionRewards":
         """Create rewards from dictionary"""
-        return cls(
-            currency=data.get('currency', 0),
-            items=data.get('items', [])
-        )
+        return cls(currency=data.get("currency", 0), items=data.get("items", []))
 
 
 @dataclass
 class MissionDefinition:
     """Complete mission definition"""
+
     mission_id: str
     mission_name: str
     region: str
@@ -88,34 +89,34 @@ class MissionDefinition:
     room_count: int
     shape: str
     description: str
-    objectives: List[MissionObjective]
-    required_abilities: List[str]
-    unlock_abilities: List[str]
+    objectives: list[MissionObjective]
+    required_abilities: list[str]
+    unlock_abilities: list[str]
     rewards: MissionRewards
-    enemy_types: List[str]
-    hazards: List[str]
-    time_limit: Optional[float]
-    unlock_requirements: List[str]
+    enemy_types: list[str]
+    hazards: list[str]
+    time_limit: float | None
+    unlock_requirements: list[str]
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'MissionDefinition':
+    def from_dict(cls, data: dict) -> "MissionDefinition":
         """Create mission definition from dictionary"""
         return cls(
-            mission_id=data['mission_id'],
-            mission_name=data['mission_name'],
-            region=data['region'],
-            difficulty=data['difficulty'],
-            room_count=data['room_count'],
-            shape=data['shape'],
-            description=data['description'],
-            objectives=[MissionObjective.from_dict(obj) for obj in data['objectives']],
-            required_abilities=data.get('required_abilities', []),
-            unlock_abilities=data.get('unlock_abilities', []),
-            rewards=MissionRewards.from_dict(data.get('rewards', {})),
-            enemy_types=data.get('enemy_types', []),
-            hazards=data.get('hazards', []),
-            time_limit=data.get('time_limit'),
-            unlock_requirements=data.get('unlock_requirements', [])
+            mission_id=data["mission_id"],
+            mission_name=data["mission_name"],
+            region=data["region"],
+            difficulty=data["difficulty"],
+            room_count=data["room_count"],
+            shape=data["shape"],
+            description=data["description"],
+            objectives=[MissionObjective.from_dict(obj) for obj in data["objectives"]],
+            required_abilities=data.get("required_abilities", []),
+            unlock_abilities=data.get("unlock_abilities", []),
+            rewards=MissionRewards.from_dict(data.get("rewards", {})),
+            enemy_types=data.get("enemy_types", []),
+            hazards=data.get("hazards", []),
+            time_limit=data.get("time_limit"),
+            unlock_requirements=data.get("unlock_requirements", []),
         )
 
     def has_boss(self) -> bool:
@@ -130,7 +131,7 @@ class MissionDefinition:
         """Get total currency reward"""
         return self.rewards.currency
 
-    def get_item_rewards(self) -> List[Dict]:
+    def get_item_rewards(self) -> list[dict]:
         """Get list of item rewards"""
         return self.rewards.items
 
@@ -138,6 +139,7 @@ class MissionDefinition:
 # ============================================================
 # Mission Registry
 # ============================================================
+
 
 class MissionRegistry:
     """
@@ -160,11 +162,11 @@ class MissionRegistry:
         if missions_file is None:
             # Default to data/missions.json
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            missions_file = os.path.join(base_dir, 'data', 'missions.json')
+            missions_file = os.path.join(base_dir, "data", "missions.json")
 
         self.missions_file = missions_file
-        self.missions: Dict[str, MissionDefinition] = {}
-        self.missions_by_region: Dict[str, List[str]] = {}
+        self.missions: dict[str, MissionDefinition] = {}
+        self.missions_by_region: dict[str, list[str]] = {}
 
         self._load_missions()
 
@@ -175,11 +177,11 @@ class MissionRegistry:
             return
 
         try:
-            with open(self.missions_file, 'r') as f:
+            with open(self.missions_file) as f:
                 data = json.load(f)
 
             mission_count = 0
-            for mission_data in data.get('missions', []):
+            for mission_data in data.get("missions", []):
                 mission = MissionDefinition.from_dict(mission_data)
                 self.missions[mission.mission_id] = mission
 
@@ -195,7 +197,7 @@ class MissionRegistry:
         except Exception as e:
             print(f"[MISSION] Error loading missions: {e}")
 
-    def get_mission(self, mission_id: str) -> Optional[MissionDefinition]:
+    def get_mission(self, mission_id: str) -> MissionDefinition | None:
         """
         Get mission definition by ID
 
@@ -207,7 +209,7 @@ class MissionRegistry:
         """
         return self.missions.get(mission_id)
 
-    def get_missions_in_region(self, region: str) -> List[MissionDefinition]:
+    def get_missions_in_region(self, region: str) -> list[MissionDefinition]:
         """
         Get all missions in a region
 
@@ -220,8 +222,9 @@ class MissionRegistry:
         mission_ids = self.missions_by_region.get(region, [])
         return [self.missions[mid] for mid in mission_ids]
 
-    def get_available_missions(self, unlocked_abilities: Set[str],
-                               completed_missions: Set[str]) -> List[MissionDefinition]:
+    def get_available_missions(
+        self, unlocked_abilities: set[str], completed_missions: set[str]
+    ) -> list[MissionDefinition]:
         """
         Get missions that are currently available
 
@@ -241,8 +244,7 @@ class MissionRegistry:
 
             # Check ability requirements
             has_abilities = all(
-                ability in unlocked_abilities
-                for ability in mission.required_abilities
+                ability in unlocked_abilities for ability in mission.required_abilities
             )
 
             if not has_abilities:
@@ -250,8 +252,7 @@ class MissionRegistry:
 
             # Check mission unlock requirements
             has_prereqs = all(
-                prereq in completed_missions
-                for prereq in mission.unlock_requirements
+                prereq in completed_missions for prereq in mission.unlock_requirements
             )
 
             if not has_prereqs:
@@ -261,8 +262,12 @@ class MissionRegistry:
 
         return available
 
-    def is_mission_unlocked(self, mission_id: str, unlocked_abilities: Set[str],
-                            completed_missions: Optional[Set[str]] = None) -> bool:
+    def is_mission_unlocked(
+        self,
+        mission_id: str,
+        unlocked_abilities: set[str],
+        completed_missions: set[str] | None = None,
+    ) -> bool:
         """
         Check if a specific mission is unlocked.
 
@@ -280,21 +285,16 @@ class MissionRegistry:
 
         completed = completed_missions or set()
 
-        has_abilities = all(
-            ability in unlocked_abilities
-            for ability in mission.required_abilities
-        )
+        has_abilities = all(ability in unlocked_abilities for ability in mission.required_abilities)
         if not has_abilities:
             return False
 
-        has_prereqs = all(
-            prereq in completed
-            for prereq in mission.unlock_requirements
-        )
+        has_prereqs = all(prereq in completed for prereq in mission.unlock_requirements)
         return has_prereqs
 
-    def get_locked_missions(self, unlocked_abilities: Set[str],
-                           completed_missions: Set[str]) -> List[MissionDefinition]:
+    def get_locked_missions(
+        self, unlocked_abilities: set[str], completed_missions: set[str]
+    ) -> list[MissionDefinition]:
         """
         Get missions that are locked
 
@@ -314,13 +314,11 @@ class MissionRegistry:
 
             # Check if locked
             has_abilities = all(
-                ability in unlocked_abilities
-                for ability in mission.required_abilities
+                ability in unlocked_abilities for ability in mission.required_abilities
             )
 
             has_prereqs = all(
-                prereq in completed_missions
-                for prereq in mission.unlock_requirements
+                prereq in completed_missions for prereq in mission.unlock_requirements
             )
 
             if not has_abilities or not has_prereqs:
@@ -328,11 +326,11 @@ class MissionRegistry:
 
         return locked
 
-    def get_boss_missions(self) -> List[MissionDefinition]:
+    def get_boss_missions(self) -> list[MissionDefinition]:
         """Get all missions with boss encounters"""
         return [m for m in self.missions.values() if m.has_boss()]
 
-    def get_timed_missions(self) -> List[MissionDefinition]:
+    def get_timed_missions(self) -> list[MissionDefinition]:
         """Get all missions with time limits"""
         return [m for m in self.missions.values() if m.is_timed()]
 
@@ -344,11 +342,11 @@ class MissionRegistry:
         """Get number of missions in a region"""
         return len(self.missions_by_region.get(region, []))
 
-    def get_all_regions(self) -> List[str]:
+    def get_all_regions(self) -> list[str]:
         """Get list of all regions"""
         return list(self.missions_by_region.keys())
 
-    def get_mission_unlock_requirements(self, mission_id: str) -> Dict[str, List[str]]:
+    def get_mission_unlock_requirements(self, mission_id: str) -> dict[str, list[str]]:
         """
         Get requirements to unlock a mission
 
@@ -360,14 +358,11 @@ class MissionRegistry:
         """
         mission = self.get_mission(mission_id)
         if not mission:
-            return {'abilities': [], 'missions': []}
+            return {"abilities": [], "missions": []}
 
-        return {
-            'abilities': mission.required_abilities,
-            'missions': mission.unlock_requirements
-        }
+        return {"abilities": mission.required_abilities, "missions": mission.unlock_requirements}
 
-    def get_missions_by_pool(self, pool_ids: List[str]) -> List[MissionDefinition]:
+    def get_missions_by_pool(self, pool_ids: list[str]) -> list[MissionDefinition]:
         """
         Get missions matching a list of IDs (pool).
 
@@ -389,7 +384,7 @@ class MissionRegistry:
 # Global Registry Instance
 # ============================================================
 
-_global_registry: Optional[MissionRegistry] = None
+_global_registry: MissionRegistry | None = None
 
 
 def get_mission_registry() -> MissionRegistry:
@@ -419,17 +414,18 @@ def load_missions(missions_file: str = None) -> MissionRegistry:
 # Helper Functions
 # ============================================================
 
-def get_mission(mission_id: str) -> Optional[MissionDefinition]:
+
+def get_mission(mission_id: str) -> MissionDefinition | None:
     """Get mission by ID from global registry"""
     return get_mission_registry().get_mission(mission_id)
 
 
-def get_missions_for_region(region: str) -> List[MissionDefinition]:
+def get_missions_for_region(region: str) -> list[MissionDefinition]:
     """Get all missions for a region"""
     return get_mission_registry().get_missions_in_region(region)
 
 
-def count_missions_by_region() -> Dict[str, int]:
+def count_missions_by_region() -> dict[str, int]:
     """Get mission count for each region"""
     registry = get_mission_registry()
     return {

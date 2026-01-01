@@ -1,9 +1,11 @@
 """Test falling player collision - check for jitter"""
+
 import pygame
-from systems.collision_system import CollisionSystem
-from core.entity_system import Entity, EntityType, EntityManager
-from core.state import PhysicsState
+
+from core.entity_system import Entity, EntityManager, EntityType
 from core.event_bus import EventBus
+from core.state import PhysicsState
+from systems.collision_system import CollisionSystem
 
 pygame.init()
 
@@ -23,16 +25,16 @@ player = Entity(
     physics=PhysicsState(
         x=100.0,
         y=670.0,  # Above ground, about to land
-        vx=5.0,   # Moving right
+        vx=5.0,  # Moving right
         vy=10.0,  # Falling
         width=20,
-        height=20
-    )
+        height=20,
+    ),
 )
 
 print("\n=== Test: Player falling while moving horizontally ===")
 print("Ground tile:", ground_tiles[0])
-print(f"\nBefore collision:")
+print("\nBefore collision:")
 print(f"  Position: ({player.physics.x}, {player.physics.y})")
 print(f"  Velocity: ({player.physics.vx}, {player.physics.vy})")
 print(f"  Player rect: {player.physics.get_rect()}")
@@ -44,7 +46,7 @@ tile = ground_tiles[0]
 if player_rect.colliderect(tile):
     overlap_x = min(player_rect.right, tile.right) - max(player_rect.left, tile.left)
     overlap_y = min(player_rect.bottom, tile.bottom) - max(player_rect.top, tile.top)
-    print(f"\nCollision detected!")
+    print("\nCollision detected!")
     print(f"  Overlap X: {overlap_x}")
     print(f"  Overlap Y: {overlap_y}")
     print(f"  Is horizontal collision (overlap_x < overlap_y): {overlap_x < overlap_y}")
@@ -54,13 +56,15 @@ else:
 # Check collision
 collision_system.check_and_resolve(player)
 
-print(f"\nAfter collision:")
+print("\nAfter collision:")
 print(f"  Position: ({player.physics.x}, {player.physics.y})")
 print(f"  Velocity: ({player.physics.vx}, {player.physics.vy})")
 print(f"  On ground: {player.physics.on_ground}")
 
 # Check if horizontal velocity was preserved
 if player.physics.vx == 5.0:
-    print(f"\nSUCCESS: Horizontal velocity preserved (no jitter)")
+    print("\nSUCCESS: Horizontal velocity preserved (no jitter)")
 else:
-    print(f"\nFAILURE: Horizontal velocity changed from 5.0 to {player.physics.vx} (jitter detected!)")
+    print(
+        f"\nFAILURE: Horizontal velocity changed from 5.0 to {player.physics.vx} (jitter detected!)"
+    )

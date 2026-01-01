@@ -7,11 +7,11 @@ helper modules inside this package.
 
 # Re-export core components defined in components_core.py
 from ..components_core import (
-    PickupComponent,
-    HealthComponent,
     AIComponent,
-    PatrolComponent,
     FollowComponent,
+    HealthComponent,
+    PatrolComponent,
+    PickupComponent,
     ProjectileComponent,
 )
 

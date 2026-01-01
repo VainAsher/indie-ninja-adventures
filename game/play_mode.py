@@ -9,31 +9,34 @@ Supports three play modes:
 Version: v0.6.0 (Phase 6)
 """
 
-from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
-
+from enum import Enum
+from typing import Any
 
 # ============================================================
 # Play Modes
 # ============================================================
 
+
 class PlayMode(Enum):
     """Game play modes"""
-    ARCADE = "arcade"           # Infinite procedural (existing)
-    CAMPAIGN = "campaign"       # Story progression with missions
-    SANDBOX = "sandbox"         # Custom multiplayer (future)
-    PLAYTEST = "playtest"       # Developer mission testing
+
+    ARCADE = "arcade"  # Infinite procedural (existing)
+    CAMPAIGN = "campaign"  # Story progression with missions
+    SANDBOX = "sandbox"  # Custom multiplayer (future)
+    PLAYTEST = "playtest"  # Developer mission testing
 
 
 # ============================================================
 # Play Mode Configuration
 # ============================================================
 
+
 @dataclass
 class ArcadeModeConfig:
     """Configuration for arcade mode"""
-    seed: Optional[int] = None
+
+    seed: int | None = None
     shape: str = "snake"
     rooms: int = 10
     difficulty: int = 1
@@ -43,16 +46,18 @@ class ArcadeModeConfig:
 @dataclass
 class CampaignModeConfig:
     """Configuration for campaign mode"""
+
     world_seed: int
     current_hub: str = "central_hub"
-    current_region: Optional[str] = None
+    current_region: str | None = None
     resume_from_save: bool = True
 
 
 @dataclass
 class SandboxModeConfig:
     """Configuration for sandbox mode (freeform testing/building)"""
-    seed: Optional[int] = None
+
+    seed: int | None = None
     shape: str = "grid"
     rooms: int = 6
     enable_all_abilities: bool = True
@@ -63,6 +68,7 @@ class SandboxModeConfig:
 @dataclass
 class PlaytestModeConfig:
     """Configuration for playtest mode"""
+
     mission_id: str
     region_id: str
     seed: int
@@ -72,6 +78,7 @@ class PlaytestModeConfig:
 # ============================================================
 # Play Mode Manager
 # ============================================================
+
 
 class PlayModeManager:
     """
@@ -85,13 +92,12 @@ class PlayModeManager:
     """
 
     def __init__(self):
-        self.current_mode: Optional[PlayMode] = None
-        self.mode_config: Optional[Any] = None
+        self.current_mode: PlayMode | None = None
+        self.mode_config: Any | None = None
 
-    def start_arcade_mode(self, seed: Optional[int] = None,
-                         shape: str = "snake",
-                         rooms: int = 10,
-                         difficulty: int = 1) -> ArcadeModeConfig:
+    def start_arcade_mode(
+        self, seed: int | None = None, shape: str = "snake", rooms: int = 10, difficulty: int = 1
+    ) -> ArcadeModeConfig:
         """
         Start arcade mode (infinite procedural).
 
@@ -106,17 +112,14 @@ class PlayModeManager:
         """
         self.current_mode = PlayMode.ARCADE
         self.mode_config = ArcadeModeConfig(
-            seed=seed,
-            shape=shape,
-            rooms=rooms,
-            difficulty=difficulty,
-            infinite=True
+            seed=seed, shape=shape, rooms=rooms, difficulty=difficulty, infinite=True
         )
 
         return self.mode_config
 
-    def start_campaign_mode(self, world_seed: int,
-                           resume_from_save: bool = True) -> CampaignModeConfig:
+    def start_campaign_mode(
+        self, world_seed: int, resume_from_save: bool = True
+    ) -> CampaignModeConfig:
         """
         Start campaign mode.
 
@@ -132,15 +135,18 @@ class PlayModeManager:
             world_seed=world_seed,
             current_hub="central_hub",
             current_region=None,
-            resume_from_save=resume_from_save
+            resume_from_save=resume_from_save,
         )
 
         return self.mode_config
 
-    def start_sandbox_mode(self, seed: Optional[int] = None,
-                           shape: str = "grid",
-                           rooms: int = 6,
-                           enable_all_abilities: bool = True) -> SandboxModeConfig:
+    def start_sandbox_mode(
+        self,
+        seed: int | None = None,
+        shape: str = "grid",
+        rooms: int = 6,
+        enable_all_abilities: bool = True,
+    ) -> SandboxModeConfig:
         """
         Start sandbox mode (freeform testing).
 
@@ -160,15 +166,14 @@ class PlayModeManager:
             rooms=rooms,
             enable_all_abilities=enable_all_abilities,
             save_progress=False,
-            infinite=False
+            infinite=False,
         )
 
         return self.mode_config
 
-    def start_playtest_mode(self, mission_id: str,
-                           region_id: str,
-                           seed: int = 42,
-                           skip_validation: bool = False) -> PlaytestModeConfig:
+    def start_playtest_mode(
+        self, mission_id: str, region_id: str, seed: int = 42, skip_validation: bool = False
+    ) -> PlaytestModeConfig:
         """
         Start playtest mode (developer mode).
 
@@ -183,10 +188,7 @@ class PlayModeManager:
         """
         self.current_mode = PlayMode.PLAYTEST
         self.mode_config = PlaytestModeConfig(
-            mission_id=mission_id,
-            region_id=region_id,
-            seed=seed,
-            skip_validation=skip_validation
+            mission_id=mission_id, region_id=region_id, seed=seed, skip_validation=skip_validation
         )
 
         return self.mode_config
@@ -213,7 +215,7 @@ class PlayModeManager:
             return "None"
         return self.current_mode.value.title()
 
-    def get_config(self) -> Optional[Any]:
+    def get_config(self) -> Any | None:
         """Get current mode configuration"""
         return self.mode_config
 
@@ -227,7 +229,8 @@ class PlayModeManager:
 # Mode-Specific Settings
 # ============================================================
 
-def get_arcade_settings() -> Dict[str, Any]:
+
+def get_arcade_settings() -> dict[str, Any]:
     """Get default arcade mode settings"""
     return {
         "infinite_progression": True,
@@ -242,7 +245,7 @@ def get_arcade_settings() -> Dict[str, Any]:
     }
 
 
-def get_campaign_settings() -> Dict[str, Any]:
+def get_campaign_settings() -> dict[str, Any]:
     """Get default campaign mode settings"""
     return {
         "infinite_progression": False,
@@ -260,7 +263,7 @@ def get_campaign_settings() -> Dict[str, Any]:
     }
 
 
-def get_sandbox_settings() -> Dict[str, Any]:
+def get_sandbox_settings() -> dict[str, Any]:
     """Get default sandbox mode settings"""
     return {
         "infinite_progression": False,
@@ -270,14 +273,21 @@ def get_sandbox_settings() -> Dict[str, Any]:
         "level_transition": "instant",
         "difficulty_scaling": False,
         "permadeath": False,
-        "starting_abilities": ["basic_movement", "jump", "double_jump", "wall_jump", "dash", "crouch"],
+        "starting_abilities": [
+            "basic_movement",
+            "jump",
+            "double_jump",
+            "wall_jump",
+            "dash",
+            "crouch",
+        ],
         "unlock_abilities": False,
         "all_abilities_unlocked": True,
         "sandbox_tools": True,
     }
 
 
-def get_playtest_settings() -> Dict[str, Any]:
+def get_playtest_settings() -> dict[str, Any]:
     """Get default playtest mode settings"""
     return {
         "infinite_progression": False,
@@ -287,8 +297,14 @@ def get_playtest_settings() -> Dict[str, Any]:
         "level_transition": "instant_retry",
         "difficulty_scaling": False,
         "permadeath": False,
-        "starting_abilities": ["basic_movement", "jump", "double_jump",
-                              "wall_jump", "dash", "crouch"],
+        "starting_abilities": [
+            "basic_movement",
+            "jump",
+            "double_jump",
+            "wall_jump",
+            "dash",
+            "crouch",
+        ],
         "unlock_abilities": False,
         "all_abilities_unlocked": True,
         "skip_validation": True,
@@ -296,7 +312,7 @@ def get_playtest_settings() -> Dict[str, Any]:
     }
 
 
-def get_mode_settings(mode: PlayMode) -> Dict[str, Any]:
+def get_mode_settings(mode: PlayMode) -> dict[str, Any]:
     """
     Get settings for a specific play mode.
 
@@ -322,7 +338,8 @@ def get_mode_settings(mode: PlayMode) -> Dict[str, Any]:
 # Utility Functions
 # ============================================================
 
-def create_arcade_session(seed: Optional[int] = None) -> tuple[PlayModeManager, Dict[str, Any]]:
+
+def create_arcade_session(seed: int | None = None) -> tuple[PlayModeManager, dict[str, Any]]:
     """
     Create arcade mode session.
 
@@ -339,7 +356,7 @@ def create_arcade_session(seed: Optional[int] = None) -> tuple[PlayModeManager, 
     return manager, settings
 
 
-def create_campaign_session(world_seed: int) -> tuple[PlayModeManager, Dict[str, Any]]:
+def create_campaign_session(world_seed: int) -> tuple[PlayModeManager, dict[str, Any]]:
     """
     Create campaign mode session.
 
@@ -356,9 +373,9 @@ def create_campaign_session(world_seed: int) -> tuple[PlayModeManager, Dict[str,
     return manager, settings
 
 
-def create_playtest_session(mission_id: str,
-                            region_id: str,
-                            seed: int = 42) -> tuple[PlayModeManager, Dict[str, Any]]:
+def create_playtest_session(
+    mission_id: str, region_id: str, seed: int = 42
+) -> tuple[PlayModeManager, dict[str, Any]]:
     """
     Create playtest mode session.
 
@@ -377,9 +394,9 @@ def create_playtest_session(mission_id: str,
     return manager, settings
 
 
-def create_sandbox_session(seed: Optional[int] = None,
-                           shape: str = "grid",
-                           rooms: int = 6) -> tuple[PlayModeManager, Dict[str, Any]]:
+def create_sandbox_session(
+    seed: int | None = None, shape: str = "grid", rooms: int = 6
+) -> tuple[PlayModeManager, dict[str, Any]]:
     """
     Create sandbox mode session.
 

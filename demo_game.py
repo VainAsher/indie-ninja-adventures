@@ -22,108 +22,91 @@ Usage:
     python demo_game.py --procedural  # Procedural world
 """
 
-import os
-import sys
-import json
 import argparse
+import json
 import math
-import time
+import os
 import random
-from typing import Tuple
-
-import pygame
+import sys
+import time
 
 # Add parent dir to path
 from pathlib import Path
+
+import pygame
+
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config.physics_constants import TILE_SIZE as CONFIG_TILE_SIZE, ROOM_WIDTH_TILES, ROOM_HEIGHT_TILES, TILES_PER_ZONE
-from core import EventBus, GameLogger, GameClock, EntityManager, EntityType, PhysicsState
-from core.event_bus import CollisionEvent, VelocityChangeEvent
-from systems import CollisionSystem, PhysicsSystem, CameraSystem, CameraConfig, CameraMode, get_recommended_window_size, SaveManager
-from systems.world_generation import WorldGenerator, generate_world_tilemaps
-from systems.zone_planning import ZonePlanner
-from systems.room_generation import (
-    RoomGenerator, TILE_SOLID, TILE_PLATFORM, TILE_EMPTY,
-    print_tilemap_ascii
+from config.physics_constants import (
+    TILE_SIZE as CONFIG_TILE_SIZE,
 )
-from systems.megamap import build_megamap, get_room_at_position, get_tile_at_position
-from systems.connectivity import validate_world_connectivity
-from rendering import SpriteManager, ParticleSystem, HUDRenderer, MinimapRenderer, MinimapConfig, get_current_room_coords, VictoryScreen, render_pickups, render_hazards
-from rendering.tile_loader import TileLoader
-from rendering.npc_prompt import NPCPromptRenderer, NPCIndicatorRenderer
-from network import InputCommand, InputPipeline
-from entities.player import Player
-from entities import PickupManager, PickupCollectedEvent, HazardManager, PlayerDamageEvent, PlayerDeathEvent
-from game import LevelManager, LevelCompletionEvent, GameStateManager, GameState
-from ui import MenuManager, MainMenu, PauseMenu, SettingsMenu, MenuAction, TutorialManager, ControlsHintOverlay
-from ui.inventory_ui import InventoryUI
-from ui.mode_selection_menu import GameModeSelectionMenu, MissionSelectorMenu
-from ui.mission_menu import MissionMenuUI, MissionDisplay, MissionStatus
-from ui.shop_ui import ShopUI
-from systems.hazard_spawner import HazardSpawner
-from systems.pickup_spawner import PickupSpawner
 
 # Phase 4-7: New system imports
-from entities.enemy import Enemy, EnemyType, get_enemy_definition
-from entities.enemy_manager import EnemyManager, EnemySpawnAnchor
-from game.play_mode import PlayModeManager, PlayMode
-from game.campaign_manager import CampaignManager
-from game.mission_registry import get_mission_registry, ObjectiveType
-from rendering.objective_hud import ObjectiveHUDRenderer
-from rendering.loot_notification import LootNotificationManager
-from game.trading_system import TradingManager, ShopTier
-from game.inventory_system import Inventory, initialize_item_manager, get_item_manager
-from game.objective_tracker import (
-    ObjectiveTracker,
-    get_objective_display_text,
-    ItemCollectedEvent,
-    PlayerPositionUpdateEvent,
+from entities.npc import (
+    DialogueStartEvent,
+    MissionMenuOpenEvent,
 )
-from mechanics.combat_mechanic import CombatMechanic
-from game.portal_system import PortalManager, PortalType, PortalTravelEvent, draw_portal
-from game.hub_manager import HubManager
-from systems.seed_hierarchy import SeedDerivation
-from entities.components.enemy_movement import EnemyMovementComponent
-
-# Phase 2: Dialogue System
-from game.dialogue_system import DialogueManager
-from ui.dialogue_ui import DialogueUI
-from entities.npc import NPCManager, DialogueStartEvent, ShopOpenEvent as NPCShopOpenEvent, MissionMenuOpenEvent
+from entities.npc import (
+    ShopOpenEvent as NPCShopOpenEvent,
+)
+from game import GameState
 
 # Phase 3: Story System (v0.7.0 - The Hollowed Ninja)
-from game.story_manager import StoryManager
-from game.ending_manager import EndingManager, EndingChoice, EndingState
-from entities.companions import CompanionOrbs
-from rendering.hub_effects import HubEffectsRenderer
-
-# Phase 3 Refactoring: Extracted modules (v0.7.0)
-from game.game_initialization import (
-    initialize_pygame,
-    create_rendering_systems,
-    create_core_systems,
-    create_game_managers,
-    create_physics_and_collision,
-    create_camera_system,
-    create_player,
-    create_combat_system,
-    apply_shuriken_capacity_bonus,
-    CameraEffectsHandler,
-)
-from game.level_factory import (
-    create_simple_level,
-    create_procedural_level,
-    build_objective_location_targets,
-    spawn_objective_collectibles,
-)
-from game.world_builder import regenerate_world_state
+from game.ending_manager import EndingChoice, EndingState
 from game.game_helpers import (
     persist_player_inventory,
     persist_story_state,
-    get_arcade_seed,
     update_replay_metadata,
 )
 
+# Phase 3 Refactoring: Extracted modules (v0.7.0)
+from game.game_initialization import (
+    apply_shuriken_capacity_bonus,
+    create_camera_system,
+    create_combat_system,
+    create_core_systems,
+    create_game_managers,
+    create_physics_and_collision,
+    create_player,
+    create_rendering_systems,
+    initialize_pygame,
+)
+from game.hub_manager import HubManager
+from game.level_factory import (
+    build_objective_location_targets,
+)
+from game.mission_registry import ObjectiveType, get_mission_registry
+from game.objective_tracker import (
+    ItemCollectedEvent,
+    PlayerPositionUpdateEvent,
+    get_objective_display_text,
+)
+from game.play_mode import PlayMode
+from game.portal_system import PortalTravelEvent, PortalType, draw_portal
+from game.trading_system import ShopTier
+from game.world_builder import regenerate_world_state
+from network import InputPipeline
+from rendering import (
+    VictoryScreen,
+    get_current_room_coords,
+    render_hazards,
+    render_pickups,
+)
+from systems import (
+    CameraMode,
+    SaveManager,
+)
+from systems.seed_hierarchy import SeedDerivation
+from ui import (
+    MainMenu,
+    MenuAction,
+    PauseMenu,
+    SettingsMenu,
+)
+
+# Phase 2: Dialogue System
+from ui.mission_menu import MissionDisplay, MissionStatus
+from ui.mode_selection_menu import GameModeSelectionMenu, MissionSelectorMenu
 
 # Display settings (virtual game resolution)
 GAME_WIDTH = 1280
@@ -139,6 +122,7 @@ COLOR_TEXT = (230, 230, 255)
 # Tile size
 TILE_SIZE = CONFIG_TILE_SIZE
 
+
 # User data directory helpers
 def get_user_data_dir():
     """Get the user_data directory path (project-local by default)"""
@@ -148,25 +132,25 @@ def get_user_data_dir():
 
     # Default: project-local user_data directory
     # When frozen (PyInstaller), use executable directory, not __file__
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # Running as PyInstaller bundle - use executable directory
         project_root = Path(sys.executable).parent
     else:
         # Running as script - use script directory
         project_root = Path(__file__).parent
 
-    return project_root / 'user_data'
+    return project_root / "user_data"
+
 
 def ensure_user_data_dirs():
     """Ensure all user_data subdirectories exist"""
     user_data = get_user_data_dir()
     print(f"[USER DATA] Creating directories at: {user_data}")
-    (user_data / 'logs').mkdir(parents=True, exist_ok=True)
-    (user_data / 'replays').mkdir(parents=True, exist_ok=True)
-    (user_data / 'saves').mkdir(parents=True, exist_ok=True)
-    (user_data / 'settings').mkdir(parents=True, exist_ok=True)
+    (user_data / "logs").mkdir(parents=True, exist_ok=True)
+    (user_data / "replays").mkdir(parents=True, exist_ok=True)
+    (user_data / "saves").mkdir(parents=True, exist_ok=True)
+    (user_data / "settings").mkdir(parents=True, exist_ok=True)
     return user_data
-
 
 
 # CameraEffectsHandler has been moved to game/game_initialization.py
@@ -226,7 +210,6 @@ def get_player_render_state(player):
     return "idle"
 
 
-
 # ==============================================================================
 # EXTRACTED FUNCTIONS (Phase 3 Refactoring)
 # ==============================================================================
@@ -252,31 +235,64 @@ def main():
     parser = argparse.ArgumentParser(description="Vain Asher Gaming's: Indie Ninja Adventures Demo")
 
     # Build mode selection (for distribution builds)
-    parser.add_argument("--build-mode", type=str, default=None,
-                       choices=["production", "testing", "dev"],
-                       help="Build configuration mode (set by launcher scripts)")
+    parser.add_argument(
+        "--build-mode",
+        type=str,
+        default=None,
+        choices=["production", "testing", "dev"],
+        help="Build configuration mode (set by launcher scripts)",
+    )
 
     # Game mode selection (NEW in v0.6.0)
-    parser.add_argument("--mode", type=str, default="arcade",
-                       choices=["arcade", "campaign", "playtest"],
-                       help="Game mode: arcade (infinite procedural), campaign (mission-based), playtest (single mission)")
-    parser.add_argument("--mission", type=str, help="Mission ID for campaign/playtest mode (e.g., forest_1)")
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="arcade",
+        choices=["arcade", "campaign", "playtest"],
+        help="Game mode: arcade (infinite procedural), campaign (mission-based), playtest (single mission)",
+    )
+    parser.add_argument(
+        "--mission", type=str, help="Mission ID for campaign/playtest mode (e.g., forest_1)"
+    )
 
     # Procedural generation options (kept for compatibility but ignored)
-    parser.add_argument("--procedural", action="store_true", help="(ignored) Procedural is always enabled")
+    parser.add_argument(
+        "--procedural", action="store_true", help="(ignored) Procedural is always enabled"
+    )
     parser.add_argument("--seed", type=int, default=None, help="Seed for procedural generation")
-    parser.add_argument("--shape", type=str, default="blob",
-                       choices=["snake", "branchy", "blob", "spiral", "tree", "grid"],
-                       help="World shape style (ignored; hubs choose their own)")
-    parser.add_argument("--rooms", type=int, default=10, help="Number of rooms to generate (ignored; hubs choose their own)")
+    parser.add_argument(
+        "--shape",
+        type=str,
+        default="blob",
+        choices=["snake", "branchy", "blob", "spiral", "tree", "grid"],
+        help="World shape style (ignored; hubs choose their own)",
+    )
+    parser.add_argument(
+        "--rooms",
+        type=int,
+        default=10,
+        help="Number of rooms to generate (ignored; hubs choose their own)",
+    )
 
     # Technical options
-    parser.add_argument("--headless", action="store_true", help="Run without opening a window (SDL dummy driver)")
-    parser.add_argument("--record", type=str, help="Record input to replay JSON file (saves to user_data/replays/)")
-    parser.add_argument("--replay", type=str, help="Replay input from JSON file (looks in user_data/replays/)")
-    parser.add_argument("--show-replay", action="store_true", help="Replay with window instead of headless")
-    parser.add_argument("--log-input", nargs="?", const="input_commands.log",
-                       help="Log per-frame input commands to JSONL (default: user_data/logs/input_commands.log)")
+    parser.add_argument(
+        "--headless", action="store_true", help="Run without opening a window (SDL dummy driver)"
+    )
+    parser.add_argument(
+        "--record", type=str, help="Record input to replay JSON file (saves to user_data/replays/)"
+    )
+    parser.add_argument(
+        "--replay", type=str, help="Replay input from JSON file (looks in user_data/replays/)"
+    )
+    parser.add_argument(
+        "--show-replay", action="store_true", help="Replay with window instead of headless"
+    )
+    parser.add_argument(
+        "--log-input",
+        nargs="?",
+        const="input_commands.log",
+        help="Log per-frame input commands to JSONL (default: user_data/logs/input_commands.log)",
+    )
     args = parser.parse_args()
 
     if args.record and args.replay:
@@ -291,12 +307,12 @@ def main():
     show_replay = args.show_replay
 
     # Always drive startup via menu → hub generation; skip static demo path
-    menu_driven_startup = False
+    # (menu_driven_startup flag removed - no longer needed)
 
     # ============================================================
     # Play Mode Manager Setup (v0.6.0)
     # ============================================================
-    play_mode_manager = PlayModeManager()
+    # play_mode_manager = PlayModeManager()  # Removed - not yet used
     mission_definition = None
     current_play_mode = PlayMode.ARCADE  # Default
     objective_hud_renderer = None  # Only used in campaign/playtest modes
@@ -315,9 +331,10 @@ def main():
 
     # Auto-record for TESTING build
     from config.build_config import get_build_config
+
     # Pass build mode from command line if provided
     if args.build_mode:
-        os.environ['BUILD_MODE'] = args.build_mode.upper()
+        os.environ["BUILD_MODE"] = args.build_mode.upper()
     build_config = get_build_config()
 
     if build_config.auto_record and not args.replay and not args.record:
@@ -328,15 +345,15 @@ def main():
 
     if args.record:
         # If just a filename, save to user_data/replays/
-        record_file = args.record if args.record.endswith('.json') else f"{args.record}.json"
+        record_file = args.record if args.record.endswith(".json") else f"{args.record}.json"
         if not os.path.isabs(record_file):
-            record_path = str(user_data_dir / 'replays' / record_file)
+            record_path = str(user_data_dir / "replays" / record_file)
         else:
             record_path = record_file
         log_commands = True  # auto-log when recording
         # Default log filename for recordings
         if not log_input_path:
-            log_input_path = str(user_data_dir / 'logs' / 'input_commands.record.log')
+            log_input_path = str(user_data_dir / "logs" / "input_commands.record.log")
 
     replay_world_seed = None
     replay_hub_id = None
@@ -345,35 +362,35 @@ def main():
 
     if args.replay:
         # If just a filename, look in user_data/replays/
-        replay_file = args.replay if args.replay.endswith('.json') else f"{args.replay}.json"
+        replay_file = args.replay if args.replay.endswith(".json") else f"{args.replay}.json"
         if not os.path.isabs(replay_file):
-            replay_path = str(user_data_dir / 'replays' / replay_file)
+            replay_path = str(user_data_dir / "replays" / replay_file)
         else:
             replay_path = replay_file
         # If logging enabled later, prefer a replay-specific default name
         if not log_input_path and args.log_input is None:
-            log_input_path = str(user_data_dir / 'logs' / 'input_commands.replay.log')
+            log_input_path = str(user_data_dir / "logs" / "input_commands.replay.log")
         log_commands = True  # capture replay commands for debugging by default
 
     if args.log_input:
         log_commands = True
         log_file = args.log_input
         if not os.path.isabs(log_file):
-            log_input_path = str(user_data_dir / 'logs' / log_file)
+            log_input_path = str(user_data_dir / "logs" / log_file)
         else:
             log_input_path = log_file
 
     frame_idx = 0
 
     if replay_path:
-        with open(replay_path, "r", encoding="utf-8") as f:
+        with open(replay_path, encoding="utf-8") as f:
             replay_data = json.load(f)
         use_procedural = replay_data.get("procedural", use_procedural)
         # Prefer explicit world_seed/current_seed metadata for deterministic replays
         replay_world_seed = replay_data.get("world_seed", replay_data.get("seed"))
         replay_hub_id = replay_data.get("hub_id")
         replay_world_context = replay_data.get("world_context")
-        replay_mission_id = replay_data.get("mission_id")
+        _replay_mission_id = replay_data.get("mission_id")  # Unused for now
         if replay_world_seed is not None:
             current_seed = replay_world_seed
         else:
@@ -386,9 +403,9 @@ def main():
     if headless:
         os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Vain Asher Gaming's: Indie Ninja Adventures - Modular Architecture Demo")
-    print("="*60)
+    print("=" * 60)
     print(f"\nMode: {'PROCEDURAL' if use_procedural else 'STATIC'}")
     if use_procedural and current_seed:
         print(f"Seed: {current_seed}")
@@ -418,7 +435,7 @@ def main():
     print("  - Crouch (stealth movement)")
     if use_procedural:
         print("  - Procedural world generation")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize pygame and rendering systems
     screen, clock_pygame, window_width, window_height = initialize_pygame(headless=headless)
@@ -443,11 +460,15 @@ def main():
     # (needed before calling create_game_managers)
     save_manager_temp = SaveManager()
     save_manager_temp.load()
-    campaign_data_temp = save_manager_temp.data.campaign if save_manager_temp and save_manager_temp.data else None
+    campaign_data_temp = (
+        save_manager_temp.data.campaign if save_manager_temp and save_manager_temp.data else None
+    )
 
     # Normalize campaign world seed (treat 0 as unset)
     if campaign_data_temp and getattr(campaign_data_temp, "world_seed", 0) == 0:
-        campaign_data_temp.world_seed = current_seed if current_seed is not None else random.randint(1, 999999)
+        campaign_data_temp.world_seed = (
+            current_seed if current_seed is not None else random.randint(1, 999999)
+        )
         save_manager_temp.mark_dirty()
 
     if replay_world_seed is not None:
@@ -491,7 +512,11 @@ def main():
     # Additional variables needed in main loop
     active_mission_pool: list[str] = []
     active_shop_npc_id = None
-    current_hub_id = replay_hub_id or (campaign_data.current_hub_id if campaign_data and campaign_data.current_hub_id else "central_hub")
+    current_hub_id = replay_hub_id or (
+        campaign_data.current_hub_id
+        if campaign_data and campaign_data.current_hub_id
+        else "central_hub"
+    )
     current_world_context = replay_world_context or "hub"  # hub | mission | arcade
     show_minimap = True
     show_full_map = False
@@ -507,14 +532,7 @@ def main():
         persist_story_state(save_manager, story_manager)
 
     # Track last key states for dialogue input (to detect key press, not hold)
-    prev_key_state = {k: False for k in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT,
-                                         pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d,
-                                         pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT,
-                                         pygame.K_p, pygame.K_c, pygame.K_ESCAPE, pygame.K_e,
-                                         pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_j, pygame.K_k, pygame.K_f,
-                                         pygame.K_l, pygame.K_q, pygame.K_TAB, pygame.K_m,
-                                         pygame.K_r, pygame.K_i, pygame.K_F3, pygame.K_h,
-                                         pygame.K_LALT, pygame.K_RALT]}
+    prev_key_state = dict.fromkeys([pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT, pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT, pygame.K_p, pygame.K_c, pygame.K_ESCAPE, pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_j, pygame.K_k, pygame.K_f, pygame.K_l, pygame.K_q, pygame.K_TAB, pygame.K_m, pygame.K_r, pygame.K_i, pygame.K_F3, pygame.K_h, pygame.K_LALT, pygame.K_RALT], False)
 
     # Event handler for dialogue start
     def on_dialogue_start(event: DialogueStartEvent):
@@ -567,17 +585,19 @@ def main():
             for reward_item in mission_def.rewards.items:
                 rewards.append(reward_item.get("item_id", "Item"))
 
-            missions_to_show.append(MissionDisplay(
-                mission_id=mission_def.mission_id,
-                mission_name=mission_def.mission_name,
-                region=mission_def.region,
-                status=status,
-                difficulty=mission_def.difficulty,
-                objectives=objectives,
-                requirements=requirements,
-                rewards=rewards,
-                best_time=best_times.get(mission_def.mission_id)
-            ))
+            missions_to_show.append(
+                MissionDisplay(
+                    mission_id=mission_def.mission_id,
+                    mission_name=mission_def.mission_name,
+                    region=mission_def.region,
+                    status=status,
+                    difficulty=mission_def.difficulty,
+                    objectives=objectives,
+                    requirements=requirements,
+                    rewards=rewards,
+                    best_time=best_times.get(mission_def.mission_id),
+                )
+            )
 
         if missions_to_show:
             active_mission_pool = list(event.mission_pool)
@@ -657,7 +677,7 @@ def main():
     # Portal travel handler
     def on_portal_travel(event: PortalTravelEvent):
         """Handle portal travel between hubs"""
-        nonlocal current_hub_id, current_seed, tiles, platforms, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap, current_world_context
+        nonlocal current_hub_id, current_seed, tiles, platforms, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap, current_world_context, current_play_mode
         dest_hub = event.destination_id
         if dest_hub == "arcade_loop":
             # Enter endless arcade loop from hub
@@ -667,7 +687,18 @@ def main():
             current_world_context = "arcade"
             current_play_mode = PlayMode.ARCADE
             arcade_seed = get_arcade_seed_wrapper(arcade_depth)
-            tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+            (
+                tiles,
+                platforms,
+                current_seed,
+                spawn_x,
+                spawn_y,
+                exit_x,
+                exit_y,
+                world,
+                megamap,
+                minimap,
+            ) = regenerate_world_state(
                 seed=arcade_seed,
                 shape="snake",
                 rooms=arcade_rooms,
@@ -684,7 +715,7 @@ def main():
                 npc_manager=npc_manager,
                 bus=bus,
                 GAME_WIDTH=GAME_WIDTH,
-                GAME_HEIGHT=GAME_HEIGHT
+                GAME_HEIGHT=GAME_HEIGHT,
             )
             game_state_manager.transition_to(GameState.PLAYING)
             update_replay_metadata_wrapper()
@@ -695,10 +726,25 @@ def main():
         shape_str = "blob"
         rooms_count = hub_def.room_count if hub_def else 8
         if hub_def:
-            shape_str = hub_def.world_shape.value if hasattr(hub_def.world_shape, "value") else str(hub_def.world_shape)
+            shape_str = (
+                hub_def.world_shape.value
+                if hasattr(hub_def.world_shape, "value")
+                else str(hub_def.world_shape)
+            )
 
         current_hub_id = dest_hub
-        tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+        (
+            tiles,
+            platforms,
+            current_seed,
+            spawn_x,
+            spawn_y,
+            exit_x,
+            exit_y,
+            world,
+            megamap,
+            minimap,
+        ) = regenerate_world_state(
             seed=current_seed if current_seed is not None else hub_manager.world_seed,
             shape=shape_str,
             rooms=rooms_count,
@@ -715,7 +761,7 @@ def main():
             npc_manager=npc_manager,
             bus=bus,
             GAME_WIDTH=GAME_WIDTH,
-            GAME_HEIGHT=GAME_HEIGHT
+            GAME_HEIGHT=GAME_HEIGHT,
         )
         current_world_context = "hub"
 
@@ -731,7 +777,9 @@ def main():
     bus.subscribe(PortalTravelEvent, on_portal_travel)
 
     # Initialize physics, collision, and enemy systems
-    physics_collision = create_physics_and_collision(bus, entity_manager, logger, current_seed if current_seed else base_hub_seed)
+    physics_collision = create_physics_and_collision(
+        bus, entity_manager, logger, current_seed if current_seed else base_hub_seed
+    )
     physics_system = physics_collision["physics_system"]
     collision_system = physics_collision["collision_system"]
     enemy_manager = physics_collision["enemy_manager"]
@@ -761,14 +809,16 @@ def main():
         collision_system=collision_system,
         entity_manager=entity_manager,
         enemy_manager=enemy_manager,
-        hazard_manager=hazard_manager
+        hazard_manager=hazard_manager,
     )
 
     # Apply shuriken capacity bonus based on equipped armor
     apply_shuriken_capacity_bonus(player, player_inventory, item_manager)
 
     # Combat handling and camera effects
-    combat_mechanic, camera_effects = create_combat_system(player_entity.entity_id, bus, logger, camera)
+    combat_mechanic, camera_effects = create_combat_system(
+        player_entity.entity_id, bus, logger, camera
+    )
     attack_cooldown = 0.35  # seconds between sword swings
     attack_timer = 0.0
     attack_fx_timer = 0.0
@@ -777,28 +827,34 @@ def main():
     # Initial hub generation (central hub by default)
     initial_hub_def = hub_manager.get_hub_definition(current_hub_id)
     initial_rooms = initial_hub_def.room_count if initial_hub_def else num_rooms
-    initial_shape = initial_hub_def.world_shape.value if initial_hub_def and hasattr(initial_hub_def.world_shape, "value") else world_shape
+    initial_shape = (
+        initial_hub_def.world_shape.value
+        if initial_hub_def and hasattr(initial_hub_def.world_shape, "value")
+        else world_shape
+    )
     initial_seed = current_seed if current_seed is not None else base_hub_seed
     current_seed = initial_seed
 
-    tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
-        seed=initial_seed,
-        shape=initial_shape,
-        rooms=initial_rooms,
-        hub_id=current_hub_id,
-        hub_manager=hub_manager,
-        portal_manager=portal_manager,
-        collision_system=collision_system,
-        camera=camera,
-        player=player,
-        enemy_manager=enemy_manager,
-        pickup_manager=pickup_manager,
-        hazard_manager=hazard_manager,
-        level_manager=level_manager,
-        npc_manager=npc_manager,
-        bus=bus,
-        GAME_WIDTH=GAME_WIDTH,
-        GAME_HEIGHT=GAME_HEIGHT
+    tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = (
+        regenerate_world_state(
+            seed=initial_seed,
+            shape=initial_shape,
+            rooms=initial_rooms,
+            hub_id=current_hub_id,
+            hub_manager=hub_manager,
+            portal_manager=portal_manager,
+            collision_system=collision_system,
+            camera=camera,
+            player=player,
+            enemy_manager=enemy_manager,
+            pickup_manager=pickup_manager,
+            hazard_manager=hazard_manager,
+            level_manager=level_manager,
+            npc_manager=npc_manager,
+            bus=bus,
+            GAME_WIDTH=GAME_WIDTH,
+            GAME_HEIGHT=GAME_HEIGHT,
+        )
     )
     current_world_context = "hub"
 
@@ -819,8 +875,23 @@ def main():
         target_hub = target_hub_id or current_hub_id
         hub_def = hub_manager.get_hub_definition(target_hub)
         hub_rooms = hub_def.room_count if hub_def else num_rooms
-        hub_shape = hub_def.world_shape.value if hub_def and hasattr(hub_def.world_shape, "value") else world_shape
-        tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+        hub_shape = (
+            hub_def.world_shape.value
+            if hub_def and hasattr(hub_def.world_shape, "value")
+            else world_shape
+        )
+        (
+            tiles,
+            platforms,
+            current_seed,
+            spawn_x,
+            spawn_y,
+            exit_x,
+            exit_y,
+            world,
+            megamap,
+            minimap,
+        ) = regenerate_world_state(
             seed=current_seed if current_seed is not None else hub_manager.world_seed,
             shape=hub_shape,
             rooms=hub_rooms,
@@ -837,7 +908,7 @@ def main():
             npc_manager=npc_manager,
             bus=bus,
             GAME_WIDTH=GAME_WIDTH,
-            GAME_HEIGHT=GAME_HEIGHT
+            GAME_HEIGHT=GAME_HEIGHT,
         )
         current_world_context = "hub"
         level_complete = False
@@ -850,35 +921,18 @@ def main():
             print(f"[RESPAWN] Returned to {target_hub} ({reason})")
         update_replay_metadata_wrapper()
 
-    print(f"\n[OK] All systems initialized")
+    print("\n[OK] All systems initialized")
     print(f"[OK] Player spawned at ({spawn_x}, {spawn_y})")
     if exit_x is not None and exit_y is not None:
         print(f"[OK] Exit positioned at ({exit_x:.0f}, {exit_y:.0f})")
     print(f"[OK] Level created ({len(tiles)} tiles)")
-    print(f"\nStarting game loop...\n")
+    print("\nStarting game loop...\n")
 
     running = True
     last_on_ground = player.state.physics.on_ground
     last_is_dashing = player.state.is_dashing
 
-    KEYS_TO_TRACK = [
-        pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT,
-        pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d,
-        pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_RSHIFT,
-        pygame.K_p, pygame.K_c, pygame.K_ESCAPE, pygame.K_e,
-        pygame.K_j,  # sword attack
-        pygame.K_k,  # shuriken
-        pygame.K_f,  # teleport
-        pygame.K_l, pygame.K_q,  # ninjutsu stance
-        pygame.K_TAB,  # minimap toggle
-        pygame.K_m,  # full map
-        pygame.K_h,  # controls hint toggle
-        pygame.K_r,  # consumable
-        pygame.K_i,  # inventory
-        pygame.K_RETURN,  # dialogue advance/selection
-        pygame.K_F3,  # debug overlay
-        pygame.K_LALT, pygame.K_RALT,  # slow walk
-    ]
+    # KEYS_TO_TRACK removed - no longer used (handled by input pipeline)
 
     input_pipeline = InputPipeline(
         record_path=record_path,
@@ -896,14 +950,19 @@ def main():
 
     def update_replay_metadata_wrapper(mission_id: str | None = None):
         update_replay_metadata(
-            input_pipeline, current_play_mode, current_hub_id,
-            current_world_context, current_seed, hub_manager, mission_id
+            input_pipeline,
+            current_play_mode,
+            current_hub_id,
+            current_world_context,
+            current_seed,
+            hub_manager,
+            mission_id,
         )
 
     update_replay_metadata_wrapper()
 
     # Start level timer
-    import time
+
     level_manager.start_level(time.time())
 
     # If started with procedural/replay args, skip menu and start game directly
@@ -983,7 +1042,18 @@ def main():
                         arcade_depth += 1
                         arcade_rooms = min(8 + arcade_depth * 2, 24)
                         arcade_seed = get_arcade_seed_wrapper(arcade_depth)
-                        tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+                        (
+                            tiles,
+                            platforms,
+                            current_seed,
+                            spawn_x,
+                            spawn_y,
+                            exit_x,
+                            exit_y,
+                            world,
+                            megamap,
+                            minimap,
+                        ) = regenerate_world_state(
                             seed=arcade_seed,
                             shape="snake",
                             rooms=arcade_rooms,
@@ -1000,12 +1070,14 @@ def main():
                             npc_manager=npc_manager,
                             bus=bus,
                             GAME_WIDTH=GAME_WIDTH,
-                            GAME_HEIGHT=GAME_HEIGHT
+                            GAME_HEIGHT=GAME_HEIGHT,
                         )
                         current_seed = arcade_seed
                         current_world_context = "arcade"
                         update_replay_metadata_wrapper()
-                        print(f"[ARCADE] Generated new level (depth {arcade_depth}, rooms {arcade_rooms}, seed {current_seed})")
+                        print(
+                            f"[ARCADE] Generated new level (depth {arcade_depth}, rooms {arcade_rooms}, seed {current_seed})"
+                        )
                     else:
                         # Hub victory (should not normally trigger) just respawns player
                         player.damage.respawn(player.state, spawn_x, spawn_y)
@@ -1065,13 +1137,23 @@ def main():
                 py = player.state.physics.y
                 pw = player.state.physics.width
                 ph = player.state.physics.height
-                facing = player.state.facing if player.state.facing != 0 else (1 if player.state.physics.vx >= 0 else -1)
+                facing = (
+                    player.state.facing
+                    if player.state.facing != 0
+                    else (1 if player.state.physics.vx >= 0 else -1)
+                )
                 attack_x = px + pw if facing >= 0 else px - sword_w
                 attack_y = py + ph / 2 - sword_h / 2
                 hits = enemy_manager.check_attack_collision((attack_x, attack_y, sword_w, sword_h))
                 for enemy_id in hits:
                     knock_x = 300.0 if facing >= 0 else -300.0
-                    enemy_manager.damage_enemy(enemy_id, damage=2, knockback_x=knock_x, knockback_y=-120.0, stun_duration=0.35)
+                    enemy_manager.damage_enemy(
+                        enemy_id,
+                        damage=2,
+                        knockback_x=knock_x,
+                        knockback_y=-120.0,
+                        stun_duration=0.35,
+                    )
                 attack_timer = attack_cooldown
                 attack_fx_rect = pygame.Rect(attack_x, attack_y, sword_w, sword_h)
                 attack_fx_timer = 0.12
@@ -1159,8 +1241,14 @@ def main():
                     # Generate campaign seed if needed
                     campaign_seed = save_manager.data.campaign.world_seed
                     if campaign_seed == 0:
-                        base_seed = hub_manager.world_seed if getattr(hub_manager, "world_seed", 0) != 0 else (current_seed if current_seed is not None else 1)
-                        campaign_seed = SeedDerivation.derive_region_seed(base_seed, "campaign_world")
+                        base_seed = (
+                            hub_manager.world_seed
+                            if getattr(hub_manager, "world_seed", 0) != 0
+                            else (current_seed if current_seed is not None else 1)
+                        )
+                        campaign_seed = SeedDerivation.derive_region_seed(
+                            base_seed, "campaign_world"
+                        )
                         save_manager.start_new_campaign(campaign_seed)
                         hub_manager = HubManager(campaign_seed)
                         current_hub_id = "central_hub"
@@ -1169,10 +1257,25 @@ def main():
 
                     hub_def = hub_manager.get_hub_definition(current_hub_id)
                     hub_rooms = hub_def.room_count if hub_def else 10
-                    hub_shape = hub_def.world_shape.value if hub_def and hasattr(hub_def.world_shape, "value") else "blob"
+                    hub_shape = (
+                        hub_def.world_shape.value
+                        if hub_def and hasattr(hub_def.world_shape, "value")
+                        else "blob"
+                    )
 
                     # Regenerate world using centralized function
-                    tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+                    (
+                        tiles,
+                        platforms,
+                        current_seed,
+                        spawn_x,
+                        spawn_y,
+                        exit_x,
+                        exit_y,
+                        world,
+                        megamap,
+                        minimap,
+                    ) = regenerate_world_state(
                         seed=campaign_seed,
                         shape=hub_shape,
                         rooms=hub_rooms,
@@ -1189,7 +1292,7 @@ def main():
                         npc_manager=npc_manager,
                         bus=bus,
                         GAME_WIDTH=GAME_WIDTH,
-                        GAME_HEIGHT=GAME_HEIGHT
+                        GAME_HEIGHT=GAME_HEIGHT,
                     )
                     current_world_context = "hub"
                     update_replay_metadata_wrapper()
@@ -1210,7 +1313,18 @@ def main():
                     print(f"[ARCADE] Generating procedural level (seed: {arcade_seed})...")
 
                     # Regenerate world using centralized function
-                    tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+                    (
+                        tiles,
+                        platforms,
+                        current_seed,
+                        spawn_x,
+                        spawn_y,
+                        exit_x,
+                        exit_y,
+                        world,
+                        megamap,
+                        minimap,
+                    ) = regenerate_world_state(
                         seed=arcade_seed,
                         shape="snake",
                         rooms=8,
@@ -1227,7 +1341,7 @@ def main():
                         npc_manager=npc_manager,
                         bus=bus,
                         GAME_WIDTH=GAME_WIDTH,
-                        GAME_HEIGHT=GAME_HEIGHT
+                        GAME_HEIGHT=GAME_HEIGHT,
                     )
                     current_world_context = "arcade"
                     update_replay_metadata_wrapper()
@@ -1238,7 +1352,9 @@ def main():
                 elif selected_mode == "playtest":
                     # Show mission selector
                     print("[MODE] Opening Mission Selector...")
-                    mission_menu = MissionSelectorMenu(GAME_WIDTH, GAME_HEIGHT, get_mission_registry())
+                    mission_menu = MissionSelectorMenu(
+                        GAME_WIDTH, GAME_HEIGHT, get_mission_registry()
+                    )
                     menu_manager.push_menu(mission_menu)
 
             elif isinstance(current_menu, MissionSelectorMenu):
@@ -1255,11 +1371,17 @@ def main():
                     if mission_def:
                         current_play_mode = PlayMode.PLAYTEST
                         region_id = getattr(mission_def, "region", current_hub_id or "playtest")
-                        region_seed = SeedDerivation.derive_region_seed(hub_manager.world_seed, region_id)
-                        mission_seed = SeedDerivation.derive_mission_seed(region_seed, mission_def.mission_id)
+                        region_seed = SeedDerivation.derive_region_seed(
+                            hub_manager.world_seed, region_id
+                        )
+                        mission_seed = SeedDerivation.derive_mission_seed(
+                            region_seed, mission_def.mission_id
+                        )
 
                         print(f"[PLAYTEST] Mission: {mission_def.mission_name}")
-                        print(f"[PLAYTEST] Difficulty: {mission_def.difficulty}, Rooms: {mission_def.room_count}")
+                        print(
+                            f"[PLAYTEST] Difficulty: {mission_def.difficulty}, Rooms: {mission_def.room_count}"
+                        )
 
                         # Start objective tracking for playtest mission
                         if objective_tracker:
@@ -1267,7 +1389,18 @@ def main():
                             objective_tracker.start_mission_objectives(mission_def.mission_id)
 
                         # Regenerate world using centralized function
-                        tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+                        (
+                            tiles,
+                            platforms,
+                            current_seed,
+                            spawn_x,
+                            spawn_y,
+                            exit_x,
+                            exit_y,
+                            world,
+                            megamap,
+                            minimap,
+                        ) = regenerate_world_state(
                             seed=mission_seed,
                             shape=mission_def.shape,
                             rooms=mission_def.room_count,
@@ -1285,7 +1418,7 @@ def main():
                             bus=bus,
                             GAME_WIDTH=GAME_WIDTH,
                             GAME_HEIGHT=GAME_HEIGHT,
-                            mission_def=mission_def
+                            mission_def=mission_def,
                         )
                         current_world_context = "mission"
                         update_replay_metadata(mission_def.mission_id)
@@ -1294,7 +1427,9 @@ def main():
                             targets = build_objective_location_targets(
                                 world, megamap, spawn_x, spawn_y, exit_x, exit_y
                             )
-                            fallback_id = "exit" if exit_x is not None and exit_y is not None else None
+                            fallback_id = (
+                                "exit" if exit_x is not None and exit_y is not None else None
+                            )
                             objective_tracker.set_location_targets(targets, fallback_id=fallback_id)
 
                         # Start game
@@ -1318,7 +1453,10 @@ def main():
             # Tutorial triggers (based on player actions)
             if game_state_manager.is_playing():
                 # Jump tutorial (trigger when player has used jumps)
-                if player.state.jumps_left < player.state.max_jumps and "jump" not in tutorial_manager.shown_tutorials:
+                if (
+                    player.state.jumps_left < player.state.max_jumps
+                    and "jump" not in tutorial_manager.shown_tutorials
+                ):
                     tutorial_manager.trigger_tutorial("jump")
 
                 # Dash tutorial
@@ -1326,7 +1464,10 @@ def main():
                     tutorial_manager.trigger_tutorial("dash")
 
                 # Wall slide tutorial
-                if player.state.is_wall_sliding and "wall_slide" not in tutorial_manager.shown_tutorials:
+                if (
+                    player.state.is_wall_sliding
+                    and "wall_slide" not in tutorial_manager.shown_tutorials
+                ):
                     tutorial_manager.trigger_tutorial("wall_slide")
 
                 # Crouch tutorial
@@ -1351,11 +1492,8 @@ def main():
                 player_center_x = player.state.physics.x + player.state.physics.width / 2
                 player_center_y = player.state.physics.y + player.state.physics.height / 2
                 bus.emit(
-                    PlayerPositionUpdateEvent(
-                        player_x=player_center_x,
-                        player_y=player_center_y
-                    ),
-                    immediate=True
+                    PlayerPositionUpdateEvent(player_x=player_center_x, player_y=player_center_y),
+                    immediate=True,
                 )
 
         elif game_state_manager.is_dialogue():
@@ -1388,9 +1526,24 @@ def main():
                         objective_tracker.stop_mission_objectives()
                         objective_tracker.start_mission_objectives(mission_def.mission_id)
                         region_id = getattr(mission_def, "region", current_hub_id or "campaign")
-                        region_seed = SeedDerivation.derive_region_seed(hub_manager.world_seed, region_id)
-                        mission_seed = SeedDerivation.derive_mission_seed(region_seed, mission_def.mission_id)
-                        tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+                        region_seed = SeedDerivation.derive_region_seed(
+                            hub_manager.world_seed, region_id
+                        )
+                        mission_seed = SeedDerivation.derive_mission_seed(
+                            region_seed, mission_def.mission_id
+                        )
+                        (
+                            tiles,
+                            platforms,
+                            current_seed,
+                            spawn_x,
+                            spawn_y,
+                            exit_x,
+                            exit_y,
+                            world,
+                            megamap,
+                            minimap,
+                        ) = regenerate_world_state(
                             seed=mission_seed,
                             shape=mission_def.shape,
                             rooms=mission_def.room_count,
@@ -1408,13 +1561,15 @@ def main():
                             bus=bus,
                             GAME_WIDTH=GAME_WIDTH,
                             GAME_HEIGHT=GAME_HEIGHT,
-                            mission_def=mission_def
+                            mission_def=mission_def,
                         )
                         if objective_tracker:
                             targets = build_objective_location_targets(
                                 world, megamap, spawn_x, spawn_y, exit_x, exit_y
                             )
-                            fallback_id = "exit" if exit_x is not None and exit_y is not None else None
+                            fallback_id = (
+                                "exit" if exit_x is not None and exit_y is not None else None
+                            )
                             objective_tracker.set_location_targets(targets, fallback_id=fallback_id)
                         current_play_mode = PlayMode.CAMPAIGN
                         level_complete = False
@@ -1467,7 +1622,10 @@ def main():
         if not pause_simulation:
             # Track state transitions for particles
             if not last_on_ground and player.state.physics.on_ground:
-                particles.emit_dust(player.state.physics.x, player.state.physics.y + player.state.physics.height // 2)
+                particles.emit_dust(
+                    player.state.physics.x,
+                    player.state.physics.y + player.state.physics.height // 2,
+                )
             if player.state.is_dashing and not last_is_dashing:
                 facing = player.state.facing if player.state.facing != 0 else 1
                 particles.emit_dash(player.state.physics.x, player.state.physics.y, facing)
@@ -1488,9 +1646,14 @@ def main():
                 player_width=player.state.physics.width,
                 player_height=player.state.physics.height,
                 collision_system=collision_system,
-                camera_rect=(camera.x, camera.y, camera.config.game_width, camera.config.game_height),
+                camera_rect=(
+                    camera.x,
+                    camera.y,
+                    camera.config.game_width,
+                    camera.config.game_height,
+                ),
                 cull_margin=0.0,
-                player_state=player.state
+                player_state=player.state,
             )
             # Decay sword attack cooldown
             if attack_timer > 0.0:
@@ -1509,9 +1672,7 @@ def main():
                 portal_manager.update(dt=1.0 / FPS)
                 # Player combat interactions (dash/jump attacks + contact damage)
                 damage_taken = combat_mechanic.check_enemy_collisions(
-                    player.state,
-                    enemy_manager,
-                    dt=1.0 / FPS
+                    player.state, enemy_manager, dt=1.0 / FPS
                 )
                 if damage_taken and not player.damage.is_invincible(player.state):
                     died = player.damage.take_damage(player.state, damage_taken)
@@ -1520,10 +1681,14 @@ def main():
                         if current_world_context == "mission":
                             regenerate_hub_for_respawn("mission failed (enemy)")
                         elif current_world_context == "hub" and current_hub_id != "central_hub":
-                            regenerate_hub_for_respawn("area hub death", target_hub_id="central_hub")
+                            regenerate_hub_for_respawn(
+                                "area hub death", target_hub_id="central_hub"
+                            )
                         else:
                             player.damage.respawn(player.state, spawn_x, spawn_y)
-                            print(f"[DEATH] Player died from enemy contact, respawning at ({spawn_x:.0f}, {spawn_y:.0f})")
+                            print(
+                                f"[DEATH] Player died from enemy contact, respawning at ({spawn_x:.0f}, {spawn_y:.0f})"
+                            )
 
                 if pygame.K_e in pressed_once:
                     # Prefer portal interaction if nearby
@@ -1531,18 +1696,20 @@ def main():
                         player_x=player.state.physics.x,
                         player_y=player.state.physics.y,
                         player_width=player.state.physics.width,
-                        player_height=player.state.physics.height
+                        player_height=player.state.physics.height,
                     )
                     if nearby_portal:
                         portal_manager.interact_with_portal(nearby_portal, player_id=0)
-                        print(f"[PORTAL] Activated {nearby_portal.portal_id} -> {nearby_portal.destination_id}")
+                        print(
+                            f"[PORTAL] Activated {nearby_portal.portal_id} -> {nearby_portal.destination_id}"
+                        )
                     else:
                         # Find NPCs in interaction range
                         nearby_npcs = npc_manager.get_nearby_npcs(
                             player_x=player.state.physics.x,
                             player_y=player.state.physics.y,
                             player_width=player.state.physics.width,
-                            player_height=player.state.physics.height
+                            player_height=player.state.physics.height,
                         )
 
                         if nearby_npcs:
@@ -1557,7 +1724,7 @@ def main():
                     player.state.physics.x,
                     player.state.physics.y,
                     player.state.physics.width,
-                    player.state.physics.height
+                    player.state.physics.height,
                 )
 
                 # Update level manager with collectibles
@@ -1574,20 +1741,31 @@ def main():
                                 collect_item_id = "collectible"
                                 if objective_tracker and objective_tracker.active_mission_id:
                                     for obj_state in objective_tracker.get_active_objectives():
-                                        if obj_state.objective_type == ObjectiveType.COLLECT_ITEMS and not obj_state.is_complete:
+                                        if (
+                                            obj_state.objective_type == ObjectiveType.COLLECT_ITEMS
+                                            and not obj_state.is_complete
+                                        ):
                                             if obj_state.item_id and obj_state.item_id != "coin":
                                                 collect_item_id = obj_state.item_id
                                             break
-                            bus.emit(ItemCollectedEvent(
-                                item_id=collect_item_id,
-                                quantity=pickup.value,
-                                position=(pickup.x, pickup.y)
-                            ))
+                            bus.emit(
+                                ItemCollectedEvent(
+                                    item_id=collect_item_id,
+                                    quantity=pickup.value,
+                                    position=(pickup.x, pickup.y),
+                                )
+                            )
                             # Add an item to inventory (objective item if provided, else treasure)
-                            reward_item_id = collect_item_id if collect_item_id not in ("collectible", "coin") else "treasure_ruby"
+                            reward_item_id = (
+                                collect_item_id
+                                if collect_item_id not in ("collectible", "coin")
+                                else "treasure_ruby"
+                            )
                             try:
                                 if player_inventory.add_item(reward_item_id, pickup.value):
-                                    print(f"[PICKUP] Added {reward_item_id} x{pickup.value} to inventory")
+                                    print(
+                                        f"[PICKUP] Added {reward_item_id} x{pickup.value} to inventory"
+                                    )
                             except Exception:
                                 pass
                         elif pickup.pickup_type == "health":
@@ -1599,17 +1777,18 @@ def main():
                             if save_manager and save_manager.data and save_manager.data.campaign:
                                 save_manager.data.campaign.currency = player_inventory.currency
                                 save_manager.mark_dirty()
-                            bus.emit(ItemCollectedEvent(
-                                item_id="coin",
-                                quantity=pickup.value,
-                                position=(pickup.x, pickup.y)
-                            ))
+                            bus.emit(
+                                ItemCollectedEvent(
+                                    item_id="coin",
+                                    quantity=pickup.value,
+                                    position=(pickup.x, pickup.y),
+                                )
+                            )
 
                 # Check hazard collisions (damage/death)
                 if not level_complete:
                     hazard_collision = hazard_manager.check_hazards(
-                        player.state,
-                        invincible=player.damage.is_invincible(player.state)
+                        player.state, invincible=player.damage.is_invincible(player.state)
                     )
 
                     if hazard_collision:
@@ -1627,10 +1806,14 @@ def main():
                             if current_world_context == "mission":
                                 regenerate_hub_for_respawn("mission failed (hazard)")
                             elif current_world_context == "hub" and current_hub_id != "central_hub":
-                                regenerate_hub_for_respawn("area hub death", target_hub_id="central_hub")
+                                regenerate_hub_for_respawn(
+                                    "area hub death", target_hub_id="central_hub"
+                                )
                             else:
                                 player.damage.respawn(player.state, spawn_x, spawn_y)
-                                print(f"[DEATH] Player died from {hazard.hazard_type}, respawning at ({spawn_x:.0f}, {spawn_y:.0f})")
+                                print(
+                                    f"[DEATH] Player died from {hazard.hazard_type}, respawning at ({spawn_x:.0f}, {spawn_y:.0f})"
+                                )
 
             # Check exit detection (only if not already complete)
             if not level_complete and exit_x is not None:
@@ -1643,21 +1826,31 @@ def main():
                         if objective_tracker and objective_tracker.are_all_objectives_complete():
                             # Grant simple rewards from mission definition (currency only for now)
                             if objective_tracker.active_mission_id:
-                                mission_def = get_mission_registry().get_mission(objective_tracker.active_mission_id)
+                                mission_def = get_mission_registry().get_mission(
+                                    objective_tracker.active_mission_id
+                                )
                                 if mission_def:
                                     # Currency
                                     if mission_def.rewards.currency:
                                         player_inventory.add_currency(mission_def.rewards.currency)
-                                        print(f"[MISSION] Reward: +{mission_def.rewards.currency} gold")
+                                        print(
+                                            f"[MISSION] Reward: +{mission_def.rewards.currency} gold"
+                                        )
                                     # Items
                                     for reward_item in mission_def.rewards.items:
-                                        item_id = reward_item.get("id") or reward_item.get("item_id")
+                                        item_id = reward_item.get("id") or reward_item.get(
+                                            "item_id"
+                                        )
                                         qty = reward_item.get("quantity", 1)
                                         if item_id:
                                             player_inventory.add_item(item_id, qty)
                                             print(f"[MISSION] Reward item: {item_id} x{qty}")
                                     # Mark mission complete in campaign save
-                                    if save_manager and save_manager.data and save_manager.data.campaign:
+                                    if (
+                                        save_manager
+                                        and save_manager.data
+                                        and save_manager.data.campaign
+                                    ):
                                         completed = save_manager.data.campaign.completed_missions
                                         try:
                                             # Handle set or list
@@ -1668,13 +1861,19 @@ def main():
                                                     completed.append(mission_def.mission_id)
                                         except Exception:
                                             pass
-                                        save_manager.data.campaign.currency = player_inventory.currency
+                                        save_manager.data.campaign.currency = (
+                                            player_inventory.currency
+                                        )
                                         save_manager.mark_dirty()
 
                                     # Trigger story events on mission completion (v0.7.0)
-                                    story_events = story_manager.on_mission_complete(mission_def.mission_id)
+                                    story_events = story_manager.on_mission_complete(
+                                        mission_def.mission_id
+                                    )
                                     if story_events:
-                                        print(f"[STORY] Mission {mission_def.mission_id} triggered story events: {story_events}")
+                                        print(
+                                            f"[STORY] Mission {mission_def.mission_id} triggered story events: {story_events}"
+                                        )
                                         # Check for cutscene trigger
                                         if "cutscene_id" in story_events:
                                             cutscene_id = story_events["cutscene_id"]
@@ -1692,7 +1891,18 @@ def main():
                         arcade_depth += 1
                         arcade_rooms = min(8 + arcade_depth * 2, 24)
                         arcade_seed = get_arcade_seed_wrapper(arcade_depth)
-                        tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = regenerate_world_state(
+                        (
+                            tiles,
+                            platforms,
+                            current_seed,
+                            spawn_x,
+                            spawn_y,
+                            exit_x,
+                            exit_y,
+                            world,
+                            megamap,
+                            minimap,
+                        ) = regenerate_world_state(
                             seed=arcade_seed,
                             shape="snake",
                             rooms=arcade_rooms,
@@ -1709,7 +1919,7 @@ def main():
                             npc_manager=npc_manager,
                             bus=bus,
                             GAME_WIDTH=GAME_WIDTH,
-                            GAME_HEIGHT=GAME_HEIGHT
+                            GAME_HEIGHT=GAME_HEIGHT,
                         )
                         current_seed = arcade_seed
                         level_complete = False
@@ -1723,18 +1933,15 @@ def main():
                         stats = level_manager.get_stats()
                         level_id = f"{current_world_context}_seed_{current_seed if current_seed is not None else 0}"
                         save_manager.complete_level(
-                            level_id,
-                            stats['time'],
-                            stats['collectibles'],
-                            stats['deaths']
+                            level_id, stats["time"], stats["collectibles"], stats["deaths"]
                         )
                         persist_story_state_wrapper()  # Save story state (v0.7.0)
                         save_manager.save(force=True)  # Save immediately on level complete
 
-                        print(f"\n[VICTORY] Level complete!")
+                        print("\n[VICTORY] Level complete!")
                         print(f"[VICTORY] Time: {level_manager.state.completion_time:.2f}s")
                         print(f"[VICTORY] Stats: {level_manager.get_stats()}")
-                        print(f"[SAVE] Progress saved!")
+                        print("[SAVE] Progress saved!")
 
         frame_idx += 1
 
@@ -1744,7 +1951,7 @@ def main():
 
         # Draw solid tiles (with camera transform and autotiled assets)
         # Determine biome for tile selection
-        current_biome = 'dungeon'  # Default
+        current_biome = "dungeon"  # Default
         if world and megamap:
             # Get current room from player position
             player_pos = (player.state.physics.x, player.state.physics.y)
@@ -1752,27 +1959,26 @@ def main():
 
             # Find the room in the world
             current_room = next(
-                (r for r in world.all_rooms if (r.grid_x, r.grid_y) == current_room_coords),
-                None
+                (r for r in world.all_rooms if (r.grid_x, r.grid_y) == current_room_coords), None
             )
 
-            if current_room and hasattr(current_room, 'biome_theme'):
+            if current_room and hasattr(current_room, "biome_theme"):
                 biome_name = current_room.biome_theme.value.lower()
                 # Map world generation biomes to tile biomes
                 biome_map = {
-                    'dungeon': 'dungeon',
-                    'cave': 'cave',
-                    'forest': 'building',  # Use building tiles for forest (placeholder)
-                    'desert': 'cave',      # Use cave tiles for desert (placeholder)
+                    "dungeon": "dungeon",
+                    "cave": "cave",
+                    "forest": "building",  # Use building tiles for forest (placeholder)
+                    "desert": "cave",  # Use cave tiles for desert (placeholder)
                 }
-                current_biome = biome_map.get(biome_name, 'dungeon')
+                current_biome = biome_map.get(biome_name, "dungeon")
 
         # Use autotiling for procedural worlds (we now have megamap)
         use_autotiling = megamap is not None
 
         if use_autotiling:
             # Import tile constants for autotiling
-            from systems.room_generation import TILE_SOLID, TILE_PLATFORM
+            from systems.room_generation import TILE_PLATFORM, TILE_SOLID
 
             # OPTIMIZATION: Only render tiles within camera view + margin
             # Calculate visible tile bounds
@@ -1799,11 +2005,12 @@ def main():
                 # Get autotiled tile based on neighbors (use megamap as tilemap)
                 tile_surface = tile_loader.get_autotiled_tile(
                     biome=current_biome,
-                    tile_type='solid',
+                    tile_type="solid",
                     tilemap=megamap.tilemap,
-                    x=tx, y=ty,
+                    x=tx,
+                    y=ty,
                     tile_id=TILE_SOLID,
-                    seed=current_seed
+                    seed=current_seed,
                 )
                 game_surface.blit(tile_surface, screen_rect)
 
@@ -1819,11 +2026,12 @@ def main():
 
                 tile_surface = tile_loader.get_autotiled_tile(
                     biome=current_biome,
-                    tile_type='platform',
+                    tile_type="platform",
                     tilemap=megamap.tilemap,
-                    x=tx, y=ty,
+                    x=tx,
+                    y=ty,
                     tile_id=TILE_PLATFORM,
-                    seed=current_seed
+                    seed=current_seed,
                 )
                 game_surface.blit(tile_surface, screen_rect)
 
@@ -1832,13 +2040,13 @@ def main():
             for tile in tiles:
                 screen_rect = camera.apply(tile)
                 tile_index = (tile.x // 32 + tile.y // 32) % 3
-                tile_surface = tile_loader.get_tile(current_biome, 'solid', tile_index)
+                tile_surface = tile_loader.get_tile(current_biome, "solid", tile_index)
                 game_surface.blit(tile_surface, screen_rect)
 
             for platform in platforms:
                 screen_rect = camera.apply(platform)
                 tile_index = (platform.x // 32 + platform.y // 32) % 2
-                tile_surface = tile_loader.get_tile(current_biome, 'platform', tile_index)
+                tile_surface = tile_loader.get_tile(current_biome, "platform", tile_index)
                 game_surface.blit(tile_surface, screen_rect)
 
         # Draw particles behind player
@@ -1877,7 +2085,7 @@ def main():
                 screen_enemy_rect.centerx - screen_enemy_rect.width // 2,
                 screen_enemy_rect.bottom - 4,
                 screen_enemy_rect.width,
-                4
+                4,
             )
             pygame.draw.ellipse(game_surface, (0, 0, 0, 80), shadow_rect)
 
@@ -1885,7 +2093,7 @@ def main():
             pygame.draw.rect(game_surface, enemy_color, screen_enemy_rect)
 
             # Draw attack telegraph effects
-            from entities.enemy import EnemyAttackSubState, EnemyAIState
+            from entities.enemy import EnemyAIState, EnemyAttackSubState
 
             if enemy.ai_state == EnemyAIState.ATTACK:
                 if enemy.attack_substate == EnemyAttackSubState.WINDUP:
@@ -1893,7 +2101,7 @@ def main():
 
                     # Calculate pulse intensity (0 to 1)
                     definition = enemy.get_definition()
-                    progress = enemy.attack_substate_timer / definition.attack_windup_time
+                    _progress = enemy.attack_substate_timer / definition.attack_windup_time  # Unused
                     pulse = abs(math.sin(enemy.attack_substate_timer * 10.0))  # Fast pulse
 
                     # Red glow overlay on enemy
@@ -1909,11 +2117,15 @@ def main():
 
                     # Draw exclamation mark (! symbol)
                     # Vertical bar
-                    pygame.draw.rect(game_surface, (255, 255, 0),
-                                    pygame.Rect(exclaim_x - 2, exclaim_y, 4, exclaim_size))
+                    pygame.draw.rect(
+                        game_surface,
+                        (255, 255, 0),
+                        pygame.Rect(exclaim_x - 2, exclaim_y, 4, exclaim_size),
+                    )
                     # Dot
-                    pygame.draw.circle(game_surface, (255, 255, 0),
-                                      (exclaim_x, exclaim_y + exclaim_size + 3), 2)
+                    pygame.draw.circle(
+                        game_surface, (255, 255, 0), (exclaim_x, exclaim_y + exclaim_size + 3), 2
+                    )
 
                     # Spawn warning particles
                     if int(enemy.attack_substate_timer * 10) % 3 == 0:  # Every 0.3s
@@ -1951,11 +2163,17 @@ def main():
 
             # AI state / facing indicator for debugging
             center = screen_enemy_rect.center
-            dir_x = 1 if enemy.physics.vx > 0 else -1 if enemy.physics.vx < 0 else (1 if enemy.facing_right else -1)
+            dir_x = (
+                1
+                if enemy.physics.vx > 0
+                else -1 if enemy.physics.vx < 0 else (1 if enemy.facing_right else -1)
+            )
             end = (center[0] + dir_x * 12, center[1])
             pygame.draw.line(game_surface, (255, 220, 120), center, end, 2)
             # Small text for AI state
-            state_label = enemy.ai_state.value if hasattr(enemy.ai_state, "value") else str(enemy.ai_state)
+            state_label = (
+                enemy.ai_state.value if hasattr(enemy.ai_state, "value") else str(enemy.ai_state)
+            )
             state_font = getattr(hud, "small", getattr(hud, "font", None))
             if state_font:
                 state_surf = state_font.render(state_label[:3], True, (255, 255, 0))
@@ -1970,7 +2188,9 @@ def main():
                 health_bar_y = screen_enemy_rect.top - 8
 
                 # Background (red)
-                bg_rect = pygame.Rect(health_bar_x, health_bar_y, health_bar_width, health_bar_height)
+                bg_rect = pygame.Rect(
+                    health_bar_x, health_bar_y, health_bar_width, health_bar_height
+                )
                 pygame.draw.rect(game_surface, (100, 0, 0), bg_rect)
 
                 # Foreground (green, proportional to current HP)
@@ -1997,6 +2217,7 @@ def main():
 
             # Simple colored rectangle based on NPC type (placeholder for sprites)
             from entities.npc import NPCType
+
             if npc_def and npc_def.npc_type == NPCType.MISSION_GIVER:
                 npc_color = (255, 200, 50)  # Gold for mission givers
             elif npc_def and npc_def.npc_type == NPCType.SHOP:
@@ -2011,7 +2232,7 @@ def main():
                 screen_npc_rect.centerx - screen_npc_rect.width // 2,
                 screen_npc_rect.bottom - 4,
                 screen_npc_rect.width,
-                4
+                4,
             )
             pygame.draw.ellipse(game_surface, (0, 0, 0, 80), shadow_rect)
 
@@ -2031,16 +2252,18 @@ def main():
         # Get sprite frame scaled to player hitbox size
         target_size = (screen_player_rect.width, screen_player_rect.height)
         frame = sprite_manager.get_scaled_frame(
-            player_state_name,
-            sprite_facing,
-            pygame.time.get_ticks(),
-            target_size=target_size
+            player_state_name, sprite_facing, pygame.time.get_ticks(), target_size=target_size
         )
         sprite_rect = frame.surface.get_rect(center=screen_player_rect.center)
         # Teleport phase overlay: show semi-transparent ghost at cursor
         if player.state.is_teleporting_phase and getattr(player, "teleport", None):
-            phase_pos = player.teleport.phase_cursor or (player.state.physics.x, player.state.physics.y)
-            phase_rect = pygame.Rect(int(phase_pos[0]), int(phase_pos[1]), player_rect.width, player_rect.height)
+            phase_pos = player.teleport.phase_cursor or (
+                player.state.physics.x,
+                player.state.physics.y,
+            )
+            phase_rect = pygame.Rect(
+                int(phase_pos[0]), int(phase_pos[1]), player_rect.width, player_rect.height
+            )
             phase_screen = camera.apply(phase_rect)
             ghost = frame.surface.copy()
             ghost.fill((160, 120, 255, 120), special_flags=pygame.BLEND_RGBA_MULT)
@@ -2077,7 +2300,7 @@ def main():
                 player.state.physics.x,
                 player.state.physics.y,
                 player.state.physics.width,
-                player.state.physics.height
+                player.state.physics.height,
             )
             companion_orbs.render(
                 game_surface,
@@ -2086,7 +2309,7 @@ def main():
                 player.state.physics.width,
                 player.state.physics.height,
                 camera.x,
-                camera.y
+                camera.y,
             )
 
         # Draw exit marker (if exit exists and not yet complete)
@@ -2109,28 +2332,52 @@ def main():
             if not objective_tracker or not objective_tracker.get_incomplete_objectives():
                 return None
             # Kill objectives -> nearest living enemy
-            kill_objs = [o for o in objective_tracker.get_incomplete_objectives() if o.objective_type.value == "kill_all_enemies"]
-            collect_objs = [o for o in objective_tracker.get_incomplete_objectives() if o.objective_type.value == "collect_items"]
-            reach_objs = [o for o in objective_tracker.get_incomplete_objectives() if o.objective_type.value == "reach_location"]
+            kill_objs = [
+                o
+                for o in objective_tracker.get_incomplete_objectives()
+                if o.objective_type.value == "kill_all_enemies"
+            ]
+            collect_objs = [
+                o
+                for o in objective_tracker.get_incomplete_objectives()
+                if o.objective_type.value == "collect_items"
+            ]
+            reach_objs = [
+                o
+                for o in objective_tracker.get_incomplete_objectives()
+                if o.objective_type.value == "reach_location"
+            ]
 
             player_center = (
                 player.state.physics.x + player.state.physics.width / 2,
-                player.state.physics.y + player.state.physics.height / 2
+                player.state.physics.y + player.state.physics.height / 2,
             )
 
             if kill_objs and enemy_manager.enemies:
                 living = [e for e in enemy_manager.enemies.values() if not e.is_dead()]
                 if living:
-                    living.sort(key=lambda e: (e.get_center()[0] - player_center[0]) ** 2 + (e.get_center()[1] - player_center[1]) ** 2)
+                    living.sort(
+                        key=lambda e: (e.get_center()[0] - player_center[0]) ** 2
+                        + (e.get_center()[1] - player_center[1]) ** 2
+                    )
                     return living[0].get_center()
 
             if collect_objs:
                 # Use collectibles first, else coins
-                pickups = [p for p in pickup_manager.get_alive_pickups() if p.pickup_type in ("collectible", "coin")]
+                pickups = [
+                    p
+                    for p in pickup_manager.get_alive_pickups()
+                    if p.pickup_type in ("collectible", "coin")
+                ]
                 if pickups:
-                    pickups.sort(key=lambda p: (p.x - player_center[0]) ** 2 + (p.y - player_center[1]) ** 2)
+                    pickups.sort(
+                        key=lambda p: (p.x - player_center[0]) ** 2 + (p.y - player_center[1]) ** 2
+                    )
                     target_pickup = pickups[0]
-                    return (target_pickup.x + target_pickup.width / 2, target_pickup.y + target_pickup.height / 2)
+                    return (
+                        target_pickup.x + target_pickup.width / 2,
+                        target_pickup.y + target_pickup.height / 2,
+                    )
 
             if reach_objs and exit_x is not None and exit_y is not None:
                 return (exit_x, exit_y)
@@ -2153,9 +2400,17 @@ def main():
             head_len = 10
             left_angle = angle + math.radians(150)
             right_angle = angle - math.radians(150)
-            left_point = (end_x + math.cos(left_angle) * head_len, end_y + math.sin(left_angle) * head_len)
-            right_point = (end_x + math.cos(right_angle) * head_len, end_y + math.sin(right_angle) * head_len)
-            pygame.draw.polygon(game_surface, (255, 215, 0), [(end_x, end_y), left_point, right_point])
+            left_point = (
+                end_x + math.cos(left_angle) * head_len,
+                end_y + math.sin(left_angle) * head_len,
+            )
+            right_point = (
+                end_x + math.cos(right_angle) * head_len,
+                end_y + math.sin(right_angle) * head_len,
+            )
+            pygame.draw.polygon(
+                game_surface, (255, 215, 0), [(end_x, end_y), left_point, right_point]
+            )
 
         # HUD
         mode_label = "PROCEDURAL" if use_procedural else "STATIC"
@@ -2169,8 +2424,8 @@ def main():
                 mode_label,
                 seed_label,
                 clock_pygame.get_fps(),
-                coins=pickup_stats['coins'],
-                collectibles=pickup_stats['collectibles']
+                coins=pickup_stats["coins"],
+                collectibles=pickup_stats["collectibles"],
             )
 
         # Inventory UI overlay
@@ -2179,17 +2434,19 @@ def main():
             for slot in player_inventory.slots:
                 if slot:
                     item_def = item_manager.get_item(slot.item_id) if item_manager else None
-                    items_payload.append({
-                        "name": item_def.display_name if item_def else slot.item_id,
-                        "quantity": slot.quantity,
-                        "rarity": item_def.rarity.value if item_def else "common"
-                    })
+                    items_payload.append(
+                        {
+                            "name": item_def.display_name if item_def else slot.item_id,
+                            "quantity": slot.quantity,
+                            "rarity": item_def.rarity.value if item_def else "common",
+                        }
+                    )
             inventory_ui.draw(
                 game_surface,
                 items=items_payload,
                 currency=player_inventory.currency,
                 equipped_weapon=player_inventory.equipped_weapon,
-                equipped_armor=player_inventory.equipped_armor
+                equipped_armor=player_inventory.equipped_armor,
             )
 
         # Health HUD (v0.6.0) - Draw hearts in top-left
@@ -2215,7 +2472,10 @@ def main():
                 pygame.draw.circle(game_surface, (60, 60, 60), (heart_x + 18, health_y + 6), 6, 2)
 
             # Low health warning (pulse red when HP <= 1)
-            if player.state.health_state.current_hp <= 1 and i < player.state.health_state.current_hp:
+            if (
+                player.state.health_state.current_hp <= 1
+                and i < player.state.health_state.current_hp
+            ):
                 pulse = abs(math.sin(pygame.time.get_ticks() / 200.0))
                 warning_alpha = int(100 * pulse)
                 warning_surface = pygame.Surface((heart_size, heart_size), pygame.SRCALPHA)
@@ -2223,22 +2483,33 @@ def main():
                 game_surface.blit(warning_surface, (heart_x, health_y))
 
         # Objective HUD (v0.6.0) - Only for campaign/playtest modes
-        if objective_hud_renderer and objective_tracker and objective_tracker.get_active_objectives():
+        if (
+            objective_hud_renderer
+            and objective_tracker
+            and objective_tracker.get_active_objectives()
+        ):
             # Convert objective states to display format
             from rendering.objective_hud import ObjectiveDisplay
+
             objective_displays = []
             active_mission_id = getattr(objective_tracker, "active_mission_id", None)
             for obj_state in objective_tracker.get_active_objectives():
                 # Use detailed description from mission data when available
-                description = get_objective_display_text(obj_state, active_mission_id) if active_mission_id else "Objective"
+                description = (
+                    get_objective_display_text(obj_state, active_mission_id)
+                    if active_mission_id
+                    else "Objective"
+                )
 
-                objective_displays.append(ObjectiveDisplay(
-                    description=description,
-                    current=obj_state.current_value,
-                    target=obj_state.target_value,
-                    completed=obj_state.is_complete,
-                    objective_type=obj_state.objective_type.value
-                ))
+                objective_displays.append(
+                    ObjectiveDisplay(
+                        description=description,
+                        current=obj_state.current_value,
+                        target=obj_state.target_value,
+                        completed=obj_state.is_complete,
+                        objective_type=obj_state.objective_type.value,
+                    )
+                )
 
             objective_hud_renderer.draw_objectives(game_surface, objective_displays)
 
@@ -2247,24 +2518,26 @@ def main():
             # Get player center position
             player_center = (
                 player.state.physics.x + player.state.physics.width / 2,
-                player.state.physics.y + player.state.physics.height / 2
+                player.state.physics.y + player.state.physics.height / 2,
             )
 
             # Find nearest coin
             nearest_coin_pos = None
-            min_dist = float('inf')
+            min_dist = float("inf")
             for pickup in pickup_manager.get_alive_pickups():
                 if pickup.pickup_type == "coin":
                     coin_center = (pickup.x + pickup.width / 2, pickup.y + pickup.height / 2)
                     dx = coin_center[0] - player_center[0]
                     dy = coin_center[1] - player_center[1]
-                    dist = (dx*dx + dy*dy) ** 0.5
+                    dist = (dx * dx + dy * dy) ** 0.5
                     if dist < min_dist:
                         min_dist = dist
                         nearest_coin_pos = coin_center
 
             # Get current room type
-            current_room_coords = get_current_room_coords(megamap, (player.state.physics.x, player.state.physics.y))
+            current_room_coords = get_current_room_coords(
+                megamap, (player.state.physics.x, player.state.physics.y)
+            )
             current_room_type = None
             if current_room_coords:
                 for room in world.all_rooms:
@@ -2282,7 +2555,8 @@ def main():
                     portal_center = (portal.x + portal.width / 2, portal.y + portal.height / 2)
                     portal_targets.append((f"Portal {label}", portal_center, portal.color))
                 portal_targets.sort(
-                    key=lambda entry: (entry[1][0] - player_center[0]) ** 2 + (entry[1][1] - player_center[1]) ** 2
+                    key=lambda entry: (entry[1][0] - player_center[0]) ** 2
+                    + (entry[1][1] - player_center[1]) ** 2
                 )
 
             # Draw compass
@@ -2292,7 +2566,7 @@ def main():
                 nearest_coin_pos,
                 (exit_x, exit_y) if exit_x and exit_y else None,
                 current_room_type,
-                portal_targets
+                portal_targets,
             )
 
         # Minimap / full map toggles (for procedural worlds)
@@ -2313,10 +2587,7 @@ def main():
 
         # NPC Indicators (v0.6.0 - Phase 2) - Show icons above NPCs (!, $, ?)
         npc_indicator_renderer.render(
-            surface=game_surface,
-            npc_manager=npc_manager,
-            camera_x=camera.x,
-            camera_y=camera.y
+            surface=game_surface, npc_manager=npc_manager, camera_x=camera.x, camera_y=camera.y
         )
 
         # NPC Interaction Prompts (v0.6.0 - Phase 2) - Show "Press E to talk"
@@ -2328,14 +2599,16 @@ def main():
             player_width=player.state.physics.width,
             player_height=player.state.physics.height,
             camera_x=camera.x,
-            camera_y=camera.y
+            camera_y=camera.y,
         )
 
         # Dialogue UI (modal)
         if game_state_manager.is_dialogue():
             current_node = dialogue_manager.get_current_node()
             if current_node:
-                dialogue_ui.render(game_surface, current_node, dialogue_manager.get_available_choices())
+                dialogue_ui.render(
+                    game_surface, current_node, dialogue_manager.get_available_choices()
+                )
 
         # Mission menu UI (modal)
         if game_state_manager.is_mission_menu():
@@ -2351,12 +2624,14 @@ def main():
                 for shop_item in shop_inventory.items:
                     item_def = item_manager.get_item(shop_item.item_id)
                     display_name = item_def.display_name if item_def else shop_item.item_id
-                    npc_items.append({
-                        "name": display_name,
-                        "price": shop_item.price,
-                        "quantity": shop_item.stock,
-                        "item_id": shop_item.item_id
-                    })
+                    npc_items.append(
+                        {
+                            "name": display_name,
+                            "price": shop_item.price,
+                            "quantity": shop_item.stock,
+                            "item_id": shop_item.item_id,
+                        }
+                    )
 
             player_items = []
             for slot in player_inventory.slots:
@@ -2367,19 +2642,21 @@ def main():
                 sell_price = 0
                 if shop_inventory and item_def:
                     sell_price = shop_inventory.calculate_sell_price(item_def)
-                player_items.append({
-                    "name": display_name,
-                    "sell_price": sell_price,
-                    "quantity": slot.quantity,
-                    "item_id": slot.item_id
-                })
+                player_items.append(
+                    {
+                        "name": display_name,
+                        "sell_price": sell_price,
+                        "quantity": slot.quantity,
+                        "item_id": slot.item_id,
+                    }
+                )
 
             shop_ui.draw(
                 game_surface,
                 npc_items=npc_items,
                 player_items=player_items,
                 player_currency=player_inventory.currency,
-                npc_currency=npc_currency
+                npc_currency=npc_currency,
             )
 
         # Victory screen (if level complete)
@@ -2418,27 +2695,29 @@ def main():
 
                 # Draw cutscene text box (centered bottom third)
                 text_box_height = 200
-                text_box_rect = pygame.Rect(100, GAME_HEIGHT - text_box_height - 50, GAME_WIDTH - 200, text_box_height)
+                text_box_rect = pygame.Rect(
+                    100, GAME_HEIGHT - text_box_height - 50, GAME_WIDTH - 200, text_box_height
+                )
                 pygame.draw.rect(game_surface, (20, 20, 30), text_box_rect)
                 pygame.draw.rect(game_surface, (100, 100, 120), text_box_rect, 3)
 
                 # Render text (word-wrapped)
                 font = pygame.font.Font(None, 28)
-                words = cutscene_text.split(' ')
+                words = cutscene_text.split(" ")
                 lines = []
                 current_line = []
                 max_width = text_box_rect.width - 40
 
                 for word in words:
-                    test_line = ' '.join(current_line + [word])
+                    test_line = " ".join(current_line + [word])
                     if font.size(test_line)[0] <= max_width:
                         current_line.append(word)
                     else:
                         if current_line:
-                            lines.append(' '.join(current_line))
+                            lines.append(" ".join(current_line))
                         current_line = [word]
                 if current_line:
-                    lines.append(' '.join(current_line))
+                    lines.append(" ".join(current_line))
 
                 # Draw lines
                 y_offset = text_box_rect.y + 20
@@ -2472,21 +2751,21 @@ def main():
             # Draw context text (word-wrapped)
             context_font = pygame.font.Font(None, 24)
             context_y = 180
-            context_words = choice_data["context"].split(' ')
+            context_words = choice_data["context"].split(" ")
             lines = []
             current_line = []
             max_width = 800
 
             for word in context_words:
-                test_line = ' '.join(current_line + [word])
+                test_line = " ".join(current_line + [word])
                 if context_font.size(test_line)[0] <= max_width:
                     current_line.append(word)
                 else:
                     if current_line:
-                        lines.append(' '.join(current_line))
+                        lines.append(" ".join(current_line))
                     current_line = [word]
             if current_line:
-                lines.append(' '.join(current_line))
+                lines.append(" ".join(current_line))
 
             for line in lines:
                 text_surface = context_font.render(line, True, (180, 180, 200))
@@ -2519,18 +2798,18 @@ def main():
                 # Draw description
                 desc_font = pygame.font.Font(None, 20)
                 desc_lines = []
-                desc_words = choice["description"].split(' ')
+                desc_words = choice["description"].split(" ")
                 desc_line = []
                 for word in desc_words:
-                    test = ' '.join(desc_line + [word])
+                    test = " ".join(desc_line + [word])
                     if desc_font.size(test)[0] <= button_width - 40:
                         desc_line.append(word)
                     else:
                         if desc_line:
-                            desc_lines.append(' '.join(desc_line))
+                            desc_lines.append(" ".join(desc_line))
                         desc_line = [word]
                 if desc_line:
-                    desc_lines.append(' '.join(desc_line))
+                    desc_lines.append(" ".join(desc_line))
 
                 desc_y = button_rect.y + 55
                 for desc_line_text in desc_lines[:3]:  # Max 3 lines
@@ -2540,7 +2819,9 @@ def main():
 
                 # Draw hint
                 hint_font = pygame.font.Font(None, 18)
-                hint_surface = hint_font.render(f"[Press {idx + 1}] {choice['outcome_hint']}", True, (120, 120, 140))
+                hint_surface = hint_font.render(
+                    f"[Press {idx + 1}] {choice['outcome_hint']}", True, (120, 120, 140)
+                )
                 game_surface.blit(hint_surface, (button_rect.x + 20, button_rect.bottom - 20))
 
             # Draw shared outcome
@@ -2576,31 +2857,32 @@ def main():
     # Auto-open logs folder for TESTING build on exit
     if build_config.auto_open_logs_on_exit:
         from utils.platform_utils import open_folder_in_explorer
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("TESTING BUILD - Opening replay and log directories...")
-        print("="*60)
+        print("=" * 60)
 
         # Open replays folder
-        replays_folder = user_data_dir / 'replays'
+        replays_folder = user_data_dir / "replays"
         if replays_folder.exists():
             print(f"Opening replays: {replays_folder}")
             open_folder_in_explorer(replays_folder)
 
         # Open logs folder
-        logs_folder = user_data_dir / 'logs'
+        logs_folder = user_data_dir / "logs"
         if logs_folder.exists():
             print(f"Opening logs: {logs_folder}")
             open_folder_in_explorer(logs_folder)
 
         print("\nPlease share these files with the development team!")
-        print("="*60)
+        print("=" * 60)
 
     pygame.quit()
 
     input_pipeline.finalize()
 
     print("\n[OK] Game exited cleanly")
-    print("="*60)
+    print("=" * 60)
 
 
 if __name__ == "__main__":

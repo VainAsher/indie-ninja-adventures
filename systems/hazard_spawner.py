@@ -16,10 +16,10 @@ Hazard Types:
 """
 
 import random
-from typing import List, Tuple, Dict, Set, Optional
-from systems.world_generation import RoomNode, RoomType
-from systems.room_generation import TILES_PER_ZONE, TILE_SOLID, TILE_PLATFORM
+
 from entities.hazards import HazardManager
+from systems.room_generation import TILE_PLATFORM, TILE_SOLID, TILES_PER_ZONE
+from systems.world_generation import RoomNode
 
 
 class HazardSpawnConfig:
@@ -27,15 +27,15 @@ class HazardSpawnConfig:
 
     def __init__(
         self,
-        spike_density: Tuple[int, int] = (0, 0),      # Min/max spikes
-        ceiling_spike_density: Tuple[int, int] = (0, 0),  # Min/max ceiling spikes
-        fire_pit_density: Tuple[int, int] = (0, 0),   # Min/max fire pits
-        avoid_spawn_radius: int = 320,                # Pixels to avoid spawn point
-        avoid_exit_radius: int = 160,                 # Pixels to avoid exit (≈5 tiles)
-        platform_spike_chance: float = 0.0,           # Chance to put spike on platform
-        ground_spike_chance: float = 0.0,             # Chance to put spike on ground
-        ceiling_spike_chance: float = 0.0,            # Chance for ceiling spikes
-        clustering: bool = False,                      # Whether to cluster hazards
+        spike_density: tuple[int, int] = (0, 0),  # Min/max spikes
+        ceiling_spike_density: tuple[int, int] = (0, 0),  # Min/max ceiling spikes
+        fire_pit_density: tuple[int, int] = (0, 0),  # Min/max fire pits
+        avoid_spawn_radius: int = 320,  # Pixels to avoid spawn point
+        avoid_exit_radius: int = 160,  # Pixels to avoid exit (≈5 tiles)
+        platform_spike_chance: float = 0.0,  # Chance to put spike on platform
+        ground_spike_chance: float = 0.0,  # Chance to put spike on ground
+        ceiling_spike_chance: float = 0.0,  # Chance for ceiling spikes
+        clustering: bool = False,  # Whether to cluster hazards
     ):
         self.spike_density = spike_density
         self.ceiling_spike_density = ceiling_spike_density
@@ -49,12 +49,11 @@ class HazardSpawnConfig:
 
 
 # Room type -> hazard configuration
-HAZARD_CONFIGS: Dict[str, HazardSpawnConfig] = {
+HAZARD_CONFIGS: dict[str, HazardSpawnConfig] = {
     "start": HazardSpawnConfig(
         spike_density=(0, 1),  # Very safe, maybe 1 tutorial spike
         avoid_spawn_radius=640,  # Large safe zone
     ),
-
     # Fire pits are disabled in the slice to avoid invisible hazards (no renderer yet)
     "combat": HazardSpawnConfig(
         spike_density=(4, 8),
@@ -65,7 +64,6 @@ HAZARD_CONFIGS: Dict[str, HazardSpawnConfig] = {
         ceiling_spike_chance=0.10,
         clustering=True,
     ),
-
     "platform": HazardSpawnConfig(
         spike_density=(3, 6),
         platform_spike_chance=0.20,  # More platform hazards
@@ -73,14 +71,12 @@ HAZARD_CONFIGS: Dict[str, HazardSpawnConfig] = {
         ceiling_spike_chance=0.05,
         fire_pit_density=(0, 0),
     ),
-
     "treasure": HazardSpawnConfig(
         spike_density=(2, 5),
         fire_pit_density=(0, 0),
         ground_spike_chance=0.20,
         clustering=True,  # Protect treasure with clustered hazards
     ),
-
     "boss": HazardSpawnConfig(
         spike_density=(6, 12),
         ceiling_spike_density=(2, 4),
@@ -91,11 +87,9 @@ HAZARD_CONFIGS: Dict[str, HazardSpawnConfig] = {
         avoid_spawn_radius=480,  # Give player room to move
         avoid_exit_radius=320,
     ),
-
     "shop": HazardSpawnConfig(
         spike_density=(0, 0),  # Shops are safe zones
     ),
-
     "exit": HazardSpawnConfig(
         spike_density=(1, 3),
         ground_spike_chance=0.10,
@@ -132,8 +126,8 @@ class HazardSpawner:
         hazard_manager: HazardManager,
         room_px: float,
         room_py: float,
-        spawn_pos: Optional[Tuple[float, float]] = None,
-        exit_pos: Optional[Tuple[float, float]] = None,
+        spawn_pos: tuple[float, float] | None = None,
+        exit_pos: tuple[float, float] | None = None,
     ):
         """
         Spawn hazards for a room based on its type and layout.
@@ -152,8 +146,12 @@ class HazardSpawner:
         self.rng = random.Random(self.seed + room.grid_x * 1000 + room.grid_y)
 
         # Spawn different hazard types
-        self._spawn_ground_spikes(room, hazard_manager, room_px, room_py, config, spawn_pos, exit_pos)
-        self._spawn_ceiling_spikes(room, hazard_manager, room_px, room_py, config, spawn_pos, exit_pos)
+        self._spawn_ground_spikes(
+            room, hazard_manager, room_px, room_py, config, spawn_pos, exit_pos
+        )
+        self._spawn_ceiling_spikes(
+            room, hazard_manager, room_px, room_py, config, spawn_pos, exit_pos
+        )
         self._spawn_fire_pits(room, hazard_manager, room_px, room_py, config, spawn_pos, exit_pos)
 
     def _spawn_ground_spikes(
@@ -163,15 +161,16 @@ class HazardSpawner:
         room_px: float,
         room_py: float,
         config: HazardSpawnConfig,
-        spawn_pos: Optional[Tuple[float, float]],
-        exit_pos: Optional[Tuple[float, float]],
+        spawn_pos: tuple[float, float] | None,
+        exit_pos: tuple[float, float] | None,
     ):
         """Spawn ground-based spike hazards"""
         if config.spike_density == (0, 0):
             return
 
         num_spikes = self.rng.randint(*config.spike_density)
-        from config.physics_constants import ROOM_WIDTH_TILES, ROOM_HEIGHT_TILES, TILE_SIZE
+        from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES, TILE_SIZE
+
         room_width = ROOM_WIDTH_TILES * TILE_SIZE
         room_height = ROOM_HEIGHT_TILES * TILE_SIZE
 
@@ -215,15 +214,16 @@ class HazardSpawner:
         room_px: float,
         room_py: float,
         config: HazardSpawnConfig,
-        spawn_pos: Optional[Tuple[float, float]],
-        exit_pos: Optional[Tuple[float, float]],
+        spawn_pos: tuple[float, float] | None,
+        exit_pos: tuple[float, float] | None,
     ):
         """Spawn ceiling spike hazards (inverted spikes)"""
         if config.ceiling_spike_density == (0, 0):
             return
 
         num_spikes = self.rng.randint(*config.ceiling_spike_density)
-        from config.physics_constants import ROOM_WIDTH_TILES, ROOM_HEIGHT_TILES, TILE_SIZE
+        from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES, TILE_SIZE
+
         room_width = ROOM_WIDTH_TILES * TILE_SIZE
         room_height = ROOM_HEIGHT_TILES * TILE_SIZE
 
@@ -258,8 +258,8 @@ class HazardSpawner:
         room_px: float,
         room_py: float,
         config: HazardSpawnConfig,
-        spawn_pos: Optional[Tuple[float, float]],
-        exit_pos: Optional[Tuple[float, float]],
+        spawn_pos: tuple[float, float] | None,
+        exit_pos: tuple[float, float] | None,
     ):
         """Spawn fire pit hazards"""
         if config.fire_pit_density == (0, 0):
@@ -282,7 +282,7 @@ class HazardSpawner:
 
     def _find_ground_positions(
         self, room: RoomNode, room_px: float, room_py: float
-    ) -> List[Tuple[float, float]]:
+    ) -> list[tuple[float, float]]:
         """Find valid ground positions for spike placement"""
         positions = []
 
@@ -308,7 +308,7 @@ class HazardSpawner:
 
     def _find_ceiling_positions(
         self, room: RoomNode, room_px: float, room_py: float
-    ) -> List[Tuple[float, float]]:
+    ) -> list[tuple[float, float]]:
         """Find valid ceiling positions for ceiling spikes"""
         positions = []
 
@@ -334,7 +334,7 @@ class HazardSpawner:
 
     def _find_void_positions(
         self, room: RoomNode, room_px: float, room_py: float
-    ) -> List[Tuple[float, float]]:
+    ) -> list[tuple[float, float]]:
         """Find void/pit areas for fire pits"""
         positions = []
 
@@ -360,8 +360,8 @@ class HazardSpawner:
         self,
         x: float,
         y: float,
-        spawn_pos: Optional[Tuple[float, float]],
-        exit_pos: Optional[Tuple[float, float]],
+        spawn_pos: tuple[float, float] | None,
+        exit_pos: tuple[float, float] | None,
         config: HazardSpawnConfig,
     ) -> bool:
         """Check if position is safe for hazard placement (not too close to spawn/exit)"""

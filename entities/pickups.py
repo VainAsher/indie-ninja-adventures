@@ -4,16 +4,15 @@ Pickup Entities - Collectibles and Power-ups
 Defines various pickup types including coins, health, and collectibles.
 """
 
-import pygame
 import math
-from typing import Optional, Tuple
-from core import EntityType
-from entities.components import PickupComponent
+
+import pygame
 
 
 class PickupCollectedEvent:
     """Event emitted when a pickup is collected"""
-    def __init__(self, pickup_type: str, value: int, position: Tuple[float, float]):
+
+    def __init__(self, pickup_type: str, value: int, position: tuple[float, float]):
         self.pickup_type = pickup_type
         self.value = value
         self.position = position
@@ -30,8 +29,9 @@ class BasePickup:
     - Collection events
     """
 
-    def __init__(self, x: float, y: float, pickup_type: str, value: int,
-                 auto_collect_radius: float = 24.0):
+    def __init__(
+        self, x: float, y: float, pickup_type: str, value: int, auto_collect_radius: float = 24.0
+    ):
         self.x = x
         self.y = y
         self.pickup_type = pickup_type
@@ -57,14 +57,18 @@ class BasePickup:
         """Update pickup animation"""
         if not self.collected:
             # Bobbing animation
-            self.bob_offset = math.sin(pygame.time.get_ticks() / 1000.0 * self.bob_speed) * self.bob_amplitude
+            self.bob_offset = (
+                math.sin(pygame.time.get_ticks() / 1000.0 * self.bob_speed) * self.bob_amplitude
+            )
 
             # Rotation animation
             self.rotation += self.rotation_speed * dt
             if self.rotation > 2 * math.pi:
                 self.rotation -= 2 * math.pi
 
-    def check_collection(self, player_x: float, player_y: float, player_width: float, player_height: float) -> bool:
+    def check_collection(
+        self, player_x: float, player_y: float, player_width: float, player_height: float
+    ) -> bool:
         """
         Check if player is close enough to collect this pickup.
 
@@ -88,8 +92,7 @@ class BasePickup:
 
         # Calculate distance
         distance = math.sqrt(
-            (player_center_x - pickup_center_x) ** 2 +
-            (player_center_y - pickup_center_y) ** 2
+            (player_center_x - pickup_center_x) ** 2 + (player_center_y - pickup_center_y) ** 2
         )
 
         # Check if within collection radius
@@ -102,14 +105,9 @@ class BasePickup:
 
     def get_rect(self) -> pygame.Rect:
         """Get collision rectangle (with bobbing offset)"""
-        return pygame.Rect(
-            int(self.x),
-            int(self.y + self.bob_offset),
-            self.width,
-            self.height
-        )
+        return pygame.Rect(int(self.x), int(self.y + self.bob_offset), self.width, self.height)
 
-    def get_render_position(self) -> Tuple[float, float]:
+    def get_render_position(self) -> tuple[float, float]:
         """Get position for rendering (with bobbing)"""
         return (self.x, self.y + self.bob_offset)
 
@@ -214,8 +212,9 @@ class PickupManager:
             if pickup.alive:
                 pickup.update(dt)
 
-    def check_collections(self, player_x: float, player_y: float,
-                         player_width: float, player_height: float):
+    def check_collections(
+        self, player_x: float, player_y: float, player_width: float, player_height: float
+    ):
         """
         Check if player collected any pickups.
 
@@ -225,7 +224,9 @@ class PickupManager:
         collected = []
 
         for pickup in self.pickups:
-            if pickup.alive and pickup.check_collection(player_x, player_y, player_width, player_height):
+            if pickup.alive and pickup.check_collection(
+                player_x, player_y, player_width, player_height
+            ):
                 pickup.collect()
                 collected.append(pickup)
 
@@ -241,7 +242,7 @@ class PickupManager:
                 event = PickupCollectedEvent(
                     pickup_type=pickup.pickup_type,
                     value=pickup.value,
-                    position=(pickup.x, pickup.y)
+                    position=(pickup.x, pickup.y),
                 )
                 self.event_bus.emit(event)
 
@@ -256,7 +257,7 @@ class PickupManager:
         return {
             "coins": self.coins_collected,
             "health": self.health_collected,
-            "collectibles": f"{self.collectibles_collected}/{self.total_collectibles}"
+            "collectibles": f"{self.collectibles_collected}/{self.total_collectibles}",
         }
 
     def reset(self):

@@ -14,41 +14,41 @@ Functions:
 - create_combat_system(): Create combat mechanics and effects
 """
 
-import os
 import json
-from typing import Optional, Tuple, Any
+import os
+from typing import Any
 
 import pygame
 
-from core import EventBus, GameLogger, GameClock, EntityManager, EntityType
-from systems import PhysicsSystem, CollisionSystem, SaveManager
-from systems.camera_system import CameraSystem, CameraConfig
-from entities import PickupManager, HazardManager
+from config.build_config import get_build_config
+from core import EntityManager, EntityType, EventBus, GameClock, GameLogger
+from entities import HazardManager, PickupManager
+from entities.companions import CompanionOrbs
+from entities.enemy_manager import EnemyManager
 from entities.npc import NPCManager
 from entities.player import Player
-from entities.enemy_manager import EnemyManager
-from entities.companions import CompanionOrbs
-from rendering import SpriteManager, ParticleSystem, HUDRenderer
-from rendering.tile_loader import TileLoader
-from rendering.npc_prompt import NPCPromptRenderer, NPCIndicatorRenderer
-from rendering.objective_hud import ObjectiveHUDRenderer
-from rendering.hub_effects import HubEffectsRenderer
-from ui import MenuManager, TutorialManager, ControlsHintOverlay
-from ui.inventory_ui import InventoryUI
-from ui.dialogue_ui import DialogueUI
-from ui.mission_menu import MissionMenuUI
-from ui.shop_ui import ShopUI
-from mechanics.combat_mechanic import CombatMechanic
-from game.level_manager import LevelManager
 from game.dialogue_system import DialogueManager
-from game.trading_system import TradingManager
+from game.game_state import GameState, GameStateManager
 from game.hub_manager import HubManager
+from game.inventory_system import Inventory, get_item_manager, initialize_item_manager
+from game.level_manager import LevelManager
+from game.objective_tracker import ObjectiveTracker
 from game.portal_system import PortalManager
 from game.story_manager import StoryManager
-from game.game_state import GameStateManager, GameState
-from game.inventory_system import initialize_item_manager, get_item_manager, Inventory
-from game.objective_tracker import ObjectiveTracker
-from config.build_config import get_build_config
+from game.trading_system import TradingManager
+from mechanics.combat_mechanic import CombatMechanic
+from rendering import HUDRenderer, ParticleSystem, SpriteManager
+from rendering.hub_effects import HubEffectsRenderer
+from rendering.npc_prompt import NPCIndicatorRenderer, NPCPromptRenderer
+from rendering.objective_hud import ObjectiveHUDRenderer
+from rendering.tile_loader import TileLoader
+from systems import CollisionSystem, PhysicsSystem, SaveManager
+from systems.camera_system import CameraConfig, CameraSystem
+from ui import ControlsHintOverlay, MenuManager, TutorialManager
+from ui.dialogue_ui import DialogueUI
+from ui.inventory_ui import InventoryUI
+from ui.mission_menu import MissionMenuUI
+from ui.shop_ui import ShopUI
 
 # Get build config instance
 build_config = get_build_config()
@@ -83,11 +83,11 @@ class CameraEffectsHandler:
             return
 
         # Screen shake on ground landing (only if falling)
-        if event.collision_type == 'ground' and not self.was_on_ground:
+        if event.collision_type == "ground" and not self.was_on_ground:
             # Shake intensity based on impact (placeholder - could use fall speed)
             self.camera.add_screen_shake(intensity=3.0, duration=0.1)
             self.was_on_ground = True
-        elif event.collision_type != 'ground':
+        elif event.collision_type != "ground":
             self.was_on_ground = False
 
     def _on_velocity_change(self, event: VelocityChangeEvent):
@@ -96,7 +96,7 @@ class CameraEffectsHandler:
             return
 
         # Camera pan on wall jump (push camera away from wall)
-        if event.reason == 'wall_jump':
+        if event.reason == "wall_jump":
             # Determine wall direction from velocity change
             if event.new_vx > 0:  # Jumping right
                 self.camera.add_camera_pan(offset_x=30, offset_y=0)
@@ -108,7 +108,7 @@ class CameraEffectsHandler:
         self.event_bus.unsubscribe_all(self)
 
 
-def get_recommended_window_size() -> Tuple[int, int]:
+def get_recommended_window_size() -> tuple[int, int]:
     """Get recommended window size based on display."""
     display_info = pygame.display.Info()
     screen_width, screen_height = display_info.current_w, display_info.current_h
@@ -128,7 +128,7 @@ def get_recommended_window_size() -> Tuple[int, int]:
     return window_width, window_height
 
 
-def initialize_pygame(headless: bool = False) -> Tuple[pygame.Surface, pygame.time.Clock, int, int]:
+def initialize_pygame(headless: bool = False) -> tuple[pygame.Surface, pygame.time.Clock, int, int]:
     """
     Initialize pygame and create display surface.
 
@@ -150,9 +150,7 @@ def initialize_pygame(headless: bool = False) -> Tuple[pygame.Surface, pygame.ti
     else:
         window_width, window_height = get_recommended_window_size()
         screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
-        pygame.display.set_caption(
-            "Vain Asher Gaming's: Indie Ninja Adventures - Responsive Demo"
-        )
+        pygame.display.set_caption("Vain Asher Gaming's: Indie Ninja Adventures - Responsive Demo")
         clock_pygame = pygame.time.Clock()
 
     return screen, clock_pygame, window_width, window_height
@@ -203,7 +201,7 @@ def create_core_systems(logger_name: str = "game") -> dict[str, Any]:
 def create_game_managers(
     bus: EventBus,
     logger: GameLogger,
-    current_seed: Optional[int],
+    current_seed: int | None,
     base_hub_seed: int,
 ) -> dict[str, Any]:
     """
@@ -259,7 +257,7 @@ def create_game_managers(
     initialize_item_manager()
     item_manager = get_item_manager()
     try:
-        with open("data/items.json", "r", encoding="utf-8") as f:
+        with open("data/items.json", encoding="utf-8") as f:
             items_data = json.load(f)
             item_manager.load_from_dict(items_data)
     except FileNotFoundError:
@@ -407,7 +405,7 @@ def create_player(
     entity_manager: EntityManager,
     enemy_manager: EnemyManager,
     hazard_manager: HazardManager,
-) -> Tuple[Player, Any]:
+) -> tuple[Player, Any]:
     """
     Create player entity with all mechanics enabled.
 
@@ -459,7 +457,7 @@ def create_player(
 
 def create_combat_system(
     player_entity_id: int, bus: EventBus, logger: GameLogger, camera: CameraSystem
-) -> Tuple[CombatMechanic, CameraEffectsHandler]:
+) -> tuple[CombatMechanic, CameraEffectsHandler]:
     """
     Create combat mechanic and camera effects handler.
 

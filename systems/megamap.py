@@ -10,13 +10,18 @@ Stitches all room tilemaps into a single unified tilemap for:
 Based on: Dynamic dungeon platformer megamap system
 """
 
-from typing import Dict, Tuple, List
 from dataclasses import dataclass
-from systems.world_generation import RoomNode, World
-from systems.room_generation import TILE_EMPTY
+
+from config.physics_constants import (
+    ROOM_HEIGHT_TILES as ROOM_H_TILES,
+)
 
 # Room dimensions in tiles (from room_generation.py)
-from config.physics_constants import ROOM_WIDTH_TILES as ROOM_W_TILES, ROOM_HEIGHT_TILES as ROOM_H_TILES
+from config.physics_constants import (
+    ROOM_WIDTH_TILES as ROOM_W_TILES,
+)
+from systems.room_generation import TILE_EMPTY
+from systems.world_generation import World
 
 
 @dataclass
@@ -31,14 +36,15 @@ class Megamap:
         room_positions: Map of room coords → pixel position in megamap
         bounds: World bounds (minx, miny, maxx, maxy) in room coordinates
     """
-    tilemap: List[List[int]]
+
+    tilemap: list[list[int]]
     width_tiles: int
     height_tiles: int
-    room_positions: Dict[Tuple[int, int], Tuple[int, int]]  # room_coords → (px, py)
-    bounds: Tuple[int, int, int, int]
+    room_positions: dict[tuple[int, int], tuple[int, int]]  # room_coords → (px, py)
+    bounds: tuple[int, int, int, int]
 
 
-def build_megamap(world: World, room_tilemaps: Dict[Tuple[int, int], List[List[int]]]) -> Megamap:
+def build_megamap(world: World, room_tilemaps: dict[tuple[int, int], list[list[int]]]) -> Megamap:
     """
     Stitch all room tilemaps into single unified tilemap
 
@@ -58,7 +64,7 @@ def build_megamap(world: World, room_tilemaps: Dict[Tuple[int, int], List[List[i
     mega_w = span_w * ROOM_W_TILES
     mega_h = span_h * ROOM_H_TILES
 
-    print(f"\n[MEGAMAP] Building unified tilemap")
+    print("\n[MEGAMAP] Building unified tilemap")
     print(f"[MEGAMAP] World bounds: ({minx}, {miny}) to ({maxx}, {maxy})")
     print(f"[MEGAMAP] Room span: {span_w}×{span_h} rooms")
     print(f"[MEGAMAP] Megamap size: {mega_w}×{mega_h} tiles ({mega_w * mega_h:,} total)")
@@ -67,7 +73,7 @@ def build_megamap(world: World, room_tilemaps: Dict[Tuple[int, int], List[List[i
     megamap = [[TILE_EMPTY for _ in range(mega_w)] for _ in range(mega_h)]
 
     # Track room pixel positions for camera/minimap
-    room_positions: Dict[Tuple[int, int], Tuple[int, int]] = {}
+    room_positions: dict[tuple[int, int], tuple[int, int]] = {}
 
     # Stitch each room's tilemap into megamap
     rooms_stitched = 0
@@ -112,7 +118,7 @@ def build_megamap(world: World, room_tilemaps: Dict[Tuple[int, int], List[List[i
     )
 
 
-def get_room_at_position(megamap: Megamap, pixel_x: float, pixel_y: float) -> Tuple[int, int]:
+def get_room_at_position(megamap: Megamap, pixel_x: float, pixel_y: float) -> tuple[int, int]:
     """
     Get room coordinates containing a pixel position
 
@@ -172,10 +178,10 @@ def print_megamap_stats(megamap: Megamap) -> None:
         for tile in row:
             tile_counts[tile] = tile_counts.get(tile, 0) + 1
 
-    print(f"\n[MEGAMAP STATS]")
+    print("\n[MEGAMAP STATS]")
     print(f"Dimensions: {megamap.width_tiles}×{megamap.height_tiles} tiles")
     print(f"Total tiles: {total_tiles:,}")
-    print(f"Tile distribution:")
+    print("Tile distribution:")
     for tile_id, count in sorted(tile_counts.items()):
         percentage = (count / total_tiles) * 100
         tile_name = {0: "EMPTY", 1: "SOLID", 2: "PLATFORM"}.get(tile_id, f"UNKNOWN({tile_id})")

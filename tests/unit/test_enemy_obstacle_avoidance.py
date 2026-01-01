@@ -13,10 +13,11 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import pygame
-from entities.enemy import Enemy, EnemyType, EnemyAIState
+
+from core import EntityManager, EventBus
+from entities.enemy import Enemy, EnemyAIState, EnemyType
 from entities.enemy_ai import EnemyAI
 from systems import CollisionSystem
-from core import EventBus, EntityManager
 
 
 def test_enemy_detects_obstacle_ahead():
@@ -36,11 +37,7 @@ def test_enemy_detects_obstacle_ahead():
     # Create enemy facing right at x=20 (will face the wall)
     # Enemy center is at x=20+16=36, raycast goes to x=36+48=84, wall starts at x=80
     enemy = Enemy(
-        enemy_id="test_enemy",
-        enemy_type=EnemyType.GOBLIN,
-        x=20.0,
-        y=100.0,
-        facing_right=True
+        enemy_id="test_enemy", enemy_type=EnemyType.GOBLIN, x=20.0, y=100.0, facing_right=True
     )
     enemy.physics.vx = 50.0  # Moving right toward wall
 
@@ -49,16 +46,16 @@ def test_enemy_detects_obstacle_ahead():
 
     # Update AI with collision system (should detect obstacle)
     ai.update(
-        dt=1/60,
+        dt=1 / 60,
         player_x=500.0,  # Player far away
         player_y=500.0,
         player_width=32,
         player_height=56,
-        collision_system=collision_system
+        collision_system=collision_system,
     )
 
     # Should detect obstacle ahead
-    assert ai.obstacle_ahead == True, "Enemy should detect obstacle ahead"
+    assert ai.obstacle_ahead, "Enemy should detect obstacle ahead"
     print("[PASS] Enemy correctly detected obstacle ahead")
 
 
@@ -74,11 +71,7 @@ def test_enemy_no_obstacle_when_clear():
 
     # Create enemy
     enemy = Enemy(
-        enemy_id="test_enemy",
-        enemy_type=EnemyType.GOBLIN,
-        x=20.0,
-        y=100.0,
-        facing_right=True
+        enemy_id="test_enemy", enemy_type=EnemyType.GOBLIN, x=20.0, y=100.0, facing_right=True
     )
     enemy.physics.vx = 50.0
 
@@ -87,16 +80,16 @@ def test_enemy_no_obstacle_when_clear():
 
     # Update AI (should NOT detect obstacle)
     ai.update(
-        dt=1/60,
+        dt=1 / 60,
         player_x=500.0,
         player_y=500.0,
         player_width=32,
         player_height=56,
-        collision_system=collision_system
+        collision_system=collision_system,
     )
 
     # Should NOT detect obstacle
-    assert ai.obstacle_ahead == False, "Enemy should not detect obstacle when clear"
+    assert not ai.obstacle_ahead, "Enemy should not detect obstacle when clear"
     print("[PASS] Enemy correctly detected no obstacle")
 
 
@@ -113,29 +106,23 @@ def test_flying_enemy_ignores_obstacles():
     collision_system.set_tiles([wall])
 
     # Create flying enemy (BAT) facing wall
-    enemy = Enemy(
-        enemy_id="test_bat",
-        enemy_type=EnemyType.BAT,
-        x=20.0,
-        y=100.0,
-        facing_right=True
-    )
+    enemy = Enemy(enemy_id="test_bat", enemy_type=EnemyType.BAT, x=20.0, y=100.0, facing_right=True)
 
     # Create AI controller
     ai = EnemyAI(enemy)
 
     # Update AI
     ai.update(
-        dt=1/60,
+        dt=1 / 60,
         player_x=500.0,
         player_y=500.0,
         player_width=32,
         player_height=56,
-        collision_system=collision_system
+        collision_system=collision_system,
     )
 
     # Flying enemies should ignore obstacles
-    assert ai.obstacle_ahead == False, "Flying enemy should ignore obstacles"
+    assert not ai.obstacle_ahead, "Flying enemy should ignore obstacles"
     print("[PASS] Flying enemy correctly ignored obstacle")
 
 
@@ -158,14 +145,13 @@ def test_patrol_turns_around_on_obstacle():
         x=20.0,
         y=100.0,
         facing_right=True,
-        ai_state=EnemyAIState.PATROL
+        ai_state=EnemyAIState.PATROL,
     )
 
     # Set patrol waypoints (moving right toward wall)
-    enemy.set_patrol_waypoints([
-        (10.0, 100.0),   # Left point
-        (150.0, 100.0)   # Right point (beyond wall)
-    ])
+    enemy.set_patrol_waypoints(
+        [(10.0, 100.0), (150.0, 100.0)]  # Left point  # Right point (beyond wall)
+    )
     enemy.current_waypoint_index = 1  # Moving toward right waypoint
 
     # Create AI controller
@@ -174,12 +160,12 @@ def test_patrol_turns_around_on_obstacle():
     # Update several times to trigger obstacle detection
     for _ in range(10):
         ai.update(
-            dt=1/60,
+            dt=1 / 60,
             player_x=500.0,
             player_y=500.0,
             player_width=32,
             player_height=56,
-            collision_system=collision_system
+            collision_system=collision_system,
         )
 
         # If obstacle detected and wait timer started, enemy should have turned around
@@ -198,18 +184,18 @@ def test_patrol_turns_around_on_obstacle():
 
 def main():
     """Run all obstacle avoidance tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ENEMY OBSTACLE AVOIDANCE TESTS")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     test_enemy_detects_obstacle_ahead()
     test_enemy_no_obstacle_when_clear()
     test_flying_enemy_ignores_obstacles()
     test_patrol_turns_around_on_obstacle()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ALL OBSTACLE AVOIDANCE TESTS PASSED!")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

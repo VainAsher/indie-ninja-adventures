@@ -11,23 +11,22 @@ This module provides enemy management:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 import math
+from dataclasses import dataclass
 
-from entities.enemy import Enemy, EnemyType, EnemyAIState, get_enemy_definition
-from entities.enemy_ai import EnemyAI, create_patrol_waypoints_horizontal
+from config.physics_constants import FALL_GRAVITY_MULT, GRAVITY, MAX_FALL_SPEED
+from core import EventBus
 from entities.ai_random import AIRandom, derive_ai_seed
+from entities.enemy import Enemy, EnemyAIState, EnemyType, get_enemy_definition
+from entities.enemy_ai import EnemyAI, create_patrol_waypoints_horizontal
 from game.health_system import HealthState
 from game.loot_system import LootGenerator, get_loot_table_database
-from core import EventBus
 from game.objective_tracker import EnemyDeathEvent
-from config.physics_constants import GRAVITY, FALL_GRAVITY_MULT, MAX_FALL_SPEED
-
 
 # ============================================================
 # Enemy Spawn Anchor
 # ============================================================
+
 
 @dataclass
 class EnemySpawnAnchor:
@@ -36,6 +35,7 @@ class EnemySpawnAnchor:
 
     Defines where and what type of enemy should spawn.
     """
+
     anchor_id: str
     enemy_type: EnemyType
     x: float
@@ -54,6 +54,7 @@ class EnemySpawnAnchor:
 # Item Pickup Entity
 # ============================================================
 
+
 @dataclass
 class ItemPickup:
     """
@@ -61,6 +62,7 @@ class ItemPickup:
 
     Represents a collectible item dropped by enemies or placed in the level.
     """
+
     pickup_id: str
     item_id: str
     quantity: int
@@ -73,10 +75,10 @@ class ItemPickup:
     pulse_timer: float = 0.0
 
     # Lifetime (optional, for temporary pickups)
-    lifetime: Optional[float] = None
+    lifetime: float | None = None
     time_alive: float = 0.0
 
-    def get_rect(self) -> Tuple[float, float, int, int]:
+    def get_rect(self) -> tuple[float, float, int, int]:
         """Get pickup bounding box"""
         return (self.x, self.y, self.width, self.height)
 
@@ -96,6 +98,7 @@ class ItemPickup:
     def get_pulse_scale(self) -> float:
         """Get pulsing scale for visual effect"""
         import math
+
         return 1.0 + 0.1 * math.sin(self.pulse_timer * 4)
 
 
@@ -106,6 +109,7 @@ class CurrencyPickup:
 
     Represents money dropped by enemies or found in the level.
     """
+
     pickup_id: str
     amount: int
     x: float
@@ -117,10 +121,10 @@ class CurrencyPickup:
     pulse_timer: float = 0.0
 
     # Lifetime
-    lifetime: Optional[float] = 30.0  # Auto-collect or expire after 30 seconds
+    lifetime: float | None = 30.0  # Auto-collect or expire after 30 seconds
     time_alive: float = 0.0
 
-    def get_rect(self) -> Tuple[float, float, int, int]:
+    def get_rect(self) -> tuple[float, float, int, int]:
         """Get pickup bounding box"""
         return (self.x, self.y, self.width, self.height)
 
@@ -139,12 +143,14 @@ class CurrencyPickup:
     def get_pulse_scale(self) -> float:
         """Get pulsing scale for visual effect"""
         import math
+
         return 1.0 + 0.15 * math.sin(self.pulse_timer * 5)
 
 
 # ============================================================
 # Enemy Manager
 # ============================================================
+
 
 class EnemyManager:
     """
@@ -165,13 +171,13 @@ class EnemyManager:
         self.level_seed = level_seed
 
         # Active entities
-        self.enemies: Dict[str, Enemy] = {}
-        self.enemy_ai: Dict[str, EnemyAI] = {}
-        self.item_pickups: Dict[str, ItemPickup] = {}
-        self.currency_pickups: Dict[str, CurrencyPickup] = {}
+        self.enemies: dict[str, Enemy] = {}
+        self.enemy_ai: dict[str, EnemyAI] = {}
+        self.item_pickups: dict[str, ItemPickup] = {}
+        self.currency_pickups: dict[str, CurrencyPickup] = {}
 
         # Spawn tracking
-        self.spawn_anchors: List[EnemySpawnAnchor] = []
+        self.spawn_anchors: list[EnemySpawnAnchor] = []
         self.next_enemy_id = 0
         self.next_pickup_id = 0
 
@@ -219,10 +225,7 @@ class EnemyManager:
             return enemy_id
 
         # Create health state
-        health = HealthState(
-            current_hp=definition.max_hp,
-            max_hp=definition.max_hp
-        )
+        health = HealthState(current_hp=definition.max_hp, max_hp=definition.max_hp)
 
         # Derive loot seed from level seed and anchor position
         loot_seed = self._derive_loot_seed(anchor.spawn_seed, anchor.x, anchor.y)
@@ -236,7 +239,7 @@ class EnemyManager:
             health_state=health,
             ai_state=EnemyAIState.PATROL,  # start moving immediately
             loot_table_id=definition.loot_table_id,
-            loot_seed=loot_seed
+            loot_seed=loot_seed,
         )
 
         # Set up patrol waypoints
@@ -248,6 +251,7 @@ class EnemyManager:
 
         elif anchor.patrol_type == "vertical":
             from entities.enemy_ai import create_patrol_waypoints_vertical
+
             waypoints = create_patrol_waypoints_vertical(
                 anchor.x, anchor.y, anchor.patrol_distance, anchor.patrol_points
             )
@@ -255,6 +259,7 @@ class EnemyManager:
 
         elif anchor.patrol_type == "circle":
             from entities.enemy_ai import create_patrol_waypoints_circle
+
             waypoints = create_patrol_waypoints_circle(
                 anchor.x, anchor.y, anchor.patrol_distance, anchor.patrol_points
             )
@@ -277,8 +282,9 @@ class EnemyManager:
 
         return enemy_id
 
-    def spawn_enemy(self, enemy_type: EnemyType, x: float, y: float,
-                   patrol_distance: float = 100.0) -> str:
+    def spawn_enemy(
+        self, enemy_type: EnemyType, x: float, y: float, patrol_distance: float = 100.0
+    ) -> str:
         """
         Spawn an enemy directly (without anchor).
 
@@ -297,7 +303,7 @@ class EnemyManager:
             x=x,
             y=y,
             patrol_distance=patrol_distance,
-            spawn_seed=self.next_enemy_id
+            spawn_seed=self.next_enemy_id,
         )
         return self.spawn_enemy_from_anchor(anchor)
 
@@ -305,12 +311,18 @@ class EnemyManager:
     # Enemy Updates
     # ============================================================
 
-    def update(self, dt: float, player_x: float, player_y: float,
-               player_width: int, player_height: int,
-               player_state=None,
-               collision_system=None,
-               camera_rect: Optional[Tuple[float, float, float, float]] = None,
-               cull_margin: float = 800.0) -> int:
+    def update(
+        self,
+        dt: float,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        player_state=None,
+        collision_system=None,
+        camera_rect: tuple[float, float, float, float] | None = None,
+        cull_margin: float = 800.0,
+    ) -> int:
         """
         Update all enemies.
 
@@ -349,14 +361,23 @@ class EnemyManager:
             ai = self.enemy_ai.get(enemy_id)
             if ai:
                 damage = ai.update(
-                    dt, player_x, player_y, player_width, player_height,
-                    detection_mult, collision_system
+                    dt,
+                    player_x,
+                    player_y,
+                    player_width,
+                    player_height,
+                    detection_mult,
+                    collision_system,
                 )
                 if damage:
                     total_damage += damage
 
             # Kickstart patrol if stalled on waypoint (prevents stuck idle)
-            if enemy.ai_state == EnemyAIState.PATROL and enemy.patrol_waypoints and abs(enemy.physics.vx) < 1.0:
+            if (
+                enemy.ai_state == EnemyAIState.PATROL
+                and enemy.patrol_waypoints
+                and abs(enemy.physics.vx) < 1.0
+            ):
                 target = enemy.get_current_waypoint()
                 if target:
                     dx = target[0] - enemy.physics.x
@@ -373,8 +394,12 @@ class EnemyManager:
                 elif enemy.ai_state in (EnemyAIState.CHASE, EnemyAIState.ATTACK):
                     # Nudge toward player's vertical position
                     player_center_y = player_y + player_height / 2
-                    enemy.physics.vy += (player_center_y - (enemy.physics.y + definition.height / 2)) * 0.05 * dt
-                    enemy.physics.vy = max(min(enemy.physics.vy, definition.move_speed), -definition.move_speed)
+                    enemy.physics.vy += (
+                        (player_center_y - (enemy.physics.y + definition.height / 2)) * 0.05 * dt
+                    )
+                    enemy.physics.vy = max(
+                        min(enemy.physics.vy, definition.move_speed), -definition.move_speed
+                    )
 
             # Note: AI and movement component write directly to physics, no sync needed
 
@@ -383,7 +408,9 @@ class EnemyManager:
             if not definition.can_fly:
                 enemy.physics.vy += GRAVITY * definition.gravity_scale
                 if enemy.physics.vy > 0:
-                    enemy.physics.vy += GRAVITY * (FALL_GRAVITY_MULT - 1.0) * definition.gravity_scale
+                    enemy.physics.vy += (
+                        GRAVITY * (FALL_GRAVITY_MULT - 1.0) * definition.gravity_scale
+                    )
                 if enemy.physics.vy > MAX_FALL_SPEED:
                     enemy.physics.vy = MAX_FALL_SPEED
 
@@ -451,8 +478,9 @@ class EnemyManager:
     # Collision Detection
     # ============================================================
 
-    def check_player_enemy_collision(self, player_x: float, player_y: float,
-                                     player_width: int, player_height: int) -> List[str]:
+    def check_player_enemy_collision(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> list[str]:
         """
         Check for collisions between player and enemies.
 
@@ -479,7 +507,7 @@ class EnemyManager:
 
         return colliding_enemies
 
-    def check_attack_collision(self, attack_rect: Tuple[float, float, float, float]) -> List[str]:
+    def check_attack_collision(self, attack_rect: tuple[float, float, float, float]) -> list[str]:
         """
         Check which enemies overlap a custom attack rectangle.
 
@@ -499,9 +527,14 @@ class EnemyManager:
                 hit.append(enemy_id)
         return hit
 
-    def check_pickup_collection(self, player_x: float, player_y: float,
-                                player_width: int, player_height: int,
-                                player_inventory) -> bool:
+    def check_pickup_collection(
+        self,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        player_inventory,
+    ) -> bool:
         """
         Check for pickup collection.
 
@@ -528,11 +561,14 @@ class EnemyManager:
                     collected_items.append(pickup_id)
                     # Emit collection event
                     from game.objective_tracker import ItemCollectedEvent
-                    self.event_bus.emit(ItemCollectedEvent(
-                        item_id=pickup.item_id,
-                        quantity=pickup.quantity,
-                        position=(pickup.x, pickup.y)
-                    ))
+
+                    self.event_bus.emit(
+                        ItemCollectedEvent(
+                            item_id=pickup.item_id,
+                            quantity=pickup.quantity,
+                            position=(pickup.x, pickup.y),
+                        )
+                    )
 
         # Check currency pickups
         for pickup_id, pickup in self.currency_pickups.items():
@@ -554,10 +590,7 @@ class EnemyManager:
         x1, y1, w1, h1 = rect1
         x2, y2, w2, h2 = rect2
 
-        return (x1 < x2 + w2 and
-                x1 + w1 > x2 and
-                y1 < y2 + h2 and
-                y1 + h1 > y2)
+        return x1 < x2 + w2 and x1 + w1 > x2 and y1 < y2 + h2 and y1 + h1 > y2
 
     # ============================================================
     # Enemy Death & Loot
@@ -578,11 +611,13 @@ class EnemyManager:
         self._generate_loot(enemy)
 
         # Emit death event for objective tracking
-        self.event_bus.emit(EnemyDeathEvent(
-            enemy_id=enemy.enemy_id,
-            enemy_type=enemy.enemy_type.value,
-            position=enemy.get_center()
-        ))
+        self.event_bus.emit(
+            EnemyDeathEvent(
+                enemy_id=enemy.enemy_id,
+                enemy_type=enemy.enemy_type.value,
+                position=enemy.get_center(),
+            )
+        )
 
         # Remove enemy
         del self.enemies[enemy_id]
@@ -641,7 +676,7 @@ class EnemyManager:
             quantity=quantity,
             x=x - 12,  # Center pickup (24px wide)
             y=y - 12,
-            lifetime=None  # Items don't expire
+            lifetime=None,  # Items don't expire
         )
 
         self.item_pickups[pickup_id] = pickup
@@ -663,7 +698,7 @@ class EnemyManager:
             amount=amount,
             x=x - 10,  # Center pickup (20px wide)
             y=y - 10,
-            lifetime=30.0  # Auto-expire after 30 seconds
+            lifetime=30.0,  # Auto-expire after 30 seconds
         )
 
         self.currency_pickups[pickup_id] = pickup
@@ -687,14 +722,20 @@ class EnemyManager:
         hash_bytes = hashlib.sha256(seed_string.encode()).digest()
 
         # Convert first 4 bytes to int
-        return int.from_bytes(hash_bytes[:4], byteorder='big', signed=False)
+        return int.from_bytes(hash_bytes[:4], byteorder="big", signed=False)
 
     # ============================================================
     # Enemy Damage
     # ============================================================
 
-    def damage_enemy(self, enemy_id: str, damage: int, knockback_x: float = 0.0,
-                    knockback_y: float = 0.0, stun_duration: float = 0.0) -> bool:
+    def damage_enemy(
+        self,
+        enemy_id: str,
+        damage: int,
+        knockback_x: float = 0.0,
+        knockback_y: float = 0.0,
+        stun_duration: float = 0.0,
+    ) -> bool:
         """
         Deal damage to an enemy.
 
@@ -719,11 +760,11 @@ class EnemyManager:
     # Queries
     # ============================================================
 
-    def get_enemy(self, enemy_id: str) -> Optional[Enemy]:
+    def get_enemy(self, enemy_id: str) -> Enemy | None:
         """Get enemy by ID"""
         return self.enemies.get(enemy_id)
 
-    def get_all_enemies(self) -> List[Enemy]:
+    def get_all_enemies(self) -> list[Enemy]:
         """Get list of all enemies"""
         return list(self.enemies.values())
 
@@ -731,11 +772,11 @@ class EnemyManager:
         """Get count of living enemies"""
         return sum(1 for enemy in self.enemies.values() if enemy.is_alive())
 
-    def get_all_item_pickups(self) -> List[ItemPickup]:
+    def get_all_item_pickups(self) -> list[ItemPickup]:
         """Get list of all item pickups"""
         return list(self.item_pickups.values())
 
-    def get_all_currency_pickups(self) -> List[CurrencyPickup]:
+    def get_all_currency_pickups(self) -> list[CurrencyPickup]:
         """Get list of all currency pickups"""
         return list(self.currency_pickups.values())
 
@@ -744,7 +785,7 @@ class EnemyManager:
 # Global Enemy Manager Instance
 # ============================================================
 
-_enemy_manager: Optional[EnemyManager] = None
+_enemy_manager: EnemyManager | None = None
 
 
 def initialize_enemy_manager(event_bus: EventBus, level_seed: int):
@@ -753,6 +794,6 @@ def initialize_enemy_manager(event_bus: EventBus, level_seed: int):
     _enemy_manager = EnemyManager(event_bus, level_seed)
 
 
-def get_enemy_manager() -> Optional[EnemyManager]:
+def get_enemy_manager() -> EnemyManager | None:
     """Get the global enemy manager instance"""
     return _enemy_manager

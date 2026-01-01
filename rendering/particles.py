@@ -2,9 +2,9 @@
 Simple particle helpers for Phase 5 visual feedback.
 """
 
-from dataclasses import dataclass
-from typing import List, Tuple
 import random
+from dataclasses import dataclass
+
 import pygame
 
 
@@ -16,12 +16,12 @@ class Particle:
     vy: float
     life: float
     size: int
-    color: Tuple[int, int, int]
+    color: tuple[int, int, int]
 
 
 class ParticleSystem:
     def __init__(self):
-        self.particles: List[Particle] = []
+        self.particles: list[Particle] = []
 
     def emit_dust(self, x: float, y: float, count: int = 8):
         for _ in range(count):
@@ -49,6 +49,7 @@ class ParticleSystem:
         Red particles that pulse outward from enemy position.
         """
         import math
+
         for _ in range(count):
             angle = random.uniform(0, 2 * math.pi)
             speed = random.uniform(20, 40)
@@ -66,6 +67,7 @@ class ParticleSystem:
         Bright flash particles indicating the strike.
         """
         import math
+
         for _ in range(count):
             angle = random.uniform(0, 2 * math.pi)
             speed = random.uniform(60, 120)
@@ -77,7 +79,7 @@ class ParticleSystem:
             self.particles.append(Particle(x, y, vx, vy, life, size, (255, 255, 120)))
 
     def update(self, dt: float):
-        alive: List[Particle] = []
+        alive: list[Particle] = []
         for p in self.particles:
             p.life -= dt
             if p.life <= 0:

@@ -18,11 +18,12 @@ Enhanced: Added biome layer for metroidvania structure
 """
 
 import logging
+import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Dict, Tuple, Optional, Set, TYPE_CHECKING
+from typing import TYPE_CHECKING
+
 from config.physics_constants import TILES_PER_ZONE
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +35,16 @@ if TYPE_CHECKING:
 # Enums and Constants
 # ==========================================================
 
+
 class WorldShape(Enum):
     """World shape generation styles"""
-    SNAKE = "snake"      # Long winding paths with few branches
+
+    SNAKE = "snake"  # Long winding paths with few branches
     BRANCHY = "branchy"  # Maze-like interconnected rooms
-    BLOB = "blob"        # Clustered layout
-    SPIRAL = "spiral"    # Rotating spiral pattern
-    TREE = "tree"        # Branching tree structure
-    GRID = "grid"        # Structured grid-like layout
+    BLOB = "blob"  # Clustered layout
+    SPIRAL = "spiral"  # Rotating spiral pattern
+    TREE = "tree"  # Branching tree structure
+    GRID = "grid"  # Structured grid-like layout
 
 
 @dataclass
@@ -55,8 +58,9 @@ class ShapeParams:
         straight: Probability to continue in same direction (0.0-1.0)
                  High = long corridors, Low = winding paths
     """
-    rev: float      # Pick recent frontier probability
-    straight: float # Continue same direction probability
+
+    rev: float  # Pick recent frontier probability
+    straight: float  # Continue same direction probability
 
 
 # World shape presets (from source analysis + new designs)
@@ -65,25 +69,27 @@ SHAPE_PRESETS = {
     WorldShape.BRANCHY: ShapeParams(rev=0.25, straight=0.30),
     WorldShape.BLOB: ShapeParams(rev=0.40, straight=0.40),
     WorldShape.SPIRAL: ShapeParams(rev=0.90, straight=0.15),  # Very recent, frequent turns
-    WorldShape.TREE: ShapeParams(rev=0.10, straight=0.60),    # Random selection, long branches
-    WorldShape.GRID: ShapeParams(rev=0.50, straight=0.85),    # Balanced, very straight
+    WorldShape.TREE: ShapeParams(rev=0.10, straight=0.60),  # Random selection, long branches
+    WorldShape.GRID: ShapeParams(rev=0.50, straight=0.85),  # Balanced, very straight
 }
 
 
 class ZoneRole(Enum):
     """Zone roles for 16x16 planning grid"""
-    WALK = "walk"        # Walkable floor
-    FILL = "fill"        # Solid terrain
-    PLAT = "platform"    # Platform (can jump through)
-    DOOR = "door"        # Door connection
-    SAVE = "save"        # Save point
-    SHOP = "shop"        # Shop location
-    LOOT = "loot"        # Treasure
-    VOID = "void"        # Empty space (pits)
+
+    WALK = "walk"  # Walkable floor
+    FILL = "fill"  # Solid terrain
+    PLAT = "platform"  # Platform (can jump through)
+    DOOR = "door"  # Door connection
+    SAVE = "save"  # Save point
+    SHOP = "shop"  # Shop location
+    LOOT = "loot"  # Treasure
+    VOID = "void"  # Empty space (pits)
 
 
 class RoomType(Enum):
     """Room types for world generation"""
+
     START = "start"
     EXIT = "exit"
     SHOP = "shop"
@@ -95,6 +101,7 @@ class RoomType(Enum):
 
 class BiomeTheme(Enum):
     """Biome themes with unique generation patterns"""
+
     DUNGEON = "dungeon"
     CAVE = "cave"
     BUILDING = "building"
@@ -118,6 +125,7 @@ DIRS = {
 # Data Structures
 # ==========================================================
 
+
 @dataclass
 class DoorPort:
     """
@@ -128,6 +136,7 @@ class DoorPort:
         center_tile: Tile index at center of door
         span_tiles: How many tiles wide the door is
     """
+
     side: str
     center_tile: int
     span_tiles: int = max(3, TILES_PER_ZONE - 1)
@@ -150,20 +159,21 @@ class RoomNode:
         tilemap: Generated tile map (None until generated)
         anchors: Special positions (spawn, shop, loot, etc.)
     """
+
     grid_x: int
     grid_y: int
     room_type: RoomType
     biome_theme: BiomeTheme
     seed: int
-    neighbors: Set[Tuple[int, int]] = field(default_factory=set)
-    neighbor_dirs: Dict[str, Tuple[int, int]] = field(default_factory=dict)
-    door_ports: Dict[str, List[DoorPort]] = field(default_factory=dict)
-    zone_grid: Optional[List[List[ZoneRole]]] = None
-    tilemap: Optional[List[List[int]]] = None
-    anchors: Dict[str, Tuple[int, int]] = field(default_factory=dict)
+    neighbors: set[tuple[int, int]] = field(default_factory=set)
+    neighbor_dirs: dict[str, tuple[int, int]] = field(default_factory=dict)
+    door_ports: dict[str, list[DoorPort]] = field(default_factory=dict)
+    zone_grid: list[list[ZoneRole]] | None = None
+    tilemap: list[list[int]] | None = None
+    anchors: dict[str, tuple[int, int]] = field(default_factory=dict)
     # Two-phase anchor resolution
-    anchor_candidates: List['AnchorCandidate'] = field(default_factory=list)
-    resolved_anchors: Dict[str, Tuple[int, int]] = field(default_factory=dict)
+    anchor_candidates: list["AnchorCandidate"] = field(default_factory=list)
+    resolved_anchors: dict[str, tuple[int, int]] = field(default_factory=dict)
 
 
 @dataclass
@@ -176,8 +186,9 @@ class Biome:
         rooms: List of rooms in this biome
         start_room: The entry room for this biome
     """
+
     theme: BiomeTheme
-    rooms: List[RoomNode]
+    rooms: list[RoomNode]
     start_room: RoomNode
 
 
@@ -194,17 +205,19 @@ class World:
         exit_room: Global exit room (in last biome)
         bounds: World bounds (minx, miny, maxx, maxy) in grid coordinates
     """
+
     seed: int
-    biomes: List[Biome]
-    all_rooms: List[RoomNode]
+    biomes: list[Biome]
+    all_rooms: list[RoomNode]
     start_room: RoomNode
     exit_room: RoomNode
-    bounds: Tuple[int, int, int, int]  # minx, miny, maxx, maxy
+    bounds: tuple[int, int, int, int]  # minx, miny, maxx, maxy
 
 
 # ==========================================================
 # World Generator
 # ==========================================================
+
 
 class WorldGenerator:
     """
@@ -225,8 +238,9 @@ class WorldGenerator:
         self.seed = seed
         self.rng = random.Random(seed)
 
-    def generate(self, num_biomes: int = 3, rooms_per_biome: int = 12,
-                 shape: WorldShape = WorldShape.BLOB) -> World:
+    def generate(
+        self, num_biomes: int = 3, rooms_per_biome: int = 12, shape: WorldShape = WorldShape.BLOB
+    ) -> World:
         """
         Generate complete world with biomes.
 
@@ -241,9 +255,7 @@ class WorldGenerator:
         # Generate room graph with specified shape
         total_rooms = num_biomes * rooms_per_biome
 
-        rooms_dict, start_pos, exit_pos, bounds = self._generate_room_graph(
-            total_rooms, shape
-        )
+        rooms_dict, start_pos, exit_pos, bounds = self._generate_room_graph(total_rooms, shape)
 
         # Divide rooms into biomes
         all_rooms_list = list(rooms_dict.values())
@@ -274,7 +286,9 @@ class WorldGenerator:
 
     def _generate_room_graph(
         self, room_count: int, shape: WorldShape
-    ) -> Tuple[Dict[Tuple[int, int], RoomNode], Tuple[int, int], Tuple[int, int], Tuple[int, int, int, int]]:
+    ) -> tuple[
+        dict[tuple[int, int], RoomNode], tuple[int, int], tuple[int, int], tuple[int, int, int, int]
+    ]:
         """
         Generate room graph with specific world shape.
 
@@ -289,7 +303,7 @@ class WorldGenerator:
         params = SHAPE_PRESETS[shape]
 
         # Dynamic grid size based on room count
-        base = max(8, int((room_count ** 0.5) * 3.0))
+        base = max(8, int((room_count**0.5) * 3.0))
         grid_w = self.rng.randint(base, base + 6)
         grid_h = self.rng.randint(max(6, base - 2), base + 4)
 
@@ -297,7 +311,7 @@ class WorldGenerator:
         sx, sy = grid_w // 2, grid_h // 2
 
         # Create start room
-        rooms: Dict[Tuple[int, int], RoomNode] = {}
+        rooms: dict[tuple[int, int], RoomNode] = {}
         rooms[(sx, sy)] = RoomNode(
             grid_x=sx,
             grid_y=sy,
@@ -324,7 +338,7 @@ class WorldGenerator:
             # Pick frontier room based on shape parameters
             if self.rng.random() < params.rev:
                 # Pick from recent rooms (snake-like)
-                candidates = frontier[-min(6, len(frontier)):]
+                candidates = frontier[-min(6, len(frontier)) :]
                 current = self.rng.choice(candidates)
             else:
                 # Pick random (more branching)
@@ -413,7 +427,7 @@ class WorldGenerator:
         candidates = [p for p in coords if p not in [(sx, sy), (ex, ey)]]
         self.rng.shuffle(candidates)
 
-        def take(n: int) -> List[Tuple[int, int]]:
+        def take(n: int) -> list[tuple[int, int]]:
             """Take n candidates from the list."""
             nonlocal candidates
             n = max(0, min(n, len(candidates)))
@@ -433,8 +447,9 @@ class WorldGenerator:
 
         return rooms, (sx, sy), (ex, ey), bounds
 
-    def _available_directions(self, pos: Tuple[int, int], rooms: Dict[Tuple[int, int], RoomNode],
-                              grid_w: int, grid_h: int) -> List[str]:
+    def _available_directions(
+        self, pos: tuple[int, int], rooms: dict[tuple[int, int], RoomNode], grid_w: int, grid_h: int
+    ) -> list[str]:
         """
         Get valid placement directions from current position.
 
@@ -462,7 +477,7 @@ class WorldGenerator:
 
         return directions
 
-    def _apply_direction(self, pos: Tuple[int, int], direction: str) -> Tuple[int, int]:
+    def _apply_direction(self, pos: tuple[int, int], direction: str) -> tuple[int, int]:
         """
         Apply direction to get new position.
 
@@ -484,7 +499,7 @@ class WorldGenerator:
             return (x + 1, y)
         return pos
 
-    def _create_biomes(self, all_rooms: List[RoomNode], num_biomes: int) -> List[Biome]:
+    def _create_biomes(self, all_rooms: list[RoomNode], num_biomes: int) -> list[Biome]:
         """
         Divide rooms into biomes and assign themes.
 
@@ -496,7 +511,10 @@ class WorldGenerator:
             for room in all_rooms:
                 room.biome_theme = theme
             # Find start room or use first room as fallback
-            start = next((r for r in all_rooms if r.room_type == RoomType.START), all_rooms[0] if all_rooms else None)
+            start = next(
+                (r for r in all_rooms if r.room_type == RoomType.START),
+                all_rooms[0] if all_rooms else None,
+            )
             if not start:
                 raise ValueError("No rooms generated")
             return [Biome(theme=theme, rooms=all_rooms, start_room=start)]
@@ -507,7 +525,7 @@ class WorldGenerator:
 
         # Assign themes cyclically
         themes = [BiomeTheme.DUNGEON, BiomeTheme.CAVE, BiomeTheme.BUILDING]
-        biomes: List[Biome] = []
+        biomes: list[Biome] = []
 
         rooms_per_biome = len(all_rooms) // num_biomes
         for i in range(num_biomes):
@@ -524,7 +542,7 @@ class WorldGenerator:
             # Find start room for this biome (or use first room)
             start_room = next(
                 (r for r in biome_rooms if r.room_type == RoomType.START),
-                biome_rooms[0] if biome_rooms else None
+                biome_rooms[0] if biome_rooms else None,
             )
 
             if start_room:
@@ -532,7 +550,7 @@ class WorldGenerator:
 
         return biomes
 
-    def _compute_neighbor_dirs(self, room: RoomNode) -> Dict[str, Tuple[int, int]]:
+    def _compute_neighbor_dirs(self, room: RoomNode) -> dict[str, tuple[int, int]]:
         """
         Compute neighbor directions for a room.
 
@@ -546,14 +564,14 @@ class WorldGenerator:
                     neighbor_dirs[dir_name] = (nx, ny)
         return neighbor_dirs
 
-    def _assign_door_ports(self, rooms: Dict[Tuple[int, int], RoomNode]) -> None:
+    def _assign_door_ports(self, rooms: dict[tuple[int, int], RoomNode]) -> None:
         """
         Assign door ports on room edges (from source algorithm).
 
         Each pair of connected rooms gets 1-3 door ports depending on room type.
         """
         rng = random.Random(self.seed ^ 0xA5A5A5)
-        seen: Set[Tuple[Tuple[int, int], Tuple[int, int]]] = set()
+        seen: set[tuple[tuple[int, int], tuple[int, int]]] = set()
 
         # Room dimensions in zones (5x5 grid)
         # Each zone will expand to tiles later
@@ -582,7 +600,10 @@ class WorldGenerator:
                     k += 1
 
                 # Boss rooms only get 1 door
-                if room.room_type == RoomType.BOSS or rooms[neighbor_pos].room_type == RoomType.BOSS:
+                if (
+                    room.room_type == RoomType.BOSS
+                    or rooms[neighbor_pos].room_type == RoomType.BOSS
+                ):
                     k = min(k, 1)
 
                 # Assign door ports based on direction
@@ -633,7 +654,7 @@ class WorldGenerator:
                             DoorPort(side="down", center_tile=center_tile, span_tiles=span)
                         )
 
-    def _resolve_world_anchors(self, rooms: Dict[Tuple[int, int], RoomNode]) -> None:
+    def _resolve_world_anchors(self, rooms: dict[tuple[int, int], RoomNode]) -> None:
         """
         Resolve anchor candidates globally with spacing constraints
 
@@ -651,7 +672,8 @@ class WorldGenerator:
 # Utility Functions
 # ==========================================================
 
-def generate_world_tilemaps(world: World) -> Dict[Tuple[int, int], List[List[int]]]:
+
+def generate_world_tilemaps(world: World) -> dict[tuple[int, int], list[list[int]]]:
     """
     Generate tilemaps for all rooms in the world
 
@@ -661,8 +683,8 @@ def generate_world_tilemaps(world: World) -> Dict[Tuple[int, int], List[List[int
     Returns:
         Dictionary of (grid_x, grid_y) → tilemap
     """
-    from systems.zone_planning import ZonePlanner
     from systems.room_generation import RoomGenerator
+    from systems.zone_planning import ZonePlanner
 
     logger.debug("[TILEMAPS] Generating tilemaps for %s rooms...", len(world.all_rooms))
 

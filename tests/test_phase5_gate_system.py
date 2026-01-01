@@ -14,12 +14,13 @@ Version: v0.6.0 (Phase 5)
 """
 
 import unittest
-from entities.ability_gate import (
-    GateType, AbilityRequirement, AbilityGate, GateManager
-)
+
+from entities.ability_gate import AbilityGate, AbilityRequirement, GateManager, GateType
 from systems.gate_validator import (
-    GateValidator, ValidationResult, find_path_with_abilities,
-    validate_mission_gates
+    GateValidator,
+    ValidationResult,
+    find_path_with_abilities,
+    validate_mission_gates,
 )
 
 
@@ -79,7 +80,7 @@ class TestAbilityGate(unittest.TestCase):
             y=200.0,
             width=64,
             height=96,
-            required_ability=AbilityRequirement.DOUBLE_JUMP
+            required_ability=AbilityRequirement.DOUBLE_JUMP,
         )
 
         self.assertEqual(gate.gate_id, "gate_1")
@@ -95,7 +96,7 @@ class TestAbilityGate(unittest.TestCase):
             y=200.0,
             width=64,
             height=96,
-            required_ability=AbilityRequirement.DOUBLE_JUMP
+            required_ability=AbilityRequirement.DOUBLE_JUMP,
         )
 
         abilities = {AbilityRequirement.DOUBLE_JUMP, AbilityRequirement.JUMP}
@@ -110,7 +111,7 @@ class TestAbilityGate(unittest.TestCase):
             y=200.0,
             width=64,
             height=96,
-            required_ability=AbilityRequirement.DOUBLE_JUMP
+            required_ability=AbilityRequirement.DOUBLE_JUMP,
         )
 
         abilities = {AbilityRequirement.JUMP}  # Missing double jump
@@ -126,7 +127,7 @@ class TestAbilityGate(unittest.TestCase):
             width=64,
             height=64,
             required_ability=AbilityRequirement.BASIC_MOVEMENT,
-            key_id="key_1"
+            key_id="key_1",
         )
 
         abilities = {AbilityRequirement.BASIC_MOVEMENT}
@@ -147,7 +148,7 @@ class TestAbilityGate(unittest.TestCase):
             y=200.0,
             width=64,
             height=96,
-            required_ability=AbilityRequirement.DOUBLE_JUMP
+            required_ability=AbilityRequirement.DOUBLE_JUMP,
         )
 
         # Player inside gate bounds
@@ -167,7 +168,7 @@ class TestAbilityGate(unittest.TestCase):
             height=128,
             required_ability=AbilityRequirement.WALL_JUMP,
             unlocked=False,
-            key_id="key_2"
+            key_id="key_2",
         )
 
         # Serialize
@@ -244,13 +245,16 @@ class TestGateManager(unittest.TestCase):
         gate_id = manager.add_gate(GateType.HIGH_LEDGE, 100.0, 200.0)
 
         # Player inside gate bounds without ability - should block
-        blocking_gate = manager.check_gate_collision(120.0, 230.0, 28, 56, {AbilityRequirement.JUMP})
+        blocking_gate = manager.check_gate_collision(
+            120.0, 230.0, 28, 56, {AbilityRequirement.JUMP}
+        )
         self.assertIsNotNone(blocking_gate)
         self.assertEqual(blocking_gate, gate_id)
 
         # Player inside gate bounds with ability - should not block
-        blocking_gate = manager.check_gate_collision(120.0, 230.0, 28, 56,
-                                                    {AbilityRequirement.DOUBLE_JUMP})
+        blocking_gate = manager.check_gate_collision(
+            120.0, 230.0, 28, 56, {AbilityRequirement.DOUBLE_JUMP}
+        )
         self.assertIsNone(blocking_gate)
 
         # Player outside gate bounds - should not block
@@ -277,19 +281,11 @@ class TestGateValidator(unittest.TestCase):
         validator.set_gates([])
 
         # Can reach adjacent tile
-        result = validator._can_reach_position(
-            start=(0, 0),
-            target=(1, 0),
-            abilities=set()
-        )
+        result = validator._can_reach_position(start=(0, 0), target=(1, 0), abilities=set())
         self.assertTrue(result)
 
         # Can reach distant tile
-        result = validator._can_reach_position(
-            start=(0, 0),
-            target=(9, 9),
-            abilities=set()
-        )
+        result = validator._can_reach_position(start=(0, 0), target=(9, 9), abilities=set())
         self.assertTrue(result)
 
     def test_can_reach_position_with_obstacles(self):
@@ -302,11 +298,7 @@ class TestGateValidator(unittest.TestCase):
         validator.set_gates([])
 
         # Cannot reach other side
-        result = validator._can_reach_position(
-            start=(0, 5),
-            target=(9, 5),
-            abilities=set()
-        )
+        result = validator._can_reach_position(start=(0, 5), target=(9, 5), abilities=set())
         self.assertFalse(result)
 
     def test_can_reach_position_with_gate(self):
@@ -320,7 +312,7 @@ class TestGateValidator(unittest.TestCase):
             y=5 * 32,  # Tile y=5
             width=32,
             height=32,
-            required_ability=AbilityRequirement.DOUBLE_JUMP
+            required_ability=AbilityRequirement.DOUBLE_JUMP,
         )
 
         validator.set_collision_data(set())
@@ -328,18 +320,14 @@ class TestGateValidator(unittest.TestCase):
 
         # Cannot pass gate without ability
         result = validator._can_reach_position(
-            start=(0, 5),
-            target=(9, 5),
-            abilities={AbilityRequirement.JUMP}
+            start=(0, 5), target=(9, 5), abilities={AbilityRequirement.JUMP}
         )
         # Note: This may pass depending on pathfinding around the gate
         # The gate only blocks one tile, so path may go around
 
         # Can pass gate with ability
         result = validator._can_reach_position(
-            start=(0, 5),
-            target=(9, 5),
-            abilities={AbilityRequirement.DOUBLE_JUMP}
+            start=(0, 5), target=(9, 5), abilities={AbilityRequirement.DOUBLE_JUMP}
         )
         self.assertTrue(result)
 
@@ -354,7 +342,7 @@ class TestGateValidator(unittest.TestCase):
         result = validator._validate_objective_reachability(
             start_tile=(0, 0),
             objective_tiles=[(5, 5), (10, 10), (15, 15)],
-            available_abilities=set()
+            available_abilities=set(),
         )
 
         self.assertTrue(result.valid)
@@ -371,9 +359,7 @@ class TestGateValidator(unittest.TestCase):
 
         # Objective on other side of wall
         result = validator._validate_objective_reachability(
-            start_tile=(0, 0),
-            objective_tiles=[(15, 10)],
-            available_abilities=set()
+            start_tile=(0, 0), objective_tiles=[(15, 10)], available_abilities=set()
         )
 
         self.assertFalse(result.valid)
@@ -391,7 +377,7 @@ class TestGateValidator(unittest.TestCase):
             y=10 * 32,
             width=32,
             height=64,
-            required_ability=AbilityRequirement.DOUBLE_JUMP
+            required_ability=AbilityRequirement.DOUBLE_JUMP,
         )
 
         validator.set_collision_data(set())
@@ -401,7 +387,7 @@ class TestGateValidator(unittest.TestCase):
         result = validator.validate_gate_placement(
             start_pos=(0, 0),
             objective_positions=[(29 * 32, 10 * 32)],
-            available_abilities={AbilityRequirement.JUMP}
+            available_abilities={AbilityRequirement.JUMP},
         )
 
         # Should have validation results
@@ -420,7 +406,7 @@ class TestPathFinding(unittest.TestCase):
             gates=[],
             abilities=set(),
             tile_width=10,
-            tile_height=10
+            tile_height=10,
         )
 
         self.assertIsNotNone(path)
@@ -439,7 +425,7 @@ class TestPathFinding(unittest.TestCase):
             gates=[],
             abilities=set(),
             tile_width=10,
-            tile_height=10
+            tile_height=10,
         )
 
         # Should return None (no path)
@@ -455,7 +441,7 @@ class TestPathFinding(unittest.TestCase):
             available_abilities={AbilityRequirement.JUMP},
             solid_tiles=set(),
             level_width_tiles=30,
-            level_height_tiles=20
+            level_height_tiles=20,
         )
 
         self.assertIsInstance(result, ValidationResult)
@@ -489,7 +475,7 @@ class TestGateIntegration(unittest.TestCase):
             y=5 * 32,
             width=96,  # 3 tiles wide gap
             height=32,
-            required_ability=AbilityRequirement.DASH
+            required_ability=AbilityRequirement.DASH,
         )
 
         validator.set_collision_data(solid_tiles)
@@ -499,7 +485,7 @@ class TestGateIntegration(unittest.TestCase):
         result = validator.validate_gate_placement(
             start_pos=(0, 5 * 32),
             objective_positions=[(19 * 32, 5 * 32)],
-            available_abilities={AbilityRequirement.JUMP}
+            available_abilities={AbilityRequirement.JUMP},
         )
 
         # Should have warnings about gate encounter or errors about unreachable objectives
@@ -517,7 +503,7 @@ class TestGateIntegration(unittest.TestCase):
             y=10 * 32,
             width=32,
             height=64,
-            required_ability=AbilityRequirement.DOUBLE_JUMP
+            required_ability=AbilityRequirement.DOUBLE_JUMP,
         )
 
         gate2 = AbilityGate(
@@ -527,7 +513,7 @@ class TestGateIntegration(unittest.TestCase):
             y=10 * 32,
             width=96,
             height=32,
-            required_ability=AbilityRequirement.DASH
+            required_ability=AbilityRequirement.DASH,
         )
 
         validator.set_collision_data(set())
@@ -537,10 +523,7 @@ class TestGateIntegration(unittest.TestCase):
         result = validator.validate_gate_placement(
             start_pos=(0, 10 * 32),
             objective_positions=[(29 * 32, 10 * 32)],
-            available_abilities={
-                AbilityRequirement.DOUBLE_JUMP,
-                AbilityRequirement.DASH
-            }
+            available_abilities={AbilityRequirement.DOUBLE_JUMP, AbilityRequirement.DASH},
         )
 
         self.assertIsInstance(result, ValidationResult)
@@ -567,5 +550,6 @@ def run_tests():
 
 if __name__ == "__main__":
     import sys
+
     success = run_tests()
     sys.exit(0 if success else 1)

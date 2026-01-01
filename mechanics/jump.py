@@ -20,19 +20,18 @@ Timers:
 - jump_buffer_time: Input buffering window (0.14s)
 """
 
-from mechanics.base import BaseMechanic
-from core.event_bus import EventBus, CollisionEvent, VelocityChangeEvent
-from core.logger import MechanicLogger
-from core.state import PlayerState
 from config.physics_constants import (
-    JUMP_POWER,
+    CROUCH_JUMP_MULT,
     DOUBLE_JUMP_POWER,
+    JUMP_BUFFER_TIME,
+    JUMP_POWER,
     WALL_JUMP_POWER_X,
     WALL_JUMP_POWER_Y,
-    COYOTE_TIME,
-    JUMP_BUFFER_TIME,
-    CROUCH_JUMP_MULT
 )
+from core.event_bus import CollisionEvent, EventBus, VelocityChangeEvent
+from core.logger import MechanicLogger
+from core.state import PlayerState
+from mechanics.base import BaseMechanic
 
 
 class JumpMechanic(BaseMechanic):
@@ -56,8 +55,13 @@ class JumpMechanic(BaseMechanic):
     MAX_JUMPS = 2  # Maximum air jumps allowed
     WALL_JUMP_INPUT_LOCK = 0.12  # Input lock duration after wall jump
 
-    def __init__(self, entity_id: int, event_bus: EventBus, logger: MechanicLogger,
-                 feature_flags: dict = None):
+    def __init__(
+        self,
+        entity_id: int,
+        event_bus: EventBus,
+        logger: MechanicLogger,
+        feature_flags: dict = None,
+    ):
         """
         Initialize jump mechanic
 
@@ -116,17 +120,13 @@ class JumpMechanic(BaseMechanic):
             old_coyote = state.coyote_time
             state.coyote_time = max(0.0, state.coyote_time - dt)
             if state.coyote_time == 0.0:
-                self.logger.debug(
-                    f"Coyote time expired (was {old_coyote:.3f}s)"
-                )
+                self.logger.debug(f"Coyote time expired (was {old_coyote:.3f}s)")
 
         if state.jump_buffer_time > 0.0:
             old_buffer = state.jump_buffer_time
             state.jump_buffer_time = max(0.0, state.jump_buffer_time - dt)
             if state.jump_buffer_time == 0.0:
-                self.logger.debug(
-                    f"Jump buffer expired (was {old_buffer:.3f}s)"
-                )
+                self.logger.debug(f"Jump buffer expired (was {old_buffer:.3f}s)")
 
         if state.wall_jump_lock > 0.0:
             state.wall_jump_lock = max(0.0, state.wall_jump_lock - dt)
@@ -135,9 +135,7 @@ class JumpMechanic(BaseMechanic):
         if self.jump_requested:
             # Buffer the jump input
             state.jump_buffer_time = JUMP_BUFFER_TIME
-            self.logger.debug(
-                f"Jump buffered ({JUMP_BUFFER_TIME:.3f}s window)"
-            )
+            self.logger.debug(f"Jump buffered ({JUMP_BUFFER_TIME:.3f}s window)")
             self.jump_requested = False
 
         # Try to execute buffered jump
@@ -207,19 +205,19 @@ class JumpMechanic(BaseMechanic):
             state.physics.on_ground = False
             state.coyote_time = 0.0
             state.jumps_left = self.MAX_JUMPS - 1  # Reset double jump
-            self.logger.info(
-                f"Executed {jump_type}: vy {old_vy:.2f} -> {state.physics.vy:.2f}"
-            )
+            self.logger.info(f"Executed {jump_type}: vy {old_vy:.2f} -> {state.physics.vy:.2f}")
 
             # Emit velocity change event
-            self.event_bus.emit(VelocityChangeEvent(
-                entity_id=self.entity_id,
-                old_vx=state.physics.vx,
-                old_vy=old_vy,
-                new_vx=state.physics.vx,
-                new_vy=state.physics.vy,
-                reason=jump_type
-            ))
+            self.event_bus.emit(
+                VelocityChangeEvent(
+                    entity_id=self.entity_id,
+                    old_vx=state.physics.vx,
+                    old_vy=old_vy,
+                    new_vx=state.physics.vx,
+                    new_vy=state.physics.vy,
+                    reason=jump_type,
+                )
+            )
 
             return True
 
@@ -254,7 +252,11 @@ class JumpMechanic(BaseMechanic):
             old_vy = state.physics.vy
 
             # Determine wall direction (fallback to last wall dir or facing)
-            wall_dir_effective = state.physics.wall_dir if state.physics.wall_dir != 0 else getattr(state, "last_wall_dir", 0)
+            wall_dir_effective = (
+                state.physics.wall_dir
+                if state.physics.wall_dir != 0
+                else getattr(state, "last_wall_dir", 0)
+            )
             if wall_dir_effective == 0:
                 if abs(state.physics.vx) > 0.1:
                     wall_dir_effective = 1 if state.physics.vx > 0 else -1
@@ -294,14 +296,16 @@ class JumpMechanic(BaseMechanic):
             )
 
             # Emit velocity change event
-            self.event_bus.emit(VelocityChangeEvent(
-                entity_id=self.entity_id,
-                old_vx=old_vx,
-                old_vy=old_vy,
-                new_vx=state.physics.vx,
-                new_vy=state.physics.vy,
-                reason="wall_jump"
-            ))
+            self.event_bus.emit(
+                VelocityChangeEvent(
+                    entity_id=self.entity_id,
+                    old_vx=old_vx,
+                    old_vy=old_vy,
+                    new_vx=state.physics.vx,
+                    new_vy=state.physics.vy,
+                    reason="wall_jump",
+                )
+            )
 
             return True
 
@@ -343,14 +347,16 @@ class JumpMechanic(BaseMechanic):
             )
 
             # Emit velocity change event
-            self.event_bus.emit(VelocityChangeEvent(
-                entity_id=self.entity_id,
-                old_vx=state.physics.vx,
-                old_vy=old_vy,
-                new_vx=state.physics.vx,
-                new_vy=state.physics.vy,
-                reason="double_jump"
-            ))
+            self.event_bus.emit(
+                VelocityChangeEvent(
+                    entity_id=self.entity_id,
+                    old_vx=state.physics.vx,
+                    old_vy=old_vy,
+                    new_vx=state.physics.vx,
+                    new_vy=state.physics.vy,
+                    reason="double_jump",
+                )
+            )
 
             return True
 
@@ -389,10 +395,8 @@ class JumpMechanic(BaseMechanic):
             return
 
         # Reset jumps on ground landing
-        if event.collision_type == 'ground':
-            self.logger.debug(
-                f"Ground collision detected, resetting jumps to {self.MAX_JUMPS}"
-            )
+        if event.collision_type == "ground":
+            self.logger.debug(f"Ground collision detected, resetting jumps to {self.MAX_JUMPS}")
 
     def on_collision(self, state: PlayerState, collision_event: CollisionEvent):
         """
@@ -405,12 +409,10 @@ class JumpMechanic(BaseMechanic):
             state: Player state to modify
             collision_event: Collision event details
         """
-        if collision_event.collision_type == 'ground':
+        if collision_event.collision_type == "ground":
             # Reset jumps on landing
             state.jumps_left = self.MAX_JUMPS
-            self.logger.debug(
-                f"Landed on ground, reset jumps to {self.MAX_JUMPS}"
-            )
+            self.logger.debug(f"Landed on ground, reset jumps to {self.MAX_JUMPS}")
 
     def reset(self, state: PlayerState):
         """

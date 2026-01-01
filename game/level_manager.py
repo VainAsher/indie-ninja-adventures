@@ -5,17 +5,19 @@ Manages level state, exit detection, and level completion tracking.
 """
 
 import math
-from typing import Optional, Tuple, Dict, Any
 from dataclasses import dataclass
+from typing import Any
+
 from core.event_bus import EventBus
 
 
 @dataclass
 class LevelState:
     """State for current level"""
+
     level_complete: bool = False
-    exit_pos: Optional[Tuple[float, float]] = None
-    spawn_pos: Optional[Tuple[float, float]] = None
+    exit_pos: tuple[float, float] | None = None
+    spawn_pos: tuple[float, float] | None = None
     completion_time: float = 0.0
     collectibles_found: int = 0
     collectibles_total: int = 0
@@ -25,6 +27,7 @@ class LevelState:
 
 class LevelCompletionEvent:
     """Event emitted when level is completed"""
+
     def __init__(self, completion_time: float, collectibles: int, deaths: int):
         self.completion_time = completion_time
         self.collectibles = collectibles
@@ -87,10 +90,7 @@ class LevelManager:
         exit_x, exit_y = self.state.exit_pos
 
         # Calculate distance to exit
-        distance = math.sqrt(
-            (player_x - exit_x) ** 2 +
-            (player_y - exit_y) ** 2
-        )
+        distance = math.sqrt((player_x - exit_x) ** 2 + (player_y - exit_y) ** 2)
 
         # Check if within detection radius
         if distance < self.exit_detection_radius:
@@ -102,7 +102,7 @@ class LevelManager:
             completion_event = LevelCompletionEvent(
                 completion_time=self.state.completion_time,
                 collectibles=self.state.collectibles_found,
-                deaths=self.state.deaths
+                deaths=self.state.deaths,
             )
             self.event_bus.emit(completion_event)
 
@@ -146,12 +146,12 @@ class LevelManager:
         """Set total collectibles in level"""
         self.state.collectibles_total = total
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get current level statistics"""
         return {
             "complete": self.state.level_complete,
             "time": self.state.completion_time,
             "collectibles": f"{self.state.collectibles_found}/{self.state.collectibles_total}",
             "deaths": self.state.deaths,
-            "exit_locked": self.state.exit_locked
+            "exit_locked": self.state.exit_locked,
         }

@@ -8,8 +8,9 @@ Usage:
     python assets/generate_placeholder_tiles.py
 """
 
-import pygame
 import os
+
+import pygame
 
 
 def generate_tile_sprite(color, size=8):
@@ -57,16 +58,16 @@ def generate_all_tiles(base_path="assets/biomes", size=8):
     pygame.init()
 
     tiles = {
-        "terrain.png": (64, 64, 64),          # Dark Gray
-        "wall.png": (139, 69, 19),      # Brown
-        "platform.png": (160, 160, 160),   # Light Gray
-        "door.png": (0, 0, 255),           # Blue
-        "shop.png": (255, 215, 0),         # Gold
-        "treasure.png": (255, 255, 0),     # Yellow
-        "void.png": (0, 0, 0),             # Black
-        "spawn.png": (0, 255, 0),          # Green
-        "save.png": (0, 255, 255),         # Cyan
-        "exit.png": (255, 0, 255),         # Magenta
+        "terrain.png": (64, 64, 64),  # Dark Gray
+        "wall.png": (139, 69, 19),  # Brown
+        "platform.png": (160, 160, 160),  # Light Gray
+        "door.png": (0, 0, 255),  # Blue
+        "shop.png": (255, 215, 0),  # Gold
+        "treasure.png": (255, 255, 0),  # Yellow
+        "void.png": (0, 0, 0),  # Black
+        "spawn.png": (0, 255, 0),  # Green
+        "save.png": (0, 255, 255),  # Cyan
+        "exit.png": (255, 0, 255),  # Magenta
     }
 
     # Generate for each biome theme

@@ -10,50 +10,67 @@ Tests enemy, boss, and combat systems:
 Run: python tests/test_phase4_combat_systems.py
 """
 
-import sys
 import os
+import sys
 
 # Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from entities.enemy import Enemy, EnemyType, EnemyAIState, ENEMY_DEFINITIONS, get_enemy_definition
-from entities.enemy_ai import EnemyAI, create_patrol_waypoints_horizontal
-from entities.enemy_manager import EnemyManager, EnemySpawnAnchor, initialize_enemy_manager, get_enemy_manager
-from entities.boss import Boss, BossType, BossPhase, BossAIState, BOSS_DEFINITIONS, get_boss_definition
-from mechanics.combat_mechanic import CombatMechanic
-from game.health_system import HealthState
-from game.inventory_system import Inventory, initialize_item_manager
-from game.loot_system import initialize_loot_table_database
-from core.state import PhysicsState, PlayerState
 from core.event_bus import EventBus
+from core.state import PhysicsState, PlayerState
+from entities.boss import (
+    Boss,
+    BossAIState,
+    BossPhase,
+    BossType,
+    get_boss_definition,
+)
+from entities.enemy import Enemy, EnemyAIState, EnemyType, get_enemy_definition
+from entities.enemy_ai import EnemyAI, create_patrol_waypoints_horizontal
+from entities.enemy_manager import (
+    EnemySpawnAnchor,
+    get_enemy_manager,
+    initialize_enemy_manager,
+)
+from game.health_system import HealthState
+from game.inventory_system import initialize_item_manager
+from game.loot_system import initialize_loot_table_database
+from mechanics.combat_mechanic import CombatMechanic
 
 
 def test_enemy_definitions():
     """Test 1: Enemy definitions"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 1: Enemy Definitions")
-    print("="*60)
+    print("=" * 60)
 
     # Check all 5 enemy types have definitions
-    enemy_types = [EnemyType.GOBLIN, EnemyType.BAT, EnemyType.SLIME,
-                   EnemyType.SKELETON, EnemyType.WOLF]
+    enemy_types = [
+        EnemyType.GOBLIN,
+        EnemyType.BAT,
+        EnemyType.SLIME,
+        EnemyType.SKELETON,
+        EnemyType.WOLF,
+    ]
 
     for enemy_type in enemy_types:
         definition = get_enemy_definition(enemy_type)
         assert definition is not None, f"Missing definition for {enemy_type}"
         assert definition.max_hp > 0, "Enemy must have HP"
         assert definition.move_speed > 0, "Enemy must have movement speed"
-        print(f"  [OK] {definition.display_name}: {definition.max_hp} HP, "
-              f"{definition.move_speed} speed, {definition.loot_table_id} loot")
+        print(
+            f"  [OK] {definition.display_name}: {definition.max_hp} HP, "
+            f"{definition.move_speed} speed, {definition.loot_table_id} loot"
+        )
 
     print("\n  [PASS] All 5 enemy definitions valid")
 
 
 def test_enemy_entity_creation():
     """Test 2: Enemy entity creation"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 2: Enemy Entity Creation")
-    print("="*60)
+    print("=" * 60)
 
     # Create a goblin enemy
     goblin_def = get_enemy_definition(EnemyType.GOBLIN)
@@ -66,7 +83,7 @@ def test_enemy_entity_creation():
         y=100.0,
         health_state=health,
         loot_table_id=goblin_def.loot_table_id,
-        loot_seed=12345
+        loot_seed=12345,
     )
 
     # Test enemy methods
@@ -84,7 +101,7 @@ def test_enemy_entity_creation():
     expected_y = 100.0 + goblin_def.height / 2
     assert center == (expected_x, expected_y), "Center calculation wrong"
 
-    print(f"  [OK] Created goblin at (100, 100)")
+    print("  [OK] Created goblin at (100, 100)")
     print(f"  [OK] Bounding box: {rect}")
     print(f"  [OK] Center: {center}")
     print("\n  [PASS] Enemy entity creation works")
@@ -92,20 +109,16 @@ def test_enemy_entity_creation():
 
 def test_enemy_ai_states():
     """Test 3: Enemy AI state machine"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 3: Enemy AI State Machine")
-    print("="*60)
+    print("=" * 60)
 
     # Create enemy
     goblin_def = get_enemy_definition(EnemyType.GOBLIN)
     health = HealthState(goblin_def.max_hp, goblin_def.max_hp)
 
     enemy = Enemy(
-        enemy_id="test_goblin",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        health_state=health
+        enemy_id="test_goblin", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, health_state=health
     )
 
     # Set up patrol waypoints
@@ -124,30 +137,32 @@ def test_enemy_ai_states():
     # Test transition to PATROL
     ai.update(0.6, 500.0, 500.0, 28, 56)  # Enough time to transition
     assert enemy.ai_state == EnemyAIState.PATROL, "Should transition to PATROL"
-    print(f"  [OK] IDLE -> PATROL transition")
+    print("  [OK] IDLE -> PATROL transition")
 
     # Test PATROL state
     damage = ai.update(0.1, 500.0, 500.0, 28, 56)
     assert enemy.ai_state == EnemyAIState.PATROL, "Should stay in PATROL"
-    print(f"  [OK] PATROL state: moving toward waypoint")
+    print("  [OK] PATROL state: moving toward waypoint")
 
     # Test transition to CHASE (player in detection radius)
     player_x = 150.0  # Within 200px detection radius
     player_y = 100.0
     damage = ai.update(0.1, player_x, player_y, 28, 56)
     assert enemy.ai_state == EnemyAIState.CHASE, "Should transition to CHASE"
-    print(f"  [OK] PATROL -> CHASE transition (player detected)")
+    print("  [OK] PATROL -> CHASE transition (player detected)")
 
     # Test CHASE state
     damage = ai.update(0.1, player_x, player_y, 28, 56)
     assert enemy.target_player_x is not None, "Should track player"
-    print(f"  [OK] CHASE state: tracking player at ({enemy.target_player_x:.1f}, {enemy.target_player_y:.1f})")
+    print(
+        f"  [OK] CHASE state: tracking player at ({enemy.target_player_x:.1f}, {enemy.target_player_y:.1f})"
+    )
 
     # Test transition to ATTACK (player in attack range)
     player_x = enemy.x + 20.0  # Within 32px attack range
     damage = ai.update(0.1, player_x, player_y, 28, 56)
     assert enemy.ai_state == EnemyAIState.ATTACK, "Should transition to ATTACK"
-    print(f"  [OK] CHASE -> ATTACK transition (player in range)")
+    print("  [OK] CHASE -> ATTACK transition (player in range)")
 
     # Test ATTACK state (should deal damage after cooldown)
     damage = ai.update(0.1, player_x, player_y, 28, 56)
@@ -155,27 +170,23 @@ def test_enemy_ai_states():
         assert damage == goblin_def.base_damage, "Damage mismatch"
         print(f"  [OK] ATTACK state: dealt {damage} damage")
     else:
-        print(f"  [OK] ATTACK state: on cooldown")
+        print("  [OK] ATTACK state: on cooldown")
 
     print("\n  [PASS] Enemy AI state machine working")
 
 
 def test_enemy_damage_and_death():
     """Test 4: Enemy damage and death"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 4: Enemy Damage and Death")
-    print("="*60)
+    print("=" * 60)
 
     # Create enemy with 3 HP
     goblin_def = get_enemy_definition(EnemyType.GOBLIN)
     health = HealthState(3, 3)
 
     enemy = Enemy(
-        enemy_id="test_goblin",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        health_state=health
+        enemy_id="test_goblin", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, health_state=health
     )
 
     # Test damage
@@ -211,9 +222,9 @@ def test_enemy_damage_and_death():
 
 def test_enemy_manager():
     """Test 5: Enemy manager"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 5: Enemy Manager")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize loot system
     initialize_loot_table_database()
@@ -225,7 +236,7 @@ def test_enemy_manager():
     manager = get_enemy_manager()
 
     assert manager is not None, "Enemy manager not initialized"
-    print(f"  [OK] Enemy manager initialized")
+    print("  [OK] Enemy manager initialized")
 
     # Test enemy spawning
     anchor = EnemySpawnAnchor(
@@ -234,7 +245,7 @@ def test_enemy_manager():
         x=100.0,
         y=100.0,
         patrol_distance=50.0,
-        spawn_seed=1
+        spawn_seed=1,
     )
 
     enemy_id = manager.spawn_enemy_from_anchor(anchor)
@@ -249,7 +260,7 @@ def test_enemy_manager():
     # Test enemy update
     damage = manager.update(0.1, 500.0, 500.0, 28, 56)  # Player far away
     assert damage == 0, "Should not deal damage when player far"
-    print(f"  [OK] Update: no damage dealt")
+    print("  [OK] Update: no damage dealt")
 
     # Test collision detection
     enemy = manager.get_enemy(enemy_id)
@@ -263,7 +274,7 @@ def test_enemy_manager():
     manager.damage_enemy(enemy_id, 100)  # Kill enemy
     manager.update(0.1, 500.0, 500.0, 28, 56)  # Update to remove dead enemies
     assert enemy_id not in manager.enemies, "Dead enemy should be removed"
-    print(f"  [OK] Enemy killed and removed")
+    print("  [OK] Enemy killed and removed")
 
     # Check loot spawned
     item_pickups = manager.get_all_item_pickups()
@@ -276,9 +287,9 @@ def test_enemy_manager():
 
 def test_combat_mechanic():
     """Test 6: Player combat mechanic"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 6: Player Combat Mechanic")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize systems
     event_bus = EventBus()
@@ -286,6 +297,7 @@ def test_combat_mechanic():
     manager = get_enemy_manager()
 
     from core.logger import GameLogger
+
     logger = GameLogger()
 
     # Create player state
@@ -294,23 +306,23 @@ def test_combat_mechanic():
     player_state = PlayerState(player_id=0, physics=physics, health_state=health)
 
     # Create combat mechanic
-    combat = CombatMechanic(
-        entity_id=0,
-        event_bus=event_bus,
-        logger=logger.get_logger("combat")
-    )
+    combat = CombatMechanic(entity_id=0, event_bus=event_bus, logger=logger.get_logger("combat"))
 
     # Spawn enemy
     enemy_id = manager.spawn_enemy(EnemyType.GOBLIN, 120.0, 100.0)
     enemy = manager.get_enemy(enemy_id)
 
-    print(f"  [OK] Combat setup: player at (100, 100), enemy at (120, 100)")
+    print("  [OK] Combat setup: player at (100, 100), enemy at (120, 100)")
 
     # Test dash attack
     player_state.is_dashing = True
     damage_taken = combat.check_enemy_collisions(player_state, manager, 0.1)
-    assert enemy.health_state.current_hp < enemy.health_state.max_hp, "Dash attack should damage enemy"
-    print(f"  [OK] Dash attack: enemy HP={enemy.health_state.current_hp}/{enemy.health_state.max_hp}")
+    assert (
+        enemy.health_state.current_hp < enemy.health_state.max_hp
+    ), "Dash attack should damage enemy"
+    print(
+        f"  [OK] Dash attack: enemy HP={enemy.health_state.current_hp}/{enemy.health_state.max_hp}"
+    )
 
     # Reset for jump attack test
     manager.clear()
@@ -323,7 +335,7 @@ def test_combat_mechanic():
     if player_state.physics.vy < 0:
         print(f"  [OK] Jump attack: player bounced (vy={player_state.physics.vy:.1f})")
     else:
-        print(f"  [OK] Jump attack: geometry not ideal for jump attack")
+        print("  [OK] Jump attack: geometry not ideal for jump attack")
 
     # Test contact damage
     manager.clear()
@@ -335,41 +347,50 @@ def test_combat_mechanic():
     damage_taken = combat.check_enemy_collisions(player_state, manager, 0.1)
     if damage_taken > 0:
         assert player_state.health_state.current_hp < old_hp, "Should take damage"
-        print(f"  [OK] Contact damage: player took {damage_taken} damage "
-              f"(HP={player_state.health_state.current_hp}/{player_state.health_state.max_hp})")
+        print(
+            f"  [OK] Contact damage: player took {damage_taken} damage "
+            f"(HP={player_state.health_state.current_hp}/{player_state.health_state.max_hp})"
+        )
     else:
-        print(f"  [OK] Contact damage: invincibility frames active")
+        print("  [OK] Contact damage: invincibility frames active")
 
     print("\n  [PASS] Player combat mechanic working")
 
 
 def test_boss_definitions():
     """Test 7: Boss definitions"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 7: Boss Definitions")
-    print("="*60)
+    print("=" * 60)
 
     # Check all 5 boss types
-    boss_types = [BossType.FOREST_GUARDIAN, BossType.CORRUPT_MAYOR,
-                  BossType.CRYSTAL_GOLEM, BossType.DARK_KNIGHT, BossType.PLAGUE_RAT]
+    boss_types = [
+        BossType.FOREST_GUARDIAN,
+        BossType.CORRUPT_MAYOR,
+        BossType.CRYSTAL_GOLEM,
+        BossType.DARK_KNIGHT,
+        BossType.PLAGUE_RAT,
+    ]
 
     for boss_type in boss_types:
         definition = get_boss_definition(boss_type)
         assert definition is not None, f"Missing definition for {boss_type}"
         assert definition.max_hp >= 10, "Boss must have at least 10 HP"
         assert len(definition.phase_1_attacks) > 0, "Boss must have phase 1 attacks"
-        print(f"  [OK] {definition.display_name}: {definition.max_hp} HP, "
-              f"{len(definition.phase_1_attacks)} P1 attacks, "
-              f"{definition.loot_table_id} loot")
+        print(
+            f"  [OK] {definition.display_name}: {definition.max_hp} HP, "
+            f"{len(definition.phase_1_attacks)} P1 attacks, "
+            f"{definition.loot_table_id} loot"
+        )
 
     print("\n  [PASS] All 5 boss definitions valid")
 
 
 def test_boss_phases():
     """Test 8: Boss multi-phase system"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 8: Boss Multi-Phase System")
-    print("="*60)
+    print("=" * 60)
 
     # Create Forest Guardian boss (15 HP)
     boss_def = get_boss_definition(BossType.FOREST_GUARDIAN)
@@ -381,13 +402,13 @@ def test_boss_phases():
         x=500.0,
         y=500.0,
         health_state=health,
-        loot_seed=12345
+        loot_seed=12345,
     )
 
     # Test initial phase
     assert boss.current_phase == BossPhase.PHASE_1, "Should start in phase 1"
     assert boss.get_health_percentage() == 1.0, "Should be at 100% HP"
-    print(f"  [OK] Boss created: Phase 1, 100% HP")
+    print("  [OK] Boss created: Phase 1, 100% HP")
 
     # Test phase transition at 75% HP
     boss.take_damage(4)  # 15 -> 11 HP (73%)
@@ -402,7 +423,7 @@ def test_boss_phases():
     boss.invulnerable = False
     boss.ai_state = BossAIState.IDLE
     assert boss.current_phase == BossPhase.PHASE_2, "Should be in phase 2"
-    print(f"  [OK] Advanced to Phase 2")
+    print("  [OK] Advanced to Phase 2")
 
     # Test phase 2 attacks
     phase2_attacks = boss.get_available_attacks()
@@ -415,16 +436,16 @@ def test_boss_phases():
     died = boss.take_damage(10)
     assert not died, "Should not die when invulnerable"
     assert boss.health_state.current_hp == old_hp, "HP should not change"
-    print(f"  [OK] Invulnerability: blocked 10 damage")
+    print("  [OK] Invulnerability: blocked 10 damage")
 
     print("\n  [PASS] Boss multi-phase system working")
 
 
 def test_boss_death():
     """Test 9: Boss death and loot"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 9: Boss Death and Loot")
-    print("="*60)
+    print("=" * 60)
 
     # Create boss
     boss_def = get_boss_definition(BossType.DARK_KNIGHT)
@@ -437,7 +458,7 @@ def test_boss_death():
         y=500.0,
         health_state=health,
         loot_table_id="boss_castle",
-        loot_seed=99999
+        loot_seed=99999,
     )
 
     # Test boss is alive
@@ -461,9 +482,9 @@ def test_boss_death():
 
 def run_all_tests():
     """Run all Phase 4 tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("PHASE 4: ENEMY & BOSS SYSTEMS TEST SUITE")
-    print("="*60)
+    print("=" * 60)
 
     try:
         test_enemy_definitions()
@@ -476,9 +497,9 @@ def run_all_tests():
         test_boss_phases()
         test_boss_death()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("[PASS] ALL PHASE 4 TESTS PASSED")
-        print("="*60)
+        print("=" * 60)
         print("\nSummary:")
         print("  [PASS] Enemy system: 5 types, AI states, patrol, chase, attack")
         print("  [PASS] Enemy manager: spawning, updates, collisions, loot drops")
@@ -492,11 +513,13 @@ def run_all_tests():
     except AssertionError as e:
         print(f"\n[FAIL] TEST FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         return False
     except Exception as e:
         print(f"\n[FAIL] ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

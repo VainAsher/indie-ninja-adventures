@@ -11,15 +11,15 @@ Functions:
 - spawn_objective_collectibles(): Spawn items needed for mission objectives
 """
 
-import time
 import random
-from typing import Optional, Tuple, Any
+import time
+
 import pygame
 
 from config.physics_constants import (
-    TILE_SIZE,
-    ROOM_WIDTH_TILES,
     ROOM_HEIGHT_TILES,
+    ROOM_WIDTH_TILES,
+    TILE_SIZE,
     TILES_PER_ZONE,
 )
 
@@ -27,11 +27,11 @@ from config.physics_constants import (
 GAME_WIDTH = 1280
 GAME_HEIGHT = 720
 
-from systems.world_generation import WorldGenerator, generate_world_tilemaps, WorldShape
-from systems.room_generation import TILE_SOLID, TILE_PLATFORM, TILE_EMPTY
-from systems.megamap import build_megamap
-from systems.connectivity import validate_world_connectivity
 from game.mission_registry import ObjectiveType
+from systems.connectivity import validate_world_connectivity
+from systems.megamap import build_megamap
+from systems.room_generation import TILE_EMPTY, TILE_PLATFORM, TILE_SOLID
+from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
 
 
 def create_simple_level():
@@ -98,7 +98,9 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
     }
     shape = shape_map.get(shape_str, WorldShape.BLOB)
 
-    print(f"\n[PROCEDURAL] Generating world with seed={seed}, shape={shape_str}, rooms={num_rooms}...")
+    print(
+        f"\n[PROCEDURAL] Generating world with seed={seed}, shape={shape_str}, rooms={num_rooms}..."
+    )
 
     # Generate world
     world_gen = WorldGenerator(seed=seed)
@@ -148,7 +150,9 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
                 found = True
                 break
         if not found:
-            tiles_list.append(pygame.Rect(px - tile_scale // 2, py + tile_scale, tile_scale, tile_scale))
+            tiles_list.append(
+                pygame.Rect(px - tile_scale // 2, py + tile_scale, tile_scale, tile_scale)
+            )
 
     # Find spawn point in start room
     start_room = world.start_room
@@ -171,8 +175,11 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
 
         for ty in range(len(room.tilemap) - 1, 0, -1):
             for tx in range(len(room.tilemap[0]) // 2 - 10, len(room.tilemap[0]) // 2 + 10):
-                if (room.tilemap[ty][tx] == TILE_SOLID and
-                    ty > 0 and room.tilemap[ty - 1][tx] == TILE_EMPTY):
+                if (
+                    room.tilemap[ty][tx] == TILE_SOLID
+                    and ty > 0
+                    and room.tilemap[ty - 1][tx] == TILE_EMPTY
+                ):
                     spawn_x = tx * tile_scale + tile_scale / 2
                     spawn_y = (ty - 1) * tile_scale - 10
                     break
@@ -222,7 +229,9 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
     for room in world.all_rooms:
         rt = room.room_type.value
         room_types[rt] = room_types.get(rt, 0) + 1
-    print(f"[PROCEDURAL] Room types: {', '.join(f'{k}={v}' for k, v in sorted(room_types.items()))}")
+    print(
+        f"[PROCEDURAL] Room types: {', '.join(f'{k}={v}' for k, v in sorted(room_types.items()))}"
+    )
 
     return tiles, platforms, seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap
 
@@ -261,13 +270,19 @@ def build_objective_location_targets(world, megamap, spawn_x, spawn_y, exit_x, e
         for kind, anchor_positions in anchors.items():
             if anchor_positions is None:
                 continue
-            positions = anchor_positions if isinstance(anchor_positions, list) else [anchor_positions]
+            positions = (
+                anchor_positions if isinstance(anchor_positions, list) else [anchor_positions]
+            )
             for anchor_pos in positions:
                 if not anchor_pos:
                     continue
                 zx, zy = anchor_pos
-                world_x = room_px + zx * TILES_PER_ZONE * TILE_SIZE + (TILES_PER_ZONE * TILE_SIZE) / 2
-                world_y = room_py + zy * TILES_PER_ZONE * TILE_SIZE + (TILES_PER_ZONE * TILE_SIZE) / 2
+                world_x = (
+                    room_px + zx * TILES_PER_ZONE * TILE_SIZE + (TILES_PER_ZONE * TILE_SIZE) / 2
+                )
+                world_y = (
+                    room_py + zy * TILES_PER_ZONE * TILE_SIZE + (TILES_PER_ZONE * TILE_SIZE) / 2
+                )
                 targets.setdefault(kind, (world_x, world_y))
 
         resolved_anchors = getattr(room, "resolved_anchors", {}) or {}
@@ -341,7 +356,9 @@ def spawn_objective_collectibles(world, megamap, pickup_manager, mission_def, se
         item_id = getattr(obj_def, "item", None)
         if not item_id or item_id == "coin":
             continue
-        base_target = obj_def.count if getattr(obj_def, "count", None) is not None else obj_def.target
+        base_target = (
+            obj_def.count if getattr(obj_def, "count", None) is not None else obj_def.target
+        )
         target_value = base_target if base_target is not None else 1
         if target_value <= 0:
             continue
@@ -370,5 +387,7 @@ def spawn_objective_collectibles(world, megamap, pickup_manager, mission_def, se
             spawned_count += 1
             pos_idx += 1
 
-    print(f"[MISSION] Spawned {spawned_count} objective collectibles across {len(positions)} positions")
+    print(
+        f"[MISSION] Spawned {spawned_count} objective collectibles across {len(positions)} positions"
+    )
     return spawned_count

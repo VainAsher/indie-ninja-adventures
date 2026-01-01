@@ -9,12 +9,14 @@ Outputs first differing frame and a short summary of total frames/unique frames.
 
 import json
 import sys
-from pathlib import Path
 from itertools import zip_longest
+from pathlib import Path
 
 
 def load_log(path: Path):
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
 
 
 def main():

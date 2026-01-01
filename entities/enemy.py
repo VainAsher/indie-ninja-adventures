@@ -12,59 +12,64 @@ This module provides enemy entities and AI behavior:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
-from enum import Enum
 import math
+from dataclasses import dataclass, field
+from enum import Enum
 
-from game.health_system import HealthState
-from core.state import PhysicsState
 from core.entity_system import EntityType
+from core.state import PhysicsState
 from entities.components.enemy_movement import EnemyMovementComponent
-
+from game.health_system import HealthState
 
 # ============================================================
 # Enemy Types
 # ============================================================
 
+
 class EnemyType(Enum):
     """Enemy entity types"""
-    GOBLIN = "goblin"      # Ground patrol enemy
-    BAT = "bat"            # Flying enemy
-    SLIME = "slime"        # Slow, high HP enemy
+
+    GOBLIN = "goblin"  # Ground patrol enemy
+    BAT = "bat"  # Flying enemy
+    SLIME = "slime"  # Slow, high HP enemy
     SKELETON = "skeleton"  # Undead enemy
-    WOLF = "wolf"          # Fast ground enemy
+    WOLF = "wolf"  # Fast ground enemy
 
 
 # ============================================================
 # Enemy AI States
 # ============================================================
 
+
 class EnemyAIState(Enum):
     """Enemy AI behavior states"""
-    IDLE = "idle"          # Standing still
-    PATROL = "patrol"      # Moving between waypoints
-    CHASE = "chase"        # Chasing player
-    ATTACK = "attack"      # Attacking player
-    STUNNED = "stunned"    # Stunned from player attack
-    DEAD = "dead"          # Dead (before removal)
+
+    IDLE = "idle"  # Standing still
+    PATROL = "patrol"  # Moving between waypoints
+    CHASE = "chase"  # Chasing player
+    ATTACK = "attack"  # Attacking player
+    STUNNED = "stunned"  # Stunned from player attack
+    DEAD = "dead"  # Dead (before removal)
 
 
 # ============================================================
 # Enemy Attack Sub-States
 # ============================================================
 
+
 class EnemyAttackSubState(Enum):
     """Attack phase sub-states for telegraphed attacks"""
-    NONE = "none"          # Not in attack sequence
-    WINDUP = "windup"      # Telegraph/warning phase (no damage)
-    ACTIVE = "active"      # Damage hitbox active
+
+    NONE = "none"  # Not in attack sequence
+    WINDUP = "windup"  # Telegraph/warning phase (no damage)
+    ACTIVE = "active"  # Damage hitbox active
     RECOVERY = "recovery"  # Cooldown after attack
 
 
 # ============================================================
 # Enemy Definition
 # ============================================================
+
 
 @dataclass
 class EnemyDefinition:
@@ -73,6 +78,7 @@ class EnemyDefinition:
 
     Defines enemy properties and behavior.
     """
+
     enemy_type: EnemyType
     display_name: str
 
@@ -88,13 +94,13 @@ class EnemyDefinition:
 
     # AI behavior
     detection_radius: float = 200.0  # Pixels
-    attack_range: float = 32.0       # Pixels
+    attack_range: float = 32.0  # Pixels
     patrol_speed_multiplier: float = 0.5  # Slower during patrol
 
     # Attack timing (telegraphed attacks)
-    attack_windup_time: float = 0.6      # Telegraph duration (seconds)
-    attack_active_time: float = 0.15     # Damage window (seconds)
-    attack_recovery_time: float = 0.4    # Recovery duration (seconds)
+    attack_windup_time: float = 0.6  # Telegraph duration (seconds)
+    attack_active_time: float = 0.15  # Damage window (seconds)
+    attack_recovery_time: float = 0.4  # Recovery duration (seconds)
 
     # Loot
     loot_table_id: str = "enemy_common"
@@ -125,9 +131,8 @@ ENEMY_DEFINITIONS = {
         attack_recovery_time=0.4,
         loot_table_id="enemy_common",
         exp_value=10,
-        can_fly=False
+        can_fly=False,
     ),
-
     EnemyType.BAT: EnemyDefinition(
         enemy_type=EnemyType.BAT,
         display_name="Bat",
@@ -144,9 +149,8 @@ ENEMY_DEFINITIONS = {
         loot_table_id="enemy_common",
         exp_value=8,
         can_fly=True,
-        gravity_scale=0.0
+        gravity_scale=0.0,
     ),
-
     EnemyType.SLIME: EnemyDefinition(
         enemy_type=EnemyType.SLIME,
         display_name="Slime",
@@ -162,9 +166,8 @@ ENEMY_DEFINITIONS = {
         attack_recovery_time=0.5,
         loot_table_id="enemy_common",
         exp_value=15,
-        can_fly=False
+        can_fly=False,
     ),
-
     EnemyType.SKELETON: EnemyDefinition(
         enemy_type=EnemyType.SKELETON,
         display_name="Skeleton",
@@ -180,9 +183,8 @@ ENEMY_DEFINITIONS = {
         attack_recovery_time=0.4,
         loot_table_id="enemy_uncommon",
         exp_value=20,
-        can_fly=False
+        can_fly=False,
     ),
-
     EnemyType.WOLF: EnemyDefinition(
         enemy_type=EnemyType.WOLF,
         display_name="Wolf",
@@ -199,14 +201,15 @@ ENEMY_DEFINITIONS = {
         patrol_speed_multiplier=0.6,
         loot_table_id="enemy_uncommon",
         exp_value=18,
-        can_fly=False
-    )
+        can_fly=False,
+    ),
 }
 
 
 # ============================================================
 # Enemy Entity
 # ============================================================
+
 
 @dataclass
 class Enemy:
@@ -215,6 +218,7 @@ class Enemy:
 
     Represents an active enemy with position, health, AI state, and loot.
     """
+
     enemy_id: str
     enemy_type: EnemyType
     x: float
@@ -234,15 +238,15 @@ class Enemy:
     ai_state_timer: float = 0.0  # Time in current state
 
     # Patrol behavior
-    patrol_waypoints: List[Tuple[float, float]] = field(default_factory=list)
+    patrol_waypoints: list[tuple[float, float]] = field(default_factory=list)
     current_waypoint_index: int = 0
     patrol_wait_time: float = 0.0  # Time to wait at waypoint
 
     # Chase/attack targets
-    target_player_x: Optional[float] = None
-    target_player_y: Optional[float] = None
-    last_seen_player_x: Optional[float] = None
-    last_seen_player_y: Optional[float] = None
+    target_player_x: float | None = None
+    target_player_y: float | None = None
+    last_seen_player_x: float | None = None
+    last_seen_player_y: float | None = None
 
     # Stun state
     stun_duration: float = 0.0
@@ -258,12 +262,12 @@ class Enemy:
     animation_timer: float = 0.0
 
     # Attack sub-state tracking (telegraphed attacks)
-    attack_substate: 'EnemyAttackSubState' = None  # Will be initialized in __post_init__
+    attack_substate: "EnemyAttackSubState" = None  # Will be initialized in __post_init__
     attack_substate_timer: float = 0.0
 
     # Shared physics component
     physics: PhysicsState = None
-    movement: Optional[EnemyMovementComponent] = None
+    movement: EnemyMovementComponent | None = None
 
     def __post_init__(self):
         """Ensure physics state exists and is synced with scalar fields."""
@@ -275,7 +279,7 @@ class Enemy:
                 vx=self.velocity_x,
                 vy=self.velocity_y,
                 width=definition.width,
-                height=definition.height
+                height=definition.height,
             )
         else:
             # Sync scalars from provided physics
@@ -288,8 +292,7 @@ class Enemy:
         self.active = True
         # Initialize movement component (simple acceleration helper)
         self.movement = EnemyMovementComponent(
-            move_speed=definition.move_speed,
-            can_fly=definition.can_fly
+            move_speed=definition.move_speed, can_fly=definition.can_fly
         )
         # Initialize attack sub-state if not set
         if self.attack_substate is None:
@@ -319,18 +322,15 @@ class Enemy:
         """Get enemy definition"""
         return ENEMY_DEFINITIONS.get(self.enemy_type, ENEMY_DEFINITIONS[EnemyType.GOBLIN])
 
-    def get_rect(self) -> Tuple[float, float, float, float]:
+    def get_rect(self) -> tuple[float, float, float, float]:
         """Get enemy bounding box (x, y, width, height)"""
         definition = self.get_definition()
         return (self.physics.x, self.physics.y, definition.width, definition.height)
 
-    def get_center(self) -> Tuple[float, float]:
+    def get_center(self) -> tuple[float, float]:
         """Get enemy center position"""
         definition = self.get_definition()
-        return (
-            self.physics.x + definition.width / 2,
-            self.physics.y + definition.height / 2
-        )
+        return (self.physics.x + definition.width / 2, self.physics.y + definition.height / 2)
 
     def distance_to(self, target_x: float, target_y: float) -> float:
         """Calculate distance to target position"""
@@ -339,30 +339,42 @@ class Enemy:
         dy = target_y - center_y
         return math.sqrt(dx * dx + dy * dy)
 
-    def distance_to_player(self, player_x: float, player_y: float,
-                          player_width: int, player_height: int) -> float:
+    def distance_to_player(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> float:
         """Calculate distance to player center"""
         player_center_x = player_x + player_width / 2
         player_center_y = player_y + player_height / 2
         return self.distance_to(player_center_x, player_center_y)
 
-    def can_see_player(self, player_x: float, player_y: float,
-                      player_width: int, player_height: int,
-                      detection_mult: float = 1.0) -> bool:
+    def can_see_player(
+        self,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        detection_mult: float = 1.0,
+    ) -> bool:
         """Check if enemy can detect player"""
         definition = self.get_definition()
         distance = self.distance_to_player(player_x, player_y, player_width, player_height)
         return distance <= definition.detection_radius * detection_mult
 
-    def is_in_attack_range(self, player_x: float, player_y: float,
-                          player_width: int, player_height: int) -> bool:
+    def is_in_attack_range(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> bool:
         """Check if player is in attack range"""
         definition = self.get_definition()
         distance = self.distance_to_player(player_x, player_y, player_width, player_height)
         return distance <= definition.attack_range
 
-    def take_damage(self, damage: int, knockback_x: float = 0.0,
-                   knockback_y: float = 0.0, stun_duration: float = 0.0) -> bool:
+    def take_damage(
+        self,
+        damage: int,
+        knockback_x: float = 0.0,
+        knockback_y: float = 0.0,
+        stun_duration: float = 0.0,
+    ) -> bool:
         """
         Take damage and apply knockback/stun.
 
@@ -401,12 +413,12 @@ class Enemy:
         """Check if enemy is dead"""
         return not self.is_alive()
 
-    def set_patrol_waypoints(self, waypoints: List[Tuple[float, float]]):
+    def set_patrol_waypoints(self, waypoints: list[tuple[float, float]]):
         """Set patrol waypoints"""
         self.patrol_waypoints = waypoints
         self.current_waypoint_index = 0
 
-    def get_current_waypoint(self) -> Optional[Tuple[float, float]]:
+    def get_current_waypoint(self) -> tuple[float, float] | None:
         """Get current patrol waypoint"""
         if not self.patrol_waypoints:
             return None
@@ -434,48 +446,48 @@ class Enemy:
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
-            'enemy_id': self.enemy_id,
-            'enemy_type': self.enemy_type.value,
-            'x': self.physics.x,
-            'y': self.physics.y,
-            'velocity_x': self.physics.vx,
-            'velocity_y': self.physics.vy,
-            'facing_right': self.facing_right,
-            'health_state': {
-                'current_hp': self.health_state.current_hp,
-                'max_hp': self.health_state.max_hp,
-                'invincibility_frames': self.health_state.invincibility_frames
+            "enemy_id": self.enemy_id,
+            "enemy_type": self.enemy_type.value,
+            "x": self.physics.x,
+            "y": self.physics.y,
+            "velocity_x": self.physics.vx,
+            "velocity_y": self.physics.vy,
+            "facing_right": self.facing_right,
+            "health_state": {
+                "current_hp": self.health_state.current_hp,
+                "max_hp": self.health_state.max_hp,
+                "invincibility_frames": self.health_state.invincibility_frames,
             },
-            'ai_state': self.ai_state.value,
-            'loot_table_id': self.loot_table_id,
-            'loot_seed': self.loot_seed
+            "ai_state": self.ai_state.value,
+            "loot_table_id": self.loot_table_id,
+            "loot_seed": self.loot_seed,
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'Enemy':
+    def from_dict(data: dict) -> "Enemy":
         """Deserialize from dictionary"""
-        health_data = data.get('health_state', {})
+        health_data = data.get("health_state", {})
         health_state = HealthState(
-            current_hp=health_data.get('current_hp', 3),
-            max_hp=health_data.get('max_hp', 3),
-            invincibility_frames=health_data.get('invincibility_frames', 0)
+            current_hp=health_data.get("current_hp", 3),
+            max_hp=health_data.get("max_hp", 3),
+            invincibility_frames=health_data.get("invincibility_frames", 0),
         )
 
         return Enemy(
-            enemy_id=data['enemy_id'],
-            enemy_type=EnemyType(data['enemy_type']),
-            x=data['x'],
-            y=data['y'],
-            velocity_x=data.get('velocity_x', 0.0),
-            velocity_y=data.get('velocity_y', 0.0),
-            facing_right=data.get('facing_right', True),
+            enemy_id=data["enemy_id"],
+            enemy_type=EnemyType(data["enemy_type"]),
+            x=data["x"],
+            y=data["y"],
+            velocity_x=data.get("velocity_x", 0.0),
+            velocity_y=data.get("velocity_y", 0.0),
+            facing_right=data.get("facing_right", True),
             health_state=health_state,
-            ai_state=EnemyAIState(data.get('ai_state', 'idle')),
-            loot_table_id=data.get('loot_table_id', 'enemy_common'),
-            loot_seed=data.get('loot_seed', 0)
+            ai_state=EnemyAIState(data.get("ai_state", "idle")),
+            loot_table_id=data.get("loot_table_id", "enemy_common"),
+            loot_seed=data.get("loot_seed", 0),
         )
 
 
-def get_enemy_definition(enemy_type: EnemyType) -> Optional[EnemyDefinition]:
+def get_enemy_definition(enemy_type: EnemyType) -> EnemyDefinition | None:
     """Get enemy definition by type"""
     return ENEMY_DEFINITIONS.get(enemy_type)

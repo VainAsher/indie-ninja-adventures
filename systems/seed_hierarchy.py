@@ -21,7 +21,6 @@ Version: v0.6.0
 
 import hashlib
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 
 class SeedDerivation:
@@ -52,10 +51,10 @@ class SeedDerivation:
         combined = f"{parent_seed}:{identifier}"
 
         # Hash using SHA256
-        hash_digest = hashlib.sha256(combined.encode('utf-8')).digest()
+        hash_digest = hashlib.sha256(combined.encode("utf-8")).digest()
 
         # Convert first 4 bytes to 32-bit integer
-        seed_value = int.from_bytes(hash_digest[:4], byteorder='big')
+        seed_value = int.from_bytes(hash_digest[:4], byteorder="big")
 
         # Ensure positive 32-bit range
         return seed_value & 0x7FFFFFFF
@@ -155,26 +154,27 @@ class SeedContext:
     Provides convenient access to all seed levels and automatic
     child seed derivation.
     """
-    world_seed: int
-    region_id: Optional[str] = None
-    mission_id: Optional[str] = None
-    room_coords: Optional[Tuple[int, int]] = None
-    subroom_index: Optional[int] = None
 
-    def get_region_seed(self) -> Optional[int]:
+    world_seed: int
+    region_id: str | None = None
+    mission_id: str | None = None
+    room_coords: tuple[int, int] | None = None
+    subroom_index: int | None = None
+
+    def get_region_seed(self) -> int | None:
         """Get Level 2 region seed (if region_id set)"""
         if self.region_id is None:
             return None
         return SeedDerivation.derive_region_seed(self.world_seed, self.region_id)
 
-    def get_mission_seed(self) -> Optional[int]:
+    def get_mission_seed(self) -> int | None:
         """Get Level 3 mission seed (if region_id and mission_id set)"""
         region_seed = self.get_region_seed()
         if region_seed is None or self.mission_id is None:
             return None
         return SeedDerivation.derive_mission_seed(region_seed, self.mission_id)
 
-    def get_room_seed(self) -> Optional[int]:
+    def get_room_seed(self) -> int | None:
         """Get Level 4 room seed (if mission_seed and room_coords set)"""
         mission_seed = self.get_mission_seed()
         if mission_seed is None or self.room_coords is None:
@@ -182,14 +182,14 @@ class SeedContext:
         grid_x, grid_y = self.room_coords
         return SeedDerivation.derive_room_seed_from_coords(mission_seed, grid_x, grid_y)
 
-    def get_subroom_seed(self) -> Optional[int]:
+    def get_subroom_seed(self) -> int | None:
         """Get Level 5 subroom seed (if room_seed and subroom_index set)"""
         room_seed = self.get_room_seed()
         if room_seed is None or self.subroom_index is None:
             return None
         return SeedDerivation.derive_subroom_seed(room_seed, self.subroom_index)
 
-    def get_feature_seed(self, feature_type: str) -> Optional[int]:
+    def get_feature_seed(self, feature_type: str) -> int | None:
         """
         Get Level 6 feature seed.
 
@@ -216,44 +216,44 @@ class SeedContext:
 
         return None
 
-    def with_region(self, region_id: str) -> 'SeedContext':
+    def with_region(self, region_id: str) -> "SeedContext":
         """Create new context with region set"""
         return SeedContext(
             world_seed=self.world_seed,
             region_id=region_id,
             mission_id=self.mission_id,
             room_coords=self.room_coords,
-            subroom_index=self.subroom_index
+            subroom_index=self.subroom_index,
         )
 
-    def with_mission(self, mission_id: str) -> 'SeedContext':
+    def with_mission(self, mission_id: str) -> "SeedContext":
         """Create new context with mission set"""
         return SeedContext(
             world_seed=self.world_seed,
             region_id=self.region_id,
             mission_id=mission_id,
             room_coords=self.room_coords,
-            subroom_index=self.subroom_index
+            subroom_index=self.subroom_index,
         )
 
-    def with_room(self, grid_x: int, grid_y: int) -> 'SeedContext':
+    def with_room(self, grid_x: int, grid_y: int) -> "SeedContext":
         """Create new context with room coordinates set"""
         return SeedContext(
             world_seed=self.world_seed,
             region_id=self.region_id,
             mission_id=self.mission_id,
             room_coords=(grid_x, grid_y),
-            subroom_index=self.subroom_index
+            subroom_index=self.subroom_index,
         )
 
-    def with_subroom(self, subroom_index: int) -> 'SeedContext':
+    def with_subroom(self, subroom_index: int) -> "SeedContext":
         """Create new context with subroom index set"""
         return SeedContext(
             world_seed=self.world_seed,
             region_id=self.region_id,
             mission_id=self.mission_id,
             room_coords=self.room_coords,
-            subroom_index=subroom_index
+            subroom_index=subroom_index,
         )
 
     def __str__(self) -> str:
@@ -278,8 +278,9 @@ class SeedHierarchyValidator:
     """
 
     @staticmethod
-    def validate_determinism(world_seed: int, region_id: str, mission_id: str,
-                            grid_x: int, grid_y: int) -> bool:
+    def validate_determinism(
+        world_seed: int, region_id: str, mission_id: str, grid_x: int, grid_y: int
+    ) -> bool:
         """
         Test that seed hierarchy is deterministic.
 

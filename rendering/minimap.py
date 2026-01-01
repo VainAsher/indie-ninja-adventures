@@ -11,41 +11,41 @@ Features:
 Based on: Phase 6 Enhanced Minimap specification
 """
 
-import pygame
-from typing import Dict, Tuple, Optional
 from dataclasses import dataclass
-from systems.world_generation import World, RoomNode, RoomType
-from systems.megamap import Megamap
 
+import pygame
+
+from systems.megamap import Megamap
+from systems.world_generation import RoomNode, RoomType, World
 
 # Minimap display settings
 MINIMAP_ROOM_SIZE = 16  # Pixels per room on minimap
-MINIMAP_PADDING = 8     # Padding around minimap
-MINIMAP_BORDER = 2      # Border thickness
+MINIMAP_PADDING = 8  # Padding around minimap
+MINIMAP_BORDER = 2  # Border thickness
 MINIMAP_BG_COLOR = (20, 20, 30, 200)  # Semi-transparent background
 MINIMAP_BORDER_COLOR = (100, 100, 120)
 
 # Room type colors
 ROOM_COLORS = {
-    RoomType.START: (80, 220, 80),      # Green - spawn point
-    RoomType.EXIT: (220, 80, 80),       # Red - goal
-    RoomType.SHOP: (220, 180, 80),      # Gold - shop
-    RoomType.COMBAT: (180, 80, 80),     # Dark red - danger
-    RoomType.PLATFORM: (120, 120, 160), # Blue-gray - platforming challenge
+    RoomType.START: (80, 220, 80),  # Green - spawn point
+    RoomType.EXIT: (220, 80, 80),  # Red - goal
+    RoomType.SHOP: (220, 180, 80),  # Gold - shop
+    RoomType.COMBAT: (180, 80, 80),  # Dark red - danger
+    RoomType.PLATFORM: (120, 120, 160),  # Blue-gray - platforming challenge
     RoomType.TREASURE: (220, 220, 80),  # Yellow - loot
-    RoomType.BOSS: (180, 80, 180),      # Purple - boss fight
+    RoomType.BOSS: (180, 80, 180),  # Purple - boss fight
 }
 
 # Player indicator
-PLAYER_DOT_COLOR = (255, 255, 255)     # White dot
-PLAYER_DOT_SIZE = 3                    # Radius in pixels
+PLAYER_DOT_COLOR = (255, 255, 255)  # White dot
+PLAYER_DOT_SIZE = 3  # Radius in pixels
 
 # Current room highlight
-CURRENT_ROOM_COLOR = (255, 255, 255)   # White outline
-CURRENT_ROOM_THICKNESS = 2             # Border thickness
+CURRENT_ROOM_COLOR = (255, 255, 255)  # White outline
+CURRENT_ROOM_THICKNESS = 2  # Border thickness
 
 # Connection lines
-CONNECTION_COLOR = (80, 80, 100)       # Gray lines between rooms
+CONNECTION_COLOR = (80, 80, 100)  # Gray lines between rooms
 CONNECTION_THICKNESS = 1
 
 
@@ -61,7 +61,8 @@ class MinimapConfig:
         highlight_current: Highlight current room
         scale: Room size in pixels
     """
-    position: Tuple[int, int] = (10, 400)
+
+    position: tuple[int, int] = (10, 400)
     show_connections: bool = True
     show_player: bool = True
     highlight_current: bool = True
@@ -73,7 +74,7 @@ class MinimapRenderer:
     Enhanced minimap renderer with room type colors and player position
     """
 
-    def __init__(self, config: Optional[MinimapConfig] = None):
+    def __init__(self, config: MinimapConfig | None = None):
         """
         Initialize minimap renderer
 
@@ -81,15 +82,15 @@ class MinimapRenderer:
             config: Optional configuration, uses defaults if None
         """
         self.config = config or MinimapConfig()
-        self.surface: Optional[pygame.Surface] = None
+        self.surface: pygame.Surface | None = None
 
     def render(
         self,
         screen: pygame.Surface,
         world: World,
         megamap: Megamap,
-        player_pos: Tuple[float, float],
-        current_room_coords: Optional[Tuple[int, int]] = None
+        player_pos: tuple[float, float],
+        current_room_coords: tuple[int, int] | None = None,
     ) -> None:
         """
         Render the minimap to screen
@@ -120,7 +121,7 @@ class MinimapRenderer:
             self.surface,
             MINIMAP_BORDER_COLOR,
             pygame.Rect(0, 0, minimap_w, minimap_h),
-            MINIMAP_BORDER
+            MINIMAP_BORDER,
         )
 
         # Build room position lookup (grid coords -> minimap pixel coords)
@@ -141,25 +142,12 @@ class MinimapRenderer:
 
         # Draw player position
         if self.config.show_player and current_room_coords:
-            self._draw_player(
-                player_pos,
-                current_room_coords,
-                room_positions,
-                megamap,
-                minx,
-                miny
-            )
+            self._draw_player(player_pos, current_room_coords, room_positions, megamap, minx, miny)
 
         # Blit to screen
         screen.blit(self.surface, self.config.position)
 
-    def _draw_room(
-        self,
-        room: RoomNode,
-        mx: int,
-        my: int,
-        is_current: bool
-    ) -> None:
+    def _draw_room(self, room: RoomNode, mx: int, my: int, is_current: bool) -> None:
         """
         Draw a single room on the minimap
 
@@ -177,17 +165,10 @@ class MinimapRenderer:
 
         # Highlight current room
         if is_current and self.config.highlight_current:
-            pygame.draw.rect(
-                self.surface,
-                CURRENT_ROOM_COLOR,
-                room_rect,
-                CURRENT_ROOM_THICKNESS
-            )
+            pygame.draw.rect(self.surface, CURRENT_ROOM_COLOR, room_rect, CURRENT_ROOM_THICKNESS)
 
     def _draw_connections(
-        self,
-        room_positions: Dict[Tuple[int, int], Tuple[int, int]],
-        world: World
+        self, room_positions: dict[tuple[int, int], tuple[int, int]], world: World
     ) -> None:
         """
         Draw connection lines between adjacent rooms
@@ -227,17 +208,17 @@ class MinimapRenderer:
                     CONNECTION_COLOR,
                     (center_x1, center_y1),
                     (center_x2, center_y2),
-                    CONNECTION_THICKNESS
+                    CONNECTION_THICKNESS,
                 )
 
     def _draw_player(
         self,
-        player_pos: Tuple[float, float],
-        current_room_coords: Tuple[int, int],
-        room_positions: Dict[Tuple[int, int], Tuple[int, int]],
+        player_pos: tuple[float, float],
+        current_room_coords: tuple[int, int],
+        room_positions: dict[tuple[int, int], tuple[int, int]],
         megamap: Megamap,
         minx: int,
-        miny: int
+        miny: int,
     ) -> None:
         """
         Draw player position indicator on minimap
@@ -279,15 +260,10 @@ class MinimapRenderer:
         dot_y = int(my + norm_y * self.config.scale)
 
         # Draw player dot
-        pygame.draw.circle(
-            self.surface,
-            PLAYER_DOT_COLOR,
-            (dot_x, dot_y),
-            PLAYER_DOT_SIZE
-        )
+        pygame.draw.circle(self.surface, PLAYER_DOT_COLOR, (dot_x, dot_y), PLAYER_DOT_SIZE)
 
 
-def get_current_room_coords(megamap: Megamap, player_pos: Tuple[float, float]) -> Tuple[int, int]:
+def get_current_room_coords(megamap: Megamap, player_pos: tuple[float, float]) -> tuple[int, int]:
     """
     Get the room coordinates containing the player
 
@@ -299,4 +275,5 @@ def get_current_room_coords(megamap: Megamap, player_pos: Tuple[float, float]) -
         Room coordinates (grid_x, grid_y)
     """
     from systems.megamap import get_room_at_position
+
     return get_room_at_position(megamap, player_pos[0], player_pos[1])

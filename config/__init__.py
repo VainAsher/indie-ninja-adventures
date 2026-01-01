@@ -9,7 +9,7 @@ Game configuration and settings:
 - Build mode detection (PRODUCTION/TESTING/DEV)
 """
 
+from .build_config import BuildConfig, BuildMode, get_build_config, is_frozen
 from .settings import GameSettings
-from .build_config import BuildMode, BuildConfig, get_build_config, is_frozen
 
-__all__ = ['GameSettings', 'BuildMode', 'BuildConfig', 'get_build_config', 'is_frozen']
+__all__ = ["GameSettings", "BuildMode", "BuildConfig", "get_build_config", "is_frozen"]

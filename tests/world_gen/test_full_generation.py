@@ -1,18 +1,19 @@
 """Test complete world generation pipeline"""
-from pathlib import Path
+
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from systems.room_generation import RoomGenerator, print_tilemap_sample
 from systems.world_generation import WorldGenerator, print_world_debug
 from systems.zone_planning import ZonePlanner, print_zone_grid
-from systems.room_generation import RoomGenerator, print_tilemap_sample
 
-print("="*60)
+print("=" * 60)
 print("FULL WORLD GENERATION PIPELINE TEST")
-print("="*60)
+print("=" * 60)
 
 # Step 1: Generate World
 print("\n[1/4] Generating World...")
@@ -53,6 +54,6 @@ print(f"[OK] All rooms have zone grids: {all(r.zone_grid for r in world.all_room
 print(f"[OK] All rooms have tilemaps: {all(r.tilemap for r in world.all_rooms)}")
 print(f"[OK] Tilemap size: {len(world.start_room.tilemap)}x{len(world.start_room.tilemap[0])}")
 
-print("\n" + "="*60)
+print("\n" + "=" * 60)
 print("PIPELINE TEST COMPLETE - ALL SYSTEMS WORKING!")
-print("="*60)
+print("=" * 60)

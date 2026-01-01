@@ -5,8 +5,9 @@ Provides in-game Python console overlay for live debugging and tweaking.
 Toggle with backtick (`) key.
 """
 
+from typing import Any
+
 import pygame
-from typing import Optional, Any, Dict, List
 
 
 class DevConsole:
@@ -24,16 +25,16 @@ class DevConsole:
         self.enabled = enabled
         self.visible = False
         self.input_text = ""
-        self.command_history: List[str] = []
+        self.command_history: list[str] = []
         self.history_index = -1
-        self.output_lines: List[str] = []
+        self.output_lines: list[str] = []
         self.max_output_lines = 20
 
         # Context for code execution (populated by game)
-        self.context: Dict[str, Any] = {}
+        self.context: dict[str, Any] = {}
 
         # Font
-        self.font: Optional[pygame.font.Font] = None
+        self.font: pygame.font.Font | None = None
 
     def toggle(self):
         """Toggle console visibility"""
@@ -47,7 +48,7 @@ class DevConsole:
         """Initialize font (call after pygame.init())"""
         if self.font is None:
             try:
-                self.font = pygame.font.SysFont('consolas', 14)
+                self.font = pygame.font.SysFont("consolas", 14)
             except Exception:
                 # Fallback to default font if Consolas not available
                 self.font = pygame.font.Font(None, 16)
@@ -86,7 +87,7 @@ class DevConsole:
             return False
         else:
             # Add character to input
-            if event.unicode and event.unicode.isprintable() and event.unicode != '`':
+            if event.unicode and event.unicode.isprintable() and event.unicode != "`":
                 self.input_text += event.unicode
                 return True
 
@@ -122,7 +123,7 @@ class DevConsole:
 
         # Trim output lines
         if len(self.output_lines) > self.max_output_lines:
-            self.output_lines = self.output_lines[-self.max_output_lines:]
+            self.output_lines = self.output_lines[-self.max_output_lines :]
 
         # Clear input
         self.input_text = ""
@@ -168,8 +169,9 @@ class DevConsole:
         surface.blit(overlay, (console_x, console_y))
 
         # Border
-        pygame.draw.rect(surface, (100, 100, 150),
-                        pygame.Rect(console_x, console_y, console_w, console_h), 2)
+        pygame.draw.rect(
+            surface, (100, 100, 150), pygame.Rect(console_x, console_y, console_w, console_h), 2
+        )
 
         # Title
         title = self.font.render("Developer Console (ESC to close)", True, (150, 150, 200))
@@ -184,8 +186,9 @@ class DevConsole:
 
         # Input line
         input_y = console_y + console_h - 30
-        pygame.draw.rect(surface, (40, 40, 50),
-                        pygame.Rect(console_x + 5, input_y, console_w - 10, 25))
+        pygame.draw.rect(
+            surface, (40, 40, 50), pygame.Rect(console_x + 5, input_y, console_w - 10, 25)
+        )
 
         # Input text with cursor
         input_display = f"> {self.input_text}_"

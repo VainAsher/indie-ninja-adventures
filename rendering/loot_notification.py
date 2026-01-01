@@ -7,25 +7,26 @@ Notifications appear in bottom-left corner and auto-dismiss.
 Version: v0.6.0 (Phase 6)
 """
 
-import pygame
-from dataclasses import dataclass
-from typing import List, Tuple, Optional
 import time
+from dataclasses import dataclass
 
+import pygame
 
 # ============================================================
 # Loot Notification Data
 # ============================================================
 
+
 @dataclass
 class LootNotification:
     """Individual loot notification"""
+
     item_id: str
     item_name: str
     quantity: int
-    notification_type: str      # "item", "currency", "special"
-    timestamp: float            # Time when notification was created
-    duration: float = 3.0       # How long to display (seconds)
+    notification_type: str  # "item", "currency", "special"
+    timestamp: float  # Time when notification was created
+    duration: float = 3.0  # How long to display (seconds)
     fade_duration: float = 0.5  # Fade out duration (seconds)
 
     def is_expired(self, current_time: float) -> bool:
@@ -53,6 +54,7 @@ class LootNotification:
 # Loot Notification Manager
 # ============================================================
 
+
 class LootNotificationManager:
     """
     Manages loot notifications.
@@ -73,12 +75,12 @@ class LootNotificationManager:
             font_size: Font size
         """
         self.font = pygame.font.SysFont(font_name, font_size, bold=True)
-        self.notifications: List[LootNotification] = []
+        self.notifications: list[LootNotification] = []
 
         # Colors
-        self.color_item = (150, 200, 255)       # Light blue
-        self.color_currency = (255, 215, 0)     # Gold
-        self.color_special = (255, 100, 255)    # Purple
+        self.color_item = (150, 200, 255)  # Light blue
+        self.color_currency = (255, 215, 0)  # Gold
+        self.color_special = (255, 100, 255)  # Purple
         self.color_bg = (20, 20, 30)
         self.color_border = (80, 80, 100)
 
@@ -87,10 +89,14 @@ class LootNotificationManager:
         self.notification_spacing = 8
         self.max_notifications = 5  # Maximum displayed at once
 
-    def add_notification(self, item_id: str, item_name: str,
-                        quantity: int = 1,
-                        notification_type: str = "item",
-                        duration: float = 3.0):
+    def add_notification(
+        self,
+        item_id: str,
+        item_name: str,
+        quantity: int = 1,
+        notification_type: str = "item",
+        duration: float = 3.0,
+    ):
         """
         Add a loot notification.
 
@@ -107,14 +113,14 @@ class LootNotificationManager:
             quantity=quantity,
             notification_type=notification_type,
             timestamp=time.time(),
-            duration=duration
+            duration=duration,
         )
 
         self.notifications.append(notification)
 
         # Limit to max notifications
         if len(self.notifications) > self.max_notifications:
-            self.notifications = self.notifications[-self.max_notifications:]
+            self.notifications = self.notifications[-self.max_notifications :]
 
     def add_item_pickup(self, item_id: str, item_name: str, quantity: int = 1):
         """Add item pickup notification"""
@@ -139,8 +145,7 @@ class LootNotificationManager:
 
         # Remove expired notifications
         self.notifications = [
-            notif for notif in self.notifications
-            if not notif.is_expired(current_time)
+            notif for notif in self.notifications if not notif.is_expired(current_time)
         ]
 
     def draw(self, surface: pygame.Surface):
@@ -165,11 +170,11 @@ class LootNotificationManager:
             alpha = notif.get_alpha(current_time)
             if alpha > 0:
                 self._draw_notification(surface, notif, x, y, alpha)
-                y -= (self.notification_height + self.notification_spacing)
+                y -= self.notification_height + self.notification_spacing
 
-    def _draw_notification(self, surface: pygame.Surface,
-                          notification: LootNotification,
-                          x: int, y: int, alpha: int):
+    def _draw_notification(
+        self, surface: pygame.Surface, notification: LootNotification, x: int, y: int, alpha: int
+    ):
         """Draw a single notification"""
         # Choose color based on type
         if notification.notification_type == "currency":
@@ -225,6 +230,7 @@ class LootNotificationManager:
 # ============================================================
 # Helper Functions
 # ============================================================
+
 
 def create_loot_manager() -> LootNotificationManager:
     """Create a loot notification manager"""

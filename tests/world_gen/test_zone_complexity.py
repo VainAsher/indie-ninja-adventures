@@ -1,18 +1,19 @@
 """Test zone generation complexity with room-type-specific probabilities"""
-from pathlib import Path
+
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from systems.world_generation import WorldGenerator, RoomType
-from systems.zone_planning import ZonePlanner, print_zone_grid, Z_PLAT, Z_FILL, Z_WALK, Z_VOID
 from systems.room_generation import RoomGenerator, print_tilemap_ascii
+from systems.world_generation import WorldGenerator
+from systems.zone_planning import Z_FILL, Z_PLAT, Z_VOID, Z_WALK, ZonePlanner, print_zone_grid
 
-print("="*60)
+print("=" * 60)
 print("ZONE COMPLEXITY TEST - Room-Type-Specific Probabilities")
-print("="*60)
+print("=" * 60)
 
 # Generate a small world
 world_gen = WorldGenerator(seed=99999)
@@ -27,6 +28,7 @@ for room in world.all_rooms:
 room_gen = RoomGenerator()
 for room in world.all_rooms:
     room.tilemap = room_gen.generate_tilemap(room)
+
 
 # Analyze zone distribution by room type
 def analyze_zone_grid(grid):
@@ -43,6 +45,7 @@ def analyze_zone_grid(grid):
 
     return counts, total_decor
 
+
 print("\nROOM-TYPE ANALYSIS:")
 print("-" * 60)
 
@@ -57,7 +60,7 @@ for room in world.all_rooms:
         print(f"\n{room.room_type.value.upper()} Room:")
         print_zone_grid(room.zone_grid)
 
-        print(f"Zone Distribution (out of 25 zones):")
+        print("Zone Distribution (out of 25 zones):")
         print(f"  PLATFORM: {counts[Z_PLAT]:2d} ({counts[Z_PLAT]/25*100:5.1f}%)")
         print(f"  FILL:     {counts[Z_FILL]:2d} ({counts[Z_FILL]/25*100:5.1f}%)")
         print(f"  WALK:     {counts[Z_WALK]:2d} ({counts[Z_WALK]/25*100:5.1f}%)")
@@ -67,7 +70,7 @@ for room in world.all_rooms:
         print("\nTilemap Preview:")
         print_tilemap_ascii(room.tilemap, scale=4)
 
-print("\n" + "="*60)
+print("\n" + "=" * 60)
 print("EXPECTED PROBABILITIES (from source):")
 print("-" * 60)
 print("PLATFORM rooms: 55% plat, 22% fill, 22% walk")
@@ -75,4 +78,4 @@ print("COMBAT rooms:   45% plat, 14% fill, 22% walk")
 print("TREASURE rooms: 35% plat, 10% fill, 22% walk")
 print("BOSS rooms:     30% plat, 12% fill, 22% walk")
 print("Default rooms:  25% plat,  8% fill, 22% walk")
-print("="*60)
+print("=" * 60)

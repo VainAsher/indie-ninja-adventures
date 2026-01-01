@@ -2,8 +2,9 @@
 Input command representation and deterministic serialization.
 """
 
-from dataclasses import dataclass, asdict
-from typing import Dict, Any
+from dataclasses import asdict, dataclass
+from typing import Any
+
 import pygame
 
 
@@ -19,20 +20,20 @@ class InputCommand:
     crouch: bool = False
     toggle_proc: bool = False
     cycle_camera: bool = False
-    attack: bool = False           # J: melee combo/air slash
-    throw: bool = False            # K: shuriken throw
-    teleport: bool = False         # F (phase blink)
-    ninjutsu: bool = False         # L/Q hold
-    interact: bool = False         # E: context action
-    inventory: bool = False        # I: inventory UI toggle
-    consumable: bool = False       # R: quick-use item
-    minimap: bool = False          # Tab: minimap toggle
-    fullmap: bool = False          # M: full map toggle
+    attack: bool = False  # J: melee combo/air slash
+    throw: bool = False  # K: shuriken throw
+    teleport: bool = False  # F (phase blink)
+    ninjutsu: bool = False  # L/Q hold
+    interact: bool = False  # E: context action
+    inventory: bool = False  # I: inventory UI toggle
+    consumable: bool = False  # R: quick-use item
+    minimap: bool = False  # Tab: minimap toggle
+    fullmap: bool = False  # M: full map toggle
     controls_overlay: bool = False  # H: controls hint toggle
-    debug_overlay: bool = False    # F3: debug overlay toggle
-    slow_walk: bool = False        # Alt: slow walk/ninja side walk
-    menu_confirm: bool = False     # Enter/Return: menu accept/advance
-    menu_back: bool = False        # Escape: menu back/pause
+    debug_overlay: bool = False  # F3: debug overlay toggle
+    slow_walk: bool = False  # Alt: slow walk/ninja side walk
+    menu_confirm: bool = False  # Enter/Return: menu accept/advance
+    menu_back: bool = False  # Escape: menu back/pause
 
     @classmethod
     def from_keys(cls, keys, frame: int) -> "InputCommand":
@@ -64,7 +65,7 @@ class InputCommand:
             menu_back=keys[pygame.K_ESCAPE],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         # ensure deterministic ordering by constructing an ordered dict manually
         ordered_keys = [
@@ -96,7 +97,7 @@ class InputCommand:
         return {k: data[k] for k in ordered_keys}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "InputCommand":
+    def from_dict(cls, data: dict[str, Any]) -> "InputCommand":
         return cls(
             frame=int(data["frame"]),
             up=bool(data.get("up", False)),

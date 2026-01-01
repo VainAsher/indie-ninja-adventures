@@ -14,16 +14,17 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import pygame
-from entities.enemy import Enemy, EnemyType, EnemyAIState
-from entities.enemy_ai import EnemyAI
+
 from entities.ai_random import (
     AIRandom,
     derive_ai_seed,
-    get_varied_patrol_wait,
-    get_varied_chase_interval,
     get_varied_attack_cooldown,
-    get_varied_idle_duration
+    get_varied_chase_interval,
+    get_varied_idle_duration,
+    get_varied_patrol_wait,
 )
+from entities.enemy import Enemy, EnemyAIState, EnemyType
+from entities.enemy_ai import EnemyAI
 
 
 def test_airandom_same_seed_produces_same_values():
@@ -54,7 +55,7 @@ def test_airandom_different_seeds_produce_different_values():
 
     # Should be different
     assert values1 != values2, "Different seeds should produce different values"
-    print(f"[PASS] Different seeds produce different values")
+    print("[PASS] Different seeds produce different values")
 
 
 def test_airandom_reset_restores_sequence():
@@ -72,7 +73,7 @@ def test_airandom_reset_restores_sequence():
 
     # Should be identical to first sequence
     assert first_values == second_values, "Reset should restore sequence"
-    print(f"[PASS] Reset restores RNG sequence")
+    print("[PASS] Reset restores RNG sequence")
 
 
 def test_derive_ai_seed_is_deterministic():
@@ -112,13 +113,15 @@ def test_timing_variations_within_expected_range():
 
     # Test attack cooldown (±15%)
     attack_cooldowns = [get_varied_attack_cooldown(rng, 1.0) for _ in range(100)]
-    assert all(0.85 <= t <= 1.15 for t in attack_cooldowns), "Attack cooldowns should be in [0.85, 1.15]"
+    assert all(
+        0.85 <= t <= 1.15 for t in attack_cooldowns
+    ), "Attack cooldowns should be in [0.85, 1.15]"
 
     # Test idle duration (±40%)
     idle_durations = [get_varied_idle_duration(rng, 1.0) for _ in range(100)]
     assert all(0.6 <= t <= 1.4 for t in idle_durations), "Idle durations should be in [0.6, 1.4]"
 
-    print(f"[PASS] All timing variations within expected ranges")
+    print("[PASS] All timing variations within expected ranges")
 
 
 def test_timing_variations_without_rng_returns_base_values():
@@ -135,7 +138,7 @@ def test_timing_variations_without_rng_returns_base_values():
     assert attack_cooldown == 1.0, "Should return base attack cooldown"
     assert idle_duration == 1.0, "Should return base idle duration"
 
-    print(f"[PASS] Timing functions return base values when RNG is None")
+    print("[PASS] Timing functions return base values when RNG is None")
 
 
 def test_enemy_ai_with_same_seed_produces_same_timing():
@@ -143,19 +146,9 @@ def test_enemy_ai_with_same_seed_produces_same_timing():
     pygame.init()
 
     # Create two enemies with same AI seed
-    enemy1 = Enemy(
-        enemy_id="test1",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0
-    )
+    enemy1 = Enemy(enemy_id="test1", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0)
 
-    enemy2 = Enemy(
-        enemy_id="test2",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0
-    )
+    enemy2 = Enemy(enemy_id="test2", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0)
 
     # Create AIs with same seed
     seed = 42
@@ -168,7 +161,7 @@ def test_enemy_ai_with_same_seed_produces_same_timing():
     assert ai1.chase_interval == ai2.chase_interval, "Chase interval should match"
     assert ai1.attack_cooldown_base == ai2.attack_cooldown_base, "Attack cooldown should match"
 
-    print(f"[PASS] Same seed produces identical AI timing")
+    print("[PASS] Same seed produces identical AI timing")
     print(f"  Idle: {ai1.idle_duration:.3f}s")
     print(f"  Patrol wait: {ai1.patrol_wait_time_base:.3f}s")
     print(f"  Chase interval: {ai1.chase_interval:.3f}s")
@@ -180,19 +173,9 @@ def test_enemy_ai_with_different_seeds_produces_different_timing():
     pygame.init()
 
     # Create two enemies with different AI seeds
-    enemy1 = Enemy(
-        enemy_id="test1",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0
-    )
+    enemy1 = Enemy(enemy_id="test1", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0)
 
-    enemy2 = Enemy(
-        enemy_id="test2",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0
-    )
+    enemy2 = Enemy(enemy_id="test2", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0)
 
     # Create AIs with different seeds
     ai1 = EnemyAI(enemy1, AIRandom(111))
@@ -200,14 +183,14 @@ def test_enemy_ai_with_different_seeds_produces_different_timing():
 
     # At least one timing parameter should be different
     timing_matches = (
-        ai1.idle_duration == ai2.idle_duration and
-        ai1.patrol_wait_time_base == ai2.patrol_wait_time_base and
-        ai1.chase_interval == ai2.chase_interval and
-        ai1.attack_cooldown_base == ai2.attack_cooldown_base
+        ai1.idle_duration == ai2.idle_duration
+        and ai1.patrol_wait_time_base == ai2.patrol_wait_time_base
+        and ai1.chase_interval == ai2.chase_interval
+        and ai1.attack_cooldown_base == ai2.attack_cooldown_base
     )
 
     assert not timing_matches, "Different seeds should produce at least some different timing"
-    print(f"[PASS] Different seeds produce varied AI timing")
+    print("[PASS] Different seeds produce varied AI timing")
 
 
 def test_enemy_ai_replay_consistency():
@@ -224,7 +207,7 @@ def test_enemy_ai_replay_consistency():
             enemy_type=EnemyType.GOBLIN,
             x=100.0,
             y=100.0,
-            ai_state=EnemyAIState.IDLE
+            ai_state=EnemyAIState.IDLE,
         )
 
         ai = EnemyAI(enemy, AIRandom(seed))
@@ -233,11 +216,11 @@ def test_enemy_ai_replay_consistency():
         state_transitions = []
         for frame in range(10):
             ai.update(
-                dt=1/60,
+                dt=1 / 60,
                 player_x=500.0,  # Player far away
                 player_y=500.0,
                 player_width=32,
-                player_height=56
+                player_height=56,
             )
             state_transitions.append((frame, enemy.ai_state.name))
 
@@ -245,19 +228,14 @@ def test_enemy_ai_replay_consistency():
 
     # All runs should produce identical state transitions
     assert results[0] == results[1] == results[2], "Replay should be deterministic"
-    print(f"[PASS] AI behavior is consistent across replays")
+    print("[PASS] AI behavior is consistent across replays")
 
 
 def test_enemy_ai_without_seed_still_works():
     """Test that AI works correctly without seeded random (backwards compatibility)"""
     pygame.init()
 
-    enemy = Enemy(
-        enemy_id="test_no_seed",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0
-    )
+    enemy = Enemy(enemy_id="test_no_seed", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0)
 
     # Create AI without seed (None)
     ai = EnemyAI(enemy, ai_random=None)
@@ -269,22 +247,16 @@ def test_enemy_ai_without_seed_still_works():
     assert ai.attack_cooldown_base == 1.0, "Should use base attack cooldown"
 
     # Should still update correctly
-    ai.update(
-        dt=1/60,
-        player_x=500.0,
-        player_y=500.0,
-        player_width=32,
-        player_height=56
-    )
+    ai.update(dt=1 / 60, player_x=500.0, player_y=500.0, player_width=32, player_height=56)
 
-    print(f"[PASS] AI works without seeded random (backwards compatible)")
+    print("[PASS] AI works without seeded random (backwards compatible)")
 
 
 def main():
     """Run all AI determinism tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("AI DETERMINISM TESTS")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     test_airandom_same_seed_produces_same_values()
     test_airandom_different_seeds_produce_different_values()
@@ -298,9 +270,9 @@ def main():
     test_enemy_ai_replay_consistency()
     test_enemy_ai_without_seed_still_works()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ALL AI DETERMINISM TESTS PASSED!")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

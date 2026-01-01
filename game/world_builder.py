@@ -12,28 +12,27 @@ The main function is regenerate_world_state(), which is called when:
 This properly clears all existing state and creates a new world.
 """
 
-import time
 import random
-from typing import Tuple, Optional, Any
+import time
+
 import pygame
 
 from config.physics_constants import (
-    TILE_SIZE,
-    ROOM_WIDTH_TILES,
     ROOM_HEIGHT_TILES,
-    TILES_PER_ZONE,
+    ROOM_WIDTH_TILES,
+    TILE_SIZE,
 )
-from rendering import MinimapRenderer, MinimapConfig
-from systems.pickup_spawner import PickupSpawner
-from systems.hazard_spawner import HazardSpawner
-from systems.room_generation import TILE_SOLID, TILE_PLATFORM, TILE_EMPTY
 from entities.enemy import EnemyType, get_enemy_definition
 from entities.enemy_manager import EnemySpawnAnchor
-from game.portal_system import PortalType
 from game.level_factory import (
     create_procedural_level,
     spawn_objective_collectibles,
 )
+from game.portal_system import PortalType
+from rendering import MinimapConfig, MinimapRenderer
+from systems.hazard_spawner import HazardSpawner
+from systems.pickup_spawner import PickupSpawner
+from systems.room_generation import TILE_EMPTY, TILE_SOLID
 
 
 def _clear_existing_state(
@@ -136,7 +135,7 @@ def _find_portal_floor(
 
 def _find_clear_portal_position(
     base_x: float, base_y: float, tiles_list: list, portal_width: int, portal_height: int
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Find a clear position for portal placement without colliding with tiles."""
     step = TILE_SIZE
     max_radius = 8
@@ -162,7 +161,13 @@ def _find_clear_portal_position(
 
 
 def _spawn_portal_safe(
-    portal_manager, tiles, portal_id: str, destination_id: str, world_x: float, world_y: float, bidirectional: bool = True
+    portal_manager,
+    tiles,
+    portal_id: str,
+    destination_id: str,
+    world_x: float,
+    world_y: float,
+    bidirectional: bool = True,
 ):
     """Spawn a portal at a safe position (not colliding with tiles)."""
     portal_width = 64
@@ -208,12 +213,19 @@ def _spawn_pickups_and_hazards(
         pickup_spawner.spawn_pickups_for_room(room, pickup_manager, room_px, room_py)
         if not hub_id:  # Keep hubs safe and avoid exit-based hazard offsets
             hazard_spawner.spawn_hazards_for_room(
-                room, hazard_manager, room_px, room_py, spawn_pos=room_spawn_pos, exit_pos=room_exit_pos
+                room,
+                hazard_manager,
+                room_px,
+                room_py,
+                spawn_pos=room_spawn_pos,
+                exit_pos=room_exit_pos,
             )
 
     objective_pickups = 0
     if mission_def and not hub_id:
-        objective_pickups = spawn_objective_collectibles(world, megamap, pickup_manager, mission_def, seed)
+        objective_pickups = spawn_objective_collectibles(
+            world, megamap, pickup_manager, mission_def, seed
+        )
 
     print(
         f"[WORLD REGEN] Spawned: {len([p for p in pickup_manager.pickups if p.pickup_type == 'coin'])} coins, "
@@ -299,12 +311,25 @@ def _spawn_enemies(world, megamap, seed, enemy_manager, tiles, hub_id):
     _snap_to_ground(enemy_manager.enemies.values(), tiles)
 
 
-def _spawn_npcs(hub_manager, hub_id, megamap, npc_manager, spawn_x, spawn_y, base_room_coords, tiles, rooms, shape):
+def _spawn_npcs(
+    hub_manager,
+    hub_id,
+    megamap,
+    npc_manager,
+    spawn_x,
+    spawn_y,
+    base_room_coords,
+    tiles,
+    rooms,
+    shape,
+):
     """Spawn NPCs for hub worlds."""
     print("[WORLD REGEN] Spawning NPCs...")
 
     if hub_manager and hub_id and megamap:
-        npc_positions = hub_manager.get_npc_positions(hub_id, megamap.room_positions, base_room_coords)
+        npc_positions = hub_manager.get_npc_positions(
+            hub_id, megamap.room_positions, base_room_coords
+        )
         for anchor, world_x, world_y in npc_positions:
             npc_manager.spawn_npc(anchor.npc_id, world_x, world_y)
         if npc_positions:
@@ -343,12 +368,16 @@ def _spawn_npcs(hub_manager, hub_id, megamap, npc_manager, spawn_x, spawn_y, bas
     _snap_to_ground(npc_manager.npcs, tiles)
 
 
-def _spawn_portals(portal_manager, hub_manager, hub_id, megamap, base_room_coords, tiles, spawn_x, spawn_y):
+def _spawn_portals(
+    portal_manager, hub_manager, hub_id, megamap, base_room_coords, tiles, spawn_x, spawn_y
+):
     """Spawn portals for hub worlds."""
     if not (portal_manager and hub_manager and hub_id and megamap):
         return
 
-    portal_positions = hub_manager.get_portal_positions(hub_id, megamap.room_positions, base_room_coords)
+    portal_positions = hub_manager.get_portal_positions(
+        hub_id, megamap.room_positions, base_room_coords
+    )
     for anchor, world_x, world_y in portal_positions:
         _spawn_portal_safe(
             portal_manager,
@@ -366,26 +395,68 @@ def _spawn_portals(portal_manager, hub_manager, hub_id, megamap, base_room_coord
         fallback_y = spawn_y
         if hub_id == "central_hub":
             _spawn_portal_safe(
-                portal_manager, tiles, "portal_to_forest", "forest_hub", spawn_x, fallback_y - 240, bidirectional=True
+                portal_manager,
+                tiles,
+                "portal_to_forest",
+                "forest_hub",
+                spawn_x,
+                fallback_y - 240,
+                bidirectional=True,
             )
             _spawn_portal_safe(
-                portal_manager, tiles, "portal_to_town", "town_hub", spawn_x + 300, fallback_y, bidirectional=True
+                portal_manager,
+                tiles,
+                "portal_to_town",
+                "town_hub",
+                spawn_x + 300,
+                fallback_y,
+                bidirectional=True,
             )
             _spawn_portal_safe(
-                portal_manager, tiles, "portal_to_caves", "caves_hub", spawn_x, fallback_y + 240, bidirectional=True
+                portal_manager,
+                tiles,
+                "portal_to_caves",
+                "caves_hub",
+                spawn_x,
+                fallback_y + 240,
+                bidirectional=True,
             )
             _spawn_portal_safe(
-                portal_manager, tiles, "portal_to_castle", "castle_hub", spawn_x + 300, fallback_y - 200, bidirectional=True
+                portal_manager,
+                tiles,
+                "portal_to_castle",
+                "castle_hub",
+                spawn_x + 300,
+                fallback_y - 200,
+                bidirectional=True,
             )
             _spawn_portal_safe(
-                portal_manager, tiles, "portal_to_sewer", "sewer_hub", spawn_x - 300, fallback_y + 200, bidirectional=True
+                portal_manager,
+                tiles,
+                "portal_to_sewer",
+                "sewer_hub",
+                spawn_x - 300,
+                fallback_y + 200,
+                bidirectional=True,
             )
             _spawn_portal_safe(
-                portal_manager, tiles, "portal_to_arcade", "arcade_loop", spawn_x - 300, fallback_y, bidirectional=True
+                portal_manager,
+                tiles,
+                "portal_to_arcade",
+                "arcade_loop",
+                spawn_x - 300,
+                fallback_y,
+                bidirectional=True,
             )
         else:
             _spawn_portal_safe(
-                portal_manager, tiles, f"portal_to_central_from_{hub_id}", "central_hub", spawn_x + 300, fallback_y, bidirectional=True
+                portal_manager,
+                tiles,
+                f"portal_to_central_from_{hub_id}",
+                "central_hub",
+                spawn_x + 300,
+                fallback_y,
+                bidirectional=True,
             )
         print(f"[WORLD REGEN] Spawned fallback portals for hub '{hub_id}'")
 
@@ -448,8 +519,8 @@ def regenerate_world_state(
             shape = hub_def.world_shape.value if hasattr(hub_def.world_shape, "value") else shape
             rooms = hub_def.room_count
 
-    tiles, platforms, seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap = create_procedural_level(
-        seed, shape, rooms
+    tiles, platforms, seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap = (
+        create_procedural_level(seed, shape, rooms)
     )
 
     # Override spawn with hub-specific spawn if available
@@ -501,7 +572,17 @@ def regenerate_world_state(
     # Step 6: Spawn pickups and hazards
     # ============================================================
     _spawn_pickups_and_hazards(
-        world, megamap, spawn_x, spawn_y, exit_x, exit_y, seed, pickup_manager, hazard_manager, hub_id, mission_def
+        world,
+        megamap,
+        spawn_x,
+        spawn_y,
+        exit_x,
+        exit_y,
+        seed,
+        pickup_manager,
+        hazard_manager,
+        hub_id,
+        mission_def,
     )
 
     # ============================================================
@@ -512,12 +593,25 @@ def regenerate_world_state(
     # ============================================================
     # Step 7.5: Spawn NPCs (for hub worlds)
     # ============================================================
-    _spawn_npcs(hub_manager, hub_id, megamap, npc_manager, spawn_x, spawn_y, base_room_coords, tiles, rooms, shape)
+    _spawn_npcs(
+        hub_manager,
+        hub_id,
+        megamap,
+        npc_manager,
+        spawn_x,
+        spawn_y,
+        base_room_coords,
+        tiles,
+        rooms,
+        shape,
+    )
 
     # ============================================================
     # Step 7.6: Spawn portals (for hubs)
     # ============================================================
-    _spawn_portals(portal_manager, hub_manager, hub_id, megamap, base_room_coords, tiles, spawn_x, spawn_y)
+    _spawn_portals(
+        portal_manager, hub_manager, hub_id, megamap, base_room_coords, tiles, spawn_x, spawn_y
+    )
 
     # ============================================================
     # Step 8: Teleport player to spawn
@@ -544,6 +638,6 @@ def regenerate_world_state(
 
     level_manager.start_level(time.time())
 
-    print(f"[WORLD REGEN] World regeneration complete!\n")
+    print("[WORLD REGEN] World regeneration complete!\n")
 
     return tiles, platforms, seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap

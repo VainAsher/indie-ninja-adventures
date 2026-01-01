@@ -12,28 +12,29 @@ until specific abilities are unlocked:
 Version: v0.6.0 (Phase 5)
 """
 
-from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, Set, Tuple
-
+from enum import Enum
 
 # ============================================================
 # Gate Types
 # ============================================================
 
+
 class GateType(Enum):
     """Types of ability gates"""
-    HIGH_LEDGE = "high_ledge"           # Requires double jump
-    VERTICAL_WALL = "vertical_wall"     # Requires wall jump
-    WIDE_GAP = "wide_gap"               # Requires dash
-    LOW_PASSAGE = "low_passage"         # Requires crouch
-    LOCKED_DOOR = "locked_door"         # Requires key/switch
+
+    HIGH_LEDGE = "high_ledge"  # Requires double jump
+    VERTICAL_WALL = "vertical_wall"  # Requires wall jump
+    WIDE_GAP = "wide_gap"  # Requires dash
+    LOW_PASSAGE = "low_passage"  # Requires crouch
+    LOCKED_DOOR = "locked_door"  # Requires key/switch
 
 
 class AbilityRequirement(Enum):
     """Abilities required to pass gates"""
-    BASIC_MOVEMENT = "basic_movement"   # Always available
-    JUMP = "jump"                       # Always available
+
+    BASIC_MOVEMENT = "basic_movement"  # Always available
+    JUMP = "jump"  # Always available
     DOUBLE_JUMP = "double_jump"
     WALL_JUMP = "wall_jump"
     DASH = "dash"
@@ -43,24 +44,26 @@ class AbilityRequirement(Enum):
     SHURIKEN = "shuriken"
     TELEPORT = "teleport"
     NINJUTSU = "ninjutsu"
-    KEY_ITEM = "key_item"              # Specific key for locked door
+    KEY_ITEM = "key_item"  # Specific key for locked door
 
 
 # ============================================================
 # Gate Definitions
 # ============================================================
 
+
 @dataclass
 class GateDefinition:
     """Definition for an ability gate type"""
+
     gate_type: GateType
     required_ability: AbilityRequirement
     display_name: str
     description: str
-    width: int          # Width in pixels
-    height: int         # Height in pixels
-    passable: bool      # Can player pass through with ability?
-    visual_hint: str    # Text to display above gate
+    width: int  # Width in pixels
+    height: int  # Height in pixels
+    passable: bool  # Can player pass through with ability?
+    visual_hint: str  # Text to display above gate
 
 
 # Gate type definitions
@@ -70,59 +73,55 @@ GATE_DEFINITIONS = {
         required_ability=AbilityRequirement.DOUBLE_JUMP,
         display_name="High Ledge",
         description="A tall ledge that requires double jump to reach",
-        width=64,           # 2 tiles wide
-        height=96,          # 3 tiles tall (unreachable with single jump)
+        width=64,  # 2 tiles wide
+        height=96,  # 3 tiles tall (unreachable with single jump)
         passable=True,
-        visual_hint="Double Jump Required"
+        visual_hint="Double Jump Required",
     ),
-
     GateType.VERTICAL_WALL: GateDefinition(
         gate_type=GateType.VERTICAL_WALL,
         required_ability=AbilityRequirement.WALL_JUMP,
         display_name="Vertical Wall",
         description="A tall wall shaft that requires wall jumping to climb",
-        width=64,           # 2 tiles wide
-        height=192,         # 6 tiles tall
+        width=64,  # 2 tiles wide
+        height=192,  # 6 tiles tall
         passable=True,
-        visual_hint="Wall Jump Required"
+        visual_hint="Wall Jump Required",
     ),
-
     GateType.WIDE_GAP: GateDefinition(
         gate_type=GateType.WIDE_GAP,
         required_ability=AbilityRequirement.DASH,
         display_name="Wide Gap",
         description="A gap too wide to jump across without dashing",
-        width=128,          # 4 tiles wide (too wide for normal jump)
-        height=32,          # Just a gap marker
+        width=128,  # 4 tiles wide (too wide for normal jump)
+        height=32,  # Just a gap marker
         passable=True,
-        visual_hint="Dash Required"
+        visual_hint="Dash Required",
     ),
-
     GateType.LOW_PASSAGE: GateDefinition(
         gate_type=GateType.LOW_PASSAGE,
         required_ability=AbilityRequirement.CROUCH,
         display_name="Low Passage",
         description="A low passage that requires crouching to pass through",
-        width=96,           # 3 tiles wide
-        height=28,          # Height of crouched player (must crouch to fit)
+        width=96,  # 3 tiles wide
+        height=28,  # Height of crouched player (must crouch to fit)
         passable=True,
-        visual_hint="Crouch Required"
+        visual_hint="Crouch Required",
     ),
-
     GateType.LOCKED_DOOR: GateDefinition(
         gate_type=GateType.LOCKED_DOOR,
         required_ability=AbilityRequirement.KEY_ITEM,
         display_name="Locked Door",
         description="A locked door that requires a key or switch to open",
-        width=32,           # 1 tile wide
-        height=64,          # 2 tiles tall
-        passable=False,     # Blocks movement until unlocked
-        visual_hint="Key Required"
+        width=32,  # 1 tile wide
+        height=64,  # 2 tiles tall
+        passable=False,  # Blocks movement until unlocked
+        visual_hint="Key Required",
     ),
 }
 
 
-def get_gate_definition(gate_type: GateType) -> Optional[GateDefinition]:
+def get_gate_definition(gate_type: GateType) -> GateDefinition | None:
     """Get gate definition by type"""
     return GATE_DEFINITIONS.get(gate_type)
 
@@ -130,6 +129,7 @@ def get_gate_definition(gate_type: GateType) -> Optional[GateDefinition]:
 # ============================================================
 # Ability Gate Entity
 # ============================================================
+
 
 @dataclass
 class AbilityGate:
@@ -140,26 +140,28 @@ class AbilityGate:
     - Physical obstacles (HIGH_LEDGE, VERTICAL_WALL, WIDE_GAP, LOW_PASSAGE)
     - Locked barriers (LOCKED_DOOR)
     """
+
     gate_id: str
     gate_type: GateType
-    x: float                            # Position (top-left)
+    x: float  # Position (top-left)
     y: float
     width: int
     height: int
     required_ability: AbilityRequirement
-    unlocked: bool = False              # For LOCKED_DOOR type
-    key_id: Optional[str] = None        # Key item ID (for LOCKED_DOOR)
+    unlocked: bool = False  # For LOCKED_DOOR type
+    key_id: str | None = None  # Key item ID (for LOCKED_DOOR)
 
-    def get_rect(self) -> Tuple[float, float, int, int]:
+    def get_rect(self) -> tuple[float, float, int, int]:
         """Get bounding rectangle (x, y, width, height)"""
         return (self.x, self.y, self.width, self.height)
 
-    def get_center(self) -> Tuple[float, float]:
+    def get_center(self) -> tuple[float, float]:
         """Get center position"""
         return (self.x + self.width / 2, self.y + self.height / 2)
 
-    def check_collision(self, player_x: float, player_y: float,
-                       player_width: int, player_height: int) -> bool:
+    def check_collision(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> bool:
         """
         Check if player collides with gate.
 
@@ -171,12 +173,14 @@ class AbilityGate:
             True if collision detected
         """
         # AABB collision detection
-        return (player_x < self.x + self.width and
-                player_x + player_width > self.x and
-                player_y < self.y + self.height and
-                player_y + player_height > self.y)
+        return (
+            player_x < self.x + self.width
+            and player_x + player_width > self.x
+            and player_y < self.y + self.height
+            and player_y + player_height > self.y
+        )
 
-    def can_pass(self, unlocked_abilities: Set[AbilityRequirement]) -> bool:
+    def can_pass(self, unlocked_abilities: set[AbilityRequirement]) -> bool:
         """
         Check if player can pass through gate with current abilities.
 
@@ -209,11 +213,11 @@ class AbilityGate:
             "height": self.height,
             "required_ability": self.required_ability.value,
             "unlocked": self.unlocked,
-            "key_id": self.key_id
+            "key_id": self.key_id,
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'AbilityGate':
+    def from_dict(data: dict) -> "AbilityGate":
         """Deserialize from dictionary"""
         return AbilityGate(
             gate_id=data["gate_id"],
@@ -224,7 +228,7 @@ class AbilityGate:
             height=data["height"],
             required_ability=AbilityRequirement(data["required_ability"]),
             unlocked=data.get("unlocked", False),
-            key_id=data.get("key_id")
+            key_id=data.get("key_id"),
         )
 
 
@@ -232,8 +236,10 @@ class AbilityGate:
 # Gate Factory
 # ============================================================
 
-def create_gate(gate_type: GateType, gate_id: str, x: float, y: float,
-                key_id: Optional[str] = None) -> AbilityGate:
+
+def create_gate(
+    gate_type: GateType, gate_id: str, x: float, y: float, key_id: str | None = None
+) -> AbilityGate:
     """
     Create an ability gate at specified position.
 
@@ -259,13 +265,14 @@ def create_gate(gate_type: GateType, gate_id: str, x: float, y: float,
         height=definition.height,
         required_ability=definition.required_ability,
         unlocked=False,
-        key_id=key_id
+        key_id=key_id,
     )
 
 
 # ============================================================
 # Gate Manager
 # ============================================================
+
 
 class GateManager:
     """
@@ -282,8 +289,9 @@ class GateManager:
         self.gates: dict[str, AbilityGate] = {}
         self.next_gate_id = 0
 
-    def add_gate(self, gate_type: GateType, x: float, y: float,
-                 key_id: Optional[str] = None) -> str:
+    def add_gate(
+        self, gate_type: GateType, x: float, y: float, key_id: str | None = None
+    ) -> str:
         """
         Add a gate to the level.
 
@@ -308,7 +316,7 @@ class GateManager:
         if gate_id in self.gates:
             del self.gates[gate_id]
 
-    def get_gate(self, gate_id: str) -> Optional[AbilityGate]:
+    def get_gate(self, gate_id: str) -> AbilityGate | None:
         """Get gate by ID"""
         return self.gates.get(gate_id)
 
@@ -318,9 +326,14 @@ class GateManager:
         if gate:
             gate.unlock()
 
-    def check_gate_collision(self, player_x: float, player_y: float,
-                            player_width: int, player_height: int,
-                            unlocked_abilities: Set[AbilityRequirement]) -> Optional[str]:
+    def check_gate_collision(
+        self,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        unlocked_abilities: set[AbilityRequirement],
+    ) -> str | None:
         """
         Check if player collides with any impassable gates.
 
@@ -376,11 +389,11 @@ class GateManager:
         """Serialize to dictionary"""
         return {
             "gates": {gate_id: gate.to_dict() for gate_id, gate in self.gates.items()},
-            "next_gate_id": self.next_gate_id
+            "next_gate_id": self.next_gate_id,
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'GateManager':
+    def from_dict(data: dict) -> "GateManager":
         """Deserialize from dictionary"""
         manager = GateManager()
         manager.next_gate_id = data.get("next_gate_id", 0)
@@ -395,6 +408,7 @@ class GateManager:
 # ============================================================
 # Helper Functions
 # ============================================================
+
 
 def get_required_ability_for_gate(gate_type: GateType) -> AbilityRequirement:
     """Get the ability required to pass a gate type"""

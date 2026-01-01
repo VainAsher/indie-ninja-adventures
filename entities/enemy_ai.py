@@ -11,18 +11,16 @@ This module provides enemy AI behavior:
 Version: v0.6.0
 """
 
-from typing import Optional, Tuple
 import math
 
-from entities.enemy import Enemy, EnemyAIState, EnemyAttackSubState, EnemyDefinition
 from entities.ai_random import (
     AIRandom,
-    get_varied_patrol_wait,
-    get_varied_chase_interval,
     get_varied_attack_cooldown,
-    get_varied_idle_duration
+    get_varied_chase_interval,
+    get_varied_idle_duration,
+    get_varied_patrol_wait,
 )
-
+from entities.enemy import Enemy, EnemyAIState, EnemyAttackSubState
 
 # ============================================================
 # AI Behavior Constants
@@ -40,6 +38,7 @@ OBSTACLE_TURN_WAIT_TIME = 0.5  # Seconds to wait before turning around when obst
 # Enemy AI Controller
 # ============================================================
 
+
 class EnemyAI:
     """
     AI controller for enemy behavior.
@@ -47,7 +46,7 @@ class EnemyAI:
     Manages state transitions and movement for a single enemy.
     """
 
-    def __init__(self, enemy: Enemy, ai_random: Optional[AIRandom] = None):
+    def __init__(self, enemy: Enemy, ai_random: AIRandom | None = None):
         """
         Initialize AI controller.
 
@@ -72,10 +71,16 @@ class EnemyAI:
         self.chase_interval = get_varied_chase_interval(ai_random, CHASE_UPDATE_INTERVAL)
         self.attack_cooldown_base = get_varied_attack_cooldown(ai_random, ATTACK_COOLDOWN)
 
-    def update(self, dt: float, player_x: float, player_y: float,
-               player_width: int, player_height: int,
-               detection_mult: float = 1.0,
-               collision_system=None) -> Optional[int]:
+    def update(
+        self,
+        dt: float,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        detection_mult: float = 1.0,
+        collision_system=None,
+    ) -> int | None:
         """
         Update enemy AI for one frame.
 
@@ -155,8 +160,9 @@ class EnemyAI:
 
         return None
 
-    def _update_idle(self, dt: float, player_x: float, player_y: float,
-                     player_width: int, player_height: int) -> None:
+    def _update_idle(
+        self, dt: float, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> None:
         """Update idle state (wait, then start patrol)"""
         # Check for player detection
         det = getattr(self, "detection_mult", 1.0)
@@ -175,8 +181,9 @@ class EnemyAI:
 
         return None
 
-    def _update_patrol(self, dt: float, player_x: float, player_y: float,
-                       player_width: int, player_height: int) -> None:
+    def _update_patrol(
+        self, dt: float, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> None:
         """Update patrol state (move between waypoints)"""
         # Check for player detection
         det = getattr(self, "detection_mult", 1.0)
@@ -236,8 +243,9 @@ class EnemyAI:
 
         return None
 
-    def _update_chase(self, dt: float, player_x: float, player_y: float,
-                      player_width: int, player_height: int) -> None:
+    def _update_chase(
+        self, dt: float, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> None:
         """Update chase state (pursue player)"""
         # Check if player is in attack range
         if self.enemy.is_in_attack_range(player_x, player_y, player_width, player_height):
@@ -272,12 +280,15 @@ class EnemyAI:
                 # Slow down to 30% speed when hitting obstacle
                 current_speed = self.enemy.movement.move_speed
                 self.enemy.movement.move_speed = definition.move_speed * 0.3
-                if self.enemy.target_player_x is not None and self.enemy.target_player_y is not None:
+                if (
+                    self.enemy.target_player_x is not None
+                    and self.enemy.target_player_y is not None
+                ):
                     self.enemy.movement.move_toward(
                         self.enemy.physics,
                         self.enemy.target_player_x,
                         self.enemy.target_player_y,
-                        dt
+                        dt,
                     )
                 # Restore normal speed
                 self.enemy.movement.move_speed = current_speed
@@ -288,23 +299,21 @@ class EnemyAI:
             definition = self.enemy.get_definition()
             if self.enemy.movement:
                 self.enemy.movement.move_toward(
-                    self.enemy.physics,
-                    self.enemy.target_player_x,
-                    self.enemy.target_player_y,
-                    dt
+                    self.enemy.physics, self.enemy.target_player_x, self.enemy.target_player_y, dt
                 )
             else:
                 self._move_toward_target(
                     self.enemy.target_player_x,
                     self.enemy.target_player_y,
                     definition.move_speed,
-                    dt
+                    dt,
                 )
 
         return None
 
-    def _update_attack(self, dt: float, player_x: float, player_y: float,
-                       player_width: int, player_height: int) -> Optional[int]:
+    def _update_attack(
+        self, dt: float, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> int | None:
         """
         Update attack state with telegraphed attack phases.
 
@@ -394,8 +403,9 @@ class EnemyAI:
         self.enemy.target_player_x = None
         self.enemy.target_player_y = None
 
-    def _transition_to_chase(self, player_x: float, player_y: float,
-                            player_width: int, player_height: int):
+    def _transition_to_chase(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ):
         """Transition to CHASE state"""
         self.enemy.ai_state = EnemyAIState.CHASE
         self.enemy.ai_state_timer = 0.0
@@ -422,8 +432,7 @@ class EnemyAI:
     # Movement Helper Methods
     # ============================================================
 
-    def _move_toward_target(self, target_x: float, target_y: float,
-                           speed: float, dt: float):
+    def _move_toward_target(self, target_x: float, target_y: float, speed: float, dt: float):
         """
         Move enemy toward target position.
 
@@ -511,7 +520,7 @@ class EnemyAI:
         # Update obstacle state
         self.obstacle_ahead = hit is not None
 
-    def get_attack_phase_info(self) -> Tuple[str, float]:
+    def get_attack_phase_info(self) -> tuple[str, float]:
         """
         Get current attack phase for rendering/debugging.
 
@@ -542,8 +551,10 @@ class EnemyAI:
 # AI Utility Functions
 # ============================================================
 
-def create_patrol_waypoints_horizontal(start_x: float, start_y: float,
-                                       distance: float, num_points: int = 2) -> list:
+
+def create_patrol_waypoints_horizontal(
+    start_x: float, start_y: float, distance: float, num_points: int = 2
+) -> list:
     """
     Create horizontal patrol waypoints.
 
@@ -557,10 +568,7 @@ def create_patrol_waypoints_horizontal(start_x: float, start_y: float,
         List of (x, y) waypoint tuples
     """
     if num_points == 2:
-        return [
-            (start_x - distance, start_y),
-            (start_x + distance, start_y)
-        ]
+        return [(start_x - distance, start_y), (start_x + distance, start_y)]
     else:
         # Evenly spaced waypoints
         waypoints = []
@@ -570,8 +578,9 @@ def create_patrol_waypoints_horizontal(start_x: float, start_y: float,
         return waypoints
 
 
-def create_patrol_waypoints_vertical(start_x: float, start_y: float,
-                                     distance: float, num_points: int = 2) -> list:
+def create_patrol_waypoints_vertical(
+    start_x: float, start_y: float, distance: float, num_points: int = 2
+) -> list:
     """
     Create vertical patrol waypoints.
 
@@ -585,10 +594,7 @@ def create_patrol_waypoints_vertical(start_x: float, start_y: float,
         List of (x, y) waypoint tuples
     """
     if num_points == 2:
-        return [
-            (start_x, start_y - distance),
-            (start_x, start_y + distance)
-        ]
+        return [(start_x, start_y - distance), (start_x, start_y + distance)]
     else:
         # Evenly spaced waypoints
         waypoints = []
@@ -598,8 +604,9 @@ def create_patrol_waypoints_vertical(start_x: float, start_y: float,
         return waypoints
 
 
-def create_patrol_waypoints_circle(center_x: float, center_y: float,
-                                   radius: float, num_points: int = 4) -> list:
+def create_patrol_waypoints_circle(
+    center_x: float, center_y: float, radius: float, num_points: int = 4
+) -> list:
     """
     Create circular patrol waypoints.
 
@@ -621,8 +628,9 @@ def create_patrol_waypoints_circle(center_x: float, center_y: float,
     return waypoints
 
 
-def create_patrol_waypoints_rectangle(center_x: float, center_y: float,
-                                      width: float, height: float) -> list:
+def create_patrol_waypoints_rectangle(
+    center_x: float, center_y: float, width: float, height: float
+) -> list:
     """
     Create rectangular patrol waypoints.
 
@@ -642,5 +650,5 @@ def create_patrol_waypoints_rectangle(center_x: float, center_y: float,
         (center_x - half_w, center_y - half_h),  # Top-left
         (center_x + half_w, center_y - half_h),  # Top-right
         (center_x + half_w, center_y + half_h),  # Bottom-right
-        (center_x - half_w, center_y + half_h)   # Bottom-left
+        (center_x - half_w, center_y + half_h),  # Bottom-left
     ]

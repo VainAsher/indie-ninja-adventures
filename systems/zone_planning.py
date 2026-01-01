@@ -15,30 +15,32 @@ Enhanced: Increased to 16×16 for finer granularity and more complex layouts
 """
 
 import random
-from typing import List, Tuple, Dict, Set, Optional, Callable
+from collections.abc import Callable
 from dataclasses import dataclass
+
+from config.physics_constants import TILES_PER_ZONE
 from systems.anchor_resolution import AnchorCandidate
 from systems.world_generation import (
-    RoomNode, RoomType, BiomeTheme, ZoneRole,
-    ZONES_W, ZONES_H, DoorPort
+    ZONES_H,
+    ZONES_W,
+    RoomNode,
+    RoomType,
 )
-from config.physics_constants import TILES_PER_ZONE
-
 
 # Simplified zone role constants (matching source)
-Z_WALK = "walk"      # Walkable floor
-Z_FILL = "fill"      # Solid terrain
+Z_WALK = "walk"  # Walkable floor
+Z_FILL = "fill"  # Solid terrain
 Z_PLAT = "platform"  # Platform (jump through)
-Z_DOOR = "door"      # Door connection
-Z_SAVE = "save"      # Save point
-Z_SHOP = "shop"      # Shop NPC
-Z_LOOT = "loot"      # Treasure
-Z_VOID = "void"      # Empty space (pit)
-Z_DECOR = "decor"    # Unassigned (will become walkable or platform)
+Z_DOOR = "door"  # Door connection
+Z_SAVE = "save"  # Save point
+Z_SHOP = "shop"  # Shop NPC
+Z_LOOT = "loot"  # Treasure
+Z_VOID = "void"  # Empty space (pit)
+Z_DECOR = "decor"  # Unassigned (will become walkable or platform)
 
 # Additional zone roles for context-aware rules
-Z_CHUTE = "chute"       # Vertical shaft for down movement
-Z_CLIMB = "climb"       # Stepped platforms for up movement
+Z_CHUTE = "chute"  # Vertical shaft for down movement
+Z_CLIMB = "climb"  # Stepped platforms for up movement
 Z_CONNECTOR = "connector"  # Horizontal platform for hub rooms
 
 
@@ -54,11 +56,12 @@ class RoomContext:
         degree: Number of doors (connectivity degree)
         door_zones: List of door zone coordinates
     """
+
     room: RoomNode
-    zone_grid: List[List[str]]
-    neighbor_dirs: Set[str]
+    zone_grid: list[list[str]]
+    neighbor_dirs: set[str]
     degree: int
-    door_zones: List[Tuple[int, int]]
+    door_zones: list[tuple[int, int]]
 
 
 # Logic rule function signature
@@ -126,14 +129,15 @@ def rule_dead_end_bonus_corner(ctx: RoomContext):
         return
 
     import random
+
     rng = random.Random(ctx.room.seed)
 
     # Pick random corner (avoid edges to prevent door conflicts)
     corners = [
-        (1, 1),                          # Top-left
-        (ZONES_W - 2, 1),                # Top-right
-        (1, ZONES_H - 2),                # Bottom-left
-        (ZONES_W - 2, ZONES_H - 2)       # Bottom-right
+        (1, 1),  # Top-left
+        (ZONES_W - 2, 1),  # Top-right
+        (1, ZONES_H - 2),  # Bottom-left
+        (ZONES_W - 2, ZONES_H - 2),  # Bottom-right
     ]
 
     cx, cy = rng.choice(corners)
@@ -148,7 +152,7 @@ def rule_dead_end_bonus_corner(ctx: RoomContext):
 
 
 # Room type to logic rules mapping
-ROOM_LOGIC_RULES: Dict[str, List[ZoneRuleFn]] = {
+ROOM_LOGIC_RULES: dict[str, list[ZoneRuleFn]] = {
     "start": [
         rule_force_down_chute,
         rule_force_up_climb,
@@ -193,7 +197,7 @@ class ZonePlanner:
         self.seed = seed
         self.rng = random.Random(seed)
 
-    def plan_room(self, room: RoomNode) -> List[List[str]]:
+    def plan_room(self, room: RoomNode) -> list[list[str]]:
         """
         Plan zone grid for a room.
 
@@ -228,7 +232,7 @@ class ZonePlanner:
 
         return roles
 
-    def _place_door_zones(self, room: RoomNode, roles: List[List[str]]) -> List[Tuple[int, int]]:
+    def _place_door_zones(self, room: RoomNode, roles: list[list[str]]) -> list[tuple[int, int]]:
         """
         Place door zones at room edges based on connections.
 
@@ -252,8 +256,8 @@ class ZonePlanner:
         return door_zones
 
     def _place_features(
-        self, room: RoomNode, roles: List[List[str]], door_zones: List[Tuple[int, int]]
-    ) -> List[Tuple[int, int]]:
+        self, room: RoomNode, roles: list[list[str]], door_zones: list[tuple[int, int]]
+    ) -> list[tuple[int, int]]:
         """
         Place feature zones (shop, save, loot) based on room type.
 
@@ -264,8 +268,7 @@ class ZonePlanner:
         # Interior zones (exclude only zones with doors, not all edges)
         # This maximizes available space for features
         interior = [
-            (x, y) for y in range(ZONES_H) for x in range(ZONES_W)
-            if (x, y) not in door_zones
+            (x, y) for y in range(ZONES_H) for x in range(ZONES_W) if (x, y) not in door_zones
         ]
 
         if not interior:
@@ -273,10 +276,12 @@ class ZonePlanner:
 
         # Center zones for important features (sorted by distance from room center)
         center_x, center_y = ZONES_W // 2, ZONES_H // 2
-        center_zones = sorted(interior, key=lambda z: abs(z[0] - center_x) + abs(z[1] - center_y))[:3]
+        center_zones = sorted(interior, key=lambda z: abs(z[0] - center_x) + abs(z[1] - center_y))[
+            :3
+        ]
 
         # Initialize anchor_candidates if not present
-        if not hasattr(room, 'anchor_candidates') or room.anchor_candidates is None:
+        if not hasattr(room, "anchor_candidates") or room.anchor_candidates is None:
             room.anchor_candidates = []
 
         # Place features based on room type
@@ -287,12 +292,17 @@ class ZonePlanner:
                 roles[zy][zx] = Z_SHOP
                 features.append((zx, zy))
                 # Emit shop anchor candidate
-                room.anchor_candidates.append(AnchorCandidate(
-                    kind="shopkeeper",
-                    pos=(zx * 10 + 5, zy * 10 + 5),  # Convert zone to tile coords (center of zone)
-                    weight=1.0,
-                    tags={"npc", "shop"}
-                ))
+                room.anchor_candidates.append(
+                    AnchorCandidate(
+                        kind="shopkeeper",
+                        pos=(
+                            zx * 10 + 5,
+                            zy * 10 + 5,
+                        ),  # Convert zone to tile coords (center of zone)
+                        weight=1.0,
+                        tags={"npc", "shop"},
+                    )
+                )
 
             # Loot in corner
             if len(interior) > 1:
@@ -300,12 +310,14 @@ class ZonePlanner:
                 roles[zy][zx] = Z_LOOT
                 features.append((zx, zy))
                 # Emit loot anchor candidate
-                room.anchor_candidates.append(AnchorCandidate(
-                    kind="loot",
-                    pos=(zx * 10 + 5, zy * 10 + 5),
-                    weight=0.8,
-                    tags={"chest", "shop"}
-                ))
+                room.anchor_candidates.append(
+                    AnchorCandidate(
+                        kind="loot",
+                        pos=(zx * 10 + 5, zy * 10 + 5),
+                        weight=0.8,
+                        tags={"chest", "shop"},
+                    )
+                )
 
         elif room.room_type == RoomType.TREASURE:
             # Loot in center
@@ -314,12 +326,14 @@ class ZonePlanner:
                 roles[zy][zx] = Z_LOOT
                 features.append((zx, zy))
                 # Emit treasure anchor candidate
-                room.anchor_candidates.append(AnchorCandidate(
-                    kind="loot",
-                    pos=(zx * 10 + 5, zy * 10 + 5),
-                    weight=1.0,
-                    tags={"chest", "treasure"}
-                ))
+                room.anchor_candidates.append(
+                    AnchorCandidate(
+                        kind="loot",
+                        pos=(zx * 10 + 5, zy * 10 + 5),
+                        weight=1.0,
+                        tags={"chest", "treasure"},
+                    )
+                )
 
         elif room.room_type == RoomType.BOSS:
             # Boss spawn in center (no special zone role, just mark)
@@ -338,12 +352,14 @@ class ZonePlanner:
                 room.anchors["spawn"].append((zx, zy))
                 features.append((zx, zy))
                 # Emit spawn anchor candidate
-                room.anchor_candidates.append(AnchorCandidate(
-                    kind="spawn",
-                    pos=(zx * 10 + 5, zy * 10 + 5),
-                    weight=1.0,
-                    tags={"spawn", "start"}
-                ))
+                room.anchor_candidates.append(
+                    AnchorCandidate(
+                        kind="spawn",
+                        pos=(zx * 10 + 5, zy * 10 + 5),
+                        weight=1.0,
+                        tags={"spawn", "start"},
+                    )
+                )
 
             # Save point near entry (optional)
             if door_zones and interior and len(center_zones) > 1:
@@ -355,12 +371,14 @@ class ZonePlanner:
                     roles[zy][zx] = Z_SAVE
                     features.append((zx, zy))
                     # Emit save point anchor candidate
-                    room.anchor_candidates.append(AnchorCandidate(
-                        kind="save_point",
-                        pos=(zx * 10 + 5, zy * 10 + 5),
-                        weight=0.9,
-                        tags={"checkpoint", "healing"}
-                    ))
+                    room.anchor_candidates.append(
+                        AnchorCandidate(
+                            kind="save_point",
+                            pos=(zx * 10 + 5, zy * 10 + 5),
+                            weight=0.9,
+                            tags={"checkpoint", "healing"},
+                        )
+                    )
 
         elif room.room_type == RoomType.EXIT:
             # Exit portal in center
@@ -373,12 +391,14 @@ class ZonePlanner:
                     room.anchors["exit"] = []
                 room.anchors["exit"].append((zx, zy))
                 # Emit exit anchor candidate
-                room.anchor_candidates.append(AnchorCandidate(
-                    kind="exit",
-                    pos=(zx * 10 + 5, zy * 10 + 5),
-                    weight=1.0,
-                    tags={"exit", "portal"}
-                ))
+                room.anchor_candidates.append(
+                    AnchorCandidate(
+                        kind="exit",
+                        pos=(zx * 10 + 5, zy * 10 + 5),
+                        weight=1.0,
+                        tags={"exit", "portal"},
+                    )
+                )
                 # Use LOOT role for exit portal (will be rendered differently)
                 roles[zy][zx] = Z_LOOT
                 features.append((zx, zy))
@@ -392,7 +412,7 @@ class ZonePlanner:
 
         return features
 
-    def _ensure_connectivity(self, roles: List[List[str]], must_connect: List[Tuple[int, int]]):
+    def _ensure_connectivity(self, roles: list[list[str]], must_connect: list[tuple[int, int]]):
         """
         Ensure all critical zones are connected by walkable paths.
 
@@ -413,8 +433,8 @@ class ZonePlanner:
                         roles[zy][zx] = Z_WALK
 
     def _bfs_path(
-        self, roles: List[List[str]], start: Tuple[int, int], goal: Tuple[int, int]
-    ) -> Optional[List[Tuple[int, int]]]:
+        self, roles: list[list[str]], start: tuple[int, int], goal: tuple[int, int]
+    ) -> list[tuple[int, int]] | None:
         """
         Find shortest path between two zones using BFS.
 
@@ -451,7 +471,7 @@ class ZonePlanner:
         return None
 
     def _add_fill_zones(
-        self, room: RoomNode, roles: List[List[str]], must_connect: List[Tuple[int, int]]
+        self, room: RoomNode, roles: list[list[str]], must_connect: list[tuple[int, int]]
     ):
         """
         Add solid fill zones (obstacles) based on room type.
@@ -468,7 +488,9 @@ class ZonePlanner:
 
         # Candidate zones (DECOR zones not critical)
         candidates = [
-            (x, y) for y in range(ZONES_H) for x in range(ZONES_W)
+            (x, y)
+            for y in range(ZONES_H)
+            for x in range(ZONES_W)
             if roles[y][x] == Z_DECOR and (x, y) not in must_connect
         ]
 
@@ -484,7 +506,7 @@ class ZonePlanner:
                 roles[y][x] = Z_DECOR
 
     def _check_connectivity(
-        self, roles: List[List[str]], must_connect: List[Tuple[int, int]]
+        self, roles: list[list[str]], must_connect: list[tuple[int, int]]
     ) -> bool:
         """
         Check if all critical zones are still connected.
@@ -502,8 +524,9 @@ class ZonePlanner:
 
         return True
 
-    def _apply_logic_rules(self, room: RoomNode, zone_grid: List[List[str]],
-                          door_zones: List[Tuple[int, int]]):
+    def _apply_logic_rules(
+        self, room: RoomNode, zone_grid: list[list[str]], door_zones: list[tuple[int, int]]
+    ):
         """
         Apply context-aware logic rules based on room type and connectivity
 
@@ -527,11 +550,13 @@ class ZonePlanner:
             zone_grid=zone_grid,
             neighbor_dirs=neighbor_dirs,
             degree=len(neighbor_dirs),
-            door_zones=door_zones
+            door_zones=door_zones,
         )
 
         # Get rules for this room type
-        room_type_key = room.room_type.value if hasattr(room.room_type, 'value') else str(room.room_type)
+        room_type_key = (
+            room.room_type.value if hasattr(room.room_type, "value") else str(room.room_type)
+        )
         rules = ROOM_LOGIC_RULES.get(room_type_key, [])
 
         # Execute rules
@@ -542,7 +567,7 @@ class ZonePlanner:
         else:
             print(f"[LOGIC RULES] No rules defined for {room_type_key} room")
 
-    def _finalize_zones(self, roles: List[List[str]], room: RoomNode):
+    def _finalize_zones(self, roles: list[list[str]], room: RoomNode):
         """
         Convert remaining DECOR zones to WALK, PLAT, or FILL based on room type.
 
@@ -589,7 +614,7 @@ class ZonePlanner:
                         # Void/empty space
                         roles[y][x] = Z_VOID
 
-    def _get_edge_zones(self, direction: str) -> List[Tuple[int, int]]:
+    def _get_edge_zones(self, direction: str) -> list[tuple[int, int]]:
         """
         Get list of edge zones for a direction.
 
@@ -610,7 +635,7 @@ class ZonePlanner:
         return []
 
 
-def print_zone_grid(roles: List[List[str]]) -> None:
+def print_zone_grid(roles: list[list[str]]) -> None:
     """
     Print ASCII visualization of zone grid (for debugging).
 

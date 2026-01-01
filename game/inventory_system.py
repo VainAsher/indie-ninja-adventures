@@ -12,10 +12,8 @@ This module provides inventory management for entities with:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional
-
 
 # ============================================================
 # Inventory Bounds Constants
@@ -27,6 +25,7 @@ MAX_QUANTITY_PER_OPERATION = 9999  # Maximum items per single operation
 
 class ItemType(Enum):
     """Item category classification"""
+
     WEAPON = "weapon"
     ARMOR = "armor"
     CONSUMABLE = "consumable"
@@ -38,6 +37,7 @@ class ItemType(Enum):
 
 class ItemRarity(Enum):
     """Item rarity for loot tables and value scaling"""
+
     COMMON = "common"
     UNCOMMON = "uncommon"
     RARE = "rare"
@@ -53,6 +53,7 @@ class ItemDefinition:
     Defines all properties of an item type including stats,
     effects, and metadata.
     """
+
     item_id: str
     item_type: ItemType
     rarity: ItemRarity
@@ -70,7 +71,7 @@ class ItemDefinition:
 
     # Consumable effects (if applicable)
     health_restore: int = 0
-    temporary_buff: Optional[str] = None
+    temporary_buff: str | None = None
     buff_duration: float = 0.0
 
 
@@ -81,6 +82,7 @@ class InventorySlot:
 
     Tracks item ID, quantity, and equipped status.
     """
+
     item_id: str
     quantity: int
     equipped: bool = False
@@ -99,15 +101,15 @@ class Inventory:
     """
 
     def __init__(self, max_slots: int = 20):
-        self.slots: List[Optional[InventorySlot]] = [None] * max_slots
+        self.slots: list[InventorySlot | None] = [None] * max_slots
         self.currency: int = 0  # Gold/coins
-        self.equipped_weapon: Optional[str] = None
-        self.equipped_armor: Optional[str] = None
+        self.equipped_weapon: str | None = None
+        self.equipped_armor: str | None = None
 
         # Item database reference (will be set by ItemDatabase)
-        self.item_db: Optional['ItemDatabase'] = None
+        self.item_db: ItemDatabase | None = None
 
-    def set_item_database(self, item_db: 'ItemDatabase'):
+    def set_item_database(self, item_db: "ItemDatabase"):
         """Set reference to item database for stat lookups"""
         self.item_db = item_db
 
@@ -156,9 +158,7 @@ class Inventory:
 
             stack_size = min(quantity, item_def.max_stack)
             self.slots[empty_slot] = InventorySlot(
-                item_id=item_id,
-                quantity=stack_size,
-                equipped=False
+                item_id=item_id, quantity=stack_size, equipped=False
             )
             quantity -= stack_size
 
@@ -307,19 +307,14 @@ class Inventory:
 
         return self.remove_item(item_id, 1)
 
-    def get_total_stats(self) -> Dict[str, float]:
+    def get_total_stats(self) -> dict[str, float]:
         """
         Calculate total stat bonuses from equipped items.
 
         Returns:
             Dictionary with stat totals (attack, defense, speed, max_health)
         """
-        stats = {
-            "attack": 0.0,
-            "defense": 0.0,
-            "speed": 0.0,
-            "max_health": 0
-        }
+        stats = {"attack": 0.0, "defense": 0.0, "speed": 0.0, "max_health": 0}
 
         if self.item_db is None:
             return stats
@@ -372,43 +367,43 @@ class Inventory:
     def to_dict(self) -> dict:
         """Serialize inventory to dictionary"""
         return {
-            'slots': [
-                {
-                    'item_id': slot.item_id,
-                    'quantity': slot.quantity,
-                    'equipped': slot.equipped
-                } if slot is not None else None
+            "slots": [
+                (
+                    {"item_id": slot.item_id, "quantity": slot.quantity, "equipped": slot.equipped}
+                    if slot is not None
+                    else None
+                )
                 for slot in self.slots
             ],
-            'currency': self.currency,
-            'equipped_weapon': self.equipped_weapon,
-            'equipped_armor': self.equipped_armor
+            "currency": self.currency,
+            "equipped_weapon": self.equipped_weapon,
+            "equipped_armor": self.equipped_armor,
         }
 
     @classmethod
-    def from_dict(cls, data: dict, max_slots: int = 20) -> 'Inventory':
+    def from_dict(cls, data: dict, max_slots: int = 20) -> "Inventory":
         """Deserialize inventory from dictionary"""
         inventory = cls(max_slots)
-        inventory.currency = data.get('currency', 0)
-        inventory.equipped_weapon = data.get('equipped_weapon')
-        inventory.equipped_armor = data.get('equipped_armor')
+        inventory.currency = data.get("currency", 0)
+        inventory.equipped_weapon = data.get("equipped_weapon")
+        inventory.equipped_armor = data.get("equipped_armor")
 
-        slots_data = data.get('slots', [])
+        slots_data = data.get("slots", [])
         for i, slot_data in enumerate(slots_data):
             if i >= max_slots:
                 break
             if slot_data is not None:
                 inventory.slots[i] = InventorySlot(
-                    item_id=slot_data['item_id'],
-                    quantity=slot_data['quantity'],
-                    equipped=slot_data.get('equipped', False)
+                    item_id=slot_data["item_id"],
+                    quantity=slot_data["quantity"],
+                    equipped=slot_data.get("equipped", False),
                 )
 
         return inventory
 
     # Private helper methods
 
-    def _find_empty_slot(self) -> Optional[int]:
+    def _find_empty_slot(self) -> int | None:
         """Find first empty inventory slot"""
         for i, slot in enumerate(self.slots):
             if slot is None:
@@ -450,43 +445,43 @@ class ItemDatabase:
     """
 
     def __init__(self):
-        self.items: Dict[str, ItemDefinition] = {}
+        self.items: dict[str, ItemDefinition] = {}
 
     def register_item(self, item_def: ItemDefinition):
         """Register item definition"""
         self.items[item_def.item_id] = item_def
 
-    def get_item(self, item_id: str) -> Optional[ItemDefinition]:
+    def get_item(self, item_id: str) -> ItemDefinition | None:
         """Get item definition by ID"""
         return self.items.get(item_id)
 
-    def get_items_by_type(self, item_type: ItemType) -> List[ItemDefinition]:
+    def get_items_by_type(self, item_type: ItemType) -> list[ItemDefinition]:
         """Get all items of a specific type"""
         return [item for item in self.items.values() if item.item_type == item_type]
 
-    def get_items_by_rarity(self, rarity: ItemRarity) -> List[ItemDefinition]:
+    def get_items_by_rarity(self, rarity: ItemRarity) -> list[ItemDefinition]:
         """Get all items of a specific rarity"""
         return [item for item in self.items.values() if item.rarity == rarity]
 
     def load_from_dict(self, data: dict):
         """Load item database from dictionary (from JSON)"""
-        for item_data in data.get('items', []):
+        for item_data in data.get("items", []):
             item_def = ItemDefinition(
-                item_id=item_data['item_id'],
-                item_type=ItemType(item_data['item_type']),
-                rarity=ItemRarity(item_data['rarity']),
-                display_name=item_data['display_name'],
-                description=item_data['description'],
-                max_stack=item_data.get('max_stack', 1),
-                value=item_data.get('value', 0),
-                consumable=item_data.get('consumable', False),
-                attack_bonus=item_data.get('attack_bonus', 0),
-                defense_bonus=item_data.get('defense_bonus', 0),
-                speed_bonus=item_data.get('speed_bonus', 0.0),
-                health_bonus=item_data.get('health_bonus', 0),
-                health_restore=item_data.get('health_restore', 0),
-                temporary_buff=item_data.get('temporary_buff'),
-                buff_duration=item_data.get('buff_duration', 0.0)
+                item_id=item_data["item_id"],
+                item_type=ItemType(item_data["item_type"]),
+                rarity=ItemRarity(item_data["rarity"]),
+                display_name=item_data["display_name"],
+                description=item_data["description"],
+                max_stack=item_data.get("max_stack", 1),
+                value=item_data.get("value", 0),
+                consumable=item_data.get("consumable", False),
+                attack_bonus=item_data.get("attack_bonus", 0),
+                defense_bonus=item_data.get("defense_bonus", 0),
+                speed_bonus=item_data.get("speed_bonus", 0.0),
+                health_bonus=item_data.get("health_bonus", 0),
+                health_restore=item_data.get("health_restore", 0),
+                temporary_buff=item_data.get("temporary_buff"),
+                buff_duration=item_data.get("buff_duration", 0.0),
             )
             self.register_item(item_def)
 
@@ -495,7 +490,7 @@ class ItemDatabase:
 # Global Item Manager Instance
 # ============================================================
 
-_item_manager: Optional[ItemDatabase] = None
+_item_manager: ItemDatabase | None = None
 
 
 def initialize_item_manager():
@@ -504,6 +499,6 @@ def initialize_item_manager():
     _item_manager = ItemDatabase()
 
 
-def get_item_manager() -> Optional[ItemDatabase]:
+def get_item_manager() -> ItemDatabase | None:
     """Get the global item manager instance"""
     return _item_manager

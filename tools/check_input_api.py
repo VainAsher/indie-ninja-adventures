@@ -10,15 +10,14 @@ Allowed files: demo_game.py (entry point) and network/input_pipeline.py (input w
 import sys
 from pathlib import Path
 
-
 ALLOWED = {
     Path("demo_game.py").resolve(),
     Path("network/input_pipeline.py").resolve(),
-    Path("ui/menu_system.py").resolve(),        # interface docs mention get_pressed
-    Path("ui/tutorial_system.py").resolve(),    # interface docs mention get_pressed
-    Path("entities/player.py").resolve(),       # docstring references get_pressed
-    Path("legacy/main.py").resolve(),           # legacy entrypoint
-    Path(__file__).resolve(),                   # this checker references get_pressed
+    Path("ui/menu_system.py").resolve(),  # interface docs mention get_pressed
+    Path("ui/tutorial_system.py").resolve(),  # interface docs mention get_pressed
+    Path("entities/player.py").resolve(),  # docstring references get_pressed
+    Path("legacy/main.py").resolve(),  # legacy entrypoint
+    Path(__file__).resolve(),  # this checker references get_pressed
 }
 
 

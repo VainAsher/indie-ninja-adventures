@@ -11,18 +11,19 @@ This module provides portal entities for hub navigation:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
-from enum import Enum
-import pygame
 import math
+from dataclasses import dataclass
+from enum import Enum
+
+import pygame
 
 from core import EventBus
 
 
 class PortalType(Enum):
     """Portal destination types"""
-    HUB = "hub"        # Travel to another hub
+
+    HUB = "hub"  # Travel to another hub
     MISSION = "mission"  # Travel to mission (one-way)
 
 
@@ -33,6 +34,7 @@ class Portal:
 
     Represents an active portal with position, destination, and state.
     """
+
     portal_id: str
     portal_type: PortalType
     destination_id: str  # Hub ID or mission ID
@@ -42,7 +44,7 @@ class Portal:
     height: int = 64
 
     # Visual properties
-    color: Tuple[int, int, int] = (100, 200, 255)  # Default blue
+    color: tuple[int, int, int] = (100, 200, 255)  # Default blue
     pulse_speed: float = 2.0  # Oscillations per second
     pulse_timer: float = 0.0
 
@@ -53,7 +55,7 @@ class Portal:
 
     # Lock state (for progression-gated portals)
     is_locked: bool = False
-    unlock_requirements: List[str] = None  # List of required abilities/items
+    unlock_requirements: list[str] = None  # List of required abilities/items
 
     def get_rect(self) -> pygame.Rect:
         """Get portal bounding box"""
@@ -64,15 +66,11 @@ class Portal:
         radius = int(self.interaction_radius)
         center_x = int(self.x + self.width / 2)
         center_y = int(self.y + self.height / 2)
-        return pygame.Rect(
-            center_x - radius,
-            center_y - radius,
-            radius * 2,
-            radius * 2
-        )
+        return pygame.Rect(center_x - radius, center_y - radius, radius * 2, radius * 2)
 
-    def can_interact_with_player(self, player_x: float, player_y: float,
-                                 player_width: int, player_height: int) -> bool:
+    def can_interact_with_player(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> bool:
         """
         Check if player is in interaction range.
 
@@ -123,7 +121,7 @@ class Portal:
         # Sine wave oscillation
         return 0.5 + 0.5 * math.sin(self.pulse_timer * 2 * math.pi)
 
-    def get_color_with_pulse(self) -> Tuple[int, int, int, int]:
+    def get_color_with_pulse(self) -> tuple[int, int, int, int]:
         """
         Get current color with pulse effect applied.
 
@@ -140,12 +138,12 @@ class Portal:
 
 PORTAL_COLORS = {
     "central": (200, 200, 200),  # Gray (neutral)
-    "forest": (50, 200, 50),     # Green
-    "town": (100, 150, 255),     # Blue
-    "caves": (200, 100, 255),    # Purple
-    "castle": (255, 100, 100),   # Red
-    "sewer": (100, 255, 100),    # Lime (toxic)
-    "mission": (255, 200, 50),   # Gold
+    "forest": (50, 200, 50),  # Green
+    "town": (100, 150, 255),  # Blue
+    "caves": (200, 100, 255),  # Purple
+    "castle": (255, 100, 100),  # Red
+    "sewer": (100, 255, 100),  # Lime (toxic)
+    "mission": (255, 200, 50),  # Gold
 }
 
 
@@ -153,9 +151,11 @@ PORTAL_COLORS = {
 # Portal Events
 # ============================================================
 
+
 @dataclass
 class PortalInteractionEvent:
     """Event emitted when player interacts with portal"""
+
     portal_id: str
     portal_type: PortalType
     destination_id: str
@@ -165,6 +165,7 @@ class PortalInteractionEvent:
 @dataclass
 class PortalTravelEvent:
     """Event emitted to initiate travel through portal"""
+
     portal_id: str
     destination_id: str
     portal_type: PortalType
@@ -174,6 +175,7 @@ class PortalTravelEvent:
 # ============================================================
 # Portal Manager
 # ============================================================
+
 
 class PortalManager:
     """
@@ -190,12 +192,18 @@ class PortalManager:
             event_bus: Event bus for emitting events
         """
         self.event_bus = event_bus
-        self.portals: List[Portal] = []
+        self.portals: list[Portal] = []
 
-    def spawn_portal(self, portal_id: str, portal_type: PortalType,
-                    destination_id: str, x: float, y: float,
-                    bidirectional: bool = True,
-                    color: Optional[Tuple[int, int, int]] = None) -> Portal:
+    def spawn_portal(
+        self,
+        portal_id: str,
+        portal_type: PortalType,
+        destination_id: str,
+        x: float,
+        y: float,
+        bidirectional: bool = True,
+        color: tuple[int, int, int] | None = None,
+    ) -> Portal:
         """
         Spawn a portal instance.
 
@@ -219,7 +227,9 @@ class PortalManager:
                     color = PORTAL_COLORS[region_key]
                     break
             if color is None:
-                color = PORTAL_COLORS.get("mission" if portal_type == PortalType.MISSION else "central")
+                color = PORTAL_COLORS.get(
+                    "mission" if portal_type == PortalType.MISSION else "central"
+                )
 
         portal = Portal(
             portal_id=portal_id,
@@ -228,7 +238,7 @@ class PortalManager:
             x=x,
             y=y,
             color=color,
-            bidirectional=bidirectional
+            bidirectional=bidirectional,
         )
 
         self.portals.append(portal)
@@ -248,9 +258,14 @@ class PortalManager:
         for portal in self.portals:
             portal.update(dt)
 
-    def check_interaction(self, player_x: float, player_y: float,
-                         player_width: int, player_height: int,
-                         player_id: int = 0) -> Optional[Portal]:
+    def check_interaction(
+        self,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        player_id: int = 0,
+    ) -> Portal | None:
         """
         Check if player can interact with any portal.
 
@@ -280,29 +295,33 @@ class PortalManager:
             player_id: Player ID
         """
         # Emit interaction event
-        self.event_bus.emit(PortalInteractionEvent(
-            portal_id=portal.portal_id,
-            portal_type=portal.portal_type,
-            destination_id=portal.destination_id,
-            player_id=player_id
-        ))
+        self.event_bus.emit(
+            PortalInteractionEvent(
+                portal_id=portal.portal_id,
+                portal_type=portal.portal_type,
+                destination_id=portal.destination_id,
+                player_id=player_id,
+            )
+        )
 
         # Emit travel event
-        self.event_bus.emit(PortalTravelEvent(
-            portal_id=portal.portal_id,
-            destination_id=portal.destination_id,
-            portal_type=portal.portal_type,
-            player_id=player_id
-        ))
+        self.event_bus.emit(
+            PortalTravelEvent(
+                portal_id=portal.portal_id,
+                destination_id=portal.destination_id,
+                portal_type=portal.portal_type,
+                player_id=player_id,
+            )
+        )
 
-    def get_portal_by_id(self, portal_id: str) -> Optional[Portal]:
+    def get_portal_by_id(self, portal_id: str) -> Portal | None:
         """Get portal by ID"""
         for portal in self.portals:
             if portal.portal_id == portal_id:
                 return portal
         return None
 
-    def lock_portal(self, portal_id: str, requirements: List[str]):
+    def lock_portal(self, portal_id: str, requirements: list[str]):
         """
         Lock a portal with requirements.
 
@@ -327,9 +346,9 @@ class PortalManager:
             portal.is_locked = False
             portal.unlock_requirements = None
 
-    def check_portal_unlocked(self, portal_id: str,
-                             unlocked_abilities: set,
-                             owned_items: set) -> bool:
+    def check_portal_unlocked(
+        self, portal_id: str, unlocked_abilities: set, owned_items: set
+    ) -> bool:
         """
         Check if portal is unlocked for player.
 
@@ -358,8 +377,9 @@ class PortalManager:
 
         return True
 
-    def get_nearby_portals(self, player_x: float, player_y: float,
-                          player_width: int, player_height: int) -> List[Portal]:
+    def get_nearby_portals(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> list[Portal]:
         """
         Get all portals in interaction range of player.
 
@@ -383,6 +403,7 @@ class PortalManager:
 # Portal Rendering Helper
 # ============================================================
 
+
 def draw_portal(surface: pygame.Surface, portal: Portal, camera_x: int, camera_y: int):
     """
     Draw a portal to the surface.
@@ -404,14 +425,11 @@ def draw_portal(surface: pygame.Surface, portal: Portal, camera_x: int, camera_y
     glow_radius = int(portal.width / 2 * 1.5)
     glow_surface = pygame.Surface((glow_radius * 2, glow_radius * 2), pygame.SRCALPHA)
     glow_color = (*portal.color, int(color_with_alpha[3] * 0.3))
-    pygame.draw.circle(
+    pygame.draw.circle(glow_surface, glow_color, (glow_radius, glow_radius), glow_radius)
+    surface.blit(
         glow_surface,
-        glow_color,
-        (glow_radius, glow_radius),
-        glow_radius
+        (screen_x - glow_radius + portal.width // 2, screen_y - glow_radius + portal.height // 2),
     )
-    surface.blit(glow_surface, (screen_x - glow_radius + portal.width // 2,
-                                screen_y - glow_radius + portal.height // 2))
 
     # Draw main portal circle
     portal_radius = int(portal.width / 2)
@@ -433,6 +451,6 @@ def draw_portal(surface: pygame.Surface, portal: Portal, camera_x: int, camera_y
             screen_x + portal_radius - lock_size // 2,
             screen_y + portal_radius - lock_size // 2,
             lock_size,
-            lock_size
+            lock_size,
         )
         pygame.draw.rect(surface, lock_color, lock_rect, 3)

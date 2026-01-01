@@ -12,51 +12,55 @@ Version: v0.6.0
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
 
-from game.mission_registry import MissionObjective, ObjectiveType, get_mission_registry
 from core import EventBus
 from core.event_bus import TickEvent
-
+from game.mission_registry import ObjectiveType, get_mission_registry
 
 # ============================================================
 # Objective Events (to subscribe to)
 # ============================================================
 
+
 @dataclass
 class EnemyDeathEvent:
     """Event emitted when enemy dies"""
+
     enemy_id: str
     enemy_type: str
-    position: Tuple[float, float]
+    position: tuple[float, float]
 
 
 @dataclass
 class ItemCollectedEvent:
     """Event emitted when item is collected"""
+
     item_id: str
     quantity: int
-    position: Tuple[float, float]
+    position: tuple[float, float]
 
 
 @dataclass
 class SwitchActivatedEvent:
     """Event emitted when switch is activated"""
+
     switch_id: str
-    position: Tuple[float, float]
+    position: tuple[float, float]
 
 
 @dataclass
 class BossDeathEvent:
     """Event emitted when boss dies"""
+
     boss_id: str
     boss_type: str
-    position: Tuple[float, float]
+    position: tuple[float, float]
 
 
 @dataclass
 class PlayerPositionUpdateEvent:
     """Event emitted when player moves (for reach location objectives)"""
+
     player_x: float
     player_y: float
 
@@ -65,6 +69,7 @@ class PlayerPositionUpdateEvent:
 # Objective State Tracking
 # ============================================================
 
+
 @dataclass
 class ObjectiveState:
     """
@@ -72,22 +77,23 @@ class ObjectiveState:
 
     Tracks progress towards objective completion.
     """
+
     objective_id: str
     objective_type: ObjectiveType
     target_value: int  # Target count (enemies to kill, items to collect, etc.)
-    location_id: Optional[str] = None
-    item_id: Optional[str] = None
-    boss_id: Optional[str] = None
+    location_id: str | None = None
+    item_id: str | None = None
+    boss_id: str | None = None
     current_value: int = 0  # Current progress
     is_complete: bool = False
 
     # Type-specific tracking
-    tracked_entity_ids: Set[str] = field(default_factory=set)  # For switches, specific enemies
-    target_position: Optional[Tuple[float, float]] = None  # For reach location
+    tracked_entity_ids: set[str] = field(default_factory=set)  # For switches, specific enemies
+    target_position: tuple[float, float] | None = None  # For reach location
     target_radius: float = 100.0  # For reach location
 
     # Time challenge tracking
-    time_limit_seconds: Optional[float] = None
+    time_limit_seconds: float | None = None
     elapsed_time: float = 0.0
 
     def update_progress(self, increment: int = 1) -> bool:
@@ -145,7 +151,7 @@ class ObjectiveState:
 
         return self.elapsed_time > self.time_limit_seconds
 
-    def get_remaining_time(self) -> Optional[float]:
+    def get_remaining_time(self) -> float | None:
         """Get remaining time for time challenge"""
         if self.time_limit_seconds is None:
             return None
@@ -164,6 +170,7 @@ class ObjectiveState:
 # Objective Tracker
 # ============================================================
 
+
 class ObjectiveTracker:
     """
     Tracks objectives for active mission.
@@ -179,8 +186,8 @@ class ObjectiveTracker:
             event_bus: Event bus for subscribing to events
         """
         self.event_bus = event_bus
-        self.active_mission_id: Optional[str] = None
-        self.objectives: Dict[str, ObjectiveState] = {}
+        self.active_mission_id: str | None = None
+        self.objectives: dict[str, ObjectiveState] = {}
 
         # Subscribe to events
         self._subscribe_to_events()
@@ -220,7 +227,9 @@ class ObjectiveTracker:
             obj_id = f"{mission_id}_obj_{i}"
 
             # Derive target count from mission data (supports multiple schema variants)
-            base_target = obj_def.count if getattr(obj_def, "count", None) is not None else obj_def.target
+            base_target = (
+                obj_def.count if getattr(obj_def, "count", None) is not None else obj_def.target
+            )
             target_value = base_target if base_target is not None else 1
 
             obj_state = ObjectiveState(
@@ -229,7 +238,7 @@ class ObjectiveTracker:
                 target_value=target_value,
                 location_id=obj_def.location,
                 item_id=obj_def.item,
-                boss_id=obj_def.boss
+                boss_id=obj_def.boss,
             )
 
             # Type-specific initialization
@@ -258,9 +267,12 @@ class ObjectiveTracker:
         self.active_mission_id = None
         self.objectives.clear()
 
-    def set_location_targets(self, targets: Dict[str, Tuple[float, float]],
-                             default_radius: float = 100.0,
-                             fallback_id: Optional[str] = None):
+    def set_location_targets(
+        self,
+        targets: dict[str, tuple[float, float]],
+        default_radius: float = 100.0,
+        fallback_id: str | None = None,
+    ):
         """
         Resolve reach-location objectives to concrete positions.
 
@@ -283,15 +295,15 @@ class ObjectiveTracker:
                 obj.target_position = target_pos
                 obj.target_radius = default_radius
 
-    def get_active_objectives(self) -> List[ObjectiveState]:
+    def get_active_objectives(self) -> list[ObjectiveState]:
         """Get list of active objectives"""
         return list(self.objectives.values())
 
-    def get_incomplete_objectives(self) -> List[ObjectiveState]:
+    def get_incomplete_objectives(self) -> list[ObjectiveState]:
         """Get list of incomplete objectives"""
         return [obj for obj in self.objectives.values() if not obj.is_complete]
 
-    def get_complete_objectives(self) -> List[ObjectiveState]:
+    def get_complete_objectives(self) -> list[ObjectiveState]:
         """Get list of complete objectives"""
         return [obj for obj in self.objectives.values() if obj.is_complete]
 
@@ -301,7 +313,7 @@ class ObjectiveTracker:
             return False
         return all(obj.is_complete for obj in self.objectives.values())
 
-    def get_objective_progress(self, objective_id: str) -> Optional[ObjectiveState]:
+    def get_objective_progress(self, objective_id: str) -> ObjectiveState | None:
         """Get objective state by ID"""
         return self.objectives.get(objective_id)
 
@@ -322,7 +334,7 @@ class ObjectiveTracker:
 
                 if obj.check_time_limit():
                     # Time limit exceeded
-                    print(f"[OBJECTIVE] Time limit exceeded!")
+                    print("[OBJECTIVE] Time limit exceeded!")
                     # Note: Mission manager should handle failure
 
     def _on_tick(self, event: TickEvent):
@@ -427,7 +439,7 @@ class ObjectiveTracker:
 
         if mission_def:
             # Find objective definition
-            obj_index = int(obj.objective_id.split('_')[-1])
+            obj_index = int(obj.objective_id.split("_")[-1])
             if obj_index < len(mission_def.objectives):
                 obj_def = mission_def.objectives[obj_index]
                 description = obj_def.description
@@ -445,9 +457,7 @@ class ObjectiveTracker:
         mission_manager = get_mission_manager()
         if mission_manager:
             mission_manager.complete_objective(
-                self.active_mission_id,
-                obj.objective_id,
-                description
+                self.active_mission_id, obj.objective_id, description
             )
 
             # Check if all objectives complete
@@ -458,6 +468,7 @@ class ObjectiveTracker:
 # ============================================================
 # Objective Display Helpers
 # ============================================================
+
 
 def get_objective_display_text(objective: ObjectiveState, mission_id: str) -> str:
     """
@@ -478,7 +489,7 @@ def get_objective_display_text(objective: ObjectiveState, mission_id: str) -> st
         return "Unknown objective"
 
     # Find objective definition
-    obj_index = int(objective.objective_id.split('_')[-1])
+    obj_index = int(objective.objective_id.split("_")[-1])
     if obj_index >= len(mission_def.objectives):
         return "Unknown objective"
 
@@ -528,7 +539,7 @@ def get_objective_icon(objective_type: ObjectiveType) -> str:
         ObjectiveType.ACTIVATE_SWITCHES: "[S]",
         ObjectiveType.REACH_LOCATION: "[->]",
         ObjectiveType.TIME_CHALLENGE: "[T]",
-        ObjectiveType.DEFEAT_BOSS: "[B]"
+        ObjectiveType.DEFEAT_BOSS: "[B]",
     }
 
     return icons.get(objective_type, "[?]")
@@ -538,7 +549,7 @@ def get_objective_icon(objective_type: ObjectiveType) -> str:
 # Global Objective Tracker Instance
 # ============================================================
 
-_objective_tracker: Optional[ObjectiveTracker] = None
+_objective_tracker: ObjectiveTracker | None = None
 
 
 def initialize_objective_tracker(event_bus: EventBus):
@@ -547,6 +558,6 @@ def initialize_objective_tracker(event_bus: EventBus):
     _objective_tracker = ObjectiveTracker(event_bus)
 
 
-def get_objective_tracker() -> Optional[ObjectiveTracker]:
+def get_objective_tracker() -> ObjectiveTracker | None:
     """Get the global objective tracker instance"""
     return _objective_tracker

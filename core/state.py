@@ -9,16 +9,16 @@ Provides data structures for complete game state with:
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+
 import pygame
 
 # Import health system
 from game.health_system import HealthState
 
-
 # ============================================================================
 # Physics State
 # ============================================================================
+
 
 @dataclass
 class PhysicsState:
@@ -27,6 +27,7 @@ class PhysicsState:
 
     Contains position, velocity, and collision state for deterministic physics.
     """
+
     x: float
     y: float
     vx: float
@@ -42,19 +43,19 @@ class PhysicsState:
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
-            'x': self.x,
-            'y': self.y,
-            'vx': self.vx,
-            'vy': self.vy,
-            'width': self.width,
-            'height': self.height,
-            'on_ground': self.on_ground,
-            'on_wall': self.on_wall,
-            'wall_dir': self.wall_dir
+            "x": self.x,
+            "y": self.y,
+            "vx": self.vx,
+            "vy": self.vy,
+            "width": self.width,
+            "height": self.height,
+            "on_ground": self.on_ground,
+            "on_wall": self.on_wall,
+            "wall_dir": self.wall_dir,
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'PhysicsState':
+    def from_dict(cls, data: dict) -> "PhysicsState":
         """Deserialize from dictionary"""
         return cls(**data)
 
@@ -77,6 +78,7 @@ class PhysicsState:
 # Player State
 # ============================================================================
 
+
 @dataclass
 class PlayerState:
     """
@@ -85,6 +87,7 @@ class PlayerState:
     Contains all player data needed for deterministic simulation and
     network synchronization.
     """
+
     player_id: int
     physics: PhysicsState
 
@@ -150,104 +153,106 @@ class PlayerState:
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
-            'player_id': self.player_id,
-            'physics': self.physics.to_dict(),
-            'health_state': {
-                'current_hp': self.health_state.current_hp,
-                'max_hp': self.health_state.max_hp,
-                'invincibility_frames': self.health_state.invincibility_frames,
-                'invincibility_duration': self.health_state.invincibility_duration
+            "player_id": self.player_id,
+            "physics": self.physics.to_dict(),
+            "health_state": {
+                "current_hp": self.health_state.current_hp,
+                "max_hp": self.health_state.max_hp,
+                "invincibility_frames": self.health_state.invincibility_frames,
+                "invincibility_duration": self.health_state.invincibility_duration,
             },
-            'facing': self.facing,
-            'crouching': self.crouching,
-            'is_dashing': self.is_dashing,
-            'is_throwing': self.is_throwing,
-            'throw_cooldown': self.throw_cooldown,
-            'is_slow_walking': self.is_slow_walking,
-            'is_running': self.is_running,
-            'attack_stage': self.attack_stage,
-            'attack_timer': self.attack_timer,
-            'is_air_attacking': self.is_air_attacking,
-            'is_teleporting_phase': self.is_teleporting_phase,
-            'teleport_cooldown': self.teleport_cooldown,
-            'teleport_cast_time': self.teleport_cast_time,
-            'is_teleporting_invuln': self.is_teleporting_invuln,
-            'ninjutsu_active': self.ninjutsu_active,
-            'ninjutsu_casting': self.ninjutsu_casting,
-            'ninjutsu_selected': self.ninjutsu_selected,
-            'ninjutsu_cooldowns': self.ninjutsu_cooldowns,
-            'stamina': self.stamina,
-            'stamina_max': self.stamina_max,
-            'stamina_regen_rate': self.stamina_regen_rate,
-            'mana': self.mana,
-            'mana_max': self.mana_max,
-            'mana_regen_rate': self.mana_regen_rate,
-            'shuriken_ammo': self.shuriken_ammo,
-            'shuriken_max': self.shuriken_max,
-            'coyote_time': self.coyote_time,
-            'jump_buffer_time': self.jump_buffer_time,
-            'dash_cooldown': self.dash_cooldown,
-            'dash_time': self.dash_time,
-            'wall_jump_lock': self.wall_jump_lock,
-            'jumps_left': self.jumps_left,
-            'max_jumps': self.max_jumps,
-            'wall_slide_stamina': self.wall_slide_stamina,
-            'wall_slide_stamina_max': self.wall_slide_stamina_max,
-            'is_wall_sliding': self.is_wall_sliding,
-            'wall_coyote_time': self.wall_coyote_time,
-            'is_wall_hanging': self.is_wall_hanging,
-            'is_ceiling_hanging': self.is_ceiling_hanging,
-            'last_wall_dir': self.last_wall_dir
+            "facing": self.facing,
+            "crouching": self.crouching,
+            "is_dashing": self.is_dashing,
+            "is_throwing": self.is_throwing,
+            "throw_cooldown": self.throw_cooldown,
+            "is_slow_walking": self.is_slow_walking,
+            "is_running": self.is_running,
+            "attack_stage": self.attack_stage,
+            "attack_timer": self.attack_timer,
+            "is_air_attacking": self.is_air_attacking,
+            "is_teleporting_phase": self.is_teleporting_phase,
+            "teleport_cooldown": self.teleport_cooldown,
+            "teleport_cast_time": self.teleport_cast_time,
+            "is_teleporting_invuln": self.is_teleporting_invuln,
+            "ninjutsu_active": self.ninjutsu_active,
+            "ninjutsu_casting": self.ninjutsu_casting,
+            "ninjutsu_selected": self.ninjutsu_selected,
+            "ninjutsu_cooldowns": self.ninjutsu_cooldowns,
+            "stamina": self.stamina,
+            "stamina_max": self.stamina_max,
+            "stamina_regen_rate": self.stamina_regen_rate,
+            "mana": self.mana,
+            "mana_max": self.mana_max,
+            "mana_regen_rate": self.mana_regen_rate,
+            "shuriken_ammo": self.shuriken_ammo,
+            "shuriken_max": self.shuriken_max,
+            "coyote_time": self.coyote_time,
+            "jump_buffer_time": self.jump_buffer_time,
+            "dash_cooldown": self.dash_cooldown,
+            "dash_time": self.dash_time,
+            "wall_jump_lock": self.wall_jump_lock,
+            "jumps_left": self.jumps_left,
+            "max_jumps": self.max_jumps,
+            "wall_slide_stamina": self.wall_slide_stamina,
+            "wall_slide_stamina_max": self.wall_slide_stamina_max,
+            "is_wall_sliding": self.is_wall_sliding,
+            "wall_coyote_time": self.wall_coyote_time,
+            "is_wall_hanging": self.is_wall_hanging,
+            "is_ceiling_hanging": self.is_ceiling_hanging,
+            "last_wall_dir": self.last_wall_dir,
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'PlayerState':
+    def from_dict(cls, data: dict) -> "PlayerState":
         """Deserialize from dictionary"""
-        physics_data = data.pop('physics')
-        wall_coyote_time = data.pop('wall_coyote_time', 0.0)
-        is_wall_hanging = data.pop('is_wall_hanging', False)
-        is_ceiling_hanging = data.pop('is_ceiling_hanging', False)
-        wall_slide_stamina_max = data.pop('wall_slide_stamina_max', data.get('wall_slide_stamina', 3.0))
+        physics_data = data.pop("physics")
+        wall_coyote_time = data.pop("wall_coyote_time", 0.0)
+        is_wall_hanging = data.pop("is_wall_hanging", False)
+        is_ceiling_hanging = data.pop("is_ceiling_hanging", False)
+        wall_slide_stamina_max = data.pop(
+            "wall_slide_stamina_max", data.get("wall_slide_stamina", 3.0)
+        )
         # Resource defaults
-        stamina = data.pop('stamina', 0.0)
-        stamina_max = data.pop('stamina_max', 0.0)
-        stamina_regen_rate = data.pop('stamina_regen_rate', 0.0)
-        mana = data.pop('mana', 0.0)
-        mana_max = data.pop('mana_max', 0.0)
-        mana_regen_rate = data.pop('mana_regen_rate', 0.0)
-        shuriken_ammo = data.pop('shuriken_ammo', 0)
-        shuriken_max = data.pop('shuriken_max', 0)
-        is_slow_walking = data.pop('is_slow_walking', False)
-        is_running = data.pop('is_running', False)
-        is_teleporting_phase = data.pop('is_teleporting_phase', False)
-        teleport_cooldown = data.pop('teleport_cooldown', 0.0)
-        teleport_cast_time = data.pop('teleport_cast_time', 0.0)
-        is_teleporting_invuln = data.pop('is_teleporting_invuln', False)
-        ninjutsu_active = data.pop('ninjutsu_active', False)
-        ninjutsu_casting = data.pop('ninjutsu_casting', False)
-        ninjutsu_selected = data.pop('ninjutsu_selected', "")
-        ninjutsu_cooldowns = data.pop('ninjutsu_cooldowns', {})
-        is_throwing = data.pop('is_throwing', False)
-        throw_cooldown = data.pop('throw_cooldown', 0.0)
-        attack_stage = data.pop('attack_stage', 0)
-        attack_timer = data.pop('attack_timer', 0.0)
-        is_air_attacking = data.pop('is_air_attacking', False)
+        stamina = data.pop("stamina", 0.0)
+        stamina_max = data.pop("stamina_max", 0.0)
+        stamina_regen_rate = data.pop("stamina_regen_rate", 0.0)
+        mana = data.pop("mana", 0.0)
+        mana_max = data.pop("mana_max", 0.0)
+        mana_regen_rate = data.pop("mana_regen_rate", 0.0)
+        shuriken_ammo = data.pop("shuriken_ammo", 0)
+        shuriken_max = data.pop("shuriken_max", 0)
+        is_slow_walking = data.pop("is_slow_walking", False)
+        is_running = data.pop("is_running", False)
+        is_teleporting_phase = data.pop("is_teleporting_phase", False)
+        teleport_cooldown = data.pop("teleport_cooldown", 0.0)
+        teleport_cast_time = data.pop("teleport_cast_time", 0.0)
+        is_teleporting_invuln = data.pop("is_teleporting_invuln", False)
+        ninjutsu_active = data.pop("ninjutsu_active", False)
+        ninjutsu_casting = data.pop("ninjutsu_casting", False)
+        ninjutsu_selected = data.pop("ninjutsu_selected", "")
+        ninjutsu_cooldowns = data.pop("ninjutsu_cooldowns", {})
+        is_throwing = data.pop("is_throwing", False)
+        throw_cooldown = data.pop("throw_cooldown", 0.0)
+        attack_stage = data.pop("attack_stage", 0)
+        attack_timer = data.pop("attack_timer", 0.0)
+        is_air_attacking = data.pop("is_air_attacking", False)
 
         # Handle health state (with backwards compatibility)
-        if 'health_state' in data:
+        if "health_state" in data:
             # New format with HealthState
-            health_data = data.pop('health_state')
+            health_data = data.pop("health_state")
             health_state = HealthState(
-                current_hp=health_data.get('current_hp', 3),
-                max_hp=health_data.get('max_hp', 3),
-                invincibility_frames=health_data.get('invincibility_frames', 0),
-                invincibility_duration=health_data.get('invincibility_duration', 60)
+                current_hp=health_data.get("current_hp", 3),
+                max_hp=health_data.get("max_hp", 3),
+                invincibility_frames=health_data.get("invincibility_frames", 0),
+                invincibility_duration=health_data.get("invincibility_duration", 60),
             )
         else:
             # Old format with primitive health fields - migrate to HealthState
-            old_health = data.pop('health', 5)
-            old_max_health = data.pop('max_health', 5)
-            old_invincibility_time = data.pop('invincibility_time', 0.0)
+            old_health = data.pop("health", 5)
+            old_max_health = data.pop("max_health", 5)
+            old_invincibility_time = data.pop("invincibility_time", 0.0)
 
             # Convert invincibility_time (float seconds) to frames (int)
             # Assuming 60 FPS: frames = time * 60
@@ -257,7 +262,7 @@ class PlayerState:
                 current_hp=old_health,
                 max_hp=old_max_health,
                 invincibility_frames=invincibility_frames,
-                invincibility_duration=60
+                invincibility_duration=60,
             )
 
         return cls(
@@ -287,11 +292,11 @@ class PlayerState:
             throw_cooldown=throw_cooldown,
             is_slow_walking=is_slow_walking,
             is_running=is_running,
-            last_wall_dir=data.pop('last_wall_dir', 0),
+            last_wall_dir=data.pop("last_wall_dir", 0),
             attack_stage=attack_stage,
             attack_timer=attack_timer,
             is_air_attacking=is_air_attacking,
-            **data
+            **data,
         )
 
     def is_alive(self) -> bool:
@@ -307,6 +312,7 @@ class PlayerState:
 # Game State
 # ============================================================================
 
+
 @dataclass
 class GameState:
     """
@@ -315,13 +321,14 @@ class GameState:
     Contains all game data needed for deterministic simulation,
     network synchronization, and save/load.
     """
+
     tick_number: int = 0
     level_index: int = 1
     total_score: int = 0
     game_time: float = 0.0
 
     # Player states (indexed by player_id)
-    players: Dict[int, PlayerState] = field(default_factory=dict)
+    players: dict[int, PlayerState] = field(default_factory=dict)
 
     # Level state
     coins_collected: int = 0
@@ -330,56 +337,51 @@ class GameState:
 
     # Pickup positions (for respawn/network sync)
     # Stored as (x, y) tuples
-    active_coins: List[Tuple[float, float]] = field(default_factory=list)
-    active_healths: List[Tuple[float, float]] = field(default_factory=list)
-    active_lives: List[Tuple[float, float]] = field(default_factory=list)
+    active_coins: list[tuple[float, float]] = field(default_factory=list)
+    active_healths: list[tuple[float, float]] = field(default_factory=list)
+    active_lives: list[tuple[float, float]] = field(default_factory=list)
 
     # Level metadata
-    level_seed: Optional[int] = None
+    level_seed: int | None = None
     level_width: int = 0
     level_height: int = 0
 
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
-            'tick_number': self.tick_number,
-            'level_index': self.level_index,
-            'total_score': self.total_score,
-            'game_time': self.game_time,
-            'players': {pid: p.to_dict() for pid, p in self.players.items()},
-            'coins_collected': self.coins_collected,
-            'total_coins': self.total_coins,
-            'exit_unlocked': self.exit_unlocked,
-            'active_coins': self.active_coins,
-            'active_healths': self.active_healths,
-            'active_lives': self.active_lives,
-            'level_seed': self.level_seed,
-            'level_width': self.level_width,
-            'level_height': self.level_height
+            "tick_number": self.tick_number,
+            "level_index": self.level_index,
+            "total_score": self.total_score,
+            "game_time": self.game_time,
+            "players": {pid: p.to_dict() for pid, p in self.players.items()},
+            "coins_collected": self.coins_collected,
+            "total_coins": self.total_coins,
+            "exit_unlocked": self.exit_unlocked,
+            "active_coins": self.active_coins,
+            "active_healths": self.active_healths,
+            "active_lives": self.active_lives,
+            "level_seed": self.level_seed,
+            "level_width": self.level_width,
+            "level_height": self.level_height,
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'GameState':
+    def from_dict(cls, data: dict) -> "GameState":
         """Deserialize from dictionary"""
-        players_data = data.pop('players')
+        players_data = data.pop("players")
         players = {int(pid): PlayerState.from_dict(p) for pid, p in players_data.items()}
         return cls(players=players, **data)
 
-    def get_player(self, player_id: int) -> Optional[PlayerState]:
+    def get_player(self, player_id: int) -> PlayerState | None:
         """Get player state by ID"""
         return self.players.get(player_id)
 
-    def add_player(self, player_id: int, spawn_x: float, spawn_y: float,
-                   width: int = 24, height: int = 48):
+    def add_player(
+        self, player_id: int, spawn_x: float, spawn_y: float, width: int = 24, height: int = 48
+    ):
         """Add player to game state"""
-        physics = PhysicsState(
-            x=spawn_x, y=spawn_y, vx=0.0, vy=0.0,
-            width=width, height=height
-        )
-        self.players[player_id] = PlayerState(
-            player_id=player_id,
-            physics=physics
-        )
+        physics = PhysicsState(x=spawn_x, y=spawn_y, vx=0.0, vy=0.0, width=width, height=height)
+        self.players[player_id] = PlayerState(player_id=player_id, physics=physics)
 
     def remove_player(self, player_id: int):
         """Remove player from game state"""
@@ -390,6 +392,7 @@ class GameState:
 # ============================================================================
 # State Manager
 # ============================================================================
+
 
 class StateManager:
     """
@@ -403,7 +406,7 @@ class StateManager:
 
     def __init__(self):
         self.current_state = GameState()
-        self.snapshot_history: List[dict] = []  # For rollback/replay
+        self.snapshot_history: list[dict] = []  # For rollback/replay
         self.max_history = 300  # Keep last 5 seconds at 60Hz
 
     def get_state(self) -> GameState:
@@ -414,12 +417,13 @@ class StateManager:
         """Set current game state (e.g., after loading)"""
         self.current_state = state
 
-    def get_player_state(self, player_id: int) -> Optional[PlayerState]:
+    def get_player_state(self, player_id: int) -> PlayerState | None:
         """Get player state by ID"""
         return self.current_state.get_player(player_id)
 
-    def add_player(self, player_id: int, spawn_x: float, spawn_y: float,
-                   width: int = 24, height: int = 48):
+    def add_player(
+        self, player_id: int, spawn_x: float, spawn_y: float, width: int = 24, height: int = 48
+    ):
         """Add player to game"""
         self.current_state.add_player(player_id, spawn_x, spawn_y, width, height)
 

@@ -15,10 +15,10 @@ Pickup Types:
 """
 
 import random
-from typing import List, Tuple, Dict, Set, Optional
-from systems.world_generation import RoomNode, RoomType
-from systems.room_generation import TILES_PER_ZONE, TILE_SOLID, TILE_PLATFORM
+
 from entities.pickups import PickupManager
+from systems.room_generation import TILE_PLATFORM, TILE_SOLID
+from systems.world_generation import RoomNode
 
 
 class PickupSpawnConfig:
@@ -26,13 +26,13 @@ class PickupSpawnConfig:
 
     def __init__(
         self,
-        coin_density: Tuple[int, int] = (0, 0),          # Min/max coins
-        collectible_count: Tuple[int, int] = (0, 0),     # Min/max collectibles
-        health_count: Tuple[int, int] = (0, 0),          # Min/max health pickups
-        coin_trail_chance: float = 0.0,                  # Chance to create coin trails
-        high_placement_bias: float = 0.0,                # Bias toward platforms (0.0-1.0)
-        hazard_proximity_bonus: float = 0.0,             # Bonus coins near hazards
-        collectible_difficulty: str = "medium",          # easy/medium/hard placement
+        coin_density: tuple[int, int] = (0, 0),  # Min/max coins
+        collectible_count: tuple[int, int] = (0, 0),  # Min/max collectibles
+        health_count: tuple[int, int] = (0, 0),  # Min/max health pickups
+        coin_trail_chance: float = 0.0,  # Chance to create coin trails
+        high_placement_bias: float = 0.0,  # Bias toward platforms (0.0-1.0)
+        hazard_proximity_bonus: float = 0.0,  # Bonus coins near hazards
+        collectible_difficulty: str = "medium",  # easy/medium/hard placement
     ):
         self.coin_density = coin_density
         self.collectible_count = collectible_count
@@ -44,14 +44,13 @@ class PickupSpawnConfig:
 
 
 # Room type -> pickup configuration
-PICKUP_CONFIGS: Dict[str, PickupSpawnConfig] = {
+PICKUP_CONFIGS: dict[str, PickupSpawnConfig] = {
     "start": PickupSpawnConfig(
         coin_density=(5, 10),
         coin_trail_chance=0.3,
         high_placement_bias=0.2,  # Mostly ground level
         collectible_difficulty="easy",
     ),
-
     "combat": PickupSpawnConfig(
         coin_density=(8, 15),
         collectible_count=(0, 1),
@@ -60,7 +59,6 @@ PICKUP_CONFIGS: Dict[str, PickupSpawnConfig] = {
         hazard_proximity_bonus=0.3,  # Reward risk-taking
         collectible_difficulty="hard",
     ),
-
     "platform": PickupSpawnConfig(
         coin_density=(10, 20),
         collectible_count=(1, 2),
@@ -68,7 +66,6 @@ PICKUP_CONFIGS: Dict[str, PickupSpawnConfig] = {
         high_placement_bias=0.7,  # Favor platforms
         collectible_difficulty="medium",
     ),
-
     "treasure": PickupSpawnConfig(
         coin_density=(20, 35),
         collectible_count=(1, 3),
@@ -76,18 +73,15 @@ PICKUP_CONFIGS: Dict[str, PickupSpawnConfig] = {
         hazard_proximity_bonus=0.4,  # High risk, high reward
         collectible_difficulty="easy",  # Reward is reaching the room
     ),
-
     "boss": PickupSpawnConfig(
         coin_density=(10, 15),
         health_count=(1, 2),  # More health for boss fights
         high_placement_bias=0.3,
         collectible_difficulty="medium",
     ),
-
     "shop": PickupSpawnConfig(
         coin_density=(3, 8),  # Some coins but not overwhelming
     ),
-
     "exit": PickupSpawnConfig(
         coin_density=(5, 10),
         collectible_count=(0, 1),
@@ -160,8 +154,8 @@ class PickupSpawner:
         room: RoomNode,
         pickup_manager: PickupManager,
         config: PickupSpawnConfig,
-        ground_positions: List[Tuple[float, float]],
-        platform_positions: List[Tuple[float, float]],
+        ground_positions: list[tuple[float, float]],
+        platform_positions: list[tuple[float, float]],
     ):
         """Spawn coin pickups"""
         if config.coin_density == (0, 0):
@@ -206,8 +200,8 @@ class PickupSpawner:
         room: RoomNode,
         pickup_manager: PickupManager,
         config: PickupSpawnConfig,
-        ground_positions: List[Tuple[float, float]],
-        platform_positions: List[Tuple[float, float]],
+        ground_positions: list[tuple[float, float]],
+        platform_positions: list[tuple[float, float]],
     ):
         """Spawn collectible pickups in challenging positions"""
         if config.collectible_count == (0, 0):
@@ -248,8 +242,8 @@ class PickupSpawner:
         room: RoomNode,
         pickup_manager: PickupManager,
         config: PickupSpawnConfig,
-        ground_positions: List[Tuple[float, float]],
-        platform_positions: List[Tuple[float, float]],
+        ground_positions: list[tuple[float, float]],
+        platform_positions: list[tuple[float, float]],
     ):
         """Spawn health pickups"""
         if config.health_count == (0, 0):
@@ -272,7 +266,7 @@ class PickupSpawner:
 
     def _find_ground_positions(
         self, room: RoomNode, room_px: float, room_py: float
-    ) -> List[Tuple[float, float]]:
+    ) -> list[tuple[float, float]]:
         """Find valid ground positions for pickup placement"""
         positions = []
 
@@ -298,7 +292,7 @@ class PickupSpawner:
 
     def _find_platform_positions(
         self, room: RoomNode, room_px: float, room_py: float
-    ) -> List[Tuple[float, float]]:
+    ) -> list[tuple[float, float]]:
         """Find valid platform positions for pickup placement"""
         positions = []
 

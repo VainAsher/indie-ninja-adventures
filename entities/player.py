@@ -14,23 +14,16 @@ Architecture:
 - Event-driven communication
 """
 
-from typing import Optional
 import pygame
 
 from core.event_bus import EventBus, TickEvent
 from core.logger import GameLogger
 from core.state import PhysicsState, PlayerState
-from mechanics import (
-    JumpMechanic,
-    MovementMechanic,
-    DashMechanic,
-    CrouchMechanic,
-    DamageMechanic
-)
-from mechanics.wall_slide import WallSlideMechanic
+from mechanics import CrouchMechanic, DamageMechanic, DashMechanic, JumpMechanic, MovementMechanic
+from mechanics.ninjutsu import NinjutsuMechanic
 from mechanics.shuriken import ShurikenMechanic
 from mechanics.teleport import TeleportMechanic
-from mechanics.ninjutsu import NinjutsuMechanic
+from mechanics.wall_slide import WallSlideMechanic
 
 
 class Player:
@@ -46,9 +39,16 @@ class Player:
         # Mechanics update on TickEvent automatically
     """
 
-    def __init__(self, player_id: int, spawn_x: float, spawn_y: float,
-                 event_bus: EventBus, logger_factory: GameLogger,
-                 collision_system=None, feature_flags: dict = None):
+    def __init__(
+        self,
+        player_id: int,
+        spawn_x: float,
+        spawn_y: float,
+        event_bus: EventBus,
+        logger_factory: GameLogger,
+        collision_system=None,
+        feature_flags: dict = None,
+    ):
         """
         Initialize player with all mechanics
 
@@ -74,17 +74,11 @@ class Player:
         # Height: slightly under 2 tiles (56/64 = 87.5%)
         # Crouch: 28x28 pixels (half height)
         # Fits through 2-tile wide (64px) by 2-tile tall (64px) doorways
-        physics = PhysicsState(
-            x=spawn_x,
-            y=spawn_y,
-            vx=0.0,
-            vy=0.0,
-            width=28,
-            height=56
-        )
+        physics = PhysicsState(x=spawn_x, y=spawn_y, vx=0.0, vy=0.0, width=28, height=56)
 
         # Create health state
         from game.health_system import HealthState
+
         health_state = HealthState(current_hp=5, max_hp=5)
 
         self.state = PlayerState(
@@ -103,7 +97,7 @@ class Player:
             shuriken_ammo=10,
             shuriken_max=10,
             wall_slide_stamina=3.0,
-            wall_slide_stamina_max=3.0
+            wall_slide_stamina_max=3.0,
         )
 
         # Initialize mechanics (in processing order)
@@ -113,7 +107,7 @@ class Player:
         self.movement = MovementMechanic(
             entity_id=player_id,
             event_bus=event_bus,
-            logger=logger_factory.get_logger(f"player_{player_id}.movement")
+            logger=logger_factory.get_logger(f"player_{player_id}.movement"),
         )
         self.mechanics.append(self.movement)
 
@@ -122,7 +116,7 @@ class Player:
             entity_id=player_id,
             event_bus=event_bus,
             logger=logger_factory.get_logger(f"player_{player_id}.jump"),
-            feature_flags=feature_flags
+            feature_flags=feature_flags,
         )
         self.mechanics.append(self.jump)
 
@@ -130,7 +124,7 @@ class Player:
         self.dash = DashMechanic(
             entity_id=player_id,
             event_bus=event_bus,
-            logger=logger_factory.get_logger(f"player_{player_id}.dash")
+            logger=logger_factory.get_logger(f"player_{player_id}.dash"),
         )
         self.mechanics.append(self.dash)
 
@@ -139,7 +133,7 @@ class Player:
             entity_id=player_id,
             event_bus=event_bus,
             logger=logger_factory.get_logger(f"player_{player_id}.crouch"),
-            collision_checker=collision_system
+            collision_checker=collision_system,
         )
         self.mechanics.append(self.crouch)
 
@@ -147,7 +141,7 @@ class Player:
         self.wall_slide = WallSlideMechanic(
             entity_id=player_id,
             event_bus=event_bus,
-            logger=logger_factory.get_logger(f"player_{player_id}.wall_slide")
+            logger=logger_factory.get_logger(f"player_{player_id}.wall_slide"),
         )
         self.mechanics.append(self.wall_slide)
 
@@ -156,7 +150,7 @@ class Player:
             entity_id=player_id,
             event_bus=event_bus,
             logger=logger_factory.get_logger(f"player_{player_id}.shuriken"),
-            collision_system=collision_system
+            collision_system=collision_system,
         )
         self.mechanics.append(self.shuriken)
 
@@ -165,7 +159,7 @@ class Player:
             entity_id=player_id,
             event_bus=event_bus,
             logger=logger_factory.get_logger(f"player_{player_id}.teleport"),
-            collision_system=collision_system
+            collision_system=collision_system,
         )
         self.mechanics.append(self.teleport)
 
@@ -173,7 +167,7 @@ class Player:
         self.ninjutsu = NinjutsuMechanic(
             entity_id=player_id,
             event_bus=event_bus,
-            logger=logger_factory.get_logger(f"player_{player_id}.ninjutsu")
+            logger=logger_factory.get_logger(f"player_{player_id}.ninjutsu"),
         )
         self.mechanics.append(self.ninjutsu)
 
@@ -181,7 +175,7 @@ class Player:
         self.damage = DamageMechanic(
             entity_id=player_id,
             event_bus=event_bus,
-            logger=logger_factory.get_logger(f"player_{player_id}.damage")
+            logger=logger_factory.get_logger(f"player_{player_id}.damage"),
         )
         # Note: Damage mechanic is not in self.mechanics list
         # It's called manually when hazards are checked
@@ -228,8 +222,8 @@ class Player:
         # Apply movement modifiers: default walk; run when Alt
         if self.state.crouching:
             modifiers = self.crouch.get_movement_modifier(self.state)
-            self.movement.set_speed_multiplier(modifiers['speed_mult'])
-            self.movement.set_accel_multiplier(modifiers['accel_mult'])
+            self.movement.set_speed_multiplier(modifiers["speed_mult"])
+            self.movement.set_accel_multiplier(modifiers["accel_mult"])
         elif getattr(self.state, "is_running", False):
             self.movement.set_speed_multiplier(1.0)
             self.movement.set_accel_multiplier(1.0)
@@ -269,10 +263,15 @@ class Player:
         if self.state.physics.vy < 0 and not self._jump_key_held:
             # Player is rising and jump button released - apply extra gravity
             from config.physics_constants import GRAVITY, JUMP_CUT_MULT
+
             self.state.physics.vy += GRAVITY * (JUMP_CUT_MULT - 1.0)
 
         # Wall friction (fallback with wall slide disabled): damp descent when touching wall
-        if self.state.physics.on_wall and not self.state.physics.on_ground and self.state.physics.vy > 0:
+        if (
+            self.state.physics.on_wall
+            and not self.state.physics.on_ground
+            and self.state.physics.vy > 0
+        ):
             # Stronger damping for a quicker slowdown
             self.state.physics.vy *= 0.7
             # Clamp max fall speed near wall
@@ -286,7 +285,7 @@ class Player:
 
         # Ground coyote time management
         # Track when player leaves ground to enable coyote jump
-        was_on_ground = getattr(self, '_was_on_ground', self.state.physics.on_ground)
+        was_on_ground = getattr(self, "_was_on_ground", self.state.physics.on_ground)
         if was_on_ground and not self.state.physics.on_ground:
             # Just left ground, start coyote timer
             self.state.coyote_time = 0.12  # 120ms grace period
@@ -304,7 +303,11 @@ class Player:
         # Player mechanics now use CURRENT frame's collision state (not previous frame)
 
         # Wall/ceiling hang flags
-        self.state.is_wall_hanging = (self.state.physics.on_wall and not self.state.physics.on_ground and abs(self.state.physics.vy) < 0.5)
+        self.state.is_wall_hanging = (
+            self.state.physics.on_wall
+            and not self.state.physics.on_ground
+            and abs(self.state.physics.vy) < 0.5
+        )
         self.state.is_ceiling_hanging = False  # Placeholder until ceiling hang implemented
         if self.state.physics.on_wall and self.state.physics.wall_dir != 0:
             self.state.last_wall_dir = self.state.physics.wall_dir
@@ -319,6 +322,7 @@ class Player:
         Args:
             keys: Key states from pygame.key.get_pressed() (supports both dict and sequence)
         """
+
         def key_down(code):
             try:
                 return bool(keys[code])
@@ -364,7 +368,7 @@ class Player:
 
         # Shuriken throw (K) - aim with up/down keys for diagonals
         throw_key = key_down(pygame.K_k)
-        aim_offset = (-1 if key_down(pygame.K_UP) else 1 if key_down(pygame.K_DOWN) else 0)
+        aim_offset = -1 if key_down(pygame.K_UP) else 1 if key_down(pygame.K_DOWN) else 0
         if throw_key and not getattr(self, "_throw_key_held", False):
             if self.feature_flags.get("shuriken", True):
                 self.shuriken.request_throw(aim_offset)
@@ -398,11 +402,15 @@ class Player:
         if running:
             self.state.stamina = max(0.0, self.state.stamina - 4.0 * dt)
         else:
-            regen_rate = self.state.stamina_regen_rate * (1.0 if self.state.physics.on_ground else 0.5)
+            regen_rate = self.state.stamina_regen_rate * (
+                1.0 if self.state.physics.on_ground else 0.5
+            )
             self.state.stamina = min(self.state.stamina_max, self.state.stamina + regen_rate * dt)
 
         # Mana regeneration
-        self.state.mana = min(self.state.mana_max, self.state.mana + self.state.mana_regen_rate * dt)
+        self.state.mana = min(
+            self.state.mana_max, self.state.mana + self.state.mana_regen_rate * dt
+        )
 
         # Cooldowns clamp
         self.state.teleport_cooldown = max(0.0, self.state.teleport_cooldown)

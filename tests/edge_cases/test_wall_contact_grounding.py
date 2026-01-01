@@ -1,7 +1,7 @@
 import pygame
 
+from core.entity_system import Entity, EntityManager, EntityType
 from core.event_bus import EventBus
-from core.entity_system import EntityManager, Entity, EntityType
 from core.state import PhysicsState
 from systems.collision_system import CollisionSystem
 

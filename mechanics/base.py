@@ -16,8 +16,8 @@ Mechanics:
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
-from core.event_bus import EventBus, Event, CollisionEvent
+
+from core.event_bus import CollisionEvent, EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
 

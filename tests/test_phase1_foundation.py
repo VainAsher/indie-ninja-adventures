@@ -12,18 +12,18 @@ Tests all systems created in Phase 1:
 Run with: python tests/test_phase1_foundation.py
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from game.health_system import HealthState
-from game.inventory_system import Inventory, ItemDatabase, ItemType, ItemRarity
-from game.loot_system import LootGenerator, LootTableDatabase, LootTable, LootDrop
-from systems.seed_hierarchy import SeedDerivation, SeedContext, SeedHierarchyValidator
-from game.mission_registry import get_mission_registry, ObjectiveType
+from game.inventory_system import Inventory, ItemDatabase, ItemRarity, ItemType
+from game.loot_system import LootGenerator, LootTable, LootTableDatabase
+from game.mission_registry import ObjectiveType, get_mission_registry
+from systems.seed_hierarchy import SeedContext, SeedDerivation, SeedHierarchyValidator
 
 
 def test_health_system():
@@ -108,7 +108,7 @@ def test_inventory_system():
 
     # Load items from JSON
     items_path = Path(__file__).parent.parent / "data" / "items.json"
-    with open(items_path, 'r') as f:
+    with open(items_path) as f:
         items_data = json.load(f)
     item_db.load_from_dict(items_data)
 
@@ -227,7 +227,7 @@ def test_loot_system():
     if different:
         print("  [OK] Different seeds produce different loot (verified)")
     else:
-        print("  [\!] Different seeds produced same loot (possible but unlikely)")
+        print(r"  [\!] Different seeds produced same loot (possible but unlikely)")
 
     # Test boss loot (guaranteed drops)
     gen_boss = LootGenerator(99999)
@@ -241,10 +241,7 @@ def test_loot_system():
 
     # Test loot table creation
     custom_table = LootTable(
-        table_id="test_table",
-        guaranteed_drops=[],
-        chance_drops=[],
-        currency_range=(10, 20)
+        table_id="test_table", guaranteed_drops=[], chance_drops=[], currency_range=(10, 20)
     )
     custom_table.add_guaranteed_drop("health_potion_small", (1, 1))
     custom_table.add_chance_drop("weapon_sword", (1, 1), 0.5)
@@ -326,11 +323,7 @@ def test_seed_hierarchy():
 
     # Test determinism validation
     is_deterministic = SeedHierarchyValidator.validate_determinism(
-        world_seed=42,
-        region_id="forest",
-        mission_id="mission_01",
-        grid_x=0,
-        grid_y=0
+        world_seed=42, region_id="forest", mission_id="mission_01", grid_x=0, grid_y=0
     )
     assert is_deterministic, "Seed hierarchy should be deterministic"
 
@@ -340,7 +333,7 @@ def test_seed_hierarchy():
     is_unique = SeedHierarchyValidator.validate_uniqueness(
         world_seed=42,
         region_ids=["forest", "town", "caves"],
-        mission_ids=["mission_01", "mission_02", "mission_03"]
+        mission_ids=["mission_01", "mission_02", "mission_03"],
     )
     assert is_unique, "Seeds should be unique across regions and missions"
 
@@ -367,8 +360,7 @@ def test_mission_system():
     forest_2 = registry.get_mission("forest_2")
     assert forest_2 is not None, "Should have forest_2 mission"
     has_reach_objective = any(
-        obj.objective_type == ObjectiveType.REACH_LOCATION
-        for obj in forest_2.objectives
+        obj.objective_type == ObjectiveType.REACH_LOCATION for obj in forest_2.objectives
     )
     assert has_reach_objective, "Forest_2 should have reach objective"
 
@@ -399,7 +391,9 @@ def test_mission_system():
     assert not forest_2_locked, "forest_2 should be locked without prereq completion"
 
     completed_missions = {"forest_1"}
-    forest_2_unlocked = registry.is_mission_unlocked("forest_2", unlocked_abilities, completed_missions)
+    forest_2_unlocked = registry.is_mission_unlocked(
+        "forest_2", unlocked_abilities, completed_missions
+    )
     assert forest_2_unlocked, "forest_2 should unlock after forest_1 with double_jump"
 
     print("  [OK] Unlock requirements work")
@@ -419,7 +413,7 @@ def test_item_database():
     item_db = ItemDatabase()
     items_path = Path(__file__).parent.parent / "data" / "items.json"
 
-    with open(items_path, 'r') as f:
+    with open(items_path) as f:
         items_data = json.load(f)
 
     item_db.load_from_dict(items_data)
@@ -495,6 +489,7 @@ if __name__ == "__main__":
         print(f"[FAIL] TEST FAILED: {e}")
         print("=" * 70)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
     except Exception as e:
@@ -502,5 +497,6 @@ if __name__ == "__main__":
         print(f"[ERROR] {e}")
         print("=" * 70)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

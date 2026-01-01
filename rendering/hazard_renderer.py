@@ -4,9 +4,9 @@ Hazard Renderer - Visual rendering for hazards
 Renders spike hazards, void zones, and other environmental dangers.
 """
 
-import pygame
 import math
-from typing import List
+
+import pygame
 
 
 def render_hazard(surface: pygame.Surface, hazard, camera):
@@ -25,12 +25,7 @@ def render_hazard(surface: pygame.Surface, hazard, camera):
     render_x, render_y = hazard.get_render_position()
 
     # Create rect for camera transform
-    hazard_rect = pygame.Rect(
-        int(render_x),
-        int(render_y),
-        hazard.width,
-        hazard.height
-    )
+    hazard_rect = pygame.Rect(int(render_x), int(render_y), hazard.width, hazard.height)
 
     # Apply camera transform
     screen_rect = camera.apply(hazard_rect)
@@ -61,9 +56,9 @@ def render_spike(surface: pygame.Surface, rect: pygame.Rect, hazard):
 
         # Spike triangle points
         points = [
-            (left_x, base_y),           # Bottom left
-            (right_x, base_y),          # Bottom right
-            ((left_x + right_x) // 2, tip_y)  # Top point
+            (left_x, base_y),  # Bottom left
+            (right_x, base_y),  # Bottom right
+            ((left_x + right_x) // 2, tip_y),  # Top point
         ]
 
         # Draw spike outline (dark)
@@ -73,7 +68,7 @@ def render_spike(surface: pygame.Surface, rect: pygame.Rect, hazard):
         inner_points = [
             (left_x + 2, base_y - 1),
             (right_x - 2, base_y - 1),
-            ((left_x + right_x) // 2, tip_y + 2)
+            ((left_x + right_x) // 2, tip_y + 2),
         ]
         if rect.width >= 16:  # Only draw inner if spike is large enough
             pygame.draw.polygon(surface, hazard.color, inner_points)
@@ -101,7 +96,7 @@ def render_void(surface: pygame.Surface, rect: pygame.Rect, hazard):
     shimmer_color = (
         int(hazard.color[0] + shimmer),
         int(hazard.color[1] + shimmer * 0.5),
-        int(hazard.color[2] + shimmer * 1.5)
+        int(hazard.color[2] + shimmer * 1.5),
     )
 
     # Draw shimmer as translucent overlay
@@ -115,7 +110,7 @@ def render_void(surface: pygame.Surface, rect: pygame.Rect, hazard):
     pygame.draw.rect(surface, border_color, rect, 2)
 
 
-def render_hazards(surface: pygame.Surface, hazards: List, camera):
+def render_hazards(surface: pygame.Surface, hazards: list, camera):
     """
     Render all active hazards
 

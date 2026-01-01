@@ -15,13 +15,13 @@ Architecture:
 - GameStateManager for state transitions and tracking
 """
 
-from enum import Enum
 from dataclasses import dataclass
-from typing import Optional
+from enum import Enum
 
 
 class GameState(Enum):
     """Game state enumeration"""
+
     MENU = "menu"
     PLAYING = "playing"
     PAUSED = "paused"
@@ -34,8 +34,9 @@ class GameState(Enum):
 @dataclass
 class GameStateData:
     """Data associated with current game state"""
+
     current_state: GameState
-    previous_state: Optional[GameState] = None
+    previous_state: GameState | None = None
     state_time: float = 0.0  # Time spent in current state
 
 
@@ -154,6 +155,6 @@ class GameStateManager:
         if self.data.current_state == GameState.PLAYING:
             self.transition_to(GameState.VICTORY)
 
-    def get_previous_state(self) -> Optional[GameState]:
+    def get_previous_state(self) -> GameState | None:
         """Get previous state (for state restoration)"""
         return self.data.previous_state

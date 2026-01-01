@@ -15,10 +15,10 @@ Dash Characteristics:
 - Cancels on wall collision
 """
 
-from mechanics.base import BaseMechanic
-from core.event_bus import EventBus, CollisionEvent, VelocityChangeEvent
+from core.event_bus import CollisionEvent, EventBus, VelocityChangeEvent
 from core.logger import MechanicLogger
 from core.state import PlayerState
+from mechanics.base import BaseMechanic
 
 
 class DashMechanic(BaseMechanic):
@@ -98,9 +98,7 @@ class DashMechanic(BaseMechanic):
                 state.dash_cooldown = self.DASH_COOLDOWN
                 state.dash_time = 0.0
 
-                self.logger.info(
-                    f"Dash finished, cooldown started ({self.DASH_COOLDOWN:.3f}s)"
-                )
+                self.logger.info(f"Dash finished, cooldown started ({self.DASH_COOLDOWN:.3f}s)")
 
             else:
                 # Continue dashing - override velocity
@@ -108,9 +106,7 @@ class DashMechanic(BaseMechanic):
                 state.physics.vx = state.facing * self.DASH_SPEED
 
                 if abs(old_vx - state.physics.vx) > 1.0:  # Log only significant changes
-                    self.logger.debug(
-                        f"Dash velocity: vx {old_vx:.2f} -> {state.physics.vx:.2f}"
-                    )
+                    self.logger.debug(f"Dash velocity: vx {old_vx:.2f} -> {state.physics.vx:.2f}")
 
         elif state.dash_cooldown > 0:
             # On cooldown - countdown
@@ -157,14 +153,16 @@ class DashMechanic(BaseMechanic):
         )
 
         # Emit velocity change event
-        self.event_bus.emit(VelocityChangeEvent(
-            entity_id=self.entity_id,
-            old_vx=old_vx,
-            old_vy=state.physics.vy,
-            new_vx=state.physics.vx,
-            new_vy=state.physics.vy,
-            reason="dash"
-        ))
+        self.event_bus.emit(
+            VelocityChangeEvent(
+                entity_id=self.entity_id,
+                old_vx=old_vx,
+                old_vy=state.physics.vy,
+                new_vx=state.physics.vx,
+                new_vy=state.physics.vy,
+                reason="dash",
+            )
+        )
 
     def can_activate(self, state: PlayerState) -> bool:
         """
@@ -191,10 +189,8 @@ class DashMechanic(BaseMechanic):
             return
 
         # Cancel dash on wall collision
-        if event.collision_type in ('wall_left', 'wall_right'):
-            self.logger.debug(
-                f"Wall collision during dash, canceling dash early"
-            )
+        if event.collision_type in ("wall_left", "wall_right"):
+            self.logger.debug("Wall collision during dash, canceling dash early")
 
     def on_collision(self, state: PlayerState, collision_event: CollisionEvent):
         """
@@ -207,14 +203,13 @@ class DashMechanic(BaseMechanic):
             collision_event: Collision event details
         """
         # Cancel dash on wall collision
-        if state.is_dashing and collision_event.collision_type in ('wall_left', 'wall_right'):
+        if state.is_dashing and collision_event.collision_type in ("wall_left", "wall_right"):
             state.is_dashing = False
             state.dash_cooldown = self.DASH_COOLDOWN
             state.dash_time = 0.0
 
             self.logger.info(
-                f"Dash cancelled by {collision_event.collision_type}, "
-                f"cooldown started"
+                f"Dash cancelled by {collision_event.collision_type}, " f"cooldown started"
             )
 
     def reset(self, state: PlayerState):

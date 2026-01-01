@@ -9,10 +9,10 @@ Implements the Glenn Fiedler fixed timestep pattern:
 Reference: https://gafferongames.com/post/fix_your_timestep/
 """
 
-import time
 import logging
-from typing import Optional
-from core.event_bus import EventBus, TickEvent, RenderEvent
+import time
+
+from core.event_bus import EventBus, RenderEvent, TickEvent
 
 
 class GameClock:
@@ -37,7 +37,7 @@ class GameClock:
     PHYSICS_DT = 1.0 / PHYSICS_HZ  # 0.01667s (~16.67ms)
     MAX_FRAME_TIME = 0.25  # Prevent spiral of death (250ms cap)
 
-    def __init__(self, event_bus: EventBus, logger: Optional[logging.Logger] = None):
+    def __init__(self, event_bus: EventBus, logger: logging.Logger | None = None):
         """
         Initialize game clock
 
@@ -187,7 +187,7 @@ class Timer:
     Must be updated manually by calling update(dt).
     """
 
-    def __init__(self, duration: float, callback: Optional[callable] = None):
+    def __init__(self, duration: float, callback: callable | None = None):
         """
         Initialize timer
 
@@ -200,7 +200,7 @@ class Timer:
         self.callback = callback
         self.active = False
 
-    def start(self, duration: Optional[float] = None):
+    def start(self, duration: float | None = None):
         """
         Start/restart timer
 

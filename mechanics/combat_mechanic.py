@@ -10,14 +10,12 @@ This module provides player combat mechanics:
 Version: v0.6.0
 """
 
-from typing import Optional, List, Tuple
 import math
-from config.physics_constants import TILE_SIZE
 
+from config.physics_constants import TILE_SIZE
 from core.event_bus import EventBus
 from core.logger import GameLogger
 from core.state import PlayerState
-
 
 # ============================================================
 # Combat Constants
@@ -41,6 +39,7 @@ ENEMY_CONTACT_KNOCKBACK = 200.0  # Knockback velocity when hit
 # ============================================================
 # Combat Mechanic
 # ============================================================
+
 
 class CombatMechanic:
     """
@@ -67,12 +66,11 @@ class CombatMechanic:
         self.logger = logger
 
         # Combat state
-        self.last_damaged_enemy_id: Optional[str] = None
+        self.last_damaged_enemy_id: str | None = None
         self.last_damage_time: float = 0.0
         self.damage_cooldown: float = 0.2  # Can't damage same enemy again for 200ms
 
-    def check_enemy_collisions(self, state: PlayerState, enemy_manager,
-                               dt: float) -> int:
+    def check_enemy_collisions(self, state: PlayerState, enemy_manager, dt: float) -> int:
         """
         Check collisions with enemies and process combat interactions.
 
@@ -147,8 +145,7 @@ class CombatMechanic:
             enemy_manager: Enemy manager
         """
         # Check if on cooldown for this enemy
-        if (self.last_damaged_enemy_id == enemy.enemy_id and
-            self.last_damage_time > 0):
+        if self.last_damaged_enemy_id == enemy.enemy_id and self.last_damage_time > 0:
             return
 
         # Calculate knockback direction
@@ -171,17 +168,16 @@ class CombatMechanic:
 
         # Deal damage with knockback and stun
         died = enemy_manager.damage_enemy(
-            enemy.enemy_id,
-            DASH_ATTACK_DAMAGE,
-            knockback_x,
-            knockback_y,
-            DASH_ATTACK_STUN
+            enemy.enemy_id, DASH_ATTACK_DAMAGE, knockback_x, knockback_y, DASH_ATTACK_STUN
         )
 
         # Immediately resolve any penetration after knockback
         from systems import CollisionSystem  # lazy import guard
+
         try:
-            cs = CollisionSystem.get_instance() if hasattr(CollisionSystem, "get_instance") else None
+            cs = (
+                CollisionSystem.get_instance() if hasattr(CollisionSystem, "get_instance") else None
+            )
             if cs:
                 cs.check_and_resolve(enemy)
                 enemy.sync_from_physics()
@@ -216,13 +212,16 @@ class CombatMechanic:
             JUMP_ATTACK_DAMAGE,
             0.0,  # No horizontal knockback for jump attacks
             0.0,
-            0.0   # No stun
+            0.0,  # No stun
         )
 
         # Resolve positioning after jump attack in case of overlap
         from systems import CollisionSystem  # lazy import guard
+
         try:
-            cs = CollisionSystem.get_instance() if hasattr(CollisionSystem, "get_instance") else None
+            cs = (
+                CollisionSystem.get_instance() if hasattr(CollisionSystem, "get_instance") else None
+            )
             if cs:
                 cs.check_and_resolve(enemy)
                 enemy.sync_from_physics()
@@ -257,7 +256,7 @@ class CombatMechanic:
         Returns:
             Damage taken
         """
-        from entities.enemy import EnemyAttackSubState, EnemyAIState
+        from entities.enemy import EnemyAIState, EnemyAttackSubState
 
         # CRITICAL: Only take damage if enemy is in ACTIVE attack phase
         if enemy.ai_state != EnemyAIState.ATTACK:
@@ -370,6 +369,7 @@ class CombatMechanic:
 # Combat Integration Helper
 # ============================================================
 
+
 def integrate_combat_with_player(player, enemy_manager):
     """
     Integrate combat mechanic with existing player.
@@ -385,9 +385,7 @@ def integrate_combat_with_player(player, enemy_manager):
         CombatMechanic instance (caller should call check_enemy_collisions each frame)
     """
     combat = CombatMechanic(
-        entity_id=player.player_id,
-        event_bus=player.event_bus,
-        logger=player.logger
+        entity_id=player.player_id, event_bus=player.event_bus, logger=player.logger
     )
 
     return combat
@@ -403,6 +401,7 @@ from dataclasses import dataclass
 @dataclass
 class DashAttackEvent:
     """Event emitted when player performs dash attack"""
+
     player_id: int
     enemy_id: str
     damage: int
@@ -412,6 +411,7 @@ class DashAttackEvent:
 @dataclass
 class JumpAttackEvent:
     """Event emitted when player performs jump attack"""
+
     player_id: int
     enemy_id: str
     damage: int
@@ -421,6 +421,7 @@ class JumpAttackEvent:
 @dataclass
 class PlayerHitEvent:
     """Event emitted when player takes damage from enemy"""
+
     player_id: int
     enemy_id: str
     damage: int

@@ -25,10 +25,10 @@ Movement Characteristics:
 - Same behavior on ground and in air (unified physics)
 """
 
-from mechanics.base import BaseMechanic
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
+from mechanics.base import BaseMechanic
 
 
 class MovementMechanic(BaseMechanic):
@@ -166,7 +166,9 @@ class MovementMechanic(BaseMechanic):
         # - Modulated by accel_multiplier (for crouch penalty, etc.)
         # - Smooth approach to target velocity (no jitter)
         # - dt scaling for frame-rate independence
-        smooth_factor = min(1.0, self.MOVEMENT_ACCEL * self.accel_multiplier * dt / max(self.MAX_RUN_SPEED, 1.0))
+        smooth_factor = min(
+            1.0, self.MOVEMENT_ACCEL * self.accel_multiplier * dt / max(self.MAX_RUN_SPEED, 1.0)
+        )
 
         # Interpolate current velocity toward target
         # vx += (target_vx - vx) * smooth_factor

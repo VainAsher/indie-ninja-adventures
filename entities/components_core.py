@@ -8,15 +8,14 @@ Common components that can be shared across players, NPCs, and enemies:
 - FollowComponent: Follow target entity
 """
 
-from core.entity_system import Component
-from core.event_bus import PlayerDamagedEvent
-from typing import Optional
 import logging
 
+from core.entity_system import Component
 
 # ============================================================================
 # Health Component (reusable for players, NPCs, enemies)
 # ============================================================================
+
 
 class HealthComponent(Component):
     """
@@ -25,14 +24,13 @@ class HealthComponent(Component):
     Can be used by players, NPCs, and enemies.
     """
 
-    def __init__(self, entity_id: int, max_health: int = 5,
-                 invincibility_duration: float = 1.2):
+    def __init__(self, entity_id: int, max_health: int = 5, invincibility_duration: float = 1.2):
         super().__init__(entity_id)
         self.max_health = max_health
         self.current_health = max_health
         self.invincibility_duration = invincibility_duration
         self.invincibility_timer = 0.0
-        self.logger: Optional[logging.Logger] = None
+        self.logger: logging.Logger | None = None
 
     def initialize(self, entity_manager):
         """Initialize component with logging"""
@@ -108,6 +106,7 @@ class HealthComponent(Component):
 # AI Component (for NPCs and enemies)
 # ============================================================================
 
+
 class AIComponent(Component):
     """
     Basic AI component
@@ -118,7 +117,7 @@ class AIComponent(Component):
     def __init__(self, entity_id: int, ai_type: str = "idle"):
         super().__init__(entity_id)
         self.ai_type = ai_type  # "idle", "patrol", "chase", "flee"
-        self.target_entity_id: Optional[int] = None
+        self.target_entity_id: int | None = None
         self.state: str = "idle"
         self.state_timer: float = 0.0
 
@@ -151,7 +150,7 @@ class AIComponent(Component):
         """Flee behavior - opposite of chase"""
         pass
 
-    def set_target(self, target_entity_id: Optional[int]):
+    def set_target(self, target_entity_id: int | None):
         """Set target entity for chase/flee"""
         self.target_entity_id = target_entity_id
 
@@ -160,6 +159,7 @@ class AIComponent(Component):
 # Patrol Component
 # ============================================================================
 
+
 class PatrolComponent(Component):
     """
     Patrol movement component
@@ -167,12 +167,11 @@ class PatrolComponent(Component):
     Entity moves back and forth between two points.
     """
 
-    def __init__(self, entity_id: int, speed: float = 2.0,
-                 patrol_distance: float = 100.0):
+    def __init__(self, entity_id: int, speed: float = 2.0, patrol_distance: float = 100.0):
         super().__init__(entity_id)
         self.speed = speed
         self.patrol_distance = patrol_distance
-        self.start_x: Optional[float] = None
+        self.start_x: float | None = None
         self.direction = 1  # 1 = right, -1 = left
 
     def initialize(self, entity_manager):
@@ -204,6 +203,7 @@ class PatrolComponent(Component):
 # Follow Component
 # ============================================================================
 
+
 class FollowComponent(Component):
     """
     Follow target component
@@ -211,8 +211,13 @@ class FollowComponent(Component):
     Entity follows target entity (e.g., enemy chasing player).
     """
 
-    def __init__(self, entity_id: int, target_entity_id: int,
-                 speed: float = 3.0, follow_distance: float = 50.0):
+    def __init__(
+        self,
+        entity_id: int,
+        target_entity_id: int,
+        speed: float = 3.0,
+        follow_distance: float = 50.0,
+    ):
         super().__init__(entity_id)
         self.target_entity_id = target_entity_id
         self.speed = speed
@@ -249,6 +254,7 @@ class FollowComponent(Component):
 # Projectile Component
 # ============================================================================
 
+
 class ProjectileComponent(Component):
     """
     Projectile component
@@ -256,8 +262,14 @@ class ProjectileComponent(Component):
     Entity moves in a direction until it hits something or times out.
     """
 
-    def __init__(self, entity_id: int, velocity_x: float, velocity_y: float,
-                 lifetime: float = 5.0, damage: int = 1):
+    def __init__(
+        self,
+        entity_id: int,
+        velocity_x: float,
+        velocity_y: float,
+        lifetime: float = 5.0,
+        damage: int = 1,
+    ):
         super().__init__(entity_id)
         self.velocity_x = velocity_x
         self.velocity_y = velocity_y
@@ -285,6 +297,7 @@ class ProjectileComponent(Component):
 # Pickup Component
 # ============================================================================
 
+
 class PickupComponent(Component):
     """
     Pickup component
@@ -292,8 +305,9 @@ class PickupComponent(Component):
     Entity can be collected by player (coin, health, life, etc.)
     """
 
-    def __init__(self, entity_id: int, pickup_type: str, value: int = 1,
-                 collection_radius: float = 16.0):
+    def __init__(
+        self, entity_id: int, pickup_type: str, value: int = 1, collection_radius: float = 16.0
+    ):
         super().__init__(entity_id)
         self.pickup_type = pickup_type  # "coin", "health", "life", "powerup"
         self.value = value
@@ -311,6 +325,7 @@ class PickupComponent(Component):
 
         # Check distance to all players
         from core.entity_system import EntityType
+
         players = entity_manager.get_entities_by_type(EntityType.PLAYER)
 
         for player in players:
@@ -332,11 +347,11 @@ class PickupComponent(Component):
         from core.event_bus import PickupCollectedEvent
 
         # Emit event
-        entity_manager.event_bus.emit(PickupCollectedEvent(
-            player_id=player_entity.entity_id,
-            pickup_type=self.pickup_type,
-            value=self.value
-        ))
+        entity_manager.event_bus.emit(
+            PickupCollectedEvent(
+                player_id=player_entity.entity_id, pickup_type=self.pickup_type, value=self.value
+            )
+        )
 
         # Mark as collected and destroy
         self.collected = True

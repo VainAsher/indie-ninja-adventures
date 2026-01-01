@@ -12,18 +12,16 @@ Run with: python -m pytest tests/test_determinism.py -v
 """
 
 import sys
-import os
-import json
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from systems.world_generation import WorldGenerator, WorldShape
-from systems.pickup_spawner import PickupSpawner
-from systems.hazard_spawner import HazardSpawner
-from entities import PickupManager, HazardManager
 from core import EventBus
+from entities import HazardManager, PickupManager
+from systems.hazard_spawner import HazardSpawner
+from systems.pickup_spawner import PickupSpawner
+from systems.world_generation import WorldGenerator, WorldShape
 
 
 def test_world_generation_determinism():
@@ -43,10 +41,10 @@ def test_world_generation_determinism():
     assert len(world1.all_rooms) == len(world2.all_rooms), "Different room counts"
 
     for room1, room2 in zip(world1.all_rooms, world2.all_rooms):
-        assert room1.grid_x == room2.grid_x, f"Room grid_x mismatch"
-        assert room1.grid_y == room2.grid_y, f"Room grid_y mismatch"
-        assert room1.room_type == room2.room_type, f"Room type mismatch"
-        assert room1.biome_theme == room2.biome_theme, f"Biome mismatch"
+        assert room1.grid_x == room2.grid_x, "Room grid_x mismatch"
+        assert room1.grid_y == room2.grid_y, "Room grid_y mismatch"
+        assert room1.room_type == room2.room_type, "Room type mismatch"
+        assert room1.biome_theme == room2.biome_theme, "Biome mismatch"
 
         # Check door ports
         assert len(room1.door_ports) == len(room2.door_ports), "Door port count mismatch"
@@ -65,8 +63,8 @@ def test_pickup_spawning_determinism():
     seed = 54321
 
     # Create mock world with tilemaps
-    from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
     from systems.megamap import build_megamap
+    from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
 
     gen = WorldGenerator(seed)
     world = gen.generate(num_biomes=1, rooms_per_biome=3, shape=WorldShape.SNAKE)
@@ -109,8 +107,8 @@ def test_hazard_spawning_determinism():
     seed = 99999
 
     # Create mock world with tilemaps
-    from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
     from systems.megamap import build_megamap
+    from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
 
     gen = WorldGenerator(seed)
     world = gen.generate(num_biomes=1, rooms_per_biome=4, shape=WorldShape.BRANCHY)
@@ -143,9 +141,12 @@ def test_hazard_spawning_determinism():
         room_exit_pos = exit_pos if room.room_type.value == "exit" else None
 
         spawner1.spawn_hazards_for_room(
-            room, hazard_manager1, room_px, room_py,
+            room,
+            hazard_manager1,
+            room_px,
+            room_py,
             spawn_pos=room_spawn_pos,
-            exit_pos=room_exit_pos
+            exit_pos=room_exit_pos,
         )
 
     hazards1 = [(h.x, h.y, h.hazard_type) for h in hazard_manager1.hazards]
@@ -163,15 +164,20 @@ def test_hazard_spawning_determinism():
         room_exit_pos = exit_pos if room.room_type.value == "exit" else None
 
         spawner2.spawn_hazards_for_room(
-            room, hazard_manager2, room_px, room_py,
+            room,
+            hazard_manager2,
+            room_px,
+            room_py,
             spawn_pos=room_spawn_pos,
-            exit_pos=room_exit_pos
+            exit_pos=room_exit_pos,
         )
 
     hazards2 = [(h.x, h.y, h.hazard_type) for h in hazard_manager2.hazards]
 
     # Compare
-    assert len(hazards1) == len(hazards2), f"Different hazard counts: {len(hazards1)} vs {len(hazards2)}"
+    assert len(hazards1) == len(
+        hazards2
+    ), f"Different hazard counts: {len(hazards1)} vs {len(hazards2)}"
     assert hazards1 == hazards2, "Hazard positions differ"
 
     print(f"[PASS] Hazard spawning is deterministic ({len(hazards1)} hazards)")
@@ -199,12 +205,12 @@ def test_multiple_seeds_produce_different_results():
 
 def test_position_list_sorting():
     """Test that position lists are sorted for determinism"""
-    from systems.pickup_spawner import PickupSpawner
     from systems.hazard_spawner import HazardSpawner
-    from systems.world_generation import RoomNode, RoomType, BiomeTheme
+    from systems.pickup_spawner import PickupSpawner
 
     # Create a mock room with a simple tilemap
-    from systems.room_generation import TILE_SOLID, TILE_PLATFORM
+    from systems.room_generation import TILE_PLATFORM, TILE_SOLID
+    from systems.world_generation import BiomeTheme, RoomNode, RoomType
 
     room = RoomNode(0, 0, RoomType.COMBAT, BiomeTheme.DUNGEON, 123)
 
@@ -264,6 +270,7 @@ if __name__ == "__main__":
         print("=" * 60)
         print(f"[ERROR] {e}")
         import traceback
+
         traceback.print_exc()
         print("=" * 60)
         sys.exit(1)

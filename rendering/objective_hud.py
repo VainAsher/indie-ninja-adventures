@@ -7,18 +7,19 @@ Displays in top-right corner below navigation compass.
 Version: v0.6.0 (Phase 6)
 """
 
-import pygame
-from typing import List, Tuple, Optional
 from dataclasses import dataclass
 
+import pygame
 
 # ============================================================
 # Objective Data
 # ============================================================
 
+
 @dataclass
 class ObjectiveDisplay:
     """Objective display data"""
+
     description: str
     current: int = 0
     target: int = 0
@@ -29,6 +30,7 @@ class ObjectiveDisplay:
 # ============================================================
 # Objective HUD Renderer
 # ============================================================
+
 
 class ObjectiveHUDRenderer:
     """
@@ -61,10 +63,10 @@ class ObjectiveHUDRenderer:
 
         # Colors
         self.color_title = (200, 200, 220)
-        self.color_active = (255, 215, 0)       # Gold
-        self.color_complete = (80, 255, 80)     # Green
-        self.color_locked = (150, 150, 150)     # Gray
-        self.color_bg = (20, 20, 30, 200)       # Dark transparent
+        self.color_active = (255, 215, 0)  # Gold
+        self.color_complete = (80, 255, 80)  # Green
+        self.color_locked = (150, 150, 150)  # Gray
+        self.color_bg = (20, 20, 30, 200)  # Dark transparent
         self.color_border = (80, 80, 100)
 
         # Icons
@@ -72,9 +74,9 @@ class ObjectiveHUDRenderer:
         self.icon_active = "○"
         self.icon_locked = "🔒"
 
-    def draw_objectives(self, surface: pygame.Surface,
-                       objectives: List[ObjectiveDisplay],
-                       show_title: bool = True):
+    def draw_objectives(
+        self, surface: pygame.Surface, objectives: list[ObjectiveDisplay], show_title: bool = True
+    ):
         """
         Draw objectives HUD.
 
@@ -101,12 +103,16 @@ class ObjectiveHUDRenderer:
 
         # Draw background panel
         panel_h = total_height
-        pygame.draw.rect(surface, self.color_bg,
-                        pygame.Rect(x - 10, y - 10, panel_w, panel_h),
-                        border_radius=8)
-        pygame.draw.rect(surface, self.color_border,
-                        pygame.Rect(x - 10, y - 10, panel_w, panel_h),
-                        width=2, border_radius=8)
+        pygame.draw.rect(
+            surface, self.color_bg, pygame.Rect(x - 10, y - 10, panel_w, panel_h), border_radius=8
+        )
+        pygame.draw.rect(
+            surface,
+            self.color_border,
+            pygame.Rect(x - 10, y - 10, panel_w, panel_h),
+            width=2,
+            border_radius=8,
+        )
 
         # Draw title
         if show_title:
@@ -119,9 +125,7 @@ class ObjectiveHUDRenderer:
             self._draw_objective(surface, obj, x, y)
             y += objective_height
 
-    def _draw_objective(self, surface: pygame.Surface,
-                       objective: ObjectiveDisplay,
-                       x: int, y: int):
+    def _draw_objective(self, surface: pygame.Surface, objective: ObjectiveDisplay, x: int, y: int):
         """Draw a single objective"""
         # Choose color and icon based on status
         if objective.completed:
@@ -147,9 +151,9 @@ class ObjectiveHUDRenderer:
         text_surf = self.small_font.render(obj_text, True, color)
         surface.blit(text_surf, (x + 20, y + 2))
 
-    def draw_objective_complete_popup(self, surface: pygame.Surface,
-                                     objective_text: str,
-                                     alpha: int = 255):
+    def draw_objective_complete_popup(
+        self, surface: pygame.Surface, objective_text: str, alpha: int = 255
+    ):
         """
         Draw objective completion popup (center screen).
 
@@ -173,8 +177,7 @@ class ObjectiveHUDRenderer:
         # Draw background
         text_w = text_surf.get_width()
         text_h = text_surf.get_height()
-        bg_rect = pygame.Rect(x - text_w // 2 - 20, y - text_h // 2 - 10,
-                             text_w + 40, text_h + 20)
+        bg_rect = pygame.Rect(x - text_w // 2 - 20, y - text_h // 2 - 10, text_w + 40, text_h + 20)
 
         bg_surface = pygame.Surface((bg_rect.width, bg_rect.height))
         bg_surface.set_alpha(min(200, alpha))
@@ -238,11 +241,14 @@ class ObjectiveHUDRenderer:
 # Helper Functions
 # ============================================================
 
-def create_objective(description: str,
-                    current: int = 0,
-                    target: int = 0,
-                    completed: bool = False,
-                    objective_type: str = "generic") -> ObjectiveDisplay:
+
+def create_objective(
+    description: str,
+    current: int = 0,
+    target: int = 0,
+    completed: bool = False,
+    objective_type: str = "generic",
+) -> ObjectiveDisplay:
     """
     Create an objective display.
 
@@ -261,7 +267,7 @@ def create_objective(description: str,
         current=current,
         target=target,
         completed=completed,
-        objective_type=objective_type
+        objective_type=objective_type,
     )
 
 
@@ -272,7 +278,7 @@ def create_kill_objective(enemy_count: int, killed: int = 0) -> ObjectiveDisplay
         current=killed,
         target=enemy_count,
         completed=(killed >= enemy_count),
-        objective_type="kill_enemies"
+        objective_type="kill_enemies",
     )
 
 
@@ -283,7 +289,7 @@ def create_collect_objective(item_name: str, count: int, collected: int = 0) -> 
         current=collected,
         target=count,
         completed=(collected >= count),
-        objective_type="collect"
+        objective_type="collect",
     )
 
 
@@ -294,7 +300,7 @@ def create_reach_objective(location: str, reached: bool = False) -> ObjectiveDis
         current=1 if reached else 0,
         target=1,
         completed=reached,
-        objective_type="reach"
+        objective_type="reach",
     )
 
 
@@ -305,5 +311,5 @@ def create_boss_objective(boss_name: str, defeated: bool = False) -> ObjectiveDi
         current=1 if defeated else 0,
         target=1,
         completed=defeated,
-        objective_type="boss"
+        objective_type="boss",
     )

@@ -13,19 +13,28 @@ Features:
 Enhanced: Increased zone grid to 16x16 for finer granularity
 """
 
-from typing import List, Tuple, Optional
+
+from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES, TILES_PER_ZONE
 from systems.world_generation import RoomNode
 from systems.zone_planning import (
-    Z_WALK, Z_FILL, Z_PLAT, Z_DOOR, Z_SAVE, Z_SHOP, Z_LOOT, Z_VOID,
-    Z_CHUTE, Z_CLIMB, Z_CONNECTOR, Z_DECOR
+    Z_CHUTE,
+    Z_CLIMB,
+    Z_CONNECTOR,
+    Z_DECOR,
+    Z_DOOR,
+    Z_FILL,
+    Z_LOOT,
+    Z_PLAT,
+    Z_SAVE,
+    Z_SHOP,
+    Z_VOID,
+    Z_WALK,
 )
-from config.physics_constants import TILES_PER_ZONE, ROOM_WIDTH_TILES, ROOM_HEIGHT_TILES
-
 
 # Tile constants (match existing collision system)
-TILE_EMPTY = 0      # Empty space (no collision)
-TILE_SOLID = 1      # Solid terrain (full collision)
-TILE_PLATFORM = 2   # Platform (one-way collision from top)
+TILE_EMPTY = 0  # Empty space (no collision)
+TILE_SOLID = 1  # Solid terrain (full collision)
+TILE_PLATFORM = 2  # Platform (one-way collision from top)
 
 
 # Room/zone dimensions come from centralized physics constants
@@ -42,7 +51,7 @@ class RoomGenerator:
         """Initialize room generator."""
         pass
 
-    def generate_tilemap(self, room: RoomNode) -> List[List[int]]:
+    def generate_tilemap(self, room: RoomNode) -> list[list[int]]:
         """
         Generate tilemap from room's zone grid.
 
@@ -74,7 +83,12 @@ class RoomGenerator:
         return tilemap
 
     def _expand_zone(
-        self, tilemap: List[List[int]], zx: int, zy: int, zone_role: str, room: Optional[RoomNode] = None
+        self,
+        tilemap: list[list[int]],
+        zx: int,
+        zy: int,
+        zone_role: str,
+        room: RoomNode | None = None,
     ):
         """
         Expand a single zone to 10x10 tiles.
@@ -92,10 +106,10 @@ class RoomGenerator:
         tile_y_end = tile_y_start + TILES_PER_ZONE
 
         # Check if this zone is on an edge that connects to another room
-        is_top_edge = (zy == 0) and room and 'up' in room.neighbor_dirs
-        is_bottom_edge = (zy == 15) and room and 'down' in room.neighbor_dirs
-        is_left_edge = (zx == 0) and room and 'left' in room.neighbor_dirs
-        is_right_edge = (zx == 15) and room and 'right' in room.neighbor_dirs
+        is_top_edge = (zy == 0) and room and "up" in room.neighbor_dirs
+        is_bottom_edge = (zy == 15) and room and "down" in room.neighbor_dirs
+        is_left_edge = (zx == 0) and room and "left" in room.neighbor_dirs
+        is_right_edge = (zx == 15) and room and "right" in room.neighbor_dirs
         is_connected_edge = is_top_edge or is_bottom_edge or is_left_edge or is_right_edge
 
         if zone_role == Z_FILL:
@@ -145,7 +159,7 @@ class RoomGenerator:
             # Empty space - already TILE_EMPTY
             pass
 
-    def _add_room_boundaries(self, tilemap: List[List[int]], room: Optional[RoomNode] = None):
+    def _add_room_boundaries(self, tilemap: list[list[int]], room: RoomNode | None = None):
         """
         Add room boundaries - only on edges that DON'T connect to other rooms.
 
@@ -156,10 +170,10 @@ class RoomGenerator:
             room: Room node (optional, for checking connections)
         """
         # Determine which edges have connections
-        has_up = room and 'up' in room.neighbor_dirs if room else False
-        has_down = room and 'down' in room.neighbor_dirs if room else False
-        has_left = room and 'left' in room.neighbor_dirs if room else False
-        has_right = room and 'right' in room.neighbor_dirs if room else False
+        has_up = room and "up" in room.neighbor_dirs if room else False
+        has_down = room and "down" in room.neighbor_dirs if room else False
+        has_left = room and "left" in room.neighbor_dirs if room else False
+        has_right = room and "right" in room.neighbor_dirs if room else False
 
         # Top wall (only if no upward connection)
         if not has_up:
@@ -191,7 +205,7 @@ class RoomGenerator:
                 if tilemap[platform_y][x] == TILE_EMPTY:
                     tilemap[platform_y][x] = TILE_PLATFORM
 
-    def _carve_doors(self, tilemap: List[List[int]], room: RoomNode):
+    def _carve_doors(self, tilemap: list[list[int]], room: RoomNode):
         """
         Carve door openings at room edges.
 
@@ -204,7 +218,7 @@ class RoomGenerator:
                 self._carve_door_opening(tilemap, direction, port.center_tile, port.span_tiles)
 
     def _carve_door_opening(
-        self, tilemap: List[List[int]], direction: str, center_tile: int, span_tiles: int
+        self, tilemap: list[list[int]], direction: str, center_tile: int, span_tiles: int
     ):
         """
         Carve a single door opening.
@@ -219,26 +233,36 @@ class RoomGenerator:
 
         if direction == "left":
             # Carve vertical opening on left edge
-            for ty in range(max(0, center_tile - half_span), min(ROOM_HEIGHT_TILES, center_tile + half_span)):
+            for ty in range(
+                max(0, center_tile - half_span), min(ROOM_HEIGHT_TILES, center_tile + half_span)
+            ):
                 tilemap[ty][0] = TILE_EMPTY
 
         elif direction == "right":
             # Carve vertical opening on right edge
-            for ty in range(max(0, center_tile - half_span), min(ROOM_HEIGHT_TILES, center_tile + half_span)):
+            for ty in range(
+                max(0, center_tile - half_span), min(ROOM_HEIGHT_TILES, center_tile + half_span)
+            ):
                 tilemap[ty][ROOM_WIDTH_TILES - 1] = TILE_EMPTY
 
         elif direction == "up":
             # Carve horizontal opening on top edge
-            for tx in range(max(0, center_tile - half_span), min(ROOM_WIDTH_TILES, center_tile + half_span)):
+            for tx in range(
+                max(0, center_tile - half_span), min(ROOM_WIDTH_TILES, center_tile + half_span)
+            ):
                 tilemap[0][tx] = TILE_EMPTY
 
         elif direction == "down":
             # Carve horizontal opening on bottom edge
-            for tx in range(max(0, center_tile - half_span), min(ROOM_WIDTH_TILES, center_tile + half_span)):
+            for tx in range(
+                max(0, center_tile - half_span), min(ROOM_WIDTH_TILES, center_tile + half_span)
+            ):
                 tilemap[ROOM_HEIGHT_TILES - 1][tx] = TILE_EMPTY
 
 
-def tilemap_to_collision_rects(tilemap: List[List[int]], tile_size: int = 8) -> List[Tuple[int, int, int, int]]:
+def tilemap_to_collision_rects(
+    tilemap: list[list[int]], tile_size: int = 8
+) -> list[tuple[int, int, int, int]]:
     """
     Convert tilemap to collision rectangles (for existing collision system).
 
@@ -262,7 +286,7 @@ def tilemap_to_collision_rects(tilemap: List[List[int]], tile_size: int = 8) -> 
     return rects
 
 
-def print_tilemap_sample(tilemap: List[List[int]], sample_size: int = 20) -> None:
+def print_tilemap_sample(tilemap: list[list[int]], sample_size: int = 20) -> None:
     """
     Print a sample of the tilemap (for debugging).
 
@@ -282,7 +306,7 @@ def print_tilemap_sample(tilemap: List[List[int]], sample_size: int = 20) -> Non
     print()
 
 
-def print_tilemap_ascii(tilemap: List[List[int]], scale: int = 4) -> None:
+def print_tilemap_ascii(tilemap: list[list[int]], scale: int = 4) -> None:
     """
     Print ASCII visualization of entire tilemap at reduced scale.
 
@@ -313,5 +337,5 @@ def print_tilemap_ascii(tilemap: List[List[int]], scale: int = 4) -> None:
         print(row_str)
 
     print(f"{'='*60}")
-    print(f"Legend: #=Solid  -=Platform  (space)=Empty")
+    print("Legend: #=Solid  -=Platform  (space)=Empty")
     print(f"{'='*60}\n")

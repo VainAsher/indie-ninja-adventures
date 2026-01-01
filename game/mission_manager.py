@@ -12,29 +12,27 @@ This module manages mission lifecycle:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
-from enum import Enum
 import time
+from dataclasses import dataclass, field
+from enum import Enum
 
-from game.mission_registry import (
-    MissionDefinition, get_mission_registry
-)
-from game.inventory_system import Inventory
 from core import EventBus
-
+from game.inventory_system import Inventory
+from game.mission_registry import MissionDefinition, get_mission_registry
 
 # ============================================================
 # Mission State
 # ============================================================
 
+
 class MissionState(Enum):
     """Mission completion states"""
+
     NOT_STARTED = "not_started"  # Never attempted
-    AVAILABLE = "available"      # Unlocked but not started
+    AVAILABLE = "available"  # Unlocked but not started
     IN_PROGRESS = "in_progress"  # Currently active
-    COMPLETED = "completed"      # Successfully completed
-    FAILED = "failed"            # Failed (death or other failure)
+    COMPLETED = "completed"  # Successfully completed
+    FAILED = "failed"  # Failed (death or other failure)
 
 
 @dataclass
@@ -44,16 +42,17 @@ class MissionProgress:
 
     Tracks attempts, completion status, and best performance.
     """
+
     mission_id: str
     state: MissionState = MissionState.NOT_STARTED
     attempts: int = 0
     completions: int = 0
-    best_time_seconds: Optional[float] = None
-    last_attempt_time: Optional[float] = None
+    best_time_seconds: float | None = None
+    last_attempt_time: float | None = None
 
     # Current attempt tracking
-    current_attempt_start_time: Optional[float] = None
-    objectives_completed: List[str] = field(default_factory=list)
+    current_attempt_start_time: float | None = None
+    objectives_completed: list[str] = field(default_factory=list)
 
     def start_attempt(self):
         """Start a new mission attempt"""
@@ -100,26 +99,26 @@ class MissionProgress:
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
-            'mission_id': self.mission_id,
-            'state': self.state.value,
-            'attempts': self.attempts,
-            'completions': self.completions,
-            'best_time_seconds': self.best_time_seconds,
-            'last_attempt_time': self.last_attempt_time,
-            'objectives_completed': self.objectives_completed
+            "mission_id": self.mission_id,
+            "state": self.state.value,
+            "attempts": self.attempts,
+            "completions": self.completions,
+            "best_time_seconds": self.best_time_seconds,
+            "last_attempt_time": self.last_attempt_time,
+            "objectives_completed": self.objectives_completed,
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'MissionProgress':
+    def from_dict(data: dict) -> "MissionProgress":
         """Deserialize from dictionary"""
         return MissionProgress(
-            mission_id=data['mission_id'],
-            state=MissionState(data.get('state', 'not_started')),
-            attempts=data.get('attempts', 0),
-            completions=data.get('completions', 0),
-            best_time_seconds=data.get('best_time_seconds'),
-            last_attempt_time=data.get('last_attempt_time'),
-            objectives_completed=data.get('objectives_completed', [])
+            mission_id=data["mission_id"],
+            state=MissionState(data.get("state", "not_started")),
+            attempts=data.get("attempts", 0),
+            completions=data.get("completions", 0),
+            best_time_seconds=data.get("best_time_seconds"),
+            last_attempt_time=data.get("last_attempt_time"),
+            objectives_completed=data.get("objectives_completed", []),
         )
 
 
@@ -127,9 +126,11 @@ class MissionProgress:
 # Mission Events
 # ============================================================
 
+
 @dataclass
 class MissionStartEvent:
     """Event emitted when mission starts"""
+
     mission_id: str
     mission_definition: MissionDefinition
 
@@ -137,14 +138,16 @@ class MissionStartEvent:
 @dataclass
 class MissionCompleteEvent:
     """Event emitted when mission completes"""
+
     mission_id: str
     completion_time: float
-    rewards: Dict[str, any]  # Contains items, currency, abilities
+    rewards: dict[str, any]  # Contains items, currency, abilities
 
 
 @dataclass
 class MissionFailEvent:
     """Event emitted when mission fails"""
+
     mission_id: str
     reason: str  # "death", "timeout", "objective_failed"
 
@@ -152,6 +155,7 @@ class MissionFailEvent:
 @dataclass
 class ObjectiveCompleteEvent:
     """Event emitted when single objective completes"""
+
     mission_id: str
     objective_id: str
     objective_description: str
@@ -160,24 +164,28 @@ class ObjectiveCompleteEvent:
 @dataclass
 class AllObjectivesCompleteEvent:
     """Event emitted when all objectives complete (exit unlocked)"""
+
     mission_id: str
 
 
 @dataclass
 class ExitLockedEvent:
     """Event emitted when exit portal is locked"""
+
     mission_id: str
 
 
 @dataclass
 class ExitUnlockedEvent:
     """Event emitted when exit portal is unlocked"""
+
     mission_id: str
 
 
 # ============================================================
 # Mission Manager
 # ============================================================
+
 
 class MissionManager:
     """
@@ -199,10 +207,10 @@ class MissionManager:
         self.world_seed = world_seed
 
         # Mission progress tracking
-        self.mission_progress: Dict[str, MissionProgress] = {}
+        self.mission_progress: dict[str, MissionProgress] = {}
 
         # Current active mission
-        self.current_mission_id: Optional[str] = None
+        self.current_mission_id: str | None = None
         self.exit_locked: bool = False
 
         # Mission registry reference
@@ -234,13 +242,12 @@ class MissionManager:
             True if mission can be started
         """
         completed_missions = {
-            mid for mid, progress in self.mission_progress.items()
+            mid
+            for mid, progress in self.mission_progress.items()
             if progress.state == MissionState.COMPLETED
         }
         return self.mission_registry.is_mission_unlocked(
-            mission_id,
-            unlocked_abilities,
-            completed_missions
+            mission_id, unlocked_abilities, completed_missions
         )
 
     def start_mission(self, mission_id: str) -> bool:
@@ -272,10 +279,9 @@ class MissionManager:
         self.exit_locked = True
 
         # Emit events
-        self.event_bus.emit(MissionStartEvent(
-            mission_id=mission_id,
-            mission_definition=mission_def
-        ))
+        self.event_bus.emit(
+            MissionStartEvent(mission_id=mission_id, mission_definition=mission_def)
+        )
 
         self.event_bus.emit(ExitLockedEvent(mission_id=mission_id))
 
@@ -284,8 +290,7 @@ class MissionManager:
 
         return True
 
-    def complete_objective(self, mission_id: str, objective_id: str,
-                          objective_description: str):
+    def complete_objective(self, mission_id: str, objective_id: str, objective_description: str):
         """
         Mark an objective as complete.
 
@@ -304,11 +309,13 @@ class MissionManager:
             progress.objectives_completed.append(objective_id)
 
             # Emit objective complete event
-            self.event_bus.emit(ObjectiveCompleteEvent(
-                mission_id=mission_id,
-                objective_id=objective_id,
-                objective_description=objective_description
-            ))
+            self.event_bus.emit(
+                ObjectiveCompleteEvent(
+                    mission_id=mission_id,
+                    objective_id=objective_id,
+                    objective_description=objective_description,
+                )
+            )
 
             print(f"[OBJECTIVE] Completed: {objective_description}")
 
@@ -351,7 +358,7 @@ class MissionManager:
             self.event_bus.emit(AllObjectivesCompleteEvent(mission_id=mission_id))
             self.event_bus.emit(ExitUnlockedEvent(mission_id=mission_id))
 
-            print(f"[MISSION] Exit unlocked! Head to the exit portal.")
+            print("[MISSION] Exit unlocked! Head to the exit portal.")
 
     def complete_mission(self, mission_id: str, player_inventory: Inventory) -> bool:
         """
@@ -389,11 +396,11 @@ class MissionManager:
         self.current_mission_id = None
 
         # Emit completion event
-        self.event_bus.emit(MissionCompleteEvent(
-            mission_id=mission_id,
-            completion_time=completion_time,
-            rewards=rewards
-        ))
+        self.event_bus.emit(
+            MissionCompleteEvent(
+                mission_id=mission_id, completion_time=completion_time, rewards=rewards
+            )
+        )
 
         print(f"[MISSION] Completed: {mission_def.mission_name}")
         print(f"[MISSION] Time: {completion_time:.1f}s")
@@ -401,8 +408,9 @@ class MissionManager:
 
         return True
 
-    def _distribute_rewards(self, mission_def: MissionDefinition,
-                           player_inventory: Inventory) -> Dict[str, any]:
+    def _distribute_rewards(
+        self, mission_def: MissionDefinition, player_inventory: Inventory
+    ) -> dict[str, any]:
         """
         Distribute mission rewards to player.
 
@@ -413,16 +421,12 @@ class MissionManager:
         Returns:
             Dictionary of distributed rewards
         """
-        rewards = {
-            'items': [],
-            'currency': 0,
-            'abilities': []
-        }
+        rewards = {"items": [], "currency": 0, "abilities": []}
 
         # Currency reward
         if mission_def.rewards and mission_def.rewards.currency > 0:
             player_inventory.add_currency(mission_def.rewards.currency)
-            rewards['currency'] = mission_def.rewards.currency
+            rewards["currency"] = mission_def.rewards.currency
 
         # Direct item rewards (JSON supports dicts or plain IDs)
         if mission_def.rewards:
@@ -438,10 +442,10 @@ class MissionManager:
 
                 if item_id:
                     player_inventory.add_item(item_id, quantity)
-                    rewards['items'].append((item_id, quantity))
+                    rewards["items"].append((item_id, quantity))
 
         # Ability unlocks
-        rewards['abilities'] = mission_def.unlock_abilities.copy()
+        rewards["abilities"] = mission_def.unlock_abilities.copy()
 
         return rewards
 
@@ -475,10 +479,7 @@ class MissionManager:
         self.current_mission_id = None
 
         # Emit failure event
-        self.event_bus.emit(MissionFailEvent(
-            mission_id=mission_id,
-            reason=reason
-        ))
+        self.event_bus.emit(MissionFailEvent(mission_id=mission_id, reason=reason))
 
         print(f"[MISSION] Failed: {reason}")
 
@@ -488,44 +489,44 @@ class MissionManager:
         """Check if exit portal is locked"""
         return self.exit_locked
 
-    def get_current_mission(self) -> Optional[MissionDefinition]:
+    def get_current_mission(self) -> MissionDefinition | None:
         """Get current active mission definition"""
         if self.current_mission_id is None:
             return None
         return self.mission_registry.get_mission(self.current_mission_id)
 
-    def get_mission_stats(self, mission_id: str) -> Optional[MissionProgress]:
+    def get_mission_stats(self, mission_id: str) -> MissionProgress | None:
         """Get mission statistics"""
         return self.mission_progress.get(mission_id)
 
     def save_state(self) -> dict:
         """Save mission manager state"""
         return {
-            'mission_progress': {
+            "mission_progress": {
                 mission_id: progress.to_dict()
                 for mission_id, progress in self.mission_progress.items()
             },
-            'current_mission_id': self.current_mission_id,
-            'exit_locked': self.exit_locked
+            "current_mission_id": self.current_mission_id,
+            "exit_locked": self.exit_locked,
         }
 
     def load_state(self, data: dict):
         """Load mission manager state"""
         # Load mission progress
         self.mission_progress.clear()
-        for mission_id, progress_data in data.get('mission_progress', {}).items():
+        for mission_id, progress_data in data.get("mission_progress", {}).items():
             self.mission_progress[mission_id] = MissionProgress.from_dict(progress_data)
 
         # Load current mission
-        self.current_mission_id = data.get('current_mission_id')
-        self.exit_locked = data.get('exit_locked', False)
+        self.current_mission_id = data.get("current_mission_id")
+        self.exit_locked = data.get("exit_locked", False)
 
 
 # ============================================================
 # Global Mission Manager Instance
 # ============================================================
 
-_mission_manager: Optional[MissionManager] = None
+_mission_manager: MissionManager | None = None
 
 
 def initialize_mission_manager(event_bus: EventBus, world_seed: int):
@@ -534,6 +535,6 @@ def initialize_mission_manager(event_bus: EventBus, world_seed: int):
     _mission_manager = MissionManager(event_bus, world_seed)
 
 
-def get_mission_manager() -> Optional[MissionManager]:
+def get_mission_manager() -> MissionManager | None:
     """Get the global mission manager instance"""
     return _mission_manager

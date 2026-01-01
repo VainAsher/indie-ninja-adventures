@@ -6,12 +6,13 @@ These functions handle persistence, arcade mode, and other game utilities.
 """
 
 from typing import Any
-from systems.save_system import SaveManager
-from game.story_manager import StoryManager
-from game.inventory_system import Inventory
+
 from game.hub_manager import HubManager
-from systems.seed_hierarchy import SeedDerivation
+from game.inventory_system import Inventory
+from game.story_manager import StoryManager
 from network import InputPipeline
+from systems.save_system import SaveManager
+from systems.seed_hierarchy import SeedDerivation
 
 
 def persist_player_inventory(save_manager: SaveManager, player_inventory: Inventory) -> None:
@@ -25,7 +26,7 @@ def persist_player_inventory(save_manager: SaveManager, player_inventory: Invent
             inv_dict,
             player_inventory.equipped_weapon,
             player_inventory.equipped_armor,
-            player_inventory.currency
+            player_inventory.currency,
         )
 
 
@@ -49,7 +50,7 @@ def update_replay_metadata(
     current_world_context: str,
     current_seed: int,
     hub_manager: HubManager,
-    mission_id: str | None = None
+    mission_id: str | None = None,
 ) -> None:
     """Capture current context into replay metadata for determinism."""
     ctx = {

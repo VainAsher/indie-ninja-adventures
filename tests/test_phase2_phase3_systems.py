@@ -19,20 +19,22 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core import EventBus
-from game.hub_manager import HubManager, HubType
-from entities.npc import NPCManager, NPCType
-from game.portal_system import PortalManager, PortalType
-from game.trading_system import TradingManager, ShopTier
-from game.mission_manager import MissionManager, MissionState
-from game.objective_tracker import (
-    ObjectiveTracker, EnemyDeathEvent, ItemCollectedEvent,
-    SwitchActivatedEvent, BossDeathEvent, PlayerPositionUpdateEvent
-)
-from game.level_manager import LevelManager
-from game.inventory_system import Inventory, ItemDatabase
-from game.mission_registry import ObjectiveType, get_mission_registry
 import json
+
+from core import EventBus
+from entities.npc import NPCManager, NPCType
+from game.hub_manager import HubManager, HubType
+from game.inventory_system import Inventory
+from game.level_manager import LevelManager
+from game.mission_manager import MissionManager, MissionState
+from game.mission_registry import ObjectiveType
+from game.objective_tracker import (
+    EnemyDeathEvent,
+    ObjectiveTracker,
+    PlayerPositionUpdateEvent,
+)
+from game.portal_system import PortalManager, PortalType
+from game.trading_system import ShopTier, TradingManager
 
 
 def test_hub_generation():
@@ -64,9 +66,15 @@ def test_hub_generation():
     assert len(forest_hub.npc_anchors) > 0, "Forest hub should have NPCs"
     assert len(forest_hub.portal_anchors) > 0, "Forest hub should have portals"
 
-    print(f"  [OK] Forest hub: {forest_hub.display_name} ({len(forest_hub.npc_anchors)} NPCs, {len(forest_hub.portal_anchors)} portals)")
-    print(f"  [OK] Town hub: {town_hub.display_name} ({len(town_hub.npc_anchors)} NPCs, {len(town_hub.portal_anchors)} portals)")
-    print(f"  [OK] Caves hub: {caves_hub.display_name} ({len(caves_hub.npc_anchors)} NPCs, {len(caves_hub.portal_anchors)} portals)")
+    print(
+        f"  [OK] Forest hub: {forest_hub.display_name} ({len(forest_hub.npc_anchors)} NPCs, {len(forest_hub.portal_anchors)} portals)"
+    )
+    print(
+        f"  [OK] Town hub: {town_hub.display_name} ({len(town_hub.npc_anchors)} NPCs, {len(town_hub.portal_anchors)} portals)"
+    )
+    print(
+        f"  [OK] Caves hub: {caves_hub.display_name} ({len(caves_hub.npc_anchors)} NPCs, {len(caves_hub.portal_anchors)} portals)"
+    )
 
     # Test hub world generation
     world, hub_def = hub_manager.generate_hub_world("forest_hub")
@@ -100,14 +108,18 @@ def test_npc_system():
     assert forest_ranger.npc_type == NPCType.MISSION_GIVER, "Should be mission giver"
     assert len(forest_ranger.mission_pool) > 0, "Should have mission pool"
 
-    print(f"  [OK] Forest Ranger: {forest_ranger.display_name} ({len(forest_ranger.mission_pool)} missions)")
+    print(
+        f"  [OK] Forest Ranger: {forest_ranger.display_name} ({len(forest_ranger.mission_pool)} missions)"
+    )
 
     forest_merchant = npc_manager.get_npc_definition("forest_merchant")
     assert forest_merchant is not None, "Should have forest merchant"
     assert forest_merchant.npc_type == NPCType.SHOP, "Should be shop NPC"
     assert forest_merchant.shop_tier == 1, "Should be tier 1 shop"
 
-    print(f"  [OK] Forest Merchant: {forest_merchant.display_name} (Tier {forest_merchant.shop_tier})")
+    print(
+        f"  [OK] Forest Merchant: {forest_merchant.display_name} (Tier {forest_merchant.shop_tier})"
+    )
 
     # Test NPC spawning
     npc = npc_manager.spawn_npc("forest_ranger", 100.0, 200.0)
@@ -148,7 +160,7 @@ def test_portal_system():
         destination_id="central_hub",
         x=100.0,
         y=200.0,
-        bidirectional=True
+        bidirectional=True,
     )
 
     assert portal is not None, "Should spawn portal"
@@ -199,12 +211,13 @@ def test_trading_system():
     trading_manager = TradingManager(event_bus, world_seed)
 
     # Create and initialize global item database
-    from game.inventory_system import initialize_item_manager, get_item_manager
+    from game.inventory_system import get_item_manager, initialize_item_manager
+
     initialize_item_manager()
     item_db = get_item_manager()
 
     items_path = Path(__file__).parent.parent / "data" / "items.json"
-    with open(items_path, 'r') as f:
+    with open(items_path) as f:
         items_data = json.load(f)
     item_db.load_from_dict(items_data)
 
@@ -249,7 +262,9 @@ def test_trading_system():
 
     success = shop.sell_to_shop(sell_item_id, 1, inventory)
     assert success, "Should sell item successfully"
-    assert inventory.currency > initial_currency - shop_item.price, "Currency should increase from selling"
+    assert (
+        inventory.currency > initial_currency - shop_item.price
+    ), "Currency should increase from selling"
 
     print(f"  [OK] Sold {sell_item_id} for {sell_price} gold")
 
@@ -271,15 +286,16 @@ def test_mission_manager():
     mission_manager = MissionManager(event_bus, world_seed)
 
     # Initialize global systems
+    from game.inventory_system import get_item_manager, initialize_item_manager
     from game.loot_system import initialize_loot_table_database
-    from game.inventory_system import initialize_item_manager, get_item_manager
+
     initialize_loot_table_database()
     initialize_item_manager()
 
     # Load items for reward distribution
     item_db = get_item_manager()
     items_path = Path(__file__).parent.parent / "data" / "items.json"
-    with open(items_path, 'r') as f:
+    with open(items_path) as f:
         items_data = json.load(f)
     item_db.load_from_dict(items_data)
 
@@ -372,11 +388,9 @@ def test_objective_tracker():
     incomplete_before = len(objective_tracker.get_incomplete_objectives())
 
     # Simulate enemy death
-    event_bus.emit(EnemyDeathEvent(
-        enemy_id="goblin_1",
-        enemy_type="goblin",
-        position=(100.0, 200.0)
-    ))
+    event_bus.emit(
+        EnemyDeathEvent(enemy_id="goblin_1", enemy_type="goblin", position=(100.0, 200.0))
+    )
     event_bus.process()
 
     # Check if kill objective updated (if mission has kill objective)
@@ -401,19 +415,17 @@ def test_objective_tracker():
 
     if reach_obj:
         # Player far from location
-        event_bus.emit(PlayerPositionUpdateEvent(
-            player_x=1000.0,
-            player_y=1000.0
-        ))
+        event_bus.emit(PlayerPositionUpdateEvent(player_x=1000.0, player_y=1000.0))
         event_bus.process()
         assert not reach_obj.is_complete, "Should not be complete yet"
 
         # Player reaches resolved location
         if reach_obj.target_position:
-            event_bus.emit(PlayerPositionUpdateEvent(
-                player_x=reach_obj.target_position[0],
-                player_y=reach_obj.target_position[1]
-            ))
+            event_bus.emit(
+                PlayerPositionUpdateEvent(
+                    player_x=reach_obj.target_position[0], player_y=reach_obj.target_position[1]
+                )
+            )
             event_bus.process()
             assert reach_obj.is_complete, "Reach objective should complete at target"
             print("  [OK] Reach location objective tracking works")
@@ -514,10 +526,12 @@ if __name__ == "__main__":
     except AssertionError as e:
         print(f"\n[FAIL] Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
     except Exception as e:
         print(f"\n[ERROR] Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

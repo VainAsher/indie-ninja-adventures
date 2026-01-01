@@ -11,25 +11,25 @@ Modular, self-contained mechanics that implement player movement and abilities:
 """
 
 from .base import BaseMechanic
-from .jump import JumpMechanic
-from .movement import MovementMechanic
-from .dash import DashMechanic
-from .wall_slide import WallSlideMechanic
 from .crouch import CrouchMechanic
 from .damage import DamageMechanic
+from .dash import DashMechanic
+from .jump import JumpMechanic
+from .movement import MovementMechanic
+from .ninjutsu import NinjutsuMechanic
 from .shuriken import ShurikenMechanic
 from .teleport import TeleportMechanic
-from .ninjutsu import NinjutsuMechanic
+from .wall_slide import WallSlideMechanic
 
 __all__ = [
-    'BaseMechanic',
-    'JumpMechanic',
-    'MovementMechanic',
-    'DashMechanic',
-    'WallSlideMechanic',
-    'CrouchMechanic',
-    'DamageMechanic',
-    'ShurikenMechanic',
-    'TeleportMechanic',
-    'NinjutsuMechanic',
+    "BaseMechanic",
+    "JumpMechanic",
+    "MovementMechanic",
+    "DashMechanic",
+    "WallSlideMechanic",
+    "CrouchMechanic",
+    "DamageMechanic",
+    "ShurikenMechanic",
+    "TeleportMechanic",
+    "NinjutsuMechanic",
 ]

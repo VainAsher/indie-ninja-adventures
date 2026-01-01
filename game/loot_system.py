@@ -12,9 +12,8 @@ This module provides loot table management and deterministic drop generation:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional
 import random
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -24,8 +23,9 @@ class LootDrop:
 
     Used in loot tables to define what items can drop and their probabilities.
     """
+
     item_id: str
-    quantity_range: Tuple[int, int]  # (min, max) quantity
+    quantity_range: tuple[int, int]  # (min, max) quantity
     drop_chance: float  # 0.0-1.0 probability
 
     def __post_init__(self):
@@ -46,26 +46,23 @@ class LootTable:
     - Chance drops (probability-based)
     - Currency range (gold/coins)
     """
+
     table_id: str
-    guaranteed_drops: List[LootDrop] = field(default_factory=list)
-    chance_drops: List[LootDrop] = field(default_factory=list)
-    currency_range: Tuple[int, int] = (0, 0)  # (min, max) gold/coins
+    guaranteed_drops: list[LootDrop] = field(default_factory=list)
+    chance_drops: list[LootDrop] = field(default_factory=list)
+    currency_range: tuple[int, int] = (0, 0)  # (min, max) gold/coins
 
-    def add_guaranteed_drop(self, item_id: str, quantity_range: Tuple[int, int]):
+    def add_guaranteed_drop(self, item_id: str, quantity_range: tuple[int, int]):
         """Add guaranteed drop to table"""
-        self.guaranteed_drops.append(LootDrop(
-            item_id=item_id,
-            quantity_range=quantity_range,
-            drop_chance=1.0
-        ))
+        self.guaranteed_drops.append(
+            LootDrop(item_id=item_id, quantity_range=quantity_range, drop_chance=1.0)
+        )
 
-    def add_chance_drop(self, item_id: str, quantity_range: Tuple[int, int], drop_chance: float):
+    def add_chance_drop(self, item_id: str, quantity_range: tuple[int, int], drop_chance: float):
         """Add chance-based drop to table"""
-        self.chance_drops.append(LootDrop(
-            item_id=item_id,
-            quantity_range=quantity_range,
-            drop_chance=drop_chance
-        ))
+        self.chance_drops.append(
+            LootDrop(item_id=item_id, quantity_range=quantity_range, drop_chance=drop_chance)
+        )
 
 
 class LootGenerator:
@@ -84,7 +81,7 @@ class LootGenerator:
         """
         self.rng = random.Random(seed)
 
-    def generate_loot(self, loot_table: LootTable) -> Tuple[List[Tuple[str, int]], int]:
+    def generate_loot(self, loot_table: LootTable) -> tuple[list[tuple[str, int]], int]:
         """
         Generate loot from loot table.
 
@@ -114,15 +111,13 @@ class LootGenerator:
         # Generate currency
         currency = 0
         if loot_table.currency_range[1] > 0:
-            currency = self.rng.randint(
-                loot_table.currency_range[0],
-                loot_table.currency_range[1]
-            )
+            currency = self.rng.randint(loot_table.currency_range[0], loot_table.currency_range[1])
 
         return items, currency
 
-    def generate_loot_by_id(self, loot_table_id: str,
-                           loot_tables: 'LootTableDatabase') -> Tuple[List[Tuple[str, int]], int]:
+    def generate_loot_by_id(
+        self, loot_table_id: str, loot_tables: "LootTableDatabase"
+    ) -> tuple[list[tuple[str, int]], int]:
         """
         Generate loot from loot table by ID.
 
@@ -148,14 +143,14 @@ class LootTableDatabase:
     """
 
     def __init__(self):
-        self.tables: Dict[str, LootTable] = {}
+        self.tables: dict[str, LootTable] = {}
         self._register_default_tables()
 
     def register_table(self, loot_table: LootTable):
         """Register loot table"""
         self.tables[loot_table.table_id] = loot_table
 
-    def get_table(self, table_id: str) -> Optional[LootTable]:
+    def get_table(self, table_id: str) -> LootTable | None:
         """Get loot table by ID"""
         return self.tables.get(table_id)
 
@@ -174,7 +169,7 @@ class LootTableDatabase:
                 LootDrop("health_potion_small", (1, 1), 0.15),  # 15% chance
                 LootDrop("material_cloth", (1, 2), 0.25),  # 25% chance
             ],
-            currency_range=(1, 5)
+            currency_range=(1, 5),
         )
         self.register_table(common_enemy)
 
@@ -188,7 +183,7 @@ class LootTableDatabase:
                 LootDrop("material_leather", (1, 2), 0.30),
                 LootDrop("weapon_dagger", (1, 1), 0.05),  # 5% weapon drop
             ],
-            currency_range=(3, 10)
+            currency_range=(3, 10),
         )
         self.register_table(uncommon_enemy)
 
@@ -204,7 +199,7 @@ class LootTableDatabase:
                 LootDrop("weapon_sword", (1, 1), 0.10),
                 LootDrop("armor_leather", (1, 1), 0.10),
             ],
-            currency_range=(10, 25)
+            currency_range=(10, 25),
         )
         self.register_table(rare_enemy)
 
@@ -224,7 +219,7 @@ class LootTableDatabase:
                 LootDrop("armor_bark_plate", (1, 1), 0.50),
                 LootDrop("max_hp_upgrade", (1, 1), 0.25),
             ],
-            currency_range=(50, 100)
+            currency_range=(50, 100),
         )
         self.register_table(forest_boss)
 
@@ -240,7 +235,7 @@ class LootTableDatabase:
                 LootDrop("armor_chain_mail", (1, 1), 0.50),
                 LootDrop("max_hp_upgrade", (1, 1), 0.25),
             ],
-            currency_range=(75, 150)
+            currency_range=(75, 150),
         )
         self.register_table(town_boss)
 
@@ -256,7 +251,7 @@ class LootTableDatabase:
                 LootDrop("weapon_crystal_blade", (1, 1), 0.50),
                 LootDrop("max_hp_upgrade", (1, 1), 0.30),
             ],
-            currency_range=(100, 200)
+            currency_range=(100, 200),
         )
         self.register_table(caves_boss)
 
@@ -272,7 +267,7 @@ class LootTableDatabase:
                 LootDrop("armor_dark_plate", (1, 1), 0.50),
                 LootDrop("max_hp_upgrade", (1, 1), 0.35),
             ],
-            currency_range=(150, 250)
+            currency_range=(150, 250),
         )
         self.register_table(castle_boss)
 
@@ -288,7 +283,7 @@ class LootTableDatabase:
                 LootDrop("weapon_legendary_sword", (1, 1), 0.75),
                 LootDrop("max_hp_upgrade", (2, 2), 0.50),
             ],
-            currency_range=(200, 500)
+            currency_range=(200, 500),
         )
         self.register_table(sewer_boss)
 
@@ -305,7 +300,7 @@ class LootTableDatabase:
                 LootDrop("material_cloth", (2, 5), 0.50),
                 LootDrop("weapon_dagger", (1, 1), 0.15),
             ],
-            currency_range=(5, 20)
+            currency_range=(5, 20),
         )
         self.register_table(common_chest)
 
@@ -321,7 +316,7 @@ class LootTableDatabase:
                 LootDrop("armor_leather", (1, 1), 0.40),
                 LootDrop("max_hp_upgrade", (1, 1), 0.10),
             ],
-            currency_range=(25, 75)
+            currency_range=(25, 75),
         )
         self.register_table(rare_chest)
 
@@ -336,7 +331,7 @@ class LootTableDatabase:
                 LootDrop("armor_legendary_set", (1, 1), 0.20),
                 LootDrop("max_hp_upgrade", (1, 2), 0.50),
             ],
-            currency_range=(100, 300)
+            currency_range=(100, 300),
         )
         self.register_table(epic_chest)
 
@@ -354,7 +349,7 @@ class LootTableDatabase:
                 LootDrop("weapon_dagger", (1, 1), 0.30),
                 LootDrop("armor_cloth", (1, 1), 0.30),
             ],
-            currency_range=(20, 50)
+            currency_range=(20, 50),
         )
         self.register_table(mission_forest)
 
@@ -368,7 +363,7 @@ class LootTableDatabase:
                 LootDrop("weapon_sword", (1, 1), 0.40),
                 LootDrop("armor_leather", (1, 1), 0.40),
             ],
-            currency_range=(40, 100)
+            currency_range=(40, 100),
         )
         self.register_table(mission_town)
 
@@ -383,7 +378,7 @@ class LootTableDatabase:
                 LootDrop("armor_crystal_plate", (1, 1), 0.30),
                 LootDrop("max_hp_upgrade", (1, 1), 0.15),
             ],
-            currency_range=(75, 150)
+            currency_range=(75, 150),
         )
         self.register_table(mission_caves)
 
@@ -398,7 +393,7 @@ class LootTableDatabase:
                 LootDrop("armor_dark_plate", (1, 1), 0.35),
                 LootDrop("max_hp_upgrade", (1, 1), 0.20),
             ],
-            currency_range=(100, 200)
+            currency_range=(100, 200),
         )
         self.register_table(mission_castle)
 
@@ -413,33 +408,37 @@ class LootTableDatabase:
                 LootDrop("weapon_legendary_sword", (1, 1), 0.50),
                 LootDrop("armor_legendary_set", (1, 1), 0.50),
             ],
-            currency_range=(150, 300)
+            currency_range=(150, 300),
         )
         self.register_table(mission_sewer)
 
     def load_from_dict(self, data: dict):
         """Load loot tables from dictionary (from JSON)"""
-        for table_data in data.get('loot_tables', []):
+        for table_data in data.get("loot_tables", []):
             table = LootTable(
-                table_id=table_data['table_id'],
-                currency_range=tuple(table_data.get('currency_range', [0, 0]))
+                table_id=table_data["table_id"],
+                currency_range=tuple(table_data.get("currency_range", [0, 0])),
             )
 
             # Load guaranteed drops
-            for drop_data in table_data.get('guaranteed_drops', []):
-                table.guaranteed_drops.append(LootDrop(
-                    item_id=drop_data['item_id'],
-                    quantity_range=tuple(drop_data['quantity_range']),
-                    drop_chance=1.0
-                ))
+            for drop_data in table_data.get("guaranteed_drops", []):
+                table.guaranteed_drops.append(
+                    LootDrop(
+                        item_id=drop_data["item_id"],
+                        quantity_range=tuple(drop_data["quantity_range"]),
+                        drop_chance=1.0,
+                    )
+                )
 
             # Load chance drops
-            for drop_data in table_data.get('chance_drops', []):
-                table.chance_drops.append(LootDrop(
-                    item_id=drop_data['item_id'],
-                    quantity_range=tuple(drop_data['quantity_range']),
-                    drop_chance=drop_data['drop_chance']
-                ))
+            for drop_data in table_data.get("chance_drops", []):
+                table.chance_drops.append(
+                    LootDrop(
+                        item_id=drop_data["item_id"],
+                        quantity_range=tuple(drop_data["quantity_range"]),
+                        drop_chance=drop_data["drop_chance"],
+                    )
+                )
 
             self.register_table(table)
 
@@ -448,7 +447,7 @@ class LootTableDatabase:
 # Global Loot Table Database Instance
 # ============================================================
 
-_loot_table_database: Optional[LootTableDatabase] = None
+_loot_table_database: LootTableDatabase | None = None
 
 
 def initialize_loot_table_database():
@@ -457,6 +456,6 @@ def initialize_loot_table_database():
     _loot_table_database = LootTableDatabase()
 
 
-def get_loot_table_database() -> Optional[LootTableDatabase]:
+def get_loot_table_database() -> LootTableDatabase | None:
     """Get the global loot table database instance"""
     return _loot_table_database

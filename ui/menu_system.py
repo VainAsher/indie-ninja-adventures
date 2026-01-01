@@ -10,14 +10,16 @@ Architecture:
 - SettingsMenu: Options and configuration
 """
 
-import pygame
-from typing import List, Callable, Optional, Dict, Any
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+
+import pygame
 
 
 class MenuAction(Enum):
     """Menu action results"""
+
     NONE = "none"
     START_GAME = "start_game"
     RESUME_GAME = "resume_game"
@@ -30,9 +32,10 @@ class MenuAction(Enum):
 @dataclass
 class MenuItem:
     """Menu item with label and action"""
+
     label: str
     action: MenuAction
-    callback: Optional[Callable] = None
+    callback: Callable | None = None
     enabled: bool = True
 
 
@@ -59,7 +62,7 @@ class BaseMenu:
         self.title = title
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.items: List[MenuItem] = []
+        self.items: list[MenuItem] = []
         self.selected_index = 0
 
         # Fonts
@@ -74,11 +77,17 @@ class BaseMenu:
         self.selected_color = (255, 255, 100)  # Bright yellow
         self.disabled_color = (100, 100, 120)  # Dark gray
 
-    def add_item(self, label: str, action: MenuAction, callback: Optional[Callable] = None, enabled: bool = True):
+    def add_item(
+        self,
+        label: str,
+        action: MenuAction,
+        callback: Callable | None = None,
+        enabled: bool = True,
+    ):
         """Add menu item"""
         self.items.append(MenuItem(label, action, callback, enabled))
 
-    def handle_input(self, keys_pressed: Dict[int, bool]) -> MenuAction:
+    def handle_input(self, keys_pressed: dict[int, bool]) -> MenuAction:
         """
         Handle keyboard input for menu navigation
 
@@ -167,12 +176,16 @@ class BaseMenu:
 
             # Render item
             item_surf = self.item_font.render(item.label, True, color)
-            item_rect = item_surf.get_rect(centerx=self.screen_width // 2, y=start_y + i * item_spacing)
+            item_rect = item_surf.get_rect(
+                centerx=self.screen_width // 2, y=start_y + i * item_spacing
+            )
 
             # Selection indicator
             if i == self.selected_index and item.enabled:
                 indicator = self.item_font.render(">", True, self.selected_color)
-                indicator_rect = indicator.get_rect(right=item_rect.left - 20, centery=item_rect.centery)
+                indicator_rect = indicator.get_rect(
+                    right=item_rect.left - 20, centery=item_rect.centery
+                )
                 surface.blit(indicator, indicator_rect)
 
             surface.blit(item_surf, item_rect)
@@ -208,13 +221,17 @@ class MainMenu(BaseMenu):
         # Version
         version = "v0.7.0"
         version_surf = self.small_font.render(version, True, (100, 100, 120))
-        version_rect = version_surf.get_rect(right=self.screen_width - 20, bottom=self.screen_height - 20)
+        version_rect = version_surf.get_rect(
+            right=self.screen_width - 20, bottom=self.screen_height - 20
+        )
         surface.blit(version_surf, version_rect)
 
         # Controls hint
         hint = "Use Arrow Keys to navigate, Enter to select"
         hint_surf = self.small_font.render(hint, True, (120, 120, 140))
-        hint_rect = hint_surf.get_rect(centerx=self.screen_width // 2, bottom=self.screen_height - 20)
+        hint_rect = hint_surf.get_rect(
+            centerx=self.screen_width // 2, bottom=self.screen_height - 20
+        )
         surface.blit(hint_surf, hint_rect)
 
 
@@ -242,7 +259,9 @@ class PauseMenu(BaseMenu):
         # Controls hint
         hint = "Press ESC to resume"
         hint_surf = self.small_font.render(hint, True, (120, 120, 140))
-        hint_rect = hint_surf.get_rect(centerx=self.screen_width // 2, bottom=self.screen_height - 20)
+        hint_rect = hint_surf.get_rect(
+            centerx=self.screen_width // 2, bottom=self.screen_height - 20
+        )
         surface.blit(hint_surf, hint_rect)
 
 
@@ -297,7 +316,7 @@ class MenuManager:
         """
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.menu_stack: List[BaseMenu] = []
+        self.menu_stack: list[BaseMenu] = []
 
         # Input debouncing
         self.last_up_press = 0
@@ -310,7 +329,7 @@ class MenuManager:
         """Push menu onto stack"""
         self.menu_stack.append(menu)
 
-    def pop_menu(self) -> Optional[BaseMenu]:
+    def pop_menu(self) -> BaseMenu | None:
         """Pop menu from stack"""
         if self.menu_stack:
             return self.menu_stack.pop()
@@ -320,7 +339,7 @@ class MenuManager:
         """Clear all menus from stack"""
         self.menu_stack.clear()
 
-    def get_current_menu(self) -> Optional[BaseMenu]:
+    def get_current_menu(self) -> BaseMenu | None:
         """Get current (top) menu"""
         if self.menu_stack:
             return self.menu_stack[-1]
@@ -330,7 +349,9 @@ class MenuManager:
         """Check if any menu is active"""
         return len(self.menu_stack) > 0
 
-    def handle_input(self, keys: Dict[int, bool], pressed_once: Optional[List[int]] = None) -> MenuAction:
+    def handle_input(
+        self, keys: dict[int, bool], pressed_once: list[int] | None = None
+    ) -> MenuAction:
         """
         Handle input for current menu with debouncing
 
