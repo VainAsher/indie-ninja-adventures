@@ -3,16 +3,12 @@ echo Building DEV build...
 set BUILD_MODE=DEV
 cd /d "%~dp0"
 
-REM Activate virtual environment if it exists
-if exist "..\.venv\Scripts\activate.bat" (
-    echo Activating virtual environment...
-    call "..\.venv\Scripts\activate.bat"
-)
-
-REM Verify dependencies
-echo Checking dependencies...
-if exist "..\requirements.txt" (
-    python -m pip install -q -r "..\requirements.txt"
+REM Run setup script to ensure Python and dependencies are installed
+call setup.bat
+if errorlevel 1 (
+    echo [ERROR] Setup failed! Cannot proceed with build.
+    pause
+    exit /b 1
 )
 echo.
 
