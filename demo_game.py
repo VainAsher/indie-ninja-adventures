@@ -97,6 +97,27 @@ from game.ending_manager import EndingManager, EndingChoice, EndingState
 from entities.companions import CompanionOrbs
 from rendering.hub_effects import HubEffectsRenderer
 
+# Phase 3 Refactoring: Extracted modules (v0.7.0)
+from game.game_initialization import (
+    initialize_pygame,
+    create_rendering_systems,
+    create_core_systems,
+    create_game_managers,
+    create_physics_and_collision,
+    create_camera_system,
+    create_player,
+    create_combat_system,
+    apply_shuriken_capacity_bonus,
+    CameraEffectsHandler,
+)
+from game.level_factory import (
+    create_simple_level,
+    create_procedural_level,
+    build_objective_location_targets,
+    spawn_objective_collectibles,
+)
+from game.world_builder import regenerate_world_state
+
 
 # Display settings (virtual game resolution)
 GAME_WIDTH = 1280
