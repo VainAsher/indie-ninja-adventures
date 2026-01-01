@@ -19,10 +19,10 @@ if exist "..\.venv\Scripts\activate.bat" (
 )
 
 REM Install PyInstaller if not present
-pip show pyinstaller >nul 2>&1
+python -m pip show pyinstaller >nul 2>&1
 if errorlevel 1 (
     echo Installing PyInstaller...
-    pip install pyinstaller
+    python -m pip install pyinstaller
     echo.
 )
 
@@ -32,7 +32,7 @@ echo Verifying Dependencies
 echo ========================================
 if exist "..\requirements.txt" (
     echo Checking requirements.txt...
-    pip install -r "..\requirements.txt"
+    python -m pip install -r "..\requirements.txt"
     if errorlevel 1 (
         echo ERROR: Failed to install dependencies!
         pause
@@ -47,7 +47,7 @@ if exist "..\requirements.txt" (
 
 REM Display installed packages
 echo Installed packages:
-pip list | findstr /i "pygame pillow pyinstaller"
+python -m pip list | findstr /i "pygame pillow pyinstaller"
 echo.
 
 REM Clean previous builds
@@ -61,7 +61,7 @@ echo ========================================
 echo Building PRODUCTION (ninja_dash.exe)
 echo ========================================
 set BUILD_MODE=PRODUCTION
-pyinstaller --clean ninja_dash_production.spec
+python -m PyInstaller --clean ninja_dash_production.spec
 if errorlevel 1 (
     echo ERROR: Production build failed!
     pause
@@ -75,7 +75,7 @@ echo ========================================
 echo Building TESTING (ninja_dash_testing.exe)
 echo ========================================
 set BUILD_MODE=TESTING
-pyinstaller --clean ninja_dash_testing.spec
+python -m PyInstaller --clean ninja_dash_testing.spec
 if errorlevel 1 (
     echo ERROR: Testing build failed!
     pause
@@ -89,7 +89,7 @@ echo ========================================
 echo Building DEV (ninja_dash_dev.exe)
 echo ========================================
 set BUILD_MODE=DEV
-pyinstaller --clean ninja_dash_dev.spec
+python -m PyInstaller --clean ninja_dash_dev.spec
 if errorlevel 1 (
     echo ERROR: Dev build failed!
     pause

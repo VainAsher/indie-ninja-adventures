@@ -12,11 +12,11 @@ if exist "..\.venv\Scripts\activate.bat" (
 REM Verify dependencies
 echo Checking dependencies...
 if exist "..\requirements.txt" (
-    pip install -q -r "..\requirements.txt"
+    python -m pip install -q -r "..\requirements.txt"
 )
 echo.
 
-pyinstaller --clean ninja_dash_dev.spec
+python -m PyInstaller --clean ninja_dash_dev.spec
 if errorlevel 1 (
     echo ERROR: Build failed!
     pause
