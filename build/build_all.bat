@@ -9,7 +9,7 @@ echo.
 REM Ensure we're in the build directory
 cd /d "%~dp0"
 
-REM Run setup script to ensure Python and dependencies are installed
+REM Run setup script to ensure Python and virtual environment exist
 echo Running setup to verify environment...
 call setup.bat
 if errorlevel 1 (
@@ -19,6 +19,49 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
+REM Activate virtual environment
+echo Activating virtual environment...
+if exist "..\.venv\Scripts\activate.bat" (
+    call "..\.venv\Scripts\activate.bat"
+    echo [OK] Virtual environment activated
+) else (
+    echo [ERROR] Virtual environment not found!
+    pause
+    exit /b 1
+)
+echo.
+
+REM Upgrade pip
+echo Upgrading pip...
+python -m pip install --upgrade pip --quiet
+
+REM Install PyInstaller
+echo Installing PyInstaller...
+python -m pip install pyinstaller --quiet
+if errorlevel 1 (
+    echo [ERROR] Failed to install PyInstaller!
+    pause
+    exit /b 1
+)
+
+REM Install dependencies from requirements.txt
+if exist "..\requirements.txt" (
+    echo Installing dependencies from requirements.txt...
+    python -m pip install -r "..\requirements.txt" --quiet
+    if errorlevel 1 (
+        echo [ERROR] Failed to install dependencies!
+        pause
+        exit /b 1
+    )
+    echo [OK] All dependencies installed
+) else (
+    echo [WARNING] requirements.txt not found
+)
+
+echo.
+echo Installed packages:
+python -m pip list | findstr /i "pygame pillow pyinstaller"
 
 echo.
 echo ========================================
