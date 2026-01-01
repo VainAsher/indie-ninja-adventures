@@ -9,35 +9,56 @@
 
 A feature-complete platformer with campaign mode, story system, enemy AI, dialogue, trading, and 25 missions across 5 zones. All foundational systems are implemented and tested. The game includes procedural world generation, multiple game modes (Campaign, Arcade, Sandbox), and comprehensive gameplay systems.
 
-### Scope Freeze for v0.6.1
-- Focusing development and testing on three modes: **Campaign**, **Arcade**, and **Sandbox**.
-- Goal: ship a stable vertical slice covering core movement/combat, pickups/hazards, exits/win flow, HUD, and menus across these modes.
-- Advanced/experimental systems (missions/trading/hub/portals/boss frameworks) stay behind feature flags until the vertical slice is green.
+**📋 For a complete feature breakdown, see [FEATURES_V0_7.md](docs/FEATURES_V0_7.md)**
+
+### ⚠️ Known Gap: Boss AI
+
+**IMPORTANT**: While the boss system framework exists, **boss AI is not implemented**. Boss rooms generate but have no functional boss encounters. This is documented in ROADMAP.md Phase 8 (220 hour estimate). See [FEATURES_V0_7.md](docs/FEATURES_V0_7.md#boss-system-framework-only---not-implemented) for details.
 
 ### What's Working
 
 - **Core Systems**: Event bus, logging, fixed timestep, state management, entity system, mod support
-- **Physics & Collision**: Gravity, velocity integration, AABB collision with advanced edge case handling
-- **Player Mechanics**: Movement (smooth interpolation), jump (ground/double/wall/coyote/buffer), dash, crouch (stealth), fast-fall; wall slide is **disabled** while wall interaction is reworked, replaced with a light wall-friction clamp
-- **World Generation**: Seed-based procedural generation with hierarchical structure (World -> Biomes -> Rooms -> 16x16 Zones -> 160x160 Tilemap)
+- **Physics & Collision**: Gravity, velocity integration, AABB collision with advanced edge case handling (11+ fixes)
+- **Player Mechanics**: Movement (smooth interpolation), jump (ground/double/wall/coyote/buffer), dash, crouch (stealth), fast-fall, combat (3-hit combo, air attacks), special abilities (shuriken, teleport, ninjutsu)
+- **Enemy System**: 5 enemy types (SLIME, BAT, SKELETON, ORC, DEMON) with AI behaviors (patrol, chase, ranged, flying, static), spawning, health, loot drops
+- **World Generation**: Seed-based procedural generation with hierarchical structure (World → Biomes → Rooms → 16x16 Zones → 160x160 Tilemap), BFS connectivity validation
+- **Campaign Mode**: 25 missions across 5 zones (Forest, Town, Caves, Castle, Sewers) with story progression, dialogue, and hub system
+- **Story & Dialogue**: Story manager with multiple endings, NPC dialogue system with branching conversations, cutscene framework
+- **Trading & Inventory**: 3-tier shop system, item management, loot system with rarity tiers, coin-based economy
+- **Portal System**: Hub-based fast-travel, mission portals, shop access
+- **Game Modes**: Campaign (story-driven), Arcade (endless procedural), Sandbox (free exploration)
 - **Camera System**: Multi-mode camera (world clamp, room clamp, free, locked) with smoothing and letterboxing
-- **Demo Game**: Fully playable with static and procedural modes, toggle in-game with P key
-- **Testing**: 14 structured unit/integration/edge suites plus world-gen and playability validations (core systems well covered; world-gen coverage partial). New regression checks cover wall contact vs. ground snap.
-- **Documentation**: Complete API docs, architecture guide, modding guide, world generation guide, and development docs
-- **Roadmap Goals**: Modular architecture and deterministic state remain aligned with future client/server multiplayer and headless CI testing
+- **UI Systems**: Menus (main/pause/settings/mode selection), HUD (health/stamina/objectives), minimap, dialogue UI, shop UI, victory/death screens
+- **Testing**: 46 test files with unit/integration/edge case coverage, world-gen validation, playability testing
+- **Documentation**: Architecture guide, modding guide, world generation guide, complete feature list (v0.7.0)
+- **Build System**: PyInstaller configs for dev/testing/production builds with CI/CD pipeline
 
-### Latest Features (v0.7.0)
+### Latest Features (v0.7.0) - New Since v0.4.0-dev
 
-- **Procedural World Generation**: Seed-based deterministic generation creates unique metroidvania worlds
-  - Hierarchical: World -> Biomes -> Rooms -> Zones (16x16) -> Tilemap (160x160)
-  - Multi-biome support (DUNGEON, CAVE, BUILDING themes)
-  - Room types: START, EXIT, SHOP, COMBAT, PLATFORM, TREASURE, BOSS
-  - BFS connectivity validation (all zones guaranteed reachable)
-  - Generates 30-room world in ~2-5ms
-- **Zone Planning**: Intelligent feature placement with pathfinding validation
-- **Demo Integration**: `--procedural` flag and P key toggle between static/procedural modes
-- **Placeholder Assets**: 30 generated tile sprites (8x8 colored placeholders)
-- **Camera System**: Smooth following, world/room bounds, free/locked modes, responsive letterboxing
+**Major Additions** (from v0.4.0-dev to v0.7.0):
+- **Campaign Mode**: Complete story-driven mode with 25 missions across 5 zones, hub system, mission progression
+- **Enemy System**: Full enemy AI with 5 enemy types, patrol/chase/ranged behaviors, spawning, health, loot drops
+- **Story System**: Story manager with character arcs, multiple endings (Redemption/Hollow/Balance), cutscene framework
+- **Dialogue System**: NPC conversations with branching choices, dialogue UI, quest givers, shop keepers
+- **Trading System**: 3-tier shops (Basic/Advanced/Master), inventory management, item purchasing, coin economy
+- **Portal System**: Hub fast-travel, mission portals, shop access portals
+- **Combat System**: 3-hit combo, air attacks, dash attack, special abilities (shuriken, teleport, ninjutsu)
+- **Companion System**: Orbital companion orbs with unique abilities
+- **Advanced UI**: Shop UI, inventory browser, mission selector, dialogue boxes, victory/death screens, objective tracking
+- **Loot System**: Rarity tiers (Common→Legendary), enemy drops, treasure chests, pickup notifications
+
+**Infrastructure** (v0.7.0):
+- **CI/CD Pipeline**: GitHub Actions with automated testing, linting, formatting, type checking
+- **Code Quality**: Black formatter, Ruff linter, MyPy type checking, pre-commit hooks
+- **Modern Packaging**: pyproject.toml, proper Python package structure
+- **46 Test Files**: Comprehensive test coverage including edge cases and playability validation
+- **Build System**: PyInstaller configs for dev/testing/production with automated builds
+
+**From v0.4.0-dev** (Still Working):
+- Procedural world generation (seed-based, hierarchical, BFS connectivity)
+- Multi-mode camera system
+- Advanced physics & collision (11+ edge case fixes)
+- Player mechanics (movement, jump, dash, crouch)
 
 ###  Previous Features (v0.3.2)
 

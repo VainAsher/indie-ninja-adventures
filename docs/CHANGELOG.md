@@ -8,7 +8,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.7.0] - 2025-12-12
+## [0.7.0] - 2026-01-01 (Project Restructuring Release)
+
+### Summary
+**Major restructuring and documentation overhaul**. This release represents a complete audit and improvement of the project, bumping from v0.4.0-dev documentation to accurate v0.7.0 documentation that reflects all implemented features. The codebase was v0.7.0+ in functionality but documented as v0.4.0-dev - this release brings documentation into alignment with reality.
+
+### Major Changes
+
+#### Infrastructure & Tooling
+- **Added Modern Python Packaging**: `pyproject.toml` with Black, Ruff, MyPy, pytest-cov
+- **Added CI/CD Pipeline**: GitHub Actions with automated testing, linting, formatting, type checking
+- **Added Pre-commit Hooks**: Code quality enforcement on git commits
+- **Archived Legacy Code**: Moved `legacy/` to `legacy-archive/` (excluded from repo)
+- **Removed Technical Debt Markers**: Cleaned up backup files and outdated references
+
+#### Documentation Overhaul
+- **Reduced Documentation Files**: 80+ markdown files → 28 core files (65% reduction)
+- **Created FEATURES_V0_7.md**: Comprehensive feature documentation
+- **Archived Historical Docs**: Moved 70+ files to `docs/archive/` (sessions, phases, audits, summaries)
+- **Updated Core Docs**: README, ROADMAP, CHANGELOG, ARCHITECTURE now reflect v0.7.0 reality
+- **Documented Boss AI Gap**: Prominently noted that boss framework exists but boss AI is not implemented
+
+#### Version Consistency
+- **Updated ALL Version References**: v0.4.0-dev → v0.7.0 across 25+ files
+- **Version String Updates**: UI menu system, documentation, build configs
+
+### What's Actually in v0.7.0 (Documentation Finally Accurate)
+
+This release doesn't add new features - it documents what was already implemented but undocumented:
+
+#### Game Systems (Implemented v0.5.0-v0.7.0, Now Documented)
+- **Campaign Mode**: 25 missions across 5 zones with story progression
+- **Enemy System**: 5 enemy types with AI (SLIME, BAT, SKELETON, ORC, DEMON)
+- **Story System**: Story manager with multiple endings, character arcs, cutscenes
+- **Dialogue System**: NPC conversations with branching choices
+- **Trading System**: 3-tier shops with inventory management
+- **Portal System**: Hub-based fast-travel
+- **Combat System**: 3-hit combo, air attacks, special abilities
+- **Loot System**: Rarity tiers, enemy drops, treasure chests
+
+#### Known Gaps (Now Documented)
+- **Boss AI**: Framework exists (entities/boss.py, entities/boss_manager.py) but NO functional boss AI
+  - Boss rooms generate but have no encounters
+  - Estimated 220 hours to implement (ROADMAP.md Phase 8)
+  - See FEATURES_V0_7.md for details
+- **Sound System**: Planned but not implemented
+- **Multiplayer**: Planned for v1.0.0+
+
+### Quality Metrics (Baseline Established)
+- **Ruff**: 2,020 linting errors identified (1,697 auto-fixable)
+- **Black**: 156 files need formatting
+- **Tests**: 94.1% pass rate (16/17 tests passing)
+- **Code**: demo_game.py = 3,475 lines (target: <500 in future refactor)
+
+### Breaking Changes
+None - this is a documentation and infrastructure update only.
+
+### Migration Notes
+- Old documentation in `docs/archive/` for historical reference
+- Version references updated throughout codebase
+- No API or functionality changes
+
+### Next Steps (Planned for Future Releases)
+- Phase 3: Refactor demo_game.py (3,475 → <500 lines)
+- Phase 4: Fix technical debt (EventBus cleanup, PlayerState refactor, save security)
+- Phase 5: Apply code quality improvements (format, lint, type hints)
+- Phase 6: Complete test coverage and finalize documentation
+
+---
+
+## [0.7.0-dev] - 2025-12-12 (Camera System & Collision)
 
 ### Added - Camera System & Collision Improvements
 
