@@ -73,9 +73,9 @@ class CameraEffectsHandler:
         self.was_on_ground = False
         self.was_on_wall = False
 
-        # Subscribe to events
-        event_bus.subscribe(CollisionEvent, self._on_collision)
-        event_bus.subscribe(VelocityChangeEvent, self._on_velocity_change)
+        # Subscribe to events (Phase 4.1: with owner tracking)
+        event_bus.subscribe(CollisionEvent, self._on_collision, owner=self)
+        event_bus.subscribe(VelocityChangeEvent, self._on_velocity_change, owner=self)
 
     def _on_collision(self, event: CollisionEvent):
         """Handle collision events for camera effects"""
@@ -102,6 +102,10 @@ class CameraEffectsHandler:
                 self.camera.add_camera_pan(offset_x=30, offset_y=0)
             elif event.new_vx < 0:  # Jumping left
                 self.camera.add_camera_pan(offset_x=-30, offset_y=0)
+
+    def cleanup(self):
+        """Cleanup event subscriptions (Phase 4.1 - prevent memory leaks)"""
+        self.event_bus.unsubscribe_all(self)
 
 
 def get_recommended_window_size() -> Tuple[int, int]:

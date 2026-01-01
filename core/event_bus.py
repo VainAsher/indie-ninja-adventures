@@ -180,8 +180,10 @@ class EventBus:
         self.logger = logger
         self._lock = threading.Lock()
         self._stats = defaultdict(int)  # Event type -> count
+        # Track subscriptions by owner for cleanup (Phase 4.1 - memory leak fix)
+        self._subscription_owners: Dict[int, List[tuple]] = defaultdict(list)  # owner_id -> [(event_type, handler)]
 
-    def subscribe(self, event_type: Type[Event], handler: Callable, priority: int = 0):
+    def subscribe(self, event_type: Type[Event], handler: Callable, priority: int = 0, owner=None):
         """
         Subscribe to event type with optional priority (higher = earlier)
 
@@ -189,11 +191,17 @@ class EventBus:
             event_type: Event class to subscribe to
             handler: Callable that takes event as parameter
             priority: Handler priority (default 0, higher executes first)
+            owner: Optional owner object for cleanup tracking (Phase 4.1)
         """
         with self._lock:
             self.subscribers[event_type].append((priority, handler))
             # Sort by priority descending
             self.subscribers[event_type].sort(key=lambda x: x[0], reverse=True)
+
+            # Track subscription by owner for cleanup (Phase 4.1)
+            if owner is not None:
+                owner_id = id(owner)
+                self._subscription_owners[owner_id].append((event_type, handler))
 
             if self.logger:
                 self.logger.debug(
@@ -308,9 +316,52 @@ class EventBus:
         """
         return TickEvent(dt=dt, tick_number=tick_number)
 
+    def unsubscribe_all(self, owner):
+        """
+        Unsubscribe all event handlers for a given owner (Phase 4.1 - memory leak fix)
+
+        This method removes all subscriptions registered with the specified owner,
+        preventing memory leaks when entities are destroyed or recreated.
+
+        Args:
+            owner: Owner object whose subscriptions should be removed
+
+        Example:
+            # In entity cleanup:
+            def cleanup(self):
+                self.event_bus.unsubscribe_all(self)
+        """
+        if owner is None:
+            return
+
+        owner_id = id(owner)
+
+        with self._lock:
+            # Get all subscriptions for this owner
+            subscriptions = self._subscription_owners.get(owner_id, [])
+
+            if not subscriptions:
+                return
+
+            # Remove each subscription
+            for event_type, handler in subscriptions:
+                self.subscribers[event_type] = [
+                    (p, h) for p, h in self.subscribers[event_type] if h != handler
+                ]
+
+            # Clear owner tracking
+            del self._subscription_owners[owner_id]
+
+            if self.logger:
+                self.logger.debug(
+                    f"Unsubscribed all handlers for owner {owner.__class__.__name__} "
+                    f"(removed {len(subscriptions)} subscriptions)"
+                )
+
     def clear_all_subscribers(self):
         """Clear all event subscribers (use with caution)"""
         with self._lock:
             self.subscribers.clear()
+            self._subscription_owners.clear()  # Phase 4.1: Also clear owner tracking
             if self.logger:
                 self.logger.warning("Cleared all event subscribers")
