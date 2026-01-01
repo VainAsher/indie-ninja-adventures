@@ -3,7 +3,7 @@
 
 This is a living document tracking the day-to-day development progress, decisions, challenges, and learnings.
 
-> Note (v0.4.0-dev): The stamina-based wall slide mechanic is currently **disabled** while wall interaction is reworked. A light wall-friction clamp plus wall-jump coyote buffer are active; legacy wall-slide code/UI remains for future re-enable.
+> Note (v0.7.0): The stamina-based wall slide mechanic is currently **disabled** while wall interaction is reworked. A light wall-friction clamp plus wall-jump coyote buffer are active; legacy wall-slide code/UI remains for future re-enable.
 
 ---
 

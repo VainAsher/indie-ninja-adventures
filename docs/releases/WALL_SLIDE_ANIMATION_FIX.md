@@ -172,6 +172,6 @@ Character looks **away** from the wall, sliding down while facing outward.
 ---
 
 **Updated**: 2025-12-12
-**Version**: v0.4.0-dev
+**Version**: v0.7.0
 **Status**: ✅ Complete
 **Impact**: Visual polish, no gameplay changes

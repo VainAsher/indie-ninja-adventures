@@ -131,4 +131,4 @@ To restore:
 
 **Last Updated**: 2025-12-12
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures
-**Version**: v0.4.0-dev
+**Version**: v0.7.0

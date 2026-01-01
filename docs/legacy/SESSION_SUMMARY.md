@@ -1,7 +1,7 @@
 # Session Summary: Procedural World Generation Enhancements & Playability Testing
 
 **Date**: 2025-12-12 Evening
-**Version**: 0.4.0-dev
+**Version**: 0.7.0
 **Status**: Complete ✅
 
 ---
@@ -604,5 +604,5 @@ The playability testing framework detected real issues (6.8% reachability on see
 ---
 
 **Session Status**: ✅ **Complete**
-**Version**: 0.4.0-dev
+**Version**: 0.7.0
 **Next Session**: Platform collision + room transitions

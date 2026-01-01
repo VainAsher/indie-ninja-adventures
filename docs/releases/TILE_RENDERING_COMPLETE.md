@@ -403,7 +403,7 @@ See [assets/biomes/tile_config.py](assets/biomes/tile_config.py) for complete ti
 ---
 
 **Integration Date**: 2025-12-12
-**Version**: v0.4.0-dev
+**Version**: v0.7.0
 **Status**: Complete and Tested
 **Asset Pack**: Platformer Art Complete Pack (Base pack)
 **Tiles Integrated**: 133 tiles across 3 biomes

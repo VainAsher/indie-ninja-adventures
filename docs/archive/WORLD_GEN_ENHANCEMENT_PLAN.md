@@ -11,7 +11,7 @@ The dynamic dungeon platformer uses a sophisticated **zone-based procedural gene
 
 ## Current System vs. Enhanced System
 
-### What We Have Now (v0.4.0-dev)
+### What We Have Now (v0.7.0)
 
 ✅ **Completed**:
 - Hierarchical world generation (World → Biomes → Rooms → Zones → Tilemap)

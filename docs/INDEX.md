@@ -11,7 +11,7 @@ Navigation hub for all project docs.
 - `SYSTEM_OVERVIEW.md` — API reference and system details
 - `ARCHITECTURE.md` — Design patterns and conventions
 - `ROADMAP.md` — Milestones, backlog, success metrics
-- `CHANGELOG.md` — Version history (current v0.4.0-dev)
+- `CHANGELOG.md` — Version history (current v0.7.0)
 - `DEVLOG.md` — Session notes and decisions
 - `PROJECT_ORGANIZATION.md` — Current repo layout and conventions
 - `PROJECT_REORGANIZATION_2025_12_14.md` — Documentation/test reorganization summary

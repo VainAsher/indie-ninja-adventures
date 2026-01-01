@@ -442,5 +442,5 @@ time.sleep(0.1)  # Give system time to settle
 ---
 
 **Last Updated**: 2025-12-12
-**Test Suite Version**: 0.4.0-dev
+**Test Suite Version**: 0.7.0
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures
