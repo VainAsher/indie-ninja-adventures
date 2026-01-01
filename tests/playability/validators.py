@@ -2,12 +2,13 @@
 Playability Validators - Modular validators for different playability aspects
 """
 
-from typing import List, Dict, Any, Set, Tuple
 from abc import ABC, abstractmethod
+from typing import Any
 
-from systems.world_generation import RoomNode, World
-from systems.room_generation import TILE_EMPTY, TILE_SOLID, TILE_PLATFORM
-from .simulator import PlayerSimulator, SimulationResult
+from systems.room_generation import TILE_EMPTY, TILE_PLATFORM, TILE_SOLID
+from systems.world_generation import RoomNode
+
+from .simulator import PlayerSimulator
 
 
 class PlayabilityValidator(ABC):
@@ -15,8 +16,8 @@ class PlayabilityValidator(ABC):
 
     def __init__(self, name: str):
         self.name = name
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
 
     @abstractmethod
     def validate(self, room: RoomNode) -> bool:
@@ -31,13 +32,13 @@ class PlayabilityValidator(ABC):
         """
         pass
 
-    def get_report(self) -> Dict[str, Any]:
+    def get_report(self) -> dict[str, Any]:
         """Get validation report"""
         return {
-            'validator': self.name,
-            'passed': len(self.errors) == 0,
-            'errors': self.errors.copy(),
-            'warnings': self.warnings.copy(),
+            "validator": self.name,
+            "passed": len(self.errors) == 0,
+            "errors": self.errors.copy(),
+            "warnings": self.warnings.copy(),
         }
 
     def reset(self):
@@ -91,11 +92,13 @@ class ReachabilityValidator(PlayabilityValidator):
         if room.door_ports:
             unreachable_doors = self._check_door_reachability(room, result.reachable_tiles)
             if unreachable_doors:
-                self.errors.append(f"{len(unreachable_doors)} door(s) unreachable: {unreachable_doors}")
+                self.errors.append(
+                    f"{len(unreachable_doors)} door(s) unreachable: {unreachable_doors}"
+                )
 
         return len(self.errors) == 0
 
-    def _find_spawn_point(self, room: RoomNode) -> Tuple[int, int]:
+    def _find_spawn_point(self, room: RoomNode) -> tuple[int, int]:
         """Find a valid spawn point in room (center, on floor)"""
         tilemap = room.tilemap
         height = len(tilemap)
@@ -121,7 +124,9 @@ class ReachabilityValidator(PlayabilityValidator):
 
         return (None, None)
 
-    def _check_door_reachability(self, room: RoomNode, reachable_tiles: Set[Tuple[int, int]]) -> List[str]:
+    def _check_door_reachability(
+        self, room: RoomNode, reachable_tiles: set[tuple[int, int]]
+    ) -> list[str]:
         """Check if all doors are reachable"""
         unreachable = []
 
@@ -129,7 +134,11 @@ class ReachabilityValidator(PlayabilityValidator):
             for port in ports:
                 # Door is at edge, check tiles near door
                 door_x = port.center_tile
-                door_y = 0 if direction == "up" else (len(room.tilemap) - 1) if direction == "down" else port.center_tile
+                door_y = (
+                    0
+                    if direction == "up"
+                    else (len(room.tilemap) - 1) if direction == "down" else port.center_tile
+                )
 
                 # Check if any tiles near door are reachable
                 door_reachable = False
@@ -199,7 +208,9 @@ class JumpabilityValidator(PlayabilityValidator):
         # Warnings don't fail validation, just inform
         return True
 
-    def _find_gaps(self, tilemap: List[List[int]], width: int, height: int) -> List[Tuple[int, int, int]]:
+    def _find_gaps(
+        self, tilemap: list[list[int]], width: int, height: int
+    ) -> list[tuple[int, int, int]]:
         """Find horizontal gaps in floor"""
         gaps = []
 
@@ -228,7 +239,9 @@ class JumpabilityValidator(PlayabilityValidator):
 
         return gaps
 
-    def _find_platforms(self, tilemap: List[List[int]], width: int, height: int) -> List[Tuple[int, int]]:
+    def _find_platforms(
+        self, tilemap: list[list[int]], width: int, height: int
+    ) -> list[tuple[int, int]]:
         """Find platform tiles (empty below, solid at position)"""
         platforms = []
 
@@ -240,7 +253,7 @@ class JumpabilityValidator(PlayabilityValidator):
 
         return platforms
 
-    def _find_floor_below(self, tilemap: List[List[int]], x: int, start_y: int, height: int) -> int:
+    def _find_floor_below(self, tilemap: list[list[int]], x: int, start_y: int, height: int) -> int:
         """Find nearest floor tile below position"""
         for y in range(start_y + 1, height):
             if tilemap[y][x] in (TILE_SOLID, TILE_PLATFORM):
@@ -285,7 +298,9 @@ class NavigabilityValidator(PlayabilityValidator):
 
         return True
 
-    def _calculate_obstacle_density(self, tilemap: List[List[int]], width: int, height: int) -> float:
+    def _calculate_obstacle_density(
+        self, tilemap: list[list[int]], width: int, height: int
+    ) -> float:
         """Calculate percentage of playable area that is solid"""
         if width == 0 or height == 0:
             return 0.0
@@ -337,7 +352,9 @@ class SafetyValidator(PlayabilityValidator):
 
         return True
 
-    def _find_pits(self, tilemap: List[List[int]], width: int, height: int) -> List[Tuple[int, int]]:
+    def _find_pits(
+        self, tilemap: list[list[int]], width: int, height: int
+    ) -> list[tuple[int, int]]:
         """Find vertical pits (columns of empty space)"""
         pits = []
 

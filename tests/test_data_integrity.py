@@ -12,8 +12,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from entities.enemy import EnemyType
 from entities.boss import BossType
+from entities.enemy import EnemyType
 from game.mission_system import get_mission_registry as get_legacy_mission_registry
 from game.trading_system import SHOP_TIER_POOLS
 
@@ -27,9 +27,7 @@ class TestDataIntegrity(unittest.TestCase):
         cls.missions = json.loads((root / "data" / "missions.json").read_text(encoding="utf-8"))
         cls.items = json.loads((root / "data" / "items.json").read_text(encoding="utf-8"))
 
-        cls.mission_ids = {
-            mission["mission_id"] for mission in cls.missions.get("missions", [])
-        }
+        cls.mission_ids = {mission["mission_id"] for mission in cls.missions.get("missions", [])}
         cls.item_ids = {item["item_id"] for item in cls.items.get("items", [])}
         cls.enemy_ids = {enemy.value for enemy in EnemyType}
         cls.boss_ids = {boss.value for boss in BossType}
@@ -107,7 +105,7 @@ class TestDataIntegrity(unittest.TestCase):
             missing_in_legacy or extra_in_legacy,
             "Legacy mission_system ids mismatch. "
             f"Missing: {sorted(missing_in_legacy)} "
-            f"Extra: {sorted(extra_in_legacy)}"
+            f"Extra: {sorted(extra_in_legacy)}",
         )
 
 

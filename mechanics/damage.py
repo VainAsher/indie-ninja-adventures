@@ -14,6 +14,7 @@ Architecture:
 """
 
 import logging
+
 from core.event_bus import EventBus, TickEvent
 from core.state import PlayerState
 from entities.hazards import PlayerDamageEvent, PlayerDeathEvent
@@ -37,8 +38,7 @@ class DamageMechanic:
     # Invincibility duration after taking damage (seconds)
     INVINCIBILITY_DURATION = 1.5  # 1.5 seconds of i-frames
 
-    def __init__(self, entity_id: int, event_bus: EventBus,
-                 logger: logging.Logger = None):
+    def __init__(self, entity_id: int, event_bus: EventBus, logger: logging.Logger = None):
         """
         Initialize damage mechanic
 
@@ -98,9 +98,14 @@ class DamageMechanic:
         for _ in range(frames_to_decrement):
             state.health_state.update()
 
-    def take_damage(self, state: PlayerState, amount: int,
-                   source: str = "unknown", source_pos: tuple = (0, 0),
-                   force: bool = False) -> bool:
+    def take_damage(
+        self,
+        state: PlayerState,
+        amount: int,
+        source: str = "unknown",
+        source_pos: tuple = (0, 0),
+        force: bool = False,
+    ) -> bool:
         """
         Apply damage to player
 
@@ -129,10 +134,7 @@ class DamageMechanic:
 
         # Emit damage event
         damage_event = PlayerDamageEvent(
-            player_id=self.entity_id,
-            damage=amount,
-            hazard_type=source,
-            position=source_pos
+            player_id=self.entity_id, damage=amount, hazard_type=source, position=source_pos
         )
         self.event_bus.emit(damage_event)
 
@@ -144,7 +146,7 @@ class DamageMechanic:
             death_event = PlayerDeathEvent(
                 player_id=self.entity_id,
                 death_type=source,
-                position=(state.physics.x, state.physics.y)
+                position=(state.physics.x, state.physics.y),
             )
             self.event_bus.emit(death_event)
 
@@ -177,9 +179,7 @@ class DamageMechanic:
 
         # Emit death event
         death_event = PlayerDeathEvent(
-            player_id=self.entity_id,
-            death_type=source,
-            position=(state.physics.x, state.physics.y)
+            player_id=self.entity_id, death_type=source, position=(state.physics.x, state.physics.y)
         )
         self.event_bus.emit(death_event)
 
@@ -228,16 +228,14 @@ class DamageMechanic:
         state.health_state.invincibility_frames = 120
 
         if self.logger:
-            self.logger.info(
-                f"Player {self.entity_id} respawned at ({spawn_x:.0f}, {spawn_y:.0f})"
-            )
+            self.logger.info(f"Player {self.entity_id} respawned at ({spawn_x:.0f}, {spawn_y:.0f})")
 
     def get_stats(self):
         """Get damage statistics"""
         return {
             "total_damage_taken": self.total_damage_taken,
             "times_damaged": self.times_damaged,
-            "deaths": self.deaths
+            "deaths": self.deaths,
         }
 
     def cleanup(self):

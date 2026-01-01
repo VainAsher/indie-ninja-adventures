@@ -11,9 +11,9 @@ This module provides branching dialogue functionality for NPCs:
 Version: v0.7.0
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
 import json
+from dataclasses import dataclass, field
+from typing import Any
 
 from core import EventBus
 
@@ -25,10 +25,11 @@ class DialogueChoice:
 
     Represents a player response option with potential conditions and events.
     """
+
     choice_text: str  # Choice label (max 60 chars recommended)
-    next_node_id: Optional[str]  # Where this choice leads (None = end dialogue)
-    requires: Optional[str] = None  # Condition (e.g., "has_item:forest_key")
-    on_select_event: Optional[str] = None  # Event to emit when selected
+    next_node_id: str | None  # Where this choice leads (None = end dialogue)
+    requires: str | None = None  # Condition (e.g., "has_item:forest_key")
+    on_select_event: str | None = None  # Event to emit when selected
 
 
 @dataclass
@@ -38,12 +39,13 @@ class DialogueNode:
 
     Represents one piece of dialogue with optional choices or auto-advance.
     """
+
     node_id: str
     speaker: str  # NPC name
     text: str  # Dialogue content (max 180 chars recommended)
-    choices: List[DialogueChoice] = field(default_factory=list)
-    next_node_id: Optional[str] = None  # Auto-advance if no choices
-    on_exit_event: Optional[str] = None  # Event to emit when leaving node
+    choices: list[DialogueChoice] = field(default_factory=list)
+    next_node_id: str | None = None  # Auto-advance if no choices
+    on_exit_event: str | None = None  # Event to emit when leaving node
 
 
 @dataclass
@@ -53,9 +55,10 @@ class DialogueTree:
 
     Contains all nodes and choices for a single NPC dialogue.
     """
+
     dialogue_id: str
     root_node_id: str  # Starting node
-    nodes: Dict[str, DialogueNode]
+    nodes: dict[str, DialogueNode]
 
 
 class DialogueManager:
@@ -74,13 +77,13 @@ class DialogueManager:
             event_bus: Event bus for emitting dialogue events
         """
         self.event_bus = event_bus
-        self.dialogues: Dict[str, DialogueTree] = {}
-        self.current_dialogue: Optional[DialogueTree] = None
-        self.current_node: Optional[DialogueNode] = None
-        self.history: List[str] = []  # Node IDs visited in current dialogue
+        self.dialogues: dict[str, DialogueTree] = {}
+        self.current_dialogue: DialogueTree | None = None
+        self.current_node: DialogueNode | None = None
+        self.history: list[str] = []  # Node IDs visited in current dialogue
 
         # Story state for conditional dialogue (set externally)
-        self.story_state: Dict[str, Any] = {}  # e.g., {"act": 0, "companions_present": True}
+        self.story_state: dict[str, Any] = {}  # e.g., {"act": 0, "companions_present": True}
 
     def load_dialogues(self, filepath: str):
         """
@@ -90,40 +93,40 @@ class DialogueManager:
             filepath: Path to dialogues.json file
         """
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
 
             for dialogue_id, dialogue_data in data.items():
                 # Parse nodes
                 nodes = {}
-                for node_id, node_data in dialogue_data.get('nodes', {}).items():
+                for node_id, node_data in dialogue_data.get("nodes", {}).items():
                     # Parse choices
                     choices = []
-                    for choice_data in node_data.get('choices', []):
+                    for choice_data in node_data.get("choices", []):
                         choice = DialogueChoice(
-                            choice_text=choice_data['choice_text'],
-                            next_node_id=choice_data.get('next_node_id'),
-                            requires=choice_data.get('requires'),
-                            on_select_event=choice_data.get('on_select_event')
+                            choice_text=choice_data["choice_text"],
+                            next_node_id=choice_data.get("next_node_id"),
+                            requires=choice_data.get("requires"),
+                            on_select_event=choice_data.get("on_select_event"),
                         )
                         choices.append(choice)
 
                     # Create node
                     node = DialogueNode(
-                        node_id=node_data['node_id'],
-                        speaker=node_data['speaker'],
-                        text=node_data['text'],
+                        node_id=node_data["node_id"],
+                        speaker=node_data["speaker"],
+                        text=node_data["text"],
                         choices=choices,
-                        next_node_id=node_data.get('next_node_id'),
-                        on_exit_event=node_data.get('on_exit_event')
+                        next_node_id=node_data.get("next_node_id"),
+                        on_exit_event=node_data.get("on_exit_event"),
                     )
                     nodes[node_id] = node
 
                 # Create dialogue tree
                 dialogue_tree = DialogueTree(
-                    dialogue_id=dialogue_data['dialogue_id'],
-                    root_node_id=dialogue_data['root_node_id'],
-                    nodes=nodes
+                    dialogue_id=dialogue_data["dialogue_id"],
+                    root_node_id=dialogue_data["root_node_id"],
+                    nodes=nodes,
                 )
 
                 self.dialogues[dialogue_id] = dialogue_tree
@@ -164,11 +167,11 @@ class DialogueManager:
         print(f"[DIALOGUE] Started dialogue: {dialogue_id} at node '{root_node_id}'")
         return True
 
-    def get_current_node(self) -> Optional[DialogueNode]:
+    def get_current_node(self) -> DialogueNode | None:
         """Get the current dialogue node."""
         return self.current_node
 
-    def get_available_choices(self) -> List[DialogueChoice]:
+    def get_available_choices(self) -> list[DialogueChoice]:
         """
         Get available choices for current node.
 
@@ -277,7 +280,7 @@ class DialogueManager:
         """Check if a dialogue is currently active."""
         return self.current_node is not None
 
-    def set_story_state(self, story_state: Dict[str, Any]):
+    def set_story_state(self, story_state: dict[str, Any]):
         """
         Set current story state for conditional dialogue.
 
@@ -286,7 +289,7 @@ class DialogueManager:
         """
         self.story_state = story_state
 
-    def check_condition(self, condition: Optional[str]) -> bool:
+    def check_condition(self, condition: str | None) -> bool:
         """
         Check if a condition is met based on current story state.
 
@@ -300,7 +303,7 @@ class DialogueManager:
             return True  # No condition means always available
 
         # Parse condition format: "key:value" or "key:operator:value"
-        parts = condition.split(':')
+        parts = condition.split(":")
 
         if len(parts) < 2:
             print(f"[WARNING] Invalid condition format: {condition}")
@@ -349,7 +352,7 @@ class DialogueManager:
             print(f"[WARNING] Unknown operator in condition: {operator}")
             return False
 
-    def select_dialogue_by_conditions(self, dialogue_ids: List[str]) -> Optional[str]:
+    def select_dialogue_by_conditions(self, dialogue_ids: list[str]) -> str | None:
         """
         Select the best matching dialogue ID based on story conditions.
 
@@ -389,7 +392,7 @@ class DialogueManager:
         # If no dialogue matched, return first available or None
         return dialogue_ids[0] if dialogue_ids else None
 
-    def get_npc_dialogue_id(self, npc_id: str, fallback_id: Optional[str] = None) -> Optional[str]:
+    def get_npc_dialogue_id(self, npc_id: str, fallback_id: str | None = None) -> str | None:
         """
         Get the appropriate dialogue ID for an NPC based on current story state.
 

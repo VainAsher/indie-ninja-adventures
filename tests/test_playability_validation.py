@@ -11,17 +11,16 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from systems.room_generation import RoomGenerator
 from systems.world_generation import WorldGenerator
 from systems.zone_planning import ZonePlanner
-from systems.room_generation import RoomGenerator
-
+from tests.playability.metrics import PlayabilityMetrics
 from tests.playability.validators import (
-    ReachabilityValidator,
     JumpabilityValidator,
     NavigabilityValidator,
+    ReachabilityValidator,
     SafetyValidator,
 )
-from tests.playability.metrics import PlayabilityMetrics, RoomMetrics, WorldMetrics
 
 
 def test_single_room_playability(seed: int = 12345, verbose: bool = True):
@@ -77,12 +76,12 @@ def test_single_room_playability(seed: int = 12345, verbose: bool = True):
             status = "[OK]" if passed else "[FAIL]"
             print(f"{status} {validator.name}")
 
-            if result['errors']:
-                for error in result['errors']:
+            if result["errors"]:
+                for error in result["errors"]:
                     print(f"  ERROR: {error}")
 
-            if result['warnings']:
-                for warning in result['warnings']:
+            if result["warnings"]:
+                for warning in result["warnings"]:
                     print(f"  WARN: {warning}")
 
         if not passed:
@@ -176,8 +175,10 @@ def test_world_playability(seed: int = 12345, num_rooms: int = 16, verbose: bool
 
         if verbose:
             status = "[OK]" if room_passed else "[FAIL]"
-            print(f"{status} Room {i + 1:2d} ({room.room_type.value:8s}) - "
-                  f"{len(metrics.validators_passed)}/{len(validators)} validators passed")
+            print(
+                f"{status} Room {i + 1:2d} ({room.room_type.value:8s}) - "
+                f"{len(metrics.validators_passed)}/{len(validators)} validators passed"
+            )
 
     # Analyze world
     world_metrics = PlayabilityMetrics.analyze_world(world, room_metrics_list)
@@ -229,20 +230,22 @@ def test_multiple_seeds(num_seeds: int = 10, rooms_per_world: int = 16):
 
         passed, world_metrics = test_world_playability(seed, rooms_per_world, verbose=False)
 
-        results.append({
-            'seed': seed,
-            'passed': passed,
-            'playability_pct': world_metrics.world_playability_pct,
-            'avg_reachability': world_metrics.avg_reachability_pct,
-        })
+        results.append(
+            {
+                "seed": seed,
+                "passed": passed,
+                "playability_pct": world_metrics.world_playability_pct,
+                "avg_reachability": world_metrics.avg_reachability_pct,
+            }
+        )
 
         status = "[OK]" if passed else "[FAIL]"
         print(f"{status} ({world_metrics.world_playability_pct:.1f}% playable)")
 
     # Summary
-    passed_count = sum(1 for r in results if r['passed'])
-    avg_playability = sum(r['playability_pct'] for r in results) / len(results)
-    avg_reachability = sum(r['avg_reachability'] for r in results) / len(results)
+    passed_count = sum(1 for r in results if r["passed"])
+    avg_playability = sum(r["playability_pct"] for r in results) / len(results)
+    avg_reachability = sum(r["avg_reachability"] for r in results) / len(results)
 
     print()
     print("-" * 60)
@@ -253,7 +256,7 @@ def test_multiple_seeds(num_seeds: int = 10, rooms_per_world: int = 16):
     print(f"  Avg Room Reachability: {avg_reachability:.1f}%")
 
     # Show worst seeds
-    worst_seeds = sorted(results, key=lambda r: r['playability_pct'])[:3]
+    worst_seeds = sorted(results, key=lambda r: r["playability_pct"])[:3]
     print()
     print("WORST PERFORMING SEEDS:")
     for r in worst_seeds:
@@ -268,14 +271,15 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Test procedural world playability")
-    parser.add_argument("--test", choices=["room", "world", "multi"], default="world",
-                        help="Test type: single room, full world, or multiple seeds")
-    parser.add_argument("--seed", type=int, default=12345,
-                        help="Random seed for generation")
-    parser.add_argument("--rooms", type=int, default=16,
-                        help="Number of rooms for world test")
-    parser.add_argument("--count", type=int, default=10,
-                        help="Number of seeds for multi-seed test")
+    parser.add_argument(
+        "--test",
+        choices=["room", "world", "multi"],
+        default="world",
+        help="Test type: single room, full world, or multiple seeds",
+    )
+    parser.add_argument("--seed", type=int, default=12345, help="Random seed for generation")
+    parser.add_argument("--rooms", type=int, default=16, help="Number of rooms for world test")
+    parser.add_argument("--count", type=int, default=10, help="Number of seeds for multi-seed test")
 
     args = parser.parse_args()
 
@@ -295,5 +299,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[ERROR] Test failed with exception: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

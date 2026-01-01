@@ -2,16 +2,16 @@
 Player Simulator - Simulates player movement through procedurally generated worlds
 """
 
-from typing import List, Tuple, Optional, Set
 from dataclasses import dataclass
 from enum import Enum
 
+from systems.room_generation import TILE_EMPTY, TILE_PLATFORM, TILE_SOLID
 from systems.world_generation import RoomNode
-from systems.room_generation import TILE_EMPTY, TILE_SOLID, TILE_PLATFORM
 
 
 class MovementAction(Enum):
     """Available movement actions for simulation"""
+
     WALK_LEFT = "walk_left"
     WALK_RIGHT = "walk_right"
     JUMP = "jump"
@@ -24,11 +24,12 @@ class MovementAction(Enum):
 @dataclass
 class SimulationResult:
     """Result of a playability simulation"""
+
     success: bool
-    reachable_tiles: Set[Tuple[int, int]]
-    unreachable_tiles: Set[Tuple[int, int]]
-    movement_path: List[Tuple[int, int, MovementAction]]
-    errors: List[str]
+    reachable_tiles: set[tuple[int, int]]
+    unreachable_tiles: set[tuple[int, int]]
+    movement_path: list[tuple[int, int, MovementAction]]
+    errors: list[str]
     metrics: dict
 
     def get_reachability_percentage(self) -> float:
@@ -71,8 +72,8 @@ class PlayerSimulator:
         self.DASH_DISTANCE = 3
 
         # Simulation state
-        self.visited: Set[Tuple[int, int]] = set()
-        self.walkable_tiles: Set[Tuple[int, int]] = set()
+        self.visited: set[tuple[int, int]] = set()
+        self.walkable_tiles: set[tuple[int, int]] = set()
 
     def simulate_playability(self, start_x: int, start_y: int) -> SimulationResult:
         """
@@ -96,7 +97,7 @@ class PlayerSimulator:
                 unreachable_tiles=self._find_all_walkable_tiles(),
                 movement_path=[],
                 errors=errors,
-                metrics={}
+                metrics={},
             )
 
         # Find all walkable tiles in room
@@ -112,14 +113,18 @@ class PlayerSimulator:
 
         # Calculate metrics
         metrics = {
-            'total_walkable': len(self.walkable_tiles),
-            'reachable': len(self.visited),
-            'unreachable': len(unreachable),
-            'reachability_pct': (len(self.visited) / len(self.walkable_tiles) * 100.0) if self.walkable_tiles else 0.0,
+            "total_walkable": len(self.walkable_tiles),
+            "reachable": len(self.visited),
+            "unreachable": len(unreachable),
+            "reachability_pct": (
+                (len(self.visited) / len(self.walkable_tiles) * 100.0)
+                if self.walkable_tiles
+                else 0.0
+            ),
         }
 
         # Success if >90% of walkable tiles are reachable
-        success = metrics['reachability_pct'] >= 90.0
+        success = metrics["reachability_pct"] >= 90.0
 
         if not success:
             errors.append(f"Low reachability: {metrics['reachability_pct']:.1f}% (need >=90%)")
@@ -130,7 +135,7 @@ class PlayerSimulator:
             unreachable_tiles=unreachable,
             movement_path=movement_path,
             errors=errors,
-            metrics=metrics
+            metrics=metrics,
         )
 
     def _is_valid_spawn(self, x: int, y: int) -> bool:
@@ -150,7 +155,7 @@ class PlayerSimulator:
 
         return False
 
-    def _find_all_walkable_tiles(self) -> Set[Tuple[int, int]]:
+    def _find_all_walkable_tiles(self) -> set[tuple[int, int]]:
         """Find all tiles where player could theoretically stand"""
         walkable = set()
 
@@ -164,7 +169,7 @@ class PlayerSimulator:
 
         return walkable
 
-    def _flood_fill_reachability(self, x: int, y: int, path: List[Tuple[int, int, MovementAction]]):
+    def _flood_fill_reachability(self, x: int, y: int, path: list[tuple[int, int, MovementAction]]):
         """
         Flood-fill algorithm to find all reachable tiles from (x, y).
 
@@ -189,7 +194,7 @@ class PlayerSimulator:
                     self.visited.add((nx, ny))
                     queue.append((nx, ny, move_action))
 
-    def _get_reachable_positions(self, x: int, y: int) -> List[Tuple[int, int, MovementAction]]:
+    def _get_reachable_positions(self, x: int, y: int) -> list[tuple[int, int, MovementAction]]:
         """
         Get all positions reachable from (x, y) with player movement.
 

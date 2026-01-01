@@ -9,34 +9,36 @@ Manages:
 - Ending and moral choice system
 """
 
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from game.ending_manager import EndingManager, EndingChoice
+from typing import Any
+
 from game.cutscene_manager import CutsceneManager
+from game.ending_manager import EndingChoice, EndingManager
 
 
 @dataclass
 class HubState:
     """Represents the current state of the hub area."""
+
     brightness: float = 1.0  # 0.0 (dark) to 1.0 (bright)
-    npc_ids: List[str] = field(default_factory=list)  # NPCs currently in hub
+    npc_ids: list[str] = field(default_factory=list)  # NPCs currently in hub
     atmosphere: str = "vibrant"  # vibrant, dimming, dark, recovering, restored
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize hub state to dictionary."""
         return {
             "brightness": self.brightness,
             "npc_ids": self.npc_ids.copy(),
-            "atmosphere": self.atmosphere
+            "atmosphere": self.atmosphere,
         }
 
     @staticmethod
-    def from_dict(data: Dict[str, Any]) -> "HubState":
+    def from_dict(data: dict[str, Any]) -> "HubState":
         """Deserialize hub state from dictionary."""
         return HubState(
             brightness=data.get("brightness", 1.0),
             npc_ids=data.get("npc_ids", []).copy(),
-            atmosphere=data.get("atmosphere", "vibrant")
+            atmosphere=data.get("atmosphere", "vibrant"),
         )
 
 
@@ -69,11 +71,11 @@ class StoryManager:
         self.act1_defeat_triggered: bool = False
         self.act2_lanterns_met: int = 0  # Number of Lantern NPCs encountered
         self.act3_veil_backstory_revealed: bool = False
-        self.act4_moral_choice: Optional[str] = None  # "save" or "destroy"
+        self.act4_moral_choice: str | None = None  # "save" or "destroy"
 
         # Ending state
         self.game_completed: bool = False
-        self.ending_achieved: Optional[str] = None  # "save" or "destroy"
+        self.ending_achieved: str | None = None  # "save" or "destroy"
 
         # Ending manager (handles moral choice and ending cutscenes)
         self.ending_manager: EndingManager = EndingManager()
@@ -146,7 +148,7 @@ class StoryManager:
 
     # ===== Mission Event Handlers =====
 
-    def on_mission_complete(self, mission_id: str, campaign_manager=None) -> Dict[str, Any]:
+    def on_mission_complete(self, mission_id: str, campaign_manager=None) -> dict[str, Any]:
         """
         Trigger story events when a mission is completed.
 
@@ -162,7 +164,7 @@ class StoryManager:
             "hub_changed": False,
             "cutscene": None,
             "npcs_removed": [],
-            "npcs_added": []
+            "npcs_added": [],
         }
 
         # Act 0 progression: Hub degradation
@@ -187,7 +189,7 @@ class StoryManager:
 
         return events
 
-    def _handle_act0_mission_complete(self, mission_id: str) -> Dict[str, Any]:
+    def _handle_act0_mission_complete(self, mission_id: str) -> dict[str, Any]:
         """Handle mission completion in Act 0."""
         events = {}
 
@@ -225,7 +227,7 @@ class StoryManager:
 
         return events
 
-    def _handle_act1_mission_complete(self, mission_id: str) -> Dict[str, Any]:
+    def _handle_act1_mission_complete(self, mission_id: str) -> dict[str, Any]:
         """Handle mission completion in Act 1."""
         events = {}
 
@@ -241,7 +243,7 @@ class StoryManager:
 
         return events
 
-    def _handle_act2_mission_complete(self, mission_id: str) -> Dict[str, Any]:
+    def _handle_act2_mission_complete(self, mission_id: str) -> dict[str, Any]:
         """Handle mission completion in Act 2 (Hollow Depths)."""
         events = {}
 
@@ -251,7 +253,9 @@ class StoryManager:
 
             # Gradually brighten hub (from 0.3 to 0.7 over Act 2 missions)
             brightness_increase = 0.4 / 5  # Assuming 5 Hollow Depths missions
-            self.hub_state.brightness = min(0.7, 0.3 + (self.act2_lanterns_met * brightness_increase))
+            self.hub_state.brightness = min(
+                0.7, 0.3 + (self.act2_lanterns_met * brightness_increase)
+            )
 
             events["hub_changed"] = True
 
@@ -262,7 +266,7 @@ class StoryManager:
 
         return events
 
-    def _handle_act3_mission_complete(self, mission_id: str) -> Dict[str, Any]:
+    def _handle_act3_mission_complete(self, mission_id: str) -> dict[str, Any]:
         """Handle mission completion in Act 3."""
         events = {}
 
@@ -274,7 +278,7 @@ class StoryManager:
 
         return events
 
-    def _handle_act4_mission_complete(self, mission_id: str) -> Dict[str, Any]:
+    def _handle_act4_mission_complete(self, mission_id: str) -> dict[str, Any]:
         """Handle mission completion in Act 4."""
         events = {}
 
@@ -298,7 +302,7 @@ class StoryManager:
         self.yin_yang_present = False
         print("[StoryManager] Scripted defeat triggered - Yin & Yang consumed")
 
-    def set_moral_choice(self, choice: str) -> Dict[str, Any]:
+    def set_moral_choice(self, choice: str) -> dict[str, Any]:
         """
         Set the player's moral choice at the end.
 
@@ -331,10 +335,10 @@ class StoryManager:
             "choice": choice,
             "cutscene_data": self.ending_manager.get_ending_cutscene_data(),
             "hub_final_state": self.ending_manager.get_hub_final_state(),
-            "constellation_data": self.ending_manager.get_constellation_position()
+            "constellation_data": self.ending_manager.get_constellation_position(),
         }
 
-    def complete_ending(self, choice: str) -> Dict[str, Any]:
+    def complete_ending(self, choice: str) -> dict[str, Any]:
         """
         Mark the game as completed with the chosen ending.
 
@@ -382,20 +386,20 @@ class StoryManager:
         """Check if Yin & Yang constellation should be visible (post-game)."""
         return self.game_completed
 
-    def get_constellation_position(self) -> Optional[Dict[str, float]]:
+    def get_constellation_position(self) -> dict[str, float] | None:
         """Get constellation star positions if game is completed."""
         if self.game_completed:
             return self.ending_manager.get_constellation_position()
         return None
 
-    def get_ending_data(self) -> Optional[Dict[str, Any]]:
+    def get_ending_data(self) -> dict[str, Any] | None:
         """Get ending data if game is completed."""
         if self.game_completed and self.ending_manager.ending_data:
             return {
                 "choice": self.ending_achieved,
                 "title": self.ending_manager.ending_data.title,
                 "veil_maiden_fate": self.ending_manager.ending_data.veil_maiden_fate,
-                "hub_final_state": self.ending_manager.ending_data.hub_final_state
+                "hub_final_state": self.ending_manager.ending_data.hub_final_state,
             }
         return None
 
@@ -439,7 +443,7 @@ class StoryManager:
 
     # ===== Serialization =====
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize story state to dictionary for saving."""
         return {
             "current_act": self.current_act,
@@ -456,11 +460,11 @@ class StoryManager:
             "act4_moral_choice": self.act4_moral_choice,
             "game_completed": self.game_completed,
             "ending_achieved": self.ending_achieved,
-            "ending_manager_state": self.ending_manager.to_dict()
+            "ending_manager_state": self.ending_manager.to_dict(),
         }
 
     @staticmethod
-    def from_dict(data: Dict[str, Any]) -> "StoryManager":
+    def from_dict(data: dict[str, Any]) -> "StoryManager":
         """Deserialize story state from dictionary."""
         manager = StoryManager()
 
@@ -494,7 +498,7 @@ class StoryManager:
             "The Veil Descends",
             "The Hollow Depths",
             "Ascending Paths",
-            "Winding Skyroad"
+            "Winding Skyroad",
         ]
 
         summary = f"""

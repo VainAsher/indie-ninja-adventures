@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from game.play_mode import (  # noqa: E402
     PlayMode,
-    PlayModeManager,
     create_arcade_session,
     create_campaign_session,
     create_sandbox_session,

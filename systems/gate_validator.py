@@ -13,39 +13,43 @@ Uses BFS pathfinding to verify:
 Version: v0.6.0 (Phase 5)
 """
 
-from typing import Set, List, Tuple, Optional, Dict
-from dataclasses import dataclass
 from collections import deque
-from entities.ability_gate import AbilityGate, AbilityRequirement, GateType
+from dataclasses import dataclass
 
+from entities.ability_gate import AbilityGate, AbilityRequirement
 
 # ============================================================
 # Pathfinding Node
 # ============================================================
 
+
 @dataclass
 class PathNode:
     """Node in the pathfinding graph"""
-    tile_x: int                         # Tile coordinates
+
+    tile_x: int  # Tile coordinates
     tile_y: int
-    abilities_used: Set[AbilityRequirement]  # Abilities used to reach this node
+    abilities_used: set[AbilityRequirement]  # Abilities used to reach this node
 
 
 # ============================================================
 # Gate Validation Result
 # ============================================================
 
+
 @dataclass
 class ValidationResult:
     """Result of gate validation"""
+
     valid: bool
-    errors: List[str]
-    warnings: List[str]
+    errors: list[str]
+    warnings: list[str]
 
 
 # ============================================================
 # Gate Validator
 # ============================================================
+
 
 class GateValidator:
     """
@@ -71,10 +75,10 @@ class GateValidator:
         self.tile_size = tile_size
 
         # Collision data (set externally)
-        self.solid_tiles: Set[Tuple[int, int]] = set()
-        self.gates: List[AbilityGate] = []
+        self.solid_tiles: set[tuple[int, int]] = set()
+        self.gates: list[AbilityGate] = []
 
-    def set_collision_data(self, solid_tiles: Set[Tuple[int, int]]):
+    def set_collision_data(self, solid_tiles: set[tuple[int, int]]):
         """
         Set solid tile positions.
 
@@ -83,7 +87,7 @@ class GateValidator:
         """
         self.solid_tiles = solid_tiles
 
-    def set_gates(self, gates: List[AbilityGate]):
+    def set_gates(self, gates: list[AbilityGate]):
         """
         Set ability gates.
 
@@ -92,9 +96,12 @@ class GateValidator:
         """
         self.gates = gates
 
-    def validate_gate_placement(self, start_pos: Tuple[float, float],
-                               objective_positions: List[Tuple[float, float]],
-                               available_abilities: Set[AbilityRequirement]) -> ValidationResult:
+    def validate_gate_placement(
+        self,
+        start_pos: tuple[float, float],
+        objective_positions: list[tuple[float, float]],
+        available_abilities: set[AbilityRequirement],
+    ) -> ValidationResult:
         """
         Validate that all gates are correctly placed.
 
@@ -133,16 +140,15 @@ class GateValidator:
         errors.extend(reachability_result.errors)
         warnings.extend(reachability_result.warnings)
 
-        return ValidationResult(
-            valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+        return ValidationResult(valid=len(errors) == 0, errors=errors, warnings=warnings)
 
-    def _validate_single_gate(self, gate: AbilityGate,
-                             start_tile: Tuple[int, int],
-                             objective_tiles: List[Tuple[int, int]],
-                             available_abilities: Set[AbilityRequirement]) -> ValidationResult:
+    def _validate_single_gate(
+        self,
+        gate: AbilityGate,
+        start_tile: tuple[int, int],
+        objective_tiles: list[tuple[int, int]],
+        available_abilities: set[AbilityRequirement],
+    ) -> ValidationResult:
         """Validate a single gate"""
         errors = []
         warnings = []
@@ -155,9 +161,7 @@ class GateValidator:
         if gate.required_ability in abilities_without_required:
             abilities_without_required.remove(gate.required_ability)
 
-        can_reach_gate = self._can_reach_position(
-            start_tile, gate_tile, abilities_without_required
-        )
+        can_reach_gate = self._can_reach_position(start_tile, gate_tile, abilities_without_required)
 
         if not can_reach_gate:
             warnings.append(
@@ -172,15 +176,14 @@ class GateValidator:
         # Note: For actual validation, would need to check if player can pass
         # through the gate area with the ability. This is simplified.
 
-        return ValidationResult(
-            valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+        return ValidationResult(valid=len(errors) == 0, errors=errors, warnings=warnings)
 
-    def _validate_objective_reachability(self, start_tile: Tuple[int, int],
-                                        objective_tiles: List[Tuple[int, int]],
-                                        available_abilities: Set[AbilityRequirement]) -> ValidationResult:
+    def _validate_objective_reachability(
+        self,
+        start_tile: tuple[int, int],
+        objective_tiles: list[tuple[int, int]],
+        available_abilities: set[AbilityRequirement],
+    ) -> ValidationResult:
         """Validate that all objectives are reachable"""
         errors = []
         warnings = []
@@ -193,14 +196,11 @@ class GateValidator:
                     f"Objective {i} at {obj_tile} is unreachable with available abilities"
                 )
 
-        return ValidationResult(
-            valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+        return ValidationResult(valid=len(errors) == 0, errors=errors, warnings=warnings)
 
-    def _can_reach_position(self, start: Tuple[int, int], target: Tuple[int, int],
-                           abilities: Set[AbilityRequirement]) -> bool:
+    def _can_reach_position(
+        self, start: tuple[int, int], target: tuple[int, int], abilities: set[AbilityRequirement]
+    ) -> bool:
         """
         Check if target position is reachable from start with given abilities.
 
@@ -216,7 +216,7 @@ class GateValidator:
         """
         # BFS to find path
         queue = deque([start])
-        visited = set([start])
+        visited = {start}
 
         while queue:
             current_x, current_y = queue.popleft()
@@ -253,8 +253,9 @@ class GateValidator:
 
         return False
 
-    def _is_blocked_by_gate(self, tile_x: int, tile_y: int,
-                           abilities: Set[AbilityRequirement]) -> bool:
+    def _is_blocked_by_gate(
+        self, tile_x: int, tile_y: int, abilities: set[AbilityRequirement]
+    ) -> bool:
         """
         Check if tile position is blocked by a gate.
 
@@ -271,8 +272,10 @@ class GateValidator:
 
         for gate in self.gates:
             # Check if tile is within gate bounds
-            if (gate.x <= pixel_x <= gate.x + gate.width and
-                gate.y <= pixel_y <= gate.y + gate.height):
+            if (
+                gate.x <= pixel_x <= gate.x + gate.width
+                and gate.y <= pixel_y <= gate.y + gate.height
+            ):
 
                 # Check if player can pass
                 if not gate.can_pass(abilities):
@@ -280,17 +283,17 @@ class GateValidator:
 
         return False
 
-    def _pixel_to_tile(self, pos: Tuple[float, float]) -> Tuple[int, int]:
+    def _pixel_to_tile(self, pos: tuple[float, float]) -> tuple[int, int]:
         """Convert pixel position to tile coordinates"""
         x, y = pos
         return (int(x // self.tile_size), int(y // self.tile_size))
 
-    def _tile_to_pixel(self, tile_pos: Tuple[int, int]) -> Tuple[float, float]:
+    def _tile_to_pixel(self, tile_pos: tuple[int, int]) -> tuple[float, float]:
         """Convert tile position to pixel coordinates (center of tile)"""
         tile_x, tile_y = tile_pos
         return (
             tile_x * self.tile_size + self.tile_size / 2,
-            tile_y * self.tile_size + self.tile_size / 2
+            tile_y * self.tile_size + self.tile_size / 2,
         )
 
 
@@ -298,13 +301,16 @@ class GateValidator:
 # Path Finding Utilities
 # ============================================================
 
-def find_path_with_abilities(start: Tuple[int, int],
-                             target: Tuple[int, int],
-                             solid_tiles: Set[Tuple[int, int]],
-                             gates: List[AbilityGate],
-                             abilities: Set[AbilityRequirement],
-                             tile_width: int,
-                             tile_height: int) -> Optional[List[Tuple[int, int]]]:
+
+def find_path_with_abilities(
+    start: tuple[int, int],
+    target: tuple[int, int],
+    solid_tiles: set[tuple[int, int]],
+    gates: list[AbilityGate],
+    abilities: set[AbilityRequirement],
+    tile_width: int,
+    tile_height: int,
+) -> list[tuple[int, int]] | None:
     """
     Find path from start to target considering abilities.
 
@@ -321,7 +327,7 @@ def find_path_with_abilities(start: Tuple[int, int],
         List of tile positions forming path, or None if no path exists
     """
     queue = deque([(start, [start])])
-    visited = set([start])
+    visited = {start}
 
     while queue:
         current, path = queue.popleft()
@@ -374,14 +380,17 @@ def find_path_with_abilities(start: Tuple[int, int],
 # Validation Helpers
 # ============================================================
 
-def validate_mission_gates(start_position: Tuple[float, float],
-                          exit_position: Tuple[float, float],
-                          objective_positions: List[Tuple[float, float]],
-                          gates: List[AbilityGate],
-                          available_abilities: Set[AbilityRequirement],
-                          solid_tiles: Set[Tuple[int, int]],
-                          level_width_tiles: int,
-                          level_height_tiles: int) -> ValidationResult:
+
+def validate_mission_gates(
+    start_position: tuple[float, float],
+    exit_position: tuple[float, float],
+    objective_positions: list[tuple[float, float]],
+    gates: list[AbilityGate],
+    available_abilities: set[AbilityRequirement],
+    solid_tiles: set[tuple[int, int]],
+    level_width_tiles: int,
+    level_height_tiles: int,
+) -> ValidationResult:
     """
     Validate gate placement for a mission level.
 
@@ -405,8 +414,4 @@ def validate_mission_gates(start_position: Tuple[float, float],
     # Add exit to objectives
     all_objectives = objective_positions + [exit_position]
 
-    return validator.validate_gate_placement(
-        start_position,
-        all_objectives,
-        available_abilities
-    )
+    return validator.validate_gate_placement(start_position, all_objectives, available_abilities)

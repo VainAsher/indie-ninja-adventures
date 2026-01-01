@@ -10,34 +10,37 @@ Allows users to create mods that:
 """
 
 import importlib.util
-import sys
-from pathlib import Path
-from typing import Dict, List, Optional, Callable, Any
 import logging
-from dataclasses import dataclass
+import sys
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from pathlib import Path
+
 from core.entity_system import ComponentRegistry
 from core.event_bus import EventBus
-
 
 # ============================================================================
 # Mod Metadata
 # ============================================================================
 
+
 @dataclass
 class ModMetadata:
     """Mod metadata from manifest"""
+
     mod_id: str
     name: str
     version: str
     author: str
     description: str
-    dependencies: List[str]
+    dependencies: list[str]
     entry_point: str  # Python module to load
 
 
 # ============================================================================
 # Mod Lifecycle
 # ============================================================================
+
 
 class ModInterface:
     """
@@ -49,19 +52,19 @@ class ModInterface:
     def __init__(self, mod_id: str):
         self.mod_id = mod_id
 
-    def on_load(self, game_context: 'GameContext'):
+    def on_load(self, game_context: "GameContext"):
         """Called when mod is loaded (before game starts)"""
         pass
 
-    def on_enable(self, game_context: 'GameContext'):
+    def on_enable(self, game_context: "GameContext"):
         """Called when mod is enabled (game running)"""
         pass
 
-    def on_disable(self, game_context: 'GameContext'):
+    def on_disable(self, game_context: "GameContext"):
         """Called when mod is disabled"""
         pass
 
-    def on_unload(self, game_context: 'GameContext'):
+    def on_unload(self, game_context: "GameContext"):
         """Called when mod is unloaded (cleanup)"""
         pass
 
@@ -70,6 +73,7 @@ class ModInterface:
 # Game Context (for mods)
 # ============================================================================
 
+
 @dataclass
 class GameContext:
     """
@@ -77,16 +81,16 @@ class GameContext:
 
     Gives mods access to core systems without tight coupling.
     """
+
     event_bus: EventBus
     component_registry: ComponentRegistry
     logger: logging.Logger
 
     # Hook registries
-    custom_hooks: Dict[str, List[Callable]] = None
+    custom_hooks: dict[str, list[Callable]] = field(default_factory=dict)
 
     def __post_init__(self):
-        if self.custom_hooks is None:
-            self.custom_hooks = {}
+        pass  # custom_hooks now initialized via default_factory
 
     def register_hook(self, hook_name: str, callback: Callable):
         """
@@ -123,6 +127,7 @@ class GameContext:
 # Mod Loader
 # ============================================================================
 
+
 class ModLoader:
     """
     Mod loader and manager
@@ -134,19 +139,23 @@ class ModLoader:
     - Sandbox mods (future: security)
     """
 
-    def __init__(self, mods_directory: Path, game_context: GameContext,
-                 logger: Optional[logging.Logger] = None):
+    def __init__(
+        self,
+        mods_directory: Path,
+        game_context: GameContext,
+        logger: logging.Logger | None = None,
+    ):
         self.mods_directory = mods_directory
         self.game_context = game_context
         self.logger = logger or logging.getLogger("ninja_dash.mods")
 
-        self.loaded_mods: Dict[str, ModInterface] = {}
-        self.mod_metadata: Dict[str, ModMetadata] = {}
+        self.loaded_mods: dict[str, ModInterface] = {}
+        self.mod_metadata: dict[str, ModMetadata] = {}
 
         # Ensure mods directory exists
         self.mods_directory.mkdir(parents=True, exist_ok=True)
 
-    def discover_mods(self) -> List[Path]:
+    def discover_mods(self) -> list[Path]:
         """
         Discover mods in mods directory
 
@@ -178,18 +187,19 @@ class ModLoader:
         try:
             # Load metadata
             import json
+
             metadata_path = mod_path / "mod.json"
             with open(metadata_path) as f:
                 metadata_dict = json.load(f)
 
             metadata = ModMetadata(
-                mod_id=metadata_dict['mod_id'],
-                name=metadata_dict['name'],
-                version=metadata_dict['version'],
-                author=metadata_dict['author'],
-                description=metadata_dict.get('description', ''),
-                dependencies=metadata_dict.get('dependencies', []),
-                entry_point=metadata_dict.get('entry_point', 'main.py')
+                mod_id=metadata_dict["mod_id"],
+                name=metadata_dict["name"],
+                version=metadata_dict["version"],
+                author=metadata_dict["author"],
+                description=metadata_dict.get("description", ""),
+                dependencies=metadata_dict.get("dependencies", []),
+                entry_point=metadata_dict.get("entry_point", "main.py"),
             )
 
             # Check if already loaded
@@ -203,16 +213,17 @@ class ModLoader:
                 self.logger.error(f"Entry point not found: {entry_path}")
                 return False
 
-            spec = importlib.util.spec_from_file_location(
-                f"mods.{metadata.mod_id}",
-                entry_path
-            )
+            spec = importlib.util.spec_from_file_location(f"mods.{metadata.mod_id}", entry_path)
+            if spec is None or spec.loader is None:
+                self.logger.error(f"Failed to load module spec for '{metadata.mod_id}'")
+                return False
+
             module = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = module
             spec.loader.exec_module(module)
 
             # Get mod instance
-            if not hasattr(module, 'get_mod'):
+            if not hasattr(module, "get_mod"):
                 self.logger.error(f"Mod '{metadata.mod_id}' missing get_mod() function")
                 return False
 
@@ -228,7 +239,9 @@ class ModLoader:
             # Call lifecycle hook
             mod_instance.on_load(self.game_context)
 
-            self.logger.info(f"Loaded mod: {metadata.name} v{metadata.version} by {metadata.author}")
+            self.logger.info(
+                f"Loaded mod: {metadata.name} v{metadata.version} by {metadata.author}"
+            )
             return True
 
         except Exception as e:
@@ -269,7 +282,7 @@ class ModLoader:
         for mod_id in self.loaded_mods:
             self.enable_mod(mod_id)
 
-    def get_loaded_mods(self) -> List[ModMetadata]:
+    def get_loaded_mods(self) -> list[ModMetadata]:
         """Get list of loaded mod metadata"""
         return list(self.mod_metadata.values())
 
@@ -339,7 +352,7 @@ def get_mod():
     return ExampleMod()
 '''
 
-EXAMPLE_MOD_MANIFEST = '''
+EXAMPLE_MOD_MANIFEST = """
 {
   "mod_id": "example_mod",
   "name": "Example Mod",
@@ -349,4 +362,4 @@ EXAMPLE_MOD_MANIFEST = '''
   "dependencies": [],
   "entry_point": "main.py"
 }
-'''
+"""

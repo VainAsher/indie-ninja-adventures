@@ -16,10 +16,10 @@ Wall Slide Characteristics:
 - Min stamina to cling: 0.3s (can't spam wall cling)
 """
 
-from mechanics.base import BaseMechanic
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
+from mechanics.base import BaseMechanic
 
 
 class WallSlideMechanic(BaseMechanic):
@@ -141,14 +141,20 @@ class WallSlideMechanic(BaseMechanic):
             self.await_ground_after_exhaust = False
             self._exhaust_detach_frames = 0
 
-        if (not touching_wall) and (not self.await_ground_after_exhaust) and state.wall_slide_stamina < self.MAX_STAMINA:
+        if (
+            (not touching_wall)
+            and (not self.await_ground_after_exhaust)
+            and state.wall_slide_stamina < self.MAX_STAMINA
+        ):
             old_stamina = state.wall_slide_stamina
             regen_rate = self.MAX_STAMINA / self.STAMINA_REGEN_TIME
             state.wall_slide_stamina = min(
-                self.MAX_STAMINA,
-                state.wall_slide_stamina + regen_rate * dt
+                self.MAX_STAMINA, state.wall_slide_stamina + regen_rate * dt
             )
-            if old_stamina < self.MIN_STAMINA_TO_CLING and state.wall_slide_stamina >= self.MIN_STAMINA_TO_CLING:
+            if (
+                old_stamina < self.MIN_STAMINA_TO_CLING
+                and state.wall_slide_stamina >= self.MIN_STAMINA_TO_CLING
+            ):
                 self.logger.debug("Wall slide stamina recharged (can cling again)")
             elif state.wall_slide_stamina == self.MAX_STAMINA:
                 self.logger.debug("Wall slide stamina fully recharged")
@@ -180,9 +186,9 @@ class WallSlideMechanic(BaseMechanic):
             True if can wall slide
         """
         return (
-            state.physics.on_wall and
-            not state.physics.on_ground and
-            state.wall_slide_stamina >= self.MIN_STAMINA_TO_CLING
+            state.physics.on_wall
+            and not state.physics.on_ground
+            and state.wall_slide_stamina >= self.MIN_STAMINA_TO_CLING
         )
 
     def reset(self, state: PlayerState):

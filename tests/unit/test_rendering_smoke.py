@@ -16,31 +16,27 @@ Coverage:
 Test philosophy: Verify rendering doesn't crash, not pixel accuracy
 """
 
-import pytest
 import pygame
-from pathlib import Path
-from dataclasses import dataclass
-from typing import Tuple
+import pytest
+
+from rendering import hazard_renderer, pickup_renderer
 
 # Import rendering modules
 from rendering.hud import HUDRenderer
-from rendering.sprite_manager import SpriteManager, SpriteSheet
-from rendering.minimap import MinimapRenderer, MinimapConfig
-from rendering.particles import ParticleSystem
-from rendering import pickup_renderer
-from rendering import hazard_renderer
+from rendering.loot_notification import LootNotificationManager
+from rendering.minimap import MinimapConfig, MinimapRenderer
 from rendering.npc_prompt import NPCPromptRenderer
 from rendering.objective_hud import ObjectiveHUDRenderer, create_objective
+from rendering.particles import ParticleSystem
+from rendering.sprite_manager import SpriteManager
 from rendering.victory_screen import VictoryScreen
-from rendering.loot_notification import LootNotificationManager
-
-
 
 # ============================================================
 # Test Fixtures
 # ============================================================
 
-@pytest.fixture(scope='module', autouse=True)
+
+@pytest.fixture(scope="module", autouse=True)
 def pygame_init():
     """Initialize pygame once for all tests"""
     pygame.init()
@@ -56,11 +52,10 @@ def test_surface():
     return pygame.Surface((800, 600))
 
 
-
-
 # ============================================================
 # HUD Renderer Tests
 # ============================================================
+
 
 def test_hud_renderer_initialization():
     """Test HUDRenderer can be initialized"""
@@ -144,6 +139,7 @@ def test_hud_edge_cases(test_surface):
 # Sprite Manager Tests
 # ============================================================
 
+
 def test_sprite_manager_initialization():
     """Test SpriteManager can be initialized"""
     sprite_mgr = SpriteManager()
@@ -159,7 +155,7 @@ def test_sprite_manager_missing_sprites():
     # Trying to get a frame from missing sprites should handle gracefully
     # (May return None or placeholder, shouldn't crash)
     try:
-        frame = sprite_mgr.get_frame('idle', facing=1, time_ms=0)
+        frame = sprite_mgr.get_frame("idle", facing=1, time_ms=0)
         # May be None if sprites missing, that's ok for smoke test
         print("[PASS] SpriteManager handles missing sprites")
     except Exception as e:
@@ -170,6 +166,7 @@ def test_sprite_manager_missing_sprites():
 # ============================================================
 # Minimap Tests
 # ============================================================
+
 
 def test_minimap_initialization():
     """Test MinimapRenderer can be initialized"""
@@ -186,7 +183,7 @@ def test_minimap_custom_config():
         show_connections=False,
         show_player=True,
         highlight_current=True,
-        scale=20
+        scale=20,
     )
     minimap = MinimapRenderer(config)
     assert minimap.config.position == (20, 20)
@@ -204,6 +201,7 @@ def test_minimap_custom_config():
 # ============================================================
 # Particle System Tests
 # ============================================================
+
 
 def test_particle_system_initialization():
     """Test ParticleSystem can be initialized"""
@@ -272,18 +270,20 @@ def test_particle_draw(test_surface):
 # Pickup Renderer Tests
 # ============================================================
 
+
 def test_pickup_renderer_functions_exist():
     """Test pickup renderer functions exist"""
-    assert hasattr(pickup_renderer, 'render_pickup')
-    assert hasattr(pickup_renderer, 'render_pickups')
-    assert hasattr(pickup_renderer, 'render_coin')
-    assert hasattr(pickup_renderer, 'render_health')
-    assert hasattr(pickup_renderer, 'render_collectible')
+    assert hasattr(pickup_renderer, "render_pickup")
+    assert hasattr(pickup_renderer, "render_pickups")
+    assert hasattr(pickup_renderer, "render_coin")
+    assert hasattr(pickup_renderer, "render_health")
+    assert hasattr(pickup_renderer, "render_collectible")
     print("[PASS] Pickup renderer functions exist")
 
 
 def test_pickup_renderer_draw_empty(test_surface):
     """Test rendering with no pickups"""
+
     # Simple camera mock
     class MockCamera:
         def apply(self, rect):
@@ -299,17 +299,19 @@ def test_pickup_renderer_draw_empty(test_surface):
 # Hazard Renderer Tests
 # ============================================================
 
+
 def test_hazard_renderer_functions_exist():
     """Test hazard renderer functions exist"""
-    assert hasattr(hazard_renderer, 'render_hazard')
-    assert hasattr(hazard_renderer, 'render_hazards')
-    assert hasattr(hazard_renderer, 'render_spike')
-    assert hasattr(hazard_renderer, 'render_void')
+    assert hasattr(hazard_renderer, "render_hazard")
+    assert hasattr(hazard_renderer, "render_hazards")
+    assert hasattr(hazard_renderer, "render_spike")
+    assert hasattr(hazard_renderer, "render_void")
     print("[PASS] Hazard renderer functions exist")
 
 
 def test_hazard_renderer_draw_empty(test_surface):
     """Test rendering with no hazards"""
+
     # Simple camera mock
     class MockCamera:
         def apply(self, rect):
@@ -325,6 +327,7 @@ def test_hazard_renderer_draw_empty(test_surface):
 # NPC Prompt Renderer Tests
 # ============================================================
 
+
 def test_npc_prompt_initialization():
     """Test NPCPromptRenderer can be initialized"""
     renderer = NPCPromptRenderer()
@@ -335,6 +338,7 @@ def test_npc_prompt_initialization():
 # ============================================================
 # Objective HUD Tests
 # ============================================================
+
 
 def test_objective_hud_initialization():
     """Test ObjectiveHUDRenderer can be initialized"""
@@ -351,7 +355,7 @@ def test_objective_hud_draw(test_surface):
     objectives = [
         create_objective("Defeat 5 enemies", current=5, target=5, completed=True),
         create_objective("Find the exit", completed=False),
-        create_objective("Collect 100 gold", current=50, target=100, completed=False)
+        create_objective("Collect 100 gold", current=50, target=100, completed=False),
     ]
 
     hud.draw_objectives(test_surface, objectives)
@@ -373,6 +377,7 @@ def test_objective_hud_empty(test_surface):
 # Victory Screen Tests
 # ============================================================
 
+
 def test_victory_screen_initialization():
     """Test VictoryScreen can be initialized"""
     screen = VictoryScreen()
@@ -385,11 +390,7 @@ def test_victory_screen_draw(test_surface):
     screen = VictoryScreen()
 
     # Draw victory screen
-    stats = {
-        'time': 123.45,
-        'collectibles': '3/5',
-        'deaths': 2
-    }
+    stats = {"time": 123.45, "collectibles": "3/5", "deaths": 2}
 
     screen.render(test_surface, stats, dt=0.016)
 
@@ -399,6 +400,7 @@ def test_victory_screen_draw(test_surface):
 # ============================================================
 # Loot Notification Tests
 # ============================================================
+
 
 def test_loot_notification_initialization():
     """Test LootNotificationManager can be initialized"""
@@ -428,6 +430,7 @@ def test_loot_notification_update():
 
     # Update (notifications should expire after duration)
     import time
+
     time.sleep(0.2)
     manager.update(0.016)
 
@@ -453,6 +456,7 @@ def test_loot_notification_draw(test_surface):
 # ============================================================
 # Integration Tests
 # ============================================================
+
 
 def test_multiple_renderers_together(test_surface):
     """Test multiple renderers can coexist and draw"""
@@ -499,7 +503,7 @@ def test_rendering_stress(test_surface):
 
     # Add many notifications
     for i in range(5):
-        loot_manager.add_notification(f"item_{i}", f"Item {i}", quantity=i+1)
+        loot_manager.add_notification(f"item_{i}", f"Item {i}", quantity=i + 1)
 
     # Simple camera mock
     class MockCamera:
@@ -516,7 +520,9 @@ def test_rendering_stress(test_surface):
     particles.draw(test_surface, camera)
     loot_manager.draw(test_surface)
 
-    print(f"[PASS] Rendering stress test ({len(particles.particles)} particles, {len(loot_manager.notifications)} notifications)")
+    print(
+        f"[PASS] Rendering stress test ({len(particles.particles)} particles, {len(loot_manager.notifications)} notifications)"
+    )
 
 
 # ============================================================

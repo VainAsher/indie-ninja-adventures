@@ -9,4 +9,4 @@ Provides:
 from .dev_console import DevConsole
 from .hot_reload import HotReloadWatcher
 
-__all__ = ['DevConsole', 'HotReloadWatcher']
+__all__ = ["DevConsole", "HotReloadWatcher"]

@@ -12,51 +12,55 @@ This module provides boss encounters:
 Version: v0.6.0
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
-from enum import Enum
 import math
+from dataclasses import dataclass, field
+from enum import Enum
 
 from game.health_system import HealthState
-
 
 # ============================================================
 # Boss Types
 # ============================================================
 
+
 class BossType(Enum):
     """Boss entity types"""
-    FOREST_GUARDIAN = "forest_guardian"      # Giant tree boss
-    CORRUPT_MAYOR = "corrupt_mayor"          # Human with minions
-    CRYSTAL_GOLEM = "crystal_golem"          # Rock boss with shields
-    DARK_KNIGHT = "dark_knight"              # Sword combos
-    PLAGUE_RAT = "plague_rat"                # Fast, poison-based
+
+    FOREST_GUARDIAN = "forest_guardian"  # Giant tree boss
+    CORRUPT_MAYOR = "corrupt_mayor"  # Human with minions
+    CRYSTAL_GOLEM = "crystal_golem"  # Rock boss with shields
+    DARK_KNIGHT = "dark_knight"  # Sword combos
+    PLAGUE_RAT = "plague_rat"  # Fast, poison-based
 
 
 # ============================================================
 # Boss AI States
 # ============================================================
 
+
 class BossAIState(Enum):
     """Boss AI behavior states"""
-    INTRO = "intro"            # Introduction sequence
-    IDLE = "idle"              # Waiting between attacks
-    MOVE = "move"              # Moving toward player
-    ATTACK_MELEE = "attack_melee"      # Melee attack
-    ATTACK_RANGED = "attack_ranged"    # Ranged attack
+
+    INTRO = "intro"  # Introduction sequence
+    IDLE = "idle"  # Waiting between attacks
+    MOVE = "move"  # Moving toward player
+    ATTACK_MELEE = "attack_melee"  # Melee attack
+    ATTACK_RANGED = "attack_ranged"  # Ranged attack
     ATTACK_SPECIAL = "attack_special"  # Special/ultimate attack
     VULNERABLE = "vulnerable"  # Vulnerable after attack
-    STUNNED = "stunned"        # Stunned from player attack
+    STUNNED = "stunned"  # Stunned from player attack
     PHASE_TRANSITION = "phase_transition"  # Transitioning between phases
-    DEAD = "dead"              # Dead (before removal)
+    DEAD = "dead"  # Dead (before removal)
 
 
 # ============================================================
 # Boss Phases
 # ============================================================
 
+
 class BossPhase(Enum):
     """Boss combat phases"""
+
     PHASE_1 = 1  # 100% - 75% HP
     PHASE_2 = 2  # 75% - 50% HP
     PHASE_3 = 3  # 50% - 25% HP
@@ -67,6 +71,7 @@ class BossPhase(Enum):
 # Boss Attack Patterns
 # ============================================================
 
+
 @dataclass
 class BossAttackPattern:
     """
@@ -74,6 +79,7 @@ class BossAttackPattern:
 
     Defines a specific attack the boss can perform.
     """
+
     attack_id: str
     attack_type: str  # "melee", "ranged", "special"
     damage: int
@@ -88,6 +94,7 @@ class BossAttackPattern:
 # Boss Definition
 # ============================================================
 
+
 @dataclass
 class BossDefinition:
     """
@@ -95,6 +102,7 @@ class BossDefinition:
 
     Defines boss properties and behavior.
     """
+
     boss_type: BossType
     display_name: str
     description: str
@@ -110,17 +118,17 @@ class BossDefinition:
     sprite_id: str = "boss_default"
 
     # Arena
-    arena_min_size: Tuple[int, int] = (3, 3)  # Minimum room size (in rooms)
+    arena_min_size: tuple[int, int] = (3, 3)  # Minimum room size (in rooms)
 
     # Behavior
     detection_radius: float = 400.0  # Always sees player in arena
     phase_transition_invincible: bool = True  # Invincible during phase transition
 
     # Attacks per phase
-    phase_1_attacks: List[str] = field(default_factory=list)
-    phase_2_attacks: List[str] = field(default_factory=list)
-    phase_3_attacks: List[str] = field(default_factory=list)
-    phase_4_attacks: List[str] = field(default_factory=list)
+    phase_1_attacks: list[str] = field(default_factory=list)
+    phase_2_attacks: list[str] = field(default_factory=list)
+    phase_3_attacks: list[str] = field(default_factory=list)
+    phase_4_attacks: list[str] = field(default_factory=list)
 
     # Loot
     loot_table_id: str = "boss_legendary"
@@ -145,7 +153,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.5,
         attack_duration=0.3,
         cooldown=2.0,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "vine_whip": BossAttackPattern(
         attack_id="vine_whip",
@@ -155,7 +163,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.3,
         attack_duration=0.5,
         cooldown=1.5,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "nature_wrath": BossAttackPattern(
         attack_id="nature_wrath",
@@ -165,9 +173,8 @@ BOSS_ATTACKS = {
         telegraph_duration=1.0,
         attack_duration=1.0,
         cooldown=5.0,
-        vulnerable_after=True
+        vulnerable_after=True,
     ),
-
     # Corrupt Mayor attacks
     "sword_slash": BossAttackPattern(
         attack_id="sword_slash",
@@ -177,7 +184,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.2,
         attack_duration=0.3,
         cooldown=1.0,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "summon_minion": BossAttackPattern(
         attack_id="summon_minion",
@@ -187,9 +194,8 @@ BOSS_ATTACKS = {
         telegraph_duration=0.8,
         attack_duration=0.5,
         cooldown=8.0,
-        vulnerable_after=True
+        vulnerable_after=True,
     ),
-
     # Crystal Golem attacks
     "crystal_punch": BossAttackPattern(
         attack_id="crystal_punch",
@@ -199,7 +205,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.4,
         attack_duration=0.4,
         cooldown=1.5,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "shard_volley": BossAttackPattern(
         attack_id="shard_volley",
@@ -209,7 +215,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.6,
         attack_duration=0.8,
         cooldown=3.0,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "earth_shatter": BossAttackPattern(
         attack_id="earth_shatter",
@@ -219,9 +225,8 @@ BOSS_ATTACKS = {
         telegraph_duration=1.2,
         attack_duration=1.0,
         cooldown=6.0,
-        vulnerable_after=True
+        vulnerable_after=True,
     ),
-
     # Dark Knight attacks
     "quick_strike": BossAttackPattern(
         attack_id="quick_strike",
@@ -231,7 +236,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.1,
         attack_duration=0.2,
         cooldown=0.8,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "shadow_dash": BossAttackPattern(
         attack_id="shadow_dash",
@@ -241,7 +246,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.5,
         attack_duration=0.4,
         cooldown=3.0,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "dark_blade": BossAttackPattern(
         attack_id="dark_blade",
@@ -251,9 +256,8 @@ BOSS_ATTACKS = {
         telegraph_duration=1.5,
         attack_duration=0.8,
         cooldown=8.0,
-        vulnerable_after=True
+        vulnerable_after=True,
     ),
-
     # Plague Rat attacks
     "bite": BossAttackPattern(
         attack_id="bite",
@@ -263,7 +267,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.15,
         attack_duration=0.25,
         cooldown=1.0,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "poison_spit": BossAttackPattern(
         attack_id="poison_spit",
@@ -273,7 +277,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.4,
         attack_duration=0.3,
         cooldown=2.0,
-        vulnerable_after=False
+        vulnerable_after=False,
     ),
     "plague_burst": BossAttackPattern(
         attack_id="plague_burst",
@@ -283,7 +287,7 @@ BOSS_ATTACKS = {
         telegraph_duration=0.8,
         attack_duration=1.2,
         cooldown=5.0,
-        vulnerable_after=True
+        vulnerable_after=True,
     ),
 }
 
@@ -309,9 +313,8 @@ BOSS_DEFINITIONS = {
         phase_4_attacks=["nature_wrath", "root_slam", "vine_whip", "nature_wrath"],  # Enraged
         loot_table_id="boss_forest",
         exp_value=100,
-        can_fly=False
+        can_fly=False,
     ),
-
     BossType.CORRUPT_MAYOR: BossDefinition(
         boss_type=BossType.CORRUPT_MAYOR,
         display_name="Corrupt Mayor",
@@ -328,9 +331,8 @@ BOSS_DEFINITIONS = {
         phase_4_attacks=["summon_minion", "sword_slash", "summon_minion"],  # Desperate summoning
         loot_table_id="boss_town",
         exp_value=100,
-        can_fly=False
+        can_fly=False,
     ),
-
     BossType.CRYSTAL_GOLEM: BossDefinition(
         boss_type=BossType.CRYSTAL_GOLEM,
         display_name="Crystal Golem",
@@ -347,9 +349,8 @@ BOSS_DEFINITIONS = {
         phase_4_attacks=["earth_shatter", "shard_volley", "crystal_punch", "earth_shatter"],
         loot_table_id="boss_caves",
         exp_value=120,
-        can_fly=False
+        can_fly=False,
     ),
-
     BossType.DARK_KNIGHT: BossDefinition(
         boss_type=BossType.DARK_KNIGHT,
         display_name="Dark Knight",
@@ -366,9 +367,8 @@ BOSS_DEFINITIONS = {
         phase_4_attacks=["shadow_dash", "quick_strike", "dark_blade", "shadow_dash"],  # Aggressive
         loot_table_id="boss_castle",
         exp_value=150,
-        can_fly=False
+        can_fly=False,
     ),
-
     BossType.PLAGUE_RAT: BossDefinition(
         boss_type=BossType.PLAGUE_RAT,
         display_name="Plague Rat King",
@@ -385,7 +385,7 @@ BOSS_DEFINITIONS = {
         phase_4_attacks=["plague_burst", "poison_spit", "bite", "plague_burst"],  # Desperate
         loot_table_id="boss_sewer",
         exp_value=140,
-        can_fly=False
+        can_fly=False,
     ),
 }
 
@@ -394,6 +394,7 @@ BOSS_DEFINITIONS = {
 # Boss Entity
 # ============================================================
 
+
 @dataclass
 class Boss:
     """
@@ -401,6 +402,7 @@ class Boss:
 
     Represents an active boss with position, health, AI state, and phase tracking.
     """
+
     boss_id: str
     boss_type: BossType
     x: float
@@ -425,14 +427,14 @@ class Boss:
     invulnerable: bool = False  # Invulnerable during phase transition
 
     # Attack state
-    current_attack: Optional[str] = None
+    current_attack: str | None = None
     attack_timer: float = 0.0
     attack_telegraph_complete: bool = False
     attack_cooldown_timer: float = 0.0
 
     # Target tracking
-    target_player_x: Optional[float] = None
-    target_player_y: Optional[float] = None
+    target_player_x: float | None = None
+    target_player_y: float | None = None
 
     # Stun state
     stun_duration: float = 0.0
@@ -451,18 +453,15 @@ class Boss:
         """Get boss definition"""
         return BOSS_DEFINITIONS.get(self.boss_type, BOSS_DEFINITIONS[BossType.FOREST_GUARDIAN])
 
-    def get_rect(self) -> Tuple[float, float, float, float]:
+    def get_rect(self) -> tuple[float, float, float, float]:
         """Get boss bounding box (x, y, width, height)"""
         definition = self.get_definition()
         return (self.x, self.y, definition.width, definition.height)
 
-    def get_center(self) -> Tuple[float, float]:
+    def get_center(self) -> tuple[float, float]:
         """Get boss center position"""
         definition = self.get_definition()
-        return (
-            self.x + definition.width / 2,
-            self.y + definition.height / 2
-        )
+        return (self.x + definition.width / 2, self.y + definition.height / 2)
 
     def distance_to(self, target_x: float, target_y: float) -> float:
         """Calculate distance to target position"""
@@ -497,7 +496,7 @@ class Boss:
         elif self.current_phase == BossPhase.PHASE_3:
             self.current_phase = BossPhase.PHASE_4
 
-    def get_available_attacks(self) -> List[str]:
+    def get_available_attacks(self) -> list[str]:
         """Get available attacks for current phase"""
         definition = self.get_definition()
 
@@ -512,8 +511,13 @@ class Boss:
 
         return []
 
-    def take_damage(self, damage: int, knockback_x: float = 0.0,
-                   knockback_y: float = 0.0, stun_duration: float = 0.0) -> bool:
+    def take_damage(
+        self,
+        damage: int,
+        knockback_x: float = 0.0,
+        knockback_y: float = 0.0,
+        stun_duration: float = 0.0,
+    ) -> bool:
         """
         Take damage and apply knockback/stun.
 
@@ -573,50 +577,50 @@ class Boss:
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
-            'boss_id': self.boss_id,
-            'boss_type': self.boss_type.value,
-            'x': self.x,
-            'y': self.y,
-            'velocity_x': self.velocity_x,
-            'velocity_y': self.velocity_y,
-            'facing_right': self.facing_right,
-            'health_state': {
-                'current_hp': self.health_state.current_hp,
-                'max_hp': self.health_state.max_hp,
-                'invincibility_frames': self.health_state.invincibility_frames
+            "boss_id": self.boss_id,
+            "boss_type": self.boss_type.value,
+            "x": self.x,
+            "y": self.y,
+            "velocity_x": self.velocity_x,
+            "velocity_y": self.velocity_y,
+            "facing_right": self.facing_right,
+            "health_state": {
+                "current_hp": self.health_state.current_hp,
+                "max_hp": self.health_state.max_hp,
+                "invincibility_frames": self.health_state.invincibility_frames,
             },
-            'ai_state': self.ai_state.value,
-            'current_phase': self.current_phase.value,
-            'loot_table_id': self.loot_table_id,
-            'loot_seed': self.loot_seed
+            "ai_state": self.ai_state.value,
+            "current_phase": self.current_phase.value,
+            "loot_table_id": self.loot_table_id,
+            "loot_seed": self.loot_seed,
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'Boss':
+    def from_dict(data: dict) -> "Boss":
         """Deserialize from dictionary"""
-        health_data = data.get('health_state', {})
+        health_data = data.get("health_state", {})
         health_state = HealthState(
-            current_hp=health_data.get('current_hp', 15),
-            max_hp=health_data.get('max_hp', 15),
-            invincibility_frames=health_data.get('invincibility_frames', 0)
+            current_hp=health_data.get("current_hp", 15),
+            max_hp=health_data.get("max_hp", 15),
+            invincibility_frames=health_data.get("invincibility_frames", 0),
         )
 
         return Boss(
-            boss_id=data['boss_id'],
-            boss_type=BossType(data['boss_type']),
-            x=data['x'],
-            y=data['y'],
-            velocity_x=data.get('velocity_x', 0.0),
-            velocity_y=data.get('velocity_y', 0.0),
-            facing_right=data.get('facing_right', True),
+            boss_id=data["boss_id"],
+            boss_type=BossType(data["boss_type"]),
+            x=data["x"],
+            y=data["y"],
+            velocity_x=data.get("velocity_x", 0.0),
+            velocity_y=data.get("velocity_y", 0.0),
+            facing_right=data.get("facing_right", True),
             health_state=health_state,
-            ai_state=BossAIState(data.get('ai_state', 'intro')),
-            current_phase=BossPhase(data.get('current_phase', 1)),
-            loot_table_id=data.get('loot_table_id', 'boss_legendary'),
-            loot_seed=data.get('loot_seed', 0)
+            ai_state=BossAIState(data.get("ai_state", "intro")),
+            current_phase=BossPhase(data.get("current_phase", 1)),
+            loot_table_id=data.get("loot_table_id", "boss_legendary"),
+            loot_seed=data.get("loot_seed", 0),
         )
 
 
-def get_boss_definition(boss_type: BossType) -> Optional[BossDefinition]:
+def get_boss_definition(boss_type: BossType) -> BossDefinition | None:
     """Get boss definition by type"""
     return BOSS_DEFINITIONS.get(boss_type)

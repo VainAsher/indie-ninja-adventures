@@ -10,17 +10,21 @@ Usage:
     # Returns: "top_left", "mid_mid", "bottom_right", etc.
 """
 
-from typing import List, Tuple
-
 # 9-slice shape names (matches asset structure)
 SHAPES_3X3 = [
-    "top_left", "top_mid", "top_right",
-    "mid_left", "mid_mid", "mid_right",
-    "bottom_left", "bottom_mid", "bottom_right",
+    "top_left",
+    "top_mid",
+    "top_right",
+    "mid_left",
+    "mid_mid",
+    "mid_right",
+    "bottom_left",
+    "bottom_mid",
+    "bottom_right",
 ]
 
 
-def get_neighbors(tilemap: List[List[int]], x: int, y: int) -> Tuple[int, int, int, int]:
+def get_neighbors(tilemap: list[list[int]], x: int, y: int) -> tuple[int, int, int, int]:
     """
     Get tile IDs of 4-directional neighbors
 
@@ -44,7 +48,7 @@ def get_neighbors(tilemap: List[List[int]], x: int, y: int) -> Tuple[int, int, i
     return up, down, left, right
 
 
-def autotile_key(tilemap: List[List[int]], x: int, y: int, tile_id: int) -> str:
+def autotile_key(tilemap: list[list[int]], x: int, y: int, tile_id: int) -> str:
     """
     Determine which 3×3 autotile shape to use based on neighbors
 
@@ -95,7 +99,7 @@ def autotile_key(tilemap: List[List[int]], x: int, y: int, tile_id: int) -> str:
     return f"{row}_{col}"
 
 
-def get_all_autotile_neighbors(tilemap: List[List[int]], x: int, y: int) -> dict:
+def get_all_autotile_neighbors(tilemap: list[list[int]], x: int, y: int) -> dict:
     """
     Get detailed neighbor information for advanced autotiling
 
@@ -125,7 +129,6 @@ def get_all_autotile_neighbors(tilemap: List[List[int]], x: int, y: int) -> dict
         "down": safe_get(x, y + 1),
         "left": safe_get(x - 1, y),
         "right": safe_get(x + 1, y),
-
         # Diagonals (for advanced autotiling)
         "top_left": safe_get(x - 1, y - 1),
         "top_right": safe_get(x + 1, y - 1),
@@ -149,8 +152,8 @@ def validate_shape_key(shape: str) -> bool:
 
 # Mapping for tile type names
 TILE_TYPE_NAMES = {
-    1: "solid",      # TILE_SOLID
-    2: "platform",   # TILE_PLATFORM
+    1: "solid",  # TILE_SOLID
+    2: "platform",  # TILE_PLATFORM
 }
 
 

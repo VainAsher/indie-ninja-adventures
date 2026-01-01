@@ -10,18 +10,20 @@ Architecture:
 - TutorialManager: Coordinates triggers and display
 """
 
-import pygame
-from typing import Dict, Optional, Callable, Set, List
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+
+import pygame
 
 
 class TutorialTriggerType(Enum):
     """Types of tutorial triggers"""
-    IMMEDIATE = "immediate"           # Show immediately
-    ON_EVENT = "on_event"             # Show when event occurs
-    ON_CONDITION = "on_condition"     # Show when condition met
-    TIMED = "timed"                   # Show after time elapsed
+
+    IMMEDIATE = "immediate"  # Show immediately
+    ON_EVENT = "on_event"  # Show when event occurs
+    ON_CONDITION = "on_condition"  # Show when condition met
+    TIMED = "timed"  # Show after time elapsed
 
 
 @dataclass
@@ -37,10 +39,11 @@ class TutorialTrigger:
         duration: How long to show message (seconds, 0 = until dismissed)
         priority: Display priority (higher = more important)
     """
+
     trigger_id: str
     trigger_type: TutorialTriggerType
     message: str
-    condition: Optional[Callable[[], bool]] = None
+    condition: Callable[[], bool] | None = None
     duration: float = 5.0
     priority: int = 0
 
@@ -152,8 +155,13 @@ class TutorialMessage:
 
         # Dismiss on any key (except modifiers)
         dismissable_keys = [
-            pygame.K_SPACE, pygame.K_RETURN, pygame.K_ESCAPE,
-            pygame.K_e, pygame.K_f, pygame.K_LSHIFT, pygame.K_RSHIFT
+            pygame.K_SPACE,
+            pygame.K_RETURN,
+            pygame.K_ESCAPE,
+            pygame.K_e,
+            pygame.K_f,
+            pygame.K_LSHIFT,
+            pygame.K_RSHIFT,
         ]
 
         for key in dismissable_keys:
@@ -174,9 +182,10 @@ class TutorialMessage:
             return
 
         # Render message text
-        message_lines = self.message.split('\n')
-        line_surfaces = [self.message_font.render(line, True, self.text_color)
-                        for line in message_lines]
+        message_lines = self.message.split("\n")
+        line_surfaces = [
+            self.message_font.render(line, True, self.text_color) for line in message_lines
+        ]
 
         # Calculate total height
         line_height = self.message_font.get_height()
@@ -213,8 +222,9 @@ class TutorialMessage:
         bg_surf.fill(self.bg_color)
 
         # Draw border
-        pygame.draw.rect(bg_surf, self.border_color,
-                        (0, 0, box_width, box_height), self.border_width)
+        pygame.draw.rect(
+            bg_surf, self.border_color, (0, 0, box_width, box_height), self.border_width
+        )
 
         surface.blit(bg_surf, (box_x, box_y))
 
@@ -256,10 +266,10 @@ class TutorialManager:
         self.save_manager = save_manager
 
         # Tutorial state
-        self.triggers: Dict[str, TutorialTrigger] = {}
-        self.shown_tutorials: Set[str] = set()
-        self.current_message: Optional[TutorialMessage] = None
-        self.message_queue: List[TutorialTrigger] = []
+        self.triggers: dict[str, TutorialTrigger] = {}
+        self.shown_tutorials: set[str] = set()
+        self.current_message: TutorialMessage | None = None
+        self.message_queue: list[TutorialTrigger] = []
 
         # Settings
         self.enabled = True
@@ -294,76 +304,92 @@ class TutorialManager:
         """Register default tutorial triggers"""
 
         # Welcome message (first time playing)
-        self.register_trigger(TutorialTrigger(
-            trigger_id="welcome",
-            trigger_type=TutorialTriggerType.IMMEDIATE,
-            message="Welcome to Ninja Dash!\nUse Arrow Keys or WASD to move",
-            duration=6.0,
-            priority=100
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="welcome",
+                trigger_type=TutorialTriggerType.IMMEDIATE,
+                message="Welcome to Ninja Dash!\nUse Arrow Keys or WASD to move",
+                duration=6.0,
+                priority=100,
+            )
+        )
 
         # Jump tutorial
-        self.register_trigger(TutorialTrigger(
-            trigger_id="jump",
-            trigger_type=TutorialTriggerType.ON_EVENT,
-            message="Press SPACE or W to jump\nYou have a double jump!",
-            duration=5.0,
-            priority=90
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="jump",
+                trigger_type=TutorialTriggerType.ON_EVENT,
+                message="Press SPACE or W to jump\nYou have a double jump!",
+                duration=5.0,
+                priority=90,
+            )
+        )
 
         # Dash tutorial
-        self.register_trigger(TutorialTrigger(
-            trigger_id="dash",
-            trigger_type=TutorialTriggerType.ON_EVENT,
-            message="Press SHIFT to dash\nDash to move quickly or avoid danger",
-            duration=5.0,
-            priority=80
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="dash",
+                trigger_type=TutorialTriggerType.ON_EVENT,
+                message="Press SHIFT to dash\nDash to move quickly or avoid danger",
+                duration=5.0,
+                priority=80,
+            )
+        )
 
         # Wall slide tutorial
-        self.register_trigger(TutorialTrigger(
-            trigger_id="wall_slide",
-            trigger_type=TutorialTriggerType.ON_EVENT,
-            message="Hold against a wall to wall slide\nJump off walls to reach high places!",
-            duration=6.0,
-            priority=70
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="wall_slide",
+                trigger_type=TutorialTriggerType.ON_EVENT,
+                message="Hold against a wall to wall slide\nJump off walls to reach high places!",
+                duration=6.0,
+                priority=70,
+            )
+        )
 
         # Crouch tutorial
-        self.register_trigger(TutorialTrigger(
-            trigger_id="crouch",
-            trigger_type=TutorialTriggerType.ON_EVENT,
-            message="Press S or DOWN to crouch\nDuck under low obstacles",
-            duration=5.0,
-            priority=60
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="crouch",
+                trigger_type=TutorialTriggerType.ON_EVENT,
+                message="Press S or DOWN to crouch\nDuck under low obstacles",
+                duration=5.0,
+                priority=60,
+            )
+        )
 
         # Collectibles tutorial
-        self.register_trigger(TutorialTrigger(
-            trigger_id="collectibles",
-            trigger_type=TutorialTriggerType.ON_EVENT,
-            message="Collect coins and gems!\nFind them all for a perfect score",
-            duration=5.0,
-            priority=50
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="collectibles",
+                trigger_type=TutorialTriggerType.ON_EVENT,
+                message="Collect coins and gems!\nFind them all for a perfect score",
+                duration=5.0,
+                priority=50,
+            )
+        )
 
         # Hazards tutorial
-        self.register_trigger(TutorialTrigger(
-            trigger_id="hazards",
-            trigger_type=TutorialTriggerType.ON_EVENT,
-            message="Avoid spikes and hazards!\nYou have 3 hearts - be careful!",
-            duration=5.0,
-            priority=40
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="hazards",
+                trigger_type=TutorialTriggerType.ON_EVENT,
+                message="Avoid spikes and hazards!\nYou have 3 hearts - be careful!",
+                duration=5.0,
+                priority=40,
+            )
+        )
 
         # Exit tutorial
-        self.register_trigger(TutorialTrigger(
-            trigger_id="exit",
-            trigger_type=TutorialTriggerType.ON_EVENT,
-            message="Find the exit to complete the level!\nLook for the glowing portal",
-            duration=5.0,
-            priority=30
-        ))
+        self.register_trigger(
+            TutorialTrigger(
+                trigger_id="exit",
+                trigger_type=TutorialTriggerType.ON_EVENT,
+                message="Find the exit to complete the level!\nLook for the glowing portal",
+                duration=5.0,
+                priority=30,
+            )
+        )
 
     def register_trigger(self, trigger: TutorialTrigger):
         """
@@ -428,10 +454,7 @@ class TutorialManager:
         if not self.current_message and self.message_queue:
             next_trigger = self.message_queue.pop(0)
             self.current_message = TutorialMessage(
-                next_trigger.message,
-                next_trigger.duration,
-                self.screen_width,
-                self.screen_height
+                next_trigger.message, next_trigger.duration, self.screen_width, self.screen_height
             )
 
     def handle_input(self, keys):
@@ -480,8 +503,13 @@ class ControlsHintOverlay:
     Shows control scheme in corner of screen, fades after use.
     """
 
-    def __init__(self, screen_width: int, screen_height: int,
-                 start_visible: bool = True, auto_fade: bool = True):
+    def __init__(
+        self,
+        screen_width: int,
+        screen_height: int,
+        start_visible: bool = True,
+        auto_fade: bool = True,
+    ):
         """
         Initialize controls hint overlay
 
@@ -499,7 +527,7 @@ class ControlsHintOverlay:
         self.opacity = 255 if start_visible else 0
         self.auto_fade = auto_fade
         self.fade_start_time = 30.0  # Start fading after 30 seconds
-        self.fade_duration = 5.0     # Fade over 5 seconds
+        self.fade_duration = 5.0  # Fade over 5 seconds
         self.elapsed_time = 0.0
 
         # Fonts

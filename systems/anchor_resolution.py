@@ -12,9 +12,12 @@ This enables global constraints like:
 Based on: Dynamic dungeon platformer anchor system
 """
 
-from dataclasses import dataclass
-from typing import Tuple, Set, Dict, List, Optional
 from collections import deque
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from systems.world_generation import RoomNode
 
 
 @dataclass
@@ -31,10 +34,11 @@ class AnchorCandidate:
         weight: Higher weight = more likely to be resolved (0.0-1.0+)
         tags: Feature tags ({"chest", "npc", "healing", "secret"})
     """
+
     kind: str
-    pos: Tuple[int, int]
+    pos: tuple[int, int]
     weight: float
-    tags: Set[str]
+    tags: set[str]
 
 
 @dataclass
@@ -47,9 +51,10 @@ class ResolvedAnchor:
         pos: Tile coordinates within room
         room_coords: Room position in world grid
     """
+
     kind: str
-    pos: Tuple[int, int]
-    room_coords: Tuple[int, int]
+    pos: tuple[int, int]
+    room_coords: tuple[int, int]
 
 
 # Save point proximity constraint
@@ -59,7 +64,7 @@ SAVE_POINT_PROXIMITY = 2  # Room distance (Manhattan)
 ALWAYS_RESOLVE = {"shopkeeper", "secret_stash", "exit_portal", "spawn"}
 
 
-def resolve_world_anchors(rooms: Dict[Tuple[int, int], 'RoomNode'], seed: int) -> None:
+def resolve_world_anchors(rooms: dict[tuple[int, int], "RoomNode"], seed: int) -> None:
     """
     Resolve anchor candidates globally with spacing constraints
 
@@ -70,14 +75,18 @@ def resolve_world_anchors(rooms: Dict[Tuple[int, int], 'RoomNode'], seed: int) -
         seed: World seed for deterministic resolution
     """
     # Priority order: START/SHOP first, COMBAT last
-    priority_order = sorted(rooms.keys(), key=lambda rc: (
-        rooms[rc].room_type.value not in ("start", "shop"),  # False sorts first
-        rooms[rc].room_type.value == "combat",  # True sorts last
-        rc[1], rc[0]  # Tiebreaker: top-left to bottom-right
-    ))
+    priority_order = sorted(
+        rooms.keys(),
+        key=lambda rc: (
+            rooms[rc].room_type.value not in ("start", "shop"),  # False sorts first
+            rooms[rc].room_type.value == "combat",  # True sorts last
+            rc[1],
+            rc[0],  # Tiebreaker: top-left to bottom-right
+        ),
+    )
 
     # Track rooms with resolved save points
-    chosen_save_rooms: Set[Tuple[int, int]] = set()
+    chosen_save_rooms: set[tuple[int, int]] = set()
 
     print(f"\n[ANCHOR RESOLUTION] Resolving anchors for {len(rooms)} rooms")
     print(f"[ANCHOR RESOLUTION] Priority order: {len(priority_order)} rooms")
@@ -86,11 +95,11 @@ def resolve_world_anchors(rooms: Dict[Tuple[int, int], 'RoomNode'], seed: int) -
         room = rooms[room_coords]
 
         # Initialize resolved_anchors if not exists
-        if not hasattr(room, 'resolved_anchors'):
+        if not hasattr(room, "resolved_anchors"):
             room.resolved_anchors = {}
 
         # Initialize anchor_candidates if not exists
-        if not hasattr(room, 'anchor_candidates'):
+        if not hasattr(room, "anchor_candidates"):
             room.anchor_candidates = []
 
         # Always resolve these if candidate exists
@@ -109,7 +118,9 @@ def resolve_world_anchors(rooms: Dict[Tuple[int, int], 'RoomNode'], seed: int) -
             distance = _bfs_room_distance(rooms, room_coords, other_coords)
             if distance <= SAVE_POINT_PROXIMITY:
                 too_close = True
-                print(f"[ANCHOR] Room {room_coords}: Save too close to {other_coords} (distance={distance})")
+                print(
+                    f"[ANCHOR] Room {room_coords}: Save too close to {other_coords} (distance={distance})"
+                )
                 break
 
         if not too_close:
@@ -125,12 +136,14 @@ def resolve_world_anchors(rooms: Dict[Tuple[int, int], 'RoomNode'], seed: int) -
             else:
                 # No loot candidate → use save position for loot
                 room.resolved_anchors["loot"] = save_candidate.pos
-                print(f"[ANCHOR] Room {room_coords}: Converted SAVE → LOOT at {save_candidate.pos} (no loot candidate)")
+                print(
+                    f"[ANCHOR] Room {room_coords}: Converted SAVE → LOOT at {save_candidate.pos} (no loot candidate)"
+                )
 
     print(f"[ANCHOR RESOLUTION] Placed {len(chosen_save_rooms)} save points")
 
 
-def _best_candidate(room: 'RoomNode', kind: str) -> Optional[AnchorCandidate]:
+def _best_candidate(room: "RoomNode", kind: str) -> AnchorCandidate | None:
     """
     Get highest-weight candidate of given kind
 
@@ -149,7 +162,7 @@ def _best_candidate(room: 'RoomNode', kind: str) -> Optional[AnchorCandidate]:
     return max(candidates, key=lambda c: c.weight)
 
 
-def _resolve_always(room: 'RoomNode', kind: str) -> None:
+def _resolve_always(room: "RoomNode", kind: str) -> None:
     """
     Always place anchor if candidate exists
 
@@ -161,12 +174,14 @@ def _resolve_always(room: 'RoomNode', kind: str) -> None:
 
     if candidate:
         room.resolved_anchors[kind] = candidate.pos
-        print(f"[ANCHOR] Room ({room.grid_x}, {room.grid_y}): Placed {kind.upper()} at {candidate.pos}")
+        print(
+            f"[ANCHOR] Room ({room.grid_x}, {room.grid_y}): Placed {kind.upper()} at {candidate.pos}"
+        )
 
 
-def _bfs_room_distance(rooms: Dict[Tuple[int, int], 'RoomNode'],
-                       start: Tuple[int, int],
-                       end: Tuple[int, int]) -> int:
+def _bfs_room_distance(
+    rooms: dict[tuple[int, int], "RoomNode"], start: tuple[int, int], end: tuple[int, int]
+) -> int:
     """
     Calculate room-to-room distance via BFS
 
@@ -200,14 +215,16 @@ def _bfs_room_distance(rooms: Dict[Tuple[int, int], 'RoomNode'],
                 visited.add(neighbor_coords)
                 queue.append((neighbor_coords, dist + 1))
 
-    return float('inf')  # Unreachable
+    return float("inf")  # Unreachable
 
 
-def emit_anchor_candidate(candidates: List[AnchorCandidate],
-                          kind: str,
-                          pos: Tuple[int, int],
-                          weight: float = 1.0,
-                          tags: Optional[Set[str]] = None):
+def emit_anchor_candidate(
+    candidates: list[AnchorCandidate],
+    kind: str,
+    pos: tuple[int, int],
+    weight: float = 1.0,
+    tags: set[str] | None = None,
+):
     """
     Helper to emit an anchor candidate
 
@@ -218,9 +235,4 @@ def emit_anchor_candidate(candidates: List[AnchorCandidate],
         weight: Candidate weight (default: 1.0)
         tags: Feature tags (default: empty set)
     """
-    candidates.append(AnchorCandidate(
-        kind=kind,
-        pos=pos,
-        weight=weight,
-        tags=tags or set()
-    ))
+    candidates.append(AnchorCandidate(kind=kind, pos=pos, weight=weight, tags=tags or set()))

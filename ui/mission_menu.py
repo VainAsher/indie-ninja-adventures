@@ -7,17 +7,18 @@ Displays when talking to mission giver NPCs in hub.
 Version: v0.6.0 (Phase 6) - Simplified
 """
 
-import pygame
-from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 
+import pygame
 
 # ============================================================
 # Mission Status
 # ============================================================
 
+
 class MissionStatus:
     """Mission status indicators"""
+
     NOT_STARTED = "not_started"
     AVAILABLE = "available"
     IN_PROGRESS = "in_progress"
@@ -29,23 +30,26 @@ class MissionStatus:
 # Mission Display Data
 # ============================================================
 
+
 @dataclass
 class MissionDisplay:
     """Mission display information"""
+
     mission_id: str
     mission_name: str
     region: str
     status: str
     difficulty: int  # 1-5 stars
-    objectives: List[str]
-    requirements: List[str]
-    rewards: List[str]
-    best_time: Optional[float] = None
+    objectives: list[str]
+    requirements: list[str]
+    rewards: list[str]
+    best_time: float | None = None
 
 
 # ============================================================
 # Mission Menu UI
 # ============================================================
+
 
 class MissionMenuUI:
     """
@@ -81,20 +85,20 @@ class MissionMenuUI:
             MissionStatus.AVAILABLE: "!",
             MissionStatus.LOCKED: "🔒",
             MissionStatus.IN_PROGRESS: "⚡",
-            MissionStatus.NOT_STARTED: " "
+            MissionStatus.NOT_STARTED: " ",
         }
 
         # State
         self.open = False
         self.selected_index = 0
-        self.missions: List[MissionDisplay] = []
+        self.missions: list[MissionDisplay] = []
         # Track previous command states to edge-detect during replay
         self._prev_up = False
         self._prev_down = False
         self._prev_confirm = False
         self._prev_back = False
 
-    def show(self, missions: List[MissionDisplay]):
+    def show(self, missions: list[MissionDisplay]):
         """Show mission menu with missions"""
         self.open = True
         self.missions = missions
@@ -133,9 +137,13 @@ class MissionMenuUI:
         surface.blit(bg_surf, (panel_x, panel_y))
 
         # Draw border
-        pygame.draw.rect(surface, self.color_border,
-                        pygame.Rect(panel_x, panel_y, panel_w, panel_h),
-                        width=3, border_radius=8)
+        pygame.draw.rect(
+            surface,
+            self.color_border,
+            pygame.Rect(panel_x, panel_y, panel_w, panel_h),
+            width=3,
+            border_radius=8,
+        )
 
         # Draw title
         title = "Select Mission"
@@ -175,7 +183,7 @@ class MissionMenuUI:
             start_index = 0
         else:
             start_index = max(0, min(self.selected_index - max_visible + 1, total - max_visible))
-        visible = self.missions[start_index:start_index + max_visible]
+        visible = self.missions[start_index : start_index + max_visible]
 
         for i, mission in enumerate(visible):
             actual_index = start_index + i
@@ -185,7 +193,9 @@ class MissionMenuUI:
             if actual_index == self.selected_index:
                 highlight_rect = pygame.Rect(x - 5, item_y - 5, width + 10, item_height - 5)
                 pygame.draw.rect(surface, self.color_selected, highlight_rect, border_radius=4)
-                pygame.draw.rect(surface, self.color_border, highlight_rect, width=2, border_radius=4)
+                pygame.draw.rect(
+                    surface, self.color_border, highlight_rect, width=2, border_radius=4
+                )
                 indicator = self.font.render(">", True, (255, 255, 210))
                 surface.blit(indicator, (x - 18, item_y))
 
@@ -241,7 +251,9 @@ class MissionMenuUI:
 
             for req in mission.requirements[:2]:  # Show max 2
                 req_text = f"  • {req}"
-                req_color = (255, 200, 100) if mission.status == MissionStatus.LOCKED else (200, 200, 210)
+                req_color = (
+                    (255, 200, 100) if mission.status == MissionStatus.LOCKED else (200, 200, 210)
+                )
                 req_surf = self.small_font.render(req_text, True, req_color)
                 surface.blit(req_surf, (x, y))
                 y += 20
@@ -279,16 +291,23 @@ class MissionMenuUI:
 
         # Accept button
         accept_rect = pygame.Rect(start_x, y, button_w, button_h)
-        accept_enabled = (0 <= self.selected_index < len(self.missions) and
-                         self.missions[self.selected_index].status != MissionStatus.LOCKED)
+        accept_enabled = (
+            0 <= self.selected_index < len(self.missions)
+            and self.missions[self.selected_index].status != MissionStatus.LOCKED
+        )
         accept_color = (80, 120, 80) if accept_enabled else (50, 50, 60)
 
         pygame.draw.rect(surface, accept_color, accept_rect, border_radius=6)
         pygame.draw.rect(surface, self.color_border, accept_rect, width=2, border_radius=6)
 
         accept_text = self.font.render("Accept", True, self.color_text)
-        surface.blit(accept_text, (accept_rect.centerx - accept_text.get_width() // 2,
-                                   accept_rect.centery - accept_text.get_height() // 2))
+        surface.blit(
+            accept_text,
+            (
+                accept_rect.centerx - accept_text.get_width() // 2,
+                accept_rect.centery - accept_text.get_height() // 2,
+            ),
+        )
 
         # Cancel button
         cancel_rect = pygame.Rect(start_x + button_w + button_spacing, y, button_w, button_h)
@@ -296,10 +315,15 @@ class MissionMenuUI:
         pygame.draw.rect(surface, self.color_border, cancel_rect, width=2, border_radius=6)
 
         cancel_text = self.font.render("Cancel", True, self.color_text)
-        surface.blit(cancel_text, (cancel_rect.centerx - cancel_text.get_width() // 2,
-                                  cancel_rect.centery - cancel_text.get_height() // 2))
+        surface.blit(
+            cancel_text,
+            (
+                cancel_rect.centerx - cancel_text.get_width() // 2,
+                cancel_rect.centery - cancel_text.get_height() // 2,
+            ),
+        )
 
-    def _get_status_color(self, status: str) -> Tuple[int, int, int]:
+    def _get_status_color(self, status: str) -> tuple[int, int, int]:
         """Get color for mission status"""
         if status == MissionStatus.COMPLETED:
             return self.color_completed
@@ -310,7 +334,7 @@ class MissionMenuUI:
         else:
             return self.color_text
 
-    def handle_input(self, event: pygame.event.Event) -> Optional[str]:
+    def handle_input(self, event: pygame.event.Event) -> str | None:
         """
         Handle input events.
 
@@ -330,15 +354,17 @@ class MissionMenuUI:
                 self.selected_index = min(len(self.missions) - 1, self.selected_index + 1)
             elif event.key == pygame.K_RETURN:
                 # Accept mission (if available)
-                if (0 <= self.selected_index < len(self.missions) and
-                    self.missions[self.selected_index].status != MissionStatus.LOCKED):
+                if (
+                    0 <= self.selected_index < len(self.missions)
+                    and self.missions[self.selected_index].status != MissionStatus.LOCKED
+                ):
                     return "accept"
             elif event.key == pygame.K_ESCAPE:
                 return "cancel"
 
         return None
 
-    def handle_command(self, command, pressed_once: List[int]) -> Optional[str]:
+    def handle_command(self, command, pressed_once: list[int]) -> str | None:
         """
         Handle input from command-based replay pipeline.
 
@@ -363,13 +389,11 @@ class MissionMenuUI:
             or pygame.K_s in pressed_once
             or (getattr(command, "down", False) and not self._prev_down)
         )
-        confirm_edge = (
-            pygame.K_RETURN in pressed_once
-            or (getattr(command, "menu_confirm", False) and not self._prev_confirm)
+        confirm_edge = pygame.K_RETURN in pressed_once or (
+            getattr(command, "menu_confirm", False) and not self._prev_confirm
         )
-        back_edge = (
-            pygame.K_ESCAPE in pressed_once
-            or (getattr(command, "menu_back", False) and not self._prev_back)
+        back_edge = pygame.K_ESCAPE in pressed_once or (
+            getattr(command, "menu_back", False) and not self._prev_back
         )
 
         # Navigation (debounced)
@@ -397,7 +421,7 @@ class MissionMenuUI:
 
         return result
 
-    def get_selected_mission(self) -> Optional[MissionDisplay]:
+    def get_selected_mission(self) -> MissionDisplay | None:
         """Get currently selected mission"""
         if 0 <= self.selected_index < len(self.missions):
             return self.missions[self.selected_index]
@@ -408,12 +432,13 @@ class MissionMenuUI:
 # Helper Functions
 # ============================================================
 
+
 def create_mission_menu() -> MissionMenuUI:
     """Create a mission menu UI instance"""
     return MissionMenuUI()
 
 
-def create_sample_missions() -> List[MissionDisplay]:
+def create_sample_missions() -> list[MissionDisplay]:
     """Create sample missions for testing"""
     return [
         MissionDisplay(
@@ -424,7 +449,7 @@ def create_sample_missions() -> List[MissionDisplay]:
             difficulty=1,
             objectives=["Defeat 5 goblins", "Collect 3 keys"],
             requirements=[],
-            rewards=["50 Gold", "Double Jump Unlock"]
+            rewards=["50 Gold", "Double Jump Unlock"],
         ),
         MissionDisplay(
             mission_id="forest_2",
@@ -434,7 +459,7 @@ def create_sample_missions() -> List[MissionDisplay]:
             difficulty=3,
             objectives=["Explore the ruins", "Defeat boss"],
             requirements=["Double Jump", "Forest Patrol complete"],
-            rewards=["100 Gold", "Rare Sword"]
+            rewards=["100 Gold", "Rare Sword"],
         ),
         MissionDisplay(
             mission_id="town_1",
@@ -445,6 +470,6 @@ def create_sample_missions() -> List[MissionDisplay]:
             objectives=["Defeat enemy waves"],
             requirements=[],
             rewards=["75 Gold"],
-            best_time=245.3
+            best_time=245.3,
         ),
     ]

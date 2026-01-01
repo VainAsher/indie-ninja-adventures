@@ -13,10 +13,9 @@ Memory savings:
 - 30×30 rooms: ~92MB → ~18MB
 """
 
-from typing import Dict, Tuple, List, Optional
 from collections import OrderedDict
+
 from systems.room_generation import RoomNode
-from systems.zone_planning import ZonePlanner
 
 
 class TilemapCache:
@@ -33,12 +32,12 @@ class TilemapCache:
         Args:
             max_size: Maximum number of tilemaps to keep in cache
         """
-        self.cache: OrderedDict[Tuple[int, int], List[List[int]]] = OrderedDict()
+        self.cache: OrderedDict[tuple[int, int], list[list[int]]] = OrderedDict()
         self.max_size = max_size
         self.hits = 0
         self.misses = 0
 
-    def get(self, room_coords: Tuple[int, int]) -> Optional[List[List[int]]]:
+    def get(self, room_coords: tuple[int, int]) -> list[list[int]] | None:
         """
         Get tilemap from cache (LRU access)
 
@@ -57,7 +56,7 @@ class TilemapCache:
             self.misses += 1
             return None
 
-    def put(self, room_coords: Tuple[int, int], tilemap: List[List[int]]):
+    def put(self, room_coords: tuple[int, int], tilemap: list[list[int]]):
         """
         Put tilemap in cache with LRU eviction
 
@@ -84,17 +83,17 @@ class TilemapCache:
         self.hits = 0
         self.misses = 0
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get cache statistics"""
         total_requests = self.hits + self.misses
         hit_rate = (self.hits / total_requests * 100) if total_requests > 0 else 0
 
         return {
-            'cached': len(self.cache),
-            'max_size': self.max_size,
-            'hits': self.hits,
-            'misses': self.misses,
-            'hit_rate': hit_rate
+            "cached": len(self.cache),
+            "max_size": self.max_size,
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate": hit_rate,
         }
 
 
@@ -130,13 +129,13 @@ class TilemapStreamingManager:
     def _ensure_generators(self):
         """Lazy initialize zone planner and room generator"""
         if self.zone_planner is None:
-            from systems.zone_planning import ZonePlanner
             from systems.room_generation import RoomGenerator
+            from systems.zone_planning import ZonePlanner
 
             self.zone_planner = ZonePlanner(seed=self.world.seed)
             self.room_generator = RoomGenerator()
 
-    def get_tilemap(self, room_coords: Tuple[int, int]) -> Optional[List[List[int]]]:
+    def get_tilemap(self, room_coords: tuple[int, int]) -> list[list[int]] | None:
         """
         Get tilemap for room (lazy-load if not cached)
 
@@ -164,7 +163,7 @@ class TilemapStreamingManager:
 
         return tilemap
 
-    def preload_rooms(self, room_coords_list: List[Tuple[int, int]]):
+    def preload_rooms(self, room_coords_list: list[tuple[int, int]]):
         """
         Preload tilemaps for specific rooms (for smoother gameplay)
 
@@ -175,7 +174,7 @@ class TilemapStreamingManager:
             if coords not in self.generated:
                 self.get_tilemap(coords)
 
-    def preload_surrounding_rooms(self, center_coords: Tuple[int, int], radius: int = 1):
+    def preload_surrounding_rooms(self, center_coords: tuple[int, int], radius: int = 1):
         """
         Preload tilemaps for rooms surrounding a center room
 
@@ -193,14 +192,14 @@ class TilemapStreamingManager:
 
         self.preload_rooms(coords_to_load)
 
-    def _find_room(self, room_coords: Tuple[int, int]) -> Optional[RoomNode]:
+    def _find_room(self, room_coords: tuple[int, int]) -> RoomNode | None:
         """Find room by coordinates"""
         for room in self.world.all_rooms:
             if (room.grid_x, room.grid_y) == room_coords:
                 return room
         return None
 
-    def _generate_tilemap(self, room: RoomNode) -> List[List[int]]:
+    def _generate_tilemap(self, room: RoomNode) -> list[list[int]]:
         """
         Generate tilemap for a room
 
@@ -225,7 +224,7 @@ class TilemapStreamingManager:
 
         return room.tilemap
 
-    def get_all_tilemaps(self) -> Dict[Tuple[int, int], List[List[int]]]:
+    def get_all_tilemaps(self) -> dict[tuple[int, int], list[list[int]]]:
         """
         Get all tilemaps (forces generation of all rooms)
 
@@ -243,7 +242,7 @@ class TilemapStreamingManager:
 
         return tilemaps
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get streaming statistics"""
         cache_stats = self.cache.get_stats()
         total_rooms = len(self.world.all_rooms)
@@ -251,16 +250,16 @@ class TilemapStreamingManager:
 
         return {
             **cache_stats,
-            'total_rooms': total_rooms,
-            'generated': generated_count,
-            'generation_rate': (generated_count / total_rooms * 100) if total_rooms > 0 else 0
+            "total_rooms": total_rooms,
+            "generated": generated_count,
+            "generation_rate": (generated_count / total_rooms * 100) if total_rooms > 0 else 0,
         }
 
     def print_stats(self):
         """Print streaming statistics"""
         stats = self.get_stats()
 
-        print(f"\n[TILEMAP STREAMING STATS]")
+        print("\n[TILEMAP STREAMING STATS]")
         print(f"  Total rooms: {stats['total_rooms']}")
         print(f"  Generated: {stats['generated']} ({stats['generation_rate']:.1f}%)")
         print(f"  Cached: {stats['cached']}/{stats['max_size']}")

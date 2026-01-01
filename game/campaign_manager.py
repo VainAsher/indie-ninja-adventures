@@ -7,18 +7,19 @@ and ability unlocks through the story.
 Version: v0.7.0 (Phase 8 - Story Integration)
 """
 
-from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
-from game.story_manager import StoryManager
 
+from game.story_manager import StoryManager
 
 # ============================================================
 # Region Definitions
 # ============================================================
 
+
 class Region(Enum):
     """Campaign regions"""
+
     CENTRAL_HUB = "central_hub"
     FOREST = "forest"
     TOWN = "town"
@@ -32,33 +33,36 @@ class Region(Enum):
 # Campaign State
 # ============================================================
 
+
 @dataclass
 class CampaignState:
     """Current campaign state"""
+
     world_seed: int
     current_hub: str = "central_hub"
-    current_region: Optional[str] = None
-    current_position: Tuple[float, float] = (0.0, 0.0)
+    current_region: str | None = None
+    current_position: tuple[float, float] = (0.0, 0.0)
 
     # Progression
-    unlocked_regions: Set[str] = field(default_factory=lambda: {"central_hub", "forest"})
-    completed_missions: Set[str] = field(default_factory=set)
-    unlocked_abilities: Set[str] = field(default_factory=lambda: {"basic_movement", "jump"})
+    unlocked_regions: set[str] = field(default_factory=lambda: {"central_hub", "forest"})
+    completed_missions: set[str] = field(default_factory=set)
+    unlocked_abilities: set[str] = field(default_factory=lambda: {"basic_movement", "jump"})
 
     # Statistics
-    mission_attempts: Dict[str, int] = field(default_factory=dict)
-    mission_best_times: Dict[str, float] = field(default_factory=dict)
+    mission_attempts: dict[str, int] = field(default_factory=dict)
+    mission_best_times: dict[str, float] = field(default_factory=dict)
     total_deaths: int = 0
     total_play_time: float = 0.0
 
     # Inventory (simplified - full system in inventory_system.py)
     currency: int = 0
-    collected_items: Set[str] = field(default_factory=set)
+    collected_items: set[str] = field(default_factory=set)
 
 
 # ============================================================
 # Campaign Manager
 # ============================================================
+
 
 class CampaignManager:
     """
@@ -88,19 +92,13 @@ class CampaignManager:
         self.region_requirements = {
             Region.CENTRAL_HUB: {},  # Always unlocked
             Region.FOREST: {},  # Always unlocked at start
-            Region.TOWN: {
-                "missions_complete": ["forest_1", "forest_2", "forest_3"]
-            },
-            Region.CAVES: {
-                "abilities": ["double_jump", "dash"]
-            },
+            Region.TOWN: {"missions_complete": ["forest_1", "forest_2", "forest_3"]},
+            Region.CAVES: {"abilities": ["double_jump", "dash"]},
             Region.CASTLE: {
                 "missions_complete": ["town_1", "town_2", "town_3", "town_4", "town_5"],
-                "abilities": ["wall_jump"]
+                "abilities": ["wall_jump"],
             },
-            Region.SEWER: {
-                "completion_percent": 0.5  # 50% of all other regions
-            }
+            Region.SEWER: {"completion_percent": 0.5},  # 50% of all other regions
         }
 
     def start_new_campaign(self):
@@ -112,7 +110,7 @@ class CampaignManager:
         """Check if a region is unlocked"""
         return region.value in self.state.unlocked_regions
 
-    def can_unlock_region(self, region: Region) -> Tuple[bool, List[str]]:
+    def can_unlock_region(self, region: Region) -> tuple[bool, list[str]]:
         """
         Check if region can be unlocked.
 
@@ -172,9 +170,13 @@ class CampaignManager:
         self.state.unlocked_regions.add(region.value)
         return True
 
-    def complete_mission(self, mission_id: str, completion_time: float,
-                        abilities_unlocked: Optional[List[str]] = None,
-                        currency_reward: int = 0):
+    def complete_mission(
+        self,
+        mission_id: str,
+        completion_time: float,
+        abilities_unlocked: list[str] | None = None,
+        currency_reward: int = 0,
+    ):
         """
         Mark mission as completed.
 
@@ -195,8 +197,7 @@ class CampaignManager:
             self.state.mission_best_times[mission_id] = completion_time
         else:
             self.state.mission_best_times[mission_id] = min(
-                self.state.mission_best_times[mission_id],
-                completion_time
+                self.state.mission_best_times[mission_id], completion_time
             )
 
         # Unlock abilities
@@ -261,15 +262,15 @@ class CampaignManager:
         total_completion = sum(self.get_region_completion_percent(r) for r in all_regions)
         return total_completion / len(all_regions)
 
-    def get_unlocked_abilities(self) -> Set[str]:
+    def get_unlocked_abilities(self) -> set[str]:
         """Get set of unlocked abilities"""
         return self.state.unlocked_abilities.copy()
 
-    def get_completed_missions(self) -> Set[str]:
+    def get_completed_missions(self) -> set[str]:
         """Get set of completed missions"""
         return self.state.completed_missions.copy()
 
-    def get_statistics(self) -> Dict[str, any]:
+    def get_statistics(self) -> dict[str, any]:
         """Get campaign statistics"""
         return {
             "completed_missions": len(self.state.completed_missions),
@@ -279,7 +280,7 @@ class CampaignManager:
             "currency": self.state.currency,
             "completion_percent": self.get_overall_completion_percent(),
             "unlocked_regions": len(self.state.unlocked_regions),
-            "unlocked_abilities": len(self.state.unlocked_abilities)
+            "unlocked_abilities": len(self.state.unlocked_abilities),
         }
 
     def _check_region_unlocks(self):
@@ -290,7 +291,7 @@ class CampaignManager:
                 if can_unlock:
                     self.unlock_region(region)
 
-    def _get_region_missions(self, region: Region) -> List[str]:
+    def _get_region_missions(self, region: Region) -> list[str]:
         """Get all missions for a region (placeholder)"""
         # In full implementation, this would query mission_system.py
         mission_counts = {
@@ -298,12 +299,12 @@ class CampaignManager:
             Region.TOWN: ["town_1", "town_2", "town_3", "town_4", "town_5", "town_6"],
             Region.CAVES: ["caves_1", "caves_2", "caves_3", "caves_4", "caves_5"],
             Region.CASTLE: ["castle_1", "castle_2", "castle_3", "castle_4", "castle_5", "castle_6"],
-            Region.SEWER: ["sewer_1", "sewer_2", "sewer_3"]
+            Region.SEWER: ["sewer_1", "sewer_2", "sewer_3"],
         }
 
         return mission_counts.get(region, [])
 
-    def save_to_dict(self) -> Dict:
+    def save_to_dict(self) -> dict:
         """Serialize campaign state to dictionary"""
         return {
             "world_seed": self.state.world_seed,
@@ -319,10 +320,10 @@ class CampaignManager:
             "total_play_time": self.state.total_play_time,
             "currency": self.state.currency,
             "collected_items": list(self.state.collected_items),
-            "story_state": self.story_manager.to_dict()  # Story progression
+            "story_state": self.story_manager.to_dict(),  # Story progression
         }
 
-    def load_from_dict(self, data: Dict):
+    def load_from_dict(self, data: dict):
         """Load campaign state from dictionary"""
         self.state.world_seed = data.get("world_seed", 0)
         self.state.current_hub = data.get("current_hub", "central_hub")
@@ -330,7 +331,9 @@ class CampaignManager:
         self.state.current_position = tuple(data.get("current_position", [0.0, 0.0]))
         self.state.unlocked_regions = set(data.get("unlocked_regions", ["central_hub", "forest"]))
         self.state.completed_missions = set(data.get("completed_missions", []))
-        self.state.unlocked_abilities = set(data.get("unlocked_abilities", ["basic_movement", "jump"]))
+        self.state.unlocked_abilities = set(
+            data.get("unlocked_abilities", ["basic_movement", "jump"])
+        )
         self.state.mission_attempts = data.get("mission_attempts", {})
         self.state.mission_best_times = data.get("mission_best_times", {})
         self.state.total_deaths = data.get("total_deaths", 0)
@@ -350,6 +353,7 @@ class CampaignManager:
 # Helper Functions
 # ============================================================
 
+
 def create_campaign(world_seed: int) -> CampaignManager:
     """Create a new campaign"""
     return CampaignManager(world_seed)
@@ -363,7 +367,7 @@ def get_region_display_name(region: Region) -> str:
         Region.TOWN: "Merchant Town",
         Region.CAVES: "Crystal Caves",
         Region.CASTLE: "Dark Castle",
-        Region.SEWER: "Ancient Sewer"
+        Region.SEWER: "Ancient Sewer",
     }
     return names.get(region, region.value.title())
 
@@ -377,6 +381,6 @@ def get_region_description(region: Region) -> str:
         Region.CAVES: "Treacherous vertical caverns",
         Region.CASTLE: "Fortress of the corrupted nobles",
         Region.SEWER: "Ancient depths beneath the castle",
-        Region.HOLLOW_DEPTHS: "Empty void where light struggles to exist"
+        Region.HOLLOW_DEPTHS: "Empty void where light struggles to exist",
     }
     return descriptions.get(region, "Unknown region")

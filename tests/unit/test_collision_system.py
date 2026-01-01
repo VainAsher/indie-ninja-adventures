@@ -13,21 +13,20 @@ Verifies:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent))
 
 import pygame
-from core import (
-    EventBus, GameLogger, EntityManager, EntityType,
-    PhysicsState, CollisionEvent
-)
+
+from core import CollisionEvent, EntityManager, EntityType, EventBus, GameLogger, PhysicsState
 from systems import CollisionSystem
 
 
 def test_tile_collision():
     """Test entity-tile collision detection"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Tile Collision Detection")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize pygame (needed for Rect)
     pygame.init()
@@ -46,12 +45,13 @@ def test_tile_collision():
     physics = PhysicsState(x=80, y=90, vx=5.0, vy=0.0, width=20, height=20)
     entity = entity_manager.create_entity(EntityType.PLAYER, physics)
 
-    print(f"\nInitial state:")
+    print("\nInitial state:")
     print(f"  Entity: x={entity.physics.x}, vx={entity.physics.vx}")
     print(f"  Tile: x={tile.x}, width={tile.width}")
 
     # Track collision events
     collisions = []
+
     def on_collision(event: CollisionEvent):
         collisions.append(event)
         print(f"  [COLLISION] Entity {event.entity_id} hit {event.collision_type}")
@@ -71,24 +71,25 @@ def test_tile_collision():
 
     # Verify collision was detected and resolved
     assert len(collisions) == 1, f"Expected 1 collision, got {len(collisions)}"
-    assert collisions[0].collision_type == 'wall_right', \
-        f"Expected wall_right, got {collisions[0].collision_type}"
+    assert (
+        collisions[0].collision_type == "wall_right"
+    ), f"Expected wall_right, got {collisions[0].collision_type}"
     assert entity.physics.vx == 0.0, "Velocity should be zero after collision"
     assert entity.physics.on_wall, "Entity should be on wall"
     assert entity.physics.x < 100, "Entity should be pushed out of tile"
 
-    print(f"\n[PASS] Tile Collision Test PASSED")
-    print(f"   - Collision detected: OK")
-    print(f"   - Penetration resolved: OK")
-    print(f"   - Event emitted: OK")
-    print(f"   - Flags updated: OK")
+    print("\n[PASS] Tile Collision Test PASSED")
+    print("   - Collision detected: OK")
+    print("   - Penetration resolved: OK")
+    print("   - Event emitted: OK")
+    print("   - Flags updated: OK")
 
 
 def test_ground_collision():
     """Test ground landing"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Ground Collision")
-    print("="*60)
+    print("=" * 60)
 
     pygame.init()
 
@@ -105,8 +106,10 @@ def test_ground_collision():
     physics = PhysicsState(x=50, y=125, vx=0.0, vy=10.0, width=20, height=20)
     entity = entity_manager.create_entity(EntityType.PLAYER, physics)
 
-    print(f"\nInitial state:")
-    print(f"  Entity: y={entity.physics.y}, bottom={entity.physics.y + entity.physics.height}, vy={entity.physics.vy}")
+    print("\nInitial state:")
+    print(
+        f"  Entity: y={entity.physics.y}, bottom={entity.physics.y + entity.physics.height}, vy={entity.physics.vy}"
+    )
     print(f"  Ground: y={ground.y}")
 
     # Track collisions
@@ -120,26 +123,25 @@ def test_ground_collision():
     collision_system.check_and_resolve(entity)
     bus.process()
 
-    print(f"\nAfter collision resolution:")
+    print("\nAfter collision resolution:")
     print(f"  Entity: y={entity.physics.y}, vy={entity.physics.vy}")
     print(f"  On ground: {entity.physics.on_ground}")
 
     # Verify landing
     assert len(collisions) == 1, f"Expected 1 collision, got {len(collisions)}"
-    assert collisions[0].collision_type == 'ground'
+    assert collisions[0].collision_type == "ground"
     assert entity.physics.vy == 0.0, "Vertical velocity should be zero"
     assert entity.physics.on_ground, "Entity should be on ground"
-    assert entity.physics.y == ground.y - entity.physics.height, \
-        "Entity should be on top of ground"
+    assert entity.physics.y == ground.y - entity.physics.height, "Entity should be on top of ground"
 
-    print(f"\n[PASS] Ground Collision Test PASSED")
+    print("\n[PASS] Ground Collision Test PASSED")
 
 
 def test_entity_entity_collision():
     """Test collision between two entities"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Entity-Entity Collision")
-    print("="*60)
+    print("=" * 60)
 
     pygame.init()
 
@@ -171,14 +173,14 @@ def test_entity_entity_collision():
 
     assert not is_colliding, "Entities should not be colliding after separation"
 
-    print(f"\n[PASS] Entity-Entity Collision Test PASSED")
+    print("\n[PASS] Entity-Entity Collision Test PASSED")
 
 
 def test_radius_query():
     """Test radius query for entities"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Radius Query")
-    print("="*60)
+    print("=" * 60)
 
     pygame.init()
 
@@ -212,14 +214,14 @@ def test_radius_query():
     # Should find 2 entities (at 50 and 100)
     assert len(nearby) == 2, f"Expected 2 entities, found {len(nearby)}"
 
-    print(f"\n[PASS] Radius Query Test PASSED")
+    print("\n[PASS] Radius Query Test PASSED")
 
 
 def test_raycast():
     """Test raycast collision"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Raycast")
-    print("="*60)
+    print("=" * 60)
 
     pygame.init()
 
@@ -248,7 +250,7 @@ def test_raycast():
         assert hit_x >= wall.x, "Should hit wall"
     else:
         print("No hit")
-        assert False, "Raycast should hit wall"
+        raise AssertionError("Raycast should hit wall")
 
     # Raycast that misses
     start_x, start_y = 50, 200
@@ -261,14 +263,14 @@ def test_raycast():
 
     assert hit is None, "Raycast should miss"
 
-    print(f"\n[PASS] Raycast Test PASSED")
+    print("\n[PASS] Raycast Test PASSED")
 
 
 def main():
     """Run all collision tests"""
-    print("\n" + "#"*60)
+    print("\n" + "#" * 60)
     print("#  COLLISION SYSTEM TEST")
-    print("#"*60)
+    print("#" * 60)
 
     try:
         test_tile_collision()
@@ -277,9 +279,9 @@ def main():
         test_radius_query()
         test_raycast()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("[PASS] ALL COLLISION TESTS PASSED")
-        print("="*60)
+        print("=" * 60)
         print("\nCollision system is working correctly!")
         print("Features verified:")
         print("  - Tile collision detection")
@@ -294,6 +296,7 @@ def main():
     except Exception as e:
         print(f"\n[FAIL] TEST FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

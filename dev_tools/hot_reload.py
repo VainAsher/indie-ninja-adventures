@@ -4,9 +4,8 @@ Hot reload system for configuration files (DEV builds only).
 Watches settings.json and reloads when changed.
 """
 
-import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Dict, Tuple, Callable
 
 
 class HotReloadWatcher:
@@ -17,7 +16,7 @@ class HotReloadWatcher:
     """
 
     def __init__(self):
-        self.watched_files: Dict[Path, Tuple[float, Callable]] = {}
+        self.watched_files: dict[Path, tuple[float, Callable]] = {}
         self.check_interval = 1.0  # Check every second
         self.last_check_time = 0.0
 
@@ -64,6 +63,6 @@ class HotReloadWatcher:
                         self.watched_files[file_path] = (current_mtime, callback)
                     except Exception as e:
                         print(f"[HOT RELOAD] Error reloading {file_path.name}: {e}")
-            except Exception as e:
+            except Exception:
                 # Ignore errors reading file stats
                 pass

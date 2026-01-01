@@ -13,23 +13,19 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import pygame
-from entities.npc import NPC, NPCType, NPCManager
+
 from core import EventBus
+from entities.npc import NPC, NPCManager, NPCType
 
 
 def test_npc_static_by_default():
     """Test that NPCs are static by default (no patrol)"""
     pygame.init()
 
-    npc = NPC(
-        npc_id="test_npc",
-        npc_type=NPCType.SHOP,
-        x=100.0,
-        y=100.0
-    )
+    npc = NPC(npc_id="test_npc", npc_type=NPCType.SHOP, x=100.0, y=100.0)
 
     # Should not have patrol by default
-    assert npc.has_patrol == False
+    assert not npc.has_patrol
     assert len(npc.patrol_waypoints) == 0
 
     # Update NPC (should stay in place)
@@ -44,21 +40,16 @@ def test_npc_patrol_movement():
     """Test that NPC moves between patrol waypoints"""
     pygame.init()
 
-    npc = NPC(
-        npc_id="test_npc",
-        npc_type=NPCType.MISSION_GIVER,
-        x=100.0,
-        y=100.0
-    )
+    npc = NPC(npc_id="test_npc", npc_type=NPCType.MISSION_GIVER, x=100.0, y=100.0)
 
     # Set patrol waypoints
     waypoints = [
         (100.0, 100.0),  # Start position
-        (200.0, 100.0)   # End position (100 pixels right)
+        (200.0, 100.0),  # End position (100 pixels right)
     ]
     npc.set_patrol_waypoints(waypoints)
 
-    assert npc.has_patrol == True
+    assert npc.has_patrol
     assert len(npc.patrol_waypoints) == 2
 
     # Update NPC multiple times (should move toward waypoint)
@@ -74,19 +65,10 @@ def test_npc_faces_movement_direction():
     """Test that NPC faces the direction it's moving"""
     pygame.init()
 
-    npc = NPC(
-        npc_id="test_npc",
-        npc_type=NPCType.SHOP,
-        x=100.0,
-        y=100.0
-    )
+    npc = NPC(npc_id="test_npc", npc_type=NPCType.SHOP, x=100.0, y=100.0)
 
     # Set patrol waypoints (moving left then right)
-    waypoints = [
-        (100.0, 100.0),  # Start
-        (50.0, 100.0),   # Move left
-        (150.0, 100.0)   # Move right
-    ]
+    waypoints = [(100.0, 100.0), (50.0, 100.0), (150.0, 100.0)]  # Start  # Move left  # Move right
     npc.set_patrol_waypoints(waypoints)
     npc.current_waypoint_index = 1  # Start moving to left waypoint
 
@@ -103,12 +85,7 @@ def test_npc_faces_player_when_nearby():
     """Test that NPC faces player when player is nearby"""
     pygame.init()
 
-    npc = NPC(
-        npc_id="test_npc",
-        npc_type=NPCType.SHOP,
-        x=100.0,
-        y=100.0
-    )
+    npc = NPC(npc_id="test_npc", npc_type=NPCType.SHOP, x=100.0, y=100.0)
 
     # Initially facing right
     npc.facing = 1
@@ -139,13 +116,7 @@ def test_npc_ignores_distant_player():
     """Test that NPC doesn't face player if player is far away"""
     pygame.init()
 
-    npc = NPC(
-        npc_id="test_npc",
-        npc_type=NPCType.SHOP,
-        x=100.0,
-        y=100.0,
-        interaction_radius=48.0
-    )
+    npc = NPC(npc_id="test_npc", npc_type=NPCType.SHOP, x=100.0, y=100.0, interaction_radius=48.0)
 
     # Initially facing right
     npc.facing = 1
@@ -178,7 +149,7 @@ def test_npc_manager_patrol_setup():
     manager.set_npc_patrol("forest_merchant", waypoints)
 
     # Check NPC has patrol
-    assert npc.has_patrol == True
+    assert npc.has_patrol
     assert len(npc.patrol_waypoints) == 2
     print("[PASS] NPCManager can set up NPC patrol")
 
@@ -206,9 +177,9 @@ def test_npc_manager_updates_with_player_position():
 
 def main():
     """Run all NPC movement tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("NPC MOVEMENT AND FACING TESTS")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     test_npc_static_by_default()
     test_npc_patrol_movement()
@@ -218,9 +189,9 @@ def main():
     test_npc_manager_patrol_setup()
     test_npc_manager_updates_with_player_position()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("ALL NPC MOVEMENT TESTS PASSED!")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

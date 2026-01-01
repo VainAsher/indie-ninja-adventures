@@ -6,22 +6,23 @@ Tests for Campaign Manager and Save System integration.
 Version: v0.6.0 (Phase 7)
 """
 
-import unittest
 import os
+import shutil
 import sys
 import tempfile
-import shutil
+import unittest
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game.campaign_manager import (
-    CampaignManager, Region, create_campaign,
-    get_region_display_name, get_region_description
+    CampaignManager,
+    Region,
+    create_campaign,
+    get_region_description,
+    get_region_display_name,
 )
-from systems.save_system import (
-    SaveManager, CampaignSaveData
-)
+from systems.save_system import CampaignSaveData, SaveManager
 
 
 class TestCampaignManager(unittest.TestCase):
@@ -57,7 +58,7 @@ class TestCampaignManager(unittest.TestCase):
             mission_id="forest_1",
             completion_time=120.5,
             abilities_unlocked=["double_jump"],
-            currency_reward=50
+            currency_reward=50,
         )
 
         self.assertTrue(campaign.has_completed_mission("forest_1"))
@@ -239,7 +240,7 @@ class TestCampaignSaveSystem(unittest.TestCase):
             mission_id="forest_1",
             completion_time=120.5,
             abilities_unlocked=["double_jump"],
-            currency_reward=50
+            currency_reward=50,
         )
 
         campaign = self.save_manager.data.campaign
@@ -276,25 +277,21 @@ class TestCampaignSaveSystem(unittest.TestCase):
         self.save_manager.start_new_campaign(world_seed=400)
 
         # Save inventory
-        inventory = {
-            "sword_1": 1,
-            "potion": 5,
-            "key": 3
-        }
+        inventory = {"sword_1": 1, "potion": 5, "key": 3}
         self.save_manager.save_inventory(
             inventory_dict=inventory,
             equipped_weapon="sword_1",
             equipped_armor="armor_1",
-            currency=150
+            currency=150,
         )
 
         # Load inventory
         loaded = self.save_manager.load_inventory()
 
-        self.assertEqual(loaded['items'], inventory)
-        self.assertEqual(loaded['equipped_weapon'], "sword_1")
-        self.assertEqual(loaded['equipped_armor'], "armor_1")
-        self.assertEqual(loaded['currency'], 150)
+        self.assertEqual(loaded["items"], inventory)
+        self.assertEqual(loaded["equipped_weapon"], "sword_1")
+        self.assertEqual(loaded["equipped_armor"], "armor_1")
+        self.assertEqual(loaded["currency"], 150)
 
     def test_campaign_progress_stats(self):
         """Test getting campaign progress"""
@@ -305,11 +302,11 @@ class TestCampaignSaveSystem(unittest.TestCase):
 
         progress = self.save_manager.get_campaign_progress()
 
-        self.assertEqual(progress['world_seed'], 500)
-        self.assertEqual(progress['current_hub'], "central_hub")
-        self.assertEqual(progress['unlocked_regions'], 3)  # central_hub, forest, town
-        self.assertEqual(progress['completed_missions'], 1)
-        self.assertEqual(progress['currency'], 50)
+        self.assertEqual(progress["world_seed"], 500)
+        self.assertEqual(progress["current_hub"], "central_hub")
+        self.assertEqual(progress["unlocked_regions"], 3)  # central_hub, forest, town
+        self.assertEqual(progress["completed_missions"], 1)
+        self.assertEqual(progress["currency"], 50)
 
     def test_save_and_load_file(self):
         """Test saving to file and loading"""
@@ -334,31 +331,31 @@ class TestCampaignSaveSystem(unittest.TestCase):
         """Test migrating from v0.5.0 to v0.6.0"""
         # Create old save data (v0.5.0 without campaign)
         old_save = {
-            'version': '0.5.0',
-            'save_date': '2024-01-01 12:00:00',
-            'player_progress': {
-                'levels_completed': ['level_1'],
-                'current_level': 'level_2',
-                'total_playtime': 100.0,
-                'total_coins': 50,
-                'total_collectibles': 10,
-                'total_deaths': 5,
-                'best_times': {},
-                'tutorials_seen': []
+            "version": "0.5.0",
+            "save_date": "2024-01-01 12:00:00",
+            "player_progress": {
+                "levels_completed": ["level_1"],
+                "current_level": "level_2",
+                "total_playtime": 100.0,
+                "total_coins": 50,
+                "total_collectibles": 10,
+                "total_deaths": 5,
+                "best_times": {},
+                "tutorials_seen": [],
             },
-            'settings': {},
-            'statistics': {}
+            "settings": {},
+            "statistics": {},
         }
 
         # Migrate
-        migrated = self.save_manager._migrate_save(old_save, '0.5.0')
+        migrated = self.save_manager._migrate_save(old_save, "0.5.0")
 
         # Should have campaign data with defaults
-        self.assertIn('campaign', migrated)
-        self.assertEqual(migrated['version'], '0.6.0')
-        self.assertEqual(migrated['campaign']['world_seed'], 0)
-        self.assertIn('central_hub', migrated['campaign']['unlocked_regions'])
-        self.assertIn('forest', migrated['campaign']['unlocked_regions'])
+        self.assertIn("campaign", migrated)
+        self.assertEqual(migrated["version"], "0.6.0")
+        self.assertEqual(migrated["campaign"]["world_seed"], 0)
+        self.assertIn("central_hub", migrated["campaign"]["unlocked_regions"])
+        self.assertIn("forest", migrated["campaign"]["unlocked_regions"])
 
 
 class TestRegionHelpers(unittest.TestCase):
@@ -376,17 +373,12 @@ class TestRegionHelpers(unittest.TestCase):
     def test_region_descriptions(self):
         """Test region description retrieval"""
         self.assertEqual(
-            get_region_description(Region.CENTRAL_HUB),
-            "Safe haven connecting all regions"
+            get_region_description(Region.CENTRAL_HUB), "Safe haven connecting all regions"
         )
         self.assertEqual(
-            get_region_description(Region.FOREST),
-            "Dense woodland filled with creatures"
+            get_region_description(Region.FOREST), "Dense woodland filled with creatures"
         )
-        self.assertEqual(
-            get_region_description(Region.SEWER),
-            "Ancient depths beneath the castle"
-        )
+        self.assertEqual(get_region_description(Region.SEWER), "Ancient depths beneath the castle")
 
 
 def run_tests():
@@ -406,5 +398,6 @@ def run_tests():
 
 if __name__ == "__main__":
     import sys
+
     success = run_tests()
     sys.exit(0 if success else 1)

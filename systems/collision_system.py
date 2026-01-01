@@ -9,11 +9,12 @@ Features:
 - Works with entity system
 """
 
-import pygame
-from typing import List, Optional, Dict, Set
 import logging
-from core.event_bus import EventBus, CollisionEvent, TickEvent
-from core.entity_system import EntityManager, Entity, EntityType
+
+import pygame
+
+from core.entity_system import Entity, EntityManager
+from core.event_bus import CollisionEvent, EventBus, TickEvent
 from core.state import PhysicsState
 
 
@@ -29,18 +30,22 @@ class CollisionSystem:
     - Runs after movement in physics pipeline
     """
 
-    def __init__(self, event_bus: EventBus, entity_manager: EntityManager,
-                 logger: Optional[logging.Logger] = None):
+    def __init__(
+        self,
+        event_bus: EventBus,
+        entity_manager: EntityManager,
+        logger: logging.Logger | None = None,
+    ):
         self.event_bus = event_bus
         self.entity_manager = entity_manager
         self.logger = logger
         self.chunk_size = 320  # spatial hash chunk size in pixels
-        self.tile_lookup: Dict[tuple, list] = {}
-        self.platform_lookup: Dict[tuple, list] = {}
+        self.tile_lookup: dict[tuple, list] = {}
+        self.platform_lookup: dict[tuple, list] = {}
 
         # Level tiles (collision rects)
-        self.tiles: List[pygame.Rect] = []
-        self.platforms: List[pygame.Rect] = []  # One-way platforms (collision from top only)
+        self.tiles: list[pygame.Rect] = []
+        self.platforms: list[pygame.Rect] = []  # One-way platforms (collision from top only)
 
         # Subscribe to tick events
         # Priority 55 runs BEFORE Player.on_tick (50) so collision state is current, not stale
@@ -49,7 +54,7 @@ class CollisionSystem:
         if self.logger:
             self.logger.info("CollisionSystem initialized")
 
-    def set_tiles(self, tiles: List[pygame.Rect], platforms: Optional[List[pygame.Rect]] = None):
+    def set_tiles(self, tiles: list[pygame.Rect], platforms: list[pygame.Rect] | None = None):
         """
         Set tile collision rects for current level
 
@@ -82,7 +87,7 @@ class CollisionSystem:
             if entity.physics and entity.active:
                 self.check_and_resolve(entity)
 
-    def check_and_resolve(self, entity: Entity) -> List[CollisionEvent]:
+    def check_and_resolve(self, entity: Entity) -> list[CollisionEvent]:
         """
         Check collisions and resolve penetration for an entity
 
@@ -128,7 +133,7 @@ class CollisionSystem:
 
         return events
 
-    def _check_horizontal_collisions(self, entity: Entity) -> List[CollisionEvent]:
+    def _check_horizontal_collisions(self, entity: Entity) -> list[CollisionEvent]:
         """
         Check and resolve horizontal (X-axis) collisions
 
@@ -169,11 +174,16 @@ class CollisionSystem:
                 # Player height is 56px, but we only check when BOTH overlaps are small
                 # IMPORTANT: Only apply this when moving primarily downward (vy > vx)
                 # to prevent wall climbing when walking into walls horizontally
-                if (physics.vy > 0 and
-                    abs(physics.vy) > abs(physics.vx) * 1.5 and  # Must be falling faster than moving sideways
-                    overlap_x >= 4 and overlap_x <= 14 and  # Horizontal overlap (based on width)
-                    overlap_y >= 4 and overlap_y <= 14 and  # Vertical overlap must ALSO be small
-                    abs(overlap_x - overlap_y) <= 8):  # And they must be close in value
+                if (
+                    physics.vy > 0
+                    and abs(physics.vy)
+                    > abs(physics.vx) * 1.5  # Must be falling faster than moving sideways
+                    and overlap_x >= 4
+                    and overlap_x <= 14  # Horizontal overlap (based on width)
+                    and overlap_y >= 4
+                    and overlap_y <= 14  # Vertical overlap must ALSO be small
+                    and abs(overlap_x - overlap_y) <= 8
+                ):  # And they must be close in value
                     is_horizontal_collision = False
 
                 # Only process horizontal collision here
@@ -190,9 +200,9 @@ class CollisionSystem:
                         # Emit collision event
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='wall_right',
+                            collision_type="wall_right",
                             normal=(-1, 0),
-                            tile_rect=tile
+                            tile_rect=tile,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
@@ -214,9 +224,9 @@ class CollisionSystem:
                         # Emit collision event
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='wall_left',
+                            collision_type="wall_left",
                             normal=(1, 0),
-                            tile_rect=tile
+                            tile_rect=tile,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
@@ -255,7 +265,9 @@ class CollisionSystem:
 
         for tile in self.tiles:
             if entity_rect.right > tile.left and entity_rect.left < tile.right:
-                horizontal_overlap = min(entity_rect.right, tile.right) - max(entity_rect.left, tile.left)
+                horizontal_overlap = min(entity_rect.right, tile.right) - max(
+                    entity_rect.left, tile.left
+                )
                 if horizontal_overlap < required_overlap_x:
                     continue
                 gap = tile.top - entity_rect.bottom
@@ -268,7 +280,9 @@ class CollisionSystem:
 
         for platform in self.platforms:
             if entity_rect.right > platform.left and entity_rect.left < platform.right:
-                horizontal_overlap = min(entity_rect.right, platform.right) - max(entity_rect.left, platform.left)
+                horizontal_overlap = min(entity_rect.right, platform.right) - max(
+                    entity_rect.left, platform.left
+                )
                 if horizontal_overlap < required_overlap_x:
                     continue
                 gap = platform.top - entity_rect.bottom
@@ -279,7 +293,7 @@ class CollisionSystem:
                     physics.on_ground = True
                     return
 
-    def _check_vertical_collisions(self, entity: Entity) -> List[CollisionEvent]:
+    def _check_vertical_collisions(self, entity: Entity) -> list[CollisionEvent]:
         """
         Check and resolve vertical (Y-axis) collisions
 
@@ -308,14 +322,17 @@ class CollisionSystem:
                 # Must have MORE vertical overlap than horizontal (landing on top, not side hit)
                 # AND entity's feet must be near the tile's top
                 feet_overlap = entity_rect.bottom - tile.top
-                required_overlap_x = max(6, int(physics.width * 0.5))  # need meaningful horizontal coverage
+                required_overlap_x = max(
+                    6, int(physics.width * 0.5)
+                )  # need meaningful horizontal coverage
                 is_landing_on_top = (
-                    feet_overlap > 0 and
-                    feet_overlap <= 22 and  # Feet within ~20px of tile top
-                    overlap_x >= required_overlap_x and  # Sufficient horizontal overlap to avoid wall-side misclassification
-                    physics.vy > -0.1 and  # Slight upward drift still counts if overlapping
-                    overlap_y < overlap_x and  # More horizontal overlap = landing on top
-                    entity_rect.centery < tile.centery  # Entity above tile
+                    feet_overlap > 0
+                    and feet_overlap <= 22  # Feet within ~20px of tile top
+                    and overlap_x
+                    >= required_overlap_x  # Sufficient horizontal overlap to avoid wall-side misclassification
+                    and physics.vy > -0.1  # Slight upward drift still counts if overlapping
+                    and overlap_y < overlap_x  # More horizontal overlap = landing on top
+                    and entity_rect.centery < tile.centery  # Entity above tile
                 )
 
                 if is_landing_on_top:
@@ -336,9 +353,9 @@ class CollisionSystem:
                     if not old_on_ground and physics.vy >= 0:
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='ground',
+                            collision_type="ground",
                             normal=(0, -1),
-                            tile_rect=tile
+                            tile_rect=tile,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
@@ -358,9 +375,9 @@ class CollisionSystem:
                     # Emit collision event
                     event = CollisionEvent(
                         entity_id=entity.entity_id,
-                        collision_type='ceiling',
+                        collision_type="ceiling",
                         normal=(0, 1),
-                        tile_rect=tile
+                        tile_rect=tile,
                     )
                     events.append(event)
                     self.event_bus.emit(event)
@@ -387,11 +404,17 @@ class CollisionSystem:
                 # Use feet position (bottom) instead of center for tall players (56px)
                 # This ensures one-way platforms work correctly regardless of player height
                 required_overlap_x = max(6, int(physics.width * 0.5))
-                horizontal_overlap = min(entity_rect.right, platform.right) - max(entity_rect.left, platform.left)
-                if (physics.vy > -0.1 and
-                    entity_rect.bottom <= platform.bottom and  # Feet must be at or above platform bottom
-                    overlap_y > 0 and overlap_y <= 14 and
-                    horizontal_overlap >= required_overlap_x):
+                horizontal_overlap = min(entity_rect.right, platform.right) - max(
+                    entity_rect.left, platform.left
+                )
+                if (
+                    physics.vy > -0.1
+                    and entity_rect.bottom
+                    <= platform.bottom  # Feet must be at or above platform bottom
+                    and overlap_y > 0
+                    and overlap_y <= 14
+                    and horizontal_overlap >= required_overlap_x
+                ):
 
                     # Land on platform
                     physics.on_ground = True
@@ -406,9 +429,9 @@ class CollisionSystem:
                     if not old_on_ground:
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='platform',
+                            collision_type="platform",
                             normal=(0, -1),
-                            tile_rect=platform
+                            tile_rect=platform,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
@@ -421,7 +444,7 @@ class CollisionSystem:
 
         return events
 
-    def _swept_vertical_collision(self, entity: Entity) -> List[CollisionEvent]:
+    def _swept_vertical_collision(self, entity: Entity) -> list[CollisionEvent]:
         """
         Swept collision detection for high-speed vertical movement
 
@@ -488,9 +511,9 @@ class CollisionSystem:
                         if not old_on_ground:
                             event = CollisionEvent(
                                 entity_id=entity.entity_id,
-                                collision_type='ground',
+                                collision_type="ground",
                                 normal=(0, -1),
-                                tile_rect=tile
+                                tile_rect=tile,
                             )
                             events.append(event)
                             self.event_bus.emit(event)
@@ -505,9 +528,9 @@ class CollisionSystem:
                         # Emit collision event
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='ceiling',
+                            collision_type="ceiling",
                             normal=(0, 1),
-                            tile_rect=tile
+                            tile_rect=tile,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
@@ -520,9 +543,12 @@ class CollisionSystem:
             if entity_rect.colliderect(platform):
                 overlap_y = entity_rect.bottom - platform.top
 
-                if (physics.vy >= 0 and
-                    entity_rect.bottom <= platform.bottom and  # Use feet position
-                    overlap_y > 0 and overlap_y <= 14):  # Adjusted for taller player
+                if (
+                    physics.vy >= 0
+                    and entity_rect.bottom <= platform.bottom  # Use feet position
+                    and overlap_y > 0
+                    and overlap_y <= 14
+                ):  # Adjusted for taller player
 
                     physics.on_ground = True
                     entity_rect.bottom = platform.top
@@ -532,16 +558,16 @@ class CollisionSystem:
                     if not old_on_ground:
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='platform',
+                            collision_type="platform",
                             normal=(0, -1),
-                            tile_rect=platform
+                            tile_rect=platform,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
 
         return events
 
-    def _swept_horizontal_collision(self, entity: Entity) -> List[CollisionEvent]:
+    def _swept_horizontal_collision(self, entity: Entity) -> list[CollisionEvent]:
         """
         Swept collision detection for high-speed horizontal movement
 
@@ -600,9 +626,9 @@ class CollisionSystem:
                         # Emit collision event
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='wall_right',
+                            collision_type="wall_right",
                             normal=(-1, 0),
-                            tile_rect=tile
+                            tile_rect=tile,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
@@ -617,9 +643,9 @@ class CollisionSystem:
                         # Emit collision event
                         event = CollisionEvent(
                             entity_id=entity.entity_id,
-                            collision_type='wall_left',
+                            collision_type="wall_left",
                             normal=(1, 0),
-                            tile_rect=tile
+                            tile_rect=tile,
                         )
                         events.append(event)
                         self.event_bus.emit(event)
@@ -647,8 +673,9 @@ class CollisionSystem:
 
         return rect_a.colliderect(rect_b)
 
-    def get_entities_in_radius(self, center_x: float, center_y: float,
-                               radius: float) -> List[Entity]:
+    def get_entities_in_radius(
+        self, center_x: float, center_y: float, radius: float
+    ) -> list[Entity]:
         """
         Get all entities within radius of a point
 
@@ -685,7 +712,9 @@ class CollisionSystem:
     # ============================================================
     # Spatial Hash Helpers
     # ============================================================
-    def _get_candidate_tiles(self, rect: pygame.Rect, tiles: List[pygame.Rect], platforms: bool = False) -> List[pygame.Rect]:
+    def _get_candidate_tiles(
+        self, rect: pygame.Rect, tiles: list[pygame.Rect], platforms: bool = False
+    ) -> list[pygame.Rect]:
         """
         Get nearby tiles using spatial hash to reduce collision checks.
 
@@ -713,8 +742,7 @@ class CollisionSystem:
                 candidates.extend(lookup.get((cx, cy), []))
         return candidates if candidates else tiles
 
-    def raycast(self, start_x: float, start_y: float,
-                end_x: float, end_y: float) -> Optional[tuple]:
+    def raycast(self, start_x: float, start_y: float, end_x: float, end_y: float) -> tuple | None:
         """
         Raycast from start to end point
 
@@ -787,16 +815,11 @@ class CollisionSystem:
             Dictionary with collision flags
         """
         if not entity.physics:
-            return {
-                'on_ground': False,
-                'on_wall': False,
-                'wall_dir': 0,
-                'on_ceiling': False
-            }
+            return {"on_ground": False, "on_wall": False, "wall_dir": 0, "on_ceiling": False}
 
         return {
-            'on_ground': entity.physics.on_ground,
-            'on_wall': entity.physics.on_wall,
-            'wall_dir': entity.physics.wall_dir,
-            'on_ceiling': False  # TODO: Track ceiling flag if needed
+            "on_ground": entity.physics.on_ground,
+            "on_wall": entity.physics.on_wall,
+            "wall_dir": entity.physics.wall_dir,
+            "on_ceiling": False,  # TODO: Track ceiling flag if needed
         }

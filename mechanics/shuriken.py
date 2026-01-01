@@ -3,14 +3,13 @@ Shuriken Mechanic - Ammo-limited ranged throws with stun and button press suppor
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
+
 import pygame
 
-from mechanics.base import BaseMechanic
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
-from config.physics_constants import TILE_SIZE
+from mechanics.base import BaseMechanic
 
 
 @dataclass
@@ -36,12 +35,18 @@ class ShurikenMechanic(BaseMechanic):
     DAMAGE = 1
     STUN = 0.4
 
-    def __init__(self, entity_id: int, event_bus: EventBus, logger: MechanicLogger,
-                 collision_system=None, enemy_manager=None):
+    def __init__(
+        self,
+        entity_id: int,
+        event_bus: EventBus,
+        logger: MechanicLogger,
+        collision_system=None,
+        enemy_manager=None,
+    ):
         super().__init__(entity_id, event_bus, logger)
         self.collision_system = collision_system
         self.enemy_manager = enemy_manager
-        self.projectiles: List[ShurikenProjectile] = []
+        self.projectiles: list[ShurikenProjectile] = []
         self.throw_requested = False
         self.aim_offset_y = 0
 
@@ -73,7 +78,7 @@ class ShurikenMechanic(BaseMechanic):
     def _rects_overlap(self, a, b) -> bool:
         ax, ay, aw, ah = a
         bx, by, bw, bh = b
-        return (ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by)
+        return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
 
     def _check_tile_collision(self, proj: ShurikenProjectile) -> bool:
         if not self.collision_system:
@@ -88,6 +93,7 @@ class ShurikenMechanic(BaseMechanic):
         if not self.enemy_manager:
             try:
                 from entities.enemy_manager import get_enemy_manager
+
                 self.enemy_manager = get_enemy_manager()
             except Exception:
                 return

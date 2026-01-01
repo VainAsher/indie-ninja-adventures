@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pygame
 
-from network.input_pipeline import InputPipeline, CommandKeyView
+from network.input_pipeline import CommandKeyView, InputPipeline
 
 
 class DummyKeys(dict):
@@ -21,7 +21,9 @@ def test_pipeline_record_and_replay(tmp_path: Path):
     keys[pygame.K_RIGHT] = True
     keys[pygame.K_SPACE] = True
 
-    pipeline = InputPipeline(record_path=str(record_file), metadata={"procedural": True, "seed": 123})
+    pipeline = InputPipeline(
+        record_path=str(record_file), metadata={"procedural": True, "seed": 123}
+    )
     key_view, cmd = pipeline.next(keys, frame=0)
 
     assert key_view[pygame.K_RIGHT] is True

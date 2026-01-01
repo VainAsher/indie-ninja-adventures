@@ -7,21 +7,23 @@ Version: v0.6.0 (Phase 6)
 """
 
 import unittest
+
 import pygame
+
 from game.play_mode import (
-    PlayMode, PlayModeManager, ArcadeModeConfig, CampaignModeConfig,
-    PlaytestModeConfig, get_mode_settings
+    PlayMode,
+    PlayModeManager,
+    get_mode_settings,
 )
+from rendering.loot_notification import LootNotification, LootNotificationManager
 from rendering.objective_hud import (
-    ObjectiveHUDRenderer, ObjectiveDisplay,
-    create_kill_objective, create_collect_objective
-)
-from rendering.loot_notification import (
-    LootNotificationManager, LootNotification
+    ObjectiveHUDRenderer,
+    create_collect_objective,
+    create_kill_objective,
 )
 from ui.inventory_ui import InventoryUI
+from ui.mission_menu import MissionDisplay, MissionMenuUI, MissionStatus
 from ui.shop_ui import ShopUI
-from ui.mission_menu import MissionMenuUI, MissionDisplay, MissionStatus
 
 
 class TestPlayModeSystem(unittest.TestCase):
@@ -57,11 +59,7 @@ class TestPlayModeSystem(unittest.TestCase):
     def test_playtest_mode_start(self):
         """Test starting playtest mode"""
         manager = PlayModeManager()
-        config = manager.start_playtest_mode(
-            mission_id="forest_1",
-            region_id="forest",
-            seed=99
-        )
+        config = manager.start_playtest_mode(mission_id="forest_1", region_id="forest", seed=99)
 
         self.assertTrue(manager.is_playtest_mode())
         self.assertEqual(config.mission_id, "forest_1")
@@ -118,10 +116,7 @@ class TestObjectiveHUD(unittest.TestCase):
 
         # Should not crash
         surface = pygame.Surface((800, 600))
-        objectives = [
-            create_kill_objective(10, 5),
-            create_collect_objective("Keys", 3, 2)
-        ]
+        objectives = [create_kill_objective(10, 5), create_collect_objective("Keys", 3, 2)]
 
         renderer.draw_objectives(surface, objectives)
 
@@ -145,12 +140,13 @@ class TestLootNotifications(unittest.TestCase):
     def test_loot_notification_creation(self):
         """Test creating loot notification"""
         import time
+
         notif = LootNotification(
             item_id="sword_1",
             item_name="Iron Sword",
             quantity=1,
             notification_type="item",
-            timestamp=time.time()
+            timestamp=time.time(),
         )
 
         self.assertEqual(notif.item_name, "Iron Sword")
@@ -179,13 +175,14 @@ class TestLootNotifications(unittest.TestCase):
     def test_loot_notification_expiry(self):
         """Test notification expiry"""
         import time
+
         notif = LootNotification(
             item_id="test",
             item_name="Test",
             quantity=1,
             notification_type="item",
             timestamp=time.time() - 5.0,  # 5 seconds ago
-            duration=3.0  # 3 second duration
+            duration=3.0,  # 3 second duration
         )
 
         self.assertTrue(notif.is_expired(time.time()))
@@ -225,7 +222,7 @@ class TestInventoryUI(unittest.TestCase):
         surface = pygame.Surface((800, 600))
         items = [
             {"name": "Sword", "quantity": 1, "rarity": "common"},
-            {"name": "Potion", "quantity": 5, "rarity": "uncommon"}
+            {"name": "Potion", "quantity": 5, "rarity": "uncommon"},
         ]
 
         ui.draw(surface, items, currency=100)  # Should not crash
@@ -262,11 +259,9 @@ class TestShopUI(unittest.TestCase):
         surface = pygame.Surface((800, 600))
         npc_items = [
             {"name": "Iron Sword", "price": 50, "quantity": 1},
-            {"name": "Health Potion", "price": 10, "quantity": 5}
+            {"name": "Health Potion", "price": 10, "quantity": 5},
         ]
-        player_items = [
-            {"name": "Old Sword", "sell_price": 20, "quantity": 1}
-        ]
+        player_items = [{"name": "Old Sword", "sell_price": 20, "quantity": 1}]
 
         ui.draw(surface, npc_items, player_items, player_currency=100)  # Should not crash
 
@@ -289,7 +284,7 @@ class TestMissionMenuUI(unittest.TestCase):
             difficulty=2,
             objectives=["Defeat 5 goblins"],
             requirements=[],
-            rewards=["50 Gold"]
+            rewards=["50 Gold"],
         )
 
         self.assertEqual(mission.mission_name, "Forest Patrol")
@@ -312,7 +307,7 @@ class TestMissionMenuUI(unittest.TestCase):
                 difficulty=1,
                 objectives=["Test"],
                 requirements=[],
-                rewards=[]
+                rewards=[],
             )
         ]
 
@@ -335,7 +330,7 @@ class TestMissionMenuUI(unittest.TestCase):
                 difficulty=2,
                 objectives=["Defeat enemies"],
                 requirements=[],
-                rewards=["Gold"]
+                rewards=["Gold"],
             )
         ]
 
@@ -364,5 +359,6 @@ def run_tests():
 
 if __name__ == "__main__":
     import sys
+
     success = run_tests()
     sys.exit(0 if success else 1)

@@ -9,7 +9,7 @@ Foundation for client/server multiplayer:
 """
 
 from .commands import InputCommand
-from .input_pipeline import InputPipeline, CommandKeyView
+from .input_pipeline import CommandKeyView, InputPipeline
 from .snapshots import Snapshot
 
 __all__ = ["InputCommand", "Snapshot", "InputPipeline", "CommandKeyView"]

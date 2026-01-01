@@ -19,9 +19,10 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import pygame
-from entities.enemy import Enemy, EnemyType, EnemyAIState
-from entities.enemy_ai import EnemyAI
+
 from entities.ai_random import AIRandom
+from entities.enemy import Enemy, EnemyAIState, EnemyType
+from entities.enemy_ai import EnemyAI
 
 
 def test_idle_to_patrol_transition():
@@ -29,11 +30,7 @@ def test_idle_to_patrol_transition():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.IDLE
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.IDLE
     )
 
     enemy.set_patrol_waypoints([(100.0, 100.0), (200.0, 100.0)])
@@ -43,7 +40,7 @@ def test_idle_to_patrol_transition():
 
     # Update for idle duration
     for _ in range(60):  # 1 second at 60 FPS
-        ai.update(1/60, 500.0, 500.0, 32, 56)  # Player far away
+        ai.update(1 / 60, 500.0, 500.0, 32, 56)  # Player far away
 
     # Should transition to PATROL after idle duration
     ai.update(0.1, 500.0, 500.0, 32, 56)
@@ -56,18 +53,14 @@ def test_patrol_to_chase_on_player_detection():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.PATROL
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.PATROL
     )
 
     enemy.set_patrol_waypoints([(100.0, 100.0), (200.0, 100.0)])
     ai = EnemyAI(enemy)
 
     # Player within detection range (200px for goblin)
-    ai.update(1/60, 150.0, 100.0, 32, 56)
+    ai.update(1 / 60, 150.0, 100.0, 32, 56)
 
     assert enemy.ai_state == EnemyAIState.CHASE, "Should transition to CHASE when player detected"
     print("[PASS] PATROL -> CHASE on detection")
@@ -78,11 +71,7 @@ def test_chase_to_attack_when_in_range():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.CHASE
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.CHASE
     )
 
     ai = EnemyAI(enemy)
@@ -90,7 +79,7 @@ def test_chase_to_attack_when_in_range():
     ai.enemy.target_player_y = 100.0
 
     # Player very close (within attack range ~32px)
-    ai.update(1/60, 110.0, 100.0, 32, 56)
+    ai.update(1 / 60, 110.0, 100.0, 32, 56)
 
     assert enemy.ai_state == EnemyAIState.ATTACK, "Should transition to ATTACK when in range"
     print("[PASS] CHASE -> ATTACK when in range")
@@ -101,17 +90,13 @@ def test_attack_to_chase_when_player_leaves():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.ATTACK
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.ATTACK
     )
 
     ai = EnemyAI(enemy)
 
     # Player moves out of attack range
-    ai.update(1/60, 200.0, 100.0, 32, 56)
+    ai.update(1 / 60, 200.0, 100.0, 32, 56)
 
     assert enemy.ai_state == EnemyAIState.CHASE, "Should return to CHASE when player leaves range"
     print("[PASS] ATTACK -> CHASE when out of range")
@@ -122,18 +107,14 @@ def test_chase_to_patrol_when_player_escapes():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.CHASE
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.CHASE
     )
 
     enemy.set_patrol_waypoints([(100.0, 100.0), (200.0, 100.0)])
     ai = EnemyAI(enemy)
 
     # Player far outside detection range
-    ai.update(1/60, 500.0, 500.0, 32, 56)
+    ai.update(1 / 60, 500.0, 500.0, 32, 56)
 
     assert enemy.ai_state == EnemyAIState.PATROL, "Should return to PATROL when player escapes"
     print("[PASS] CHASE -> PATROL when player escapes")
@@ -144,17 +125,13 @@ def test_attack_deals_damage():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.ATTACK
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.ATTACK
     )
 
     ai = EnemyAI(enemy)
 
     # First attack should deal damage
-    damage = ai.update(1/60, 110.0, 100.0, 32, 56)
+    damage = ai.update(1 / 60, 110.0, 100.0, 32, 56)
 
     assert damage is not None, "Should deal damage on attack"
     assert damage > 0, "Damage should be positive"
@@ -166,20 +143,16 @@ def test_attack_cooldown():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.ATTACK
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.ATTACK
     )
 
     ai = EnemyAI(enemy, ai_random=None)  # Fixed 1.0s cooldown
 
     # First attack
-    damage1 = ai.update(1/60, 110.0, 100.0, 32, 56)
+    damage1 = ai.update(1 / 60, 110.0, 100.0, 32, 56)
 
     # Immediate second attack (should not deal damage - on cooldown)
-    damage2 = ai.update(1/60, 110.0, 100.0, 32, 56)
+    damage2 = ai.update(1 / 60, 110.0, 100.0, 32, 56)
 
     assert damage1 is not None, "First attack should deal damage"
     assert damage2 is None, "Second attack should be on cooldown"
@@ -187,13 +160,14 @@ def test_attack_cooldown():
     # Track all attacks over a period of time
     attacks = []
     for i in range(125):  # ~2 seconds
-        result = ai.update(1/60, 110.0, 100.0, 32, 56)
+        result = ai.update(1 / 60, 110.0, 100.0, 32, 56)
         if result is not None:
             attacks.append(i)
 
     # Should have exactly 2 attacks: one at ~60 frames, one at ~120 frames
-    assert len(attacks) == 2, \
-        f"Expected 2 attacks after cooldown, got {len(attacks)} at frames {attacks}"
+    assert (
+        len(attacks) == 2
+    ), f"Expected 2 attacks after cooldown, got {len(attacks)} at frames {attacks}"
     print("[PASS] Attack cooldown works correctly")
 
 
@@ -202,11 +176,7 @@ def test_stun_state_recovery():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.PATROL
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.PATROL
     )
 
     enemy.set_patrol_waypoints([(100.0, 100.0), (200.0, 100.0)])
@@ -219,7 +189,7 @@ def test_stun_state_recovery():
 
     # Update for stun duration
     for _ in range(30):  # 0.5 seconds
-        ai.update(1/60, 500.0, 500.0, 32, 56)
+        ai.update(1 / 60, 500.0, 500.0, 32, 56)
 
     # Should transition back to PATROL after stun expires
     ai.update(0.1, 500.0, 500.0, 32, 56)
@@ -232,11 +202,7 @@ def test_patrol_waypoint_navigation():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.PATROL
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.PATROL
     )
 
     waypoints = [(100.0, 100.0), (200.0, 100.0)]
@@ -256,8 +222,7 @@ def test_patrol_waypoint_navigation():
 
     # Should have moved significantly from starting position
     moved_distance = abs(enemy.x - initial_x)
-    assert moved_distance > 5, \
-        f"Enemy should move during patrol (moved {moved_distance:.1f}px)"
+    assert moved_distance > 5, f"Enemy should move during patrol (moved {moved_distance:.1f}px)"
     print(f"[PASS] Patrol navigation (moved from {initial_x:.1f} to {enemy.x:.1f})")
 
 
@@ -266,11 +231,7 @@ def test_waypoint_advancement():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.PATROL
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.PATROL
     )
 
     waypoints = [(100.0, 100.0), (300.0, 100.0)]
@@ -287,9 +248,11 @@ def test_waypoint_advancement():
 
     # Should have advanced through waypoints at least once
     # (may be at 0 or back at 1, just check it changed and advanced)
-    assert enemy.current_waypoint_index in [0, 1], \
-        f"Expected waypoint 0 or 1, got {enemy.current_waypoint_index}"
-    print(f"[PASS] Waypoint advancement (patrol cycling works)")
+    assert enemy.current_waypoint_index in [
+        0,
+        1,
+    ], f"Expected waypoint 0 or 1, got {enemy.current_waypoint_index}"
+    print("[PASS] Waypoint advancement (patrol cycling works)")
 
 
 def test_detection_radius_multiplier():
@@ -301,7 +264,7 @@ def test_detection_radius_multiplier():
         enemy_type=EnemyType.GOBLIN,  # 200px detection radius
         x=100.0,
         y=100.0,
-        ai_state=EnemyAIState.PATROL
+        ai_state=EnemyAIState.PATROL,
     )
 
     enemy.set_patrol_waypoints([(100.0, 100.0), (200.0, 100.0)])
@@ -310,20 +273,21 @@ def test_detection_radius_multiplier():
     # Player at 120px distance (within 200px normal range, outside 100px stealth range)
     # Enemy center at x=116, player at x=220 gives player center at 236
     # Distance = 120px
-    ai.update(1/60, 220.0, 100.0, 32, 56, detection_mult=1.0)
+    ai.update(1 / 60, 220.0, 100.0, 32, 56, detection_mult=1.0)
     state_normal = enemy.ai_state
 
     # Reset
     enemy.ai_state = EnemyAIState.PATROL
 
     # Player at same distance with 0.5x detection (100px effective range)
-    ai.update(1/60, 220.0, 100.0, 32, 56, detection_mult=0.5)
+    ai.update(1 / 60, 220.0, 100.0, 32, 56, detection_mult=0.5)
     state_stealth = enemy.ai_state
 
     # Normal detection should trigger chase, stealth should not
     assert state_normal == EnemyAIState.CHASE, "Should detect with normal mult"
-    assert state_stealth == EnemyAIState.PATROL, \
-        f"Should not detect with stealth mult (state={state_stealth})"
+    assert (
+        state_stealth == EnemyAIState.PATROL
+    ), f"Should not detect with stealth mult (state={state_stealth})"
     print("[PASS] Detection multiplier works")
 
 
@@ -332,11 +296,7 @@ def test_dead_state_no_behavior():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.DEAD
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.DEAD
     )
 
     ai = EnemyAI(enemy)
@@ -387,10 +347,10 @@ def test_different_seeds_produce_variation():
 
     # At least one timing should differ
     timing_differs = (
-        ai1.idle_duration != ai2.idle_duration or
-        ai1.patrol_wait_time_base != ai2.patrol_wait_time_base or
-        ai1.chase_interval != ai2.chase_interval or
-        ai1.attack_cooldown_base != ai2.attack_cooldown_base
+        ai1.idle_duration != ai2.idle_duration
+        or ai1.patrol_wait_time_base != ai2.patrol_wait_time_base
+        or ai1.chase_interval != ai2.chase_interval
+        or ai1.attack_cooldown_base != ai2.attack_cooldown_base
     )
 
     assert timing_differs, "Different seeds should produce different timing"
@@ -406,7 +366,7 @@ def test_flying_enemy_no_gravity():
         enemy_type=EnemyType.BAT,
         x=100.0,
         y=100.0,
-        ai_state=EnemyAIState.PATROL
+        ai_state=EnemyAIState.PATROL,
     )
 
     enemy.set_patrol_waypoints([(100.0, 100.0), (200.0, 100.0)])
@@ -426,21 +386,17 @@ def test_chase_target_update_interval():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.CHASE
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.CHASE
     )
 
     ai = EnemyAI(enemy, ai_random=None)  # Fixed 0.5s interval
 
     # First update should set target
-    ai.update(1/60, 150.0, 100.0, 32, 56)
+    ai.update(1 / 60, 150.0, 100.0, 32, 56)
     first_target = ai.enemy.target_player_x
 
     # Player moves
-    ai.update(1/60, 200.0, 100.0, 32, 56)
+    ai.update(1 / 60, 200.0, 100.0, 32, 56)
     second_target = ai.enemy.target_player_x
 
     # Target should not update immediately (interval not elapsed)
@@ -448,7 +404,7 @@ def test_chase_target_update_interval():
 
     # Wait for update interval
     for _ in range(30):  # 0.5 seconds
-        ai.update(1/60, 200.0, 100.0, 32, 56)
+        ai.update(1 / 60, 200.0, 100.0, 32, 56)
 
     # Now target should update
     assert ai.enemy.target_player_x != first_target, "Target should update after interval"
@@ -460,11 +416,7 @@ def test_state_timer_resets_on_transition():
     pygame.init()
 
     enemy = Enemy(
-        enemy_id="test",
-        enemy_type=EnemyType.GOBLIN,
-        x=100.0,
-        y=100.0,
-        ai_state=EnemyAIState.PATROL
+        enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.PATROL
     )
 
     enemy.set_patrol_waypoints([(100.0, 100.0), (200.0, 100.0)])
@@ -472,13 +424,13 @@ def test_state_timer_resets_on_transition():
 
     # Accumulate time in patrol
     for _ in range(60):
-        ai.update(1/60, 500.0, 500.0, 32, 56)
+        ai.update(1 / 60, 500.0, 500.0, 32, 56)
 
     timer_in_patrol = enemy.ai_state_timer
     assert timer_in_patrol > 0.9, "Timer should accumulate"
 
     # Trigger transition to chase
-    ai.update(1/60, 150.0, 100.0, 32, 56)
+    ai.update(1 / 60, 150.0, 100.0, 32, 56)
 
     # Timer should reset
     assert enemy.ai_state_timer == 0.0, "Timer should reset on state transition"
@@ -495,7 +447,7 @@ def test_facing_direction_during_attack():
         x=100.0,
         y=100.0,
         ai_state=EnemyAIState.ATTACK,
-        facing_right=True
+        facing_right=True,
     )
 
     ai = EnemyAI(enemy)
@@ -511,9 +463,9 @@ def test_facing_direction_during_attack():
 
 def main():
     """Run all comprehensive AI tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("COMPREHENSIVE ENEMY AI TESTS")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # State transition tests
     print("=== State Transition Tests ===")
@@ -557,9 +509,9 @@ def main():
     test_state_timer_resets_on_transition()
     print()
 
-    print("="*60)
+    print("=" * 60)
     print("ALL COMPREHENSIVE AI TESTS PASSED!")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

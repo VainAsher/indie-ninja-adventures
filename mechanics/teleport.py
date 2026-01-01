@@ -2,12 +2,12 @@
 Teleport Mechanic - Short phase blink with mana cost and cooldown.
 """
 
-from mechanics.base import BaseMechanic
+import pygame
+
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
-from config.physics_constants import TILE_SIZE
-import pygame
+from mechanics.base import BaseMechanic
 
 
 class TeleportMechanic(BaseMechanic):
@@ -18,7 +18,9 @@ class TeleportMechanic(BaseMechanic):
     MANA_COST = 20.0
     PHASE_MOVE_SPEED = 420.0 / 60.0  # px per tick while phasing
 
-    def __init__(self, entity_id: int, event_bus: EventBus, logger: MechanicLogger, collision_system=None):
+    def __init__(
+        self, entity_id: int, event_bus: EventBus, logger: MechanicLogger, collision_system=None
+    ):
         super().__init__(entity_id, event_bus, logger)
         self.collision_system = collision_system
         self.teleport_requested = False
@@ -94,12 +96,15 @@ class TeleportMechanic(BaseMechanic):
                 max_dist = self.RANGE_PX
                 if dist2 > max_dist * max_dist:
                     import math
+
                     scale = max_dist / math.sqrt(dist2)
                     cx = ox + dx * scale
                     cy = oy + dy * scale
                 self.phase_cursor = (cx, cy)
             if state.teleport_cast_time == 0.0:
-                dest_x, dest_y = self.phase_cursor if self.phase_cursor else self._find_safe_destination(state)
+                dest_x, dest_y = (
+                    self.phase_cursor if self.phase_cursor else self._find_safe_destination(state)
+                )
                 state.physics.x = dest_x
                 state.physics.y = dest_y
                 state.physics.vx = 0.0

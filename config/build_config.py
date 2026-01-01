@@ -9,13 +9,13 @@ Detects build mode via BUILD_MODE environment variable:
 
 import os
 import sys
-from enum import Enum
-from typing import Optional
 from datetime import datetime
+from enum import Enum
 
 
 class BuildMode(Enum):
     """Build mode enumeration"""
+
     PRODUCTION = "PRODUCTION"
     TESTING = "TESTING"
     DEV = "DEV"
@@ -23,7 +23,7 @@ class BuildMode(Enum):
 
 def is_frozen() -> bool:
     """Check if running as PyInstaller executable"""
-    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+    return getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
 
 def get_build_mode() -> BuildMode:
@@ -95,7 +95,7 @@ class BuildConfig:
             self.enable_dev_console = True
             self.auto_open_logs_on_exit = False
 
-    def get_auto_record_filename(self) -> Optional[str]:
+    def get_auto_record_filename(self) -> str | None:
         """Generate auto-record filename for testing build"""
         if not self.auto_record:
             return None
@@ -108,7 +108,7 @@ class BuildConfig:
 
 
 # Global instance
-_build_config: Optional[BuildConfig] = None
+_build_config: BuildConfig | None = None
 
 
 def get_build_config() -> BuildConfig:

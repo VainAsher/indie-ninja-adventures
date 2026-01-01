@@ -16,29 +16,29 @@ This module provides boss AI behavior with a 10-state state machine:
 Version: v0.7.0
 """
 
-from typing import Optional, List, Tuple
-from enum import Enum, auto
 import math
+from enum import Enum, auto
 
 from entities.ai_random import AIRandom
-
 
 # ============================================================
 # Boss AI States
 # ============================================================
 
+
 class BossAIState(Enum):
     """Boss AI state machine states"""
-    INTRO = auto()           # Introduction animation
-    IDLE = auto()            # Waiting between attacks
-    PHASE_1 = auto()         # First combat phase (100-66% HP)
-    PHASE_2 = auto()         # Second combat phase (66-33% HP)
-    PHASE_3 = auto()         # Final enraged phase (33-0% HP)
+
+    INTRO = auto()  # Introduction animation
+    IDLE = auto()  # Waiting between attacks
+    PHASE_1 = auto()  # First combat phase (100-66% HP)
+    PHASE_2 = auto()  # Second combat phase (66-33% HP)
+    PHASE_3 = auto()  # Final enraged phase (33-0% HP)
     SPECIAL_ATTACK = auto()  # Executing special move
-    VULNERABLE = auto()      # Stunned/vulnerable period
-    SUMMONING = auto()       # Summoning minions
-    TELEPORTING = auto()     # Teleporting to new position
-    DEAD = auto()            # Boss defeated
+    VULNERABLE = auto()  # Stunned/vulnerable period
+    SUMMONING = auto()  # Summoning minions
+    TELEPORTING = auto()  # Teleporting to new position
+    DEAD = auto()  # Boss defeated
 
 
 # ============================================================
@@ -50,28 +50,29 @@ PHASE_2_HEALTH_THRESHOLD = 0.66  # 66% health triggers phase 2
 PHASE_3_HEALTH_THRESHOLD = 0.33  # 33% health triggers phase 3
 
 # Timing constants
-INTRO_DURATION = 3.0              # Intro animation duration (seconds)
-IDLE_DURATION_BASE = 1.0          # Base idle time between attacks
-SPECIAL_ATTACK_DURATION = 2.0     # Special attack execution time
-VULNERABLE_DURATION = 1.5         # Vulnerable period after special
-SUMMONING_DURATION = 2.5          # Time to summon minions
-TELEPORT_DURATION = 0.8           # Teleportation animation time
-ATTACK_COOLDOWN_BASE = 1.5        # Base cooldown between attacks
+INTRO_DURATION = 3.0  # Intro animation duration (seconds)
+IDLE_DURATION_BASE = 1.0  # Base idle time between attacks
+SPECIAL_ATTACK_DURATION = 2.0  # Special attack execution time
+VULNERABLE_DURATION = 1.5  # Vulnerable period after special
+SUMMONING_DURATION = 2.5  # Time to summon minions
+TELEPORT_DURATION = 0.8  # Teleportation animation time
+ATTACK_COOLDOWN_BASE = 1.5  # Base cooldown between attacks
 
 # Combat ranges
-MELEE_RANGE = 64.0                # Melee attack range (pixels)
-RANGED_RANGE = 300.0              # Ranged attack range (pixels)
-TELEPORT_RANGE = 150.0            # Min distance for teleport
+MELEE_RANGE = 64.0  # Melee attack range (pixels)
+RANGED_RANGE = 300.0  # Ranged attack range (pixels)
+TELEPORT_RANGE = 150.0  # Min distance for teleport
 
 # Phase behavior modifiers
-PHASE_2_SPEED_MULT = 1.3          # 30% faster in phase 2
-PHASE_3_SPEED_MULT = 1.5          # 50% faster in phase 3
-PHASE_3_ATTACK_SPEED_MULT = 0.7   # 30% faster attacks in phase 3
+PHASE_2_SPEED_MULT = 1.3  # 30% faster in phase 2
+PHASE_3_SPEED_MULT = 1.5  # 50% faster in phase 3
+PHASE_3_ATTACK_SPEED_MULT = 0.7  # 30% faster attacks in phase 3
 
 
 # ============================================================
 # Boss AI Controller
 # ============================================================
+
 
 class BossAI:
     """
@@ -81,7 +82,7 @@ class BossAI:
     minion summoning, and teleportation.
     """
 
-    def __init__(self, boss_entity, ai_random: Optional[AIRandom] = None):
+    def __init__(self, boss_entity, ai_random: AIRandom | None = None):
         """
         Initialize boss AI controller.
 
@@ -104,8 +105,8 @@ class BossAI:
         self.minions_summoned = 0
 
         # Targeting
-        self.target_x: Optional[float] = None
-        self.target_y: Optional[float] = None
+        self.target_x: float | None = None
+        self.target_y: float | None = None
         self.player_distance = 0.0
 
         # Attack patterns
@@ -114,14 +115,15 @@ class BossAI:
 
         # Teleport state
         self.teleport_cooldown = 0.0
-        self.teleport_destination: Optional[Tuple[float, float]] = None
+        self.teleport_destination: tuple[float, float] | None = None
 
         # Pre-computed timing variations for determinism
         self.idle_duration = self._get_varied_duration(IDLE_DURATION_BASE, 0.3)
         self.attack_cooldown_base = self._get_varied_duration(ATTACK_COOLDOWN_BASE, 0.2)
 
-    def update(self, dt: float, player_x: float, player_y: float,
-               player_width: int, player_height: int) -> dict:
+    def update(
+        self, dt: float, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> dict:
         """
         Update boss AI for one frame.
 
@@ -155,12 +157,7 @@ class BossAI:
         self._check_phase_transition()
 
         # Initialize action dict
-        action = {
-            'damage': None,
-            'special': None,
-            'summon': None,
-            'teleport': None
-        }
+        action = {"damage": None, "special": None, "summon": None, "teleport": None}
 
         # Update state machine
         if self.state == BossAIState.INTRO:
@@ -223,8 +220,8 @@ class BossAI:
         """Execute special attack"""
         # Execute special attack in the middle of the duration
         if self.state_timer >= SPECIAL_ATTACK_DURATION / 2:
-            if action['special'] is None:  # Only execute once
-                action['special'] = self._choose_special_attack()
+            if action["special"] is None:  # Only execute once
+                action["special"] = self._choose_special_attack()
                 self.special_attack_count += 1
 
         # Transition to vulnerable after attack completes
@@ -242,8 +239,8 @@ class BossAI:
         """Summoning minions"""
         # Summon minions at the midpoint
         if self.state_timer >= SUMMONING_DURATION / 2:
-            if action['summon'] is None:  # Only summon once
-                action['summon'] = self._choose_minion_type()
+            if action["summon"] is None:  # Only summon once
+                action["summon"] = self._choose_minion_type()
                 self.minions_summoned += 1
 
         # Return to combat after summoning
@@ -255,8 +252,8 @@ class BossAI:
         """Teleporting to new position"""
         # Execute teleport at midpoint
         if self.state_timer >= TELEPORT_DURATION / 2:
-            if action['teleport'] is None and self.teleport_destination:
-                action['teleport'] = self.teleport_destination
+            if action["teleport"] is None and self.teleport_destination:
+                action["teleport"] = self.teleport_destination
                 self.teleport_destination = None
 
         # Return to combat after teleport
@@ -304,7 +301,7 @@ class BossAI:
         if self.attack_cooldown <= 0:
             if self.player_distance <= MELEE_RANGE:
                 # Melee attack
-                action['damage'] = self._get_melee_damage()
+                action["damage"] = self._get_melee_damage()
                 cooldown_mult = PHASE_3_ATTACK_SPEED_MULT if self.current_phase == 3 else 1.0
                 self.attack_cooldown = self.attack_cooldown_base * cooldown_mult
                 self.attacks_in_pattern += 1
@@ -318,8 +315,9 @@ class BossAI:
     # Helper Methods
     # ============================================================
 
-    def _update_target(self, player_x: float, player_y: float,
-                       player_width: int, player_height: int):
+    def _update_target(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ):
         """Update target position and distance"""
         player_center_x = player_x + player_width / 2
         player_center_y = player_y + player_height / 2
@@ -380,12 +378,12 @@ class BossAI:
 
     def _choose_special_attack(self) -> str:
         """Choose which special attack to use"""
-        specials = ['shockwave', 'laser_beam', 'ground_slam', 'projectile_barrage']
+        specials = ["shockwave", "laser_beam", "ground_slam", "projectile_barrage"]
         return self.ai_random.choice(specials)
 
     def _choose_minion_type(self) -> str:
         """Choose which minion type to summon"""
-        minions = ['imp', 'skeleton', 'ghost']
+        minions = ["imp", "skeleton", "ghost"]
         return self.ai_random.choice(minions)
 
     def _get_melee_damage(self) -> int:
@@ -397,20 +395,16 @@ class BossAI:
             return base_damage + 2
         return base_damage
 
-    def _get_boss_center(self) -> Tuple[float, float]:
+    def _get_boss_center(self) -> tuple[float, float]:
         """Get boss center position"""
-        return (
-            self.boss.x + self.boss.width / 2,
-            self.boss.y + self.boss.height / 2
-        )
+        return (self.boss.x + self.boss.width / 2, self.boss.y + self.boss.height / 2)
 
     def _get_varied_duration(self, base_duration: float, variation: float) -> float:
         """Get varied duration using AI random (for determinism)"""
         if not self.ai_random:
             return base_duration
         return self.ai_random.uniform(
-            base_duration * (1 - variation),
-            base_duration * (1 + variation)
+            base_duration * (1 - variation), base_duration * (1 + variation)
         )
 
     # ============================================================

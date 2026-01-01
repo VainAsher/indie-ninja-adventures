@@ -12,14 +12,11 @@ Version: v0.6.0
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 from enum import Enum
 
-from systems.world_generation import (
-    WorldGenerator, WorldShape, BiomeTheme, RoomType, RoomNode
-)
-from systems.seed_hierarchy import SeedDerivation, SeedContext
-from config.physics_constants import ROOM_WIDTH_TILES, ROOM_HEIGHT_TILES, TILE_SIZE
+from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES, TILE_SIZE
+from systems.seed_hierarchy import SeedDerivation
+from systems.world_generation import BiomeTheme, WorldGenerator, WorldShape
 
 ROOM_PIXEL_CENTER_X = ROOM_WIDTH_TILES * TILE_SIZE // 2
 ROOM_PIXEL_CENTER_Y = ROOM_HEIGHT_TILES * TILE_SIZE // 2
@@ -27,8 +24,9 @@ ROOM_PIXEL_CENTER_Y = ROOM_HEIGHT_TILES * TILE_SIZE // 2
 
 class HubType(Enum):
     """Hub world types"""
+
     CENTRAL = "central"  # Main hub connecting all regions
-    REGION = "region"    # Region-specific hub
+    REGION = "region"  # Region-specific hub
 
 
 @dataclass
@@ -38,6 +36,7 @@ class NPCAnchor:
 
     Defines where an NPC should be spawned and their properties.
     """
+
     npc_id: str
     npc_type: str  # "mission_giver", "shop", "lore", "tutorial"
     grid_x: int
@@ -45,7 +44,7 @@ class NPCAnchor:
     local_x: int = ROOM_PIXEL_CENTER_X  # Center of room
     local_y: int = ROOM_PIXEL_CENTER_Y
 
-    def get_world_position(self, room_px: int, room_py: int) -> Tuple[int, int]:
+    def get_world_position(self, room_px: int, room_py: int) -> tuple[int, int]:
         """Get NPC world position from room position"""
         return (room_px + self.local_x, room_py + self.local_y)
 
@@ -57,6 +56,7 @@ class PortalAnchor:
 
     Defines portal location and destination.
     """
+
     portal_id: str
     destination_hub_id: str
     grid_x: int
@@ -65,7 +65,7 @@ class PortalAnchor:
     local_y: int = ROOM_PIXEL_CENTER_Y
     bidirectional: bool = True  # Can travel both ways
 
-    def get_world_position(self, room_px: int, room_py: int) -> Tuple[int, int]:
+    def get_world_position(self, room_px: int, room_py: int) -> tuple[int, int]:
         """Get portal world position from room position"""
         return (room_px + self.local_x, room_py + self.local_y)
 
@@ -77,6 +77,7 @@ class HubDefinition:
 
     Contains all data needed to generate a hub world.
     """
+
     hub_id: str
     hub_type: HubType
     display_name: str
@@ -86,12 +87,12 @@ class HubDefinition:
     world_shape: WorldShape
 
     # Anchors for NPCs and portals
-    npc_anchors: List[NPCAnchor] = field(default_factory=list)
-    portal_anchors: List[PortalAnchor] = field(default_factory=list)
+    npc_anchors: list[NPCAnchor] = field(default_factory=list)
+    portal_anchors: list[PortalAnchor] = field(default_factory=list)
 
     # Spawn point (grid coordinates + local offset)
-    spawn_grid: Tuple[int, int] = (0, 0)
-    spawn_local: Tuple[int, int] = (ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
+    spawn_grid: tuple[int, int] = (0, 0)
+    spawn_local: tuple[int, int] = (ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
 
 
 class HubManager:
@@ -110,14 +111,14 @@ class HubManager:
             world_seed: Base seed for campaign world
         """
         self.world_seed = world_seed
-        self.hub_definitions: Dict[str, HubDefinition] = {}
+        self.hub_definitions: dict[str, HubDefinition] = {}
         self._register_default_hubs()
 
     def register_hub(self, hub_def: HubDefinition):
         """Register a hub definition"""
         self.hub_definitions[hub_def.hub_id] = hub_def
 
-    def get_hub_definition(self, hub_id: str) -> Optional[HubDefinition]:
+    def get_hub_definition(self, hub_id: str) -> HubDefinition | None:
         """Get hub definition by ID"""
         return self.hub_definitions.get(hub_id)
 
@@ -141,9 +142,7 @@ class HubManager:
         # Generate world using WorldGenerator
         generator = WorldGenerator(hub_seed)
         world = generator.generate(
-            num_biomes=1,
-            rooms_per_biome=hub_def.room_count,
-            shape=hub_def.world_shape
+            num_biomes=1, rooms_per_biome=hub_def.room_count, shape=hub_def.world_shape
         )
 
         # Mark rooms as hub rooms
@@ -153,14 +152,20 @@ class HubManager:
 
         return world, hub_def
 
-    def _resolve_anchor_room_coords(self, room_positions: Dict,
-                                    anchor_coords: Tuple[int, int],
-                                    base_room_coords: Optional[Tuple[int, int]]) -> Optional[Tuple[int, int]]:
+    def _resolve_anchor_room_coords(
+        self,
+        room_positions: dict,
+        anchor_coords: tuple[int, int],
+        base_room_coords: tuple[int, int] | None,
+    ) -> tuple[int, int] | None:
         if anchor_coords in room_positions:
             return anchor_coords
 
         if base_room_coords is not None:
-            offset_coords = (base_room_coords[0] + anchor_coords[0], base_room_coords[1] + anchor_coords[1])
+            offset_coords = (
+                base_room_coords[0] + anchor_coords[0],
+                base_room_coords[1] + anchor_coords[1],
+            )
             if offset_coords in room_positions:
                 return offset_coords
             if base_room_coords in room_positions:
@@ -171,8 +176,9 @@ class HubManager:
 
         return None
 
-    def get_spawn_position(self, hub_id: str, room_positions: Dict,
-                           base_room_coords: Optional[Tuple[int, int]] = None) -> Optional[Tuple[int, int]]:
+    def get_spawn_position(
+        self, hub_id: str, room_positions: dict, base_room_coords: tuple[int, int] | None = None
+    ) -> tuple[int, int] | None:
         """
         Get spawn position for a hub.
 
@@ -202,8 +208,9 @@ class HubManager:
 
         return (spawn_x, spawn_y)
 
-    def get_npc_positions(self, hub_id: str, room_positions: Dict,
-                          base_room_coords: Optional[Tuple[int, int]] = None) -> List[Tuple[NPCAnchor, int, int]]:
+    def get_npc_positions(
+        self, hub_id: str, room_positions: dict, base_room_coords: tuple[int, int] | None = None
+    ) -> list[tuple[NPCAnchor, int, int]]:
         """
         Get NPC spawn positions for a hub.
 
@@ -221,7 +228,9 @@ class HubManager:
         npc_positions = []
         for anchor in hub_def.npc_anchors:
             anchor_coords = (anchor.grid_x, anchor.grid_y)
-            room_coords = self._resolve_anchor_room_coords(room_positions, anchor_coords, base_room_coords)
+            room_coords = self._resolve_anchor_room_coords(
+                room_positions, anchor_coords, base_room_coords
+            )
             if room_coords is None:
                 continue
             room_px, room_py = room_positions[room_coords]
@@ -230,8 +239,9 @@ class HubManager:
 
         return npc_positions
 
-    def get_portal_positions(self, hub_id: str, room_positions: Dict,
-                             base_room_coords: Optional[Tuple[int, int]] = None) -> List[Tuple[PortalAnchor, int, int]]:
+    def get_portal_positions(
+        self, hub_id: str, room_positions: dict, base_room_coords: tuple[int, int] | None = None
+    ) -> list[tuple[PortalAnchor, int, int]]:
         """
         Get portal spawn positions for a hub.
 
@@ -249,7 +259,9 @@ class HubManager:
         portal_positions = []
         for anchor in hub_def.portal_anchors:
             anchor_coords = (anchor.grid_x, anchor.grid_y)
-            room_coords = self._resolve_anchor_room_coords(room_positions, anchor_coords, base_room_coords)
+            room_coords = self._resolve_anchor_room_coords(
+                room_positions, anchor_coords, base_room_coords
+            )
             if room_coords is None:
                 continue
             room_px, room_py = room_positions[room_coords]
@@ -274,88 +286,102 @@ class HubManager:
             room_count=15,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
-            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
+            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y),
         )
 
         # Add tutorial NPC at spawn
-        central_hub.npc_anchors.append(NPCAnchor(
-            npc_id="tutorial_elder",
-            npc_type="tutorial",
-            grid_x=0,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X + 240,  # Slightly right of spawn
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        central_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="tutorial_elder",
+                npc_type="tutorial",
+                grid_x=0,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X + 240,  # Slightly right of spawn
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Add portals to regional hubs (assuming BLOB generates rooms around origin)
         # Note: Actual room positions depend on world generation
         # These are example placements - will need adjustment based on generated layout
 
         # Forest portal (north)
-        central_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_forest",
-            destination_hub_id="forest_hub",
-            grid_x=0,
-            grid_y=-1,  # North room
-            local_x=ROOM_PIXEL_CENTER_X,
-            local_y=ROOM_PIXEL_CENTER_Y - 180,
-            bidirectional=True
-        ))
+        central_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_forest",
+                destination_hub_id="forest_hub",
+                grid_x=0,
+                grid_y=-1,  # North room
+                local_x=ROOM_PIXEL_CENTER_X,
+                local_y=ROOM_PIXEL_CENTER_Y - 180,
+                bidirectional=True,
+            )
+        )
 
         # Town portal (east)
-        central_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_town",
-            destination_hub_id="town_hub",
-            grid_x=1,
-            grid_y=0,  # East room
-            local_x=ROOM_PIXEL_CENTER_X + 240,
-            local_y=ROOM_PIXEL_CENTER_Y,
-            bidirectional=True
-        ))
+        central_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_town",
+                destination_hub_id="town_hub",
+                grid_x=1,
+                grid_y=0,  # East room
+                local_x=ROOM_PIXEL_CENTER_X + 240,
+                local_y=ROOM_PIXEL_CENTER_Y,
+                bidirectional=True,
+            )
+        )
 
         # Caves portal (south)
-        central_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_caves",
-            destination_hub_id="caves_hub",
-            grid_x=0,
-            grid_y=1,  # South room
-            local_x=ROOM_PIXEL_CENTER_X,
-            local_y=ROOM_PIXEL_CENTER_Y + 180,
-            bidirectional=True
-        ))
+        central_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_caves",
+                destination_hub_id="caves_hub",
+                grid_x=0,
+                grid_y=1,  # South room
+                local_x=ROOM_PIXEL_CENTER_X,
+                local_y=ROOM_PIXEL_CENTER_Y + 180,
+                bidirectional=True,
+            )
+        )
 
         # Castle portal (shares east room with town)
-        central_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_castle",
-            destination_hub_id="castle_hub",
-            grid_x=1,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X + 320,
-            local_y=ROOM_PIXEL_CENTER_Y - 180,
-            bidirectional=True
-        ))
+        central_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_castle",
+                destination_hub_id="castle_hub",
+                grid_x=1,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X + 320,
+                local_y=ROOM_PIXEL_CENTER_Y - 180,
+                bidirectional=True,
+            )
+        )
 
         # Sewer portal (shares south room with caves)
-        central_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_sewer",
-            destination_hub_id="sewer_hub",
-            grid_x=0,
-            grid_y=1,
-            local_x=ROOM_PIXEL_CENTER_X - 320,
-            local_y=ROOM_PIXEL_CENTER_Y + 180,
-            bidirectional=True
-        ))
+        central_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_sewer",
+                destination_hub_id="sewer_hub",
+                grid_x=0,
+                grid_y=1,
+                local_x=ROOM_PIXEL_CENTER_X - 320,
+                local_y=ROOM_PIXEL_CENTER_Y + 180,
+                bidirectional=True,
+            )
+        )
 
         # Arcade portal (west) - endless procedural loop
-        central_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_arcade",
-            destination_hub_id="arcade_loop",
-            grid_x=-1,
-            grid_y=0,  # West room
-            local_x=ROOM_PIXEL_CENTER_X - 240,
-            local_y=ROOM_PIXEL_CENTER_Y,
-            bidirectional=True
-        ))
+        central_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_arcade",
+                destination_hub_id="arcade_loop",
+                grid_x=-1,
+                grid_y=0,  # West room
+                local_x=ROOM_PIXEL_CENTER_X - 240,
+                local_y=ROOM_PIXEL_CENTER_Y,
+                bidirectional=True,
+            )
+        )
 
         self.register_hub(central_hub)
 
@@ -372,37 +398,43 @@ class HubManager:
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
-            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
+            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y),
         )
 
         # Mission giver NPC
-        forest_hub.npc_anchors.append(NPCAnchor(
-            npc_id="forest_ranger",
-            npc_type="mission_giver",
-            grid_x=0,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X - 240,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        forest_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="forest_ranger",
+                npc_type="mission_giver",
+                grid_x=0,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X - 240,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Shop NPC
-        forest_hub.npc_anchors.append(NPCAnchor(
-            npc_id="forest_merchant",
-            npc_type="shop",
-            grid_x=0,
-            grid_y=1,
-            local_x=ROOM_PIXEL_CENTER_X + 200,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        forest_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="forest_merchant",
+                npc_type="shop",
+                grid_x=0,
+                grid_y=1,
+                local_x=ROOM_PIXEL_CENTER_X + 200,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Portal back to central hub
-        forest_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_central",
-            destination_hub_id="central_hub",
-            grid_x=0,
-            grid_y=-1,
-            bidirectional=True
-        ))
+        forest_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_central",
+                destination_hub_id="central_hub",
+                grid_x=0,
+                grid_y=-1,
+                bidirectional=True,
+            )
+        )
 
         self.register_hub(forest_hub)
 
@@ -419,47 +451,55 @@ class HubManager:
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
-            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
+            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y),
         )
 
         # Mission giver NPC
-        town_hub.npc_anchors.append(NPCAnchor(
-            npc_id="town_captain",
-            npc_type="mission_giver",
-            grid_x=0,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X - 240,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        town_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="town_captain",
+                npc_type="mission_giver",
+                grid_x=0,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X - 240,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Shop NPC (better inventory than forest)
-        town_hub.npc_anchors.append(NPCAnchor(
-            npc_id="town_blacksmith",
-            npc_type="shop",
-            grid_x=1,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X + 200,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        town_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="town_blacksmith",
+                npc_type="shop",
+                grid_x=1,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X + 200,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Lore NPC
-        town_hub.npc_anchors.append(NPCAnchor(
-            npc_id="town_historian",
-            npc_type="lore",
-            grid_x=-1,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        town_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="town_historian",
+                npc_type="lore",
+                grid_x=-1,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Portal back to central hub
-        town_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_central",
-            destination_hub_id="central_hub",
-            grid_x=0,
-            grid_y=-1,
-            bidirectional=True
-        ))
+        town_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_central",
+                destination_hub_id="central_hub",
+                grid_x=0,
+                grid_y=-1,
+                bidirectional=True,
+            )
+        )
 
         self.register_hub(town_hub)
 
@@ -476,37 +516,43 @@ class HubManager:
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
-            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
+            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y),
         )
 
         # Mission giver NPC
-        caves_hub.npc_anchors.append(NPCAnchor(
-            npc_id="cave_explorer",
-            npc_type="mission_giver",
-            grid_x=0,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X - 240,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        caves_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="cave_explorer",
+                npc_type="mission_giver",
+                grid_x=0,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X - 240,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Shop NPC (high tier inventory)
-        caves_hub.npc_anchors.append(NPCAnchor(
-            npc_id="crystal_trader",
-            npc_type="shop",
-            grid_x=0,
-            grid_y=1,
-            local_x=ROOM_PIXEL_CENTER_X + 200,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        caves_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="crystal_trader",
+                npc_type="shop",
+                grid_x=0,
+                grid_y=1,
+                local_x=ROOM_PIXEL_CENTER_X + 200,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Portal back to central hub
-        caves_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_central",
-            destination_hub_id="central_hub",
-            grid_x=0,
-            grid_y=-1,
-            bidirectional=True
-        ))
+        caves_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_central",
+                destination_hub_id="central_hub",
+                grid_x=0,
+                grid_y=-1,
+                bidirectional=True,
+            )
+        )
 
         self.register_hub(caves_hub)
 
@@ -523,37 +569,43 @@ class HubManager:
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
-            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
+            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y),
         )
 
         # Mission giver NPC
-        castle_hub.npc_anchors.append(NPCAnchor(
-            npc_id="castle_commander",
-            npc_type="mission_giver",
-            grid_x=0,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X - 240,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        castle_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="castle_commander",
+                npc_type="mission_giver",
+                grid_x=0,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X - 240,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Shop NPC
-        castle_hub.npc_anchors.append(NPCAnchor(
-            npc_id="castle_armorer",
-            npc_type="shop",
-            grid_x=1,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X + 200,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        castle_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="castle_armorer",
+                npc_type="shop",
+                grid_x=1,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X + 200,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Portal back to central hub
-        castle_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_central",
-            destination_hub_id="central_hub",
-            grid_x=0,
-            grid_y=-1,
-            bidirectional=True
-        ))
+        castle_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_central",
+                destination_hub_id="central_hub",
+                grid_x=0,
+                grid_y=-1,
+                bidirectional=True,
+            )
+        )
 
         self.register_hub(castle_hub)
 
@@ -570,43 +622,49 @@ class HubManager:
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
-            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y)
+            spawn_local=(ROOM_PIXEL_CENTER_X, ROOM_PIXEL_CENTER_Y),
         )
 
         # Mission giver NPC
-        sewer_hub.npc_anchors.append(NPCAnchor(
-            npc_id="sewer_scout",
-            npc_type="mission_giver",
-            grid_x=0,
-            grid_y=0,
-            local_x=ROOM_PIXEL_CENTER_X - 240,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        sewer_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="sewer_scout",
+                npc_type="mission_giver",
+                grid_x=0,
+                grid_y=0,
+                local_x=ROOM_PIXEL_CENTER_X - 240,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Shop NPC
-        sewer_hub.npc_anchors.append(NPCAnchor(
-            npc_id="sewer_vendor",
-            npc_type="shop",
-            grid_x=0,
-            grid_y=1,
-            local_x=ROOM_PIXEL_CENTER_X + 200,
-            local_y=ROOM_PIXEL_CENTER_Y
-        ))
+        sewer_hub.npc_anchors.append(
+            NPCAnchor(
+                npc_id="sewer_vendor",
+                npc_type="shop",
+                grid_x=0,
+                grid_y=1,
+                local_x=ROOM_PIXEL_CENTER_X + 200,
+                local_y=ROOM_PIXEL_CENTER_Y,
+            )
+        )
 
         # Portal back to central hub
-        sewer_hub.portal_anchors.append(PortalAnchor(
-            portal_id="portal_to_central",
-            destination_hub_id="central_hub",
-            grid_x=0,
-            grid_y=-1,
-            bidirectional=True
-        ))
+        sewer_hub.portal_anchors.append(
+            PortalAnchor(
+                portal_id="portal_to_central",
+                destination_hub_id="central_hub",
+                grid_x=0,
+                grid_y=-1,
+                bidirectional=True,
+            )
+        )
 
         self.register_hub(sewer_hub)
 
 
 # Global hub manager instance (will be initialized with campaign seed)
-_hub_manager: Optional[HubManager] = None
+_hub_manager: HubManager | None = None
 
 
 def initialize_hub_manager(world_seed: int):
@@ -615,6 +673,6 @@ def initialize_hub_manager(world_seed: int):
     _hub_manager = HubManager(world_seed)
 
 
-def get_hub_manager() -> Optional[HubManager]:
+def get_hub_manager() -> HubManager | None:
     """Get the global hub manager instance"""
     return _hub_manager

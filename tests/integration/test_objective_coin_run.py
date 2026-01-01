@@ -12,9 +12,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from game.objective_tracker import ObjectiveTracker, ItemCollectedEvent  # noqa: E402
-from game.mission_registry import MissionRegistry  # noqa: E402
 from core import EventBus  # noqa: E402
+from game.mission_registry import MissionRegistry  # noqa: E402
+from game.objective_tracker import ItemCollectedEvent, ObjectiveTracker  # noqa: E402
 
 
 def test_coin_collection_objective_completes():
@@ -33,7 +33,9 @@ def test_coin_collection_objective_completes():
         bus.emit(ItemCollectedEvent(item_id="coin", quantity=1, position=(0, 0)))
     bus.process()
 
-    assert tracker.are_all_objectives_complete(), "All objectives should be complete after collecting coins"
+    assert (
+        tracker.are_all_objectives_complete()
+    ), "All objectives should be complete after collecting coins"
 
 
 if __name__ == "__main__":

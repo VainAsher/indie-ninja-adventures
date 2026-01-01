@@ -7,7 +7,7 @@ Version: v0.6.0
 """
 
 import pygame
-from typing import Optional
+
 from ui.menu_system import BaseMenu, MenuAction
 
 
@@ -26,19 +26,23 @@ class GameModeSelectionMenu(BaseMenu):
         super().__init__("SELECT GAME MODE", screen_width, screen_height)
 
         # Custom menu actions for each mode
-        self.selected_mode: Optional[str] = None
+        self.selected_mode: str | None = None
 
         # Add menu items
-        self.add_item("Campaign Mode", MenuAction.NONE, callback=lambda: self._select_mode("campaign"))
+        self.add_item(
+            "Campaign Mode", MenuAction.NONE, callback=lambda: self._select_mode("campaign")
+        )
         self.add_item("Arcade Mode", MenuAction.NONE, callback=lambda: self._select_mode("arcade"))
-        self.add_item("Playtest Mode", MenuAction.NONE, callback=lambda: self._select_mode("playtest"))
+        self.add_item(
+            "Playtest Mode", MenuAction.NONE, callback=lambda: self._select_mode("playtest")
+        )
         self.add_item("Back", MenuAction.BACK)
 
     def _select_mode(self, mode: str):
         """Store selected mode"""
         self.selected_mode = mode
 
-    def get_selected_mode(self) -> Optional[str]:
+    def get_selected_mode(self) -> str | None:
         """Get and clear selected mode"""
         mode = self.selected_mode
         self.selected_mode = None
@@ -52,7 +56,7 @@ class GameModeSelectionMenu(BaseMenu):
         descriptions = {
             0: "Story progression • Hub world • Mission-based gameplay",
             1: "Infinite procedural levels • Classic mode • No story",
-            2: "Mission selector • Testing mode • Developer access"
+            2: "Mission selector • Testing mode • Developer access",
         }
 
         # Draw description for selected mode
@@ -65,7 +69,9 @@ class GameModeSelectionMenu(BaseMenu):
         # Controls hint
         hint = "Use Arrow Keys to navigate, Enter to select"
         hint_surf = self.small_font.render(hint, True, (120, 120, 140))
-        hint_rect = hint_surf.get_rect(centerx=self.screen_width // 2, bottom=self.screen_height - 20)
+        hint_rect = hint_surf.get_rect(
+            centerx=self.screen_width // 2, bottom=self.screen_height - 20
+        )
         surface.blit(hint_surf, hint_rect)
 
 
@@ -80,7 +86,7 @@ class MissionSelectorMenu(BaseMenu):
         super().__init__("SELECT MISSION (PLAYTEST)", screen_width, screen_height)
 
         self.mission_registry = mission_registry
-        self.selected_mission: Optional[str] = None
+        self.selected_mission: str | None = None
 
         # Build mission list organized by region
         self._build_mission_list()
@@ -102,7 +108,7 @@ class MissionSelectorMenu(BaseMenu):
                 self.add_item(
                     mission_label,
                     MenuAction.NONE,
-                    callback=lambda m=mission.mission_id: self._select_mission(m)
+                    callback=lambda m=mission.mission_id: self._select_mission(m),
                 )
 
         # Add back button
@@ -113,7 +119,7 @@ class MissionSelectorMenu(BaseMenu):
         """Store selected mission"""
         self.selected_mission = mission_id
 
-    def get_selected_mission(self) -> Optional[str]:
+    def get_selected_mission(self) -> str | None:
         """Get and clear selected mission"""
         mission = self.selected_mission
         self.selected_mission = None
@@ -135,11 +141,15 @@ class MissionSelectorMenu(BaseMenu):
                     # Show mission info at bottom
                     info = f"Difficulty: {mission.difficulty} | Rooms: {mission.room_count} | Shape: {mission.shape}"
                     info_surf = self.small_font.render(info, True, (150, 150, 170))
-                    info_rect = info_surf.get_rect(centerx=self.screen_width // 2, bottom=self.screen_height - 50)
+                    info_rect = info_surf.get_rect(
+                        centerx=self.screen_width // 2, bottom=self.screen_height - 50
+                    )
                     surface.blit(info_surf, info_rect)
 
         # Controls hint
         hint = "Arrow Keys: Navigate | Enter: Select | ESC: Back"
         hint_surf = self.small_font.render(hint, True, (120, 120, 140))
-        hint_rect = hint_surf.get_rect(centerx=self.screen_width // 2, bottom=self.screen_height - 20)
+        hint_rect = hint_surf.get_rect(
+            centerx=self.screen_width // 2, bottom=self.screen_height - 20
+        )
         surface.blit(hint_surf, hint_rect)

@@ -13,8 +13,8 @@ Version: v0.7.0
 """
 
 import json
-from typing import Dict, List, Optional, Set
 from pathlib import Path
+
 from entities.npc import NPC, NPCType
 from game.story_manager import StoryManager
 
@@ -39,11 +39,11 @@ class NPCManager:
             hub_states_file: Path to hub states configuration
         """
         self.hub_states_file = hub_states_file
-        self.hub_states_data: Dict = {}
-        self.npc_definitions: Dict[str, Dict] = {}
+        self.hub_states_data: dict = {}
+        self.npc_definitions: dict[str, dict] = {}
 
         # Active NPCs in hub (npc_id -> NPC instance)
-        self.active_npcs: Dict[str, NPC] = {}
+        self.active_npcs: dict[str, NPC] = {}
 
         # Track current story state
         self.current_act: int = 0
@@ -63,7 +63,7 @@ class NPCManager:
                 self.hub_states_data = {"act_states": {}, "npc_definitions": {}}
                 return
 
-            with open(hub_states_path, 'r') as f:
+            with open(hub_states_path) as f:
                 self.hub_states_data = json.load(f)
 
             # Extract NPC definitions
@@ -81,7 +81,7 @@ class NPCManager:
             self.hub_states_data = {"act_states": {}, "npc_definitions": {}}
             self.npc_definitions = {}
 
-    def update_from_story_manager(self, story_manager: StoryManager) -> Dict[str, List[str]]:
+    def update_from_story_manager(self, story_manager: StoryManager) -> dict[str, list[str]]:
         """
         Update NPC spawning based on story manager state.
 
@@ -119,7 +119,7 @@ class NPCManager:
 
         return changes
 
-    def _get_target_npcs(self, story_manager: StoryManager) -> List[str]:
+    def _get_target_npcs(self, story_manager: StoryManager) -> list[str]:
         """
         Get list of NPCs that should be active for current story state.
 
@@ -231,7 +231,7 @@ class NPCManager:
             "shop_armor": NPCType.SHOP,
             "story_critical": NPCType.LORE,
             "story_lantern": NPCType.LORE,
-            "ambient": NPCType.LORE
+            "ambient": NPCType.LORE,
         }
 
         npc_type = npc_type_map.get(role, NPCType.LORE)
@@ -242,7 +242,7 @@ class NPCManager:
             x=float(position[0]),
             y=float(position[1]),
             width=32,
-            height=48
+            height=48,
         )
 
         self.active_npcs[npc_id] = npc
@@ -266,20 +266,21 @@ class NPCManager:
         print(f"[NPCManager] Despawned NPC: {npc_id}")
         return True
 
-    def get_active_npcs(self) -> List[NPC]:
+    def get_active_npcs(self) -> list[NPC]:
         """Get list of all active NPCs."""
         return list(self.active_npcs.values())
 
-    def get_npc_by_id(self, npc_id: str) -> Optional[NPC]:
+    def get_npc_by_id(self, npc_id: str) -> NPC | None:
         """Get specific NPC by ID."""
         return self.active_npcs.get(npc_id)
 
-    def get_npc_definition(self, npc_id: str) -> Optional[Dict]:
+    def get_npc_definition(self, npc_id: str) -> dict | None:
         """Get NPC definition data."""
         return self.npc_definitions.get(npc_id)
 
-    def get_interactable_npcs_near_player(self, player_x: float, player_y: float,
-                                          player_width: int, player_height: int) -> List[NPC]:
+    def get_interactable_npcs_near_player(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> list[NPC]:
         """
         Get NPCs that the player can interact with.
 
@@ -339,7 +340,9 @@ class NPCManager:
 
         if distance < 5.0:
             # Reached waypoint, move to next
-            npc.current_waypoint_index = (npc.current_waypoint_index + 1) % len(npc.patrol_waypoints)
+            npc.current_waypoint_index = (npc.current_waypoint_index + 1) % len(
+                npc.patrol_waypoints
+            )
         else:
             # Move toward waypoint
             move_amount = npc.patrol_speed * dt

@@ -3,16 +3,30 @@ echo Building PRODUCTION build...
 set BUILD_MODE=PRODUCTION
 cd /d "%~dp0"
 
-REM Activate virtual environment if it exists
-if exist "..\.venv\Scripts\activate.bat" (
-    echo Activating virtual environment...
-    call "..\.venv\Scripts\activate.bat"
+REM Run setup script to ensure Python and virtual environment exist
+call setup.bat
+if errorlevel 1 (
+    echo [ERROR] Setup failed! Cannot proceed with build.
+    pause
+    exit /b 1
 )
 
-REM Verify dependencies
-echo Checking dependencies...
+REM Activate virtual environment
+if exist "..\.venv\Scripts\activate.bat" (
+    call "..\.venv\Scripts\activate.bat"
+    echo Virtual environment activated
+) else (
+    echo [ERROR] Virtual environment not found!
+    pause
+    exit /b 1
+)
+
+REM Install dependencies
+echo Installing dependencies...
+python -m pip install --upgrade pip --quiet
+python -m pip install pyinstaller --quiet
 if exist "..\requirements.txt" (
-    python -m pip install -q -r "..\requirements.txt"
+    python -m pip install -r "..\requirements.txt" --quiet
 )
 echo.
 

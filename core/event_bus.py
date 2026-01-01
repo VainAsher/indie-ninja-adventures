@@ -5,19 +5,24 @@ This module provides a thread-safe event bus with priority-based event handling,
 supporting all game events from physics ticks to player actions.
 """
 
-import time
 import threading
-from typing import Dict, List, Callable, Type, Deque, Optional
+import time
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from network.commands import InputCommand
 
 # ============================================================================
 # Event Base Classes
 # ============================================================================
 
+
 class Event:
     """Base event class with timestamp"""
+
     def __init__(self):
         self.timestamp = time.time()
         self.frame_number = 0  # Set by clock system
@@ -27,9 +32,11 @@ class Event:
 # Timing Events
 # ============================================================================
 
+
 @dataclass
 class TickEvent(Event):
     """Fixed timestep physics tick (60Hz)"""
+
     dt: float  # Always 1/60 for determinism
     tick_number: int
 
@@ -42,6 +49,7 @@ class TickEvent(Event):
 @dataclass
 class RenderEvent(Event):
     """Variable timestep render event"""
+
     dt: float  # Time since last render
     alpha: float  # Interpolation factor (0-1)
 
@@ -55,11 +63,13 @@ class RenderEvent(Event):
 # Input Events
 # ============================================================================
 
+
 @dataclass
 class InputCommandEvent(Event):
     """Player input command (network-ready)"""
+
     player_id: int
-    command: 'InputCommand'  # Forward reference
+    command: "InputCommand"  # Forward reference
 
     def __init__(self, player_id: int, command):
         super().__init__()
@@ -71,16 +81,17 @@ class InputCommandEvent(Event):
 # Physics Events
 # ============================================================================
 
+
 @dataclass
 class CollisionEvent(Event):
     """Collision between entity and tile"""
+
     entity_id: int
     collision_type: str  # 'ground', 'wall_left', 'wall_right', 'ceiling'
     normal: tuple  # Collision normal vector (nx, ny)
-    tile_rect: Optional[object] = None  # pygame.Rect
+    tile_rect: object | None = None  # pygame.Rect
 
-    def __init__(self, entity_id: int, collision_type: str,
-                 normal: tuple, tile_rect=None):
+    def __init__(self, entity_id: int, collision_type: str, normal: tuple, tile_rect=None):
         super().__init__()
         self.entity_id = entity_id
         self.collision_type = collision_type
@@ -91,6 +102,7 @@ class CollisionEvent(Event):
 @dataclass
 class VelocityChangeEvent(Event):
     """Velocity modification (for logging/debugging)"""
+
     entity_id: int
     old_vx: float
     old_vy: float
@@ -98,8 +110,15 @@ class VelocityChangeEvent(Event):
     new_vy: float
     reason: str  # e.g., "jump", "dash", "collision"
 
-    def __init__(self, entity_id: int, old_vx: float, old_vy: float,
-                 new_vx: float, new_vy: float, reason: str):
+    def __init__(
+        self,
+        entity_id: int,
+        old_vx: float,
+        old_vy: float,
+        new_vx: float,
+        new_vy: float,
+        reason: str,
+    ):
         super().__init__()
         self.entity_id = entity_id
         self.old_vx = old_vx
@@ -113,9 +132,11 @@ class VelocityChangeEvent(Event):
 # Game Events
 # ============================================================================
 
+
 @dataclass
 class PickupCollectedEvent(Event):
     """Pickup item collected"""
+
     player_id: int
     pickup_type: str  # 'coin', 'health', 'life'
     value: int
@@ -130,6 +151,7 @@ class PickupCollectedEvent(Event):
 @dataclass
 class PlayerDamagedEvent(Event):
     """Player took damage"""
+
     player_id: int
     damage: int
     source: str  # 'hazard', 'enemy', etc.
@@ -144,6 +166,7 @@ class PlayerDamagedEvent(Event):
 @dataclass
 class StateTransitionEvent(Event):
     """State machine transition"""
+
     from_state: str
     to_state: str
 
@@ -156,6 +179,7 @@ class StateTransitionEvent(Event):
 # ============================================================================
 # Event Bus Implementation
 # ============================================================================
+
 
 class EventBus:
     """
@@ -175,13 +199,17 @@ class EventBus:
     """
 
     def __init__(self, logger=None):
-        self.subscribers: Dict[Type[Event], List[tuple]] = defaultdict(list)
-        self.event_queue: Deque[Event] = deque()
+        self.subscribers: dict[type[Event], list[tuple]] = defaultdict(list)
+        self.event_queue: deque[Event] = deque()
         self.logger = logger
         self._lock = threading.Lock()
         self._stats = defaultdict(int)  # Event type -> count
+        # Track subscriptions by owner for cleanup (Phase 4.1 - memory leak fix)
+        self._subscription_owners: dict[int, list[tuple]] = defaultdict(
+            list
+        )  # owner_id -> [(event_type, handler)]
 
-    def subscribe(self, event_type: Type[Event], handler: Callable, priority: int = 0):
+    def subscribe(self, event_type: type[Event], handler: Callable, priority: int = 0, owner=None):
         """
         Subscribe to event type with optional priority (higher = earlier)
 
@@ -189,11 +217,17 @@ class EventBus:
             event_type: Event class to subscribe to
             handler: Callable that takes event as parameter
             priority: Handler priority (default 0, higher executes first)
+            owner: Optional owner object for cleanup tracking (Phase 4.1)
         """
         with self._lock:
             self.subscribers[event_type].append((priority, handler))
             # Sort by priority descending
             self.subscribers[event_type].sort(key=lambda x: x[0], reverse=True)
+
+            # Track subscription by owner for cleanup (Phase 4.1)
+            if owner is not None:
+                owner_id = id(owner)
+                self._subscription_owners[owner_id].append((event_type, handler))
 
             if self.logger:
                 self.logger.debug(
@@ -201,7 +235,7 @@ class EventBus:
                     f"(priority {priority})"
                 )
 
-    def unsubscribe(self, event_type: Type[Event], handler: Callable):
+    def unsubscribe(self, event_type: type[Event], handler: Callable):
         """
         Unsubscribe from event type
 
@@ -217,9 +251,7 @@ class EventBus:
             removed = original_count - len(self.subscribers[event_type])
 
             if self.logger and removed > 0:
-                self.logger.debug(
-                    f"Unsubscribed {handler.__name__} from {event_type.__name__}"
-                )
+                self.logger.debug(f"Unsubscribed {handler.__name__} from {event_type.__name__}")
 
     def emit(self, event: Event, immediate: bool = False):
         """
@@ -265,11 +297,9 @@ class EventBus:
         self._stats[event_type.__name__] += 1
 
         if self.logger:
-            self.logger.debug(
-                f"Dispatching {event_type.__name__} to {len(handlers)} handlers"
-            )
+            self.logger.debug(f"Dispatching {event_type.__name__} to {len(handlers)} handlers")
 
-        for priority, handler in handlers:
+        for _priority, handler in handlers:
             try:
                 handler(event)
             except Exception as e:
@@ -277,13 +307,13 @@ class EventBus:
                     self.logger.error(
                         f"Error in event handler {handler.__name__} "
                         f"for {event_type.__name__}: {e}",
-                        exc_info=True
+                        exc_info=True,
                     )
                 else:
                     # If no logger, re-raise to avoid silent failures
                     raise
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get event dispatch statistics"""
         return dict(self._stats)
 
@@ -291,11 +321,11 @@ class EventBus:
         """Reset event statistics"""
         self._stats.clear()
 
-    def get_subscriber_count(self, event_type: Type[Event]) -> int:
+    def get_subscriber_count(self, event_type: type[Event]) -> int:
         """Get number of subscribers for an event type"""
         return len(self.subscribers.get(event_type, []))
 
-    def create_tick_event(self, dt: float, tick_number: int = 0) -> 'TickEvent':
+    def create_tick_event(self, dt: float, tick_number: int = 0) -> "TickEvent":
         """
         Helper to create a TickEvent
 
@@ -308,9 +338,52 @@ class EventBus:
         """
         return TickEvent(dt=dt, tick_number=tick_number)
 
+    def unsubscribe_all(self, owner):
+        """
+        Unsubscribe all event handlers for a given owner (Phase 4.1 - memory leak fix)
+
+        This method removes all subscriptions registered with the specified owner,
+        preventing memory leaks when entities are destroyed or recreated.
+
+        Args:
+            owner: Owner object whose subscriptions should be removed
+
+        Example:
+            # In entity cleanup:
+            def cleanup(self):
+                self.event_bus.unsubscribe_all(self)
+        """
+        if owner is None:
+            return
+
+        owner_id = id(owner)
+
+        with self._lock:
+            # Get all subscriptions for this owner
+            subscriptions = self._subscription_owners.get(owner_id, [])
+
+            if not subscriptions:
+                return
+
+            # Remove each subscription
+            for event_type, handler in subscriptions:
+                self.subscribers[event_type] = [
+                    (p, h) for p, h in self.subscribers[event_type] if h != handler
+                ]
+
+            # Clear owner tracking
+            del self._subscription_owners[owner_id]
+
+            if self.logger:
+                self.logger.debug(
+                    f"Unsubscribed all handlers for owner {owner.__class__.__name__} "
+                    f"(removed {len(subscriptions)} subscriptions)"
+                )
+
     def clear_all_subscribers(self):
         """Clear all event subscribers (use with caution)"""
         with self._lock:
             self.subscribers.clear()
+            self._subscription_owners.clear()  # Phase 4.1: Also clear owner tracking
             if self.logger:
                 self.logger.warning("Cleared all event subscribers")

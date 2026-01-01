@@ -22,19 +22,19 @@ Tier 3: Nuclear Option (Brute Force)
 Based on: Phase 7 specification for connectivity quality assurance
 """
 
-from typing import Dict, Tuple, List, Set, Optional
-from dataclasses import dataclass
 from collections import deque
-from systems.world_generation import RoomNode, World, ZONES_W, ZONES_H
-from systems.room_generation import TILE_SOLID, TILE_PLATFORM, TILE_EMPTY
-from config.physics_constants import ROOM_WIDTH_TILES, ROOM_HEIGHT_TILES
+from dataclasses import dataclass
+
+from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES
+from systems.room_generation import TILE_EMPTY, TILE_PLATFORM
+from systems.world_generation import World
 
 
 # Connectivity tier levels
 class ConnectivityTier:
-    NATURAL = "natural"      # BFS validation only
-    SPINE = "spine"          # Spine + stairs fallback
-    NUCLEAR = "nuclear"      # Brute force connectivity
+    NATURAL = "natural"  # BFS validation only
+    SPINE = "spine"  # Spine + stairs fallback
+    NUCLEAR = "nuclear"  # Brute force connectivity
 
 
 @dataclass
@@ -49,9 +49,10 @@ class ConnectivityResult:
         fixes_applied: Number of connectivity fixes made
         details: Human-readable description of fixes
     """
+
     success: bool
     tier_used: str
-    unreachable_rooms: List[Tuple[int, int]]
+    unreachable_rooms: list[tuple[int, int]]
     fixes_applied: int
     details: str
 
@@ -71,9 +72,7 @@ class ConnectivityValidator:
         self.verbose = verbose
 
     def validate_and_fix(
-        self,
-        world: World,
-        room_tilemaps: Dict[Tuple[int, int], List[List[int]]]
+        self, world: World, room_tilemaps: dict[tuple[int, int], list[list[int]]]
     ) -> ConnectivityResult:
         """
         Validate world connectivity and apply fixes if needed
@@ -102,34 +101,42 @@ class ConnectivityValidator:
             return natural_result
 
         if self.verbose:
-            print(f"[CONNECTIVITY] Tier 1 failed: {len(natural_result.unreachable_rooms)} unreachable rooms")
+            print(
+                f"[CONNECTIVITY] Tier 1 failed: {len(natural_result.unreachable_rooms)} unreachable rooms"
+            )
             print(f"[CONNECTIVITY] Unreachable: {natural_result.unreachable_rooms}")
 
         # Tier 2: Spine + stairs fallback
-        spine_result = self._tier2_spine_stairs(world, room_tilemaps, natural_result.unreachable_rooms)
+        spine_result = self._tier2_spine_stairs(
+            world, room_tilemaps, natural_result.unreachable_rooms
+        )
         if spine_result.success:
             if self.verbose:
-                print(f"[CONNECTIVITY] Tier 2 (Spine): Fixed with {spine_result.fixes_applied} modifications")
+                print(
+                    f"[CONNECTIVITY] Tier 2 (Spine): Fixed with {spine_result.fixes_applied} modifications"
+                )
             return spine_result
 
         if self.verbose:
-            print(f"[CONNECTIVITY] Tier 2 failed: {len(spine_result.unreachable_rooms)} still unreachable")
+            print(
+                f"[CONNECTIVITY] Tier 2 failed: {len(spine_result.unreachable_rooms)} still unreachable"
+            )
 
         # Tier 3: Nuclear option (brute force)
         nuclear_result = self._tier3_nuclear(world, room_tilemaps, spine_result.unreachable_rooms)
         if self.verbose:
             if nuclear_result.success:
-                print(f"[CONNECTIVITY] Tier 3 (Nuclear): Forced connectivity with {nuclear_result.fixes_applied} fixes")
+                print(
+                    f"[CONNECTIVITY] Tier 3 (Nuclear): Forced connectivity with {nuclear_result.fixes_applied} fixes"
+                )
             else:
                 print("[CONNECTIVITY] Tier 3 failed: Connectivity could not be guaranteed")
 
         return nuclear_result
 
     def _validate_tilemap_connectivity(
-        self,
-        world: World,
-        room_tilemaps: Dict[Tuple[int, int], List[List[int]]]
-    ) -> Set[Tuple[int, int]]:
+        self, world: World, room_tilemaps: dict[tuple[int, int], list[list[int]]]
+    ) -> set[tuple[int, int]]:
         """
         Validate connectivity by doing BFS through actual walkable tiles.
 
@@ -231,9 +238,7 @@ class ConnectivityValidator:
         return reachable_rooms
 
     def _tier1_natural_pathfinding(
-        self,
-        world: World,
-        room_tilemaps: Dict[Tuple[int, int], List[List[int]]]
+        self, world: World, room_tilemaps: dict[tuple[int, int], list[list[int]]]
     ) -> ConnectivityResult:
         """
         Tier 1: Validate connectivity via BFS through walkable tiles
@@ -253,7 +258,7 @@ class ConnectivityValidator:
                 tier_used=ConnectivityTier.NATURAL,
                 unreachable_rooms=[],
                 fixes_applied=0,
-                details="No rooms in world"
+                details="No rooms in world",
             )
 
         # Use BOTH graph connectivity AND tilemap-level validation
@@ -273,7 +278,7 @@ class ConnectivityValidator:
                     # Find neighbor room
                     neighbor_room = next(
                         (r for r in world.all_rooms if (r.grid_x, r.grid_y) == neighbor_coords),
-                        None
+                        None,
                     )
                     if neighbor_room:
                         queue.append(neighbor_room)
@@ -292,14 +297,14 @@ class ConnectivityValidator:
             tier_used=ConnectivityTier.NATURAL,
             unreachable_rooms=unreachable,
             fixes_applied=0,
-            details=f"Natural pathfinding: {len(reachable)}/{len(all_coords)} rooms reachable"
+            details=f"Natural pathfinding: {len(reachable)}/{len(all_coords)} rooms reachable",
         )
 
     def _tier2_spine_stairs(
         self,
         world: World,
-        room_tilemaps: Dict[Tuple[int, int], List[List[int]]],
-        unreachable: List[Tuple[int, int]]
+        room_tilemaps: dict[tuple[int, int], list[list[int]]],
+        unreachable: list[tuple[int, int]],
     ) -> ConnectivityResult:
         """
         Tier 2: Create spine corridor with stairs to connect isolated clusters
@@ -345,7 +350,7 @@ class ConnectivityValidator:
                         cluster.add(neighbor_coords)
                         neighbor_room = next(
                             (r for r in world.all_rooms if (r.grid_x, r.grid_y) == neighbor_coords),
-                            None
+                            None,
                         )
                         if neighbor_room:
                             queue.append(neighbor_room)
@@ -362,7 +367,7 @@ class ConnectivityValidator:
                 tier_used=ConnectivityTier.SPINE,
                 unreachable_rooms=[],
                 fixes_applied=fixes,
-                details="Only one cluster, already connected"
+                details="Only one cluster, already connected",
             )
 
         # Connect clusters by adding "spine" corridors
@@ -372,12 +377,14 @@ class ConnectivityValidator:
 
         for cluster in other_clusters:
             # Find closest pair of rooms between main and this cluster
-            min_dist = float('inf')
+            min_dist = float("inf")
             closest_pair = None
 
             for main_coords in main_cluster:
                 for cluster_coords in cluster:
-                    dist = abs(main_coords[0] - cluster_coords[0]) + abs(main_coords[1] - cluster_coords[1])
+                    dist = abs(main_coords[0] - cluster_coords[0]) + abs(
+                        main_coords[1] - cluster_coords[1]
+                    )
                     if dist < min_dist:
                         min_dist = dist
                         closest_pair = (main_coords, cluster_coords)
@@ -387,8 +394,12 @@ class ConnectivityValidator:
 
                 # Add spine corridor (platform layer in center of rooms)
                 # This is a simplified fix - just ensure rooms are marked as neighbors
-                main_room = next((r for r in world.all_rooms if (r.grid_x, r.grid_y) == main_coords), None)
-                cluster_room = next((r for r in world.all_rooms if (r.grid_x, r.grid_y) == cluster_coords), None)
+                main_room = next(
+                    (r for r in world.all_rooms if (r.grid_x, r.grid_y) == main_coords), None
+                )
+                cluster_room = next(
+                    (r for r in world.all_rooms if (r.grid_x, r.grid_y) == cluster_coords), None
+                )
 
                 if main_room and cluster_room:
                     # Force bidirectional neighbor connection
@@ -417,7 +428,9 @@ class ConnectivityValidator:
                         cluster_room.neighbor_dirs["down"] = main_coords
 
                     if self.verbose:
-                        print(f"[CONNECTIVITY] Added spine connection: {main_coords} <-> {cluster_coords}")
+                        print(
+                            f"[CONNECTIVITY] Added spine connection: {main_coords} <-> {cluster_coords}"
+                        )
 
         # Re-validate
         validation = self._tier1_natural_pathfinding(world, room_tilemaps)
@@ -427,14 +440,14 @@ class ConnectivityValidator:
             tier_used=ConnectivityTier.SPINE,
             unreachable_rooms=validation.unreachable_rooms,
             fixes_applied=fixes,
-            details=f"Spine fallback: Connected {len(other_clusters)} clusters with {fixes} fixes"
+            details=f"Spine fallback: Connected {len(other_clusters)} clusters with {fixes} fixes",
         )
 
     def _tier3_nuclear(
         self,
         world: World,
-        room_tilemaps: Dict[Tuple[int, int], List[List[int]]],
-        unreachable: List[Tuple[int, int]]
+        room_tilemaps: dict[tuple[int, int], list[list[int]]],
+        unreachable: list[tuple[int, int]],
     ) -> ConnectivityResult:
         """
         Tier 3: Nuclear option - brute force connectivity
@@ -461,8 +474,12 @@ class ConnectivityValidator:
             x, y = room.grid_x, room.grid_y
 
             # Check all 4 cardinal directions
-            for direction, (dx, dy) in [("right", (1, 0)), ("left", (-1, 0)),
-                                         ("down", (0, 1)), ("up", (0, -1))]:
+            for direction, (dx, dy) in [
+                ("right", (1, 0)),
+                ("left", (-1, 0)),
+                ("down", (0, 1)),
+                ("up", (0, -1)),
+            ]:
                 neighbor_coords = (x + dx, y + dy)
 
                 if neighbor_coords in room_lookup:
@@ -475,8 +492,9 @@ class ConnectivityValidator:
                         fixes += 1
 
                     # Reverse direction
-                    reverse_dir = {"right": "left", "left": "right",
-                                   "up": "down", "down": "up"}[direction]
+                    reverse_dir = {"right": "left", "left": "right", "up": "down", "down": "up"}[
+                        direction
+                    ]
                     room_coords = (x, y)
 
                     if room_coords not in neighbor.neighbors:
@@ -495,14 +513,12 @@ class ConnectivityValidator:
             tier_used=ConnectivityTier.NUCLEAR,
             unreachable_rooms=validation.unreachable_rooms,
             fixes_applied=fixes,
-            details=f"Nuclear option: Forced all adjacent room connections ({fixes} fixes)"
+            details=f"Nuclear option: Forced all adjacent room connections ({fixes} fixes)",
         )
 
 
 def validate_world_connectivity(
-    world: World,
-    room_tilemaps: Dict[Tuple[int, int], List[List[int]]],
-    verbose: bool = True
+    world: World, room_tilemaps: dict[tuple[int, int], list[list[int]]], verbose: bool = True
 ) -> ConnectivityResult:
     """
     Convenience function to validate and fix world connectivity

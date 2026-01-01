@@ -9,22 +9,28 @@ High-level systems that coordinate game logic:
 - Pickup management
 """
 
+from .camera_system import (
+    SCREEN_PRESETS,
+    CameraConfig,
+    CameraMode,
+    CameraSystem,
+    get_recommended_window_size,
+)
 from .collision_system import CollisionSystem
 from .physics_system import PhysicsSystem
-from .camera_system import CameraSystem, CameraConfig, CameraMode, SCREEN_PRESETS, get_recommended_window_size
-from .save_system import SaveManager, SaveData, PlayerProgress, GameSettings, GameStatistics
+from .save_system import GameSettings, GameStatistics, PlayerProgress, SaveData, SaveManager
 
 __all__ = [
-    'CollisionSystem',
-    'PhysicsSystem',
-    'CameraSystem',
-    'CameraConfig',
-    'CameraMode',
-    'SCREEN_PRESETS',
-    'get_recommended_window_size',
-    'SaveManager',
-    'SaveData',
-    'PlayerProgress',
-    'GameSettings',
-    'GameStatistics',
+    "CollisionSystem",
+    "PhysicsSystem",
+    "CameraSystem",
+    "CameraConfig",
+    "CameraMode",
+    "SCREEN_PRESETS",
+    "get_recommended_window_size",
+    "SaveManager",
+    "SaveData",
+    "PlayerProgress",
+    "GameSettings",
+    "GameStatistics",
 ]

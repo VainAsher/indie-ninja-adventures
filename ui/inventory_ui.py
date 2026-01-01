@@ -7,27 +7,29 @@ Press I to open/close.
 Version: v0.6.0 (Phase 6) - Simplified
 """
 
-import pygame
-from typing import Optional, Tuple, List, Dict
 from dataclasses import dataclass
 
+import pygame
 
 # ============================================================
 # UI State
 # ============================================================
 
+
 @dataclass
 class InventoryUIState:
     """Inventory UI state"""
+
     open: bool = False
     selected_slot: int = 0
-    hover_slot: Optional[int] = None
+    hover_slot: int | None = None
     show_tooltip: bool = False
 
 
 # ============================================================
 # Inventory UI Renderer
 # ============================================================
+
 
 class InventoryUI:
     """
@@ -70,7 +72,7 @@ class InventoryUI:
             "uncommon": (100, 255, 100),
             "rare": (100, 150, 255),
             "epic": (180, 100, 255),
-            "legendary": (255, 150, 50)
+            "legendary": (255, 150, 50),
         }
 
         # State
@@ -92,11 +94,14 @@ class InventoryUI:
         """Check if inventory is open"""
         return self.state.open
 
-    def draw(self, surface: pygame.Surface,
-             items: Optional[List[Dict]] = None,
-             currency: int = 0,
-             equipped_weapon: Optional[str] = None,
-            equipped_armor: Optional[str] = None):
+    def draw(
+        self,
+        surface: pygame.Surface,
+        items: list[dict] | None = None,
+        currency: int = 0,
+        equipped_weapon: str | None = None,
+        equipped_armor: str | None = None,
+    ):
         """
         Draw inventory UI.
 
@@ -125,9 +130,13 @@ class InventoryUI:
         surface.blit(bg_surf, (panel_x, panel_y))
 
         # Draw border
-        pygame.draw.rect(surface, self.color_border,
-                        pygame.Rect(panel_x, panel_y, panel_w, panel_h),
-                        width=3, border_radius=8)
+        pygame.draw.rect(
+            surface,
+            self.color_border,
+            pygame.Rect(panel_x, panel_y, panel_w, panel_h),
+            width=3,
+            border_radius=8,
+        )
 
         # Draw title
         title = "Inventory"
@@ -136,8 +145,7 @@ class InventoryUI:
 
         # Draw equipment slots
         y_pos = panel_y + 50
-        self._draw_equipment_slots(surface, panel_x + 20, y_pos,
-                                   equipped_weapon, equipped_armor)
+        self._draw_equipment_slots(surface, panel_x + 20, y_pos, equipped_weapon, equipped_armor)
 
         # Draw item grid
         y_pos += 100
@@ -158,10 +166,12 @@ class InventoryUI:
         slot_h = 60
 
         # Weapon slot
-        pygame.draw.rect(surface, self.color_slot_empty,
-                        pygame.Rect(x, y, slot_w, slot_h), border_radius=4)
-        pygame.draw.rect(surface, self.color_border,
-                        pygame.Rect(x, y, slot_w, slot_h), width=2, border_radius=4)
+        pygame.draw.rect(
+            surface, self.color_slot_empty, pygame.Rect(x, y, slot_w, slot_h), border_radius=4
+        )
+        pygame.draw.rect(
+            surface, self.color_border, pygame.Rect(x, y, slot_w, slot_h), width=2, border_radius=4
+        )
 
         label = self.small_font.render("Weapon", True, self.color_text)
         surface.blit(label, (x + 5, y - 18))
@@ -171,10 +181,19 @@ class InventoryUI:
             surface.blit(text, (x + 5, y + 20))
 
         # Armor slot
-        pygame.draw.rect(surface, self.color_slot_empty,
-                        pygame.Rect(x + slot_w + 20, y, slot_w, slot_h), border_radius=4)
-        pygame.draw.rect(surface, self.color_border,
-                        pygame.Rect(x + slot_w + 20, y, slot_w, slot_h), width=2, border_radius=4)
+        pygame.draw.rect(
+            surface,
+            self.color_slot_empty,
+            pygame.Rect(x + slot_w + 20, y, slot_w, slot_h),
+            border_radius=4,
+        )
+        pygame.draw.rect(
+            surface,
+            self.color_border,
+            pygame.Rect(x + slot_w + 20, y, slot_w, slot_h),
+            width=2,
+            border_radius=4,
+        )
 
         label = self.small_font.render("Armor", True, self.color_text)
         surface.blit(label, (x + slot_w + 25, y - 18))
@@ -208,9 +227,9 @@ class InventoryUI:
             color = self.color_slot_empty
 
         # Draw slot background
-        pygame.draw.rect(surface, color,
-                        pygame.Rect(x, y, self.slot_size, self.slot_size),
-                        border_radius=4)
+        pygame.draw.rect(
+            surface, color, pygame.Rect(x, y, self.slot_size, self.slot_size), border_radius=4
+        )
 
         # Draw border (rarity color if item exists)
         if item:
@@ -219,9 +238,13 @@ class InventoryUI:
         else:
             border_color = self.color_border
 
-        pygame.draw.rect(surface, border_color,
-                        pygame.Rect(x, y, self.slot_size, self.slot_size),
-                        width=2, border_radius=4)
+        pygame.draw.rect(
+            surface,
+            border_color,
+            pygame.Rect(x, y, self.slot_size, self.slot_size),
+            width=2,
+            border_radius=4,
+        )
 
         # Draw item if present
         if item:
@@ -271,6 +294,7 @@ class InventoryUI:
 # ============================================================
 # Helper Functions
 # ============================================================
+
 
 def create_inventory_ui() -> InventoryUI:
     """Create an inventory UI instance"""

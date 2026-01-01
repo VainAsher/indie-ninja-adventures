@@ -12,12 +12,14 @@ Key Features:
 Version: v0.7.0
 """
 
-from typing import Dict, Optional, Callable, Any
+from collections.abc import Callable
 from enum import Enum
+from typing import Any
 
 
 class ScriptedEventType(Enum):
     """Types of scripted events"""
+
     SCRIPTED_DEFEAT = "scripted_defeat"  # Player must lose
     SCRIPTED_VICTORY = "scripted_victory"  # Player must win
     CUTSCENE_TRIGGER = "cutscene_trigger"  # Trigger cutscene
@@ -26,6 +28,7 @@ class ScriptedEventType(Enum):
 
 class ScriptedBattleState(Enum):
     """State of a scripted battle"""
+
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
     TRIGGERED = "triggered"  # Scripted event triggered
@@ -40,8 +43,9 @@ class ScriptedBattle:
     regardless of their performance.
     """
 
-    def __init__(self, boss_id: str, player_must_lose: bool = False,
-                 trigger_threshold: float = 0.3):
+    def __init__(
+        self, boss_id: str, player_must_lose: bool = False, trigger_threshold: float = 0.3
+    ):
         """
         Initialize scripted battle.
 
@@ -58,16 +62,17 @@ class ScriptedBattle:
         self.triggered = False
 
         # Callbacks
-        self.on_trigger_callback: Optional[Callable] = None
-        self.on_complete_callback: Optional[Callable] = None
+        self.on_trigger_callback: Callable | None = None
+        self.on_complete_callback: Callable | None = None
 
     def start_battle(self):
         """Mark battle as started."""
         self.state = ScriptedBattleState.IN_PROGRESS
         self.triggered = False
 
-    def check_battle_state(self, player_hp: float, player_max_hp: float,
-                          boss_hp: float, boss_max_hp: float) -> Optional[str]:
+    def check_battle_state(
+        self, player_hp: float, player_max_hp: float, boss_hp: float, boss_max_hp: float
+    ) -> str | None:
         """
         Check if scripted event should trigger.
 
@@ -140,17 +145,21 @@ class ScriptedEventManager:
     def __init__(self):
         """Initialize scripted event manager."""
         # Active scripted battles
-        self.active_scripted_battles: Dict[str, ScriptedBattle] = {}
+        self.active_scripted_battles: dict[str, ScriptedBattle] = {}
 
         # Event callbacks
-        self.event_callbacks: Dict[str, Callable] = {}
+        self.event_callbacks: dict[str, Callable] = {}
 
         # Current active event
-        self.current_event: Optional[str] = None
+        self.current_event: str | None = None
 
-    def register_scripted_battle(self, mission_id: str, boss_id: str,
-                                 player_must_lose: bool = False,
-                                 trigger_threshold: float = 0.3) -> ScriptedBattle:
+    def register_scripted_battle(
+        self,
+        mission_id: str,
+        boss_id: str,
+        player_must_lose: bool = False,
+        trigger_threshold: float = 0.3,
+    ) -> ScriptedBattle:
         """
         Register a scripted battle for a mission.
 
@@ -182,9 +191,14 @@ class ScriptedEventManager:
             return True
         return False
 
-    def check_scripted_battle(self, mission_id: str, player_hp: float,
-                             player_max_hp: float, boss_hp: float,
-                             boss_max_hp: float) -> Optional[str]:
+    def check_scripted_battle(
+        self,
+        mission_id: str,
+        player_hp: float,
+        player_max_hp: float,
+        boss_hp: float,
+        boss_max_hp: float,
+    ) -> str | None:
         """
         Check if scripted battle event should trigger.
 
@@ -252,7 +266,7 @@ class ScriptedEventManager:
         """Clear the current active event."""
         self.current_event = None
 
-    def get_current_event(self) -> Optional[str]:
+    def get_current_event(self) -> str | None:
         """Get the current active event type."""
         return self.current_event
 
@@ -261,8 +275,10 @@ class ScriptedEventManager:
 # Veil Maiden Scripted Defeat Configuration
 # ============================================================
 
-def create_veil_maiden_scripted_defeat(event_manager: ScriptedEventManager,
-                                       on_defeat_callback: Optional[Callable] = None):
+
+def create_veil_maiden_scripted_defeat(
+    event_manager: ScriptedEventManager, on_defeat_callback: Callable | None = None
+):
     """
     Create the Veil Maiden scripted defeat battle for caves_1.
 
@@ -275,7 +291,7 @@ def create_veil_maiden_scripted_defeat(event_manager: ScriptedEventManager,
         mission_id="caves_1",
         boss_id="veil_maiden",
         player_must_lose=True,
-        trigger_threshold=0.25  # Trigger at 25% boss HP
+        trigger_threshold=0.25,  # Trigger at 25% boss HP
     )
 
     # Set callback
@@ -289,7 +305,8 @@ def create_veil_maiden_scripted_defeat(event_manager: ScriptedEventManager,
 # Helper Functions
 # ============================================================
 
-def get_scripted_defeat_data() -> Dict[str, Any]:
+
+def get_scripted_defeat_data() -> dict[str, Any]:
     """
     Get data for Veil Maiden scripted defeat event.
 
@@ -304,17 +321,17 @@ def get_scripted_defeat_data() -> Dict[str, Any]:
             "The Veil Maiden's power overwhelms you...",
             "Your vision fades as darkness consumes the light...",
             "Yin and Yang's gentle glow vanishes into the void...",
-            "You feel yourself falling... falling into emptiness..."
+            "You feel yourself falling... falling into emptiness...",
         ],
         "transition_zone": "hollow_depths",
         "player_effects": {
             "hp_set": 1,  # Leave player at 1 HP
             "yin_yang_consumed": True,
-            "debuff": "weakened"  # Optional gameplay debuff
+            "debuff": "weakened",  # Optional gameplay debuff
         },
         "story_flags": {
             "act": 2,  # Transition to Act 2
             "veil_maiden_defeated_player": True,
-            "companions_lost": True
-        }
+            "companions_lost": True,
+        },
     }

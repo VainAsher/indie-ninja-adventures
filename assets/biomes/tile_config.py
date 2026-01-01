@@ -14,7 +14,6 @@ Usage:
 """
 
 from pathlib import Path
-from typing import List, Dict
 
 # Tile size in original tileset
 ORIGINAL_TILE_SIZE = 8
@@ -23,7 +22,7 @@ ORIGINAL_TILE_SIZE = 8
 GAME_TILE_SIZE = 32
 
 
-def get_all_tiles_in_biome(biome: str) -> List[str]:
+def get_all_tiles_in_biome(biome: str) -> list[str]:
     """
     Get all tile filenames in a biome directory
 
@@ -34,13 +33,13 @@ def get_all_tiles_in_biome(biome: str) -> List[str]:
         List of tile filenames
     """
     project_root = Path(__file__).parent.parent.parent
-    biome_dir = project_root / 'assets' / 'biomes' / biome
+    biome_dir = project_root / "assets" / "biomes" / biome
 
     if not biome_dir.exists():
         return []
 
     # Get all PNG files in the biome directory
-    tiles = sorted([f.name for f in biome_dir.glob('tile_*.png')])
+    tiles = sorted([f.name for f in biome_dir.glob("tile_*.png")])
     return tiles
 
 
@@ -48,9 +47,10 @@ def get_all_tiles_in_biome(biome: str) -> List[str]:
 # Since we have 247 tiles automatically extracted and organized,
 # we'll use all available tiles for each biome
 
-def _build_biome_tiles() -> Dict[str, Dict[str, List[str]]]:
+
+def _build_biome_tiles() -> dict[str, dict[str, list[str]]]:
     """Build BIOME_TILES dictionary from extracted tiles"""
-    biomes = ['dungeon', 'cave', 'building']
+    biomes = ["dungeon", "cave", "building"]
     biome_tiles = {}
 
     for biome in biomes:
@@ -59,16 +59,18 @@ def _build_biome_tiles() -> Dict[str, Dict[str, List[str]]]:
         if not all_tiles:
             # Fallback empty lists
             biome_tiles[biome] = {
-                'solid': [],
-                'platform': [],
+                "solid": [],
+                "platform": [],
             }
             continue
 
         # For now, use all tiles as solid tiles
         # Can be manually categorized later if needed
         biome_tiles[biome] = {
-            'solid': all_tiles,
-            'platform': all_tiles[:len(all_tiles)//4] if all_tiles else [],  # Use first 25% as platforms
+            "solid": all_tiles,
+            "platform": (
+                all_tiles[: len(all_tiles) // 4] if all_tiles else []
+            ),  # Use first 25% as platforms
         }
 
     return biome_tiles
@@ -81,8 +83,8 @@ BIOME_TILES = _build_biome_tiles()
 # These will be automatically varied based on position
 TILE_VARIATIONS = {
     biome: {
-        'solid_var': tiles['solid'][:10] if len(tiles['solid']) >= 10 else tiles['solid'],
-        'platform_var': tiles['platform'][:5] if len(tiles['platform']) >= 5 else tiles['platform'],
+        "solid_var": tiles["solid"][:10] if len(tiles["solid"]) >= 10 else tiles["solid"],
+        "platform_var": tiles["platform"][:5] if len(tiles["platform"]) >= 5 else tiles["platform"],
     }
     for biome, tiles in BIOME_TILES.items()
 }
@@ -110,12 +112,13 @@ def get_tile_path(biome: str, tile_type: str, index: int = 0) -> Path:
     index = index % len(tiles)
     filename = tiles[index]
 
-    return project_root / 'assets' / 'biomes' / biome / filename
+    return project_root / "assets" / "biomes" / biome / filename
 
 
 def get_random_tile(biome: str, tile_type: str) -> Path:
     """Get a random tile for variety"""
     import random
+
     tiles = BIOME_TILES.get(biome, {}).get(tile_type, [])
     if not tiles:
         return None
@@ -129,9 +132,9 @@ def list_available_tiles(biome: str) -> dict:
 
 # Print tile counts on import (for debugging)
 if __name__ == "__main__":
-    print("="*60)
+    print("=" * 60)
     print("TILE CONFIGURATION")
-    print("="*60)
+    print("=" * 60)
     print(f"Original tile size: {ORIGINAL_TILE_SIZE}x{ORIGINAL_TILE_SIZE}")
     print(f"Game tile size: {GAME_TILE_SIZE}x{GAME_TILE_SIZE}")
     print()

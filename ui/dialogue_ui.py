@@ -11,8 +11,8 @@ Version: v0.6.0
 """
 
 import pygame
-from typing import Optional, List
-from game.dialogue_system import DialogueNode, DialogueChoice
+
+from game.dialogue_system import DialogueChoice, DialogueNode
 
 
 class DialogueUI:
@@ -44,7 +44,7 @@ class DialogueUI:
             self.text_font = pygame.font.SysFont("consolas", 16)
             self.choice_font = pygame.font.SysFont("consolas", 15)
             self.hint_font = pygame.font.SysFont("consolas", 14)
-        except:
+        except Exception:
             # Fallback to default font
             self.title_font = pygame.font.Font(None, 24)
             self.text_font = pygame.font.Font(None, 20)
@@ -64,7 +64,9 @@ class DialogueUI:
         # State
         self.selected_choice_index = 0
 
-    def render(self, surface: pygame.Surface, node: DialogueNode, available_choices: List[DialogueChoice]):
+    def render(
+        self, surface: pygame.Surface, node: DialogueNode, available_choices: list[DialogueChoice]
+    ):
         """
         Render dialogue UI.
 
@@ -82,8 +84,9 @@ class DialogueUI:
         panel_surface.fill(self.panel_bg_color)
 
         # Draw border
-        pygame.draw.rect(panel_surface, self.panel_border_color,
-                        (0, 0, self.panel_width, self.panel_height), 3)
+        pygame.draw.rect(
+            panel_surface, self.panel_border_color, (0, 0, self.panel_width, self.panel_height), 3
+        )
 
         # Render speaker name (top-left)
         speaker_surface = self.title_font.render(node.speaker, True, self.speaker_color)
@@ -107,17 +110,23 @@ class DialogueUI:
                 # Highlight selected choice
                 if i == self.selected_choice_index:
                     # Draw selection background
-                    choice_bg = pygame.Surface((self.panel_width - self.padding * 2, 26), pygame.SRCALPHA)
+                    choice_bg = pygame.Surface(
+                        (self.panel_width - self.padding * 2, 26), pygame.SRCALPHA
+                    )
                     choice_bg.fill(self.choice_bg_selected_color)
                     panel_surface.blit(choice_bg, (self.padding, choice_y - 2))
 
                     # Render choice text (selected)
                     choice_text = f"> {choice.choice_text}"
-                    choice_surface = self.choice_font.render(choice_text, True, self.choice_selected_color)
+                    choice_surface = self.choice_font.render(
+                        choice_text, True, self.choice_selected_color
+                    )
                 else:
                     # Render choice text (normal)
                     choice_text = f"  {choice.choice_text}"
-                    choice_surface = self.choice_font.render(choice_text, True, self.choice_normal_color)
+                    choice_surface = self.choice_font.render(
+                        choice_text, True, self.choice_normal_color
+                    )
 
                 panel_surface.blit(choice_surface, (self.padding + 5, choice_y))
 
@@ -139,7 +148,9 @@ class DialogueUI:
         # Blit panel to screen
         surface.blit(panel_surface, (panel_x, panel_y))
 
-    def handle_input(self, keys_pressed: List[int], available_choices: List[DialogueChoice]) -> Optional[str]:
+    def handle_input(
+        self, keys_pressed: list[int], available_choices: list[DialogueChoice]
+    ) -> str | None:
         """
         Handle keyboard input for dialogue navigation.
 
@@ -174,7 +185,7 @@ class DialogueUI:
         """Reset choice selection to first option."""
         self.selected_choice_index = 0
 
-    def _wrap_text(self, text: str, max_width: int) -> List[str]:
+    def _wrap_text(self, text: str, max_width: int) -> list[str]:
         """
         Wrap text to fit within max width.
 
@@ -185,7 +196,7 @@ class DialogueUI:
         Returns:
             List of wrapped lines
         """
-        words = text.split(' ')
+        words = text.split(" ")
         lines = []
         current_line = ""
 

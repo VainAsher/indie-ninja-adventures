@@ -8,20 +8,22 @@ This system allows:
 - Entity pooling for performance
 """
 
-from typing import Dict, List, Optional, Set, Type, Any
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from core.event_bus import EventBus, Event
-from core.state import PhysicsState
-import logging
+from typing import Any
 
+from core.event_bus import Event, EventBus
+from core.state import PhysicsState
 
 # ============================================================================
 # Entity Types
 # ============================================================================
 
+
 class EntityType(Enum):
     """Entity type enumeration"""
+
     PLAYER = "player"
     NPC = "npc"
     ENEMY = "enemy"
@@ -35,9 +37,11 @@ class EntityType(Enum):
 # Entity Events
 # ============================================================================
 
+
 @dataclass
 class EntitySpawnedEvent(Event):
     """Entity was spawned"""
+
     entity_id: int
     entity_type: EntityType
 
@@ -50,6 +54,7 @@ class EntitySpawnedEvent(Event):
 @dataclass
 class EntityDestroyedEvent(Event):
     """Entity was destroyed"""
+
     entity_id: int
     entity_type: EntityType
     reason: str  # 'death', 'despawn', 'timeout', etc.
@@ -65,6 +70,7 @@ class EntityDestroyedEvent(Event):
 # Component Base
 # ============================================================================
 
+
 class Component:
     """
     Base component class
@@ -77,11 +83,11 @@ class Component:
         self.entity_id = entity_id
         self.enabled = True
 
-    def initialize(self, entity_manager: 'EntityManager'):
+    def initialize(self, entity_manager: "EntityManager"):
         """Called when component is attached to entity"""
         pass
 
-    def update(self, dt: float, entity_manager: 'EntityManager'):
+    def update(self, dt: float, entity_manager: "EntityManager"):
         """Called every physics tick"""
         pass
 
@@ -93,6 +99,7 @@ class Component:
 # ============================================================================
 # Entity Definition
 # ============================================================================
+
 
 @dataclass
 class Entity:
@@ -106,12 +113,13 @@ class Entity:
     - Components (behavior, AI, health, etc.)
     - Custom data (for mods)
     """
+
     entity_id: int
     entity_type: EntityType
-    physics: Optional[PhysicsState] = None
-    components: Dict[Type[Component], Component] = field(default_factory=dict)
-    tags: Set[str] = field(default_factory=set)  # For queries (e.g., "enemy", "flying")
-    custom_data: Dict[str, Any] = field(default_factory=dict)  # For mods
+    physics: PhysicsState | None = None
+    components: dict[type[Component], Component] = field(default_factory=dict)
+    tags: set[str] = field(default_factory=set)  # For queries (e.g., "enemy", "flying")
+    custom_data: dict[str, Any] = field(default_factory=dict)  # For mods
     active: bool = True
 
     def add_component(self, component: Component):
@@ -119,15 +127,15 @@ class Entity:
         component_type = type(component)
         self.components[component_type] = component
 
-    def get_component(self, component_type: Type[Component]) -> Optional[Component]:
+    def get_component(self, component_type: type[Component]) -> Component | None:
         """Get component by type"""
         return self.components.get(component_type)
 
-    def has_component(self, component_type: Type[Component]) -> bool:
+    def has_component(self, component_type: type[Component]) -> bool:
         """Check if entity has component"""
         return component_type in self.components
 
-    def remove_component(self, component_type: Type[Component]):
+    def remove_component(self, component_type: type[Component]):
         """Remove component from entity"""
         if component_type in self.components:
             component = self.components.pop(component_type)
@@ -150,6 +158,7 @@ class Entity:
 # Entity Manager
 # ============================================================================
 
+
 class EntityManager:
     """
     Entity manager with component-based architecture
@@ -161,20 +170,23 @@ class EntityManager:
     - Entity pooling (future optimization)
     """
 
-    def __init__(self, event_bus: EventBus, logger: Optional[logging.Logger] = None):
+    def __init__(self, event_bus: EventBus, logger: logging.Logger | None = None):
         self.event_bus = event_bus
         self.logger = logger
 
-        self.entities: Dict[int, Entity] = {}
+        self.entities: dict[int, Entity] = {}
         self.next_entity_id = 0
 
         # Index for fast queries
-        self._entities_by_type: Dict[EntityType, Set[int]] = {}
-        self._entities_by_tag: Dict[str, Set[int]] = {}
+        self._entities_by_type: dict[EntityType, set[int]] = {}
+        self._entities_by_tag: dict[str, set[int]] = {}
 
-    def create_entity(self, entity_type: EntityType,
-                     physics: Optional[PhysicsState] = None,
-                     tags: Optional[Set[str]] = None) -> Entity:
+    def create_entity(
+        self,
+        entity_type: EntityType,
+        physics: PhysicsState | None = None,
+        tags: set[str] | None = None,
+    ) -> Entity:
         """
         Create new entity
 
@@ -188,10 +200,7 @@ class EntityManager:
         """
         entity_id = self._allocate_id()
         entity = Entity(
-            entity_id=entity_id,
-            entity_type=entity_type,
-            physics=physics,
-            tags=tags or set()
+            entity_id=entity_id, entity_type=entity_type, physics=physics, tags=tags or set()
         )
 
         self.entities[entity_id] = entity
@@ -238,9 +247,7 @@ class EntityManager:
             self._entities_by_tag[tag].discard(entity_id)
 
         # Emit destroy event
-        self.event_bus.emit(EntityDestroyedEvent(
-            entity_id, entity.entity_type, reason
-        ))
+        self.event_bus.emit(EntityDestroyedEvent(entity_id, entity.entity_type, reason))
 
         # Remove entity
         del self.entities[entity_id]
@@ -248,26 +255,23 @@ class EntityManager:
         if self.logger:
             self.logger.info(f"Entity {entity_id} destroyed: {reason}")
 
-    def get_entity(self, entity_id: int) -> Optional[Entity]:
+    def get_entity(self, entity_id: int) -> Entity | None:
         """Get entity by ID"""
         return self.entities.get(entity_id)
 
-    def get_entities_by_type(self, entity_type: EntityType) -> List[Entity]:
+    def get_entities_by_type(self, entity_type: EntityType) -> list[Entity]:
         """Get all entities of a type"""
         entity_ids = self._entities_by_type.get(entity_type, set())
         return [self.entities[eid] for eid in entity_ids if eid in self.entities]
 
-    def get_entities_by_tag(self, tag: str) -> List[Entity]:
+    def get_entities_by_tag(self, tag: str) -> list[Entity]:
         """Get all entities with a tag"""
         entity_ids = self._entities_by_tag.get(tag, set())
         return [self.entities[eid] for eid in entity_ids if eid in self.entities]
 
-    def get_entities_with_component(self, component_type: Type[Component]) -> List[Entity]:
+    def get_entities_with_component(self, component_type: type[Component]) -> list[Entity]:
         """Get all entities with a specific component"""
-        return [
-            entity for entity in self.entities.values()
-            if entity.has_component(component_type)
-        ]
+        return [entity for entity in self.entities.values() if entity.has_component(component_type)]
 
     def update_all_components(self, dt: float):
         """Update all entity components"""
@@ -304,6 +308,7 @@ class EntityManager:
 # Component Registry (for modding)
 # ============================================================================
 
+
 class ComponentRegistry:
     """
     Component registry for modding support
@@ -311,11 +316,11 @@ class ComponentRegistry:
     Allows mods to register custom components that can be attached to entities.
     """
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: logging.Logger | None = None):
         self.logger = logger
-        self.registered_components: Dict[str, Type[Component]] = {}
+        self.registered_components: dict[str, type[Component]] = {}
 
-    def register_component(self, name: str, component_class: Type[Component]):
+    def register_component(self, name: str, component_class: type[Component]):
         """
         Register component type
 
@@ -332,11 +337,11 @@ class ComponentRegistry:
         if self.logger:
             self.logger.info(f"Registered component: {name}")
 
-    def get_component(self, name: str) -> Optional[Type[Component]]:
+    def get_component(self, name: str) -> type[Component] | None:
         """Get component class by name"""
         return self.registered_components.get(name)
 
-    def create_component(self, name: str, entity_id: int, **kwargs) -> Optional[Component]:
+    def create_component(self, name: str, entity_id: int, **kwargs) -> Component | None:
         """
         Create component instance
 
@@ -361,6 +366,6 @@ class ComponentRegistry:
                 self.logger.error(f"Failed to create component '{name}': {e}")
             return None
 
-    def list_components(self) -> List[str]:
+    def list_components(self) -> list[str]:
         """List all registered components"""
         return list(self.registered_components.keys())

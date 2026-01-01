@@ -16,18 +16,17 @@ Physics Pipeline:
 """
 
 import logging
-from typing import Optional
 
-from core.event_bus import EventBus, TickEvent
-from core.entity_system import EntityManager, Entity
-from core.state import PhysicsState
 from config.physics_constants import (
-    GRAVITY,
-    MAX_FALL_SPEED,
     FALL_GRAVITY_MULT,
+    FAST_FALL_MULT,
+    GRAVITY,
     JUMP_CUT_MULT,
-    FAST_FALL_MULT
+    MAX_FALL_SPEED,
 )
+from core.entity_system import Entity, EntityManager
+from core.event_bus import EventBus, TickEvent
+from core.state import PhysicsState
 
 
 class PhysicsSystem:
@@ -45,8 +44,12 @@ class PhysicsSystem:
     NOTE: All physics constants imported from config.physics_constants
     """
 
-    def __init__(self, event_bus: EventBus, entity_manager: EntityManager,
-                 logger: Optional[logging.Logger] = None):
+    def __init__(
+        self,
+        event_bus: EventBus,
+        entity_manager: EntityManager,
+        logger: logging.Logger | None = None,
+    ):
         """
         Initialize physics system
 
@@ -165,10 +168,9 @@ class PhysicsSystem:
             Dictionary with stats
         """
         return {
-            'entities_with_physics': sum(
-                1 for e in self.entity_manager.entities.values()
-                if e.physics and e.active
+            "entities_with_physics": sum(
+                1 for e in self.entity_manager.entities.values() if e.physics and e.active
             ),
-            'gravity': self.GRAVITY,
-            'max_fall_speed': self.MAX_FALL_SPEED,
+            "gravity": self.GRAVITY,
+            "max_fall_speed": self.MAX_FALL_SPEED,
         }

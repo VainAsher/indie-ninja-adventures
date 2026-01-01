@@ -25,7 +25,10 @@ def test_input_command_from_keys_and_serialization():
     assert cmd.right is False
 
     encoded = json.dumps(cmd.to_dict(), sort_keys=True, separators=(",", ":"))
-    assert encoded == '{"cycle_camera":true,"crouch":false,"dash":false,"down":false,"frame":5,"jump":true,"left":true,"right":false,"toggle_proc":false,"up":false}'
+    assert (
+        encoded
+        == '{"cycle_camera":true,"crouch":false,"dash":false,"down":false,"frame":5,"jump":true,"left":true,"right":false,"toggle_proc":false,"up":false}'
+    )
 
     decoded = InputCommand.from_dict(cmd.to_dict())
     assert decoded == cmd
@@ -41,7 +44,10 @@ def test_snapshot_roundtrip_deterministic_order():
     )
     snap_dict = snap.to_dict()
     encoded = json.dumps(snap_dict, sort_keys=True, separators=(",", ":"))
-    assert encoded == '{"frame":12,"metadata":{"mode":"PROCEDURAL"},"player_pos":[100.5,200.25],"player_vel":[1.0,-2.0],"seed":12345}'
+    assert (
+        encoded
+        == '{"frame":12,"metadata":{"mode":"PROCEDURAL"},"player_pos":[100.5,200.25],"player_vel":[1.0,-2.0],"seed":12345}'
+    )
 
     decoded = Snapshot.from_dict(snap_dict)
     assert decoded == snap

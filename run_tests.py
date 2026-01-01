@@ -12,9 +12,9 @@ Usage:
     python run_tests.py --verbose          # Run with verbose output
 """
 
-import sys
-import subprocess
 import os
+import subprocess
+import sys
 
 # Add project root to Python path so tests can find modules
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -45,7 +45,7 @@ TEST_CATEGORIES = {
         "tests/edge_cases/test_wall_clip.py",
         "tests/edge_cases/test_equal_overlap.py",
         "tests/edge_cases/test_threshold_balance.py",
-    ]
+    ],
 }
 
 
@@ -67,14 +67,10 @@ def run_test_file(test_path: str, verbose: bool = False) -> bool:
     try:
         # Run the test file with project root in PYTHONPATH
         env = os.environ.copy()
-        env['PYTHONPATH'] = PROJECT_ROOT
+        env["PYTHONPATH"] = PROJECT_ROOT
 
         result = subprocess.run(
-            [sys.executable, test_path],
-            capture_output=not verbose,
-            text=True,
-            timeout=30,
-            env=env
+            [sys.executable, test_path], capture_output=not verbose, text=True, timeout=30, env=env
         )
 
         if result.returncode == 0:

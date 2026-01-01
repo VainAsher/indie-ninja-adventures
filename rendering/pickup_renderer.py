@@ -4,9 +4,9 @@ Pickup Renderer - Visual rendering for pickups
 Renders coins, health, and collectibles with animations.
 """
 
-import pygame
 import math
-from typing import List
+
+import pygame
 
 
 def render_pickup(surface: pygame.Surface, pickup, camera):
@@ -25,12 +25,7 @@ def render_pickup(surface: pygame.Surface, pickup, camera):
     render_x, render_y = pickup.get_render_position()
 
     # Create rect for camera transform
-    pickup_rect = pygame.Rect(
-        int(render_x),
-        int(render_y),
-        pickup.width,
-        pickup.height
-    )
+    pickup_rect = pygame.Rect(int(render_x), int(render_y), pickup.width, pickup.height)
 
     # Apply camera transform
     screen_rect = camera.apply(pickup_rect)
@@ -132,7 +127,7 @@ def render_collectible(surface: pygame.Surface, rect: pygame.Rect, pickup):
     pygame.draw.circle(surface, (200, 255, 255), center, size // 6)
 
 
-def render_pickups(surface: pygame.Surface, pickups: List, camera):
+def render_pickups(surface: pygame.Surface, pickups: list, camera):
     """
     Render all alive pickups.
 

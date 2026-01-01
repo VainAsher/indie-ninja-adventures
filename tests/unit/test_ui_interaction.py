@@ -14,21 +14,21 @@ Coverage:
 Test philosophy: Verify UI logic, not visual rendering
 """
 
-import pytest
 import pygame
-from typing import List
+import pytest
+
+from game.dialogue_system import DialogueChoice, DialogueNode
+from ui.dialogue_ui import DialogueUI
 
 # Import UI modules
-from ui.menu_system import BaseMenu, MenuItem, MenuAction, MainMenu, PauseMenu
-from ui.dialogue_ui import DialogueUI
-from game.dialogue_system import DialogueNode, DialogueChoice
-
+from ui.menu_system import BaseMenu, MainMenu, MenuAction, PauseMenu
 
 # ============================================================
 # Test Fixtures
 # ============================================================
 
-@pytest.fixture(scope='module', autouse=True)
+
+@pytest.fixture(scope="module", autouse=True)
 def pygame_init():
     """Initialize pygame once for all tests"""
     pygame.init()
@@ -59,7 +59,7 @@ def sample_dialogue_node():
         node_id="test_node",
         speaker="Elder",
         text="Welcome, young ninja. What brings you here?",
-        choices=["ask_about_mission", "ask_about_village", "leave"]
+        choices=["ask_about_mission", "ask_about_village", "leave"],
     )
 
 
@@ -67,24 +67,16 @@ def sample_dialogue_node():
 def sample_dialogue_choices():
     """Create sample dialogue choices"""
     return [
-        DialogueChoice(
-            choice_text="Tell me about the mission",
-            next_node_id="mission_info"
-        ),
-        DialogueChoice(
-            choice_text="What happened to the village?",
-            next_node_id="village_info"
-        ),
-        DialogueChoice(
-            choice_text="I must go",
-            next_node_id="goodbye"
-        )
+        DialogueChoice(choice_text="Tell me about the mission", next_node_id="mission_info"),
+        DialogueChoice(choice_text="What happened to the village?", next_node_id="village_info"),
+        DialogueChoice(choice_text="I must go", next_node_id="goodbye"),
     ]
 
 
 # ============================================================
 # Menu Navigation Tests
 # ============================================================
+
 
 def test_menu_initialization(base_menu):
     """Test menu can be initialized"""
@@ -218,6 +210,7 @@ def test_menu_empty_navigation():
 # Main Menu Tests
 # ============================================================
 
+
 def test_main_menu_initialization():
     """Test MainMenu can be initialized"""
     menu = MainMenu(800, 600)
@@ -251,6 +244,7 @@ def test_main_menu_has_quit_option():
 # Pause Menu Tests
 # ============================================================
 
+
 def test_pause_menu_initialization():
     """Test PauseMenu can be initialized"""
     menu = PauseMenu(800, 600)
@@ -283,6 +277,7 @@ def test_pause_menu_has_quit_to_menu_option():
 # ============================================================
 # Dialogue UI Tests
 # ============================================================
+
 
 def test_dialogue_ui_initialization(dialogue_ui):
     """Test DialogueUI can be initialized"""
@@ -363,6 +358,7 @@ def test_dialogue_ui_no_choices():
 # Input Handling Tests
 # ============================================================
 
+
 def test_menu_render_no_crash():
     """Test menu rendering doesn't crash"""
     menu = BaseMenu("Test", 800, 600)
@@ -394,6 +390,7 @@ def test_dialogue_ui_render_no_choices(dialogue_ui, sample_dialogue_node):
 # ============================================================
 # Edge Cases
 # ============================================================
+
 
 def test_menu_single_item():
     """Test menu with single item"""
@@ -429,12 +426,7 @@ def test_menu_all_disabled():
 
 def test_dialogue_single_choice(dialogue_ui):
     """Test dialogue with single choice"""
-    single_choice = [
-        DialogueChoice(
-            choice_text="Continue",
-            next_node_id="next"
-        )
-    ]
+    single_choice = [DialogueChoice(choice_text="Continue", next_node_id="next")]
 
     dialogue_ui.selected_choice_index = 0
 
@@ -452,6 +444,7 @@ def test_dialogue_single_choice(dialogue_ui):
 # ============================================================
 # Integration Tests
 # ============================================================
+
 
 def test_menu_full_navigation_cycle():
     """Test complete navigation cycle through menu"""

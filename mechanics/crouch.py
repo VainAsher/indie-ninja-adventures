@@ -19,11 +19,12 @@ Crouch Characteristics:
 - Used for: stealth, fitting through tight spaces, precise movement
 """
 
-from mechanics.base import BaseMechanic
+import pygame
+
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
-import pygame
+from mechanics.base import BaseMechanic
 
 
 class CrouchMechanic(BaseMechanic):
@@ -47,8 +48,9 @@ class CrouchMechanic(BaseMechanic):
     CROUCH_JUMP_MULT = 0.7  # Jump power when crouched
     CROUCH_HEIGHT_RATIO = 0.5  # Height when crouched (50% of normal)
 
-    def __init__(self, entity_id: int, event_bus: EventBus, logger: MechanicLogger,
-                 collision_checker=None):
+    def __init__(
+        self, entity_id: int, event_bus: EventBus, logger: MechanicLogger, collision_checker=None
+    ):
         """
         Initialize crouch mechanic
 
@@ -96,8 +98,7 @@ class CrouchMechanic(BaseMechanic):
             self.normal_height = state.physics.height
             self.crouch_height = int(self.normal_height * self.CROUCH_HEIGHT_RATIO)
             self.logger.info(
-                f"Crouch heights set: normal={self.normal_height}, "
-                f"crouch={self.crouch_height}"
+                f"Crouch heights set: normal={self.normal_height}, " f"crouch={self.crouch_height}"
             )
 
         # Apply desired crouch (hold)
@@ -127,9 +128,7 @@ class CrouchMechanic(BaseMechanic):
         state.physics.height = self.crouch_height
         state.crouching = True
 
-        self.logger.info(
-            f"Entered crouch (height {self.normal_height} -> {self.crouch_height})"
-        )
+        self.logger.info(f"Entered crouch (height {self.normal_height} -> {self.crouch_height})")
 
     def _try_exit_crouch(self, state: PlayerState):
         """
@@ -149,7 +148,7 @@ class CrouchMechanic(BaseMechanic):
             int(state.physics.x),
             int(state.physics.y - height_diff),
             state.physics.width,
-            self.normal_height
+            self.normal_height,
         )
 
         # Check collision with ceiling/platforms
@@ -164,9 +163,7 @@ class CrouchMechanic(BaseMechanic):
         state.physics.height = self.normal_height
         state.crouching = False
 
-        self.logger.info(
-            f"Exited crouch (height {self.crouch_height} -> {self.normal_height})"
-        )
+        self.logger.info(f"Exited crouch (height {self.crouch_height} -> {self.normal_height})")
 
     def _force_exit_crouch(self, state: PlayerState):
         """
@@ -195,7 +192,7 @@ class CrouchMechanic(BaseMechanic):
             True if collision detected
         """
         # Use collision checker if available
-        if hasattr(self.collision_checker, 'tiles'):
+        if hasattr(self.collision_checker, "tiles"):
             for tile in self.collision_checker.tiles:
                 if test_rect.colliderect(tile):
                     return True
@@ -222,13 +219,13 @@ class CrouchMechanic(BaseMechanic):
         """
         if state.crouching:
             return {
-                'speed_mult': self.CROUCH_SPEED_MULT,
-                'accel_mult': self.CROUCH_ACCEL_MULT,
+                "speed_mult": self.CROUCH_SPEED_MULT,
+                "accel_mult": self.CROUCH_ACCEL_MULT,
             }
         else:
             return {
-                'speed_mult': 1.0,
-                'accel_mult': 1.0,
+                "speed_mult": 1.0,
+                "accel_mult": 1.0,
             }
 
     def reset(self, state: PlayerState):

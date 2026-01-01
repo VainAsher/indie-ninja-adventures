@@ -13,8 +13,8 @@ Version: v0.6.0
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 from enum import Enum
+
 import pygame
 
 from core import EventBus
@@ -22,6 +22,7 @@ from core import EventBus
 
 class NPCType(Enum):
     """NPC functional types"""
+
     MISSION_GIVER = "mission_giver"
     SHOP = "shop"
     LORE = "lore"
@@ -35,13 +36,14 @@ class NPCDefinition:
 
     Defines NPC properties and behavior.
     """
+
     npc_id: str
     npc_type: NPCType
     display_name: str
     sprite_id: str = "npc_default"  # Sprite sheet identifier
-    dialogue_id: Optional[str] = None  # Dialogue tree ID
+    dialogue_id: str | None = None  # Dialogue tree ID
     shop_tier: int = 1  # For shop NPCs (1-5)
-    mission_pool: List[str] = field(default_factory=list)  # For mission givers
+    mission_pool: list[str] = field(default_factory=list)  # For mission givers
 
 
 @dataclass
@@ -51,6 +53,7 @@ class NPC:
 
     Represents an active NPC with position and state.
     """
+
     npc_id: str
     npc_type: NPCType
     x: float
@@ -69,7 +72,7 @@ class NPC:
     show_indicator: bool = True  # Show "!" or "?" above NPC
 
     # Movement state (optional patrol)
-    patrol_waypoints: List[Tuple[float, float]] = field(default_factory=list)
+    patrol_waypoints: list[tuple[float, float]] = field(default_factory=list)
     current_waypoint_index: int = 0
     patrol_wait_time: float = 0.0  # Time to wait at waypoint
     patrol_speed: float = 30.0  # Slow walking speed (px/s)
@@ -84,15 +87,11 @@ class NPC:
         radius = int(self.interaction_radius)
         center_x = int(self.x + self.width / 2)
         center_y = int(self.y + self.height / 2)
-        return pygame.Rect(
-            center_x - radius,
-            center_y - radius,
-            radius * 2,
-            radius * 2
-        )
+        return pygame.Rect(center_x - radius, center_y - radius, radius * 2, radius * 2)
 
-    def can_interact_with_player(self, player_x: float, player_y: float,
-                                 player_width: int, player_height: int) -> bool:
+    def can_interact_with_player(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> bool:
         """
         Check if player is in interaction range.
 
@@ -123,13 +122,13 @@ class NPC:
 
         return distance <= self.interaction_radius
 
-    def set_patrol_waypoints(self, waypoints: List[Tuple[float, float]]):
+    def set_patrol_waypoints(self, waypoints: list[tuple[float, float]]):
         """Set patrol waypoints for NPC"""
         self.patrol_waypoints = waypoints
         self.current_waypoint_index = 0
         self.has_patrol = len(waypoints) > 0
 
-    def get_current_waypoint(self) -> Optional[Tuple[float, float]]:
+    def get_current_waypoint(self) -> tuple[float, float] | None:
         """Get current patrol waypoint"""
         if not self.patrol_waypoints:
             return None
@@ -156,7 +155,7 @@ class NPC:
         elif target_x < npc_center_x:
             self.facing = -1  # Face left
 
-    def update(self, dt: float, player_x: Optional[float] = None, player_y: Optional[float] = None):
+    def update(self, dt: float, player_x: float | None = None, player_y: float | None = None):
         """
         Update NPC state.
 
@@ -244,9 +243,11 @@ class NPC:
 # NPC Events
 # ============================================================
 
+
 @dataclass
 class NPCInteractionEvent:
     """Event emitted when player interacts with NPC"""
+
     npc_id: str
     npc_type: NPCType
     player_id: int
@@ -255,6 +256,7 @@ class NPCInteractionEvent:
 @dataclass
 class DialogueStartEvent:
     """Event emitted to start dialogue with NPC"""
+
     npc_id: str
     dialogue_id: str
 
@@ -262,6 +264,7 @@ class DialogueStartEvent:
 @dataclass
 class ShopOpenEvent:
     """Event emitted to open shop interface"""
+
     npc_id: str
     shop_tier: int
 
@@ -269,13 +272,15 @@ class ShopOpenEvent:
 @dataclass
 class MissionMenuOpenEvent:
     """Event emitted to open mission selection menu"""
+
     npc_id: str
-    mission_pool: List[str]
+    mission_pool: list[str]
 
 
 # ============================================================
 # NPC Manager
 # ============================================================
+
 
 class NPCManager:
     """
@@ -292,19 +297,19 @@ class NPCManager:
             event_bus: Event bus for emitting events
         """
         self.event_bus = event_bus
-        self.npcs: List[NPC] = []
-        self.npc_definitions: Dict[str, NPCDefinition] = {}
+        self.npcs: list[NPC] = []
+        self.npc_definitions: dict[str, NPCDefinition] = {}
         self._register_default_npcs()
 
     def register_npc_definition(self, npc_def: NPCDefinition):
         """Register an NPC definition"""
         self.npc_definitions[npc_def.npc_id] = npc_def
 
-    def get_npc_definition(self, npc_id: str) -> Optional[NPCDefinition]:
+    def get_npc_definition(self, npc_id: str) -> NPCDefinition | None:
         """Get NPC definition by ID"""
         return self.npc_definitions.get(npc_id)
 
-    def spawn_npc(self, npc_id: str, x: float, y: float) -> Optional[NPC]:
+    def spawn_npc(self, npc_id: str, x: float, y: float) -> NPC | None:
         """
         Spawn an NPC instance.
 
@@ -321,12 +326,7 @@ class NPCManager:
             print(f"[WARNING] NPC definition not found: {npc_id}")
             return None
 
-        npc = NPC(
-            npc_id=npc_id,
-            npc_type=npc_def.npc_type,
-            x=x,
-            y=y
-        )
+        npc = NPC(npc_id=npc_id, npc_type=npc_def.npc_type, x=x, y=y)
 
         self.npcs.append(npc)
         return npc
@@ -335,7 +335,7 @@ class NPCManager:
         """Remove all NPCs (e.g., when changing hubs)"""
         self.npcs.clear()
 
-    def set_npc_patrol(self, npc_id: str, waypoints: List[Tuple[float, float]]):
+    def set_npc_patrol(self, npc_id: str, waypoints: list[tuple[float, float]]):
         """
         Set patrol waypoints for an NPC.
 
@@ -349,7 +349,7 @@ class NPCManager:
                 return
         print(f"[WARNING] NPC not found for patrol setup: {npc_id}")
 
-    def update(self, dt: float, player_x: Optional[float] = None, player_y: Optional[float] = None):
+    def update(self, dt: float, player_x: float | None = None, player_y: float | None = None):
         """
         Update all NPCs.
 
@@ -361,9 +361,14 @@ class NPCManager:
         for npc in self.npcs:
             npc.update(dt, player_x, player_y)
 
-    def check_interaction(self, player_x: float, player_y: float,
-                         player_width: int, player_height: int,
-                         player_id: int = 0) -> Optional[NPC]:
+    def check_interaction(
+        self,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        player_id: int = 0,
+    ) -> NPC | None:
         """
         Check if player can interact with any NPC.
 
@@ -378,7 +383,7 @@ class NPCManager:
             Closest NPC player can interact with, or None
         """
         closest_npc = None
-        closest_distance = float('inf')
+        closest_distance = float("inf")
 
         # Get player center
         player_center_x = player_x + player_width / 2
@@ -411,11 +416,9 @@ class NPCManager:
             player_id: Player ID
         """
         # Emit general interaction event
-        self.event_bus.emit(NPCInteractionEvent(
-            npc_id=npc.npc_id,
-            npc_type=npc.npc_type,
-            player_id=player_id
-        ))
+        self.event_bus.emit(
+            NPCInteractionEvent(npc_id=npc.npc_id, npc_type=npc.npc_type, player_id=player_id)
+        )
 
         # Get NPC definition
         npc_def = self.get_npc_definition(npc.npc_id)
@@ -424,26 +427,22 @@ class NPCManager:
 
         # Emit type-specific events
         if npc.npc_type == NPCType.SHOP:
-            self.event_bus.emit(ShopOpenEvent(
-                npc_id=npc.npc_id,
-                shop_tier=npc_def.shop_tier
-            ))
+            self.event_bus.emit(ShopOpenEvent(npc_id=npc.npc_id, shop_tier=npc_def.shop_tier))
 
         elif npc.npc_type == NPCType.MISSION_GIVER:
-            self.event_bus.emit(MissionMenuOpenEvent(
-                npc_id=npc.npc_id,
-                mission_pool=npc_def.mission_pool
-            ))
+            self.event_bus.emit(
+                MissionMenuOpenEvent(npc_id=npc.npc_id, mission_pool=npc_def.mission_pool)
+            )
 
         elif npc.npc_type in (NPCType.LORE, NPCType.TUTORIAL):
             if npc_def.dialogue_id:
-                self.event_bus.emit(DialogueStartEvent(
-                    npc_id=npc.npc_id,
-                    dialogue_id=npc_def.dialogue_id
-                ))
+                self.event_bus.emit(
+                    DialogueStartEvent(npc_id=npc.npc_id, dialogue_id=npc_def.dialogue_id)
+                )
 
-    def get_nearby_npcs(self, player_x: float, player_y: float,
-                       player_width: int, player_height: int) -> List[NPC]:
+    def get_nearby_npcs(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> list[NPC]:
         """
         Get all NPCs in interaction range of player.
 
@@ -466,91 +465,129 @@ class NPCManager:
         """Register default NPC definitions"""
 
         # Central Hub NPCs
-        self.register_npc_definition(NPCDefinition(
-            npc_id="tutorial_elder",
-            npc_type=NPCType.TUTORIAL,
-            display_name="Elder Guardian",
-            dialogue_id="tutorial_elder"
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="tutorial_elder",
+                npc_type=NPCType.TUTORIAL,
+                display_name="Elder Guardian",
+                dialogue_id="tutorial_elder",
+            )
+        )
 
         # Forest Hub NPCs
-        self.register_npc_definition(NPCDefinition(
-            npc_id="forest_ranger",
-            npc_type=NPCType.MISSION_GIVER,
-            display_name="Forest Ranger",
-            mission_pool=["demo_coin_run", "forest_1", "forest_2", "forest_3", "forest_4", "forest_5"]
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="forest_ranger",
+                npc_type=NPCType.MISSION_GIVER,
+                display_name="Forest Ranger",
+                mission_pool=[
+                    "demo_coin_run",
+                    "forest_1",
+                    "forest_2",
+                    "forest_3",
+                    "forest_4",
+                    "forest_5",
+                ],
+            )
+        )
 
-        self.register_npc_definition(NPCDefinition(
-            npc_id="forest_merchant",
-            npc_type=NPCType.SHOP,
-            display_name="Forest Merchant",
-            shop_tier=1
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="forest_merchant",
+                npc_type=NPCType.SHOP,
+                display_name="Forest Merchant",
+                shop_tier=1,
+            )
+        )
 
         # Town Hub NPCs
-        self.register_npc_definition(NPCDefinition(
-            npc_id="town_captain",
-            npc_type=NPCType.MISSION_GIVER,
-            display_name="Town Captain",
-            mission_pool=["town_1", "town_2", "town_3", "town_4", "town_5", "town_6"]
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="town_captain",
+                npc_type=NPCType.MISSION_GIVER,
+                display_name="Town Captain",
+                mission_pool=["town_1", "town_2", "town_3", "town_4", "town_5", "town_6"],
+            )
+        )
 
-        self.register_npc_definition(NPCDefinition(
-            npc_id="town_blacksmith",
-            npc_type=NPCType.SHOP,
-            display_name="Blacksmith",
-            shop_tier=2
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="town_blacksmith",
+                npc_type=NPCType.SHOP,
+                display_name="Blacksmith",
+                shop_tier=2,
+            )
+        )
 
-        self.register_npc_definition(NPCDefinition(
-            npc_id="town_historian",
-            npc_type=NPCType.LORE,
-            display_name="Town Historian",
-            dialogue_id="town_history"
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="town_historian",
+                npc_type=NPCType.LORE,
+                display_name="Town Historian",
+                dialogue_id="town_history",
+            )
+        )
 
         # Caves Hub NPCs
-        self.register_npc_definition(NPCDefinition(
-            npc_id="cave_explorer",
-            npc_type=NPCType.MISSION_GIVER,
-            display_name="Cave Explorer",
-            mission_pool=["caves_1", "caves_2", "caves_3", "caves_4", "caves_5"]
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="cave_explorer",
+                npc_type=NPCType.MISSION_GIVER,
+                display_name="Cave Explorer",
+                mission_pool=["caves_1", "caves_2", "caves_3", "caves_4", "caves_5"],
+            )
+        )
 
-        self.register_npc_definition(NPCDefinition(
-            npc_id="crystal_trader",
-            npc_type=NPCType.SHOP,
-            display_name="Crystal Trader",
-            shop_tier=3
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="crystal_trader",
+                npc_type=NPCType.SHOP,
+                display_name="Crystal Trader",
+                shop_tier=3,
+            )
+        )
 
         # Castle Hub NPCs
-        self.register_npc_definition(NPCDefinition(
-            npc_id="castle_commander",
-            npc_type=NPCType.MISSION_GIVER,
-            display_name="Castle Commander",
-            mission_pool=["castle_1", "castle_2", "castle_3", "castle_4", "castle_5", "castle_6"]
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="castle_commander",
+                npc_type=NPCType.MISSION_GIVER,
+                display_name="Castle Commander",
+                mission_pool=[
+                    "castle_1",
+                    "castle_2",
+                    "castle_3",
+                    "castle_4",
+                    "castle_5",
+                    "castle_6",
+                ],
+            )
+        )
 
-        self.register_npc_definition(NPCDefinition(
-            npc_id="castle_armorer",
-            npc_type=NPCType.SHOP,
-            display_name="Castle Armorer",
-            shop_tier=4
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="castle_armorer",
+                npc_type=NPCType.SHOP,
+                display_name="Castle Armorer",
+                shop_tier=4,
+            )
+        )
 
         # Sewer Hub NPCs
-        self.register_npc_definition(NPCDefinition(
-            npc_id="sewer_scout",
-            npc_type=NPCType.MISSION_GIVER,
-            display_name="Sewer Scout",
-            mission_pool=["sewer_1", "sewer_2", "sewer_3"]
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="sewer_scout",
+                npc_type=NPCType.MISSION_GIVER,
+                display_name="Sewer Scout",
+                mission_pool=["sewer_1", "sewer_2", "sewer_3"],
+            )
+        )
 
-        self.register_npc_definition(NPCDefinition(
-            npc_id="sewer_vendor",
-            npc_type=NPCType.SHOP,
-            display_name="Sewer Vendor",
-            shop_tier=5
-        ))
+        self.register_npc_definition(
+            NPCDefinition(
+                npc_id="sewer_vendor",
+                npc_type=NPCType.SHOP,
+                display_name="Sewer Vendor",
+                shop_tier=5,
+            )
+        )

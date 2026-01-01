@@ -1,10 +1,11 @@
 """Test wall collision - player shouldn't go off left edge."""
+
 import pygame
 
-from systems.collision_system import CollisionSystem
-from core.entity_system import Entity, EntityType, EntityManager
-from core.state import PhysicsState
+from core.entity_system import Entity, EntityManager, EntityType
 from core.event_bus import EventBus
+from core.state import PhysicsState
+from systems.collision_system import CollisionSystem
 
 
 def main():
@@ -33,7 +34,7 @@ def main():
     )
 
     print("\n=== Test: Player moving left toward wall ===")
-    print(f"Before collision:")
+    print("Before collision:")
     print(f"  Position: ({player.physics.x}, {player.physics.y})")
     print(f"  Velocity: ({player.physics.vx}, {player.physics.vy})")
     print(f"  Player rect: {player.physics.get_rect()}")
@@ -46,11 +47,11 @@ def main():
             print(f"  Player DOES collide with wall tile {i}: {tile}")
             break
     else:
-        print(f"  Player does NOT collide with any wall tiles")
+        print("  Player does NOT collide with any wall tiles")
 
     collision_system.check_and_resolve(player)
 
-    print(f"\nAfter collision:")
+    print("\nAfter collision:")
     print(f"  Position: ({player.physics.x}, {player.physics.y})")
     print(f"  Velocity: ({player.physics.vx}, {player.physics.vy})")
     print(f"  On wall: {player.physics.on_wall}")

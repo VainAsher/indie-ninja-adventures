@@ -16,9 +16,9 @@ Symbolic meaning:
 Version: v0.7.0
 """
 
-import pygame
 import math
-from typing import Tuple, Optional
+
+import pygame
 
 
 class CompanionOrbs:
@@ -43,14 +43,14 @@ class CompanionOrbs:
 
         # Yin (left/white) parameters
         self.yin_size: int = 8  # Radius in pixels
-        self.yin_color: Tuple[int, int, int] = (220, 220, 255)  # Soft white-blue
+        self.yin_color: tuple[int, int, int] = (220, 220, 255)  # Soft white-blue
         self.yin_glow_size: int = 16  # Glow radius
         self.yin_pulse_speed: float = 2.0  # Pulse animation speed
         self.yin_pulse_offset: float = 0.0
 
         # Yang (right/gold) parameters
         self.yang_size: int = 8  # Radius in pixels
-        self.yang_color: Tuple[int, int, int] = (255, 220, 150)  # Warm gold
+        self.yang_color: tuple[int, int, int] = (255, 220, 150)  # Warm gold
         self.yang_glow_size: int = 16  # Glow radius
         self.yang_flicker_speed: float = 6.0  # Flicker animation speed (faster than Yin)
         self.yang_flicker_offset: float = 1.57  # π/2 offset from Yin
@@ -62,8 +62,9 @@ class CompanionOrbs:
         # Audio (placeholder - would need sound system integration)
         self.enable_audio: bool = False  # Enable gentle hum/chime sounds
 
-    def update(self, dt: float, player_x: float, player_y: float,
-               player_width: int, player_height: int) -> None:
+    def update(
+        self, dt: float, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> None:
         """
         Update companion orb positions and animations.
 
@@ -87,8 +88,9 @@ class CompanionOrbs:
         if self.enable_particles:
             self._update_particles(dt, player_x, player_y, player_width, player_height)
 
-    def _update_particles(self, dt: float, player_x: float, player_y: float,
-                         player_width: int, player_height: int) -> None:
+    def _update_particles(
+        self, dt: float, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> None:
         """
         Update particle effects for orbs.
 
@@ -101,11 +103,11 @@ class CompanionOrbs:
         """
         # Update existing particles
         for particle in self.particles[:]:
-            particle['lifetime'] -= dt
-            particle['y'] -= particle['speed'] * dt  # Float upward
-            particle['alpha'] *= 0.95  # Fade out
+            particle["lifetime"] -= dt
+            particle["y"] -= particle["speed"] * dt  # Float upward
+            particle["alpha"] *= 0.95  # Fade out
 
-            if particle['lifetime'] <= 0 or particle['alpha'] < 10:
+            if particle["lifetime"] <= 0 or particle["alpha"] < 10:
                 self.particles.remove(particle)
 
         # Spawn new particles (occasionally)
@@ -124,7 +126,7 @@ class CompanionOrbs:
                 yang_x, yang_y = self._get_yang_position(player_center_x, player_center_y)
                 self._spawn_particle(yang_x, yang_y, (255, 220, 150))
 
-    def _spawn_particle(self, x: float, y: float, color: Tuple[int, int, int]) -> None:
+    def _spawn_particle(self, x: float, y: float, color: tuple[int, int, int]) -> None:
         """
         Spawn a small particle at orb location.
 
@@ -136,16 +138,18 @@ class CompanionOrbs:
         import random
 
         particle = {
-            'x': x + random.uniform(-3, 3),
-            'y': y + random.uniform(-3, 3),
-            'color': color,
-            'lifetime': random.uniform(0.5, 1.0),
-            'speed': random.uniform(10, 20),  # Upward speed
-            'alpha': 150
+            "x": x + random.uniform(-3, 3),
+            "y": y + random.uniform(-3, 3),
+            "color": color,
+            "lifetime": random.uniform(0.5, 1.0),
+            "speed": random.uniform(10, 20),  # Upward speed
+            "alpha": 150,
         }
         self.particles.append(particle)
 
-    def _get_yin_position(self, player_center_x: float, player_center_y: float) -> Tuple[float, float]:
+    def _get_yin_position(
+        self, player_center_x: float, player_center_y: float
+    ) -> tuple[float, float]:
         """
         Get Yin orb position (left side of orbit).
 
@@ -163,7 +167,9 @@ class CompanionOrbs:
 
         return (player_center_x + offset_x, player_center_y + offset_y)
 
-    def _get_yang_position(self, player_center_x: float, player_center_y: float) -> Tuple[float, float]:
+    def _get_yang_position(
+        self, player_center_x: float, player_center_y: float
+    ) -> tuple[float, float]:
         """
         Get Yang orb position (right side of orbit).
 
@@ -181,8 +187,16 @@ class CompanionOrbs:
 
         return (player_center_x + offset_x, player_center_y + offset_y)
 
-    def render(self, screen: pygame.Surface, player_x: float, player_y: float,
-               player_width: int, player_height: int, camera_x: float = 0.0, camera_y: float = 0.0) -> None:
+    def render(
+        self,
+        screen: pygame.Surface,
+        player_x: float,
+        player_y: float,
+        player_width: int,
+        player_height: int,
+        camera_x: float = 0.0,
+        camera_y: float = 0.0,
+    ) -> None:
         """
         Render companion orbs around player.
 
@@ -213,8 +227,14 @@ class CompanionOrbs:
             yang_x, yang_y = self._get_yang_position(player_center_x, player_center_y)
             self._render_yang(screen, yang_x, yang_y, camera_x, camera_y)
 
-    def _render_yin(self, screen: pygame.Surface, world_x: float, world_y: float,
-                    camera_x: float, camera_y: float) -> None:
+    def _render_yin(
+        self,
+        screen: pygame.Surface,
+        world_x: float,
+        world_y: float,
+        camera_x: float,
+        camera_y: float,
+    ) -> None:
         """
         Render Yin orb (white, steady glow).
 
@@ -233,14 +253,18 @@ class CompanionOrbs:
         pulse = 0.85 + 0.15 * math.sin(self.yin_pulse_offset)
 
         # Render glow (outer layer)
-        glow_surface = pygame.Surface((self.yin_glow_size * 2, self.yin_glow_size * 2), pygame.SRCALPHA)
+        glow_surface = pygame.Surface(
+            (self.yin_glow_size * 2, self.yin_glow_size * 2), pygame.SRCALPHA
+        )
         glow_alpha = int(80 * pulse)
         glow_color = (*self.yin_color, glow_alpha)
 
         for radius in range(self.yin_glow_size, self.yin_size, -2):
             alpha = int(glow_alpha * (1.0 - radius / self.yin_glow_size))
             color = (*self.yin_color, alpha)
-            pygame.draw.circle(glow_surface, color, (self.yin_glow_size, self.yin_glow_size), radius)
+            pygame.draw.circle(
+                glow_surface, color, (self.yin_glow_size, self.yin_glow_size), radius
+            )
 
         screen.blit(glow_surface, (screen_x - self.yin_glow_size, screen_y - self.yin_glow_size))
 
@@ -252,8 +276,14 @@ class CompanionOrbs:
         orb_color = tuple(int(c * pulse) for c in self.yin_color)
         pygame.draw.circle(screen, orb_color, (screen_x, screen_y), self.yin_size - 2)
 
-    def _render_yang(self, screen: pygame.Surface, world_x: float, world_y: float,
-                     camera_x: float, camera_y: float) -> None:
+    def _render_yang(
+        self,
+        screen: pygame.Surface,
+        world_x: float,
+        world_y: float,
+        camera_x: float,
+        camera_y: float,
+    ) -> None:
         """
         Render Yang orb (gold, flickering glow).
 
@@ -272,14 +302,18 @@ class CompanionOrbs:
         flicker = 0.7 + 0.3 * abs(math.sin(self.yang_flicker_offset))
 
         # Render glow (outer layer)
-        glow_surface = pygame.Surface((self.yang_glow_size * 2, self.yang_glow_size * 2), pygame.SRCALPHA)
+        glow_surface = pygame.Surface(
+            (self.yang_glow_size * 2, self.yang_glow_size * 2), pygame.SRCALPHA
+        )
         glow_alpha = int(100 * flicker)
         glow_color = (*self.yang_color, glow_alpha)
 
         for radius in range(self.yang_glow_size, self.yang_size, -2):
             alpha = int(glow_alpha * (1.0 - radius / self.yang_glow_size))
             color = (*self.yang_color, alpha)
-            pygame.draw.circle(glow_surface, color, (self.yang_glow_size, self.yang_glow_size), radius)
+            pygame.draw.circle(
+                glow_surface, color, (self.yang_glow_size, self.yang_glow_size), radius
+            )
 
         screen.blit(glow_surface, (screen_x - self.yang_glow_size, screen_y - self.yang_glow_size))
 
@@ -301,13 +335,13 @@ class CompanionOrbs:
             camera_y: Camera Y offset
         """
         for particle in self.particles:
-            screen_x = int(particle['x'] - camera_x)
-            screen_y = int(particle['y'] - camera_y)
+            screen_x = int(particle["x"] - camera_x)
+            screen_y = int(particle["y"] - camera_y)
 
             # Draw small particle
-            alpha = int(particle['alpha'])
+            alpha = int(particle["alpha"])
             if alpha > 0:
-                color = (*particle['color'], alpha)
+                color = (*particle["color"], alpha)
                 particle_surface = pygame.Surface((4, 4), pygame.SRCALPHA)
                 pygame.draw.circle(particle_surface, color, (2, 2), 2)
                 screen.blit(particle_surface, (screen_x - 2, screen_y - 2))
@@ -349,9 +383,9 @@ class CompanionOrbs:
         """
         return self.yin_active or self.yang_active
 
-    def get_orbit_positions(self, player_x: float, player_y: float,
-                           player_width: int, player_height: int) -> Tuple[Optional[Tuple[float, float]],
-                                                                            Optional[Tuple[float, float]]]:
+    def get_orbit_positions(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> tuple[tuple[float, float] | None, tuple[float, float] | None]:
         """
         Get current orb positions in world space.
 
@@ -367,8 +401,12 @@ class CompanionOrbs:
         player_center_x = player_x + player_width / 2
         player_center_y = player_y + player_height / 2
 
-        yin_pos = self._get_yin_position(player_center_x, player_center_y) if self.yin_active else None
-        yang_pos = self._get_yang_position(player_center_x, player_center_y) if self.yang_active else None
+        yin_pos = (
+            self._get_yin_position(player_center_x, player_center_y) if self.yin_active else None
+        )
+        yang_pos = (
+            self._get_yang_position(player_center_x, player_center_y) if self.yang_active else None
+        )
 
         return (yin_pos, yang_pos)
 

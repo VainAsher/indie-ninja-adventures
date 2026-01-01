@@ -5,8 +5,8 @@ Displays "Press E to talk" prompt above NPCs when player is in interaction range
 """
 
 import pygame
-from typing import Optional
-from entities.npc import NPC, NPCManager
+
+from entities.npc import NPCManager
 
 
 class NPCPromptRenderer:
@@ -35,7 +35,7 @@ class NPCPromptRenderer:
         player_width: int,
         player_height: int,
         camera_x: float,
-        camera_y: float
+        camera_y: float,
     ):
         """
         Render interaction prompts for nearby NPCs.
@@ -55,7 +55,7 @@ class NPCPromptRenderer:
             player_x=player_x,
             player_y=player_y,
             player_width=player_width,
-            player_height=player_height
+            player_height=player_height,
         )
 
         # Show prompt for first nearby NPC
@@ -81,7 +81,7 @@ class NPCPromptRenderer:
                 npc_y=nearby_npc.y,
                 npc_width=nearby_npc.width,
                 camera_x=camera_x,
-                camera_y=camera_y
+                camera_y=camera_y,
             )
 
     def _get_prompt_text(self, npc_type) -> str:
@@ -107,7 +107,7 @@ class NPCPromptRenderer:
         npc_y: float,
         npc_width: int,
         camera_x: float,
-        camera_y: float
+        camera_y: float,
     ):
         """Render prompt box above NPC."""
         # Render text
@@ -151,11 +151,7 @@ class NPCIndicatorRenderer:
         self.offset_y = 60  # Distance above NPC to show indicator
 
     def render(
-        self,
-        surface: pygame.Surface,
-        npc_manager: NPCManager,
-        camera_x: float,
-        camera_y: float
+        self, surface: pygame.Surface, npc_manager: NPCManager, camera_x: float, camera_y: float
     ):
         """
         Render indicators above all NPCs.
@@ -188,10 +184,10 @@ class NPCIndicatorRenderer:
                     npc_y=npc.y,
                     npc_width=npc.width,
                     camera_x=camera_x,
-                    camera_y=camera_y
+                    camera_y=camera_y,
                 )
 
-    def _get_indicator(self, npc_type) -> tuple[Optional[str], tuple[int, int, int]]:
+    def _get_indicator(self, npc_type) -> tuple[str | None, tuple[int, int, int]]:
         """Get indicator icon and color for NPC type."""
         from entities.npc import NPCType
 
@@ -213,7 +209,7 @@ class NPCIndicatorRenderer:
         npc_y: float,
         npc_width: int,
         camera_x: float,
-        camera_y: float
+        camera_y: float,
     ):
         """Render indicator icon above NPC."""
         # Render icon

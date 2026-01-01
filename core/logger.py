@@ -12,11 +12,10 @@ This module provides configurable logging with:
 import logging
 import logging.config
 import logging.handlers
-import sys
 import os
-from pathlib import Path
-from typing import Optional
+import sys
 from datetime import datetime
+from pathlib import Path
 
 
 class GameLogger:
@@ -41,7 +40,7 @@ class GameLogger:
     WARNING = logging.WARNING
     ERROR = logging.ERROR
 
-    def __init__(self, user_data_dir: Optional[Path] = None, config_path: Optional[Path] = None):
+    def __init__(self, user_data_dir: Path | None = None, config_path: Path | None = None):
         """
         Initialize game logger
 
@@ -61,11 +60,13 @@ class GameLogger:
         self._configure_logging()
         self.root_logger = logging.getLogger("ninja_dash")
 
-        self.root_logger.info("="*60)
-        self.root_logger.info(f"Vain Asher Gaming's: Indie Ninja Adventures Logging System Initialized")
+        self.root_logger.info("=" * 60)
+        self.root_logger.info(
+            "Vain Asher Gaming's: Indie Ninja Adventures Logging System Initialized"
+        )
         self.root_logger.info(f"Log directory: {self.log_dir}")
         self.root_logger.info(f"Session log file: {self.log_file.name}")
-        self.root_logger.info("="*60)
+        self.root_logger.info("=" * 60)
 
     def _get_env_or_default_user_data_dir(self) -> Path:
         """
@@ -84,13 +85,14 @@ class GameLogger:
 
         # Default: project-local user_data directory
         project_root = Path(__file__).parent.parent
-        return project_root / 'user_data'
+        return project_root / "user_data"
 
     def _configure_logging(self):
         """Configure logging from YAML or defaults"""
         if self.config_path and self.config_path.exists():
             try:
                 import yaml
+
                 with open(self.config_path) as f:
                     config = yaml.safe_load(f)
                 logging.config.dictConfig(config)
@@ -106,12 +108,11 @@ class GameLogger:
         """Set up default logging configuration"""
         # Create formatters
         console_formatter = logging.Formatter(
-            '%(asctime)s [%(levelname)8s] %(name)30s | %(message)s',
-            datefmt='%H:%M:%S'
+            "%(asctime)s [%(levelname)8s] %(name)30s | %(message)s", datefmt="%H:%M:%S"
         )
         file_formatter = logging.Formatter(
-            '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d | %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
 
         # Console handler
@@ -121,10 +122,7 @@ class GameLogger:
 
         # Rotating file handler
         file_handler = logging.handlers.RotatingFileHandler(
-            filename=str(self.log_file),
-            maxBytes=10485760,  # 10MB
-            backupCount=3,
-            encoding='utf-8'
+            filename=str(self.log_file), maxBytes=10485760, backupCount=3, encoding="utf-8"  # 10MB
         )
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(file_formatter)
@@ -197,14 +195,11 @@ class GameLogger:
 
         # Add new file handler
         file_formatter = logging.Formatter(
-            '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d | %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         file_handler = logging.handlers.RotatingFileHandler(
-            filename=str(self.log_file),
-            maxBytes=10485760,  # 10MB
-            backupCount=3,
-            encoding='utf-8'
+            filename=str(self.log_file), maxBytes=10485760, backupCount=3, encoding="utf-8"  # 10MB
         )
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(file_formatter)

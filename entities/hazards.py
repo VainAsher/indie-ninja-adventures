@@ -12,15 +12,15 @@ Architecture:
 - Events for damage/death
 """
 
-import math
 from dataclasses import dataclass
-from typing import List, Optional
+
 from core.event_bus import EventBus
 
 
 @dataclass
 class PlayerDamageEvent:
     """Event emitted when player takes damage"""
+
     player_id: int
     damage: int
     hazard_type: str
@@ -30,6 +30,7 @@ class PlayerDamageEvent:
 @dataclass
 class PlayerDeathEvent:
     """Event emitted when player dies"""
+
     player_id: int
     death_type: str  # "spike", "void", "fall", etc.
     position: tuple  # (x, y) of player at death
@@ -46,8 +47,15 @@ class BaseHazard:
     - Collision detection
     """
 
-    def __init__(self, x: float, y: float, width: int, height: int,
-                 damage: int = 1, hazard_type: str = "generic"):
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        width: int,
+        height: int,
+        damage: int = 1,
+        hazard_type: str = "generic",
+    ):
         """
         Initialize base hazard
 
@@ -65,8 +73,9 @@ class BaseHazard:
         self.hazard_type = hazard_type
         self.active = True
 
-    def check_collision(self, entity_x: float, entity_y: float,
-                       entity_width: int, entity_height: int) -> bool:
+    def check_collision(
+        self, entity_x: float, entity_y: float, entity_width: int, entity_height: int
+    ) -> bool:
         """
         Check if entity collides with this hazard (AABB collision)
 
@@ -81,10 +90,12 @@ class BaseHazard:
             return False
 
         # AABB collision detection
-        return (self.x < entity_x + entity_width and
-                self.x + self.width > entity_x and
-                self.y < entity_y + entity_height and
-                self.y + self.height > entity_y)
+        return (
+            self.x < entity_x + entity_width
+            and self.x + self.width > entity_x
+            and self.y < entity_y + entity_height
+            and self.y + self.height > entity_y
+        )
 
     def get_render_position(self):
         """Get position for rendering (can be overridden for animations)"""
@@ -153,7 +164,7 @@ class HazardManager:
             event_bus: Event bus for emitting damage/death events
         """
         self.event_bus = event_bus
-        self.hazards: List[BaseHazard] = []
+        self.hazards: list[BaseHazard] = []
 
         # Statistics
         self.total_spikes = 0
@@ -202,7 +213,7 @@ class HazardManager:
         self.total_poison += 1
         return poison
 
-    def check_hazards(self, player_state, invincible: bool = False) -> Optional[tuple]:
+    def check_hazards(self, player_state, invincible: bool = False) -> tuple | None:
         """
         Check if player is colliding with any hazards
 
@@ -249,9 +260,7 @@ class HazardManager:
 
             # Emit death event
             event = PlayerDeathEvent(
-                player_id=player_id,
-                death_type=hazard.hazard_type,
-                position=player_pos
+                player_id=player_id, death_type=hazard.hazard_type, position=player_pos
             )
             self.event_bus.emit(event)
             return True
@@ -270,7 +279,7 @@ class HazardManager:
             player_id=player_id,
             damage=hazard.damage,
             hazard_type=hazard.hazard_type,
-            position=(hazard.x, hazard.y)
+            position=(hazard.x, hazard.y),
         )
         self.event_bus.emit(event)
 
@@ -279,16 +288,14 @@ class HazardManager:
             self.deaths_caused += 1
 
             death_event = PlayerDeathEvent(
-                player_id=player_id,
-                death_type=f"{hazard.hazard_type}_death",
-                position=player_pos
+                player_id=player_id, death_type=f"{hazard.hazard_type}_death", position=player_pos
             )
             self.event_bus.emit(death_event)
             return True
 
         return False
 
-    def get_active_hazards(self) -> List[BaseHazard]:
+    def get_active_hazards(self) -> list[BaseHazard]:
         """Get list of active hazards for rendering"""
         return [h for h in self.hazards if h.active]
 
@@ -323,5 +330,5 @@ class HazardManager:
             "total_poison": self.total_poison,
             "active_hazards": len(self.get_active_hazards()),
             "damage_dealt": self.damage_dealt,
-            "deaths_caused": self.deaths_caused
+            "deaths_caused": self.deaths_caused,
         }

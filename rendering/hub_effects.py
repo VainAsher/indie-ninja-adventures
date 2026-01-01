@@ -9,9 +9,9 @@ Provides visual effects for hub rendering based on story state:
 Version: v0.7.0
 """
 
-import pygame
 import math
-from typing import Tuple, Optional
+
+import pygame
 
 
 class HubEffectsRenderer:
@@ -76,12 +76,12 @@ class HubEffectsRenderer:
             "dark": 0.3,
             "recovering": 0.5,
             "restored": 0.95,
-            "bittersweet": 1.0
+            "bittersweet": 1.0,
         }
 
         return intensity_map.get(atmosphere, 1.0)
 
-    def get_portal_color_shift(self, atmosphere: str) -> Tuple[float, float, float]:
+    def get_portal_color_shift(self, atmosphere: str) -> tuple[float, float, float]:
         """
         Get portal color shift multiplier based on atmosphere.
 
@@ -97,7 +97,7 @@ class HubEffectsRenderer:
             "dark": (0.7, 0.7, 0.9),
             "recovering": (0.8, 0.9, 1.0),
             "restored": (1.0, 1.0, 1.0),
-            "bittersweet": (1.0, 0.95, 0.9)
+            "bittersweet": (1.0, 0.95, 0.9),
         }
 
         return color_shift_map.get(atmosphere, (1.0, 1.0, 1.0))
@@ -112,7 +112,9 @@ class HubEffectsRenderer:
         if self.constellation_visible:
             self.constellation_twinkle_offset += dt * 2.0  # Twinkle speed
 
-    def render_constellation(self, screen: pygame.Surface, camera_x: float = 0.0, camera_y: float = 0.0) -> None:
+    def render_constellation(
+        self, screen: pygame.Surface, camera_x: float = 0.0, camera_y: float = 0.0
+    ) -> None:
         """
         Render Yin & Yang constellation (postgame).
 
@@ -132,19 +134,9 @@ class HubEffectsRenderer:
         # Yin (left): 4 white stars in crescent
         # Yang (right): 4 gold stars in crescent
 
-        yin_positions = [
-            (-30, -10),
-            (-25, 5),
-            (-20, 20),
-            (-15, 10)
-        ]
+        yin_positions = [(-30, -10), (-25, 5), (-20, 20), (-15, 10)]
 
-        yang_positions = [
-            (30, -10),
-            (25, 5),
-            (20, 20),
-            (15, 10)
-        ]
+        yang_positions = [(30, -10), (25, 5), (20, 20), (15, 10)]
 
         # Render Yin stars (white)
         for i, (offset_x, offset_y) in enumerate(yin_positions):
@@ -176,8 +168,9 @@ class HubEffectsRenderer:
             # Draw star
             self._draw_star(screen, star_x, star_y, color, alpha)
 
-    def _draw_star(self, screen: pygame.Surface, x: float, y: float,
-                   color: Tuple[int, int, int], alpha: float) -> None:
+    def _draw_star(
+        self, screen: pygame.Surface, x: float, y: float, color: tuple[int, int, int], alpha: float
+    ) -> None:
         """
         Draw a single star with glow effect.
 
@@ -207,7 +200,9 @@ class HubEffectsRenderer:
         """
         self.constellation_visible = visible
 
-    def apply_portal_effects(self, portal_surface: pygame.Surface, atmosphere: str) -> pygame.Surface:
+    def apply_portal_effects(
+        self, portal_surface: pygame.Surface, atmosphere: str
+    ) -> pygame.Surface:
         """
         Apply atmosphere-based effects to portal rendering.
 
@@ -234,7 +229,7 @@ class HubEffectsRenderer:
                 int(255 * color_shift[0]),
                 int(255 * color_shift[1]),
                 int(255 * color_shift[2]),
-                int(100 * (1.0 - glow_intensity))  # More overlay when dimmed
+                int(100 * (1.0 - glow_intensity)),  # More overlay when dimmed
             )
             overlay.fill(overlay_color)
             modified_surface.blit(overlay, (0, 0), special_flags=pygame.BLEND_MULT)
@@ -261,7 +256,7 @@ class HubEffectsRenderer:
             "dark": 0.3,
             "recovering": 0.15,
             "restored": 0.0,
-            "bittersweet": 0.05
+            "bittersweet": 0.05,
         }
 
         return vignette_map.get(atmosphere, 0.0)

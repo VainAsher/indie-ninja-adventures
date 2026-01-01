@@ -12,7 +12,6 @@ Version: v0.6.0
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -23,6 +22,7 @@ class HealthState:
     Invincibility frames (i-frames) prevent damage spam - after taking damage,
     the entity becomes temporarily invincible for a short duration.
     """
+
     current_hp: int
     max_hp: int
     invincibility_frames: int = 0  # Damage immunity after getting hit
