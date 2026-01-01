@@ -1,0 +1,239 @@
+
+############################################################
+# VAIN ASHER GAMING'S: INDIE NINJA ADVENTURES
+# Test Suite Runner
+############################################################
+
+############################################################
+# Running UNIT Tests (5 files)
+############################################################
+
+============================================================
+Running: tests/unit/test_core_infrastructure.py
+============================================================
+[PASS] tests/unit/test_core_infrastructure.py
+
+============================================================
+Running: tests/unit/test_collision_system.py
+============================================================
+[FAIL] tests/unit/test_collision_system.py
+STDOUT: pygame 2.6.1 (SDL 2.28.4, Python 3.11.9)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+############################################################
+#  COLLISION SYSTEM TEST
+############################################################
+
+============================================================
+Testing Tile Collision Detection
+============================================================
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]                     ninja_dash | Vain Asher Gaming's: Indie Ninja Adventures Logging System Initialized
+01:51:38 [    INFO]                     ninja_dash | Log directory: C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\user_data\logs
+01:51:38 [    INFO]                     ninja_dash | Session log file: VainAsherGamings_IndieNinjaAdventures_2026-01-01_01-51-38.log
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]      ninja_dash.test_collision | CollisionSystem initialized
+01:51:38 [    INFO]      ninja_dash.test_collision | Loaded 1 tile colliders, 0 platforms
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 0 (player) spawned
+
+Initial state:
+  Entity: x=80, vx=5.0
+  Tile: x=100, width=32
+
+After movement: x=85.0
+  [COLLISION] Entity 0 hit wall_right
+After collision resolution: x=80.0, vx=0.0
+On wall: True, Wall dir: 1
+
+[PASS] Tile Collision Test PASSED
+   - Collision detected: OK
+   - Penetration resolved: OK
+   - Event emitted: OK
+   - Flags updated: OK
+
+============================================================
+Testing Ground Collision
+============================================================
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]                     ninja_dash | Vain Asher Gaming's: Indie Ninja Adventures Logging System Initialized
+01:51:38 [    INFO]                     ninja_dash | Log directory: C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\user_data\logs
+01:51:38 [    INFO]                     ninja_dash | Session log file: VainAsherGamings_IndieNinjaAdventures_2026-01-01_01-51-38.log
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]      ninja_dash.test_collision | CollisionSystem initialized
+01:51:38 [    INFO]      ninja_dash.test_collision | Loaded 1 tile colliders, 0 platforms
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 0 (player) spawned
+
+Initial state:
+  Entity: y=125, bottom=145, vy=10.0
+  Ground: y=150
+
+After collision resolution:
+  Entity: y=130.0, vy=0.0
+  On ground: True
+
+[PASS] Ground Collision Test PASSED
+
+============================================================
+Testing Entity-Entity Collision
+============================================================
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]                     ninja_dash | Vain Asher Gaming's: Indie Ninja Adventures Logging System Initialized
+01:51:38 [    INFO]                     ninja_dash | Log directory: C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\user_data\logs
+01:51:38 [    INFO]                     ninja_dash | Session log file: VainAsherGamings_IndieNinjaAdventures_2026-01-01_01-51-38.log
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]      ninja_dash.test_collision | CollisionSystem initialized
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 0 (player) spawned
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 1 (enemy) spawned
+
+Entity A: (50, 50)
+Entity B: (60, 60)
+Colliding: True
+After moving B: Colliding: False
+
+[PASS] Entity-Entity Collision Test PASSED
+
+============================================================
+Testing Radius Query
+============================================================
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]                     ninja_dash | Vain Asher Gaming's: Indie Ninja Adventures Logging System Initialized
+01:51:38 [    INFO]                     ninja_dash | Log directory: C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\user_data\logs
+01:51:38 [    INFO]                     ninja_dash | Session log file: VainAsherGamings_IndieNinjaAdventures_2026-01-01_01-51-38.log
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]      ninja_dash.test_collision | CollisionSystem initialized
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 0 (enemy) spawned
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 1 (enemy) spawned
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 2 (enemy) spawned
+01:51:38 [    INFO]      ninja_dash.test_collision | Entity 3 (enemy) spawned
+
+Created 4 entities
+  Entity 0: (50, 50)
+  Entity 1: (100, 50)
+  Entity 2: (150, 50)
+  Entity 3: (200, 50)
+
+Entities within 60 pixels of (50, 50):
+  Entity 0: (50, 50)
+  Entity 1: (100, 50)
+
+[PASS] Radius Query Test PASSED
+
+============================================================
+Testing Raycast
+============================================================
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]                     ninja_dash | Vain Asher Gaming's: Indie Ninja Adventures Logging System Initialized
+01:51:38 [    INFO]                     ninja_dash | Log directory: C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\user_data\logs
+01:51:38 [    INFO]                     ninja_dash | Session log file: VainAsherGamings_IndieNinjaAdventures_2026-01-01_01-51-38.log
+01:51:38 [    INFO]                     ninja_dash | ============================================================
+01:51:38 [    INFO]      ninja_dash.test_collision | CollisionSystem initialized
+01:51:38 [    INFO]      ninja_dash.test_collision | Loaded 1 tile colliders, 0 platforms
+
+Wall at x=100, y=50, w=32, h=100
+
+Raycast from (50, 75) to (150, 75)
+No hit
+
+[FAIL] TEST FAILED: Raycast should hit wall
+
+STDERR: Traceback (most recent call last):
+  File "C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\tests\unit\test_collision_system.py", line 278, in main
+    test_raycast()
+  File "C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\tests\unit\test_collision_system.py", line 251, in test_raycast
+    assert False, "Raycast should hit wall"
+           ^^^^^
+AssertionError: Raycast should hit wall
+
+
+============================================================
+Running: tests/unit/test_jump_mechanic.py
+============================================================
+[PASS] tests/unit/test_jump_mechanic.py
+
+============================================================
+Running: tests/unit/test_physics_system.py
+============================================================
+[PASS] tests/unit/test_physics_system.py
+
+============================================================
+Running: tests/unit/test_input_pipeline.py
+============================================================
+[PASS] tests/unit/test_input_pipeline.py
+
+############################################################
+# Running INTEGRATION Tests (4 files)
+############################################################
+
+============================================================
+Running: tests/integration/test_player_integration.py
+============================================================
+[PASS] tests/integration/test_player_integration.py
+
+============================================================
+Running: tests/integration/test_demo_simple.py
+============================================================
+[PASS] tests/integration/test_demo_simple.py
+
+============================================================
+Running: tests/integration/test_play_modes.py
+============================================================
+[PASS] tests/integration/test_play_modes.py
+
+============================================================
+Running: tests/integration/test_objective_coin_run.py
+============================================================
+[PASS] tests/integration/test_objective_coin_run.py
+
+############################################################
+# Running EDGE Tests (8 files)
+############################################################
+
+============================================================
+Running: tests/edge_cases/test_wall_collision.py
+============================================================
+[PASS] tests/edge_cases/test_wall_collision.py
+
+============================================================
+Running: tests/edge_cases/test_corner_collision.py
+============================================================
+[PASS] tests/edge_cases/test_corner_collision.py
+
+============================================================
+Running: tests/edge_cases/test_crouch_jump.py
+============================================================
+[PASS] tests/edge_cases/test_crouch_jump.py
+
+============================================================
+Running: tests/edge_cases/test_falling_collision.py
+============================================================
+[PASS] tests/edge_cases/test_falling_collision.py
+
+============================================================
+Running: tests/edge_cases/test_falling_corner.py
+============================================================
+[PASS] tests/edge_cases/test_falling_corner.py
+
+============================================================
+Running: tests/edge_cases/test_wall_clip.py
+============================================================
+[PASS] tests/edge_cases/test_wall_clip.py
+
+============================================================
+Running: tests/edge_cases/test_equal_overlap.py
+============================================================
+[PASS] tests/edge_cases/test_equal_overlap.py
+
+============================================================
+Running: tests/edge_cases/test_threshold_balance.py
+============================================================
+[PASS] tests/edge_cases/test_threshold_balance.py
+
+============================================================
+TEST SUMMARY
+============================================================
+Total Tests: 17
+Passed: 16
+Failed: 1
+Success Rate: 94.1%
+============================================================
+[FAIL] 1 TEST(S) FAILED

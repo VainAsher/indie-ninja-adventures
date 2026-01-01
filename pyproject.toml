@@ -1,0 +1,146 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["core*", "systems*", "mechanics*", "entities*", "game*", "rendering*", "ui*", "network*", "config*", "dev_tools*"]
+exclude = ["tests*", "user_data*", "legacy-archive*", "build*", "dist*"]
+
+[project]
+name = "indie-ninja-adventures"
+version = "0.7.0"
+description = "A modular, event-driven platformer engine built with Python and Pygame"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Asher", email = "noreply@github.com"}
+]
+keywords = ["game", "platformer", "pygame", "engine", "2d"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries :: pygame",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "pygame==2.6.1",
+    "Pillow==10.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==7.4.4",
+    "pytest-cov>=4.1.0",
+    "black>=24.1.1",
+    "ruff>=0.1.14",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/VainAsher/indie-ninja-adventures"
+Repository = "https://github.com/VainAsher/indie-ninja-adventures"
+Issues = "https://github.com/VainAsher/indie-ninja-adventures/issues"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+extend-exclude = '''
+/(
+  | legacy-archive
+  | user_data
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    "legacy-archive",
+    "user_data",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E501",  # Line too long (handled by black)
+    "B008",  # Do not perform function call in argument defaults
+    "N802",  # Function name should be lowercase (allows pygame convention)
+    "N803",  # Argument name should be lowercase (allows x, y for coordinates)
+    "N806",  # Variable in function should be lowercase (allows X, Y for math)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["N802"]  # Allow uppercase in test function names
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Gradual typing - start with False
+ignore_missing_imports = true  # Pygame doesn't have type stubs
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "pygame.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--tb=short",
+    "--strict-markers",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "edge: Edge case tests",
+    "slow: Slow running tests",
+]
+# Note: Coverage options removed for now - will add after baseline established
+# addopts = ["--cov=.", "--cov-report=html", "--cov-report=term"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "tests/*",
+    "legacy-archive/*",
+    "user_data/*",
+    "build/*",
+    "dist/*",
+    "*/test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]

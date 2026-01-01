@@ -1,7 +1,7 @@
 # Wall Collision Fix - Scaled Tile System
 
 **Date**: 2025-12-12  
-**Version**: 0.4.0-dev  
+**Version**: 0.7.0  
 **Tile Size Context**: 32x32 tiles (current), legacy 4x4 described for reference  
 **Issue**: Player clipping through walls with 4x4 pixel tiles (pre-scale)  
 **Status**: Fixed and Tested

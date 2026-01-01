@@ -31,7 +31,7 @@ run_tests.py    # Test runner
 - ASCII docs (avoid stray Unicode), Markdown for prose.
 - Feature flags: wall jump/dash/crouch remain enabled; wall slide is currently disabled (wall friction + wall-jump coyote buffer active).
 - Logging path defaults to `%APPDATA%/NinjaDash/logs`; override with `NINJADASH_LOG_DIR`.
-- Branch/phase naming follows roadmap milestones (v0.4.0-dev currently).
+- Branch/phase naming follows roadmap milestones (v0.7.0 currently).
 
 ## Recently Updated
 - Wall interaction rework: wall slide disabled; wall friction + wall-jump buffer in player orchestrator.

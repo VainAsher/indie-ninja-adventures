@@ -2,7 +2,7 @@
 **Vain Asher Gaming's: Indie Ninja Adventures**
 
 **Date**: 2025-12-12
-**Version**: 0.4.0-dev
+**Version**: 0.7.0
 **Status**: Phase B Complete, Ready for Phase 5 (Rendering & Visual Polish)
 
 ---

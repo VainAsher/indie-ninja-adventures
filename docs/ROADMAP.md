@@ -31,7 +31,7 @@ Create a fast-paced, skill-based 2D platformer with:
 
 ---
 
-## Current Status (v0.4.0-dev)
+## Current Status (v0.7.0)
 
 ### Completed (100%)
 
@@ -388,7 +388,7 @@ Transform the demo from rectangles to a polished visual experience.
 - [ ] Animation events (footstep, landing, etc.)
 - [ ] Sprite sheet animation support
 
-**Camera System** (Complete in v0.4.0-dev)
+**Camera System** (Complete in v0.7.0)
 - [x] Multi-mode camera (world clamp, room clamp, free, locked)
 - [x] Smooth follow with lerp and deadzone
 - [x] Letterboxing and bounds clamping
@@ -836,7 +836,7 @@ Add co-op and versus multiplayer modes.
 ---
 
 **Last Updated**: 2025-12-12
-**Current Version**: 0.4.0-dev
+**Current Version**: 0.7.0
 **Next Milestone**: v0.4.0 (Rendering & Visual Polish)
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures
 **Status**: Core, collision, camera, and procedural world generation complete; moving to rendering/UI polish

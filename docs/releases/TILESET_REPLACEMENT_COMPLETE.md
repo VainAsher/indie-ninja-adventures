@@ -370,7 +370,7 @@ python demo_game.py --procedural --seed 12345
 ---
 
 **Replacement Date**: 2025-12-12
-**Version**: v0.4.0-dev
+**Version**: v0.7.0
 **Status**: ✅ Complete and Tested
 **Source**: TilesetTest.png (160×128, 8×8 tiles)
 **Tiles Integrated**: 197 tiles across 3 biomes

@@ -206,7 +206,7 @@ class MainMenu(BaseMenu):
         surface.blit(subtitle_surf, subtitle_rect)
 
         # Version
-        version = "v0.5.0-dev"
+        version = "v0.7.0"
         version_surf = self.small_font.render(version, True, (100, 100, 120))
         version_rect = version_surf.get_rect(right=self.screen_width - 20, bottom=self.screen_height - 20)
         surface.blit(version_surf, version_rect)

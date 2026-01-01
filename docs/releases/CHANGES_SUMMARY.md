@@ -181,6 +181,6 @@ All user data is now centralized in the `user_data/` directory. The project is m
 ---
 
 **Date**: 2025-12-12
-**Version**: v0.4.0-dev
+**Version**: v0.7.0
 **Status**: ✅ Complete
 **Tests**: ✅ Passing (5/5 unit tests)

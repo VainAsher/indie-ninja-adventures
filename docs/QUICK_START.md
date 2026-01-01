@@ -148,7 +148,7 @@ python tests/edge_cases/test_wall_clip.py
 
 ## Current Status
 
-**Version**: 0.4.0-dev  
+**Version**: 0.7.0  
 **Status**: Core, collision, camera, world generation complete; wall slide disabled (wall friction + wall-jump buffer); rendering/UI polish in progress
 
 --- 

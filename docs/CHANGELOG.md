@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.4.0-dev] - 2025-12-12
+## [0.7.0] - 2025-12-12
 
 ### Added - Camera System & Collision Improvements
 
@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated [WORLD_GENERATION.md](WORLD_GENERATION.md) with 16x16 zone grid
 - Updated [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) with camera API
 - Created [HANDOVER.md](HANDOVER.md) - comprehensive project handover document
-- Refreshed docs (SUMMARY, QUICK_START, INDEX, README, PROJECT_ORGANIZATION) for v0.4.0-dev, headless note, and wall-slide-disabled status
+- Refreshed docs (SUMMARY, QUICK_START, INDEX, README, PROJECT_ORGANIZATION) for v0.7.0, headless note, and wall-slide-disabled status
 - Moved historical collision/playability notes to `docs/legacy/` (WALL_COLLISION_FIX, PLATFORM_COLLISION_SUMMARY, PLAYABILITY_TESTING)
 - Added headless flag documentation and roadmapping for CI runs
 - Added input command/snapshot serializers and replay record/playback harness (demo flags: --record/--replay/--show-replay)
@@ -406,7 +406,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
-- **v0.4.0-dev** (2025-12-12): Procedural world generation (16x16 grid), camera system, tile/player scaling, collision fixes
+- **v0.7.0** (2025-12-12): Procedural world generation (16x16 grid), camera system, tile/player scaling, collision fixes
 - **v0.3.1** (2025-12-11): Collision bug fixes, crouch-jump fix, wall clipping prevention
 - **v0.3.0** (2025-12-11): Complete modular refactor, all core systems implemented
 - **v0.2.0** (Previous): Original monolithic implementation
@@ -422,5 +422,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **Last Updated**: 2025-12-12
-**Current Version**: 0.4.0-dev
+**Current Version**: 0.7.0
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures

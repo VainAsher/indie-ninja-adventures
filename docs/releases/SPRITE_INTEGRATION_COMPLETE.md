@@ -285,7 +285,7 @@ ANIMATION_DEFS = {
 ---
 
 **Integration Date**: 2025-12-12
-**Version**: v0.4.0-dev
+**Version**: v0.7.0
 **Status**: ✅ Complete
 **Sprite Artist**: ashuuya (chibi-ninja-2d)
 **Integration**: Vain Asher Gaming's: Indie Ninja Adventures

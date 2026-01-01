@@ -4,8 +4,8 @@
 
 ### Current Status Section - UPDATED
 
-**From**: v0.4.0-dev (Procedural World Generation + Camera)
-**To**: v0.4.0-dev (Advanced Procedural Generation - 7-Phase Enhancement Complete)
+**From**: v0.7.0 (Procedural World Generation + Camera)
+**To**: v0.7.0 (Advanced Procedural Generation - 7-Phase Enhancement Complete)
 
 ### New "What's Complete" Section
 
@@ -259,7 +259,7 @@ python demo_game.py --procedural --shape branchy --rooms 20
 ```markdown
 ## Progress to v0.5.0 Release
 
-**Current State**: v0.4.0-dev (7-Phase Procedural Generation Complete)
+**Current State**: v0.7.0 (7-Phase Procedural Generation Complete)
 **Next Release**: v0.5.0 (Complete Gameplay Loop)
 **Progress**: **60-70% Complete**
 
@@ -359,7 +359,7 @@ v0.5.0 will be the **first complete playable release** with:
 ## Recommended README Structure
 
 1. **Title & Tagline** (keep current)
-2. **Current Status** (update to v0.4.0-dev with 7-phase complete)
+2. **Current Status** (update to v0.7.0 with 7-phase complete)
 3. **What's Complete** (NEW - comprehensive checklist)
 4. **What's Missing for v0.5.0** (NEW - roadmap focus)
 5. **Quick Start** (keep current, add world shape examples)
@@ -393,5 +393,5 @@ The README will serve as both:
 ---
 
 **Prepared**: 2025-12-14
-**For Version**: v0.4.0-dev → v0.5.0 planning
+**For Version**: v0.7.0 → v0.5.0 planning
 **Review Document**: [PROJECT_REVIEW_2025_12_14.md](PROJECT_REVIEW_2025_12_14.md)

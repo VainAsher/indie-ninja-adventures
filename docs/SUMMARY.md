@@ -6,7 +6,7 @@ Snapshot of what’s documented and where.
 ---
 
 ## Live Documents (kept current)
-- **CHANGELOG.md** — v0.4.0-dev history, features/fixes
+- **CHANGELOG.md** — v0.7.0 history, features/fixes
 - **DEVLOG.md** — Session notes and decisions
 - **ROADMAP.md** — Phases, milestones, backlog
 - **SYSTEM_OVERVIEW.md** — API reference
@@ -25,7 +25,7 @@ Snapshot of what’s documented and where.
 ---
 
 ## Current Status
-- **Version**: 0.4.0-dev
+- **Version**: 0.7.0
 - **Player Mechanics**: Movement, jump (ground/double/wall/coyote/buffer), dash, crouch; wall slide **disabled** (wall friction + wall-jump coyote buffer)
 - **Testing**: `python run_tests.py` passes all suites
 - **Updated**: 2025-12-12

@@ -317,7 +317,7 @@ tiles = list_available_tiles('building')
 ---
 
 **Integration Date**: 2025-12-12
-**Version**: v0.4.0-dev
+**Version**: v0.7.0
 **Status**: ✅ Assets Organized, Configuration Complete
 **Asset Pack**: Platformer Art Complete Pack (Base pack)
 **Total Assets**: 133 tiles across 3 biomes

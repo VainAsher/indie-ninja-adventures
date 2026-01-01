@@ -60,8 +60,13 @@ dist/
 *.egg-info/
 
 # Claude Code
-.claude/plans/
-.claude/cache/
+.claude/
+
+# Legacy archived code (excluded from repo)
+legacy-archive/
+
+# Backup files
+*.backup
 
 # Audit and documentation (optional - uncomment if you don't want to track these)
 # AUDIT_*.md

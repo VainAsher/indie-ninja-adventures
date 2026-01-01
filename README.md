@@ -5,9 +5,9 @@
 
 ---
 
-## Current Status: **v0.4.0-dev (Procedural World Generation + Camera)**
+## Current Status: **v0.7.0 (Campaign Mode + Story System)**
 
-All foundational systems are implemented, tested, and working. Latest updates add complete procedural world generation (16x16 zone grid, 160x160 rooms) and a multi-mode camera with letterboxing. Wall slide is temporarily disabled while wall interactions are reworked.
+A feature-complete platformer with campaign mode, story system, enemy AI, dialogue, trading, and 25 missions across 5 zones. All foundational systems are implemented and tested. The game includes procedural world generation, multiple game modes (Campaign, Arcade, Sandbox), and comprehensive gameplay systems.
 
 ### Scope Freeze for v0.6.1
 - Focusing development and testing on three modes: **Campaign**, **Arcade**, and **Sandbox**.
@@ -26,7 +26,7 @@ All foundational systems are implemented, tested, and working. Latest updates ad
 - **Documentation**: Complete API docs, architecture guide, modding guide, world generation guide, and development docs
 - **Roadmap Goals**: Modular architecture and deterministic state remain aligned with future client/server multiplayer and headless CI testing
 
-### Latest Features (v0.4.0-dev)
+### Latest Features (v0.7.0)
 
 - **Procedural World Generation**: Seed-based deterministic generation creates unique metroidvania worlds
   - Hierarchical: World -> Biomes -> Rooms -> Zones (16x16) -> Tilemap (160x160)
@@ -469,7 +469,7 @@ All documentation is organized in the [docs/](docs/) directory:
 -  Jump mechanic (ground, double, wall, coyote, buffer)
 -  Movement mechanic (ground/air physics)
 -  Dash mechanic (cooldown, wall cancel)
--  Wall slide mechanic (stamina system) — implemented in v0.3.0, **disabled during current wall rework (v0.4.0-dev)**
+-  Wall slide mechanic (stamina system) — implemented in v0.3.0, **disabled during current wall rework (v0.7.0)**
 -  Crouch mechanic (stealth movement)
 
 **Testing**
@@ -587,6 +587,6 @@ Inspired by:
 ---
 
 **Last Updated**: 2025-12-12
-**Version**: 0.4.0-dev
+**Version**: 0.7.0
 **Status**: Procedural World Generation - Playability Testing Framework
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures

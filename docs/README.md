@@ -6,7 +6,7 @@ This folder contains living documentation for the project. Use it as your hub fo
 ---
 
 ## Key Documents
-- **CHANGELOG.md** — Version history (current: v0.4.0-dev)
+- **CHANGELOG.md** — Version history (current: v0.7.0)
 - **DEVLOG.md** — Daily/Session notes, decisions, metrics
 - **ROADMAP.md** — Milestones, backlog, and goals
 - **SYSTEM_OVERVIEW.md** — API reference and usage patterns
@@ -20,7 +20,7 @@ Legacy/archived references are now under `docs/legacy/` (e.g., collision fix sum
 ---
 
 ## Current Status
-- **Version**: 0.4.0-dev
+- **Version**: 0.7.0
 - **Phase**: Rendering & Visual Polish next; core systems, collision, camera, and procedural world gen complete
 - **Player Mechanics**: Movement, jump (ground/double/wall/coyote/buffer), dash, crouch; **wall slide disabled** (using wall friction + wall-jump coyote buffer)
 - **Tests**: Full suite passing via `python run_tests.py`
