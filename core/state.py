@@ -405,9 +405,9 @@ class StateManager:
     """
 
     def __init__(self):
-        self.current_state = GameState()
+        self.current_state: GameState = GameState()
         self.snapshot_history: list[dict] = []  # For rollback/replay
-        self.max_history = 300  # Keep last 5 seconds at 60Hz
+        self.max_history: int = 300  # Keep last 5 seconds at 60Hz
 
     def get_state(self) -> GameState:
         """Get current game state"""

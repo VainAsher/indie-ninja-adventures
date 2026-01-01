@@ -13,7 +13,7 @@ import importlib.util
 import logging
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.entity_system import ComponentRegistry
@@ -87,11 +87,10 @@ class GameContext:
     logger: logging.Logger
 
     # Hook registries
-    custom_hooks: dict[str, list[Callable]] = None
+    custom_hooks: dict[str, list[Callable]] = field(default_factory=dict)
 
     def __post_init__(self):
-        if self.custom_hooks is None:
-            self.custom_hooks = {}
+        pass  # custom_hooks now initialized via default_factory
 
     def register_hook(self, hook_name: str, callback: Callable):
         """
@@ -215,6 +214,10 @@ class ModLoader:
                 return False
 
             spec = importlib.util.spec_from_file_location(f"mods.{metadata.mod_id}", entry_path)
+            if spec is None or spec.loader is None:
+                self.logger.error(f"Failed to load module spec for '{metadata.mod_id}'")
+                return False
+
             module = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = module
             spec.loader.exec_module(module)

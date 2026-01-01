@@ -8,7 +8,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from core.event_bus import EventBus
+from core.event_bus import Event, EventBus
 
 
 @dataclass
@@ -25,7 +25,7 @@ class LevelState:
     exit_locked: bool = False  # For mission mode - exit locked until objectives complete
 
 
-class LevelCompletionEvent:
+class LevelCompletionEvent(Event):
     """Event emitted when level is completed"""
 
     def __init__(self, completion_time: float, collectibles: int, deaths: int):

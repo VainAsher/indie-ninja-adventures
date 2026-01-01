@@ -11,6 +11,7 @@ Reference: https://gafferongames.com/post/fix_your_timestep/
 
 import logging
 import time
+from typing import Callable
 
 from core.event_bus import EventBus, RenderEvent, TickEvent
 
@@ -187,7 +188,7 @@ class Timer:
     Must be updated manually by calling update(dt).
     """
 
-    def __init__(self, duration: float, callback: callable | None = None):
+    def __init__(self, duration: float, callback: Callable[[], None] | None = None):
         """
         Initialize timer
 
