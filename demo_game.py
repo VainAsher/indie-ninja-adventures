@@ -40,7 +40,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config.physics_constants import (
     TILE_SIZE as CONFIG_TILE_SIZE,
 )
-from dev_tools.physics_tweaker import create_tweaker
+
+# Optional dev tools import (not required for production builds)
+try:
+    from dev_tools.physics_tweaker import create_tweaker
+    DEV_TOOLS_AVAILABLE = True
+except ImportError:
+    DEV_TOOLS_AVAILABLE = False
+    create_tweaker = None
 
 # Phase 4-7: New system imports
 from entities.npc import (
@@ -451,8 +458,8 @@ def main():
     npc_prompt_renderer = rendering_systems["npc_prompt_renderer"]
     npc_indicator_renderer = rendering_systems["npc_indicator_renderer"]
 
-    # Initialize debug tools
-    physics_tweaker = create_tweaker()
+    # Initialize debug tools (optional, dev only)
+    physics_tweaker = create_tweaker() if DEV_TOOLS_AVAILABLE else None
 
     # Initialize core systems
     core_systems = create_core_systems()
@@ -1230,11 +1237,12 @@ def main():
             show_debug_overlay = not show_debug_overlay
         if pygame.K_i in pressed_once:
             inventory_ui.toggle()
-        if pygame.K_p in pressed_once:
+        if pygame.K_p in pressed_once and physics_tweaker:
             physics_tweaker.toggle()
 
         # Physics tweaker parameter adjustment (continuous input)
-        physics_tweaker.handle_input(lambda k: keys[k], 1.0 / FPS)
+        if physics_tweaker:
+            physics_tweaker.handle_input(lambda k: keys[k], 1.0 / FPS)
         if pygame.K_r in pressed_once and game_state_manager.is_playing():
             # Quick-use consumable (first health potion)
             used = False
@@ -2901,8 +2909,9 @@ def main():
             if dev_console:
                 dev_console.render(screen)
 
-            # Render physics tweaker overlay (debug tool)
-            physics_tweaker.draw(screen)
+            # Render physics tweaker overlay (debug tool, dev only)
+            if physics_tweaker:
+                physics_tweaker.draw(screen)
 
             pygame.display.flip()
         clock_pygame.tick(FPS)
