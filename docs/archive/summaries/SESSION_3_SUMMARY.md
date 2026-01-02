@@ -3,8 +3,7 @@
 
 **Date**: December 22, 2025
 **Session Duration**: ~45 minutes
-**Developer**: Claude Code AI Assistant
-**Client**: Vain Asher Gaming
+**Project**: Vain Asher Gaming - Ninja Dash v0.3
 **Session Type**: Continuation - Enemy AI Improvements
 
 ---
@@ -552,7 +551,6 @@ Choose next task from prioritized backlog:
 
 *Enemy AI significantly improved with obstacle avoidance!*
 
-**Developer**: Claude Code AI Assistant
 **Date**: December 22, 2025
 **Session 3 Time**: ~45 minutes
 **Session 3 Focus**: Enemy Obstacle Avoidance

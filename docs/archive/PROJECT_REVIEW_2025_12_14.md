@@ -2,7 +2,6 @@
 **Vain Asher Gaming's: Indie Ninja Adventures**
 **Review Date**: 2025-12-14
 **Current Version**: v0.7.0
-**Reviewer**: Claude Code
 
 ---
 
@@ -1256,7 +1255,6 @@ The project has built an **exceptional foundation** and is ready to become a **c
 ---
 
 **Review Completed**: 2025-12-14
-**Reviewer**: Claude Code
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures
 **Status**: Ready for v0.5.0 development
 

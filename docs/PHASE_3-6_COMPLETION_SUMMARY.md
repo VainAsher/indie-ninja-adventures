@@ -540,4 +540,4 @@ This fix ensures the CI pipeline accurately reflects code quality while not bloc
 
 **Document Version**: 1.1
 **Last Updated**: January 1, 2026
-**Author**: Claude Sonnet 4.5 (via Claude Code)
+**Project**: Vain Asher Gaming's: Indie Ninja Adventures
