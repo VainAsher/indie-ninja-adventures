@@ -20,14 +20,7 @@ Timers:
 - jump_buffer_time: Input buffering window (0.14s)
 """
 
-from config.physics_constants import (
-    CROUCH_JUMP_MULT,
-    DOUBLE_JUMP_POWER,
-    JUMP_BUFFER_TIME,
-    JUMP_POWER,
-    WALL_JUMP_POWER_X,
-    WALL_JUMP_POWER_Y,
-)
+import config.physics_constants as physics
 from core.event_bus import CollisionEvent, EventBus, VelocityChangeEvent
 from core.logger import MechanicLogger
 from core.state import PlayerState
@@ -134,8 +127,8 @@ class JumpMechanic(BaseMechanic):
         # Handle jump request
         if self.jump_requested:
             # Buffer the jump input
-            state.jump_buffer_time = JUMP_BUFFER_TIME
-            self.logger.debug(f"Jump buffered ({JUMP_BUFFER_TIME:.3f}s window)")
+            state.jump_buffer_time = physics.JUMP_BUFFER_TIME
+            self.logger.debug(f"Jump buffered ({physics.JUMP_BUFFER_TIME:.3f}s window)")
             self.jump_requested = False
 
         # Try to execute buffered jump
@@ -193,7 +186,7 @@ class JumpMechanic(BaseMechanic):
         """
         if state.physics.on_ground or state.coyote_time > 0.0:
             # Calculate jump power (reduced when crouching)
-            power = JUMP_POWER * (CROUCH_JUMP_MULT if state.crouching else 1.0)
+            power = physics.JUMP_POWER * (physics.CROUCH_JUMP_MULT if state.crouching else 1.0)
 
             # Determine jump type before modifying state
             jump_type = "ground_jump" if state.physics.on_ground else "coyote_jump"
@@ -268,13 +261,13 @@ class JumpMechanic(BaseMechanic):
             state.facing = -wall_dir_effective
 
             # Apply wall jump velocities: force upward when sliding, soften horizontal
-            base_power = WALL_JUMP_POWER_Y * (CROUCH_JUMP_MULT if state.crouching else 1.0)
+            base_power = physics.WALL_JUMP_POWER_Y * (physics.CROUCH_JUMP_MULT if state.crouching else 1.0)
             if on_wall_now and state.physics.vy > 0:
                 state.physics.vy = -base_power * 1.6
             else:
                 vy_boost = max(base_power * 1.6, abs(state.physics.vy) + base_power * 0.4)
                 state.physics.vy = -vy_boost
-            state.physics.vx = -wall_dir_effective * (WALL_JUMP_POWER_X * 0.5)
+            state.physics.vx = -wall_dir_effective * (physics.WALL_JUMP_POWER_X * 0.5)
 
             # Detach from wall immediately
             state.is_wall_sliding = False  # Prevent slide logic from overriding jump impulse
@@ -334,7 +327,7 @@ class JumpMechanic(BaseMechanic):
             if hasattr(state, "stamina") and state.stamina < 3.0:
                 return False
             old_vy = state.physics.vy
-            power = DOUBLE_JUMP_POWER * (CROUCH_JUMP_MULT if state.crouching else 1.0)
+            power = physics.DOUBLE_JUMP_POWER * (physics.CROUCH_JUMP_MULT if state.crouching else 1.0)
             # Reset to consistent double jump velocity (prevents exploit of higher jumps)
             state.physics.vy = -power
             state.jumps_left -= 1

@@ -17,13 +17,7 @@ Physics Pipeline:
 
 import logging
 
-from config.physics_constants import (
-    FALL_GRAVITY_MULT,
-    FAST_FALL_MULT,
-    GRAVITY,
-    JUMP_CUT_MULT,
-    MAX_FALL_SPEED,
-)
+import config.physics_constants as physics
 from core.entity_system import Entity, EntityManager
 from core.event_bus import EventBus, TickEvent
 from core.state import PhysicsState
@@ -62,11 +56,11 @@ class PhysicsSystem:
         self.entity_manager = entity_manager
         self.logger = logger
 
-        # Expose constants for debugging/tests
-        self.GRAVITY = GRAVITY
-        self.MAX_FALL_SPEED = MAX_FALL_SPEED
-        self.FALL_GRAVITY_MULT = FALL_GRAVITY_MULT
-        self.FAST_FALL_MULT = FAST_FALL_MULT
+        # Expose constants for debugging/tests (dynamically reference from module)
+        self.GRAVITY = physics.GRAVITY
+        self.MAX_FALL_SPEED = physics.MAX_FALL_SPEED
+        self.FALL_GRAVITY_MULT = physics.FALL_GRAVITY_MULT
+        self.FAST_FALL_MULT = physics.FAST_FALL_MULT
 
         # Subscribe to tick events (priority 60 - before collision at 45)
         self.event_bus.subscribe(TickEvent, self.on_tick, priority=60)
@@ -99,17 +93,17 @@ class PhysicsSystem:
             entity: Entity to process
             dt: Delta time (always 1/60 = 0.0167s)
         """
-        physics = entity.physics
+        physics_state = entity.physics
 
         # Apply gravity (only if not on ground - ground entities have vy=0 from collision)
-        if not physics.on_ground:
-            self._apply_gravity(physics)
+        if not physics_state.on_ground:
+            self._apply_gravity(physics_state)
 
         # Integrate velocity into position
-        physics.x += physics.vx
-        physics.y += physics.vy
+        physics_state.x += physics_state.vx
+        physics_state.y += physics_state.vy
 
-    def _apply_gravity(self, physics: PhysicsState):
+    def _apply_gravity(self, physics_state: PhysicsState):
         """
         Apply gravity with multipliers
 
@@ -121,26 +115,24 @@ class PhysicsSystem:
         - Fast fall: FAST_FALL_MULT (2.0x) - hold down button
 
         Args:
-            physics: Physics state to modify
+            physics_state: Physics state to modify
         """
-        from config.physics_constants import APEX_HANG_MULT, APEX_HANG_THRESHOLD
-
         # Apex hang: reduce gravity at peak of jump for satisfying floaty moment
-        if abs(physics.vy) < APEX_HANG_THRESHOLD:
-            physics.vy += GRAVITY * APEX_HANG_MULT
+        if abs(physics_state.vy) < physics.APEX_HANG_THRESHOLD:
+            physics_state.vy += physics.GRAVITY * physics.APEX_HANG_MULT
         else:
             # Base gravity
-            physics.vy += GRAVITY
+            physics_state.vy += physics.GRAVITY
 
         # Fall faster than rise (more responsive)
-        if physics.vy > 0:
-            physics.vy += GRAVITY * (FALL_GRAVITY_MULT - 1.0)
+        if physics_state.vy > 0:
+            physics_state.vy += physics.GRAVITY * (physics.FALL_GRAVITY_MULT - 1.0)
 
         # Cap fall speed
-        if physics.vy > MAX_FALL_SPEED:
-            physics.vy = MAX_FALL_SPEED
+        if physics_state.vy > physics.MAX_FALL_SPEED:
+            physics_state.vy = physics.MAX_FALL_SPEED
 
-    def apply_jump_cut(self, physics: PhysicsState, jump_held: bool):
+    def apply_jump_cut(self, physics_state: PhysicsState, jump_held: bool):
         """
         Apply jump cut (call from input system when jump button released)
 
@@ -148,24 +140,24 @@ class PhysicsSystem:
         to make jumps more responsive (variable jump height).
 
         Args:
-            physics: Physics state
+            physics_state: Physics state
             jump_held: Whether jump button is held
         """
-        if physics.vy < 0 and not jump_held:
-            physics.vy += GRAVITY * (JUMP_CUT_MULT - 1.0)
+        if physics_state.vy < 0 and not jump_held:
+            physics_state.vy += physics.GRAVITY * (physics.JUMP_CUT_MULT - 1.0)
 
-    def apply_fast_fall(self, physics: PhysicsState, down_held: bool):
+    def apply_fast_fall(self, physics_state: PhysicsState, down_held: bool):
         """
         Apply fast fall (call from input system when down button held)
 
         If player holds down while falling in air, apply extra gravity.
 
         Args:
-            physics: Physics state
+            physics_state: Physics state
             down_held: Whether down button is held
         """
-        if physics.vy > 0 and not physics.on_ground and down_held:
-            physics.vy += GRAVITY * (FAST_FALL_MULT - 1.0)
+        if physics_state.vy > 0 and not physics_state.on_ground and down_held:
+            physics_state.vy += physics.GRAVITY * (physics.FAST_FALL_MULT - 1.0)
 
     def get_stats(self) -> dict:
         """

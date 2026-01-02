@@ -64,12 +64,19 @@ class PlayerSimulator:
         self.width = len(self.tilemap[0]) if self.tilemap else 0
         self.height = len(self.tilemap) if self.tilemap else 0
 
-        # Player physics constants (in tiles)
-        self.JUMP_HEIGHT = 3
-        self.DOUBLE_JUMP_HEIGHT = 5
-        self.HORIZONTAL_JUMP_DIST = 5
-        self.WALL_JUMP_HEIGHT = 4
-        self.DASH_DISTANCE = 3
+        # Player physics constants (in tiles) - calculated from live physics
+        from systems.physics_capabilities import (
+            calculate_dash_distance,
+            calculate_double_jump_height,
+            calculate_max_jump_distance,
+            calculate_max_jump_height,
+        )
+
+        self.JUMP_HEIGHT = calculate_max_jump_height()
+        self.DOUBLE_JUMP_HEIGHT = calculate_double_jump_height()
+        self.HORIZONTAL_JUMP_DIST = calculate_max_jump_distance()
+        self.WALL_JUMP_HEIGHT = calculate_max_jump_height()  # Wall jump ~= ground jump
+        self.DASH_DISTANCE = calculate_dash_distance()
 
         # Simulation state
         self.visited: set[tuple[int, int]] = set()

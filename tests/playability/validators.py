@@ -167,10 +167,14 @@ class JumpabilityValidator(PlayabilityValidator):
     - No impossible jump sequences
     """
 
-    def __init__(self, max_jump_height: int = 3, max_jump_distance: int = 5):
+    def __init__(self, max_jump_height: int = None, max_jump_distance: int = None):
         super().__init__("JumpabilityValidator")
-        self.max_jump_height = max_jump_height
-        self.max_jump_distance = max_jump_distance
+
+        # Use live physics calculations if not explicitly provided
+        from systems.physics_capabilities import get_safe_horizontal_gap, get_safe_vertical_gap
+
+        self.max_jump_height = max_jump_height if max_jump_height is not None else get_safe_vertical_gap()
+        self.max_jump_distance = max_jump_distance if max_jump_distance is not None else get_safe_horizontal_gap()
 
     def validate(self, room: RoomNode) -> bool:
         """Validate jump requirements in room"""

@@ -55,6 +55,9 @@ class PhysicsTweaker:
         self.repeat_delay = 0.15  # Seconds between repeats
         self.last_repeat_time = {}
 
+        # Safety warnings for physics changes
+        self.safety_warnings = []
+
     def toggle(self):
         """Toggle visibility of the tweaker overlay"""
         self.visible = not self.visible
@@ -128,11 +131,37 @@ class PhysicsTweaker:
             if param == "JUMP_POWER":
                 physics.DOUBLE_JUMP_POWER = new_value
 
+            # Check if change might break levels (for physics that affect movement)
+            if param in ['GRAVITY', 'JUMP_POWER', 'DOUBLE_JUMP_POWER', 'MAX_RUN_SPEED']:
+                self._check_safety(param, current_value, new_value)
+
+    def _check_safety(self, param: str, old_value: float, new_value: float):
+        """
+        Check if physics change might break levels
+
+        Args:
+            param: Parameter name that was changed
+            old_value: Previous value
+            new_value: New value
+        """
+        from systems.physics_capabilities import validate_physics_for_generation
+
+        # Only check physics that affect movement
+        validation = validate_physics_for_generation()
+
+        if not validation['valid']:
+            self.safety_warnings = validation['warnings']
+        else:
+            self.safety_warnings = []
+
     def reset_all(self):
         """Reset all parameters to default values"""
         for param, default_value in self.defaults.items():
             if hasattr(physics, param):
                 setattr(physics, param, default_value)
+
+        # Clear warnings when resetting to defaults
+        self.safety_warnings = []
 
     def save_to_file(self, filename: str = "config/physics_constants_tweaked.py"):
         """
@@ -170,7 +199,10 @@ class PhysicsTweaker:
 
         # Semi-transparent background
         overlay_width = 400
-        overlay_height = 450
+        # Dynamic height based on warnings (estimate ~20px per warning line)
+        base_height = 450
+        warning_height = len(self.safety_warnings) * 60 if self.safety_warnings else 0
+        overlay_height = base_height + warning_height
         x = surface.get_width() - overlay_width - 10
         y = 10
 
@@ -253,6 +285,37 @@ class PhysicsTweaker:
                 text = self.font.render(display_text, True, color)
                 surface.blit(text, (x + 15, current_y))
                 current_y += 18
+
+        # Safety warnings section
+        if self.safety_warnings:
+            current_y += 10
+            pygame.draw.line(surface, (80, 80, 100), (x + 10, current_y), (x + overlay_width - 10, current_y), 1)
+            current_y += 15
+
+            warning_title = self.title_font.render("⚠ WARNINGS:", True, (255, 200, 50))
+            surface.blit(warning_title, (x + 10, current_y))
+            current_y += 25
+
+            for warning in self.safety_warnings:
+                # Word wrap long warnings
+                words = warning.split(' ')
+                line = ""
+                for word in words:
+                    test_line = line + word + " "
+                    if self.font.size(test_line)[0] < overlay_width - 30:
+                        line = test_line
+                    else:
+                        if line:
+                            warning_text = self.font.render(line.strip(), True, (255, 150, 50))
+                            surface.blit(warning_text, (x + 15, current_y))
+                            current_y += 18
+                        line = word + " "
+
+                # Render remaining line
+                if line:
+                    warning_text = self.font.render(line.strip(), True, (255, 150, 50))
+                    surface.blit(warning_text, (x + 15, current_y))
+                    current_y += 18
 
         # Footer note
         current_y += 10

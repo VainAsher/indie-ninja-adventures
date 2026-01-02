@@ -102,6 +102,18 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
         f"\n[PROCEDURAL] Generating world with seed={seed}, shape={shape_str}, rooms={num_rooms}..."
     )
 
+    # Validate physics constants before generation
+    from systems.physics_capabilities import validate_physics_for_generation
+
+    validation = validate_physics_for_generation()
+    if not validation['valid']:
+        print("[PHYSICS WARNING] Current physics may create impossible levels:")
+        for warning in validation['warnings']:
+            print(f"  - {warning}")
+        caps = validation['capabilities']
+        print(f"[PHYSICS] Max jump: {caps['max_jump_height']:.1f} tiles, "
+              f"Max distance: {caps['max_jump_distance']:.1f} tiles")
+
     # Generate world
     world_gen = WorldGenerator(seed=seed)
     world = world_gen.generate(num_biomes=1, rooms_per_biome=num_rooms, shape=shape)

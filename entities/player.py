@@ -16,6 +16,7 @@ Architecture:
 
 import pygame
 
+import config.physics_constants as physics
 from core.event_bus import EventBus, TickEvent
 from core.logger import GameLogger
 from core.state import PhysicsState, PlayerState
@@ -263,9 +264,7 @@ class Player:
         # This creates responsive "tap for short jump, hold for high jump" gameplay
         if self.state.physics.vy < 0 and not self._jump_key_held:
             # Player is rising and jump button released - apply extra gravity
-            from config.physics_constants import GRAVITY, JUMP_CUT_MULT
-
-            self.state.physics.vy += GRAVITY * (JUMP_CUT_MULT - 1.0)
+            self.state.physics.vy += physics.GRAVITY * (physics.JUMP_CUT_MULT - 1.0)
 
         # Fast-fall: Holding down while falling applies extra gravity for snappy descent
         if (
@@ -274,9 +273,7 @@ class Player:
             and self._down_key_held
             and not self.state.crouching  # Don't fast-fall while crouching on ground
         ):
-            from config.physics_constants import GRAVITY, FAST_FALL_MULT
-
-            self.state.physics.vy += GRAVITY * (FAST_FALL_MULT - 1.0)
+            self.state.physics.vy += physics.GRAVITY * (physics.FAST_FALL_MULT - 1.0)
 
         # Wall friction (fallback when NOT wall sliding): damp descent when touching wall
         # Only apply if wall slide mechanic is not active to avoid conflicts

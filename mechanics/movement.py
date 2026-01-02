@@ -25,7 +25,7 @@ Movement Characteristics:
 - Same behavior on ground and in air (unified physics)
 """
 
-from config.physics_constants import MAX_RUN_SPEED, MOVEMENT_ACCEL
+import config.physics_constants as physics
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
@@ -148,7 +148,7 @@ class MovementMechanic(BaseMechanic):
 
         # Calculate target velocity
         # target_vx = direction * MAX_RUN_SPEED * speed_multiplier
-        target_vx = self.target_direction * MAX_RUN_SPEED * self.speed_multiplier
+        target_vx = self.target_direction * physics.MAX_RUN_SPEED * self.speed_multiplier
 
         # Smooth interpolation factor
         # Formula: min(1.0, accel * accel_mult * dt / max(MAX_SPEED, 1.0))
@@ -158,7 +158,7 @@ class MovementMechanic(BaseMechanic):
         # - Smooth approach to target velocity (no jitter)
         # - dt scaling for frame-rate independence
         smooth_factor = min(
-            1.0, MOVEMENT_ACCEL * self.accel_multiplier * dt / max(MAX_RUN_SPEED, 1.0)
+            1.0, physics.MOVEMENT_ACCEL * self.accel_multiplier * dt / max(physics.MAX_RUN_SPEED, 1.0)
         )
 
         # Interpolate current velocity toward target
