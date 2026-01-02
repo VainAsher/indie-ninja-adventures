@@ -114,16 +114,23 @@ class PhysicsSystem:
         Apply gravity with multipliers
 
         Gravity multipliers:
-        - Base: GRAVITY (0.4)
-        - Falling: FALL_GRAVITY_MULT (1.5x) - fall faster
+        - Base: GRAVITY (0.6)
+        - Apex hang: APEX_HANG_MULT (0.6x) - reduced gravity at jump peak
+        - Falling: FALL_GRAVITY_MULT (2.0x) - fall faster
         - Jump cut: JUMP_CUT_MULT (3.0x) - release jump button
         - Fast fall: FAST_FALL_MULT (2.0x) - hold down button
 
         Args:
             physics: Physics state to modify
         """
-        # Base gravity
-        physics.vy += GRAVITY
+        from config.physics_constants import APEX_HANG_MULT, APEX_HANG_THRESHOLD
+
+        # Apex hang: reduce gravity at peak of jump for satisfying floaty moment
+        if abs(physics.vy) < APEX_HANG_THRESHOLD:
+            physics.vy += GRAVITY * APEX_HANG_MULT
+        else:
+            # Base gravity
+            physics.vy += GRAVITY
 
         # Fall faster than rise (more responsive)
         if physics.vy > 0:

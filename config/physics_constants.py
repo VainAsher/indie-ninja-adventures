@@ -12,12 +12,17 @@ IMPORTANT: Do NOT duplicate these constants elsewhere. Import from this file.
 # ============================================================================
 
 # Base gravity acceleration (pixels per tick per tick)
-GRAVITY = 0.4
+# Increased from 0.4 to 0.6 for snappier, less floaty jump feel
+GRAVITY = 0.6
 
 # Gravity multipliers for different fall states
-FALL_GRAVITY_MULT = 1.5  # Falling is faster than rising
+FALL_GRAVITY_MULT = 2.0  # Falling is faster than rising (increased from 1.5 for snappier descent)
 FAST_FALL_MULT = 2.0  # Holding down while falling
 JUMP_CUT_MULT = 3.0  # When jump button released mid-jump
+
+# Apex hang time - reduces gravity when near peak of jump for satisfying floaty moment
+APEX_HANG_THRESHOLD = 1.0  # When |vy| < this value, apply apex hang
+APEX_HANG_MULT = 0.6  # Gravity multiplier at apex (60% gravity for brief hang)
 
 # Maximum fall speed (terminal velocity)
 MAX_FALL_SPEED = 12.0
@@ -28,9 +33,9 @@ MAX_FALL_SPEED = 12.0
 
 # Ground movement
 MAX_RUN_SPEED = 8.0  # Maximum horizontal speed
-GROUND_ACCEL = 180.0  # Acceleration rate on ground (recalibrated for smooth interpolation)
-# smooth_factor = accel * dt / speed = 180 * 0.0167 / 8 = 0.375
-# This gives responsive but smooth acceleration with friction feel
+MOVEMENT_ACCEL = 1200.0  # Movement acceleration (reduced from 2600 for more weight/momentum feel)
+# smooth_factor = accel * dt / speed = 1200 * 0.0167 / 8 = 0.25 per tick
+# This gives responsive but weighted acceleration (reaches 75% speed in ~5 ticks)
 GROUND_FRICTION = 0.8  # Deceleration multiplier
 
 # Air movement

@@ -3,7 +3,7 @@ Movement Mechanic - Smooth interpolation-based movement
 
 Features:
 - Smooth interpolation to target velocity (eliminates jitter)
-- High acceleration constant (2600.0) for responsive controls
+- Tunable acceleration constant for responsive but weighted controls
 - Natural deceleration when no input (interpolates to 0)
 - Speed capping at maximum run speed
 - Frame-rate independent (dt-scaled)
@@ -15,16 +15,17 @@ Movement Algorithm:
 
 Benefits:
 - No jitter from discrete acceleration steps
-- Responsive feel from high acceleration constant
+- Responsive but weighted feel from tuned acceleration constant
 - Smooth acceleration and deceleration curves
 - Professional polish matching commercial platformers
 
 Movement Characteristics:
-- Speed limit: 8.0 units/tick
-- Acceleration: 2600.0 (smooth interpolation constant)
+- Speed limit: 8.0 units/tick (from physics_constants.py)
+- Acceleration: 1200.0 (smooth interpolation constant, from physics_constants.py)
 - Same behavior on ground and in air (unified physics)
 """
 
+from config.physics_constants import MAX_RUN_SPEED, MOVEMENT_ACCEL
 from core.event_bus import EventBus
 from core.logger import MechanicLogger
 from core.state import PlayerState
@@ -44,21 +45,11 @@ class MovementMechanic(BaseMechanic):
     State modified:
     - PlayerState.physics.vx (horizontal velocity)
     - PlayerState.facing (direction player is facing)
+
+    Constants imported from config.physics_constants:
+    - MAX_RUN_SPEED: Maximum horizontal speed (8.0)
+    - MOVEMENT_ACCEL: Acceleration constant for smooth interpolation (1200.0)
     """
-
-    # Movement constants (from settings.py)
-    MAX_RUN_SPEED = 8.0
-
-    # Smooth interpolation acceleration (pixels/second² equivalent)
-    # Higher value = more responsive, tighter controls
-    # Value from dynamic dungeon platformer: 2600.0
-    MOVEMENT_ACCEL = 2600.0
-
-    # Legacy constants kept for reference (now unused)
-    # RUN_ACCEL_GROUND = 0.9
-    # RUN_DECEL_GROUND = 1.1
-    # RUN_ACCEL_AIR = 0.5
-    # RUN_DECEL_AIR = 0.6
 
     def __init__(self, entity_id: int, event_bus: EventBus, logger: MechanicLogger):
         """
@@ -157,17 +148,17 @@ class MovementMechanic(BaseMechanic):
 
         # Calculate target velocity
         # target_vx = direction * MAX_RUN_SPEED * speed_multiplier
-        target_vx = self.target_direction * self.MAX_RUN_SPEED * self.speed_multiplier
+        target_vx = self.target_direction * MAX_RUN_SPEED * self.speed_multiplier
 
         # Smooth interpolation factor
         # Formula: min(1.0, accel * accel_mult * dt / max(MAX_SPEED, 1.0))
         # This ensures:
-        # - Base acceleration (GROUND_ACCEL) for responsiveness
+        # - Base acceleration (MOVEMENT_ACCEL) for responsiveness
         # - Modulated by accel_multiplier (for crouch penalty, etc.)
         # - Smooth approach to target velocity (no jitter)
         # - dt scaling for frame-rate independence
         smooth_factor = min(
-            1.0, self.MOVEMENT_ACCEL * self.accel_multiplier * dt / max(self.MAX_RUN_SPEED, 1.0)
+            1.0, MOVEMENT_ACCEL * self.accel_multiplier * dt / max(MAX_RUN_SPEED, 1.0)
         )
 
         # Interpolate current velocity toward target

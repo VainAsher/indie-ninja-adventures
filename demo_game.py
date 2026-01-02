@@ -40,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config.physics_constants import (
     TILE_SIZE as CONFIG_TILE_SIZE,
 )
+from dev_tools.physics_tweaker import create_tweaker
 
 # Phase 4-7: New system imports
 from entities.npc import (
@@ -54,6 +55,7 @@ from game import GameState
 # Phase 3: Story System (v0.7.0 - The Hollowed Ninja)
 from game.ending_manager import EndingChoice, EndingState
 from game.game_helpers import (
+    get_arcade_seed,
     persist_player_inventory,
     persist_story_state,
     update_replay_metadata,
@@ -449,6 +451,9 @@ def main():
     npc_prompt_renderer = rendering_systems["npc_prompt_renderer"]
     npc_indicator_renderer = rendering_systems["npc_indicator_renderer"]
 
+    # Initialize debug tools
+    physics_tweaker = create_tweaker()
+
     # Initialize core systems
     core_systems = create_core_systems()
     bus = core_systems["bus"]
@@ -564,6 +569,19 @@ def main():
             pygame.K_h,
             pygame.K_LALT,
             pygame.K_RALT,
+            # Physics tweaker keys (for parameter adjustment)
+            pygame.K_1,
+            pygame.K_2,
+            pygame.K_3,
+            pygame.K_4,
+            pygame.K_5,
+            pygame.K_6,
+            pygame.K_7,
+            pygame.K_8,
+            pygame.K_9,
+            pygame.K_0,
+            pygame.K_LEFTBRACKET,
+            pygame.K_RIGHTBRACKET,
         ],
         False,
     )
@@ -980,7 +998,7 @@ def main():
     )
 
     def get_arcade_seed_wrapper(depth: int) -> int:
-        return get_arcade_seed_wrapper(hub_manager, depth)
+        return get_arcade_seed(hub_manager, depth)
 
     def update_replay_metadata_wrapper(mission_id: str | None = None):
         update_replay_metadata(
@@ -1212,6 +1230,11 @@ def main():
             show_debug_overlay = not show_debug_overlay
         if pygame.K_i in pressed_once:
             inventory_ui.toggle()
+        if pygame.K_p in pressed_once:
+            physics_tweaker.toggle()
+
+        # Physics tweaker parameter adjustment (continuous input)
+        physics_tweaker.handle_input(lambda k: keys[k], 1.0 / FPS)
         if pygame.K_r in pressed_once and game_state_manager.is_playing():
             # Quick-use consumable (first health potion)
             used = False
@@ -2877,6 +2900,9 @@ def main():
             # Render developer console overlay (DEV build only)
             if dev_console:
                 dev_console.render(screen)
+
+            # Render physics tweaker overlay (debug tool)
+            physics_tweaker.draw(screen)
 
             pygame.display.flip()
         clock_pygame.tick(FPS)

@@ -219,17 +219,18 @@ class Player:
         # Update crouch first (provides modifiers for movement)
         self.crouch.on_tick(self.state, dt)
 
-        # Apply movement modifiers: default walk; run when Alt
+        # Apply movement modifiers: crouch (slow/stealthy), walk (default), run (full speed)
         if self.state.crouching:
             modifiers = self.crouch.get_movement_modifier(self.state)
-            self.movement.set_speed_multiplier(modifiers["speed_mult"])
-            self.movement.set_accel_multiplier(modifiers["accel_mult"])
+            self.movement.set_speed_multiplier(modifiers["speed_mult"])  # 0.6
+            self.movement.set_accel_multiplier(modifiers["accel_mult"])  # 0.8
         elif getattr(self.state, "is_running", False):
-            self.movement.set_speed_multiplier(1.0)
-            self.movement.set_accel_multiplier(1.0)
+            self.movement.set_speed_multiplier(1.0)  # Full speed
+            self.movement.set_accel_multiplier(1.0)  # Full acceleration
         else:
-            self.movement.set_speed_multiplier(0.6)
-            self.movement.set_accel_multiplier(0.8)
+            # Default walk mode - distinct from crouch (faster, more responsive)
+            self.movement.set_speed_multiplier(0.75)  # 75% of max speed
+            self.movement.set_accel_multiplier(0.9)   # 90% acceleration
 
         # Lock movement during dash or wall jump lock
         if self.state.is_dashing or self.state.wall_jump_lock > 0:
@@ -266,13 +267,26 @@ class Player:
 
             self.state.physics.vy += GRAVITY * (JUMP_CUT_MULT - 1.0)
 
-        # Wall friction (fallback with wall slide disabled): damp descent when touching wall
+        # Fast-fall: Holding down while falling applies extra gravity for snappy descent
+        if (
+            self.state.physics.vy > 0
+            and not self.state.physics.on_ground
+            and self._down_key_held
+            and not self.state.crouching  # Don't fast-fall while crouching on ground
+        ):
+            from config.physics_constants import GRAVITY, FAST_FALL_MULT
+
+            self.state.physics.vy += GRAVITY * (FAST_FALL_MULT - 1.0)
+
+        # Wall friction (fallback when NOT wall sliding): damp descent when touching wall
+        # Only apply if wall slide mechanic is not active to avoid conflicts
         if (
             self.state.physics.on_wall
             and not self.state.physics.on_ground
             and self.state.physics.vy > 0
+            and not self.state.is_wall_sliding  # Skip if wall slide is handling this
         ):
-            # Stronger damping for a quicker slowdown
+            # Stronger damping for a quicker slowdown (fallback when stamina exhausted)
             self.state.physics.vy *= 0.7
             # Clamp max fall speed near wall
             self.state.physics.vy = min(self.state.physics.vy, 5.0)

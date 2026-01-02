@@ -198,10 +198,10 @@ class JumpMechanic(BaseMechanic):
             # Determine jump type before modifying state
             jump_type = "ground_jump" if state.physics.on_ground else "coyote_jump"
 
-            # Apply jump (use impulse to preserve upward momentum)
+            # Apply jump (reset to consistent jump velocity)
             old_vy = state.physics.vy
-            # If already moving upward, preserve that momentum
-            state.physics.vy = min(old_vy - power, -power)
+            # Reset to jump power for consistent, predictable jump height
+            state.physics.vy = -power
             state.physics.on_ground = False
             state.coyote_time = 0.0
             state.jumps_left = self.MAX_JUMPS - 1  # Reset double jump
@@ -335,8 +335,8 @@ class JumpMechanic(BaseMechanic):
                 return False
             old_vy = state.physics.vy
             power = DOUBLE_JUMP_POWER * (CROUCH_JUMP_MULT if state.crouching else 1.0)
-            # Use impulse to preserve upward momentum (don't override if already rising faster)
-            state.physics.vy = min(old_vy - power, -power)
+            # Reset to consistent double jump velocity (prevents exploit of higher jumps)
+            state.physics.vy = -power
             state.jumps_left -= 1
             if hasattr(state, "stamina"):
                 state.stamina = max(0.0, state.stamina - 3.0)
