@@ -20,8 +20,10 @@ class EnemyMovementComponent:
     def __init__(self, move_speed: float, can_fly: bool = False):
         self.move_speed = move_speed  # pixels per second
         self.can_fly = can_fly
-        self.acceleration = 200.0  # px/s^2 baseline (increased from 120 to prevent stalling)
-        self.friction = 0.92  # Applied when not moving (increased from 0.85 to reduce drag)
+        # Align with player movement physics for fairness
+        # Player uses MOVEMENT_ACCEL=1200.0 with smooth interpolation
+        self.acceleration = 800.0  # Slightly slower ramp than player (player: 1200.0)
+        self.friction = 0.85  # Gradual deceleration (player uses smooth interpolation)
         self.air_control = 0.5 if not can_fly else 1.0
 
     def move_toward(self, physics: PhysicsState, target_x: float, target_y: float, dt: float):
@@ -48,11 +50,15 @@ class EnemyMovementComponent:
         dir_x = dx / distance
         dir_y = dy / distance if self.can_fly else 0.0
 
-        target_vx = dir_x * self.move_speed
-        target_vy = dir_y * self.move_speed if self.can_fly else physics.vy
+        # Convert move_speed from px/sec to px/tick (dt = 1/60 seconds)
+        # Player moves at 8.0 px/tick = 480 px/sec for reference
+        target_vx = dir_x * self.move_speed * dt
+        target_vy = dir_y * self.move_speed * dt if self.can_fly else physics.vy
 
         control_mult = 1.0 if physics.on_ground or self.can_fly else self.air_control
-        accel_amount = self.acceleration * control_mult * dt
+        # Convert acceleration from px/sec/sec to px/tick per tick
+        # acceleration * dt gives px/sec per tick, then * dt again converts to px/tick per tick
+        accel_amount = self.acceleration * control_mult * dt * dt
 
         # Smooth toward target velocity
         if abs(target_vx - physics.vx) > accel_amount:

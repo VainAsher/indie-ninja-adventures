@@ -382,14 +382,17 @@ class EnemyManager:
                 if target:
                     dx = target[0] - enemy.physics.x
                     if abs(dx) > 4.0:
-                        speed = enemy.get_definition().move_speed * 0.5
-                        enemy.physics.vx = speed if dx > 0 else -speed
+                        # Convert move_speed from px/sec to px/tick (move_speed * dt)
+                        speed_px_per_tick = enemy.get_definition().move_speed * dt * 0.5
+                        enemy.physics.vx = speed_px_per_tick if dx > 0 else -speed_px_per_tick
 
             # Lightweight hover behavior for flying enemies (bats)
             definition = enemy.get_definition()
             if definition.can_fly:
                 if enemy.ai_state in (EnemyAIState.PATROL, EnemyAIState.IDLE):
-                    hover = math.sin(enemy.ai_state_timer * 2.0) * 20.0
+                    # Hover amplitude in px/tick (convert 20 px/sec to px/tick)
+                    hover_amplitude = 20.0 * dt
+                    hover = math.sin(enemy.ai_state_timer * 2.0) * hover_amplitude
                     enemy.physics.vy = hover
                 elif enemy.ai_state in (EnemyAIState.CHASE, EnemyAIState.ATTACK):
                     # Nudge toward player's vertical position
@@ -397,8 +400,10 @@ class EnemyManager:
                     enemy.physics.vy += (
                         (player_center_y - (enemy.physics.y + definition.height / 2)) * 0.05 * dt
                     )
+                    # Clamp to move_speed converted from px/sec to px/tick
+                    max_speed_px_tick = definition.move_speed * dt
                     enemy.physics.vy = max(
-                        min(enemy.physics.vy, definition.move_speed), -definition.move_speed
+                        min(enemy.physics.vy, max_speed_px_tick), -max_speed_px_tick
                     )
 
             # Note: AI and movement component write directly to physics, no sync needed

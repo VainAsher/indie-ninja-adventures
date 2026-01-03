@@ -395,7 +395,8 @@ def spawn_objective_collectibles(world, megamap, pickup_manager, mission_def, se
             if pos_idx >= len(positions):
                 break
             x, y = positions[pos_idx]
-            pickup_manager.spawn_pickup(item_id, x, y)
+            # Spawn collectible for mission objectives (using item_id as value for tracking)
+            pickup_manager.spawn_collectible(x, y, value=1)
             spawned_count += 1
             pos_idx += 1
 

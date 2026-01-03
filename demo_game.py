@@ -1486,7 +1486,7 @@ def main():
                             mission_def=mission_def,
                         )
                         current_world_context = "mission"
-                        update_replay_metadata(mission_def.mission_id)
+                        update_replay_metadata_wrapper(mission_def.mission_id)
 
                         if objective_tracker:
                             targets = build_objective_location_targets(
@@ -1642,7 +1642,7 @@ def main():
                         game_state_manager.transition_to(GameState.PLAYING)
                         mission_menu_ui.hide()
                         active_mission_pool = []
-                        update_replay_metadata(mission_def.mission_id)
+                        update_replay_metadata_wrapper(mission_def.mission_id)
                         print(f"[MISSION] Started mission {mission_def.mission_id}")
                 else:
                     print("[MISSION MENU] Selected mission is locked or missing")
@@ -2057,48 +2057,50 @@ def main():
             min_tile_y = max(0, (cam_y - margin) // 32)
             max_tile_y = min(megamap.height_tiles, (cam_y + screen_h + margin) // 32 + 1)
 
-            # Draw solid tiles with culling
-            for tile in tiles:
-                tx, ty = tile.x // 32, tile.y // 32
+            # OPTIMIZATION: Directly iterate visible tiles instead of checking all tiles
+            # This reduces iteration from O(total_tiles) to O(visible_tiles)
+            # Example: 10,000 total tiles → only render ~400 visible tiles (25x speedup!)
+            for ty in range(int(min_tile_y), int(max_tile_y)):
+                for tx in range(int(min_tile_x), int(max_tile_x)):
+                    # Check bounds
+                    if ty < 0 or ty >= len(megamap.tilemap) or tx < 0 or tx >= len(megamap.tilemap[0]):
+                        continue
 
-                # Cull tiles outside view
-                if not (min_tile_x <= tx < max_tile_x and min_tile_y <= ty < max_tile_y):
-                    continue
+                    tile_id = megamap.tilemap[ty][tx]
 
-                screen_rect = camera.apply(tile)
+                    # Draw solid tiles
+                    if tile_id == TILE_SOLID:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
 
-                # Get autotiled tile based on neighbors (use megamap as tilemap)
-                tile_surface = tile_loader.get_autotiled_tile(
-                    biome=current_biome,
-                    tile_type="solid",
-                    tilemap=megamap.tilemap,
-                    x=tx,
-                    y=ty,
-                    tile_id=TILE_SOLID,
-                    seed=current_seed,
-                )
-                game_surface.blit(tile_surface, screen_rect)
+                        tile_surface = tile_loader.get_autotiled_tile(
+                            biome=current_biome,
+                            tile_type="solid",
+                            tilemap=megamap.tilemap,
+                            x=tx,
+                            y=ty,
+                            tile_id=TILE_SOLID,
+                            seed=current_seed,
+                        )
+                        game_surface.blit(tile_surface, screen_rect)
 
-            # Draw platforms with culling
-            for platform in platforms:
-                tx, ty = platform.x // 32, platform.y // 32
+                    # Draw platforms
+                    elif tile_id == TILE_PLATFORM:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
 
-                # Cull platforms outside view
-                if not (min_tile_x <= tx < max_tile_x and min_tile_y <= ty < max_tile_y):
-                    continue
-
-                screen_rect = camera.apply(platform)
-
-                tile_surface = tile_loader.get_autotiled_tile(
-                    biome=current_biome,
-                    tile_type="platform",
-                    tilemap=megamap.tilemap,
-                    x=tx,
-                    y=ty,
-                    tile_id=TILE_PLATFORM,
-                    seed=current_seed,
-                )
-                game_surface.blit(tile_surface, screen_rect)
+                        tile_surface = tile_loader.get_autotiled_tile(
+                            biome=current_biome,
+                            tile_type="platform",
+                            tilemap=megamap.tilemap,
+                            x=tx,
+                            y=ty,
+                            tile_id=TILE_PLATFORM,
+                            seed=current_seed,
+                        )
+                        game_surface.blit(tile_surface, screen_rect)
 
         else:
             # Fallback to simple tiling (for static levels without tilemap)
