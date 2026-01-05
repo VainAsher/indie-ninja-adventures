@@ -109,6 +109,7 @@ class PhysicsSystem:
 
         Gravity multipliers:
         - Base: GRAVITY (0.6)
+        - Tile modifier: gravity_multiplier (water = 0.4, lava = 0.7, normal = 1.0)
         - Apex hang: APEX_HANG_MULT (0.6x) - reduced gravity at jump peak
         - Falling: FALL_GRAVITY_MULT (2.0x) - fall faster
         - Jump cut: JUMP_CUT_MULT (3.0x) - release jump button
@@ -117,20 +118,24 @@ class PhysicsSystem:
         Args:
             physics_state: Physics state to modify
         """
+        # Get tile gravity multiplier (default 1.0 if not set)
+        tile_gravity_mult = getattr(physics_state, "gravity_multiplier", 1.0)
+
         # Apex hang: reduce gravity at peak of jump for satisfying floaty moment
         if abs(physics_state.vy) < physics.APEX_HANG_THRESHOLD:
-            physics_state.vy += physics.GRAVITY * physics.APEX_HANG_MULT
+            physics_state.vy += physics.GRAVITY * physics.APEX_HANG_MULT * tile_gravity_mult
         else:
-            # Base gravity
-            physics_state.vy += physics.GRAVITY
+            # Base gravity with tile modifier
+            physics_state.vy += physics.GRAVITY * tile_gravity_mult
 
-        # Fall faster than rise (more responsive)
+        # Fall faster than rise (more responsive) - also affected by tile modifier
         if physics_state.vy > 0:
-            physics_state.vy += physics.GRAVITY * (physics.FALL_GRAVITY_MULT - 1.0)
+            physics_state.vy += physics.GRAVITY * (physics.FALL_GRAVITY_MULT - 1.0) * tile_gravity_mult
 
-        # Cap fall speed
-        if physics_state.vy > physics.MAX_FALL_SPEED:
-            physics_state.vy = physics.MAX_FALL_SPEED
+        # Cap fall speed (adjusted by tile modifier for fluids)
+        max_fall = physics.MAX_FALL_SPEED * tile_gravity_mult
+        if physics_state.vy > max_fall:
+            physics_state.vy = max_fall
 
     def apply_jump_cut(self, physics_state: PhysicsState, jump_held: bool):
         """

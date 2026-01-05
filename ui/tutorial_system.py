@@ -336,17 +336,6 @@ class TutorialManager:
             )
         )
 
-        # Wall slide tutorial
-        self.register_trigger(
-            TutorialTrigger(
-                trigger_id="wall_slide",
-                trigger_type=TutorialTriggerType.ON_EVENT,
-                message="Hold against a wall to wall slide\nJump off walls to reach high places!",
-                duration=6.0,
-                priority=70,
-            )
-        )
-
         # Crouch tutorial
         self.register_trigger(
             TutorialTrigger(

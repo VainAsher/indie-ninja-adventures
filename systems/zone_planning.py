@@ -43,6 +43,26 @@ Z_CHUTE = "chute"  # Vertical shaft for down movement
 Z_CLIMB = "climb"  # Stepped platforms for up movement
 Z_CONNECTOR = "connector"  # Horizontal platform for hub rooms
 
+# NEW: Enclosed room zones
+Z_CHAMBER = "chamber"  # 3×3 walled box (arena/puzzle)
+Z_ALCOVE = "alcove"  # 2×1 wall indent (secret nook)
+
+# NEW: Irregular platform zones
+Z_L_PLATFORM = "l_platform"  # L-shaped platform
+Z_T_PLATFORM = "t_platform"  # T-shaped platform
+Z_DIAGONAL = "diagonal"  # Diagonal staircase
+Z_FLOATING = "floating"  # Isolated floating platform
+
+# NEW: Vertical passage zones
+Z_SHAFT_UP = "shaft_up"  # Narrow vertical shaft (2 zones wide)
+Z_SHAFT_DOWN = "shaft_down"  # Downward shaft with walls
+Z_TUNNEL = "tunnel"  # Horizontal narrow tunnel (1 zone tall)
+
+# NEW: Fluid zones
+Z_WATER_POOL = "water_pool"  # Water-filled cavity
+Z_LAVA_POOL = "lava_pool"  # Lava-filled cavity
+Z_FLUID_SURFACE = "fluid_surface"  # Top layer of fluid
+
 
 @dataclass
 class RoomContext:
@@ -151,6 +171,72 @@ def rule_dead_end_bonus_corner(ctx: RoomContext):
     print(f"[LOGIC RULE] Applied rule_dead_end_bonus_corner at ({cx}, {cy})")
 
 
+def rule_place_ability_gate(ctx: RoomContext):
+    """
+    Place ability gate if room depth warrants it
+
+    Creates optional paths requiring specific abilities:
+    - High ledges require double jump
+    - Wall shafts require wall jump
+    - Wide gaps require dash
+    - Low passages require crouch
+
+    Args:
+        ctx: Room context with zone grid and room info
+    """
+    import random
+
+    # Calculate room depth from start (Manhattan distance from origin)
+    depth = abs(ctx.room.grid_x) + abs(ctx.room.grid_y)
+
+    # Determine available gate types based on depth
+    available_gates = []
+    if depth >= 2:
+        available_gates.extend(["gate_high_ledge", "gate_low_passage"])
+    if depth >= 5:
+        available_gates.append("gate_wall_shaft")
+    if depth >= 8:
+        available_gates.append("gate_wide_gap")
+
+    if not available_gates:
+        return
+
+    # 30% chance to place gate
+    rng = random.Random(ctx.room.seed + 1000)  # Different seed for gate placement
+    if rng.random() > 0.3:
+        return
+
+    gate_type = rng.choice(available_gates)
+
+    # Find edge zones (not on critical path - near room edges)
+    edge_zones = [
+        (x, y)
+        for x in range(ZONES_W)
+        for y in range(ZONES_H)
+        if (x < 2 or x >= ZONES_W - 2 or y < 2 or y >= ZONES_H - 2)
+        and (x, y) not in ctx.door_zones
+        and ctx.zone_grid[y][x] == Z_DECOR  # Only place in unassigned zones
+    ]
+
+    if not edge_zones:
+        return
+
+    zx, zy = rng.choice(edge_zones)
+
+    # Emit anchor candidate
+    ctx.room.anchor_candidates.append(
+        AnchorCandidate(
+            kind=gate_type,
+            pos=(zx * 10 + 5, zy * 10 + 5),
+            weight=0.7,
+            tags={"ability_gate", "optional"},
+            metadata={"required_ability": gate_type.replace("gate_", "")},
+        )
+    )
+
+    print(f"[LOGIC RULE] Placed {gate_type} candidate at ({zx}, {zy}) (depth={depth})")
+
+
 # Room type to logic rules mapping
 ROOM_LOGIC_RULES: dict[str, list[ZoneRuleFn]] = {
     "start": [
@@ -162,6 +248,7 @@ ROOM_LOGIC_RULES: dict[str, list[ZoneRuleFn]] = {
     ],
     "treasure": [
         rule_dead_end_bonus_corner,
+        rule_place_ability_gate,  # NEW: Ability gates in treasure rooms
     ],
     "combat": [
         rule_force_down_chute,
@@ -170,6 +257,7 @@ ROOM_LOGIC_RULES: dict[str, list[ZoneRuleFn]] = {
     "platform": [
         rule_force_down_chute,
         rule_force_up_climb,
+        rule_place_ability_gate,  # NEW: Ability gates in platform rooms
     ],
     "boss": [],  # No rules for boss rooms (they're special)
     "exit": [
@@ -403,12 +491,51 @@ class ZonePlanner:
                 roles[zy][zx] = Z_LOOT
                 features.append((zx, zy))
 
+        elif room.room_type == RoomType.COMBAT:
+            # NEW: Enemy trigger anchor for combat rooms
+            if self.rng.random() < 0.4:  # 40% chance
+                # Place trigger near edge (room entry)
+                edge_zones = [
+                    z
+                    for z in interior
+                    if (z[0] < 3 or z[0] >= ZONES_W - 3 or z[1] < 3 or z[1] >= ZONES_H - 3)
+                ]
+                if edge_zones:
+                    zx, zy = self.rng.choice(edge_zones)
+                    room.anchor_candidates.append(
+                        AnchorCandidate(
+                            kind="trigger_enemy",
+                            pos=(zx * 10 + 5, zy * 10 + 5),
+                            weight=0.7,
+                            tags={"trigger", "combat"},
+                            metadata={"enemy_count": self.rng.randint(2, 4)},
+                        )
+                    )
+                    print(f"[ZONE PLANNING] Room {room.room_type}: Added enemy trigger candidate")
+
         else:
             # Random loot chance for other rooms
             if self.rng.random() < 0.25 and interior:
                 zx, zy = self.rng.choice(interior)
                 roles[zy][zx] = Z_LOOT
                 features.append((zx, zy))
+
+        # NEW: Add puzzle switch for TREASURE rooms (50% chance)
+        if room.room_type == RoomType.TREASURE and self.rng.random() < 0.5:
+            # Find zones away from treasure
+            non_treasure_zones = [z for z in interior if z not in features]
+            if non_treasure_zones:
+                zx, zy = non_treasure_zones[0]
+                room.anchor_candidates.append(
+                    AnchorCandidate(
+                        kind="puzzle_switch",
+                        pos=(zx * 10 + 5, zy * 10 + 5),
+                        weight=0.9,
+                        tags={"puzzle", "treasure"},
+                        metadata={"target_room": (room.grid_x, room.grid_y)},
+                    )
+                )
+                print(f"[ZONE PLANNING] Room {room.room_type}: Added puzzle switch candidate")
 
         return features
 
@@ -474,11 +601,23 @@ class ZonePlanner:
         self, room: RoomNode, roles: list[list[str]], must_connect: list[tuple[int, int]]
     ):
         """
-        Add solid fill zones (obstacles) based on room type.
+        Add solid fill zones (obstacles) AND zone patterns based on room type.
 
         More combat/platform rooms = more obstacles.
+        NEW: Also tries to place zone patterns for room variety.
         """
-        # Determine fill budget
+        # NEW: Try to place zone patterns first
+        from systems.room_patterns import get_patterns_for_room, should_place_pattern
+
+        patterns_to_try = get_patterns_for_room(room.room_type)
+
+        for pattern, probability in patterns_to_try:
+            if should_place_pattern(probability, self.rng):
+                placed = self._try_place_pattern(pattern, roles, must_connect)
+                if placed:
+                    print(f"[PATTERN] Placed {pattern.name} in {room.room_type.value} room")
+
+        # Determine fill budget (obstacles)
         if room.room_type in (RoomType.COMBAT, RoomType.PLATFORM):
             fill_count = self.rng.randint(2, 4)
         elif room.room_type in (RoomType.TREASURE, RoomType.SHOP):
@@ -523,6 +662,55 @@ class ZonePlanner:
                 return False
 
         return True
+
+    def _try_place_pattern(
+        self, pattern, roles: list[list[str]], must_connect: list[tuple[int, int]]
+    ) -> bool:
+        """
+        Try to place a zone pattern in available space
+
+        Args:
+            pattern: ZonePattern to place
+            roles: Current zone grid
+            must_connect: Critical zones that must stay connected
+
+        Returns:
+            True if pattern was placed successfully
+        """
+        # Find available positions (where pattern fits)
+        for y in range(ZONES_H - pattern.height + 1):
+            for x in range(ZONES_W - pattern.width + 1):
+                # Check if space is available (all zones are DECOR)
+                available = all(
+                    roles[y + py][x + px] == Z_DECOR
+                    for py in range(pattern.height)
+                    for px in range(pattern.width)
+                )
+
+                if not available:
+                    continue
+
+                # Save original state for rollback
+                original_zones = [
+                    [roles[y + py][x + px] for px in range(pattern.width)]
+                    for py in range(pattern.height)
+                ]
+
+                # Stamp pattern
+                for py in range(pattern.height):
+                    for px in range(pattern.width):
+                        roles[y + py][x + px] = pattern.pattern[py][px]
+
+                # Verify connectivity still valid
+                if self._check_connectivity(roles, must_connect):
+                    return True
+                else:
+                    # Revert pattern
+                    for py in range(pattern.height):
+                        for px in range(pattern.width):
+                            roles[y + py][x + px] = original_zones[py][px]
+
+        return False
 
     def _apply_logic_rules(
         self, room: RoomNode, zone_grid: list[list[str]], door_zones: list[tuple[int, int]]

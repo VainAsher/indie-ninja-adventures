@@ -16,24 +16,50 @@ Enhanced: Increased zone grid to 16x16 for finer granularity
 from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES, TILES_PER_ZONE
 from systems.world_generation import RoomNode
 from systems.zone_planning import (
+    Z_ALCOVE,
+    Z_CHAMBER,
     Z_CHUTE,
     Z_CLIMB,
     Z_CONNECTOR,
     Z_DECOR,
+    Z_DIAGONAL,
     Z_DOOR,
     Z_FILL,
+    Z_FLOATING,
+    Z_FLUID_SURFACE,
+    Z_L_PLATFORM,
+    Z_LAVA_POOL,
     Z_LOOT,
     Z_PLAT,
     Z_SAVE,
+    Z_SHAFT_DOWN,
+    Z_SHAFT_UP,
     Z_SHOP,
+    Z_T_PLATFORM,
+    Z_TUNNEL,
     Z_VOID,
     Z_WALK,
+    Z_WATER_POOL,
 )
 
 # Tile constants (match existing collision system)
 TILE_EMPTY = 0  # Empty space (no collision)
 TILE_SOLID = 1  # Solid terrain (full collision)
 TILE_PLATFORM = 2  # Platform (one-way collision from top)
+
+# NEW: Fluid tiles
+TILE_WATER = 3  # Water - reduced gravity, slow movement
+TILE_LAVA = 4  # Lava - damage over time, prevents water physics
+
+# NEW: Environmental hazard tiles
+TILE_ICE = 5  # Ice - reduced friction, slippery movement
+TILE_MUD = 6  # Mud - increased friction, slow movement
+
+# NEW: Interactive block tiles
+TILE_BREAKABLE = 7  # Breakable block - destroyed by attacks
+TILE_CRACKED = 8  # Cracked block - breaks after stepping on it
+TILE_PUSHABLE = 9  # Pushable block - can be moved horizontally
+TILE_STICKY = 10  # Sticky block - wall jump surface
 
 
 # Room/zone dimensions come from centralized physics constants
@@ -157,6 +183,120 @@ class RoomGenerator:
         elif zone_role == Z_VOID:
             # Empty space - already TILE_EMPTY
             pass
+
+        # NEW ZONE TYPES - Phase 2
+
+        elif zone_role == Z_DIAGONAL:
+            # Diagonal staircase - platforms at 45-degree angle
+            for i in range(TILES_PER_ZONE):
+                platform_y = tile_y_start + i
+                platform_x = tile_x_start + i
+                if platform_y < tile_y_end and platform_x < tile_x_end:
+                    tilemap[platform_y][platform_x] = TILE_PLATFORM
+
+        elif zone_role == Z_FLOATING:
+            # Small floating platform (4x1 tiles in center)
+            platform_y = tile_y_start + TILES_PER_ZONE // 2
+            for tx in range(tile_x_start + 2, min(tile_x_start + 6, tile_x_end)):
+                tilemap[platform_y][tx] = TILE_PLATFORM
+
+        elif zone_role == Z_L_PLATFORM:
+            # L-shaped platform (horizontal base + vertical part)
+            # Horizontal part at bottom
+            bottom_y = tile_y_end - 1
+            for tx in range(tile_x_start, tile_x_end):
+                tilemap[bottom_y][tx] = TILE_PLATFORM
+            # Vertical part on left
+            left_x = tile_x_start
+            for ty in range(tile_y_start, tile_y_end):
+                tilemap[ty][left_x] = TILE_PLATFORM
+
+        elif zone_role == Z_T_PLATFORM:
+            # T-shaped platform (horizontal top + vertical center)
+            # Horizontal part at top
+            top_y = tile_y_start + 2
+            for tx in range(tile_x_start, tile_x_end):
+                tilemap[top_y][tx] = TILE_PLATFORM
+            # Vertical part in center
+            center_x = tile_x_start + TILES_PER_ZONE // 2
+            for ty in range(tile_y_start, tile_y_end):
+                tilemap[ty][center_x] = TILE_PLATFORM
+
+        elif zone_role == Z_SHAFT_UP:
+            # Vertical shaft with walls on sides, platforms for climbing
+            for ty in range(tile_y_start, tile_y_end):
+                tilemap[ty][tile_x_start] = TILE_SOLID  # Left wall
+                tilemap[ty][tile_x_end - 1] = TILE_SOLID  # Right wall
+            # Add platforms every 3 tiles for climbing
+            for i in range(0, TILES_PER_ZONE, 3):
+                platform_y = tile_y_start + i
+                if platform_y < tile_y_end:
+                    for tx in range(tile_x_start + 2, tile_x_end - 2):
+                        tilemap[platform_y][tx] = TILE_PLATFORM
+
+        elif zone_role == Z_SHAFT_DOWN:
+            # Similar to shaft_up but no platforms (for falling)
+            for ty in range(tile_y_start, tile_y_end):
+                tilemap[ty][tile_x_start] = TILE_SOLID  # Left wall
+                tilemap[ty][tile_x_end - 1] = TILE_SOLID  # Right wall
+
+        elif zone_role == Z_TUNNEL:
+            # Horizontal tunnel with ceiling/floor (requires crouch)
+            for tx in range(tile_x_start, tile_x_end):
+                tilemap[tile_y_start][tx] = TILE_SOLID  # Ceiling
+                tilemap[tile_y_start + 1][tx] = TILE_SOLID  # Lower ceiling
+                tilemap[tile_y_end - 1][tx] = TILE_SOLID  # Floor
+
+        elif zone_role == Z_WATER_POOL:
+            # Fill with water tiles
+            for ty in range(tile_y_start, tile_y_end):
+                for tx in range(tile_x_start, tile_x_end):
+                    tilemap[ty][tx] = TILE_WATER
+
+        elif zone_role == Z_LAVA_POOL:
+            # Fill with lava tiles
+            for ty in range(tile_y_start, tile_y_end):
+                for tx in range(tile_x_start, tile_x_end):
+                    tilemap[ty][tx] = TILE_LAVA
+
+        elif zone_role == Z_FLUID_SURFACE:
+            # Top 2 rows are water, rest is solid foundation
+            for ty in range(tile_y_start, min(tile_y_start + 2, tile_y_end)):
+                for tx in range(tile_x_start, tile_x_end):
+                    tilemap[ty][tx] = TILE_WATER  # Default to water
+            # Solid foundation below
+            for ty in range(tile_y_start + 2, tile_y_end):
+                for tx in range(tile_x_start, tile_x_end):
+                    tilemap[ty][tx] = TILE_SOLID
+
+        elif zone_role == Z_CHAMBER:
+            # Hollow box - walls on perimeter, void inside
+            # Note: Chambers should ideally use multi-zone patterns
+            # This is a single-zone fallback
+            for ty in range(tile_y_start, tile_y_end):
+                for tx in range(tile_x_start, tile_x_end):
+                    # Perimeter is solid
+                    if (
+                        ty == tile_y_start
+                        or ty == tile_y_end - 1
+                        or tx == tile_x_start
+                        or tx == tile_x_end - 1
+                    ):
+                        tilemap[ty][tx] = TILE_SOLID
+                    # Interior is empty (already TILE_EMPTY)
+
+        elif zone_role == Z_ALCOVE:
+            # Wall indent - solid on 3 sides, open on 1
+            # Open on bottom, solid on other 3 sides
+            for ty in range(tile_y_start, tile_y_end - 1):
+                tilemap[ty][tile_x_start] = TILE_SOLID  # Left wall
+                tilemap[ty][tile_x_end - 1] = TILE_SOLID  # Right wall
+            # Top wall
+            for tx in range(tile_x_start, tile_x_end):
+                tilemap[tile_y_start][tx] = TILE_SOLID
+            # Floor at bottom (walkable entry)
+            for tx in range(tile_x_start, tile_x_end):
+                tilemap[tile_y_end - 1][tx] = TILE_SOLID
 
     def _add_room_boundaries(self, tilemap: list[list[int]], room: RoomNode | None = None):
         """
@@ -297,6 +437,14 @@ def print_tilemap_sample(tilemap: list[list[int]], sample_size: int = 20) -> Non
         TILE_EMPTY: " ",
         TILE_SOLID: "#",
         TILE_PLATFORM: "-",
+        TILE_WATER: "~",
+        TILE_LAVA: "^",
+        TILE_ICE: "*",
+        TILE_MUD: ":",
+        TILE_BREAKABLE: "B",
+        TILE_CRACKED: "C",
+        TILE_PUSHABLE: "P",
+        TILE_STICKY: "S",
     }
 
     print(f"\nTilemap Sample ({sample_size}x{sample_size} of {len(tilemap[0])}x{len(tilemap)}):")
@@ -317,6 +465,14 @@ def print_tilemap_ascii(tilemap: list[list[int]], scale: int = 4) -> None:
         TILE_EMPTY: " ",
         TILE_SOLID: "#",
         TILE_PLATFORM: "-",
+        TILE_WATER: "~",
+        TILE_LAVA: "^",
+        TILE_ICE: "*",
+        TILE_MUD: ":",
+        TILE_BREAKABLE: "B",
+        TILE_CRACKED: "C",
+        TILE_PUSHABLE: "P",
+        TILE_STICKY: "S",
     }
 
     height = len(tilemap)
@@ -336,5 +492,6 @@ def print_tilemap_ascii(tilemap: list[list[int]], scale: int = 4) -> None:
         print(row_str)
 
     print(f"{'='*60}")
-    print("Legend: #=Solid  -=Platform  (space)=Empty")
+    print("Legend: #=Solid  -=Platform  ~=Water  ^=Lava  *=Ice  :=Mud")
+    print("        B=Breakable  C=Cracked  P=Pushable  S=Sticky  (space)=Empty")
     print(f"{'='*60}\n")

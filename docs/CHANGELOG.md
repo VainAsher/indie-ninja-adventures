@@ -8,6 +8,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.2] - 2026-01-04 (Ability Progression System)
+
+### Added
+
+- **Progressive Ability Unlocking**: Players now start with only basic movement and jump
+- **Mission-Based Progression**: Abilities unlock through completing specific missions
+- **Unlock Feedback**: Console messages show when new abilities are unlocked
+- **Mission Menu Enhancement**: Ability unlocks now displayed in mission rewards
+
+### Changed
+
+- **Player Initialization**: `create_player()` now accepts `unlocked_abilities` parameter
+- **Feature Flags**: Dynamically built from unlocked abilities instead of hardcoded to `True`
+- **Mission Completion**: Now grants abilities and updates player in real-time
+- **Mission Data**: Updated 4 missions to unlock remaining abilities (shuriken, crouch, teleport, ninjutsu)
+- **Save Migration**: Legacy saves with completed missions automatically grant all abilities for compatibility
+
+### Progression Path
+
+1. **forest_1** → unlocks **double_jump**
+2. **forest_3** → unlocks **dash**
+3. **town_3** → unlocks **wall_jump**
+4. **caves_2** → unlocks **crouch**
+5. **town_5** → unlocks **shuriken**
+6. **castle_2** → unlocks **teleport**
+7. **sewer_3** → unlocks **ninjutsu**
+
+### Technical Details
+
+- Modified Files: `game/game_initialization.py`, `demo_game.py`, `systems/save_system.py`, `data/missions.json`
+- Backward Compatible: v0.6.0 saves with completed missions retain all abilities
+- New Game Experience: Fresh starts require earning abilities through gameplay
+
+### Notes
+
+- All abilities still functional, just gated behind progression
+- Save format remains compatible with existing saves
+- Mission prerequisites ensure logical progression order
+
+---
+
+## [0.7.1] - 2026-01-04 (Project Cleanup & Simplification)
+
+### Removed
+- Duplicate file: `entities/components_core.py` (identical to components.py)
+- Disabled feature: `mechanics/wall_slide.py` and all related code
+- Windows reserved file: `nul`
+- Wall slide tutorial, sprites, and stamina system
+- 76+ archived documentation files (to be moved to wiki)
+
+### Changed
+- Consolidated BossAIState enum - now imported from `entities/boss_ai.py` in boss.py
+- Moved quality baselines and metrics to `metrics/` directory
+- Consolidated QUICK_START.md to `docs/` directory (single authoritative version)
+- Updated version references from v0.6.0 to v0.7.0 in boss.py and QUICK_START.md
+- Moved MOVEMENT_REFACTOR_SUMMARY.md to docs/archive/
+
+### Added
+- `metrics/` directory for quality baselines and code metrics
+- `docs/ARCHIVE_WIKI.md` - Guide to archived documentation on wiki
+
+### Maintained
+- ✅ All boss system files (boss.py, boss_ai.py, boss_manager.py) preserved
+- ✅ All dev_tools/ and tools/ directories preserved
+- ✅ All core game functionality intact
+- ✅ Complete test suite maintained
+
+### Notes
+- BossType enum remains defined separately in boss.py and boss_manager.py (incompatible systems)
+- Legacy wall_slide_stamina fields are cleaned up during save data deserialization for backward compatibility
+
+---
+
 ## [0.7.0] - 2026-01-01 (Project Restructuring Release)
 
 ### Summary

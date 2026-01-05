@@ -204,16 +204,6 @@ def test_dash_mechanics():
     print("\n[PASS] Dash Mechanics Test PASSED")
 
 
-def test_wall_slide_stamina():
-    """Test wall slide with stamina system"""
-    print("\n" + "=" * 60)
-    print("Testing Wall Slide + Stamina")
-    print("=" * 60)
-
-    print("[SKIP] Wall slide mechanic is currently disabled; using wall-friction fallback.")
-    assert True
-
-
 def test_full_gameplay_scenario():
     """Test complete gameplay scenario with all mechanics"""
     print("\n" + "=" * 60)
@@ -351,7 +341,6 @@ def main():
         test_movement_basic()
         test_crouch_movement_interaction()
         test_dash_mechanics()
-        test_wall_slide_stamina()
         test_collision_integration()
         test_full_gameplay_scenario()
 

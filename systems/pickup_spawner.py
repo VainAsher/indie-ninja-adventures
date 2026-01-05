@@ -17,8 +17,25 @@ Pickup Types:
 import random
 
 from entities.pickups import PickupManager
-from systems.room_generation import TILE_PLATFORM, TILE_SOLID
+from systems.room_generation import (
+    TILE_BREAKABLE,
+    TILE_CRACKED,
+    TILE_ICE,
+    TILE_LAVA,
+    TILE_MUD,
+    TILE_PLATFORM,
+    TILE_PUSHABLE,
+    TILE_SOLID,
+    TILE_STICKY,
+    TILE_WATER,
+)
 from systems.world_generation import RoomNode
+
+# Tiles that are valid ground surfaces for pickup spawning
+WALKABLE_GROUND_TILES = {TILE_SOLID, TILE_ICE, TILE_MUD, TILE_STICKY, TILE_BREAKABLE, TILE_CRACKED, TILE_PUSHABLE}
+
+# Tiles that block spawning (fluids, empty)
+BLOCKED_SPAWN_TILES = {TILE_WATER, TILE_LAVA, 0}  # 0 = TILE_EMPTY
 
 
 class PickupSpawnConfig:
@@ -273,18 +290,26 @@ class PickupSpawner:
         if not room.tilemap:
             return positions
 
-        # Scan tilemap for ground tiles (solid with air above)
+        # Scan tilemap for ground tiles (walkable solid with air above)
         # Sample every few tiles to avoid too many positions
-        for ty in range(1, len(room.tilemap) - 1, 5):
-            for tx in range(1, len(room.tilemap[0]) - 1, 5):
+        for ty in range(2, len(room.tilemap) - 2, 5):  # More margin to avoid edges
+            for tx in range(2, len(room.tilemap[0]) - 2, 5):
                 tile = room.tilemap[ty][tx]
                 tile_above = room.tilemap[ty - 1][tx]
+                tile_2above = room.tilemap[ty - 2][tx] if ty >= 2 else -1
 
-                # Ground tile: solid with air above
-                if tile == TILE_SOLID and tile_above == 0:
-                    x = room_px + tx * 32
-                    y = room_py + (ty - 1) * 32  # Spawn above ground
-                    positions.append((x, y))
+                # Ground tile: walkable surface with enough air space above
+                # Must have at least 2 tiles of air above to be accessible
+                if tile in WALKABLE_GROUND_TILES and tile_above == 0 and tile_2above == 0:
+                    # Additional check: not enclosed (at least one horizontal direction is open)
+                    left_tile = room.tilemap[ty - 1][tx - 1] if tx > 0 else -1
+                    right_tile = room.tilemap[ty - 1][tx + 1] if tx < len(room.tilemap[0]) - 1 else -1
+
+                    # Must have at least one open horizontal direction
+                    if left_tile == 0 or right_tile == 0:
+                        x = room_px + tx * 32
+                        y = room_py + (ty - 1) * 32  # Spawn above ground
+                        positions.append((x, y))
 
         # Sort positions for determinism (always same order)
         positions.sort()
@@ -300,16 +325,23 @@ class PickupSpawner:
             return positions
 
         # Scan tilemap for platforms
-        for ty in range(1, len(room.tilemap) - 1, 5):
-            for tx in range(1, len(room.tilemap[0]) - 1, 5):
+        for ty in range(2, len(room.tilemap) - 2, 5):  # More margin
+            for tx in range(2, len(room.tilemap[0]) - 2, 5):
                 tile = room.tilemap[ty][tx]
                 tile_above = room.tilemap[ty - 1][tx]
+                tile_2above = room.tilemap[ty - 2][tx] if ty >= 2 else -1
 
-                # Platform with air above
-                if tile == TILE_PLATFORM and tile_above == 0:
-                    x = room_px + tx * 32
-                    y = room_py + (ty - 1) * 32  # Spawn above platform
-                    positions.append((x, y))
+                # Platform with enough air above
+                if tile == TILE_PLATFORM and tile_above == 0 and tile_2above == 0:
+                    # Check not enclosed
+                    left_tile = room.tilemap[ty - 1][tx - 1] if tx > 0 else -1
+                    right_tile = room.tilemap[ty - 1][tx + 1] if tx < len(room.tilemap[0]) - 1 else -1
+
+                    # Must have at least one open horizontal direction
+                    if left_tile == 0 or right_tile == 0:
+                        x = room_px + tx * 32
+                        y = room_py + (ty - 1) * 32  # Spawn above platform
+                        positions.append((x, y))
 
         # Sort positions for determinism (always same order)
         positions.sort()

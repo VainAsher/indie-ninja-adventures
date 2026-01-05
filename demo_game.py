@@ -201,8 +201,6 @@ def get_player_render_state(player):
     if state.is_ceiling_hanging:
         return "ceiling_hang"
     if not physics.on_ground:
-        if physics.on_wall:
-            return "wall_slide"
         # Air spin if mid-air and jumps_left < max_jumps
         if state.jumps_left < state.max_jumps:
             return "air_spin"
@@ -269,6 +267,7 @@ def main():
         "--procedural", action="store_true", help="(ignored) Procedural is always enabled"
     )
     parser.add_argument("--seed", type=int, default=None, help="Seed for procedural generation")
+    parser.add_argument("--showcase", action="store_true", help="Load test showcase level with all zone patterns and tile types")
     parser.add_argument(
         "--shape",
         type=str,
@@ -497,6 +496,7 @@ def main():
     save_manager = game_managers["save_manager"]
     pickup_manager = game_managers["pickup_manager"]
     hazard_manager = game_managers["hazard_manager"]
+    tile_physics_manager = game_managers["tile_physics_manager"]
     npc_manager = game_managers["npc_manager"]
     dialogue_manager = game_managers["dialogue_manager"]
     dialogue_ui = game_managers["dialogue_ui"]
@@ -638,11 +638,28 @@ def main():
 
             objectives = [obj.description for obj in mission_def.objectives]
             requirements = mission_def.required_abilities + mission_def.unlock_requirements
+
+            # Build rewards list including currency, items, and abilities (v0.7.2)
             rewards = []
             if mission_def.rewards.currency:
                 rewards.append(f"{mission_def.rewards.currency} Gold")
             for reward_item in mission_def.rewards.items:
                 rewards.append(reward_item.get("item_id", "Item"))
+
+            # Add ability unlocks to rewards display
+            if mission_def.unlock_abilities:
+                ability_names = {
+                    "double_jump": "Double Jump",
+                    "dash": "Dash",
+                    "wall_jump": "Wall Jump",
+                    "crouch": "Crouch",
+                    "shuriken": "Shuriken",
+                    "teleport": "Teleport",
+                    "ninjutsu": "Ninjutsu"
+                }
+                for ability in mission_def.unlock_abilities:
+                    name = ability_names.get(ability, ability.replace('_', ' ').title())
+                    rewards.append(f"🔓 {name}")
 
             missions_to_show.append(
                 MissionDisplay(
@@ -859,6 +876,12 @@ def main():
     spawn_x = GAME_WIDTH / 2
     spawn_y = GAME_HEIGHT - 100
 
+    # Extract unlocked abilities from campaign save (v0.7.2 - Progression System)
+    unlocked_abilities = None
+    if save_manager and save_manager.data and save_manager.data.campaign:
+        unlocked_abilities = save_manager.data.campaign.unlocked_abilities
+        print(f"[PROGRESSION] Loaded {len(unlocked_abilities)} unlocked abilities")
+
     # Player + level manager setup (player will be teleported after world regen)
     player, player_entity, level_manager = create_player(
         spawn_x=spawn_x,
@@ -869,6 +892,7 @@ def main():
         entity_manager=entity_manager,
         enemy_manager=enemy_manager,
         hazard_manager=hazard_manager,
+        unlocked_abilities=unlocked_abilities,
     )
 
     # Apply shuriken capacity bonus based on equipped armor
@@ -894,27 +918,72 @@ def main():
     initial_seed = current_seed if current_seed is not None else base_hub_seed
     current_seed = initial_seed
 
-    tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = (
-        regenerate_world_state(
-            seed=initial_seed,
-            shape=initial_shape,
-            rooms=initial_rooms,
-            hub_id=current_hub_id,
-            hub_manager=hub_manager,
-            portal_manager=portal_manager,
-            collision_system=collision_system,
-            camera=camera,
-            player=player,
-            enemy_manager=enemy_manager,
-            pickup_manager=pickup_manager,
-            hazard_manager=hazard_manager,
-            level_manager=level_manager,
-            npc_manager=npc_manager,
-            bus=bus,
-            GAME_WIDTH=GAME_WIDTH,
-            GAME_HEIGHT=GAME_HEIGHT,
+    # Check if showcase mode is enabled
+    if args.showcase:
+        print("\n[SHOWCASE MODE] Loading test showcase level...")
+        from systems.test_showcase_level import generate_showcase_level
+        from rendering.minimap import MinimapRenderer, MinimapConfig
+
+        (
+            tiles,
+            platforms,
+            current_seed,
+            spawn_x,
+            spawn_y,
+            exit_x,
+            exit_y,
+            world,
+            megamap,
+        ) = generate_showcase_level()
+
+        # Update collision system
+        collision_system.set_tiles(tiles, platforms)
+
+        # Set camera bounds
+        if megamap:
+            world_w = megamap.width_tiles * 32
+            world_h = megamap.height_tiles * 32
+            camera.set_world_bounds(world_w, world_h)
+            camera.set_room_bounds(0, 0, world_w, world_h)
+
+        # Create minimap for showcase
+        minimap = MinimapRenderer(
+            MinimapConfig(
+                position=(20, 500),
+                show_connections=True,
+                show_player=True,
+                highlight_current=True,
+                scale=24,  # Larger scale for 3x3 grid
+            )
         )
-    )
+
+        # No hub in showcase mode
+        current_hub_id = None
+        hub_manager = None
+
+        print("[SHOWCASE MODE] Showcase level loaded successfully!")
+    else:
+        tiles, platforms, current_seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap = (
+            regenerate_world_state(
+                seed=initial_seed,
+                shape=initial_shape,
+                rooms=initial_rooms,
+                hub_id=current_hub_id,
+                hub_manager=hub_manager,
+                portal_manager=portal_manager,
+                collision_system=collision_system,
+                camera=camera,
+                player=player,
+                enemy_manager=enemy_manager,
+                pickup_manager=pickup_manager,
+                hazard_manager=hazard_manager,
+                level_manager=level_manager,
+                npc_manager=npc_manager,
+                bus=bus,
+                GAME_WIDTH=GAME_WIDTH,
+                GAME_HEIGHT=GAME_HEIGHT,
+            )
+        )
     current_world_context = "hub"
 
     # Create victory screen
@@ -1528,20 +1597,64 @@ def main():
                 if player.state.is_dashing and "dash" not in tutorial_manager.shown_tutorials:
                     tutorial_manager.trigger_tutorial("dash")
 
-                # Wall slide tutorial
-                if (
-                    player.state.is_wall_sliding
-                    and "wall_slide" not in tutorial_manager.shown_tutorials
-                ):
-                    tutorial_manager.trigger_tutorial("wall_slide")
-
                 # Crouch tutorial
                 if player.state.crouching and "crouch" not in tutorial_manager.shown_tutorials:
                     tutorial_manager.trigger_tutorial("crouch")
 
+            # Apply tile physics modifiers BEFORE movement system runs
+            stored_feet_tile = 0  # Store for post-tick ice handling
+            stored_prev_vx = 0.0  # Store velocity for ice momentum
+            had_movement_input = False  # Track if player is giving input
+
+            if megamap and megamap.tilemap:
+                from systems.room_generation import TILE_WATER, TILE_LAVA, TILE_ICE
+
+                # Store velocity and input state BEFORE movement system modifies it
+                stored_prev_vx = player.state.physics.vx
+                had_movement_input = (player.movement.target_direction != 0)
+
+                # Check tile at player's feet for ground effects
+                player_center_x = int(player.state.physics.x + player.state.physics.width / 2)
+                player_feet_y = int(player.state.physics.y + player.state.physics.height)
+                feet_tile_x = player_center_x // TILE_SIZE
+                feet_tile_y = player_feet_y // TILE_SIZE
+
+                # Check tile at center for fluid effects
+                player_center_y = int(player.state.physics.y + player.state.physics.height / 2)
+                center_tile_x = player_center_x // TILE_SIZE
+                center_tile_y = player_center_y // TILE_SIZE
+
+                # Get tiles
+                feet_tile = 0
+                if 0 <= feet_tile_y < len(megamap.tilemap) and 0 <= feet_tile_x < len(megamap.tilemap[0]):
+                    feet_tile = megamap.tilemap[feet_tile_y][feet_tile_x]
+                    stored_feet_tile = feet_tile  # Store for after tick
+
+                center_tile = 0
+                if 0 <= center_tile_y < len(megamap.tilemap) and 0 <= center_tile_x < len(megamap.tilemap[0]):
+                    center_tile = megamap.tilemap[center_tile_y][center_tile_x]
+
+                # Use center tile if in fluid, otherwise feet tile
+                current_tile = center_tile if center_tile in (TILE_WATER, TILE_LAVA) else feet_tile
+                modifiers = tile_physics_manager.get_tile_modifiers(current_tile)
+
+                # Set movement modifiers BEFORE movement system runs
+                player.movement.set_speed_multiplier(modifiers.speed_mult)
+                player.movement.set_accel_multiplier(modifiers.accel_mult)
+
+                # Set gravity modifier
+                player.state.physics.gravity_multiplier = modifiers.gravity_mult
+
             # Update game (fixed timestep)
             game_clock.tick()
             bus.process()
+
+            # Post-tick: Restore ice momentum ONLY when no input (otherwise let acceleration work)
+            if stored_feet_tile == TILE_ICE and player.state.physics.on_ground and not had_movement_input:
+                # Ice physics: Player released input, but movement system stopped us
+                # Restore momentum with ice friction on ORIGINAL velocity
+                if abs(stored_prev_vx) > 0.1:
+                    player.state.physics.vx = stored_prev_vx * 0.98  # Ice friction - keep sliding!
 
             # Update story cutscenes (v0.7.0)
             if story_manager.is_cutscene_playing():
@@ -1702,6 +1815,60 @@ def main():
 
             # Update pickups
             pickup_manager.update(1.0 / FPS)
+
+            # Update tile physics (breakable/cracked tiles, etc.)
+            if megamap and megamap.tilemap:
+                # Import tile constants
+                from systems.room_generation import TILE_WATER, TILE_LAVA, TILE_ICE
+
+                tile_physics_manager.update(1.0 / FPS, megamap.tilemap)
+
+                # Check tile at player's FEET for ground effects (ice, mud)
+                player_center_x = int(player.state.physics.x + player.state.physics.width / 2)
+                player_feet_y = int(player.state.physics.y + player.state.physics.height)
+                feet_tile_x = player_center_x // TILE_SIZE
+                feet_tile_y = player_feet_y // TILE_SIZE
+
+                # Also check tile at center for fluid effects (water, lava)
+                player_center_y = int(player.state.physics.y + player.state.physics.height / 2)
+                center_tile_x = player_center_x // TILE_SIZE
+                center_tile_y = player_center_y // TILE_SIZE
+
+                # Get tile at feet (for ground effects like ice/mud)
+                feet_tile = 0
+                if 0 <= feet_tile_y < len(megamap.tilemap) and 0 <= feet_tile_x < len(megamap.tilemap[0]):
+                    feet_tile = megamap.tilemap[feet_tile_y][feet_tile_x]
+
+                # Get tile at center (for fluid effects like water/lava)
+                center_tile = 0
+                if 0 <= center_tile_y < len(megamap.tilemap) and 0 <= center_tile_x < len(megamap.tilemap[0]):
+                    center_tile = megamap.tilemap[center_tile_y][center_tile_x]
+
+                # Prioritize center tile if in fluid, otherwise use feet tile
+                current_tile = center_tile if center_tile in (TILE_WATER, TILE_LAVA) else feet_tile
+                modifiers = tile_physics_manager.get_tile_modifiers(current_tile)
+
+                # Apply friction for non-ice tiles (mud, etc.)
+                # Ice friction is handled separately before game_clock.tick() to preserve momentum
+                if feet_tile != TILE_ICE and abs(player.state.physics.vx) > 0.01:
+                    # Normal friction from modifiers (mud = 0.6, water = 0.7, etc.)
+                    player.state.physics.vx *= modifiers.friction
+
+                # Check for damage from hazard tiles
+                if modifiers.damage_rate > 0:
+                    if tile_physics_manager.check_damage_from_tile(
+                        current_tile, (center_tile_x, center_tile_y), 1.0 / FPS
+                    ):
+                        # Apply damage from lava/hazard tiles (minimum 1 damage per tick)
+                        damage_amount = max(1, int(modifiers.damage_rate * (1.0 / FPS)))
+                        if not player.damage.is_invincible(player.state):
+                            died = player.damage.take_damage(player.state, damage_amount)
+                            if died:
+                                level_manager.increment_deaths()
+                                player.damage.respawn(player.state, spawn_x, spawn_y)
+                                print(
+                                    f"[DEATH] Player died from lava, respawning at ({spawn_x:.0f}, {spawn_y:.0f})"
+                                )
 
             # Update enemies (v0.6.0)
             enemy_manager.update(
@@ -1931,6 +2098,36 @@ def main():
                                         )
                                         save_manager.mark_dirty()
 
+                                    # Unlock new abilities from mission rewards (v0.7.2 - Progression System)
+                                    if mission_def and mission_def.unlock_abilities:
+                                        campaign = save_manager.data.campaign
+
+                                        for ability in mission_def.unlock_abilities:
+                                            # Add to campaign save
+                                            campaign.unlocked_abilities.add(ability)
+
+                                            # Update player feature_flags immediately (no restart needed)
+                                            player.feature_flags[ability] = True
+
+                                            # Update jump mechanic if it's a jump-related ability
+                                            if ability in ['double_jump', 'wall_jump'] and hasattr(player, 'jump'):
+                                                player.jump.feature_flags = player.feature_flags
+
+                                            # Log ability unlock
+                                            ability_names = {
+                                                "double_jump": "Double Jump",
+                                                "dash": "Dash",
+                                                "wall_jump": "Wall Jump",
+                                                "crouch": "Crouch",
+                                                "shuriken": "Shuriken",
+                                                "teleport": "Teleport",
+                                                "ninjutsu": "Ninjutsu"
+                                            }
+                                            ability_name = ability_names.get(ability, ability.replace('_', ' ').title())
+                                            print(f"[PROGRESSION] Unlocked new ability: {ability_name}!")
+
+                                        save_manager.mark_dirty()
+
                                     # Trigger story events on mission completion (v0.7.0)
                                     story_events = story_manager.on_mission_complete(
                                         mission_def.mission_id
@@ -2043,7 +2240,18 @@ def main():
 
         if use_autotiling:
             # Import tile constants for autotiling
-            from systems.room_generation import TILE_PLATFORM, TILE_SOLID
+            from systems.room_generation import (
+                TILE_BREAKABLE,
+                TILE_CRACKED,
+                TILE_ICE,
+                TILE_LAVA,
+                TILE_MUD,
+                TILE_PLATFORM,
+                TILE_PUSHABLE,
+                TILE_SOLID,
+                TILE_STICKY,
+                TILE_WATER,
+            )
 
             # OPTIMIZATION: Only render tiles within camera view + margin
             # Calculate visible tile bounds
@@ -2101,6 +2309,104 @@ def main():
                             seed=current_seed,
                         )
                         game_surface.blit(tile_surface, screen_rect)
+
+                    # NEW: Draw fluid tiles (water, lava)
+                    elif tile_id == TILE_WATER:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Water - blue with wave effect
+                        water_color = (50, 150, 255, 180)
+                        water_surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+                        water_surf.fill(water_color)
+                        game_surface.blit(water_surf, screen_rect)
+
+                    elif tile_id == TILE_LAVA:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Lava - orange/red
+                        lava_color = (255, 100, 0, 220)
+                        lava_surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+                        lava_surf.fill(lava_color)
+                        game_surface.blit(lava_surf, screen_rect)
+
+                    # NEW: Draw environmental hazard tiles (ice, mud)
+                    elif tile_id == TILE_ICE:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Ice - light blue/white
+                        ice_color = (200, 230, 255)
+                        ice_surf = pygame.Surface((32, 32))
+                        ice_surf.fill(ice_color)
+                        # Add subtle border
+                        pygame.draw.rect(ice_surf, (150, 200, 230), (0, 0, 32, 32), 1)
+                        game_surface.blit(ice_surf, screen_rect)
+
+                    elif tile_id == TILE_MUD:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Mud - brown
+                        mud_color = (120, 80, 40)
+                        mud_surf = pygame.Surface((32, 32))
+                        mud_surf.fill(mud_color)
+                        pygame.draw.rect(mud_surf, (100, 60, 30), (0, 0, 32, 32), 1)
+                        game_surface.blit(mud_surf, screen_rect)
+
+                    # NEW: Draw interactive block tiles
+                    elif tile_id == TILE_BREAKABLE:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Breakable - cracked stone (gray with cracks)
+                        break_color = (140, 140, 140)
+                        break_surf = pygame.Surface((32, 32))
+                        break_surf.fill(break_color)
+                        # Draw crack pattern
+                        pygame.draw.line(break_surf, (100, 100, 100), (8, 0), (24, 32), 2)
+                        pygame.draw.line(break_surf, (100, 100, 100), (24, 0), (8, 32), 2)
+                        game_surface.blit(break_surf, screen_rect)
+
+                    elif tile_id == TILE_CRACKED:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Cracked - slightly lighter with crack
+                        crack_color = (150, 150, 150)
+                        crack_surf = pygame.Surface((32, 32))
+                        crack_surf.fill(crack_color)
+                        # Single crack
+                        pygame.draw.line(crack_surf, (120, 120, 120), (16, 0), (16, 32), 2)
+                        game_surface.blit(crack_surf, screen_rect)
+
+                    elif tile_id == TILE_PUSHABLE:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Pushable - wooden crate color
+                        push_color = (180, 140, 80)
+                        push_surf = pygame.Surface((32, 32))
+                        push_surf.fill(push_color)
+                        # Draw border to indicate pushable
+                        pygame.draw.rect(push_surf, (200, 160, 100), (0, 0, 32, 32), 2)
+                        pygame.draw.rect(push_surf, (160, 120, 60), (4, 4, 24, 24), 1)
+                        game_surface.blit(push_surf, screen_rect)
+
+                    elif tile_id == TILE_STICKY:
+                        world_x, world_y = tx * 32, ty * 32
+                        world_rect = pygame.Rect(world_x, world_y, 32, 32)
+                        screen_rect = camera.apply(world_rect)
+                        # Sticky - purple/pink (wall-jump surface)
+                        sticky_color = (180, 100, 180)
+                        sticky_surf = pygame.Surface((32, 32))
+                        sticky_surf.fill(sticky_color)
+                        # Add texture dots
+                        for i in range(4):
+                            for j in range(4):
+                                pygame.draw.circle(sticky_surf, (200, 120, 200), (8 + i * 8, 8 + j * 8), 2)
+                        game_surface.blit(sticky_surf, screen_rect)
 
         else:
             # Fallback to simple tiling (for static levels without tilemap)

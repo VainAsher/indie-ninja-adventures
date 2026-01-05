@@ -1,12 +1,12 @@
 """
 Components package exports.
 
-Provides access to reusable components implemented in components_core.py and
+Provides access to reusable components implemented in entity_components.py and
 helper modules inside this package.
 """
 
-# Re-export core components defined in components_core.py
-from ..components_core import (
+# Re-export core components defined in entity_components.py
+from ..entity_components import (
     AIComponent,
     FollowComponent,
     HealthComponent,

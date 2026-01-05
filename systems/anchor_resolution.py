@@ -29,16 +29,18 @@ class AnchorCandidate:
     can exist for same anchor type, with different weights and positions.
 
     Attributes:
-        kind: Anchor type ("shopkeeper", "save_point", "loot", "spawn", "exit")
+        kind: Anchor type ("shopkeeper", "save_point", "loot", "spawn", "exit", etc.)
         pos: Tile coordinates within room (x, y)
         weight: Higher weight = more likely to be resolved (0.0-1.0+)
         tags: Feature tags ({"chest", "npc", "healing", "secret"})
+        metadata: Optional metadata dict for anchor-specific data
     """
 
     kind: str
     pos: tuple[int, int]
     weight: float
     tags: set[str]
+    metadata: dict | None = None
 
 
 @dataclass
@@ -60,8 +62,28 @@ class ResolvedAnchor:
 # Save point proximity constraint
 SAVE_POINT_PROXIMITY = 2  # Room distance (Manhattan)
 
+# NEW: Puzzle constraints
+PUZZLE_PROXIMITY = 3  # Puzzle switches at least 3 rooms apart
+PUZZLE_TARGET_DISTANCE = (1, 4)  # Target must be 1-4 rooms from switch
+
+# NEW: Ability gate progression thresholds (room depth from start)
+GATE_PROGRESSION = {
+    "gate_high_ledge": 2,  # Early game - requires double jump
+    "gate_wall_shaft": 5,  # Mid game - requires wall jump
+    "gate_wide_gap": 8,  # Late game - requires dash
+    "gate_low_passage": 2,  # Can appear early - requires crouch
+}
+
+# NEW: Trigger density
+MAX_TRIGGERS_PER_ROOM = 2
+
 # Anchor kinds that always resolve if candidate exists
-ALWAYS_RESOLVE = {"shopkeeper", "secret_stash", "exit_portal", "spawn"}
+ALWAYS_RESOLVE = {"shopkeeper", "secret_stash", "exit_portal", "spawn", "exit"}
+
+# NEW: Anchor kinds for puzzles, gates, and triggers
+PUZZLE_ANCHORS = {"puzzle_switch", "puzzle_button", "puzzle_lever", "puzzle_target"}
+ABILITY_GATE_ANCHORS = {"gate_high_ledge", "gate_wall_shaft", "gate_wide_gap", "gate_low_passage"}
+TRIGGER_ANCHORS = {"trigger_enemy", "trigger_hazard", "trigger_timed"}
 
 
 def resolve_world_anchors(rooms: dict[tuple[int, int], "RoomNode"], seed: int) -> None:
@@ -141,6 +163,15 @@ def resolve_world_anchors(rooms: dict[tuple[int, int], "RoomNode"], seed: int) -
                 )
 
     print(f"[ANCHOR RESOLUTION] Placed {len(chosen_save_rooms)} save points")
+
+    # NEW: Resolve ability gates based on room depth
+    _resolve_ability_gates(rooms)
+
+    # NEW: Resolve triggers (limit per room)
+    _resolve_triggers(rooms)
+
+    # NEW: Resolve puzzle anchors (optional for now)
+    _resolve_puzzles(rooms)
 
 
 def _best_candidate(room: "RoomNode", kind: str) -> AnchorCandidate | None:
@@ -224,6 +255,7 @@ def emit_anchor_candidate(
     pos: tuple[int, int],
     weight: float = 1.0,
     tags: set[str] | None = None,
+    metadata: dict | None = None,
 ):
     """
     Helper to emit an anchor candidate
@@ -234,5 +266,119 @@ def emit_anchor_candidate(
         pos: Tile position
         weight: Candidate weight (default: 1.0)
         tags: Feature tags (default: empty set)
+        metadata: Optional metadata dict
     """
-    candidates.append(AnchorCandidate(kind=kind, pos=pos, weight=weight, tags=tags or set()))
+    candidates.append(
+        AnchorCandidate(kind=kind, pos=pos, weight=weight, tags=tags or set(), metadata=metadata)
+    )
+
+
+def _resolve_ability_gates(rooms: dict[tuple[int, int], "RoomNode"]) -> None:
+    """
+    Resolve ability gate anchors based on room depth
+
+    Gates are placed only if room is far enough from start to justify
+    the ability requirement.
+
+    Args:
+        rooms: Dictionary of room nodes (modified in-place)
+    """
+    placed_gates = 0
+
+    for room_coords, room in rooms.items():
+        if not hasattr(room, "anchor_candidates"):
+            continue
+
+        # Check for gate candidates
+        gate_candidates = [c for c in room.anchor_candidates if c.kind in ABILITY_GATE_ANCHORS]
+
+        if not gate_candidates:
+            continue
+
+        # Calculate room depth (Manhattan distance from origin)
+        room_depth = abs(room.grid_x) + abs(room.grid_y)
+
+        # Resolve each gate candidate if depth is sufficient
+        for candidate in gate_candidates:
+            required_depth = GATE_PROGRESSION.get(candidate.kind, 0)
+
+            if room_depth >= required_depth:
+                room.resolved_anchors[candidate.kind] = candidate.pos
+                placed_gates += 1
+                print(
+                    f"[ANCHOR] Room {room_coords}: Placed {candidate.kind.upper()} at {candidate.pos} (depth={room_depth})"
+                )
+            else:
+                print(
+                    f"[ANCHOR] Room {room_coords}: Skipped {candidate.kind} (depth {room_depth} < required {required_depth})"
+                )
+
+    print(f"[ANCHOR RESOLUTION] Placed {placed_gates} ability gates")
+
+
+def _resolve_triggers(rooms: dict[tuple[int, int], "RoomNode"]) -> None:
+    """
+    Resolve environmental trigger anchors with density limit
+
+    Args:
+        rooms: Dictionary of room nodes (modified in-place)
+    """
+    placed_triggers = 0
+
+    for room_coords, room in rooms.items():
+        if not hasattr(room, "anchor_candidates"):
+            continue
+
+        # Check for trigger candidates
+        trigger_candidates = [c for c in room.anchor_candidates if c.kind in TRIGGER_ANCHORS]
+
+        if not trigger_candidates:
+            continue
+
+        # Sort by weight (highest first) and limit to MAX_TRIGGERS_PER_ROOM
+        trigger_candidates.sort(key=lambda c: c.weight, reverse=True)
+        triggers_to_place = trigger_candidates[:MAX_TRIGGERS_PER_ROOM]
+
+        for candidate in triggers_to_place:
+            room.resolved_anchors[candidate.kind] = candidate.pos
+            placed_triggers += 1
+            print(
+                f"[ANCHOR] Room {room_coords}: Placed {candidate.kind.upper()} at {candidate.pos}"
+            )
+
+    print(f"[ANCHOR RESOLUTION] Placed {placed_triggers} triggers")
+
+
+def _resolve_puzzles(rooms: dict[tuple[int, int], "RoomNode"]) -> None:
+    """
+    Resolve puzzle anchor candidates (switches, buttons, targets)
+
+    For now, this is a simple implementation that just places puzzle
+    elements without linking them. Full multi-room puzzle linking
+    can be added in a future phase.
+
+    Args:
+        rooms: Dictionary of room nodes (modified in-place)
+    """
+    placed_puzzles = 0
+
+    for room_coords, room in rooms.items():
+        if not hasattr(room, "anchor_candidates"):
+            continue
+
+        # Check for puzzle candidates
+        puzzle_candidates = [c for c in room.anchor_candidates if c.kind in PUZZLE_ANCHORS]
+
+        if not puzzle_candidates:
+            continue
+
+        # For now, place all puzzle elements
+        # TODO: Add multi-room puzzle linking logic
+        for candidate in puzzle_candidates:
+            room.resolved_anchors[candidate.kind] = candidate.pos
+            placed_puzzles += 1
+            print(
+                f"[ANCHOR] Room {room_coords}: Placed {candidate.kind.upper()} at {candidate.pos}"
+            )
+
+    print(f"[ANCHOR RESOLUTION] Placed {placed_puzzles} puzzle elements")

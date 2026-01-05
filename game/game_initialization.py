@@ -225,6 +225,11 @@ def create_game_managers(
     hazard_manager = HazardManager(bus)
     npc_manager = NPCManager(bus)
 
+    # Initialize tile physics system
+    from systems.tile_physics import TilePhysicsManager
+
+    tile_physics_manager = TilePhysicsManager()
+
     # Initialize dialogue system
     dialogue_manager = DialogueManager(bus)
     dialogue_manager.load_dialogues("data/dialogues.json")
@@ -321,6 +326,7 @@ def create_game_managers(
         "save_manager": save_manager,
         "pickup_manager": pickup_manager,
         "hazard_manager": hazard_manager,
+        "tile_physics_manager": tile_physics_manager,
         "npc_manager": npc_manager,
         "dialogue_manager": dialogue_manager,
         "dialogue_ui": dialogue_ui,
@@ -405,9 +411,10 @@ def create_player(
     entity_manager: EntityManager,
     enemy_manager: EnemyManager,
     hazard_manager: HazardManager,
+    unlocked_abilities: set[str] | None = None,
 ) -> tuple[Player, Any]:
     """
-    Create player entity with all mechanics enabled.
+    Create player entity with progression-based mechanics.
 
     Args:
         spawn_x: Player spawn X position
@@ -418,11 +425,27 @@ def create_player(
         entity_manager: EntityManager instance
         enemy_manager: EnemyManager instance
         hazard_manager: HazardManager instance
+        unlocked_abilities: Set of unlocked ability names (defaults to starter abilities)
 
     Returns:
-        Tuple of (Player instance, player_entity from EntityManager)
+        Tuple of (Player instance, player_entity from EntityManager, level_manager)
     """
     level_manager = LevelManager(bus)
+
+    # Default to starter abilities if none provided
+    if unlocked_abilities is None:
+        unlocked_abilities = {"basic_movement", "jump"}
+
+    # Build feature_flags dynamically from unlocked abilities
+    feature_flags = {
+        "double_jump": "double_jump" in unlocked_abilities,
+        "wall_jump": "wall_jump" in unlocked_abilities,
+        "dash": "dash" in unlocked_abilities,
+        "crouch": "crouch" in unlocked_abilities,
+        "shuriken": "shuriken" in unlocked_abilities,
+        "teleport": "teleport" in unlocked_abilities,
+        "ninjutsu": "ninjutsu" in unlocked_abilities,
+    }
 
     player = Player(
         player_id=0,
@@ -431,15 +454,7 @@ def create_player(
         event_bus=bus,
         logger_factory=logger,
         collision_system=collision_system,
-        feature_flags={
-            "double_jump": True,
-            "wall_jump": True,
-            "dash": True,
-            "crouch": True,
-            "shuriken": True,
-            "teleport": True,
-            "ninjutsu": True,
-        },
+        feature_flags=feature_flags,
     )
 
     # Wire mechanic contexts

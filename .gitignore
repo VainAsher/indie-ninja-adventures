@@ -75,3 +75,9 @@ legacy-archive/
 # Windows reserved filenames
 nul
 tests/nul
+
+# Archived documentation (moved to wiki)
+# Note: These directories may still exist locally but should not be committed
+# Uncomment these lines after uploading to wiki:
+# docs/archive/
+# docs/releases/

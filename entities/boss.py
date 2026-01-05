@@ -9,14 +9,16 @@ This module provides boss encounters:
 - Guaranteed rare loot drops
 - Boss-specific arenas
 
-Version: v0.6.0
+Version: v0.7.0
 """
 
 import math
 from dataclasses import dataclass, field
 from enum import Enum
 
+from entities.boss_ai import BossAIState
 from game.health_system import HealthState
+
 
 # ============================================================
 # Boss Types
@@ -31,26 +33,6 @@ class BossType(Enum):
     CRYSTAL_GOLEM = "crystal_golem"  # Rock boss with shields
     DARK_KNIGHT = "dark_knight"  # Sword combos
     PLAGUE_RAT = "plague_rat"  # Fast, poison-based
-
-
-# ============================================================
-# Boss AI States
-# ============================================================
-
-
-class BossAIState(Enum):
-    """Boss AI behavior states"""
-
-    INTRO = "intro"  # Introduction sequence
-    IDLE = "idle"  # Waiting between attacks
-    MOVE = "move"  # Moving toward player
-    ATTACK_MELEE = "attack_melee"  # Melee attack
-    ATTACK_RANGED = "attack_ranged"  # Ranged attack
-    ATTACK_SPECIAL = "attack_special"  # Special/ultimate attack
-    VULNERABLE = "vulnerable"  # Vulnerable after attack
-    STUNNED = "stunned"  # Stunned from player attack
-    PHASE_TRANSITION = "phase_transition"  # Transitioning between phases
-    DEAD = "dead"  # Dead (before removal)
 
 
 # ============================================================

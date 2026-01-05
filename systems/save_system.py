@@ -567,6 +567,27 @@ class SaveManager:
             print("[SAVE] Adding story state for v0.7.0")
             save_dict["campaign"]["story_state"] = None  # Will be initialized by StoryManager
 
+        # Backward compatibility for v0.7.2 ability progression system
+        # Grant all abilities to legacy saves with completed missions (they had them before)
+        if "campaign" in save_dict and old_version < "0.7.2":
+            campaign_dict = save_dict["campaign"]
+            completed = campaign_dict.get("completed_missions", [])
+
+            # If player has completed missions but unlocked_abilities is still default,
+            # grant all abilities to preserve their v0.6.0 experience
+            if len(completed) > 0:
+                current_abilities = set(campaign_dict.get("unlocked_abilities", []))
+                default_abilities = {"basic_movement", "jump"}
+
+                # If they only have default abilities but completed missions, grant all
+                if current_abilities == default_abilities:
+                    print(f"[SAVE] Legacy save detected with {len(completed)} completed missions")
+                    print("[SAVE] Granting all abilities for v0.7.2 compatibility")
+                    campaign_dict["unlocked_abilities"] = [
+                        "basic_movement", "jump", "double_jump", "wall_jump",
+                        "dash", "crouch", "shuriken", "teleport", "ninjutsu"
+                    ]
+
         save_dict["version"] = self.SAVE_VERSION
 
         return save_dict

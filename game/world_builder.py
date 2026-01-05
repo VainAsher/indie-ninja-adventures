@@ -322,8 +322,9 @@ def _spawn_npcs(
     tiles,
     rooms,
     shape,
+    world=None,
 ):
-    """Spawn NPCs for hub worlds."""
+    """Spawn NPCs for hub worlds and procedural worlds."""
     print("[WORLD REGEN] Spawning NPCs...")
 
     if hub_manager and hub_id and megamap:
@@ -359,7 +360,32 @@ def _spawn_npcs(
                 npc_manager.spawn_npc("sewer_vendor", spawn_x - fallback_offset, spawn_y)
             print(f"[WORLD REGEN] Spawned fallback NPCs for hub '{hub_id}'")
     else:
-        # Only spawn default NPCs in central hub fallback
+        # Procedural world without hub - spawn NPCs from resolved anchors
+        if world and megamap:
+            npc_spawned = 0
+            # Iterate through all rooms and spawn NPCs at anchor positions
+            for room in world.all_rooms:
+                if not hasattr(room, "resolved_anchors"):
+                    continue
+
+                room_coords = (room.grid_x, room.grid_y)
+                if room_coords not in megamap.room_positions:
+                    continue
+
+                room_px, room_py = megamap.room_positions[room_coords]
+
+                # Spawn shopkeeper NPC at shopkeeper anchors
+                if "shopkeeper" in room.resolved_anchors:
+                    tx, ty = room.resolved_anchors["shopkeeper"]
+                    world_x = room_px + tx * 32
+                    world_y = room_py + ty * 32
+                    npc_manager.spawn_npc("shopkeeper", world_x, world_y)
+                    npc_spawned += 1
+
+            if npc_spawned > 0:
+                print(f"[WORLD REGEN] Spawned {npc_spawned} NPCs from procedural anchors")
+
+        # Fallback: spawn default NPCs in central hub mode
         if rooms == 10 and shape == "blob":
             npc_manager.spawn_npc("tutorial_elder", spawn_x + 150, spawn_y)
             print(f"[WORLD REGEN] Spawned NPCs: {len(npc_manager.npcs)} NPCs in hub")
@@ -591,7 +617,7 @@ def regenerate_world_state(
     _spawn_enemies(world, megamap, seed, enemy_manager, tiles, hub_id)
 
     # ============================================================
-    # Step 7.5: Spawn NPCs (for hub worlds)
+    # Step 7.5: Spawn NPCs (for hub worlds and procedural worlds)
     # ============================================================
     _spawn_npcs(
         hub_manager,
@@ -604,6 +630,7 @@ def regenerate_world_state(
         tiles,
         rooms,
         shape,
+        world,
     )
 
     # ============================================================

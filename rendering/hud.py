@@ -173,10 +173,8 @@ class HUDRenderer:
                 (120, 220, 120),
             )
             y += 24
-        stamina = getattr(player_state, "stamina", getattr(player_state, "wall_slide_stamina", 0.0))
-        stamina_max = getattr(
-            player_state, "stamina_max", getattr(player_state, "wall_slide_stamina_max", 3.0)
-        )
+        stamina = getattr(player_state, "stamina", 0.0)
+        stamina_max = getattr(player_state, "stamina_max", 3.0)
         self.draw_bar(surface, "Stamina", stamina, stamina_max, x, y, 180, 12, (120, 180, 255))
         y += 24
         mana = getattr(player_state, "mana", 0.0)

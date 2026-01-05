@@ -24,7 +24,6 @@ from mechanics import CrouchMechanic, DamageMechanic, DashMechanic, JumpMechanic
 from mechanics.ninjutsu import NinjutsuMechanic
 from mechanics.shuriken import ShurikenMechanic
 from mechanics.teleport import TeleportMechanic
-from mechanics.wall_slide import WallSlideMechanic
 
 
 class Player:
@@ -97,8 +96,6 @@ class Player:
             mana_regen_rate=6.0,
             shuriken_ammo=10,
             shuriken_max=10,
-            wall_slide_stamina=3.0,
-            wall_slide_stamina_max=3.0,
         )
 
         # Initialize mechanics (in processing order)
@@ -137,14 +134,6 @@ class Player:
             collision_checker=collision_system,
         )
         self.mechanics.append(self.crouch)
-
-        # Wall slide/hang mechanic
-        self.wall_slide = WallSlideMechanic(
-            entity_id=player_id,
-            event_bus=event_bus,
-            logger=logger_factory.get_logger(f"player_{player_id}.wall_slide"),
-        )
-        self.mechanics.append(self.wall_slide)
 
         # Shuriken mechanic (ammo-limited ranged)
         self.shuriken = ShurikenMechanic(
@@ -247,9 +236,6 @@ class Player:
 
         # Process jump
         self.jump.on_tick(self.state, dt)
-
-        # Wall slide / hang (stamina-controlled)
-        self.wall_slide.on_tick(self.state, dt)
 
         # Shuriken/projectile handling
         self.shuriken.on_tick(self.state, dt)

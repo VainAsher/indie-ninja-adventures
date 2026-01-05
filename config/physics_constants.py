@@ -129,6 +129,54 @@ FIXED_DT = 1.0 / 60.0  # Fixed timestep (16.67ms)
 MAX_FRAME_TIME = 0.25  # Spiral of death prevention
 
 # ============================================================================
+# FLUID PHYSICS
+# ============================================================================
+
+# Water physics
+WATER_GRAVITY_MULT = 0.4  # 40% gravity (floaty)
+WATER_SPEED_MULT = 0.6  # 60% movement speed
+WATER_JUMP_MULT = 0.8  # 80% jump power
+WATER_FRICTION = 0.92  # Higher friction than air
+
+# Lava physics
+LAVA_DAMAGE_RATE = 1  # Damage per second
+LAVA_GRAVITY_MULT = 0.7  # 70% gravity
+LAVA_SPEED_MULT = 0.5  # 50% movement speed
+LAVA_INVINCIBILITY_TIME = 0.5  # Seconds between damage ticks
+
+# ============================================================================
+# ENVIRONMENTAL HAZARD PHYSICS
+# ============================================================================
+
+# Ice physics
+ICE_FRICTION = 0.98  # Very low friction (slippery)
+ICE_ACCEL_MULT = 0.4  # 40% acceleration control
+ICE_TURN_DELAY = 0.1  # Delay before direction change
+
+# Mud physics
+MUD_FRICTION = 0.6  # High friction (sticky)
+MUD_SPEED_MULT = 0.5  # 50% movement speed
+MUD_ACCEL_MULT = 0.5  # 50% acceleration
+MUD_JUMP_MULT = 0.7  # 70% jump power
+
+# ============================================================================
+# INTERACTIVE BLOCK PHYSICS
+# ============================================================================
+
+# Breakable blocks
+BREAKABLE_HEALTH = 3  # Hits to break
+BREAKABLE_BREAK_TIME = 0.16  # Break animation duration
+
+# Cracked blocks
+CRACKED_DELAY = 0.5  # Seconds before cracking
+CRACKED_FALL_DELAY = 0.3  # Seconds before falling
+
+# Pushable blocks
+PUSHABLE_PUSH_FORCE = 2.0  # Force when pushing
+PUSHABLE_FRICTION = 0.7  # Friction when sliding
+PUSHABLE_MASS = 2.0  # Mass for momentum
+
+# ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
 

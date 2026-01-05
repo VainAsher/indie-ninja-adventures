@@ -30,7 +30,19 @@ GAME_HEIGHT = 720
 from game.mission_registry import ObjectiveType
 from systems.connectivity import validate_world_connectivity
 from systems.megamap import build_megamap
-from systems.room_generation import TILE_EMPTY, TILE_PLATFORM, TILE_SOLID
+from systems.room_generation import (
+    TILE_BREAKABLE,
+    TILE_CRACKED,
+    TILE_EMPTY,
+    TILE_ICE,
+    TILE_LAVA,
+    TILE_MUD,
+    TILE_PLATFORM,
+    TILE_PUSHABLE,
+    TILE_SOLID,
+    TILE_STICKY,
+    TILE_WATER,
+)
 from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
 
 
@@ -127,6 +139,17 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
     conn_result = validate_world_connectivity(world, room_tilemaps, verbose=False)
     print(f"[PROCEDURAL] Connectivity: {conn_result.tier_used} ({conn_result.fixes_applied} fixes)")
 
+    # NEW: Validate solvability (Phase 5)
+    from systems.solvability import SolvabilityValidator
+
+    validator = SolvabilityValidator()
+    solvability_ok = validator.validate_world(world)
+
+    if not solvability_ok:
+        print("[PROCEDURAL] WARNING: Level may have solvability issues!")
+        print("[PROCEDURAL] Consider regenerating with different seed if critical path is blocked.")
+    # Note: We don't fail generation, just warn. In future, could trigger regeneration.
+
     # Build megamap
     print("[PROCEDURAL] Building megamap...")
     megamap = build_megamap(world, room_tilemaps)
@@ -136,6 +159,20 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
     tiles = []
     platforms = []
 
+    # Define which tiles are solid for collision
+    SOLID_TILES = {
+        TILE_SOLID,      # Normal solid
+        TILE_ICE,        # Ice - solid but slippery
+        TILE_MUD,        # Mud - solid but sticky
+        TILE_BREAKABLE,  # Breakable - solid until broken
+        TILE_CRACKED,    # Cracked - solid but fragile
+        TILE_PUSHABLE,   # Pushable - solid block
+        TILE_STICKY,     # Sticky - solid surface
+    }
+
+    # Liquids (water, lava) are NOT solid - player passes through with special physics
+    LIQUID_TILES = {TILE_WATER, TILE_LAVA}
+
     print(f"[PROCEDURAL] Converting {megamap.width_tiles}x{megamap.height_tiles} tiles...")
     for ty in range(megamap.height_tiles):
         for tx in range(megamap.width_tiles):
@@ -143,10 +180,11 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
             x = tx * tile_scale
             y = ty * tile_scale
 
-            if tile_type == TILE_SOLID:
+            if tile_type in SOLID_TILES:
                 tiles.append(pygame.Rect(x, y, tile_scale, tile_scale))
             elif tile_type == TILE_PLATFORM:
                 platforms.append(pygame.Rect(x, y, tile_scale, tile_scale))
+            # Note: LIQUID_TILES don't create collision rects - handled by physics system
 
     def ensure_support(point_x: float, point_y: float, tiles_list: list, search_height: int = 96):
         """

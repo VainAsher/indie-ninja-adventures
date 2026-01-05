@@ -99,7 +99,6 @@ class SpriteManager:
         "fall": ("jumpfall_spritesheet.png", 2, 10, False),  # Use second frame
         "crouch": ("idle_spritesheet.png", 2, 6, True),  # Reuse idle, will scale
         "dash": ("run_spritesheet.png", 6, 20, True),  # Fast run animation
-        "wall_slide": ("jumpfall_spritesheet.png", 2, 8, True),  # Reuse jump/fall
         "wall_hang": ("jumpfall_spritesheet.png", 2, 6, True),
         "ceiling_hang": ("jumpfall_spritesheet.png", 2, 6, True),
         "air_spin": ("jumpfall_spritesheet.png", 2, 10, True),
@@ -188,7 +187,6 @@ class SpriteManager:
             "slow_walk": (120, 200, 255),
             "jump": (120, 240, 120),
             "fall": (200, 180, 80),
-            "wall_slide": (255, 140, 120),
             "wall_hang": (255, 160, 120),
             "ceiling_hang": (255, 160, 120),
             "air_spin": (120, 200, 200),

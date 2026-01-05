@@ -272,8 +272,9 @@ class WorldGenerator:
         # Assign door ports
         self._assign_door_ports(rooms_dict)
 
-        # Resolve anchors globally (save point spacing, etc.)
-        self._resolve_world_anchors(rooms_dict)
+        # NOTE: Anchor resolution moved to AFTER tilemap generation
+        # so that zone planning can emit anchor candidates first.
+        # See generate_world_tilemaps() for the call to _resolve_world_anchors()
 
         return World(
             seed=self.seed,
@@ -706,6 +707,12 @@ def generate_world_tilemaps(world: World) -> dict[tuple[int, int], list[list[int
         room_tilemaps[room_coords] = room.tilemap
 
     logger.debug("[TILEMAPS] Generated %s room tilemaps", len(room_tilemaps))
+
+    # NOW resolve anchors after zone planning has emitted candidates
+    from systems.anchor_resolution import resolve_world_anchors
+
+    rooms_dict = {(room.grid_x, room.grid_y): room for room in world.all_rooms}
+    resolve_world_anchors(rooms_dict, world.seed)
 
     return room_tilemaps
 

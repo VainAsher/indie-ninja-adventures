@@ -611,7 +611,9 @@
         "dash",
         "wall_jump"
       ],
-      "unlock_abilities": [],
+      "unlock_abilities": [
+        "shuriken"
+      ],
       "rewards": {
         "currency": 250,
         "items": [
@@ -782,7 +784,9 @@
         "dash",
         "wall_jump"
       ],
-      "unlock_abilities": [],
+      "unlock_abilities": [
+        "crouch"
+      ],
       "rewards": {
         "currency": 175,
         "items": [
@@ -1049,7 +1053,9 @@
         "dash",
         "wall_jump"
       ],
-      "unlock_abilities": [],
+      "unlock_abilities": [
+        "teleport"
+      ],
       "rewards": {
         "currency": 250,
         "items": [
@@ -1446,7 +1452,9 @@
         "dash",
         "wall_jump"
       ],
-      "unlock_abilities": [],
+      "unlock_abilities": [
+        "ninjutsu"
+      ],
       "rewards": {
         "currency": 1000,
         "items": [

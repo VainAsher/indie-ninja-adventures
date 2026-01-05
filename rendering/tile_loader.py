@@ -171,16 +171,49 @@ class TileLoader:
                 "solid": (100, 100, 120),  # Gray stone
                 "platform": (139, 69, 19),  # Brown
                 "decorative": (150, 100, 50),  # Bronze
+                # NEW: Fluid tiles
+                "water": (50, 150, 255),  # Blue water
+                "lava": (255, 100, 0),  # Orange lava
+                # NEW: Hazard tiles
+                "ice": (150, 200, 255),  # Light blue ice
+                "mud": (101, 67, 33),  # Dark brown mud
+                # NEW: Interactive tiles
+                "breakable": (120, 120, 120),  # Gray breakable
+                "cracked": (140, 140, 140),  # Light gray cracked
+                "pushable": (139, 90, 43),  # Brown wood
+                "sticky": (128, 0, 128),  # Purple sticky
             },
             "cave": {
                 "solid": (101, 67, 33),  # Brown earth
                 "platform": (121, 87, 53),  # Light brown
                 "liquid": (255, 100, 0),  # Orange lava
+                # NEW: Fluid tiles
+                "water": (30, 100, 180),  # Darker blue water
+                "lava": (255, 100, 0),  # Orange lava
+                # NEW: Hazard tiles
+                "ice": (120, 180, 220),  # Cave ice
+                "mud": (80, 50, 25),  # Dark mud
+                # NEW: Interactive tiles
+                "breakable": (90, 60, 30),  # Cave rock
+                "cracked": (100, 70, 40),  # Cracked cave
+                "pushable": (110, 80, 50),  # Stone block
+                "sticky": (100, 50, 100),  # Cave fungus
             },
             "building": {
                 "solid": (64, 64, 64),  # Dark Gray
                 "platform": (160, 120, 80),  # Light wood
                 "decorative": (180, 150, 100),  # Pale wood
+                # NEW: Fluid tiles
+                "water": (40, 120, 200),  # Clear water
+                "lava": (255, 80, 20),  # Bright lava
+                # NEW: Hazard tiles
+                "ice": (180, 220, 255),  # Clean ice
+                "mud": (90, 60, 30),  # Dirt floor
+                # NEW: Interactive tiles
+                "breakable": (100, 100, 100),  # Concrete
+                "cracked": (120, 120, 120),  # Damaged concrete
+                "pushable": (150, 120, 90),  # Wooden crate
+                "sticky": (110, 70, 110),  # Tar/resin
             },
         }
 

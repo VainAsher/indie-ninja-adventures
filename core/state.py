@@ -40,6 +40,9 @@ class PhysicsState:
     on_wall: bool = False
     wall_dir: int = 0  # -1 left, 1 right, 0 none
 
+    # Tile physics modifiers
+    gravity_multiplier: float = 1.0  # Multiplier for gravity (water = 0.4, normal = 1.0)
+
     def to_dict(self) -> dict:
         """Serialize to dictionary"""
         return {
@@ -142,8 +145,6 @@ class PlayerState:
     max_jumps: int = 2
 
     # Wall interaction state
-    wall_slide_stamina: float = 3.0  # Stamina for wall clinging (legacy)
-    wall_slide_stamina_max: float = 3.0
     is_wall_sliding: bool = False
     wall_coyote_time: float = 0.0  # Buffer after leaving wall for wall jump
     is_wall_hanging: bool = False
@@ -194,8 +195,6 @@ class PlayerState:
             "wall_jump_lock": self.wall_jump_lock,
             "jumps_left": self.jumps_left,
             "max_jumps": self.max_jumps,
-            "wall_slide_stamina": self.wall_slide_stamina,
-            "wall_slide_stamina_max": self.wall_slide_stamina_max,
             "is_wall_sliding": self.is_wall_sliding,
             "wall_coyote_time": self.wall_coyote_time,
             "is_wall_hanging": self.is_wall_hanging,
@@ -210,9 +209,9 @@ class PlayerState:
         wall_coyote_time = data.pop("wall_coyote_time", 0.0)
         is_wall_hanging = data.pop("is_wall_hanging", False)
         is_ceiling_hanging = data.pop("is_ceiling_hanging", False)
-        wall_slide_stamina_max = data.pop(
-            "wall_slide_stamina_max", data.get("wall_slide_stamina", 3.0)
-        )
+        # Remove legacy wall_slide_stamina fields if present
+        data.pop("wall_slide_stamina", None)
+        data.pop("wall_slide_stamina_max", None)
         # Resource defaults
         stamina = data.pop("stamina", 0.0)
         stamina_max = data.pop("stamina_max", 0.0)
@@ -271,7 +270,6 @@ class PlayerState:
             wall_coyote_time=wall_coyote_time,
             is_wall_hanging=is_wall_hanging,
             is_ceiling_hanging=is_ceiling_hanging,
-            wall_slide_stamina_max=wall_slide_stamina_max,
             stamina=stamina,
             stamina_max=stamina_max,
             stamina_regen_rate=stamina_regen_rate,
