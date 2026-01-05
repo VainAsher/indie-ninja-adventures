@@ -5,9 +5,10 @@ Provides persistent game settings stored in user_data/settings/
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Any
+
+from core.paths import get_user_data_dir
 
 
 class GameSettings:
@@ -67,14 +68,8 @@ class GameSettings:
         self.load()
 
     def _get_user_data_dir(self) -> Path:
-        """Get user data directory (project-local by default)"""
-        env_dir = os.environ.get("NINJADASH_USER_DATA")
-        if env_dir:
-            return Path(env_dir)
-
-        # Default: project-local user_data directory
-        project_root = Path(__file__).parent.parent
-        return project_root / "user_data"
+        """Get user data directory (project-local by default, handles frozen executables)"""
+        return get_user_data_dir()
 
     def load(self):
         """Load settings from disk (creates default if not exists)"""

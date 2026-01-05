@@ -40,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config.physics_constants import (
     TILE_SIZE as CONFIG_TILE_SIZE,
 )
+from core.paths import ensure_user_data_dirs, get_user_data_dir
 
 # Optional dev tools import (not required for production builds)
 try:
@@ -130,37 +131,6 @@ COLOR_TEXT = (230, 230, 255)
 
 # Tile size
 TILE_SIZE = CONFIG_TILE_SIZE
-
-
-# User data directory helpers
-def get_user_data_dir():
-    """Get the user_data directory path (project-local by default)"""
-    env_dir = os.environ.get("NINJADASH_USER_DATA")
-    if env_dir:
-        return Path(env_dir)
-
-    # Default: project-local user_data directory
-    # When frozen (PyInstaller), use executable directory, not __file__
-    if getattr(sys, "frozen", False):
-        # Running as PyInstaller bundle - use executable directory
-        project_root = Path(sys.executable).parent
-    else:
-        # Running as script - use script directory
-        project_root = Path(__file__).parent
-
-    return project_root / "user_data"
-
-
-def ensure_user_data_dirs():
-    """Ensure all user_data subdirectories exist"""
-    user_data = get_user_data_dir()
-    print(f"[USER DATA] Creating directories at: {user_data}")
-    (user_data / "logs").mkdir(parents=True, exist_ok=True)
-    (user_data / "replays").mkdir(parents=True, exist_ok=True)
-    (user_data / "saves").mkdir(parents=True, exist_ok=True)
-    (user_data / "settings").mkdir(parents=True, exist_ok=True)
-    return user_data
-
 
 # CameraEffectsHandler has been moved to game/game_initialization.py
 

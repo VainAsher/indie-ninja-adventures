@@ -12,10 +12,11 @@ This module provides configurable logging with:
 import logging
 import logging.config
 import logging.handlers
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from core.paths import get_user_data_dir
 
 
 class GameLogger:
@@ -76,16 +77,12 @@ class GameLogger:
         1. NINJADASH_USER_DATA environment variable (full override)
         2. Project-local user_data/ directory (default)
 
+        Automatically handles PyInstaller frozen executables.
+
         Returns:
             Path to user data directory
         """
-        env_dir = os.environ.get("NINJADASH_USER_DATA")
-        if env_dir:
-            return Path(env_dir)
-
-        # Default: project-local user_data directory
-        project_root = Path(__file__).parent.parent
-        return project_root / "user_data"
+        return get_user_data_dir()
 
     def _configure_logging(self):
         """Configure logging from YAML or defaults"""

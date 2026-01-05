@@ -16,12 +16,13 @@ Architecture:
 import hashlib
 import hmac
 import json
-import os
 import shutil
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+
+from core.paths import get_user_data_dir
 
 # ============================================================
 # Save File Integrity Constants
@@ -180,7 +181,8 @@ class SaveManager:
             save_dir: Directory for save files (defaults to user_data/saves)
         """
         if save_dir is None:
-            save_dir = os.path.join("user_data", "saves")
+            # Use centralized path utility for correct exe/script handling
+            save_dir = get_user_data_dir() / "saves"
 
         self.save_dir = Path(save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)
