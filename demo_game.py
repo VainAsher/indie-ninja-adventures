@@ -2112,8 +2112,18 @@ def main():
                                             print(f"[STORY] Triggering cutscene: {cutscene_id}")
                                             story_manager.trigger_cutscene(cutscene_id)
 
+                            # Mark mission complete and force save immediately
                             objective_tracker.stop_mission_objectives()
-                            regenerate_hub_for_respawn("mission complete")
+                            level_complete = True
+                            victory_screen.reset()
+
+                            # Force save immediately to persist mission completion
+                            persist_story_state_wrapper()
+                            save_manager.save(force=True)
+                            print("[SAVE] Mission completion saved!")
+                            print(f"[MISSION] {mission_def.mission_name} complete!")
+                            if mission_def.unlock_abilities:
+                                print(f"[MISSION] New abilities unlocked: {', '.join(mission_def.unlock_abilities)}")
                         else:
                             print("[MISSION] Exit locked until objectives are complete")
                     elif current_world_context == "arcade":
