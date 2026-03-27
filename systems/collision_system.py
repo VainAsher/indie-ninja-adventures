@@ -39,6 +39,7 @@ class CollisionSystem:
         self.event_bus = event_bus
         self.entity_manager = entity_manager
         self.logger = logger
+        self.profiler = None  # Set externally to enable per-section timing
         self.chunk_size = 320  # spatial hash chunk size in pixels
         self.tile_lookup: dict[tuple, list] = {}
         self.platform_lookup: dict[tuple, list] = {}
@@ -95,10 +96,16 @@ class CollisionSystem:
 
         Called after entity movement but before mechanics respond.
         """
+        if self.profiler:
+            self.profiler.begin("collision")
+
         # Check collisions for all entities with physics
         for entity in self.entity_manager.entities.values():
             if entity.physics and entity.active:
                 self.check_and_resolve(entity)
+
+        if self.profiler:
+            self.profiler.end("collision")
 
     def check_and_resolve(self, entity: Entity) -> list[CollisionEvent]:
         """

@@ -344,6 +344,7 @@ class EnemyManager:
         camera_rect: tuple[float, float, float, float] | None = None,
         cull_margin: float = 800.0,
         world_h: float = 0.0,
+        profiler=None,
     ) -> int:
         """
         Update all enemies.
@@ -404,6 +405,8 @@ class EnemyManager:
                 # Update AI
                 ai = self.enemy_ai.get(enemy_id)
                 if ai:
+                    if profiler:
+                        profiler.begin("ai")
                     damage = ai.update(
                         dt,
                         player_x,
@@ -413,6 +416,8 @@ class EnemyManager:
                         detection_mult,
                         collision_system,
                     )
+                    if profiler:
+                        profiler.end("ai")
                     if damage:
                         total_damage += damage
 

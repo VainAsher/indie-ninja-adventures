@@ -61,6 +61,7 @@ class PhysicsSystem:
         self.event_bus = event_bus
         self.entity_manager = entity_manager
         self.logger = logger
+        self.profiler = None  # Set externally to enable per-section timing
 
         # Expose constants for debugging/tests
         self.GRAVITY = GRAVITY
@@ -84,12 +85,17 @@ class PhysicsSystem:
         Args:
             event: Tick event with dt
         """
+        if self.profiler:
+            self.profiler.begin("physics")
         dt = event.dt
 
         # Process all entities with physics
         for entity in self.entity_manager.entities.values():
             if entity.physics and entity.active:
                 self._process_entity_physics(entity, dt)
+
+        if self.profiler:
+            self.profiler.end("physics")
 
     def _process_entity_physics(self, entity: Entity, dt: float):
         """

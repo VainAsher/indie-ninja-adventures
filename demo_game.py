@@ -1275,6 +1275,11 @@ def main():
         csv_path=str(user_data_dir / ".." / "docs" / "perf_baseline.csv"),
     )
 
+    # Wire profiler into systems for per-section timing (no-op when disabled)
+    if enable_profile:
+        physics_system.profiler = profiler
+        collision_system.profiler = profiler
+
     # Pre-allocate misc overlay surfaces (avoid per-frame SRCALPHA/copy allocations)
     _player_flash_surf = pygame.Surface((256, 256))   # Player i-frame white flash
     _player_flash_surf.fill((255, 255, 255))
@@ -2228,6 +2233,7 @@ def main():
                 cull_margin=400.0,
                 player_state=player.state,
                 world_h=_world_h,
+                profiler=profiler,
             )
             profiler.end("enemy_manager")
             # Decay sword attack cooldown
