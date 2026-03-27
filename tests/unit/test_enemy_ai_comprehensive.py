@@ -121,54 +121,67 @@ def test_chase_to_patrol_when_player_escapes():
 
 
 def test_attack_deals_damage():
-    """Test enemy deals damage when attacking"""
+    """Test goblin attack enters ACTIVE substate and exposes a forward hitbox.
+
+    Goblin damage is now handled via get_attack_hitbox() + combat_mechanic
+    rather than a return value from AI.update().
+    """
+    import pygame
     pygame.init()
+
+    from entities.enemy import EnemyAttackSubState
 
     enemy = Enemy(
         enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.ATTACK
     )
-
     ai = EnemyAI(enemy)
 
-    # First attack should deal damage
-    damage = ai.update(1 / 60, 110.0, 100.0, 32, 56)
+    # Player within goblin attack range (64px) — attack should start
+    # Advance past windup (0.5s = 30+ frames at 60fps)
+    for _ in range(35):
+        ai.update(1 / 60, 110.0, 100.0, 32, 56)
 
-    assert damage is not None, "Should deal damage on attack"
-    assert damage > 0, "Damage should be positive"
-    print(f"[PASS] Attack deals {damage} damage")
+    assert enemy.attack_substate == EnemyAttackSubState.ACTIVE, (
+        f"Should reach ACTIVE substate, got {enemy.attack_substate}"
+    )
+    hitbox = enemy.get_attack_hitbox()
+    assert hitbox is not None, "Goblin should expose forward hitbox during ACTIVE"
+    assert hitbox[2] > 0, "Hitbox width should be positive"
+    print(f"[PASS] Goblin attack hitbox {hitbox} active during ACTIVE substate")
 
 
 def test_attack_cooldown():
-    """Test attack cooldown prevents rapid attacks"""
+    """Test attack cooldown limits attack cycles.
+
+    Goblin cycle: windup(0.5s) + active(0.15s) + recovery(0.4s) + cooldown(0.8s) = 1.85s.
+    In 125 frames (~2.08s) exactly one complete ACTIVE phase should occur.
+    """
+    import pygame
     pygame.init()
+
+    from entities.enemy import EnemyAttackSubState
 
     enemy = Enemy(
         enemy_id="test", enemy_type=EnemyType.GOBLIN, x=100.0, y=100.0, ai_state=EnemyAIState.ATTACK
     )
+    ai = EnemyAI(enemy, ai_random=None)  # Fixed 0.8s cooldown
 
-    ai = EnemyAI(enemy, ai_random=None)  # Fixed 1.0s cooldown
+    # Count distinct ACTIVE phase entries (substate transitions into ACTIVE)
+    active_events = 0
+    prev_substate = None
+    for _ in range(125):  # ~2.08 seconds
+        ai.update(1 / 60, 110.0, 100.0, 32, 56)
+        if (
+            enemy.attack_substate == EnemyAttackSubState.ACTIVE
+            and prev_substate != EnemyAttackSubState.ACTIVE
+        ):
+            active_events += 1
+        prev_substate = enemy.attack_substate
 
-    # First attack
-    damage1 = ai.update(1 / 60, 110.0, 100.0, 32, 56)
-
-    # Immediate second attack (should not deal damage - on cooldown)
-    damage2 = ai.update(1 / 60, 110.0, 100.0, 32, 56)
-
-    assert damage1 is not None, "First attack should deal damage"
-    assert damage2 is None, "Second attack should be on cooldown"
-
-    # Track all attacks over a period of time
-    attacks = []
-    for i in range(125):  # ~2 seconds
-        result = ai.update(1 / 60, 110.0, 100.0, 32, 56)
-        if result is not None:
-            attacks.append(i)
-
-    # Should have exactly 2 attacks: one at ~60 frames, one at ~120 frames
-    assert (
-        len(attacks) == 2
-    ), f"Expected 2 attacks after cooldown, got {len(attacks)} at frames {attacks}"
-    print("[PASS] Attack cooldown works correctly")
+    assert active_events == 1, (
+        f"Expected 1 ACTIVE phase in 125 frames (cycle ~1.85s), got {active_events}"
+    )
+    print("[PASS] Attack cooldown limits to 1 cycle in 125 frames")
 
 
 def test_stun_state_recovery():
@@ -391,22 +404,23 @@ def test_chase_target_update_interval():
 
     ai = EnemyAI(enemy, ai_random=None)  # Fixed 0.5s interval
 
-    # First update should set target
-    ai.update(1 / 60, 150.0, 100.0, 32, 56)
+    # Player at x=200: enemy center at x=116, player center at x=216 → 100px away.
+    # Goblin attack_range=64, detection_radius=200 → player is in detection but not attack range.
+    ai.update(1 / 60, 200.0, 100.0, 32, 56)
     first_target = ai.enemy.target_player_x
 
-    # Player moves
-    ai.update(1 / 60, 200.0, 100.0, 32, 56)
+    # Player moves further right — target should NOT update yet (interval=0.5s not elapsed)
+    ai.update(1 / 60, 240.0, 100.0, 32, 56)
     second_target = ai.enemy.target_player_x
 
     # Target should not update immediately (interval not elapsed)
     assert first_target == second_target, "Target should not update every frame"
 
-    # Wait for update interval
-    for _ in range(30):  # 0.5 seconds
-        ai.update(1 / 60, 200.0, 100.0, 32, 56)
+    # Wait for update interval (0.5s = 30 frames)
+    for _ in range(32):
+        ai.update(1 / 60, 240.0, 100.0, 32, 56)
 
-    # Now target should update
+    # Now target should reflect the moved player position
     assert ai.enemy.target_player_x != first_target, "Target should update after interval"
     print("[PASS] Chase target updates periodically")
 

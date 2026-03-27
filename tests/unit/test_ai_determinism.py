@@ -244,7 +244,7 @@ def test_enemy_ai_without_seed_still_works():
     assert ai.idle_duration == 1.0, "Should use base idle duration"
     assert ai.patrol_wait_time_base == 1.0, "Should use base patrol wait"
     assert ai.chase_interval == 0.5, "Should use base chase interval"
-    assert ai.attack_cooldown_base == 1.0, "Should use base attack cooldown"
+    assert ai.attack_cooldown_base == 0.8, "Should use base attack cooldown"
 
     # Should still update correctly
     ai.update(dt=1 / 60, player_x=500.0, player_y=500.0, player_width=32, player_height=56)

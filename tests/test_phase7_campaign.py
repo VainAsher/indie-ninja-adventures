@@ -176,7 +176,7 @@ class TestCampaignManager(unittest.TestCase):
 
         self.assertEqual(stats["completed_missions"], 2)
         self.assertEqual(stats["currency"], 125)
-        self.assertEqual(stats["unlocked_regions"], 2)  # central_hub + forest
+        self.assertEqual(stats["unlocked_regions"], 3)  # central_hub + forest + hollow_depths
 
     def test_save_and_load(self):
         """Test saving and loading campaign state"""
@@ -352,7 +352,7 @@ class TestCampaignSaveSystem(unittest.TestCase):
 
         # Should have campaign data with defaults
         self.assertIn("campaign", migrated)
-        self.assertEqual(migrated["version"], "0.6.0")
+        self.assertEqual(migrated["version"], "0.7.0")
         self.assertEqual(migrated["campaign"]["world_seed"], 0)
         self.assertIn("central_hub", migrated["campaign"]["unlocked_regions"])
         self.assertIn("forest", migrated["campaign"]["unlocked_regions"])

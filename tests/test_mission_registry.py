@@ -37,19 +37,20 @@ class TestMissionRegistry(unittest.TestCase):
 
     def test_mission_count(self):
         """Test total mission count"""
-        # Should have 25 missions total
-        self.assertEqual(self.registry.get_mission_count(), 25)
+        # 30 missions: forest(6) + town(6) + caves(5) + castle(6) + sewer(3) + hollow_depths(4)
+        self.assertEqual(self.registry.get_mission_count(), 30)
 
     def test_region_distribution(self):
         """Test mission distribution across regions"""
         counts = count_missions_by_region()
 
-        # Expected distribution
-        self.assertEqual(counts.get("forest", 0), 5)
+        # Expected distribution (hollow_depths added in v0.7.0)
+        self.assertEqual(counts.get("forest", 0), 6)
         self.assertEqual(counts.get("town", 0), 6)
         self.assertEqual(counts.get("caves", 0), 5)
         self.assertEqual(counts.get("castle", 0), 6)
         self.assertEqual(counts.get("sewer", 0), 3)
+        self.assertEqual(counts.get("hollow_depths", 0), 4)
 
     def test_get_mission_by_id(self):
         """Test retrieving a specific mission"""
@@ -100,7 +101,7 @@ class TestMissionRegistry(unittest.TestCase):
         """Test getting missions for a specific region"""
         forest_missions = get_missions_for_region("forest")
 
-        self.assertEqual(len(forest_missions), 5)
+        self.assertEqual(len(forest_missions), 6)
 
         mission_ids = [m.mission_id for m in forest_missions]
         self.assertIn("forest_1", mission_ids)
@@ -205,12 +206,13 @@ class TestMissionRegistry(unittest.TestCase):
         """Test getting all regions"""
         regions = self.registry.get_all_regions()
 
-        self.assertEqual(len(regions), 5)
+        self.assertEqual(len(regions), 6)
         self.assertIn("forest", regions)
         self.assertIn("town", regions)
         self.assertIn("caves", regions)
         self.assertIn("castle", regions)
         self.assertIn("sewer", regions)
+        self.assertIn("hollow_depths", regions)
 
     def test_difficulty_progression(self):
         """Test difficulty progression within regions"""

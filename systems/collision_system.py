@@ -799,9 +799,6 @@ class CollisionSystem:
         # Create a small collision point
         point = pygame.Rect(0, 0, 1, 1)
 
-        # Track checked tiles to avoid duplicate checks
-        checked_tiles = set()
-
         for i in range(steps + 1):
             # Update point position
             point.x = int(x)
@@ -815,11 +812,8 @@ class CollisionSystem:
             nearby_tiles = self.tile_lookup.get((chunk_x, chunk_y), [])
 
             for tile in nearby_tiles:
-                tile_id = id(tile)
-                if tile_id not in checked_tiles:
-                    checked_tiles.add(tile_id)
-                    if tile.colliderect(point):
-                        return (x, y, tile)
+                if tile.colliderect(point):
+                    return (x, y, tile)
 
             # Move to next point
             x += x_inc

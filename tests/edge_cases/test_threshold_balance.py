@@ -10,7 +10,7 @@ from systems.collision_system import CollisionSystem
 pygame.init()
 
 
-def test_scenario(name, player_x, player_y, vx, vy, tile_rect):
+def run_scenario(name, player_x, player_y, vx, vy, tile_rect):
     """Test a collision scenario"""
     event_bus = EventBus()
     entity_manager = EntityManager(event_bus)
@@ -62,15 +62,15 @@ print("Testing different collision scenarios")
 print("=" * 60)
 
 # Test 1: Clear wall collision (small X overlap, should stop)
-test_scenario(
+run_scenario(
     "Wall collision (side approach)", 85.0, 505.0, 3.0, 5.0, pygame.Rect(100, 500, 32, 32)
 )
 
 # Test 2: Landing on platform edge (moderate overlaps)
-test_scenario("Platform edge landing", 50.0, 595.0, 5.0, 10.0, pygame.Rect(60, 600, 32, 32))
+run_scenario("Platform edge landing", 50.0, 595.0, 5.0, 10.0, pygame.Rect(60, 600, 32, 32))
 
 # Test 3: Landing flat on ground (large X overlap, small Y)
-test_scenario("Flat ground landing", 100.0, 670.0, 5.0, 10.0, pygame.Rect(0, 688, 640, 32))
+run_scenario("Flat ground landing", 100.0, 670.0, 5.0, 10.0, pygame.Rect(0, 688, 640, 32))
 
 # Test 4: Very corner collision (equal overlaps)
-test_scenario("Perfect corner collision", 92.0, 592.0, 5.0, 8.0, pygame.Rect(100, 600, 32, 32))
+run_scenario("Perfect corner collision", 92.0, 592.0, 5.0, 8.0, pygame.Rect(100, 600, 32, 32))

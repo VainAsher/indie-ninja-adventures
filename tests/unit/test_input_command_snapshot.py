@@ -27,7 +27,7 @@ def test_input_command_from_keys_and_serialization():
     encoded = json.dumps(cmd.to_dict(), sort_keys=True, separators=(",", ":"))
     assert (
         encoded
-        == '{"cycle_camera":true,"crouch":false,"dash":false,"down":false,"frame":5,"jump":true,"left":true,"right":false,"toggle_proc":false,"up":false}'
+        == '{"attack":false,"consumable":false,"controls_overlay":false,"crouch":false,"cycle_camera":true,"dash":false,"debug_overlay":false,"down":false,"frame":5,"fullmap":false,"interact":false,"inventory":false,"jump":true,"left":true,"menu_back":false,"menu_confirm":false,"minimap":false,"ninjutsu":false,"right":false,"slow_walk":false,"teleport":false,"throw":false,"toggle_proc":false,"up":false}'
     )
 
     decoded = InputCommand.from_dict(cmd.to_dict())

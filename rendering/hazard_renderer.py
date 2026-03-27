@@ -8,6 +8,10 @@ import math
 
 import pygame
 
+# Module-level surface cache: (width, height) -> SRCALPHA Surface.
+# Avoids per-frame pygame.Surface(SRCALPHA) allocations inside the render loop.
+_overlay_cache: dict[tuple[int, int], pygame.Surface] = {}
+
 
 def render_hazard(surface: pygame.Surface, hazard, camera):
     """
@@ -30,11 +34,17 @@ def render_hazard(surface: pygame.Surface, hazard, camera):
     # Apply camera transform
     screen_rect = camera.apply(hazard_rect)
 
+    # Viewport cull — skip hazards fully outside the render surface
+    if not screen_rect.colliderect(surface.get_rect()):
+        return
+
     # Draw based on hazard type
     if hazard.hazard_type == "spike":
         render_spike(surface, screen_rect, hazard)
     elif hazard.hazard_type == "void":
         render_void(surface, screen_rect, hazard)
+    elif hazard.hazard_type == "poison":
+        render_poison(surface, screen_rect, hazard)
 
 
 def render_spike(surface: pygame.Surface, rect: pygame.Rect, hazard):
@@ -99,14 +109,45 @@ def render_void(surface: pygame.Surface, rect: pygame.Rect, hazard):
         int(hazard.color[2] + shimmer * 1.5),
     )
 
-    # Draw shimmer as translucent overlay
-    shimmer_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+    # Draw shimmer as translucent overlay (reuse cached surface — avoids per-frame alloc)
+    key = (rect.width, rect.height)
+    shimmer_surface = _overlay_cache.get(key)
+    if shimmer_surface is None:
+        shimmer_surface = pygame.Surface(key, pygame.SRCALPHA)
+        _overlay_cache[key] = shimmer_surface
     shimmer_surface.fill(shimmer_color + (40,))  # Low alpha for subtlety
     surface.blit(shimmer_surface, rect.topleft)
 
     # Add warning border (pulsing red)
     border_pulse = abs(math.sin(time_ms / 400.0))
     border_color = (int(100 + 155 * border_pulse), 0, 0)  # Pulsing red
+    pygame.draw.rect(surface, border_color, rect, 2)
+
+
+def render_poison(surface: pygame.Surface, rect: pygame.Rect, hazard):
+    """
+    Render poison/gas hazard (health-sapping zone)
+
+    Visual style: Green haze with subtle pulsing
+    """
+    time_ms = pygame.time.get_ticks()
+    pulse = 0.5 + 0.5 * abs(math.sin(time_ms / 700.0))
+    base_color = (40, 140, 70)
+    overlay_color = (
+        int(base_color[0] + 40 * pulse),
+        int(base_color[1] + 60 * pulse),
+        int(base_color[2] + 40 * pulse),
+    )
+
+    key = (rect.width, rect.height)
+    haze = _overlay_cache.get(key)
+    if haze is None:
+        haze = pygame.Surface(key, pygame.SRCALPHA)
+        _overlay_cache[key] = haze
+    haze.fill(overlay_color + (90,))
+    surface.blit(haze, rect.topleft)
+
+    border_color = (30, 180, 90)
     pygame.draw.rect(surface, border_color, rect, 2)
 
 

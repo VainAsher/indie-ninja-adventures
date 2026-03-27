@@ -878,6 +878,15 @@
       "description": "Standard currency for trading.",
       "max_stack": 99999,
       "value": 1
+    },
+    {
+      "item_id": "lantern_emblem",
+      "item_type": "quest_item",
+      "rarity": "epic",
+      "display_name": "Lantern Emblem",
+      "description": "A glowing emblem from the Hollow Depths. Proof of a lantern spirit's trust.",
+      "max_stack": 1,
+      "value": 0
     }
   ]
 }

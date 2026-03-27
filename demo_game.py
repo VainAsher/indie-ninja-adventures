@@ -2701,18 +2701,26 @@ def main():
         profiler.end("render_tiles")
 
         # Draw particles behind player
+        profiler.begin("render_particles")
         particles.update(1.0 / FPS)
         particles.draw(game_surface, camera)
+        profiler.end("render_particles")
 
         # Draw hazards (behind pickups and player)
+        profiler.begin("render_hazards")
         render_hazards(game_surface, hazard_manager.get_active_hazards(), camera)
+        profiler.end("render_hazards")
 
         # Draw pickups (before player so they appear behind)
+        profiler.begin("render_pickups")
         render_pickups(game_surface, pickup_manager.get_alive_pickups(), camera)
+        profiler.end("render_pickups")
 
         # Draw portals
+        profiler.begin("render_portals")
         for portal in portal_manager.portals:
             draw_portal(game_surface, portal, int(camera.x), int(camera.y))
+        profiler.end("render_portals")
 
         # Draw enemies (v0.6.0)
         profiler.begin("render_enemies")
@@ -2866,6 +2874,7 @@ def main():
         profiler.end("render_enemies")
 
         # Draw NPCs (v0.6.0 - Phase 2)
+        profiler.begin("render_npcs")
         for npc in npc_manager.npcs:
             # Get NPC bounding box
             npc_rect = pygame.Rect(npc.x, npc.y, npc.width, npc.height)
@@ -2874,8 +2883,10 @@ def main():
             # Get NPC definition and draw with procedural character art
             npc_def = npc_manager.get_npc_definition(npc.npc_id)
             draw_npc_char(game_surface, npc, npc_def, screen_npc_rect, pygame.time.get_ticks())
+        profiler.end("render_npcs")
 
         # Draw player (with camera transform and real sprite animations)
+        profiler.begin("render_player")
         player_rect = player.get_rect()
         screen_player_rect = camera.apply(player_rect)
         player_state_name = get_player_render_state(player)
@@ -2946,8 +2957,10 @@ def main():
                 game_surface.blit(frame.surface, sprite_rect)
         else:
             game_surface.blit(frame.surface, sprite_rect)
+        profiler.end("render_player")
 
         # Draw Yin & Yang companion orbs (v0.7.0 - The Hollowed Ninja)
+        profiler.begin("render_companions")
         if story_manager.yin_yang_present:
             companion_orbs.update(
                 1.0 / FPS,
@@ -2966,7 +2979,10 @@ def main():
                 camera.y,
             )
 
+        profiler.end("render_companions")
+
         # Draw shuriken projectiles (sprite + collision box)
+        profiler.begin("render_projectiles")
         if getattr(player, "shuriken", None) and player.shuriken.projectiles:
             shuriken_spin = (pygame.time.get_ticks() * 0.6) % 360
             for idx, proj in enumerate(player.shuriken.projectiles):
@@ -2991,6 +3007,7 @@ def main():
 
                 # Collision box visualizer
                 pygame.draw.rect(game_surface, (255, 0, 255), screen_proj_rect, width=1)
+        profiler.end("render_projectiles")
 
         # Draw exit marker (if exit exists and not yet complete)
         if exit_x is not None and exit_y is not None and not level_complete:
