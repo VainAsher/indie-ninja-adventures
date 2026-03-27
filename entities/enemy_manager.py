@@ -152,12 +152,31 @@ class CurrencyPickup:
 # ============================================================
 
 
+@dataclass
+class EnemyArrow:
+    """Projectile fired by a skeleton enemy."""
+
+    x: float
+    y: float
+    vx: float          # per-tick velocity
+    vy: float
+    width: int = 14
+    height: int = 5
+    ttl: float = 2.5   # seconds alive
+    hit: bool = False  # consumed after hitting player
+
+
 class EnemyManager:
     """
     Manages all enemies in the current level.
 
     Handles spawning, updates, collisions, death, and loot drops.
     """
+
+    # Arrow constants
+    ARROW_SPEED = 8.0    # px/tick
+    ARROW_DAMAGE = 1
+    ARROW_GRAVITY = 0.04  # gentle arc
 
     def __init__(self, event_bus: EventBus, level_seed: int):
         """
@@ -175,6 +194,7 @@ class EnemyManager:
         self.enemy_ai: dict[str, EnemyAI] = {}
         self.item_pickups: dict[str, ItemPickup] = {}
         self.currency_pickups: dict[str, CurrencyPickup] = {}
+        self.enemy_arrows: list[EnemyArrow] = []
 
         # Spawn tracking
         self.spawn_anchors: list[EnemySpawnAnchor] = []
@@ -188,6 +208,7 @@ class EnemyManager:
         self.item_pickups.clear()
         self.currency_pickups.clear()
         self.spawn_anchors.clear()
+        self.enemy_arrows.clear()
         self.next_enemy_id = 0
         self.next_pickup_id = 0
 
@@ -322,6 +343,7 @@ class EnemyManager:
         collision_system=None,
         camera_rect: tuple[float, float, float, float] | None = None,
         cull_margin: float = 800.0,
+        world_h: float = 0.0,
     ) -> int:
         """
         Update all enemies.
@@ -350,61 +372,89 @@ class EnemyManager:
             else:
                 detection_mult = 1.0
 
+        # Pre-compute camera bounds for AI culling (not physics culling)
+        cull_active = camera_rect is not None
+        if cull_active:
+            cam_x, cam_y, cam_w, cam_h = camera_rect
+            cull_left = cam_x - cull_margin
+            cull_right = cam_x + cam_w + cull_margin
+            cull_top = cam_y - cull_margin
+            cull_bottom = cam_y + cam_h + cull_margin
+
         for enemy_id, enemy in self.enemies.items():
-            # Update health (invincibility frames)
-            enemy.update_health(dt)
+            # Cache definition once per enemy per frame
+            definition = enemy.get_definition()
 
-            # Update animation
-            enemy.update_animation(dt)
-
-            # Update AI
-            ai = self.enemy_ai.get(enemy_id)
-            if ai:
-                damage = ai.update(
-                    dt,
-                    player_x,
-                    player_y,
-                    player_width,
-                    player_height,
-                    detection_mult,
-                    collision_system,
+            # Determine if this enemy is off-screen (skip AI only, not physics)
+            off_screen = False
+            if cull_active:
+                ex, ey = enemy.physics.x, enemy.physics.y
+                off_screen = (
+                    ex + definition.width < cull_left or ex > cull_right or
+                    ey + definition.height < cull_top or ey > cull_bottom
                 )
-                if damage:
-                    total_damage += damage
 
-            # Kickstart patrol if stalled on waypoint (prevents stuck idle)
-            if (
-                enemy.ai_state == EnemyAIState.PATROL
-                and enemy.patrol_waypoints
-                and abs(enemy.physics.vx) < 1.0
-            ):
-                target = enemy.get_current_waypoint()
-                if target:
-                    dx = target[0] - enemy.physics.x
-                    if abs(dx) > 4.0:
-                        speed = enemy.get_definition().move_speed * 0.5
-                        enemy.physics.vx = speed if dx > 0 else -speed
+            if not off_screen:
+                # Update health (invincibility frames)
+                enemy.update_health(dt)
 
-            # Lightweight hover behavior for flying enemies (bats)
-            definition = enemy.get_definition()
-            if definition.can_fly:
-                if enemy.ai_state in (EnemyAIState.PATROL, EnemyAIState.IDLE):
-                    hover = math.sin(enemy.ai_state_timer * 2.0) * 20.0
-                    enemy.physics.vy = hover
-                elif enemy.ai_state in (EnemyAIState.CHASE, EnemyAIState.ATTACK):
-                    # Nudge toward player's vertical position
-                    player_center_y = player_y + player_height / 2
-                    enemy.physics.vy += (
-                        (player_center_y - (enemy.physics.y + definition.height / 2)) * 0.05 * dt
+                # Update animation
+                enemy.update_animation(dt)
+
+                # Update AI
+                ai = self.enemy_ai.get(enemy_id)
+                if ai:
+                    damage = ai.update(
+                        dt,
+                        player_x,
+                        player_y,
+                        player_width,
+                        player_height,
+                        detection_mult,
+                        collision_system,
                     )
-                    enemy.physics.vy = max(
-                        min(enemy.physics.vy, definition.move_speed), -definition.move_speed
-                    )
+                    if damage:
+                        total_damage += damage
 
-            # Note: AI and movement component write directly to physics, no sync needed
+                # Kickstart patrol if stalled on waypoint (prevents stuck idle)
+                if (
+                    enemy.ai_state == EnemyAIState.PATROL
+                    and enemy.patrol_waypoints
+                    and abs(enemy.physics.vx) < 1.0
+                ):
+                    target = enemy.get_current_waypoint()
+                    if target:
+                        dx = target[0] - enemy.physics.x
+                        if abs(dx) > 4.0:
+                            speed = definition.move_speed * 0.5 * dt
+                            enemy.physics.vx = speed if dx > 0 else -speed
 
-            # Apply gravity (unless flying)
-            definition = enemy.get_definition()
+                # Lightweight hover behavior for flying enemies (bats)
+                if definition.can_fly:
+                    if enemy.ai_state in (EnemyAIState.PATROL, EnemyAIState.IDLE):
+                        hover = math.sin(enemy.ai_state_timer * 2.0) * 20.0 * dt
+                        enemy.physics.vy = hover
+                    elif enemy.ai_state in (EnemyAIState.CHASE, EnemyAIState.ATTACK):
+                        # During a swoop (ACTIVE + RECOVERY), don't override the bat's
+                        # velocity — let the AI-set swoop vector carry through.
+                        from entities.enemy import EnemyAttackSubState
+                        swooping = (
+                            enemy.ai_state == EnemyAIState.ATTACK
+                            and enemy.attack_substate in (
+                                EnemyAttackSubState.ACTIVE,
+                                EnemyAttackSubState.RECOVERY,
+                            )
+                        )
+                        if not swooping:
+                            player_center_y = player_y + player_height / 2
+                            enemy.physics.vy += (
+                                (player_center_y - (enemy.physics.y + definition.height / 2))
+                                * 0.05 * dt
+                            )
+                            max_vy = definition.move_speed * dt
+                            enemy.physics.vy = max(min(enemy.physics.vy, max_vy), -max_vy)
+
+            # Always apply gravity, physics, and collision (prevents falling through floors)
             if not definition.can_fly:
                 enemy.physics.vy += GRAVITY * definition.gravity_scale
                 if enemy.physics.vy > 0:
@@ -418,23 +468,28 @@ class EnemyManager:
             enemy.physics.x += enemy.physics.vx
             enemy.physics.y += enemy.physics.vy
 
-            # Collision resolution (optional if collision system provided)
+            # Always resolve collisions (cheap with spatial hash, prevents floor clipping)
             if collision_system:
                 collision_system.check_and_resolve(enemy)
 
-            # Sync physics back to scalar fields for rendering/AI
+            # Sync physics back to scalar fields
             enemy.sync_from_physics()
 
-            # Clamp to non-negative world coordinates to avoid falling through origin
+            # Clamp to world bounds — kill enemies that escape the world
+            clamped = False
             if enemy.physics.x < 0:
                 enemy.physics.x = 0
+                enemy.physics.vx = 0
+                clamped = True
             if enemy.physics.y < 0:
                 enemy.physics.y = 0
-            enemy.sync_from_physics()
-
-            # If still embedded after resolution, a second resolve should separate without killing velocity
-            if collision_system:
-                collision_system.check_and_resolve(enemy)
+                enemy.physics.vy = 0
+                clamped = True
+            if world_h > 0 and enemy.physics.y > world_h:
+                # Enemy fell out of world — mark dead
+                dead_enemies.append(enemy_id)
+                continue
+            if clamped:
                 enemy.sync_from_physics()
 
             # Check if dead
@@ -445,10 +500,79 @@ class EnemyManager:
         for enemy_id in dead_enemies:
             self._handle_enemy_death(enemy_id)
 
+        # Spawn arrows requested by skeleton AI this frame
+        for enemy_id, enemy in self.enemies.items():
+            if enemy.pending_arrow_fire:
+                enemy.pending_arrow_fire = False
+                self._spawn_arrow(enemy)
+
+        # Update in-flight arrows (move + gravity + tile collision + expire)
+        self._update_arrows(dt, collision_system)
+
         # Update pickups
         self._update_pickups(dt)
 
         return total_damage
+
+    def _spawn_arrow(self, enemy: Enemy):
+        """Spawn an arrow from the given enemy facing direction."""
+        definition = enemy.get_definition()
+        cx = enemy.physics.x + definition.width / 2
+        cy = enemy.physics.y + definition.height * 0.35  # chest height
+        vx = self.ARROW_SPEED if enemy.facing_right else -self.ARROW_SPEED
+        arrow = EnemyArrow(x=cx - 7, y=cy - 2, vx=vx, vy=0.0)
+        self.enemy_arrows.append(arrow)
+
+    def _update_arrows(self, dt: float, collision_system=None):
+        """Move arrows, apply gravity, and remove expired/hit ones."""
+        import pygame as _pg
+        active = []
+        for arrow in self.enemy_arrows:
+            if arrow.hit:
+                continue
+            arrow.vy += self.ARROW_GRAVITY
+            arrow.x += arrow.vx
+            arrow.y += arrow.vy
+            arrow.ttl -= dt
+            if arrow.ttl <= 0:
+                continue
+            # Tile collision — bury the arrow (use spatial hash to avoid O(all_tiles))
+            if collision_system:
+                r = _pg.Rect(int(arrow.x), int(arrow.y), arrow.width, arrow.height)
+                for tile in collision_system._get_candidate_tiles(r, collision_system.tiles):
+                    if r.colliderect(tile):
+                        arrow.hit = True
+                        break
+            if not arrow.hit:
+                active.append(arrow)
+        self.enemy_arrows = active
+
+    def check_arrow_player_collision(
+        self,
+        player_x: float,
+        player_y: float,
+        player_w: int,
+        player_h: int,
+    ) -> int:
+        """
+        Check whether any in-flight arrow hit the player this frame.
+
+        Returns total damage dealt (0 or ARROW_DAMAGE per arrow hit).
+        """
+        prect = (player_x, player_y, player_w, player_h)
+        damage = 0
+        for arrow in self.enemy_arrows:
+            if arrow.hit:
+                continue
+            arect = (arrow.x, arrow.y, arrow.width, arrow.height)
+            if self._rects_overlap(prect, arect):
+                arrow.hit = True
+                damage += self.ARROW_DAMAGE
+        return damage
+
+    def get_enemy_arrows(self) -> list:
+        """Return current list of active arrows for rendering."""
+        return self.enemy_arrows
 
     def _update_pickups(self, dt: float):
         """Update all pickups"""
