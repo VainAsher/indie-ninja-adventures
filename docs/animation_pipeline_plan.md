@@ -71,22 +71,72 @@ Goal: Unified, scalable, performant rendering and animation pipeline
 
 ## PHASE 5 — TILE SYSTEM REVIEW ✅
 
-**Findings:** TileLoader already performant (PIL LANCZOS at load, cached by biome/type/variant, culled per frame). No code changes required.
-**Output:** Summary added to this plan.
+**Findings — no code changes needed:**
+
+- `TileLoader._load_and_scale_tile()`: PIL LANCZOS 70×70→32×32 **at load time only**
+- `TileLoader.cache`: `dict[(biome, tile_type, index)] → Surface` — O(1) per frame
+- Autotile cache: `dict[(biome, tile_type, shape, variant_idx, "autotile")] → Surface`
+- `preload_biome()` available for explicit warm-up before level entry
+- Headless mode guard: falls back to colored rectangles — no disk I/O in tests
+- Render loop culls tiles via camera rect before blit — no off-screen work
 
 ---
 
 ## PHASE 6 — RENDER PIPELINE INTEGRATION ✅
 
-**Goal:** Single clean render pipeline with documented draw order.
-**Output:** Summary added to this plan.
+**Draw order (demo_game.py lines ~2544–3447):**
+
+| # | Layer | Notes |
+| --- | --- | --- |
+| 1 | Solid tiles | Camera-culled, autotiled |
+| 2 | Liquid tiles (lava/water) | Pre-built at level load |
+| 3 | Static platforms | Camera-culled |
+| 4 | Dynamic platforms (moving/falling) | With overlay surf |
+| 5 | Particles (behind player) | |
+| 6 | Hazards | |
+| 7 | Pickups | |
+| 8 | Portals | |
+| 9 | Enemies | `draw_enemy()` — sprite path first, procedural fallback; health bars; debug hitboxes |
+| 10 | NPCs | `draw_npc()` — same pattern |
+| 11 | Player | `anim_sm.get_frame()` → scaled blit; fallback to SpriteManager |
+| 12 | Companion orbs | |
+| 13 | Shuriken projectiles | |
+| 14 | Exit marker | |
+| 15 | HUD | Health, FPS, objectives, compass, full-map overlay |
+| 16 | Menu overlay | |
+| 17 | Tutorial overlay | |
+| 18 | Hub brightness overlay | |
+| 19 | Cutscene overlay | On top of everything |
+| 20 | Moral choice UI | Final battle only |
+
+**Integration status:** AnimationStateMachine frames blit correctly at layer 9/10/11. No architectural changes needed — pipeline was already layer-sorted.
 
 ---
 
-## PHASE 7 — PERFORMANCE VALIDATION
+## PHASE 7 — PERFORMANCE VALIDATION ✅
 
-**Goal:** Confirm no regressions introduced by animation system.
-**Output:** Profiling run results added to this plan.
+**Micro-benchmarks (headless, Python 3.11, 100k iterations):**
+
+| Operation | Cost |
+| --- | --- |
+| `AnimationStateMachine.transition()` | 0.211 µs / call |
+| `AnimationStateMachine.get_frame()` | 0.338 µs / call |
+| 20 enemies `get_frame()` per frame | 0.006 ms total |
+
+**Replay profiling (34,862 frames, `perf_run.json` recording):**
+
+| Section | avg | median | p95 |
+| --- | --- | --- | --- |
+| frame_total | 6.01 ms | 4.04 ms | 14.5 ms |
+| render | 4.97 ms | 2.92 ms | 12.5 ms |
+| render_enemies | 0.011 ms | 0.003 ms | 0.045 ms |
+| enemy_manager | 0.085 ms | 0.007 ms | 0.378 ms |
+| collision | 0.136 ms | 0.074 ms | 0.430 ms |
+| physics | 0.003 ms | 0.003 ms | 0.004 ms |
+
+**Verdict:** No regressions. `render_enemies` avg 0.011 ms is negligible. The state machine overhead
+(transition + get_frame per entity per frame) is sub-microsecond. All global rules satisfied — no
+per-frame loads, no per-frame transforms, zero frame data duplication across entity instances.
 
 ---
 
