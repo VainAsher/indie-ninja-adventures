@@ -2818,10 +2818,9 @@ def main():
         for arrow in enemy_manager.get_enemy_arrows():
             ax = int(arrow.x) + _cam_ox
             ay = int(arrow.y) + _cam_oy
-            angle = math.degrees(math.atan2(arrow.vy, arrow.vx))
+            angle_rad = math.atan2(arrow.vy, arrow.vx)
             shaft_color = (180, 140, 80)
             tip_color   = (200, 200, 210)
-            angle_rad = math.radians(angle)
             cos_a = math.cos(angle_rad)
             sin_a = math.sin(angle_rad)
             # Shaft
