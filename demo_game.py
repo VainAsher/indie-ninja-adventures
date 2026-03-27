@@ -1282,6 +1282,9 @@ def main():
     _platform_overlay_surf.fill((255, 200, 120))
     _heart_warn_surf = pygame.Surface((32, 32))        # Low-health heart pulse
     _heart_warn_surf.fill((255, 0, 0))
+    _fullmap_overlay_surf = pygame.Surface((GAME_WIDTH, GAME_HEIGHT))  # Full-map dim overlay
+    _fullmap_overlay_surf.fill((0, 0, 0))
+    _fullmap_overlay_surf.set_alpha(180)
 
     # Pre-allocate attack telegraph overlay surfaces.
     # Re-using these instead of creating a new SRCALPHA surface per attacking enemy
@@ -3235,9 +3238,7 @@ def main():
             current_room_coords = get_current_room_coords(megamap, player_pos)
             if show_full_map:
                 # Temporary full-map: draw overlay and render minimap scaled up
-                overlay = pygame.Surface(game_surface.get_size(), pygame.SRCALPHA)
-                overlay.fill((0, 0, 0, 180))
-                game_surface.blit(overlay, (0, 0))
+                game_surface.blit(_fullmap_overlay_surf, (0, 0))
                 old_scale = minimap.config.scale
                 old_pos = minimap.config.position
                 # Scale to occupy ~85% of screen and center
