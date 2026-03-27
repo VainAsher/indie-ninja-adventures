@@ -65,6 +65,8 @@ class NPC:
     facing: int = 1  # -1 left, 1 right
     animation_frame: int = 0
     animation_timer: float = 0.0
+    # Unified animation state machine (None until NPCManager assigns one at spawn)
+    anim_sm: object = field(default=None, repr=False)
 
     # Interaction state
     interaction_radius: float = 48.0  # Pixels

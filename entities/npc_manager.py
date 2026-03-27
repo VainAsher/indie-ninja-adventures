@@ -17,6 +17,8 @@ from pathlib import Path
 
 from entities.npc import NPC, NPCType
 from game.story_manager import StoryManager
+from rendering.animation_system import AnimationRegistry
+from utils.resource_path import get_resource_path
 
 
 class NPCManager:
@@ -38,7 +40,10 @@ class NPCManager:
         Args:
             hub_states_file: Path to hub states configuration
         """
-        self.hub_states_file = hub_states_file
+        hub_states_path = Path(hub_states_file)
+        if not hub_states_path.is_absolute():
+            hub_states_path = get_resource_path(*hub_states_path.parts)
+        self.hub_states_file = str(hub_states_path)
         self.hub_states_data: dict = {}
         self.npc_definitions: dict[str, dict] = {}
 
@@ -245,6 +250,9 @@ class NPCManager:
             height=48,
         )
 
+        # Attach animation state machine (key: "npc_<type_value>")
+        npc.anim_sm = AnimationRegistry.make_state_machine(f"npc_{npc_type.value}")
+
         self.active_npcs[npc_id] = npc
         print(f"[NPCManager] Spawned NPC: {npc_id} at ({position[0]}, {position[1]})")
         return True
@@ -308,11 +316,16 @@ class NPCManager:
             dt: Delta time in seconds
         """
         for npc in self.active_npcs.values():
-            # Update NPC animation
+            # Update legacy animation counter (used by procedural renderer)
             npc.animation_timer += dt
             if npc.animation_timer >= 0.2:  # 5 FPS animation
                 npc.animation_timer = 0.0
                 npc.animation_frame = (npc.animation_frame + 1) % 4
+
+            # Drive unified state machine
+            if npc.anim_sm is not None:
+                anim_state = "walk" if (npc.has_patrol and npc.patrol_waypoints) else "idle"
+                npc.anim_sm.transition(anim_state)
 
             # Update patrol movement (if NPC has patrol)
             if npc.has_patrol and npc.patrol_waypoints:

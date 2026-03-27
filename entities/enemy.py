@@ -177,7 +177,7 @@ ENEMY_DEFINITIONS = {
         width=32,
         height=56,
         detection_radius=220.0,
-        attack_range=80.0,  # Increased for better visibility (long reach)
+        attack_range=240.0,  # Ranged attacker — stops and shoots from distance
         attack_windup_time=0.6,
         attack_active_time=0.15,
         attack_recovery_time=0.4,
@@ -257,9 +257,15 @@ class Enemy:
     loot_table_id: str = "enemy_common"
     loot_seed: int = 0  # Deterministic loot generation
 
-    # Animation
+    # Animation (legacy integer counter used by procedural renderer)
     animation_frame: int = 0
     animation_timer: float = 0.0
+
+    # Unified animation state machine (None until EnemyManager assigns one at spawn)
+    anim_sm: object = field(default=None, repr=False)
+
+    # Ranged attack — set by AI, consumed by EnemyManager to spawn a projectile
+    pending_arrow_fire: bool = False
 
     # Attack sub-state tracking (telegraphed attacks)
     attack_substate: "EnemyAttackSubState" = None  # Will be initialized in __post_init__
@@ -326,6 +332,22 @@ class Enemy:
         """Get enemy bounding box (x, y, width, height)"""
         definition = self.get_definition()
         return (self.physics.x, self.physics.y, definition.width, definition.height)
+
+    def get_attack_hitbox(self) -> tuple[float, float, float, float] | None:
+        """
+        Return the forward melee hitbox for enemies that use one (goblin).
+        Returns None for enemies that use body contact or projectiles.
+        """
+        if self.enemy_type != EnemyType.GOBLIN:
+            return None
+        definition = self.get_definition()
+        hw, hh = 44, definition.height - 12
+        if self.facing_right:
+            hx = self.physics.x + definition.width - 4
+        else:
+            hx = self.physics.x - hw + 4
+        hy = self.physics.y + 6
+        return (hx, hy, hw, hh)
 
     def get_center(self) -> tuple[float, float]:
         """Get enemy center position"""

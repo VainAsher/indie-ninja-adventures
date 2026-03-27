@@ -18,6 +18,7 @@ from config.physics_constants import FALL_GRAVITY_MULT, GRAVITY, MAX_FALL_SPEED
 from core import EventBus
 from entities.ai_random import AIRandom, derive_ai_seed
 from entities.enemy import Enemy, EnemyAIState, EnemyType, get_enemy_definition
+from rendering.animation_system import ENEMY_AI_TO_ANIM, AnimationRegistry
 from entities.enemy_ai import EnemyAI, create_patrol_waypoints_horizontal
 from game.health_system import HealthState
 from game.loot_system import LootGenerator, get_loot_table_database
@@ -297,6 +298,9 @@ class EnemyManager:
         # Create AI controller with deterministic timing
         ai = EnemyAI(enemy, ai_random)
 
+        # Attach animation state machine (shares registry data, zero duplication)
+        enemy.anim_sm = AnimationRegistry.make_state_machine(anchor.enemy_type.value)
+
         # Register enemy
         self.enemies[enemy_id] = enemy
         self.enemy_ai[enemy_id] = ai
@@ -399,8 +403,12 @@ class EnemyManager:
                 # Update health (invincibility frames)
                 enemy.update_health(dt)
 
-                # Update animation
+                # Update animation — legacy counter (used by procedural renderer)
+                # and unified state machine transition
                 enemy.update_animation(dt)
+                if enemy.anim_sm is not None:
+                    anim_state = ENEMY_AI_TO_ANIM.get(enemy.ai_state.value, "idle")
+                    enemy.anim_sm.transition(anim_state)
 
                 # Update AI
                 ai = self.enemy_ai.get(enemy_id)
