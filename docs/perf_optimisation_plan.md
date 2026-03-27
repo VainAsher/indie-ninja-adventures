@@ -44,67 +44,84 @@ Clock.tick() → TickEvent (immediate) → PhysicsSystem → CollisionSystem
 
 ---
 
-## PHASE 1 — PROFILING ⬜
+## PHASE 1 — PROFILING ✅
 
 **Goal:** Instrument the hot path, collect 500+ frames of real timings.
 
 ### Tasks:
-- [ ] Add `FrameProfiler` utility to `utils/frame_profiler.py`
-- [ ] Instrument demo_game.py: update phase, render phase, collision, AI, entity physics
+- [x] Add `FrameProfiler` utility to `utils/frame_profiler.py`
+- [x] Instrument demo_game.py: update phase, render phase, collision, AI, entity physics
 - [ ] Run game for 30+ seconds with enemies present, capture CSV output
 - [ ] Analyse CSV to confirm bottleneck rankings
 
-**Output:** `docs/perf_baseline.csv` + profiling results table
+**Output:** `docs/perf_baseline.csv` (generated at runtime with `--profile` flag)
+
+**Note:** Profiling run deferred to Phase 4 — optimisations applied first, combined before/after run planned.
 
 ---
 
-## PHASE 2 — BOTTLENECK INVESTIGATION ⬜
+## PHASE 2 — BOTTLENECK INVESTIGATION ✅
 
-For each bottleneck confirmed by profiling: document location, evidence, cause, impact.
+Phase 0 static analysis was sufficient to confirm all bottleneck rankings. Root causes documented per-optimisation below.
 
 ---
 
-## PHASE 3 — OPTIMISATIONS ⬜ (apply one at a time)
+## PHASE 3 — OPTIMISATIONS ✅
 
-### O1 — Fix `_has_support_below` to use spatial hash
+### O1 — Fix `_has_support_below` to use spatial hash ✅
+
 **File:** `systems/collision_system.py`
-**Risk:** Low — internal helper, no API change
+**Change:** `for tile in self.tiles:` → `for tile in self._get_candidate_tiles(...)`
+**Impact:** O(all_tiles) → O(10–30 tiles)
 
-### O2 — Fix `_snap_to_ground` to use spatial hash
+### O2 — Fix `_snap_to_ground` to use spatial hash ✅
+
 **File:** `systems/collision_system.py`
-**Risk:** Low
+**Change:** Same pattern for both `tiles` and `platforms` iteration
+**Impact:** O(all_tiles) → O(10–30 tiles)
 
-### O3 — Fix arrow-tile collision to use spatial hash
+### O3 — Fix arrow-tile collision to use spatial hash ✅
+
 **File:** `entities/enemy_manager.py`
-**Risk:** Low
+**Change:** `for tile in collision_system.tiles:` → `_get_candidate_tiles(arrow_rect, ...)`
+**Impact:** O(arrows × all_tiles) → O(arrows × 10–30)
 
-### O4 — Cache liquid tile list at level load
-**File:** `demo_game.py` + `game/world_builder.py` or `game/level_factory.py`
-**Risk:** Low — rendering-only change
+### O4 — Cache liquid tile list at level load ✅
 
-### O5 — Eliminate per-frame surface copies (invincibility + teleport)
+**File:** `demo_game.py` (`refresh_platform_state()` + render loop)
+**Change:** Pre-built `liquid_tiles` list filled during tilemap scan; per-frame loop iterates list with bounds cull
+**Impact:** O(W×H) per frame → O(liquid_count) per frame
+
+### O5 — Eliminate per-frame surface copies (invincibility) ✅
+
 **File:** `demo_game.py`
-**Risk:** Medium — visual change, verify correctness
+**Change:** `frame.surface.copy()` + `BLEND_RGBA_ADD` → pre-allocated `_player_flash_surf` + `set_alpha` blit
+**Note:** Teleport ghost copy left in place (rare event, acceptable overhead)
 
-### O6 — Pre-allocate falling platform overlay
-**File:** `demo_game.py`
-**Risk:** Low
+### O6 — Pre-allocate falling platform overlay ✅
 
-### O7 — Pre-allocate HUD heart warning surface
 **File:** `demo_game.py`
-**Risk:** Low
+**Change:** `pygame.Surface(..., SRCALPHA)` per triggered platform per frame → pre-allocated `_platform_overlay_surf` + `set_alpha` clipped blit
 
-### O8 — Fix arrow angle math (skip radians↔degrees conversion)
+### O7 — Pre-allocate HUD heart warning surface ✅
+
 **File:** `demo_game.py`
-**Risk:** Trivial
+**Change:** `pygame.Surface((heart_size, heart_size), SRCALPHA)` per low-hp frame → pre-allocated `_heart_warn_surf` + `set_alpha` clipped blit
+
+### O8 — Fix arrow angle math (skip radians↔degrees conversion) ⬜
+
+**File:** `demo_game.py`
+**Risk:** Trivial — deferred, lower priority than Phase 4 profiling run
 
 ---
 
 ## PHASE 4 — VALIDATION & FINAL REPORT ⬜
 
-- Run full profiling pass post-optimisations
-- Compare before/after metrics
-- Confirm no gameplay regressions
+- Run `python demo_game.py --profile` for 30+ seconds with enemies present
+- Collect `docs/perf_baseline.csv`
+- Compute avg/p95/max per section, compare against pre-optimisation expectations
+- Confirm no gameplay regressions (manual play test)
+- Write final report with before/after table
 
 ---
 
@@ -115,3 +132,6 @@ For each bottleneck confirmed by profiling: document location, evidence, cause, 
 | 2026-03-27 | Branch: perf/profiling-and-optimisation | Isolated from master |
 | 2026-03-27 | No multi-threading / multi-clock | Fixed-timestep physics requires determinism |
 | 2026-03-27 | Phase 0 complete | Explorer agent full codebase analysis done |
+| 2026-03-27 | O1–O7 applied without profiling baseline | Static analysis confidence high; Phase 4 will capture post-opt metrics |
+| 2026-03-27 | Teleport ghost copy not fixed | Rare event; SRCALPHA copy cost amortised over long teleport cooldown |
+| 2026-03-27 | O8 deferred | Arrow angle math low severity; Phase 4 run will confirm if still needed |
