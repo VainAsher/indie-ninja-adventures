@@ -110,6 +110,16 @@ class InputPipeline:
             # allow metadata override from file when present
             self.metadata = {**data, **self.metadata}
             self._terminated_frame = self.metadata.get("terminated_frame")
+            # Seek past pre-game (menu) frames so replay starts at gameplay
+            gsf = self.metadata.get("game_start_frame")
+            if gsf is not None and gsf > 0:
+                self._replay_index = next(
+                    (i for i, cmd in enumerate(self._replay_commands) if cmd.frame >= gsf),
+                    len(self._replay_commands),
+                )
+                # Re-anchor terminated_frame relative to game start
+                if self._terminated_frame is not None:
+                    self._terminated_frame = max(0, self._terminated_frame - gsf)
 
     def next(
         self,
@@ -140,6 +150,19 @@ class InputPipeline:
             self._recording.append(command.to_dict())
         self._log(command)
         return keys_state, command
+
+    def set_game_start(self, frame: int) -> None:
+        """
+        Record the frame index at which actual gameplay began (menu dismissed).
+
+        Call this once at every game_state_manager.start_game() site.  During
+        replay the pipeline will seek past all commands recorded before this
+        frame, preventing menu-navigation commands from contaminating gameplay.
+        No-op when not recording.
+        """
+        if self.record_path is None:
+            return
+        self.metadata["game_start_frame"] = frame
 
     def finalize(self):
         """Persist recorded commands to disk if recording."""

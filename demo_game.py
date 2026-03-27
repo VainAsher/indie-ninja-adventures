@@ -1340,6 +1340,7 @@ def main():
     if skip_menu:
         level_manager.start_level(time.time())
         game_state_manager.start_game()
+        input_pipeline.set_game_start(frame_idx)  # frame_idx==0; no menu frames to skip
         menu_manager.clear_menus()
     else:
         if not menu_manager.has_menu():
@@ -1396,72 +1397,14 @@ def main():
                     if dev_console.handle_keydown(event):
                         continue
 
-            # Modal state handling (shop/mission menu/dialogue)
-            if event.type == pygame.KEYDOWN and not replay_path:
-                # Shop/mission menu input is handled via command pipeline for determinism.
-                if game_state_manager.is_dialogue():
-                    if event.key == pygame.K_ESCAPE:
-                        dialogue_manager.end_dialogue()
-                        game_state_manager.transition_to(GameState.PLAYING)
-                    # Dialogue input handled separately via pressed-key detection
-                    continue
+            # Suppress raw KEYDOWN events while in dialogue — actual dialogue
+            # input (including ESC-to-dismiss) is handled via pressed_once below
+            # so it works identically during live play and replay.
+            if event.type == pygame.KEYDOWN and game_state_manager.is_dialogue():
+                continue
 
             if event.type == pygame.KEYDOWN and not replay_path:
-                if event.key == pygame.K_SPACE and level_complete and not replay_path:
-                    # Advance after victory based on context
-                    level_complete = False
-                    level_manager.reset_level()
-                    if current_world_context == "mission":
-                        regenerate_hub_for_respawn("mission complete")
-                    elif current_world_context == "arcade":
-                        # Advance arcade loop with bigger room count
-                        arcade_depth += 1
-                        arcade_rooms = min(8 + arcade_depth * 2, 24)
-                        arcade_seed = get_arcade_seed_wrapper(arcade_depth)
-                        (
-                            tiles,
-                            platforms,
-                            current_seed,
-                            spawn_x,
-                            spawn_y,
-                            exit_x,
-                            exit_y,
-                            world,
-                            megamap,
-                            minimap,
-                        ) = regenerate_world_state(
-                            seed=arcade_seed,
-                            shape="snake",
-                            rooms=arcade_rooms,
-                            hub_id=None,
-                            hub_manager=hub_manager,
-                            portal_manager=portal_manager,
-                            collision_system=collision_system,
-                            camera=camera,
-                            player=player,
-                            enemy_manager=enemy_manager,
-                            pickup_manager=pickup_manager,
-                            hazard_manager=hazard_manager,
-                            level_manager=level_manager,
-                            npc_manager=npc_manager,
-                            bus=bus,
-                            GAME_WIDTH=GAME_WIDTH,
-                            GAME_HEIGHT=GAME_HEIGHT,
-                        )
-                        refresh_platform_state()
-                        current_seed = arcade_seed
-                        current_world_context = "arcade"
-                        update_replay_metadata_wrapper()
-                        print(
-                            f"[ARCADE] Generated new level (depth {arcade_depth}, rooms {arcade_rooms}, seed {current_seed})"
-                        )
-                    else:
-                        # Hub victory (should not normally trigger) just respawns player
-                        player.damage.respawn(player.state, spawn_x, spawn_y)
-                        player.state.health_state.current_hp = player.state.health_state.max_hp
-                    continue
-
-                elif event.key == pygame.K_c and not replay_path:
+                if event.key == pygame.K_c:
                     # Cycle camera mode (disabled during replay)
                     modes = [CameraMode.WORLD_CLAMP, CameraMode.ROOM_CLAMP, CameraMode.FREE]
                     current_idx = modes.index(camera.mode)
@@ -1492,6 +1435,12 @@ def main():
         if pygame.K_KP_ENTER in pressed_once:
             pressed_once.add(pygame.K_RETURN)
 
+        # Dialogue ESC dismissal — handled here so it works during replay.
+        if pygame.K_ESCAPE in pressed_once and game_state_manager.is_dialogue():
+            dialogue_manager.end_dialogue()
+            game_state_manager.transition_to(GameState.PLAYING)
+            pressed_once.discard(pygame.K_ESCAPE)
+
         # Pause toggle (consume ESC so menu doesn't immediately close)
         if pygame.K_ESCAPE in pressed_once:
             if game_state_manager.is_playing() and not menu_manager.has_menu():
@@ -1504,6 +1453,60 @@ def main():
                 pressed_once.discard(pygame.K_ESCAPE)
 
         pressed_once = list(pressed_once)
+
+        # Level advancement after victory — command-pipeline driven so it works
+        # during both live play and replay (edge-detected via CommandKeyView).
+        if pygame.K_SPACE in pressed_once and level_complete:
+            level_complete = False
+            level_manager.reset_level()
+            if current_world_context == "mission":
+                regenerate_hub_for_respawn("mission complete")
+            elif current_world_context == "arcade":
+                # Advance arcade loop with bigger room count
+                arcade_depth += 1
+                arcade_rooms = min(8 + arcade_depth * 2, 24)
+                arcade_seed = get_arcade_seed_wrapper(arcade_depth)
+                (
+                    tiles,
+                    platforms,
+                    current_seed,
+                    spawn_x,
+                    spawn_y,
+                    exit_x,
+                    exit_y,
+                    world,
+                    megamap,
+                    minimap,
+                ) = regenerate_world_state(
+                    seed=arcade_seed,
+                    shape="snake",
+                    rooms=arcade_rooms,
+                    hub_id=None,
+                    hub_manager=hub_manager,
+                    portal_manager=portal_manager,
+                    collision_system=collision_system,
+                    camera=camera,
+                    player=player,
+                    enemy_manager=enemy_manager,
+                    pickup_manager=pickup_manager,
+                    hazard_manager=hazard_manager,
+                    level_manager=level_manager,
+                    npc_manager=npc_manager,
+                    bus=bus,
+                    GAME_WIDTH=GAME_WIDTH,
+                    GAME_HEIGHT=GAME_HEIGHT,
+                )
+                refresh_platform_state()
+                current_seed = arcade_seed
+                current_world_context = "arcade"
+                update_replay_metadata_wrapper()
+                print(
+                    f"[ARCADE] Generated new level (depth {arcade_depth}, rooms {arcade_rooms}, seed {current_seed})"
+                )
+            else:
+                # Hub victory (should not normally trigger) just respawns player
+                player.damage.respawn(player.state, spawn_x, spawn_y)
+                player.state.health_state.current_hp = player.state.health_state.max_hp
 
         # Sword swipe (command-driven for deterministic replay)
         if game_state_manager.is_playing() and pygame.K_j in pressed_once:
@@ -1731,6 +1734,7 @@ def main():
                     # Start game
                     level_manager.start_level(time.time())
                     game_state_manager.start_game()
+                    input_pipeline.set_game_start(frame_idx)
 
                 elif selected_mode == "arcade":
                     # Start arcade mode - existing procedural generation
@@ -1782,6 +1786,7 @@ def main():
                     # Start game
                     level_manager.start_level(time.time())
                     game_state_manager.start_game()
+                    input_pipeline.set_game_start(frame_idx)
 
                 elif selected_mode == "playtest":
                     # Show mission selector
@@ -1870,6 +1875,7 @@ def main():
                         # Start game
                         level_manager.start_level(time.time())
                         game_state_manager.start_game()
+                        input_pipeline.set_game_start(frame_idx)
 
         # Only process game input and updates when playing
         if game_state_manager.is_playing():
