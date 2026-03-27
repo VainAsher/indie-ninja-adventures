@@ -1275,6 +1275,14 @@ def main():
         csv_path=str(user_data_dir / ".." / "docs" / "perf_baseline.csv"),
     )
 
+    # Pre-allocate misc overlay surfaces (avoid per-frame SRCALPHA/copy allocations)
+    _player_flash_surf = pygame.Surface((256, 256))   # Player i-frame white flash
+    _player_flash_surf.fill((255, 255, 255))
+    _platform_overlay_surf = pygame.Surface((64, 64))  # Falling platform warning
+    _platform_overlay_surf.fill((255, 200, 120))
+    _heart_warn_surf = pygame.Surface((32, 32))        # Low-health heart pulse
+    _heart_warn_surf.fill((255, 0, 0))
+
     # Pre-allocate attack telegraph overlay surfaces.
     # Re-using these instead of creating a new SRCALPHA surface per attacking enemy
     # per frame is the single biggest rendering performance win.
@@ -2641,11 +2649,9 @@ def main():
 
                 if platform_data["type"] == "falling" and platform_data.get("state") == "triggered":
                     pulse = abs(math.sin(pygame.time.get_ticks() / 120.0))
-                    overlay = pygame.Surface(
-                        (screen_rect.width, screen_rect.height), pygame.SRCALPHA
-                    )
-                    overlay.fill((255, 200, 120, int(60 + 80 * pulse)))
-                    game_surface.blit(overlay, screen_rect.topleft)
+                    _platform_overlay_surf.set_alpha(int(60 + 80 * pulse))
+                    game_surface.blit(_platform_overlay_surf, screen_rect.topleft,
+                                      (0, 0, screen_rect.width, screen_rect.height))
 
         else:
             # Fallback to simple tiling (for static levels without tilemap)
@@ -2895,10 +2901,14 @@ def main():
             # Flash white during i-frames (on/off every 6 frames = 0.1s at 60fps)
             flash_cycle = (player.state.health_state.invincibility_frames // 6) % 2
             if flash_cycle == 0:
-                # Create white flash overlay
-                flash_surface = frame.surface.copy()
-                flash_surface.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_ADD)
-                game_surface.blit(flash_surface, sprite_rect)
+                # White flash: blit sprite then overlay pre-allocated white surface
+                game_surface.blit(frame.surface, sprite_rect)
+                _player_flash_surf.set_alpha(160)
+                game_surface.blit(
+                    _player_flash_surf,
+                    sprite_rect.topleft,
+                    (0, 0, sprite_rect.width, sprite_rect.height),
+                )
             else:
                 game_surface.blit(frame.surface, sprite_rect)
         else:
@@ -3123,9 +3133,9 @@ def main():
             ):
                 pulse = abs(math.sin(pygame.time.get_ticks() / 200.0))
                 warning_alpha = int(100 * pulse)
-                warning_surface = pygame.Surface((heart_size, heart_size), pygame.SRCALPHA)
-                warning_surface.fill((255, 0, 0, warning_alpha))
-                game_surface.blit(warning_surface, (heart_x, health_y))
+                _heart_warn_surf.set_alpha(warning_alpha)
+                game_surface.blit(_heart_warn_surf, (heart_x, health_y),
+                                  (0, 0, heart_size, heart_size))
 
         # Objective HUD (v0.6.0) - Only for campaign/playtest modes
         if (
