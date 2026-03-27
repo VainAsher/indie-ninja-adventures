@@ -76,6 +76,19 @@ class CollisionSystem:
         if self.logger:
             self.logger.info(f"Loaded {len(tiles)} tile colliders, {len(self.platforms)} platforms")
 
+    def update_platforms(self, platforms: list[pygame.Rect]):
+        """
+        Update platform colliders without rebuilding solid tile lookup.
+
+        Args:
+            platforms: List of pygame.Rect for platform tiles (one-way collision from top)
+        """
+        self.platforms = platforms
+        self.platform_lookup.clear()
+        for p in self.platforms:
+            key = (p.x // self.chunk_size, p.y // self.chunk_size)
+            self.platform_lookup.setdefault(key, []).append(p)
+
     def on_tick(self, event: TickEvent):
         """
         Process collisions every physics tick
@@ -244,7 +257,7 @@ class CollisionSystem:
         Check if there is a solid/platform surface directly below within a small tolerance.
         """
         entity_rect = pygame.Rect(int(physics.x), int(physics.y), physics.width, physics.height)
-        for tile in self.tiles:
+        for tile in self._get_candidate_tiles(entity_rect, self.tiles):
             if entity_rect.right > tile.left and entity_rect.left < tile.right:
                 gap = tile.top - entity_rect.bottom
                 if 0 <= gap <= tolerance:
@@ -263,7 +276,7 @@ class CollisionSystem:
         entity_rect = pygame.Rect(int(physics.x), int(physics.y), physics.width, physics.height)
         required_overlap_x = max(6, int(physics.width * 0.5))
 
-        for tile in self.tiles:
+        for tile in self._get_candidate_tiles(entity_rect, self.tiles):
             if entity_rect.right > tile.left and entity_rect.left < tile.right:
                 horizontal_overlap = min(entity_rect.right, tile.right) - max(
                     entity_rect.left, tile.left
@@ -278,7 +291,7 @@ class CollisionSystem:
                     physics.on_ground = True
                     return
 
-        for platform in self.platforms:
+        for platform in self._get_candidate_tiles(entity_rect, self.platforms, platforms=True):
             if entity_rect.right > platform.left and entity_rect.left < platform.right:
                 horizontal_overlap = min(entity_rect.right, platform.right) - max(
                     entity_rect.left, platform.left
