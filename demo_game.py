@@ -742,6 +742,7 @@ def main():
     static_platforms: list[pygame.Rect] = []
     dynamic_platforms: list[dict] = []
     platform_colliders: list[pygame.Rect] = []
+    liquid_tiles: list[tuple] = []  # [(world_x, world_y, "lava"|"water"), ...]  — built at level load
 
     MOVING_PLATFORM_MAX_SCAN = 8
     MOVING_PLATFORM_SPEED_RANGE = (30.0, 70.0)  # pixels per second
@@ -784,10 +785,11 @@ def main():
         return count
 
     def refresh_platform_state():
-        nonlocal static_platforms, dynamic_platforms, platform_colliders, platforms
+        nonlocal static_platforms, dynamic_platforms, platform_colliders, platforms, liquid_tiles
         static_platforms = []
         dynamic_platforms = []
         platform_colliders = []
+        liquid_tiles = []
 
         if not megamap or not getattr(megamap, "tilemap", None):
             static_platforms = platforms
@@ -818,6 +820,11 @@ def main():
                 tile_id = row[tx]
                 world_x = tx * 32
                 world_y = ty * 32
+                # Cache liquid tiles so the render loop doesn't re-scan the grid every frame
+                if tile_id == TILE_LAVA:
+                    liquid_tiles.append((world_x, world_y, "lava"))
+                elif tile_id == TILE_WATER:
+                    liquid_tiles.append((world_x, world_y, "water"))
                 if tile_id == TILE_PLATFORM:
                     static_platforms.append(pygame.Rect(world_x, world_y, 32, 32))
                 elif tile_id == TILE_PLATFORM_FALLING:
@@ -2582,17 +2589,17 @@ def main():
                 )
                 game_surface.blit(tile_surface, screen_rect)
 
-            # Draw liquid tiles (lava/water) from tilemap
-            for ty in range(min_tile_y, max_tile_y):
-                for tx in range(min_tile_x, max_tile_x):
-                    tile_id = megamap.tilemap[ty][tx]
-                    if tile_id not in (TILE_LAVA, TILE_WATER):
-                        continue
-                    world_rect = pygame.Rect(tx * 32, ty * 32, 32, 32)
-                    screen_rect = camera.apply(world_rect)
-                    tile_type = "lava" if tile_id == TILE_LAVA else "water"
-                    tile_surface = tile_loader.get_tile(current_biome, tile_type, 0)
-                    game_surface.blit(tile_surface, screen_rect)
+            # Draw liquid tiles (lava/water) — pre-built at level load, culled here
+            _liq_rect = pygame.Rect(0, 0, 32, 32)
+            for lx, ly, tile_type in liquid_tiles:
+                tx, ty = lx // 32, ly // 32
+                if not (min_tile_x <= tx < max_tile_x and min_tile_y <= ty < max_tile_y):
+                    continue
+                _liq_rect.x = lx
+                _liq_rect.y = ly
+                screen_rect = camera.apply(_liq_rect)
+                tile_surface = tile_loader.get_tile(current_biome, tile_type, 0)
+                game_surface.blit(tile_surface, screen_rect)
 
             # Draw static platforms with culling
             for platform in static_platforms:
