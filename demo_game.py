@@ -40,6 +40,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config.physics_constants import (
     TILE_SIZE as CONFIG_TILE_SIZE,
 )
+from config.settings import GameSettings as RuntimeSettings
+from core.event_bus import TickEvent
+from utils.resource_path import get_resource_path
 
 # Phase 4-7: New system imports
 from entities.npc import (
@@ -54,6 +57,7 @@ from game import GameState
 # Phase 3: Story System (v0.7.0 - The Hollowed Ninja)
 from game.ending_manager import EndingChoice, EndingState
 from game.game_helpers import (
+    get_arcade_seed,
     persist_player_inventory,
     persist_story_state,
     update_replay_metadata,
@@ -72,6 +76,7 @@ from game.game_initialization import (
     initialize_pygame,
 )
 from game.hub_manager import HubManager
+from game.inventory_system import ItemType
 from game.level_factory import (
     build_objective_location_targets,
 )
@@ -92,12 +97,15 @@ from rendering import (
     render_hazards,
     render_pickups,
 )
+from rendering.enemy_renderer import draw_enemy, draw_npc as draw_npc_char
+from utils.frame_profiler import FrameProfiler
 from systems import (
     CameraMode,
     SaveManager,
 )
 from systems.seed_hierarchy import SeedDerivation
 from ui import (
+    LandingMenu,
     MainMenu,
     MenuAction,
     PauseMenu,
@@ -230,6 +238,7 @@ def main():
     """Main game loop"""
     # Ensure user_data directories exist
     user_data_dir = ensure_user_data_dirs()
+    runtime_settings = RuntimeSettings(user_data_dir=user_data_dir)
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Vain Asher Gaming's: Indie Ninja Adventures Demo")
@@ -279,6 +288,11 @@ def main():
         "--headless", action="store_true", help="Run without opening a window (SDL dummy driver)"
     )
     parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="Enable frame profiler (writes docs/perf_baseline.csv on exit)",
+    )
+    parser.add_argument(
         "--record", type=str, help="Record input to replay JSON file (saves to user_data/replays/)"
     )
     parser.add_argument(
@@ -305,6 +319,7 @@ def main():
     num_rooms = 8
     headless = args.headless
     show_replay = args.show_replay
+    enable_profile = getattr(args, "profile", False)
 
     # Always drive startup via menu → hub generation; skip static demo path
     # (menu_driven_startup flag removed - no longer needed)
@@ -318,9 +333,8 @@ def main():
     objective_hud_renderer = None  # Only used in campaign/playtest modes
     objective_tracker = None  # Only used in campaign/playtest modes
 
-    # Force campaign hub start as default
+    # Default play mode (menu selection can override)
     current_play_mode = PlayMode.CAMPAIGN
-    print("[INFO] Starting CAMPAIGN mode (default hub flow)")
     mission_definition = None
 
     # Handle record/replay paths - use user_data/replays directory
@@ -449,8 +463,22 @@ def main():
     npc_prompt_renderer = rendering_systems["npc_prompt_renderer"]
     npc_indicator_renderer = rendering_systems["npc_indicator_renderer"]
 
+    # Load shuriken sprite (projectile visual)
+    shuriken_base = None
+    shuriken_path = get_resource_path("assets", "sprites", "projectiles", "shuriken.png")
+    if shuriken_path.exists():
+        shuriken_base = pygame.image.load(str(shuriken_path)).convert_alpha()
+    else:
+        print(f"[WARN] Missing shuriken sprite: {shuriken_path}")
+
+    # Landing background (used for launch/menu screens)
+    landing_bg = None
+    landing_bg_path = get_resource_path("assets", "splash", "landing.png")
+    if landing_bg_path.exists():
+        landing_bg = pygame.image.load(str(landing_bg_path)).convert()
+
     # Initialize core systems
-    core_systems = create_core_systems()
+    core_systems = create_core_systems(user_data_dir=user_data_dir)
     bus = core_systems["bus"]
     logger = core_systems["logger"]
     game_clock = core_systems["game_clock"]
@@ -481,7 +509,9 @@ def main():
         )
 
     # Initialize all game managers using extracted function
-    game_managers = create_game_managers(bus, logger, current_seed, base_hub_seed)
+    game_managers = create_game_managers(
+        bus, logger, current_seed, base_hub_seed, user_data_dir=user_data_dir
+    )
     save_manager = game_managers["save_manager"]
     pickup_manager = game_managers["pickup_manager"]
     hazard_manager = game_managers["hazard_manager"]
@@ -708,6 +738,148 @@ def main():
                     print(f"[SHOP] Could not sell {item_id}")
             return
 
+    # Dynamic platform state (moving/falling platforms)
+    static_platforms: list[pygame.Rect] = []
+    dynamic_platforms: list[dict] = []
+    platform_colliders: list[pygame.Rect] = []
+
+    MOVING_PLATFORM_MAX_SCAN = 8
+    MOVING_PLATFORM_SPEED_RANGE = (30.0, 70.0)  # pixels per second
+    FALLING_PLATFORM_TRIGGER_DELAY = 0.35
+    FALLING_PLATFORM_RESPAWN_DELAY = 2.5
+    FALLING_PLATFORM_DROP_DISTANCE = 32 * 12
+    FALLING_PLATFORM_GRAVITY = 1800.0
+    FALLING_PLATFORM_MAX_SPEED = 800.0
+    PLATFORM_CARRY_TOLERANCE = 2
+
+    LAVA_DAMAGE_INTERVAL = 1.0
+    POISON_DAMAGE_INTERVAL = 1.6
+    WATER_SPEED_MULT = 0.65
+    WATER_ACCEL_MULT = 0.7
+    WATER_DRAG_X = 0.85
+    WATER_DRAG_Y = 0.9
+    WATER_MAX_FALL_SPEED = 6.0
+
+    lava_damage_timer = 0.0
+    poison_damage_timer = 0.0
+
+    def _entity_on_platform(physics, platform_rect, tolerance: int = PLATFORM_CARRY_TOLERANCE) -> bool:
+        if not physics or not physics.on_ground:
+            return False
+        rect = pygame.Rect(int(physics.x), int(physics.y), physics.width, physics.height)
+        if rect.right <= platform_rect.left or rect.left >= platform_rect.right:
+            return False
+        gap = platform_rect.top - rect.bottom
+        return -1 <= gap <= tolerance
+
+    def _scan_free_tiles(tilemap, tx: int, ty: int, step: int, max_scan: int, free_tiles: set):
+        width = len(tilemap[0]) if tilemap else 0
+        count = 0
+        x = tx + step
+        while 0 <= x < width and count < max_scan:
+            if tilemap[ty][x] not in free_tiles:
+                break
+            count += 1
+            x += step
+        return count
+
+    def refresh_platform_state():
+        nonlocal static_platforms, dynamic_platforms, platform_colliders, platforms
+        static_platforms = []
+        dynamic_platforms = []
+        platform_colliders = []
+
+        if not megamap or not getattr(megamap, "tilemap", None):
+            static_platforms = platforms
+            dynamic_platforms = []
+            platform_colliders = platforms
+            if collision_system:
+                collision_system.update_platforms(platform_colliders)
+            return
+
+        from systems.room_generation import (
+            TILE_EMPTY,
+            TILE_LAVA,
+            TILE_PLATFORM,
+            TILE_PLATFORM_FALLING,
+            TILE_PLATFORM_MOVING,
+            TILE_WATER,
+        )
+
+        tilemap = megamap.tilemap
+        height = len(tilemap)
+        width = len(tilemap[0]) if height > 0 else 0
+        free_tiles = {TILE_EMPTY, TILE_LAVA, TILE_WATER}
+        seed_base = current_seed if current_seed is not None else 0
+
+        for ty in range(height):
+            row = tilemap[ty]
+            for tx in range(width):
+                tile_id = row[tx]
+                world_x = tx * 32
+                world_y = ty * 32
+                if tile_id == TILE_PLATFORM:
+                    static_platforms.append(pygame.Rect(world_x, world_y, 32, 32))
+                elif tile_id == TILE_PLATFORM_FALLING:
+                    rect = pygame.Rect(world_x, world_y, 32, 32)
+                    dynamic_platforms.append(
+                        {
+                            "type": "falling",
+                            "rect": rect,
+                            "origin_x": world_x,
+                            "origin_y": world_y,
+                            "pos_x": float(world_x),
+                            "pos_y": float(world_y),
+                            "state": "idle",
+                            "timer": 0.0,
+                            "vy": 0.0,
+                            "active": True,
+                            "visible": True,
+                        }
+                    )
+                elif tile_id == TILE_PLATFORM_MOVING:
+                    rect = pygame.Rect(world_x, world_y, 32, 32)
+                    platform_seed = seed_base ^ (tx * 73856093) ^ (ty * 19349663)
+                    rng = random.Random(platform_seed)
+                    left_free = _scan_free_tiles(
+                        tilemap, tx, ty, -1, MOVING_PLATFORM_MAX_SCAN, free_tiles
+                    )
+                    right_free = _scan_free_tiles(
+                        tilemap, tx, ty, 1, MOVING_PLATFORM_MAX_SCAN, free_tiles
+                    )
+                    span_left = (
+                        min(left_free, rng.randint(1, min(3, left_free))) if left_free > 0 else 0
+                    )
+                    span_right = (
+                        min(right_free, rng.randint(1, min(3, right_free)))
+                        if right_free > 0
+                        else 0
+                    )
+                    min_x = world_x - span_left * 32
+                    max_x = world_x + span_right * 32
+                    speed = rng.uniform(*MOVING_PLATFORM_SPEED_RANGE) if min_x != max_x else 0.0
+                    dynamic_platforms.append(
+                        {
+                            "type": "moving",
+                            "rect": rect,
+                            "origin_x": world_x,
+                            "origin_y": world_y,
+                            "pos_x": float(world_x),
+                            "pos_y": float(world_y),
+                            "min_x": min_x,
+                            "max_x": max_x,
+                            "speed": speed,
+                            "dir": rng.choice([-1, 1]),
+                            "active": True,
+                            "visible": True,
+                        }
+                    )
+
+        platforms = static_platforms + [p["rect"] for p in dynamic_platforms]
+        platform_colliders = static_platforms + [p["rect"] for p in dynamic_platforms if p["active"]]
+        if collision_system:
+            collision_system.update_platforms(platform_colliders)
+
     # Portal travel handler
     def on_portal_travel(event: PortalTravelEvent):
         """Handle portal travel between hubs"""
@@ -751,6 +923,7 @@ def main():
                 GAME_WIDTH=GAME_WIDTH,
                 GAME_HEIGHT=GAME_HEIGHT,
             )
+            refresh_platform_state()
             game_state_manager.transition_to(GameState.PLAYING)
             update_replay_metadata_wrapper()
             print("[ARCADE] Entered arcade loop from hub")
@@ -797,6 +970,7 @@ def main():
             GAME_WIDTH=GAME_WIDTH,
             GAME_HEIGHT=GAME_HEIGHT,
         )
+        refresh_platform_state()
         current_world_context = "hub"
 
         if campaign_data:
@@ -818,12 +992,136 @@ def main():
     collision_system = physics_collision["collision_system"]
     enemy_manager = physics_collision["enemy_manager"]
 
+    def _carry_entities(entities, old_rect: pygame.Rect, dx: float, dy: float = 0.0):
+        if dx == 0 and dy == 0:
+            return
+        for entity in entities:
+            if not entity.physics or not entity.active:
+                continue
+            if _entity_on_platform(entity.physics, old_rect):
+                entity.physics.x += dx
+                entity.physics.y += dy
+
+    def _update_moving_platform(platform: dict, dt: float, entities):
+        rect = platform["rect"]
+        if platform["speed"] <= 0 or platform["min_x"] == platform["max_x"]:
+            return
+        old_rect = rect.copy()
+        step = platform["speed"] * dt * platform["dir"]
+        platform["pos_x"] += step
+        if platform["pos_x"] < platform["min_x"]:
+            platform["pos_x"] = platform["min_x"]
+            platform["dir"] = 1
+        elif platform["pos_x"] > platform["max_x"]:
+            platform["pos_x"] = platform["max_x"]
+            platform["dir"] = -1
+        rect.x = int(round(platform["pos_x"]))
+        dx = rect.x - old_rect.x
+        if dx != 0:
+            _carry_entities(entities, old_rect, dx, 0.0)
+
+    def _update_falling_platform(platform: dict, dt: float, entities):
+        rect = platform["rect"]
+        supported = any(
+            _entity_on_platform(entity.physics, rect)
+            for entity in entities
+            if entity.physics and entity.active
+        )
+
+        state = platform["state"]
+        if state == "idle":
+            platform["active"] = True
+            platform["visible"] = True
+            if supported:
+                platform["state"] = "triggered"
+                platform["timer"] = 0.0
+        elif state == "triggered":
+            platform["active"] = True
+            platform["visible"] = True
+            if not supported:
+                platform["state"] = "idle"
+                platform["timer"] = 0.0
+            else:
+                platform["timer"] += dt
+                if platform["timer"] >= FALLING_PLATFORM_TRIGGER_DELAY:
+                    platform["state"] = "falling"
+                    platform["timer"] = 0.0
+                    platform["vy"] = 0.0
+                    platform["active"] = False
+        elif state == "falling":
+            platform["active"] = False
+            platform["visible"] = True
+            platform["vy"] = min(
+                platform["vy"] + FALLING_PLATFORM_GRAVITY * dt, FALLING_PLATFORM_MAX_SPEED
+            )
+            platform["pos_y"] += platform["vy"] * dt
+            rect.y = int(round(platform["pos_y"]))
+            if platform["pos_y"] - platform["origin_y"] >= FALLING_PLATFORM_DROP_DISTANCE:
+                platform["state"] = "respawn"
+                platform["timer"] = 0.0
+                platform["visible"] = False
+                platform["pos_y"] = float(platform["origin_y"])
+                rect.y = int(round(platform["pos_y"]))
+        elif state == "respawn":
+            platform["active"] = False
+            platform["visible"] = False
+            platform["timer"] += dt
+            if platform["timer"] >= FALLING_PLATFORM_RESPAWN_DELAY:
+                platform["state"] = "idle"
+                platform["timer"] = 0.0
+                platform["vy"] = 0.0
+                platform["active"] = True
+                platform["visible"] = True
+
+    def on_platform_tick(event: TickEvent):
+        nonlocal platform_colliders
+        if not dynamic_platforms or not game_state_manager.is_playing():
+            return
+
+        entities = [
+            entity
+            for entity in entity_manager.entities.values()
+            if entity.physics and entity.active
+        ]
+
+        for platform in dynamic_platforms:
+            if platform["type"] == "moving":
+                _update_moving_platform(platform, event.dt, entities)
+            else:
+                _update_falling_platform(platform, event.dt, entities)
+
+        platform_colliders = static_platforms + [
+            p["rect"] for p in dynamic_platforms if p["active"]
+        ]
+        collision_system.update_platforms(platform_colliders)
+
+    bus.subscribe(TickEvent, on_platform_tick, priority=65)
+
     # Initialize objective tracker for campaign/playtest modes (v0.6.0)
     if mission_definition:  # Only if in campaign or playtest mode
         objective_tracker.start_mission_objectives(args.mission)
 
     # Initialize camera system
     camera = create_camera_system(window_width, window_height)
+
+    # Apply runtime settings (live changes from Settings menu)
+    show_fps_overlay = False
+
+    def apply_runtime_settings():
+        nonlocal show_fps_overlay
+        camera.config.enable_shake = bool(runtime_settings.get("screenshake", True))
+        smoothing = float(runtime_settings.get("camera_smoothing", 0.1))
+        smoothing = max(0.02, min(0.2, smoothing))
+        camera.config.follow_speed = smoothing
+        particles.enabled = bool(runtime_settings.get("particles", True))
+        show_fps_overlay = bool(runtime_settings.get("show_fps", False))
+        if not camera.config.enable_shake:
+            camera.shake_intensity = 0.0
+            camera.shake_duration = 0.0
+            camera.shake_offset_x = 0.0
+            camera.shake_offset_y = 0.0
+
+    apply_runtime_settings()
 
     # Create level containers
     world = None
@@ -890,6 +1188,7 @@ def main():
             GAME_HEIGHT=GAME_HEIGHT,
         )
     )
+    refresh_platform_state()
     current_world_context = "hub"
 
     # Create victory screen
@@ -944,6 +1243,7 @@ def main():
             GAME_WIDTH=GAME_WIDTH,
             GAME_HEIGHT=GAME_HEIGHT,
         )
+        refresh_platform_state()
         current_world_context = "hub"
         level_complete = False
         current_hub_id = target_hub
@@ -961,6 +1261,26 @@ def main():
         print(f"[OK] Exit positioned at ({exit_x:.0f}, {exit_y:.0f})")
     print(f"[OK] Level created ({len(tiles)} tiles)")
     print("\nStarting game loop...\n")
+
+    # Frame profiler (enabled via --profile flag, zero-overhead when disabled)
+    profiler = FrameProfiler(
+        enabled=enable_profile,
+        csv_path=str(user_data_dir / ".." / "docs" / "perf_baseline.csv"),
+    )
+
+    # Pre-allocate attack telegraph overlay surfaces.
+    # Re-using these instead of creating a new SRCALPHA surface per attacking enemy
+    # per frame is the single biggest rendering performance win.
+    _ATK_OVERLAY_MAX = 256
+    _atk_glow_surf = pygame.Surface((_ATK_OVERLAY_MAX, _ATK_OVERLAY_MAX))
+    _atk_glow_surf.fill((255, 50, 50))
+    _atk_flash_surf = pygame.Surface((_ATK_OVERLAY_MAX, _ATK_OVERLAY_MAX))
+    _atk_flash_surf.fill((255, 255, 255))
+    _atk_recovery_surf = pygame.Surface((_ATK_OVERLAY_MAX, _ATK_OVERLAY_MAX))
+    _atk_recovery_surf.fill((0, 0, 0))
+
+    # Cache enemy state enums outside render loop (avoid repeated sys.modules lookups)
+    from entities.enemy import EnemyAIState, EnemyAttackSubState, EnemyType
 
     running = True
     last_on_ground = player.state.physics.on_ground
@@ -980,7 +1300,7 @@ def main():
     )
 
     def get_arcade_seed_wrapper(depth: int) -> int:
-        return get_arcade_seed_wrapper(hub_manager, depth)
+        return get_arcade_seed(hub_manager, depth)
 
     def update_replay_metadata_wrapper(mission_id: str | None = None):
         update_replay_metadata(
@@ -995,14 +1315,20 @@ def main():
 
     update_replay_metadata_wrapper()
 
-    # Start level timer
-
-    level_manager.start_level(time.time())
-
-    # If started with procedural/replay args, skip menu and start game directly
-    if use_procedural or replay_path:
+    # If started with replay/headless or explicit CLI mode/mission, skip menu
+    skip_menu = (
+        replay_path is not None
+        or headless
+        or "--mode" in sys.argv
+        or "--mission" in sys.argv
+    )
+    if skip_menu:
+        level_manager.start_level(time.time())
         game_state_manager.start_game()
         menu_manager.clear_menus()
+    else:
+        if not menu_manager.has_menu():
+            menu_manager.push_menu(LandingMenu(GAME_WIDTH, GAME_HEIGHT))
 
     # Set dev console context with game objects (DEV build)
     if dev_console:
@@ -1022,6 +1348,7 @@ def main():
         print("[DEV BUILD] Console context initialized")
 
     while running:
+        profiler.begin_frame()
         # Check for hot reload changes (DEV build)
         if hot_reload:
             hot_reload.check(time.time())
@@ -1106,6 +1433,7 @@ def main():
                             GAME_WIDTH=GAME_WIDTH,
                             GAME_HEIGHT=GAME_HEIGHT,
                         )
+                        refresh_platform_state()
                         current_seed = arcade_seed
                         current_world_context = "arcade"
                         update_replay_metadata_wrapper()
@@ -1231,6 +1559,51 @@ def main():
             if used:
                 persist_player_inventory_wrapper()
 
+        # Inventory navigation/use (command-driven)
+        if inventory_ui.is_open():
+            activated_slot = inventory_ui.handle_command(pressed_once)
+            if activated_slot is not None:
+                slot = player_inventory.slots[activated_slot]
+                if slot:
+                    item_def = item_manager.get_item(slot.item_id) if item_manager else None
+                    if item_def:
+                        if item_def.item_type == ItemType.WEAPON:
+                            if player_inventory.equipped_weapon == slot.item_id:
+                                if player_inventory.unequip_item(slot.item_id):
+                                    print(f"[INVENTORY] Unequipped weapon: {slot.item_id}")
+                                    persist_player_inventory_wrapper()
+                            else:
+                                if player_inventory.equip_item(slot.item_id):
+                                    print(f"[INVENTORY] Equipped weapon: {slot.item_id}")
+                                    persist_player_inventory_wrapper()
+                        elif item_def.item_type == ItemType.ARMOR:
+                            if player_inventory.equipped_armor == slot.item_id:
+                                if player_inventory.unequip_item(slot.item_id):
+                                    print(f"[INVENTORY] Unequipped armor: {slot.item_id}")
+                                    apply_shuriken_capacity_bonus(
+                                        player, player_inventory, item_manager
+                                    )
+                                    persist_player_inventory_wrapper()
+                            else:
+                                if player_inventory.equip_item(slot.item_id):
+                                    print(f"[INVENTORY] Equipped armor: {slot.item_id}")
+                                    apply_shuriken_capacity_bonus(
+                                        player, player_inventory, item_manager
+                                    )
+                                    persist_player_inventory_wrapper()
+                        elif item_def.consumable and item_def.health_restore > 0:
+                            healed = player.state.health_state.heal(item_def.health_restore)
+                            if healed > 0:
+                                slot.quantity -= 1
+                                if slot.quantity <= 0:
+                                    player_inventory.slots[activated_slot] = None
+                                print(f"[INVENTORY] Used {slot.item_id}")
+                                persist_player_inventory_wrapper()
+                        else:
+                            print(f"[INVENTORY] Item not usable: {slot.item_id}")
+                    else:
+                        print(f"[INVENTORY] Unknown item: {slot.item_id}")
+
         # Handle menu input if menu is active
         selected_mode = None
         if menu_manager.has_menu():
@@ -1242,16 +1615,24 @@ def main():
                 mode_menu = GameModeSelectionMenu(GAME_WIDTH, GAME_HEIGHT)
                 menu_manager.push_menu(mode_menu)
                 print("[MENU] Showing game mode selection...")
+            elif menu_action == MenuAction.CONTINUE:
+                # Landing page continue -> show main menu
+                game_state_manager.transition_to(GameState.MENU)
+                menu_manager.clear_menus()
+                menu_manager.push_menu(MainMenu(GAME_WIDTH, GAME_HEIGHT))
             elif menu_action == MenuAction.RESUME_GAME:
                 # Resume from pause
                 game_state_manager.resume()
                 menu_manager.pop_menu()
             elif menu_action == MenuAction.OPEN_SETTINGS:
                 # Open settings menu
-                menu_manager.push_menu(SettingsMenu(GAME_WIDTH, GAME_HEIGHT))
+                menu_manager.push_menu(
+                    SettingsMenu(GAME_WIDTH, GAME_HEIGHT, runtime_settings, apply_runtime_settings)
+                )
             elif menu_action == MenuAction.BACK:
                 # Go back (close settings)
-                menu_manager.pop_menu()
+                if not game_state_manager.is_landing():
+                    menu_manager.pop_menu()
             elif menu_action == MenuAction.QUIT_TO_MENU:
                 # Return to main menu
                 game_state_manager.quit_to_menu()
@@ -1328,10 +1709,12 @@ def main():
                         GAME_WIDTH=GAME_WIDTH,
                         GAME_HEIGHT=GAME_HEIGHT,
                     )
+                    refresh_platform_state()
                     current_world_context = "hub"
                     update_replay_metadata_wrapper()
 
                     # Start game
+                    level_manager.start_level(time.time())
                     game_state_manager.start_game()
 
                 elif selected_mode == "arcade":
@@ -1377,10 +1760,12 @@ def main():
                         GAME_WIDTH=GAME_WIDTH,
                         GAME_HEIGHT=GAME_HEIGHT,
                     )
+                    refresh_platform_state()
                     current_world_context = "arcade"
                     update_replay_metadata_wrapper()
 
                     # Start game
+                    level_manager.start_level(time.time())
                     game_state_manager.start_game()
 
                 elif selected_mode == "playtest":
@@ -1454,8 +1839,9 @@ def main():
                             GAME_HEIGHT=GAME_HEIGHT,
                             mission_def=mission_def,
                         )
+                        refresh_platform_state()
                         current_world_context = "mission"
-                        update_replay_metadata(mission_def.mission_id)
+                        update_replay_metadata_wrapper(mission_def.mission_id)
 
                         if objective_tracker:
                             targets = build_objective_location_targets(
@@ -1467,12 +1853,13 @@ def main():
                             objective_tracker.set_location_targets(targets, fallback_id=fallback_id)
 
                         # Start game
+                        level_manager.start_level(time.time())
                         game_state_manager.start_game()
 
         # Only process game input and updates when playing
         if game_state_manager.is_playing():
             # Free camera controls (arrow keys in free mode)
-            if camera.mode == CameraMode.FREE:
+            if camera.mode == CameraMode.FREE and not inventory_ui.is_open():
                 if keys[pygame.K_UP]:
                     camera.move_free_camera(0, -1)
                 if keys[pygame.K_DOWN]:
@@ -1482,7 +1869,8 @@ def main():
                 if keys[pygame.K_RIGHT]:
                     camera.move_free_camera(1, 0)
 
-            player.process_input(keys)
+            if not inventory_ui.is_open():
+                player.process_input(keys)
 
             # Tutorial triggers (based on player actions)
             if game_state_manager.is_playing():
@@ -1509,8 +1897,132 @@ def main():
                     tutorial_manager.trigger_tutorial("crouch")
 
             # Update game (fixed timestep)
+            profiler.begin("update")
             game_clock.tick()
             bus.process()
+            profiler.end("update")
+
+            # Reset environment modifiers each frame (overridden by water)
+            player.state.environment_speed_mult = 1.0
+            player.state.environment_accel_mult = 1.0
+
+            # Environment interactions (lava, water, poison)
+            if megamap and getattr(megamap, "tilemap", None):
+                from systems.room_generation import TILE_LAVA, TILE_WATER
+
+                dt = 1.0 / FPS
+                player_rect = pygame.Rect(
+                    int(player.state.physics.x),
+                    int(player.state.physics.y),
+                    player.state.physics.width,
+                    player.state.physics.height,
+                )
+                min_tx = max(0, player_rect.left // 32)
+                max_tx = min(megamap.width_tiles - 1, (player_rect.right - 1) // 32)
+                min_ty = max(0, player_rect.top // 32)
+                max_ty = min(megamap.height_tiles - 1, (player_rect.bottom - 1) // 32)
+
+                in_lava = False
+                in_water = False
+                if max_tx >= min_tx and max_ty >= min_ty:
+                    for ty in range(min_ty, max_ty + 1):
+                        row = megamap.tilemap[ty]
+                        for tx in range(min_tx, max_tx + 1):
+                            tile_id = row[tx]
+                            if tile_id == TILE_LAVA:
+                                in_lava = True
+                            elif tile_id == TILE_WATER:
+                                in_water = True
+                            if in_lava and in_water:
+                                break
+                        if in_lava and in_water:
+                            break
+
+                # Water slowdown + drag
+                if in_water:
+                    player.state.environment_speed_mult = WATER_SPEED_MULT
+                    player.state.environment_accel_mult = WATER_ACCEL_MULT
+                    player.state.physics.vx *= WATER_DRAG_X
+                    if player.state.physics.vy > 0:
+                        player.state.physics.vy *= WATER_DRAG_Y
+                        player.state.physics.vy = min(
+                            player.state.physics.vy, WATER_MAX_FALL_SPEED
+                        )
+                    else:
+                        player.state.physics.vy *= 0.95
+                else:
+                    player.state.environment_speed_mult = 1.0
+                    player.state.environment_accel_mult = 1.0
+
+                # Lava damage over time
+                if in_lava:
+                    lava_damage_timer += dt
+                    if lava_damage_timer >= LAVA_DAMAGE_INTERVAL:
+                        lava_damage_timer = 0.0
+                        died = player.damage.take_damage(
+                            player.state,
+                            1,
+                            source="lava",
+                            source_pos=(player.state.physics.x, player.state.physics.y),
+                        )
+                        if died:
+                            level_manager.increment_deaths()
+                            if current_world_context == "mission":
+                                regenerate_hub_for_respawn("mission failed (lava)")
+                            elif current_world_context == "hub" and current_hub_id != "central_hub":
+                                regenerate_hub_for_respawn(
+                                    "area hub death", target_hub_id="central_hub"
+                                )
+                            else:
+                                player.damage.respawn(player.state, spawn_x, spawn_y)
+                else:
+                    lava_damage_timer = 0.0
+
+                # Poison sapping zones (cleansed by Purify)
+                poison_hit = None
+                for hazard in hazard_manager.hazards:
+                    if not hazard.active or hazard.hazard_type != "poison":
+                        continue
+                    if hazard.check_collision(
+                        player_rect.x, player_rect.y, player_rect.width, player_rect.height
+                    ):
+                        poison_hit = hazard
+                        break
+
+                if poison_hit:
+                    poison_damage_timer += dt
+                    if poison_damage_timer >= POISON_DAMAGE_INTERVAL:
+                        poison_damage_timer = 0.0
+                        died = player.damage.take_damage(
+                            player.state,
+                            1,
+                            source="poison",
+                            source_pos=(poison_hit.x, poison_hit.y),
+                        )
+                        if died:
+                            level_manager.increment_deaths()
+                            if current_world_context == "mission":
+                                regenerate_hub_for_respawn("mission failed (poison)")
+                            elif current_world_context == "hub" and current_hub_id != "central_hub":
+                                regenerate_hub_for_respawn(
+                                    "area hub death", target_hub_id="central_hub"
+                                )
+                            else:
+                                player.damage.respawn(player.state, spawn_x, spawn_y)
+                else:
+                    poison_damage_timer = 0.0
+
+            # Kill player if they fall out of the world
+            if megamap:
+                _world_h_bound = megamap.height_tiles * 32
+                if player.state.physics.y > _world_h_bound + 200:
+                    level_manager.increment_deaths()
+                    if current_world_context == "mission":
+                        regenerate_hub_for_respawn("mission failed (void)")
+                    elif current_world_context == "hub" and current_hub_id != "central_hub":
+                        regenerate_hub_for_respawn("area hub death", target_hub_id="central_hub")
+                    else:
+                        player.damage.respawn(player.state, spawn_x, spawn_y)
 
             # Update story cutscenes (v0.7.0)
             if story_manager.is_cutscene_playing():
@@ -1597,6 +2109,7 @@ def main():
                             GAME_HEIGHT=GAME_HEIGHT,
                             mission_def=mission_def,
                         )
+                        refresh_platform_state()
                         if objective_tracker:
                             targets = build_objective_location_targets(
                                 world, megamap, spawn_x, spawn_y, exit_x, exit_y
@@ -1611,7 +2124,7 @@ def main():
                         game_state_manager.transition_to(GameState.PLAYING)
                         mission_menu_ui.hide()
                         active_mission_pool = []
-                        update_replay_metadata(mission_def.mission_id)
+                        update_replay_metadata_wrapper(mission_def.mission_id)
                         print(f"[MISSION] Started mission {mission_def.mission_id}")
                 else:
                     print("[MISSION MENU] Selected mission is locked or missing")
@@ -1673,6 +2186,8 @@ def main():
             pickup_manager.update(1.0 / FPS)
 
             # Update enemies (v0.6.0)
+            profiler.begin("enemy_manager")
+            _world_h = (megamap.height_tiles * 32) if megamap else 0
             enemy_manager.update(
                 dt=1.0 / FPS,
                 player_x=player.state.physics.x,
@@ -1686,9 +2201,11 @@ def main():
                     camera.config.game_width,
                     camera.config.game_height,
                 ),
-                cull_margin=0.0,
+                cull_margin=400.0,
                 player_state=player.state,
+                world_h=_world_h,
             )
+            profiler.end("enemy_manager")
             # Decay sword attack cooldown
             if attack_timer > 0.0:
                 attack_timer -= 1.0 / FPS
@@ -1708,6 +2225,15 @@ def main():
                 damage_taken = combat_mechanic.check_enemy_collisions(
                     player.state, enemy_manager, dt=1.0 / FPS
                 )
+                # Arrow damage (skeleton projectiles)
+                _pr = player.state.physics
+                arrow_dmg = enemy_manager.check_arrow_player_collision(
+                    _pr.x, _pr.y, _pr.width, _pr.height
+                )
+                if arrow_dmg and not player.damage.is_invincible(player.state):
+                    player.state.health_state.take_damage(arrow_dmg, defense=0)
+                    player.state.physics.vy = -120.0  # slight upward nudge
+                damage_taken += arrow_dmg
                 if damage_taken and not player.damage.is_invincible(player.state):
                     died = player.damage.take_damage(player.state, damage_taken)
                     if died:
@@ -1955,6 +2481,7 @@ def main():
                             GAME_WIDTH=GAME_WIDTH,
                             GAME_HEIGHT=GAME_HEIGHT,
                         )
+                        refresh_platform_state()
                         current_seed = arcade_seed
                         level_complete = False
                         update_replay_metadata_wrapper()
@@ -1980,6 +2507,7 @@ def main():
         frame_idx += 1
 
         # Render to virtual game surface
+        profiler.begin("render")
         game_surface = camera.get_game_surface()
         game_surface.fill(COLOR_BG)
 
@@ -2008,11 +2536,17 @@ def main():
                 current_biome = biome_map.get(biome_name, "dungeon")
 
         # Use autotiling for procedural worlds (we now have megamap)
+        profiler.begin("render_tiles")
         use_autotiling = megamap is not None
 
         if use_autotiling:
             # Import tile constants for autotiling
-            from systems.room_generation import TILE_PLATFORM, TILE_SOLID
+            from systems.room_generation import (
+                TILE_LAVA,
+                TILE_PLATFORM,
+                TILE_SOLID,
+                TILE_WATER,
+            )
 
             # OPTIMIZATION: Only render tiles within camera view + margin
             # Calculate visible tile bounds
@@ -2021,10 +2555,10 @@ def main():
 
             # Add margin for smooth scrolling (1 screen extra on each side)
             margin = 32 * 10  # 10 tiles margin
-            min_tile_x = max(0, (cam_x - margin) // 32)
-            max_tile_x = min(megamap.width_tiles, (cam_x + screen_w + margin) // 32 + 1)
-            min_tile_y = max(0, (cam_y - margin) // 32)
-            max_tile_y = min(megamap.height_tiles, (cam_y + screen_h + margin) // 32 + 1)
+            min_tile_x = int(max(0, (cam_x - margin) // 32))
+            max_tile_x = int(min(megamap.width_tiles, (cam_x + screen_w + margin) // 32 + 1))
+            min_tile_y = int(max(0, (cam_y - margin) // 32))
+            max_tile_y = int(min(megamap.height_tiles, (cam_y + screen_h + margin) // 32 + 1))
 
             # Draw solid tiles with culling
             for tile in tiles:
@@ -2048,8 +2582,20 @@ def main():
                 )
                 game_surface.blit(tile_surface, screen_rect)
 
-            # Draw platforms with culling
-            for platform in platforms:
+            # Draw liquid tiles (lava/water) from tilemap
+            for ty in range(min_tile_y, max_tile_y):
+                for tx in range(min_tile_x, max_tile_x):
+                    tile_id = megamap.tilemap[ty][tx]
+                    if tile_id not in (TILE_LAVA, TILE_WATER):
+                        continue
+                    world_rect = pygame.Rect(tx * 32, ty * 32, 32, 32)
+                    screen_rect = camera.apply(world_rect)
+                    tile_type = "lava" if tile_id == TILE_LAVA else "water"
+                    tile_surface = tile_loader.get_tile(current_biome, tile_type, 0)
+                    game_surface.blit(tile_surface, screen_rect)
+
+            # Draw static platforms with culling
+            for platform in static_platforms:
                 tx, ty = platform.x // 32, platform.y // 32
 
                 # Cull platforms outside view
@@ -2069,6 +2615,31 @@ def main():
                 )
                 game_surface.blit(tile_surface, screen_rect)
 
+            # Draw dynamic platforms (moving/falling)
+            for platform_data in dynamic_platforms:
+                if not platform_data.get("visible", True):
+                    continue
+                rect = platform_data["rect"]
+                tx, ty = rect.x // 32, rect.y // 32
+
+                if not (min_tile_x <= tx < max_tile_x and min_tile_y <= ty < max_tile_y):
+                    continue
+
+                screen_rect = camera.apply(rect)
+                tile_type = (
+                    "platform_moving" if platform_data["type"] == "moving" else "platform_falling"
+                )
+                tile_surface = tile_loader.get_tile(current_biome, tile_type, 0)
+                game_surface.blit(tile_surface, screen_rect)
+
+                if platform_data["type"] == "falling" and platform_data.get("state") == "triggered":
+                    pulse = abs(math.sin(pygame.time.get_ticks() / 120.0))
+                    overlay = pygame.Surface(
+                        (screen_rect.width, screen_rect.height), pygame.SRCALPHA
+                    )
+                    overlay.fill((255, 200, 120, int(60 + 80 * pulse)))
+                    game_surface.blit(overlay, screen_rect.topleft)
+
         else:
             # Fallback to simple tiling (for static levels without tilemap)
             for tile in tiles:
@@ -2077,11 +2648,24 @@ def main():
                 tile_surface = tile_loader.get_tile(current_biome, "solid", tile_index)
                 game_surface.blit(tile_surface, screen_rect)
 
-            for platform in platforms:
+            for platform in static_platforms:
                 screen_rect = camera.apply(platform)
                 tile_index = (platform.x // 32 + platform.y // 32) % 2
                 tile_surface = tile_loader.get_tile(current_biome, "platform", tile_index)
                 game_surface.blit(tile_surface, screen_rect)
+
+            for platform_data in dynamic_platforms:
+                if not platform_data.get("visible", True):
+                    continue
+                rect = platform_data["rect"]
+                screen_rect = camera.apply(rect)
+                tile_type = (
+                    "platform_moving" if platform_data["type"] == "moving" else "platform_falling"
+                )
+                tile_surface = tile_loader.get_tile(current_biome, tile_type, 0)
+                game_surface.blit(tile_surface, screen_rect)
+
+        profiler.end("render_tiles")
 
         # Draw particles behind player
         particles.update(1.0 / FPS)
@@ -2098,53 +2682,29 @@ def main():
             draw_portal(game_surface, portal, int(camera.x), int(camera.y))
 
         # Draw enemies (v0.6.0)
+        profiler.begin("render_enemies")
         for enemy in enemy_manager.enemies.values():
             # Get enemy bounding box from definition
             ex, ey, ew, eh = enemy.get_rect()
             enemy_rect = pygame.Rect(ex, ey, ew, eh)
             screen_enemy_rect = camera.apply(enemy_rect)
 
-            # Simple colored rectangle based on enemy type
-            if enemy.enemy_type.value == "goblin":
-                enemy_color = (100, 180, 100)  # Green
-            elif enemy.enemy_type.value == "slime":
-                enemy_color = (150, 100, 200)  # Purple
-            elif enemy.enemy_type.value == "bat":
-                enemy_color = (80, 80, 80)  # Gray
-            else:
-                enemy_color = (200, 100, 100)  # Red default
-
-            # Draw enemy with shadow
-            shadow_rect = pygame.Rect(
-                screen_enemy_rect.centerx - screen_enemy_rect.width // 2,
-                screen_enemy_rect.bottom - 4,
-                screen_enemy_rect.width,
-                4,
-            )
-            pygame.draw.ellipse(game_surface, (0, 0, 0, 80), shadow_rect)
-
-            # Draw enemy body
-            pygame.draw.rect(game_surface, enemy_color, screen_enemy_rect)
+            # Draw enemy with procedural character art
+            draw_enemy(game_surface, enemy, screen_enemy_rect, pygame.time.get_ticks())
 
             # Draw attack telegraph effects
-            from entities.enemy import EnemyAIState, EnemyAttackSubState
-
             if enemy.ai_state == EnemyAIState.ATTACK:
                 if enemy.attack_substate == EnemyAttackSubState.WINDUP:
                     # WINDUP TELEGRAPH: Red glow + pulsing exclamation mark
+                    pulse = abs(math.sin(enemy.attack_substate_timer * 10.0))
 
-                    # Calculate pulse intensity (0 to 1)
-                    definition = enemy.get_definition()
-                    _progress = (
-                        enemy.attack_substate_timer / definition.attack_windup_time
-                    )  # Unused
-                    pulse = abs(math.sin(enemy.attack_substate_timer * 10.0))  # Fast pulse
-
-                    # Red glow overlay on enemy
-                    glow_surface = pygame.Surface(screen_enemy_rect.size, pygame.SRCALPHA)
-                    glow_alpha = int(120 * pulse)  # Pulsing transparency
-                    glow_surface.fill((255, 50, 50, glow_alpha))
-                    game_surface.blit(glow_surface, screen_enemy_rect.topleft)
+                    # Red glow overlay — pre-allocated surface, set_alpha avoids SRCALPHA alloc
+                    _atk_glow_surf.set_alpha(int(120 * pulse))
+                    game_surface.blit(
+                        _atk_glow_surf,
+                        screen_enemy_rect.topleft,
+                        (0, 0, screen_enemy_rect.width, screen_enemy_rect.height),
+                    )
 
                     # Exclamation mark above enemy
                     exclaim_x = screen_enemy_rect.centerx
@@ -2174,11 +2734,13 @@ def main():
                 elif enemy.attack_substate == EnemyAttackSubState.ACTIVE:
                     # ACTIVE PHASE: Bright flash + impact particles
 
-                    # White flash overlay
-                    flash_surface = pygame.Surface(screen_enemy_rect.size, pygame.SRCALPHA)
-                    flash_alpha = 200  # Very bright
-                    flash_surface.fill((255, 255, 255, flash_alpha))
-                    game_surface.blit(flash_surface, screen_enemy_rect.topleft)
+                    # White flash overlay — pre-allocated surface
+                    _atk_flash_surf.set_alpha(200)
+                    game_surface.blit(
+                        _atk_flash_surf,
+                        screen_enemy_rect.topleft,
+                        (0, 0, screen_enemy_rect.width, screen_enemy_rect.height),
+                    )
 
                     # Draw hitbox outline in red
                     pygame.draw.rect(game_surface, (255, 0, 0), screen_enemy_rect, width=3)
@@ -2192,29 +2754,13 @@ def main():
                         particles.emit_attack_impact(screen_x, screen_y, count=12)
 
                 elif enemy.attack_substate == EnemyAttackSubState.RECOVERY:
-                    # RECOVERY: Slight darkening to show enemy is vulnerable
-                    recovery_surface = pygame.Surface(screen_enemy_rect.size, pygame.SRCALPHA)
-                    recovery_surface.fill((0, 0, 0, 60))  # Dark overlay
-                    game_surface.blit(recovery_surface, screen_enemy_rect.topleft)
-
-            # AI state / facing indicator for debugging
-            center = screen_enemy_rect.center
-            dir_x = (
-                1
-                if enemy.physics.vx > 0
-                else -1 if enemy.physics.vx < 0 else (1 if enemy.facing_right else -1)
-            )
-            end = (center[0] + dir_x * 12, center[1])
-            pygame.draw.line(game_surface, (255, 220, 120), center, end, 2)
-            # Small text for AI state
-            state_label = (
-                enemy.ai_state.value if hasattr(enemy.ai_state, "value") else str(enemy.ai_state)
-            )
-            state_font = getattr(hud, "small", getattr(hud, "font", None))
-            if state_font:
-                state_surf = state_font.render(state_label[:3], True, (255, 255, 0))
-                game_surface.blit(state_surf, (screen_enemy_rect.left, screen_enemy_rect.top - 12))
-            game_surface.blit(state_surf, (screen_enemy_rect.left, screen_enemy_rect.top - 12))
+                    # RECOVERY: Slight darkening — pre-allocated surface
+                    _atk_recovery_surf.set_alpha(60)
+                    game_surface.blit(
+                        _atk_recovery_surf,
+                        screen_enemy_rect.topleft,
+                        (0, 0, screen_enemy_rect.width, screen_enemy_rect.height),
+                    )
 
             # Draw health bar above enemy
             if enemy.health_state.current_hp < enemy.health_state.max_hp:
@@ -2242,38 +2788,60 @@ def main():
             color = (255, int(120 + 80 * pulse), 60)
             pygame.draw.rect(game_surface, color, fx_rect_screen, width=2)
 
+        # Draw goblin forward dagger hitboxes during active attack
+        for enemy in enemy_manager.enemies.values():
+            if (enemy.enemy_type == EnemyType.GOBLIN
+                    and enemy.ai_state == EnemyAIState.ATTACK
+                    and enemy.attack_substate == EnemyAttackSubState.ACTIVE):
+                hb = enemy.get_attack_hitbox()
+                if hb:
+                    hb_screen = camera.apply(pygame.Rect(int(hb[0]), int(hb[1]), int(hb[2]), int(hb[3])))
+                    pulse = abs(math.sin(pygame.time.get_ticks() / 80.0))
+                    pygame.draw.rect(game_surface, (255, int(180 + 60 * pulse), 60), hb_screen, width=2)
+
+        # Draw enemy arrows (skeleton projectiles)
+        _cam_ox = camera._offset_x
+        _cam_oy = camera._offset_y
+        for arrow in enemy_manager.get_enemy_arrows():
+            ax = int(arrow.x) + _cam_ox
+            ay = int(arrow.y) + _cam_oy
+            angle = math.degrees(math.atan2(arrow.vy, arrow.vx))
+            shaft_color = (180, 140, 80)
+            tip_color   = (200, 200, 210)
+            angle_rad = math.radians(angle)
+            cos_a = math.cos(angle_rad)
+            sin_a = math.sin(angle_rad)
+            # Shaft
+            tip_x = ax + int(cos_a * arrow.width)
+            tip_y = ay + int(sin_a * arrow.width)
+            ay_mid = ay + arrow.height // 2
+            tip_y_mid = tip_y + arrow.height // 2
+            pygame.draw.line(game_surface, shaft_color, (ax, ay_mid), (tip_x, tip_y_mid), 2)
+            # Tip
+            pygame.draw.circle(game_surface, tip_color, (tip_x, tip_y_mid), 2)
+            # Fletching (small v at tail)
+            tail_x = ax - int(cos_a * 4)
+            tail_y = ay_mid - int(sin_a * 4)
+            perp_cos = math.cos(angle_rad + math.pi / 2)
+            perp_sin = math.sin(angle_rad + math.pi / 2)
+            pygame.draw.line(game_surface, (120, 80, 60),
+                             (tail_x, tail_y),
+                             (tail_x + int(perp_cos * 3), tail_y + int(perp_sin * 3)), 1)
+            pygame.draw.line(game_surface, (120, 80, 60),
+                             (tail_x, tail_y),
+                             (tail_x - int(perp_cos * 3), tail_y - int(perp_sin * 3)), 1)
+
+        profiler.end("render_enemies")
+
         # Draw NPCs (v0.6.0 - Phase 2)
         for npc in npc_manager.npcs:
             # Get NPC bounding box
             npc_rect = pygame.Rect(npc.x, npc.y, npc.width, npc.height)
             screen_npc_rect = camera.apply(npc_rect)
 
-            # Get NPC definition for color
+            # Get NPC definition and draw with procedural character art
             npc_def = npc_manager.get_npc_definition(npc.npc_id)
-
-            # Simple colored rectangle based on NPC type (placeholder for sprites)
-            from entities.npc import NPCType
-
-            if npc_def and npc_def.npc_type == NPCType.MISSION_GIVER:
-                npc_color = (255, 200, 50)  # Gold for mission givers
-            elif npc_def and npc_def.npc_type == NPCType.SHOP:
-                npc_color = (50, 255, 100)  # Green for shop keepers
-            elif npc_def and npc_def.npc_type == NPCType.TUTORIAL:
-                npc_color = (100, 150, 255)  # Blue for tutorial NPCs
-            else:
-                npc_color = (200, 200, 200)  # Gray for others
-
-            # Draw NPC with shadow
-            shadow_rect = pygame.Rect(
-                screen_npc_rect.centerx - screen_npc_rect.width // 2,
-                screen_npc_rect.bottom - 4,
-                screen_npc_rect.width,
-                4,
-            )
-            pygame.draw.ellipse(game_surface, (0, 0, 0, 80), shadow_rect)
-
-            # Draw NPC body
-            pygame.draw.rect(game_surface, npc_color, screen_npc_rect)
+            draw_npc_char(game_surface, npc, npc_def, screen_npc_rect, pygame.time.get_ticks())
 
         # Draw player (with camera transform and real sprite animations)
         player_rect = player.get_rect()
@@ -2347,6 +2915,32 @@ def main():
                 camera.x,
                 camera.y,
             )
+
+        # Draw shuriken projectiles (sprite + collision box)
+        if getattr(player, "shuriken", None) and player.shuriken.projectiles:
+            shuriken_spin = (pygame.time.get_ticks() * 0.6) % 360
+            for idx, proj in enumerate(player.shuriken.projectiles):
+                proj_rect = pygame.Rect(int(proj.x), int(proj.y), proj.width, proj.height)
+                screen_proj_rect = camera.apply(proj_rect)
+
+                if shuriken_base:
+                    base_w = max(1, shuriken_base.get_width())
+                    scale = max(0.1, screen_proj_rect.width / base_w)
+                    if proj.stuck:
+                        sprite = pygame.transform.smoothscale(
+                            shuriken_base, (screen_proj_rect.width, screen_proj_rect.height)
+                        )
+                        game_surface.blit(sprite, screen_proj_rect.topleft)
+                    else:
+                        angle = (shuriken_spin + idx * 45) % 360
+                        sprite = pygame.transform.rotozoom(shuriken_base, angle, scale)
+                        sprite_rect = sprite.get_rect(center=screen_proj_rect.center)
+                        game_surface.blit(sprite, sprite_rect)
+                else:
+                    pygame.draw.rect(game_surface, (200, 200, 210), screen_proj_rect)
+
+                # Collision box visualizer
+                pygame.draw.rect(game_surface, (255, 0, 255), screen_proj_rect, width=1)
 
         # Draw exit marker (if exit exists and not yet complete)
         if exit_x is not None and exit_y is not None and not level_complete:
@@ -2463,6 +3057,11 @@ def main():
                 coins=pickup_stats["coins"],
                 collectibles=pickup_stats["collectibles"],
             )
+        elif show_fps_overlay:
+            fps_text = hud.small.render(
+                f"FPS: {clock_pygame.get_fps():.0f}", True, (220, 220, 230)
+            )
+            game_surface.blit(fps_text, (12, 10))
 
         # Inventory UI overlay
         if inventory_ui.is_open():
@@ -2477,6 +3076,8 @@ def main():
                             "rarity": item_def.rarity.value if item_def else "common",
                         }
                     )
+                else:
+                    items_payload.append(None)
             inventory_ui.draw(
                 game_surface,
                 items=items_payload,
@@ -2486,6 +3087,7 @@ def main():
             )
 
         # Health HUD (v0.6.0) - Draw hearts in top-left
+        profiler.begin("render_hud")
         health_x = 20
         health_y = 20
         heart_size = 24
@@ -2615,9 +3217,28 @@ def main():
                 overlay.fill((0, 0, 0, 180))
                 game_surface.blit(overlay, (0, 0))
                 old_scale = minimap.config.scale
-                minimap.config.scale = 24
+                old_pos = minimap.config.position
+                # Scale to occupy ~85% of screen and center
+                minx, miny, maxx, maxy = world.bounds
+                span_w = maxx - minx + 1
+                span_h = maxy - miny + 1
+                screen_w = game_surface.get_width()
+                screen_h = game_surface.get_height()
+                target_w = int(screen_w * 0.85)
+                target_h = int(screen_h * 0.85)
+                padding = 8
+                scale_w = (target_w - 2 * padding) // max(1, span_w)
+                scale_h = (target_h - 2 * padding) // max(1, span_h)
+                minimap.config.scale = max(6, min(scale_w, scale_h))
+                minimap_w = span_w * minimap.config.scale + 2 * padding
+                minimap_h = span_h * minimap.config.scale + 2 * padding
+                minimap.config.position = (
+                    max(0, (screen_w - minimap_w) // 2),
+                    max(0, (screen_h - minimap_h) // 2),
+                )
                 minimap.render(game_surface, world, megamap, player_pos, current_room_coords)
                 minimap.config.scale = old_scale
+                minimap.config.position = old_pos
             elif show_minimap:
                 minimap.render(game_surface, world, megamap, player_pos, current_room_coords)
 
@@ -2698,6 +3319,14 @@ def main():
         # Victory screen (if level complete)
         if level_complete:
             victory_screen.render(game_surface, level_manager.get_stats(), 1.0 / FPS)
+
+        # Cover gameplay behind launch/menu screens
+        if game_state_manager.is_menu() or game_state_manager.is_landing():
+            if landing_bg:
+                bg = pygame.transform.smoothscale(landing_bg, (GAME_WIDTH, GAME_HEIGHT))
+                game_surface.blit(bg, (0, 0))
+            else:
+                game_surface.fill((8, 10, 18))
 
         # Render menu overlay on game surface (if active)
         if menu_manager.has_menu():
@@ -2866,11 +3495,14 @@ def main():
             shared_rect = shared_text.get_rect(center=(GAME_WIDTH // 2, GAME_HEIGHT - 50))
             game_surface.blit(shared_text, shared_rect)
 
+        profiler.end("render_hud")
+
         # Auto-save periodically
         persist_story_state_wrapper()  # Update story state before auto-save (v0.7.0)
         save_manager.auto_save(time.time())
 
         # Present game surface to window with letterboxing
+        profiler.begin("present")
         if not headless:
             camera.present(screen)
 
@@ -2879,7 +3511,14 @@ def main():
                 dev_console.render(screen)
 
             pygame.display.flip()
+        profiler.end("present")
+        profiler.end("render")
+        profiler.end_frame()
         clock_pygame.tick(FPS)
+
+    # Profiler shutdown — print summary and write final CSV rows
+    profiler.print_summary()
+    profiler.close()
 
     # Final save on exit
     if save_manager.needs_save:
