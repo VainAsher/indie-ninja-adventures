@@ -16,13 +16,14 @@ Functions:
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 import pygame
 
 from config.build_config import get_build_config
 from core import EntityManager, EntityType, EventBus, GameClock, GameLogger
-from entities import HazardManager, PickupManager
+from entities import HazardManager, PickupManager, PlayerDamageEvent
 from entities.companions import CompanionOrbs
 from entities.enemy_manager import EnemyManager
 from entities.npc import NPCManager
@@ -38,6 +39,7 @@ from game.story_manager import StoryManager
 from game.trading_system import TradingManager
 from mechanics.combat_mechanic import CombatMechanic
 from rendering import HUDRenderer, ParticleSystem, SpriteManager
+from rendering.animation_system import register_all_characters
 from rendering.hub_effects import HubEffectsRenderer
 from rendering.npc_prompt import NPCIndicatorRenderer, NPCPromptRenderer
 from rendering.objective_hud import ObjectiveHUDRenderer
@@ -45,6 +47,7 @@ from rendering.tile_loader import TileLoader
 from systems import CollisionSystem, PhysicsSystem, SaveManager
 from systems.camera_system import CameraConfig, CameraSystem
 from ui import ControlsHintOverlay, MenuManager, TutorialManager
+from utils.resource_path import get_resource_path
 from ui.dialogue_ui import DialogueUI
 from ui.inventory_ui import InventoryUI
 from ui.mission_menu import MissionMenuUI
@@ -76,6 +79,7 @@ class CameraEffectsHandler:
         # Subscribe to events (Phase 4.1: with owner tracking)
         event_bus.subscribe(CollisionEvent, self._on_collision, owner=self)
         event_bus.subscribe(VelocityChangeEvent, self._on_velocity_change, owner=self)
+        event_bus.subscribe(PlayerDamageEvent, self._on_damage, owner=self)
 
     def _on_collision(self, event: CollisionEvent):
         """Handle collision events for camera effects"""
@@ -102,6 +106,14 @@ class CameraEffectsHandler:
                 self.camera.add_camera_pan(offset_x=30, offset_y=0)
             elif event.new_vx < 0:  # Jumping left
                 self.camera.add_camera_pan(offset_x=-30, offset_y=0)
+
+    def _on_damage(self, event: PlayerDamageEvent):
+        """Handle damage events for camera effects"""
+        if event.player_id != self.player_id:
+            return
+
+        # Brief stronger shake on damage
+        self.camera.add_damage_shake(intensity=3.0, duration=0.12)
 
     def cleanup(self):
         """Cleanup event subscriptions (Phase 4.1 - prevent memory leaks)"""
@@ -145,7 +157,7 @@ def initialize_pygame(headless: bool = False) -> tuple[pygame.Surface, pygame.ti
 
     if headless:
         window_width, window_height = GAME_WIDTH, GAME_HEIGHT
-        screen = pygame.Surface((window_width, window_height))
+        screen = pygame.display.set_mode((window_width, window_height))
         clock_pygame = pygame.time.Clock()
     else:
         window_width, window_height = get_recommended_window_size()
@@ -164,8 +176,8 @@ def create_rendering_systems() -> dict[str, Any]:
         Dict with keys: sprite_manager, tile_loader, particles, hud, inventory_ui,
                        npc_prompt_renderer, npc_indicator_renderer
     """
-    return {
-        "sprite_manager": SpriteManager(),
+    systems = {
+        "sprite_manager": SpriteManager(),  # also registers "player" into AnimationRegistry
         "tile_loader": TileLoader(),
         "particles": ParticleSystem(),
         "hud": HUDRenderer(),
@@ -173,9 +185,16 @@ def create_rendering_systems() -> dict[str, Any]:
         "npc_prompt_renderer": NPCPromptRenderer(),
         "npc_indicator_renderer": NPCIndicatorRenderer(),
     }
+    # Register enemy + NPC animation data (player is registered inside SpriteManager)
+    assets_root = get_resource_path("assets")
+    register_all_characters(assets_root)
+    return systems
 
 
-def create_core_systems(logger_name: str = "game") -> dict[str, Any]:
+def create_core_systems(
+    logger_name: str = "game",
+    user_data_dir: Path | None = None,
+) -> dict[str, Any]:
     """
     Create core game systems (EventBus, Logger, Clock, EntityManager).
 
@@ -186,7 +205,7 @@ def create_core_systems(logger_name: str = "game") -> dict[str, Any]:
         Dict with keys: bus, logger, game_clock, entity_manager
     """
     bus = EventBus()
-    logger = GameLogger()
+    logger = GameLogger(user_data_dir=user_data_dir)
     game_clock = GameClock(bus, logger=logger.get_logger("clock"))
     entity_manager = EntityManager(bus, logger.get_logger("entity_manager"))
 
@@ -203,6 +222,7 @@ def create_game_managers(
     logger: GameLogger,
     current_seed: int | None,
     base_hub_seed: int,
+    user_data_dir: Path | None = None,
 ) -> dict[str, Any]:
     """
     Create all game-level managers (save, pickup, NPC, dialogue, etc.).
@@ -217,7 +237,8 @@ def create_game_managers(
         Dict with all manager instances and related data
     """
     # Initialize save system early (needed for campaign data/inventory)
-    save_manager = SaveManager()
+    save_dir = str(user_data_dir / "saves") if user_data_dir else None
+    save_manager = SaveManager(save_dir=save_dir)
     save_manager.load()  # Load existing save or create new
 
     # Initialize managers
@@ -227,7 +248,7 @@ def create_game_managers(
 
     # Initialize dialogue system
     dialogue_manager = DialogueManager(bus)
-    dialogue_manager.load_dialogues("data/dialogues.json")
+    dialogue_manager.load_dialogues(str(get_resource_path("data", "dialogues.json")))
     dialogue_ui = DialogueUI(GAME_WIDTH, GAME_HEIGHT)
 
     # Initialize developer tools (DEV build only)
@@ -257,7 +278,7 @@ def create_game_managers(
     initialize_item_manager()
     item_manager = get_item_manager()
     try:
-        with open("data/items.json", encoding="utf-8") as f:
+        with open(get_resource_path("data", "items.json"), encoding="utf-8") as f:
             items_data = json.load(f)
             item_manager.load_from_dict(items_data)
     except FileNotFoundError:
@@ -285,7 +306,7 @@ def create_game_managers(
     objective_hud_renderer = ObjectiveHUDRenderer()
 
     # Game state manager
-    game_state_manager = GameStateManager(initial_state=GameState.PLAYING)
+    game_state_manager = GameStateManager(initial_state=GameState.LANDING)
 
     # Story system
     if (
@@ -390,6 +411,8 @@ def create_camera_system(window_width: int, window_height: int) -> CameraSystem:
         follow_speed=0.1,
         deadzone_width=200,
         deadzone_height=150,
+        enable_spring=False,
+        spring_stiffness=0.0,
     )
     camera = CameraSystem(camera_config)
     camera.handle_resize(window_width, window_height)

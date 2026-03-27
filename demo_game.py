@@ -97,7 +97,9 @@ from rendering import (
     render_hazards,
     render_pickups,
 )
+from rendering.animation_system import AnimationRegistry
 from rendering.enemy_renderer import draw_enemy, draw_npc as draw_npc_char
+from rendering.sprite_manager import SpriteFrame
 from utils.frame_profiler import FrameProfiler
 from systems import (
     CameraMode,
@@ -1150,6 +1152,9 @@ def main():
         enemy_manager=enemy_manager,
         hazard_manager=hazard_manager,
     )
+
+    # Attach animation state machine (shares frame data loaded by SpriteManager)
+    player.anim_sm = AnimationRegistry.make_state_machine("player")
 
     # Apply shuriken capacity bonus based on equipped armor
     apply_shuriken_capacity_bonus(player, player_inventory, item_manager)
@@ -2880,11 +2885,25 @@ def main():
         if player.state.physics.on_wall and not player.state.physics.on_ground:
             sprite_facing = -sprite_facing  # Face away from wall
 
-        # Get sprite frame scaled to player hitbox size
+        # Get sprite frame — use AnimationStateMachine when available (correct
+        # transition reset for non-looping anims), fall back to SpriteManager.
         target_size = (screen_player_rect.width, screen_player_rect.height)
-        frame = sprite_manager.get_scaled_frame(
-            player_state_name, sprite_facing, pygame.time.get_ticks(), target_size=target_size
-        )
+        if getattr(player, "anim_sm", None) is not None:
+            player.anim_sm.transition(player_state_name)
+            raw_surf = player.anim_sm.get_frame(sprite_facing)
+            if raw_surf is not None:
+                scaled = pygame.transform.scale(raw_surf, target_size)
+                frame = SpriteFrame(surface=scaled)
+            else:
+                frame = sprite_manager.get_scaled_frame(
+                    player_state_name, sprite_facing, pygame.time.get_ticks(),
+                    target_size=target_size,
+                )
+        else:
+            frame = sprite_manager.get_scaled_frame(
+                player_state_name, sprite_facing, pygame.time.get_ticks(),
+                target_size=target_size,
+            )
         sprite_rect = frame.surface.get_rect(center=screen_player_rect.center)
         # Teleport phase overlay: show semi-transparent ghost at cursor
         if player.state.is_teleporting_phase and getattr(player, "teleport", None):

@@ -179,6 +179,11 @@ class SpriteManager:
                 print(f"Error loading sprite sheet {filename}: {e}")
                 self._create_fallback_animation(anim_name, frame_count, fps, loop)
 
+        # Register loaded data with the global AnimationRegistry so the player
+        # can use an AnimationStateMachine without re-loading any assets.
+        from rendering.animation_system import AnimationRegistry
+        AnimationRegistry.register_from_sprite_manager("player", self.animations, self.cache)
+
     def _create_fallback_animation(self, anim_name: str, frame_count: int, fps: int, loop: bool):
         """Create colored placeholder animation if sprite sheet missing"""
         state_colors = {
