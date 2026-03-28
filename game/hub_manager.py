@@ -308,7 +308,7 @@ class HubManager:
         # Note: Actual room positions depend on world generation
         # These are example placements - will need adjustment based on generated layout
 
-        # Forest portal (north)
+        # Forest portal (north) — ground level, reachable with basic jump only
         central_hub.portal_anchors.append(
             PortalAnchor(
                 portal_id="portal_to_forest",
@@ -316,12 +316,12 @@ class HubManager:
                 grid_x=0,
                 grid_y=-1,  # North room
                 local_x=ROOM_PIXEL_CENTER_X,
-                local_y=ROOM_PIXEL_CENTER_Y - 180,
+                local_y=ROOM_PIXEL_CENTER_Y + 200,  # Floor level; collision snap seats it on ground
                 bidirectional=True,
             )
         )
 
-        # Town portal (east)
+        # Town portal (east) — elevated platform, requires double_jump to reach
         central_hub.portal_anchors.append(
             PortalAnchor(
                 portal_id="portal_to_town",
@@ -329,7 +329,7 @@ class HubManager:
                 grid_x=1,
                 grid_y=0,  # East room
                 local_x=ROOM_PIXEL_CENTER_X + 240,
-                local_y=ROOM_PIXEL_CENTER_Y,
+                local_y=ROOM_PIXEL_CENTER_Y - 200,  # High platform; requires double_jump
                 bidirectional=True,
             )
         )
