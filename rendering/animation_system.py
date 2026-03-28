@@ -81,8 +81,8 @@ PLAYER_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
     "wall_hang":       ("jumpfall_spritesheet.png",     2,  6,  True),
     "ceiling_hang":    ("jumpfall_spritesheet.png",     2,  6,  True),
     "air_spin":        ("jumpfall_spritesheet.png",     2, 10,  True),
-    "hurt":            ("hurt_spritesheet.png",         3, 12,  False),
-    "hurt2":           ("hurt_spritesheet.png",         3, 12,  False),
+    "hurt":            ("hurt_spritesheet.png",         3, 12,  True),   # loop while i-frames active
+    "hurt2":           ("hurt_spritesheet.png",         3, 12,  True),
     "death":           ("death_spritesheet.png",        5, 12,  False),
     "attack":          ("attack-sword_spritesheet.png", 6, 15,  False),
     "slash1":          ("attack-sword_spritesheet.png", 6, 15,  False),
@@ -355,12 +355,13 @@ class AnimationRegistry:
             return cls._make_fallback(state, frame_count, fallback_size)
         try:
             raw = SpriteSheet(filepath, frame_count).get_frames()
-            # Player jumpfall sheet: frame 0 = jump, frame 1 = fall
+            # Player jumpfall sheet: frame 0 = falling pose, frame 1 = ascending pose
+            # (sheet layout confirmed from sprite asset; vy<0 = ascending uses frame 1)
             if char_type == "player":
                 if state == "jump":
-                    raw = [raw[0]]
-                elif state == "fall":
                     raw = raw[1:2] if len(raw) > 1 else raw
+                elif state == "fall":
+                    raw = [raw[0]]
             if target_size is not None:
                 raw = [pygame.transform.scale(s, target_size) for s in raw]
             frames_r = [SpriteFrame(surface=s) for s in raw]

@@ -1209,6 +1209,13 @@ def main():
     # Game state
     level_complete = False
 
+    # Death animation delay — defers hub transition so the death animation has time to play
+    DEATH_ANIM_WAIT = 30      # ~0.5 s at 60 fps; covers the 5-frame 12 fps death anim
+    death_anim_pending = False
+    death_anim_ticks = 0
+    death_anim_ctx = ""       # "mission", "hub_area", "direct"
+    death_anim_hub: str | None = None
+
     def regenerate_hub_for_respawn(reason: str = "", target_hub_id=None):
         """
         Return player to current hub (used for deaths/mission completion).
@@ -1263,9 +1270,24 @@ def main():
             campaign_data.current_hub_id = target_hub
             campaign_data.current_hub_position = (spawn_x, spawn_y)
             save_manager.mark_dirty()
+        # Always restore player health and position when returning to hub (Bug 5)
+        player.damage.respawn(player.state, spawn_x, spawn_y)
         if reason:
             print(f"[RESPAWN] Returned to {target_hub} ({reason})")
         update_replay_metadata_wrapper()
+
+    def queue_player_death(ctx: str, hub_id: str | None = None):
+        """
+        Defer world transition by DEATH_ANIM_WAIT frames so the death animation plays.
+        No-op if a death is already pending.
+        """
+        nonlocal death_anim_pending, death_anim_ticks, death_anim_ctx, death_anim_hub
+        if death_anim_pending:
+            return
+        death_anim_pending = True
+        death_anim_ticks = DEATH_ANIM_WAIT
+        death_anim_ctx = ctx
+        death_anim_hub = hub_id
 
     print("\n[OK] All systems initialized")
     print(f"[OK] Player spawned at ({spawn_x}, {spawn_y})")
@@ -1892,6 +1914,23 @@ def main():
 
         # Only process game input and updates when playing
         if game_state_manager.is_playing():
+            # Death animation countdown — tick down and execute queued hub transition
+            if death_anim_pending:
+                death_anim_ticks -= 1
+                if death_anim_ticks <= 0:
+                    _ctx = death_anim_ctx
+                    _hub = death_anim_hub
+                    death_anim_pending = False
+                    death_anim_ticks = 0
+                    death_anim_ctx = ""
+                    death_anim_hub = None
+                    if _ctx == "mission":
+                        regenerate_hub_for_respawn("mission failed")
+                    elif _ctx == "hub_area":
+                        regenerate_hub_for_respawn("area hub death", target_hub_id=_hub or "central_hub")
+                    else:
+                        player.damage.respawn(player.state, spawn_x, spawn_y)
+
             # Free camera controls (arrow keys in free mode)
             if camera.mode == CameraMode.FREE and not inventory_ui.is_open():
                 if keys[pygame.K_UP]:
@@ -1989,7 +2028,7 @@ def main():
                     player.state.environment_accel_mult = 1.0
 
                 # Lava damage over time
-                if in_lava:
+                if in_lava and not death_anim_pending:
                     lava_damage_timer += dt
                     if lava_damage_timer >= LAVA_DAMAGE_INTERVAL:
                         lava_damage_timer = 0.0
@@ -2002,13 +2041,11 @@ def main():
                         if died:
                             level_manager.increment_deaths()
                             if current_world_context == "mission":
-                                regenerate_hub_for_respawn("mission failed (lava)")
+                                queue_player_death("mission")
                             elif current_world_context == "hub" and current_hub_id != "central_hub":
-                                regenerate_hub_for_respawn(
-                                    "area hub death", target_hub_id="central_hub"
-                                )
+                                queue_player_death("hub_area", hub_id="central_hub")
                             else:
-                                player.damage.respawn(player.state, spawn_x, spawn_y)
+                                queue_player_death("direct")
                 else:
                     lava_damage_timer = 0.0
 
@@ -2023,7 +2060,7 @@ def main():
                         poison_hit = hazard
                         break
 
-                if poison_hit:
+                if poison_hit and not death_anim_pending:
                     poison_damage_timer += dt
                     if poison_damage_timer >= POISON_DAMAGE_INTERVAL:
                         poison_damage_timer = 0.0
@@ -2036,27 +2073,25 @@ def main():
                         if died:
                             level_manager.increment_deaths()
                             if current_world_context == "mission":
-                                regenerate_hub_for_respawn("mission failed (poison)")
+                                queue_player_death("mission")
                             elif current_world_context == "hub" and current_hub_id != "central_hub":
-                                regenerate_hub_for_respawn(
-                                    "area hub death", target_hub_id="central_hub"
-                                )
+                                queue_player_death("hub_area", hub_id="central_hub")
                             else:
-                                player.damage.respawn(player.state, spawn_x, spawn_y)
+                                queue_player_death("direct")
                 else:
                     poison_damage_timer = 0.0
 
             # Kill player if they fall out of the world
-            if megamap:
+            if megamap and not death_anim_pending:
                 _world_h_bound = megamap.height_tiles * 32
                 if player.state.physics.y > _world_h_bound + 200:
                     level_manager.increment_deaths()
                     if current_world_context == "mission":
-                        regenerate_hub_for_respawn("mission failed (void)")
+                        queue_player_death("mission")
                     elif current_world_context == "hub" and current_hub_id != "central_hub":
-                        regenerate_hub_for_respawn("area hub death", target_hub_id="central_hub")
+                        queue_player_death("hub_area", hub_id="central_hub")
                     else:
-                        player.damage.respawn(player.state, spawn_x, spawn_y)
+                        queue_player_death("direct")
 
             # Update story cutscenes (v0.7.0)
             if story_manager.is_cutscene_playing():
@@ -2274,16 +2309,11 @@ def main():
                     if died:
                         level_manager.increment_deaths()
                         if current_world_context == "mission":
-                            regenerate_hub_for_respawn("mission failed (enemy)")
+                            queue_player_death("mission")
                         elif current_world_context == "hub" and current_hub_id != "central_hub":
-                            regenerate_hub_for_respawn(
-                                "area hub death", target_hub_id="central_hub"
-                            )
+                            queue_player_death("hub_area", hub_id="central_hub")
                         else:
-                            player.damage.respawn(player.state, spawn_x, spawn_y)
-                            print(
-                                f"[DEATH] Player died from enemy contact, respawning at ({spawn_x:.0f}, {spawn_y:.0f})"
-                            )
+                            queue_player_death("direct")
 
                 if pygame.K_e in pressed_once:
                     # Prefer portal interaction if nearby
@@ -2381,7 +2411,7 @@ def main():
                             )
 
                 # Check hazard collisions (damage/death)
-                if not level_complete:
+                if not level_complete and not death_anim_pending:
                     hazard_collision = hazard_manager.check_hazards(
                         player.state, invincible=player.damage.is_invincible(player.state)
                     )
@@ -2399,16 +2429,11 @@ def main():
                         if died:
                             level_manager.increment_deaths()
                             if current_world_context == "mission":
-                                regenerate_hub_for_respawn("mission failed (hazard)")
+                                queue_player_death("mission")
                             elif current_world_context == "hub" and current_hub_id != "central_hub":
-                                regenerate_hub_for_respawn(
-                                    "area hub death", target_hub_id="central_hub"
-                                )
+                                queue_player_death("hub_area", hub_id="central_hub")
                             else:
-                                player.damage.respawn(player.state, spawn_x, spawn_y)
-                                print(
-                                    f"[DEATH] Player died from {hazard.hazard_type}, respawning at ({spawn_x:.0f}, {spawn_y:.0f})"
-                                )
+                                queue_player_death("direct")
 
             # Check exit detection (only if not already complete)
             if not level_complete and exit_x is not None:
@@ -2459,6 +2484,14 @@ def main():
                                         save_manager.data.campaign.currency = (
                                             player_inventory.currency
                                         )
+                                        # Grant unlock_abilities from this mission (Bug 6)
+                                        camp = save_manager.data.campaign
+                                        for ability in getattr(mission_def, "unlock_abilities", []):
+                                            if isinstance(camp.unlocked_abilities, set):
+                                                camp.unlocked_abilities.add(ability)
+                                            elif ability not in camp.unlocked_abilities:
+                                                camp.unlocked_abilities.append(ability)
+                                            print(f"[MISSION] Ability unlocked: {ability}")
                                         save_manager.mark_dirty()
 
                                     # Trigger story events on mission completion (v0.7.0)
@@ -2476,7 +2509,9 @@ def main():
                                             story_manager.trigger_cutscene(cutscene_id)
 
                             objective_tracker.stop_mission_objectives()
-                            regenerate_hub_for_respawn("mission complete")
+                            # Show victory screen; SPACE handler at line ~1472 returns to hub
+                            level_complete = True
+                            victory_screen.reset()
                         else:
                             print("[MISSION] Exit locked until objectives are complete")
                     elif current_world_context == "arcade":
@@ -2894,10 +2929,17 @@ def main():
         screen_player_rect = camera.apply(player_rect)
         player_state_name = get_player_render_state(player)
 
-        # Determine sprite facing (invert when on wall so character faces away)
+        # Determine sprite facing.
+        # During attack animations, lock to the committed facing direction and skip
+        # the wall-inversion so the sprite doesn't flip mid-combo.
+        _attack_states = {
+            "attack", "slash1", "slash2", "slash3", "slash_air", "jump_slash",
+            "throw_ground", "throw_crouch", "throw_air",
+        }
         sprite_facing = player.state.facing or 1
-        if player.state.physics.on_wall and not player.state.physics.on_ground:
-            sprite_facing = -sprite_facing  # Face away from wall
+        if player_state_name not in _attack_states:
+            if player.state.physics.on_wall and not player.state.physics.on_ground:
+                sprite_facing = -sprite_facing  # Face away from wall
 
         # Get sprite frame — use AnimationStateMachine when available (correct
         # transition reset for non-looping anims), fall back to SpriteManager.
