@@ -2862,8 +2862,8 @@ def main():
                 fg_rect = pygame.Rect(health_bar_x, health_bar_y, fg_width, health_bar_height)
                 pygame.draw.rect(game_surface, (0, 200, 0), fg_rect)
 
-        # Draw sword attack hitbox (temporary visualizer)
-        if attack_fx_rect:
+        # Draw sword attack hitbox (debug visualizer — F3 to toggle)
+        if attack_fx_rect and show_debug_overlay:
             fx_rect_screen = camera.apply(attack_fx_rect)
             pulse = abs(math.sin(pygame.time.get_ticks() / 120.0))
             color = (255, int(120 + 80 * pulse), 60)
@@ -3032,13 +3032,17 @@ def main():
             # Flash white during i-frames (on/off every 6 frames = 0.1s at 60fps)
             flash_cycle = (player.state.health_state.invincibility_frames // 6) % 2
             if flash_cycle == 0:
-                # White flash: blit sprite then overlay pre-allocated white surface
+                # White flash: blit sprite then overlay pre-allocated white surface.
+                # During attack the sprite frame is wider than the hitbox; clamp
+                # the flash overlay to the hitbox area so it doesn't create a wide
+                # white blob over the sword-effect region.
                 game_surface.blit(frame.surface, sprite_rect)
                 _player_flash_surf.set_alpha(160)
+                flash_rect = screen_player_rect if _is_attack else sprite_rect
                 game_surface.blit(
                     _player_flash_surf,
-                    sprite_rect.topleft,
-                    (0, 0, sprite_rect.width, sprite_rect.height),
+                    flash_rect.topleft,
+                    (0, 0, flash_rect.width, flash_rect.height),
                 )
             else:
                 game_surface.blit(frame.surface, sprite_rect)
