@@ -3,7 +3,7 @@
 
 This is a living document tracking the day-to-day development progress, decisions, challenges, and learnings.
 
-> Note (v0.7.0): The stamina-based wall slide mechanic is currently **disabled** while wall interaction is reworked. A light wall-friction clamp plus wall-jump coyote buffer are active; legacy wall-slide code/UI remains for future re-enable.
+> Note (updated 2026-03-28): The stamina-based wall slide is no longer the active implementation. `mechanics/wall_slide.py` now applies a light vy clamp (wall friction) when the player is airborne against a wall, giving a controlled slide feel. Wall-jump coyote time is handled in `entities/player.py`. The older stamina gating was removed.
 
 ---
 

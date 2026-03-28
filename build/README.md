@@ -51,7 +51,7 @@ build_all.bat
 ```
 
 This creates three executables:
-- `dist\ninja_dash\ninja_dash.exe` - Production build
+- `dist\ninja_dash.exe` - Production build (one-file)
 - `dist\ninja_dash_testing\ninja_dash_testing.exe` - Testing build with recording
 - `dist\ninja_dash_dev\ninja_dash_dev.exe` - Development build with debug features
 
@@ -69,6 +69,21 @@ build_testing.bat
 REM Development only
 build_dev.bat
 ```
+
+## Build Preflight Checklist
+
+Before starting any build, check these common blockers:
+
+1. **Pause OneDrive sync** — OneDrive can hold a file lock on the output EXE while syncing, causing PyInstaller to fail with an `Access is denied` or `[WinError 32]` error.
+   - Right-click the OneDrive tray icon → Pause syncing → 2 hours
+
+2. **Pause antivirus real-time scanning** (optional but recommended) — Antivirus scanners often quarantine or lock newly-built EXEs mid-write.
+   - Windows Security: Settings > Virus & threat protection > Manage settings > Real-time protection → temporarily Off
+   - Re-enable immediately after the build completes
+
+3. **Close any running game instance** — An open EXE locks itself; a rebuild over it will fail.
+
+4. **Run from the build/ directory** — All scripts assume `cd build` first.
 
 ## Troubleshooting
 
@@ -130,11 +145,13 @@ This will check:
 ## Build Output
 
 After a successful build, you'll find executables in:
-- `build\dist\ninja_dash\` - Production build
+- `build\dist\ninja_dash.exe` - Production build (one-file)
 - `build\dist\ninja_dash_testing\` - Testing build
 - `build\dist\ninja_dash_dev\` - Dev build
 
-Each directory contains:
+Production output is a single `.exe` plus optional launcher/readme in `build\dist\`.
+
+Testing/Dev directories contain:
 - `.exe` file - The game executable
 - `.bat` file - Launcher script (always use this, not the .exe directly!)
 - `_internal\` - Bundled dependencies and assets
@@ -142,7 +159,8 @@ Each directory contains:
 
 ## Important Notes
 
-- Always run the `.bat` launcher files, NOT the `.exe` files directly
+- Production can run `ninja_dash.exe` directly (or via `ninja_dash.bat`)
+- Testing/Dev should run the `.bat` launcher files (or pass `--build-mode`)
 - The first build may take 5-10 minutes
 - Subsequent builds are faster (2-3 minutes)
 - Virtual environment is shared across all build configurations

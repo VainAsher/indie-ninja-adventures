@@ -1,20 +1,20 @@
 # Project Handover Document
-**Vain Asher Gaming's: Indie Ninja Adventures**
 
-**Date**: 2025-12-12
-**Version**: 0.7.0
-**Status**: Phase B Complete, Ready for Phase 5 (Rendering & Visual Polish)
+Vain Asher Gaming's: Indie Ninja Adventures
+
+Date: 2026-03-28 | Version: 0.7.x (post-restructure) | Branch: master + fix/campaign-loop (Phase 0 bug fixes)
+Status: Campaign loop stabilized; Milestone 0 in progress
 
 ---
 
 ## Executive Summary
 
-This document provides a comprehensive handover of the Vain Asher Gaming's: Indie Ninja Adventures project, detailing the current state, completed work, known issues, and next steps. The project has successfully completed Phase B (Procedural World Generation) and all core infrastructure, collision systems, player mechanics, and camera systems are fully operational.
+This document is the authoritative handover for the project as of March 2026. The previous handover (2025-12-12) is historical only — the codebase has grown from ~50 files to 120+ files and most systems described as "next steps" in that document are now implemented.
 
-**Project Health**:  Excellent
-**Code Quality**:  High (modular, well-documented, tested)
-**Technical Debt**:  Minimal
-**Blocker Issues**:  None
+**Project Health**: Good
+**Code Quality**: High (modular, event-driven, well-tested)
+**Technical Debt**: Low
+**Blocker Issues**: None (Phase 0 bug fixes committed; boss integration and audio are next)
 
 ---
 
@@ -22,16 +22,15 @@ This document provides a comprehensive handover of the Vain Asher Gaming's: Indi
 
 1. [Project Overview](#project-overview)
 2. [Current State](#current-state)
-3. [Completed Work](#completed-work)
-4. [Recent Changes (This Session)](#recent-changes-this-session)
-5. [Technical Architecture](#technical-architecture)
-6. [Known Issues & Limitations](#known-issues--limitations)
-7. [Next Steps](#next-steps)
-8. [Development Workflow](#development-workflow)
-9. [Key Files & Locations](#key-files--locations)
-10. [Testing & Quality Assurance](#testing--quality-assurance)
-11. [Performance Characteristics](#performance-characteristics)
-12. [Dependencies](#dependencies)
+3. [Architecture](#architecture)
+4. [Completed Systems](#completed-systems)
+5. [Known Issues and Gaps](#known-issues-and-gaps)
+6. [Next Steps](#next-steps)
+7. [Development Workflow](#development-workflow)
+8. [Key Files and Locations](#key-files-and-locations)
+9. [Testing and QA](#testing-and-qa)
+10. [Performance](#performance)
+11. [Dependencies](#dependencies)
 
 ---
 
@@ -39,489 +38,309 @@ This document provides a comprehensive handover of the Vain Asher Gaming's: Indi
 
 ### Vision
 
-A fast-paced, skill-based 2D platformer with tight controls, deep movement mechanics, procedural world generation, and full mod support. Built with a modular, event-driven architecture designed for multiplayer readiness and extensibility.
+A fast-paced, skill-based 2D ninja platformer with deep movement mechanics, procedural world generation, a story-driven campaign, and — as the long-horizon goal — online multiplayer distributed via a custom launcher.
 
-### Core Features
+### Current Game Modes
 
--  **Modular Player Mechanics**: Jump (ground, double, wall, coyote, buffer), dash, crouch, movement; wall slide is currently disabled while wall interaction is reworked (temporary wall friction + coyote buffer remains)
--  **Procedural World Generation**: Seed-based metroidvania-style worlds with 16x16 zone grid planning
--  **Advanced Collision System**: Platform collision, swept collision, corner detection, wall climbing prevention
--  **Multi-Mode Camera**: World boundaries, room boundaries, free cam, locked mode with letterboxing
--  **Event-Driven Architecture**: Decoupled systems communicating via pub/sub events
--  **Component-Based Entities**: Reusable mechanics shared across players, NPCs, and enemies
--  **Mod/Plugin System**: Full extensibility for custom mechanics and entities
+- **Campaign**: Story-driven progression through 6 regions and 30 missions with NPC dialogue, mission objectives, rewards, and ability unlocks
+- **Arcade**: Procedurally escalating dungeons, depth-based difficulty
+- **Sandbox**: Open procedural world, no objectives
 
 ### Technology Stack
 
 - **Language**: Python 3.11+
-- **Game Framework**: Pygame 2.6.1
+- **Framework**: Pygame 2.6.1
 - **Architecture**: Event-driven, component-based ECS
-- **Physics**: Fixed 60Hz timestep (deterministic)
+- **Physics**: Fixed 60 Hz timestep (deterministic)
 - **Generation**: Seed-based procedural with BFS validation
+- **Build**: PyInstaller (onefile EXE via `build/ninja_dash_production.spec`)
 
 ---
 
 ## Current State
 
-### Phase Completion Status
+### Milestone Status
 
-| Phase | Status | Completion | Notes |
-|-------|--------|------------|-------|
-| **Phase 1**: Core Infrastructure |  Complete | 100% | Event bus, logger, clock, state, entity system, mod system |
-| **Phase 2**: Collision System |  Complete | 100% | Platform collision, swept collision, corner detection |
-| **Phase 3**: Player Mechanics |  Complete | 100% | Jump, dash, crouch, movement modular; wall slide implemented but **disabled during current wall interaction rework** |
-| **Phase 4**: Systems |  Complete | 95% | Physics, camera, world gen complete. Pickup/AI deferred |
-| **Phase 4.5**: Movement Enhancement |  Complete | 100% | Smooth interpolation, fast-fall mechanic |
-| **Phase B**: Procedural World Gen |  Complete | 100% | 16x16 zone grid, hierarchical generation, BFS validation |
-| **Phase 5**: Rendering & Visual Polish |  Next | 0% | Sprites, animations, particles, HUD - **NEXT PRIORITY** |
+| Milestone | Description | Status |
+| --- | --- | --- |
+| **M0**: Stabilization | UAT pass, docs aligned, P0/P1 bugs fixed | 80% — UAT results pending playtest |
+| **M1**: Boss Integration | Boss system wired into game loop | 20% — system exists, not yet wired |
+| **M2**: Presentation | Audio, visual feedback, combat clarity | 50% — animation done, no audio |
+| **M3**: Controls | Key binding wiring, gamepad support | 0% |
+
+### Phase 0 Bug Fixes (commit `985e811` — 2026-03-28)
+
+All six Phase 0 bugs are fixed on branch `fix/campaign-loop`:
+
+| Bug | Fix |
+| --- | --- |
+| Victory/mission complete screen never triggered | Exit now sets `level_complete = True`; victory screen shows before hub return |
+| Completing missions did not unlock further missions | `mission_def.unlock_abilities` now written to `campaign.unlocked_abilities` on exit |
+| Player respawned with 0 HP | `regenerate_hub_for_respawn()` now calls `player.damage.respawn()` — always full health on hub load |
+| Hurt animation froze after 3 frames | Changed to `loop=True` so it plays continuously while i-frames are active |
+| Death animation skipped | 30-frame delay via `queue_player_death()` before world transition; full 5-frame anim plays |
+| Sprite flipped/rotated during attack | Wall-inversion disabled during attack states; facing locked for full combo |
+| Jump/fall frame order reversed | Frame indices swapped to match sprite sheet layout |
 
 ### What Works Right Now
 
-Run `python demo_game.py --procedural --seed 12345` to test:
+Run `python demo_game.py` (menu-first launch):
 
-1. **Player Movement**: Smooth ground/air physics with acceleration/deceleration
-2. **Jumping**: Ground jump, double jump, wall jump, coyote time, jump buffering
-3. **Dash**: Quick burst of speed with cooldown, wall collision cancellation
-4. **Wall Interaction**: Wall slide is disabled; fallback wall friction + wall jump coyote buffer keep walls usable without sticking
-5. **Crouch**: Half-height collision, reduced speed, ceiling detection
-6. **Procedural Worlds**: Infinite seed-based dungeons, caves, and buildings
-7. **Camera System**: Smooth following with world/room clamping and letterboxing
-8. **Collision**: One-way platforms, wall detection, no tunneling, no wall climbing
+| Feature | Status |
+| --- | --- |
+| Menu system (main, pause, settings, mode select) | Working |
+| Campaign mode — 30 missions, 6 regions | Working |
+| Mission objectives (kill, collect, reach) | Working |
+| Victory screen on mission completion | Working (Phase 0 fix) |
+| Mission ability unlock chain | Working (Phase 0 fix) |
+| Hub worlds per region (7 hubs) | Working |
+| NPC dialogue and trading | Working |
+| Inventory system | Working |
+| Player movement (walk, run, crouch, dash) | Working |
+| Jumping (ground, double, wall, coyote, buffer) | Working |
+| Combat — 3-hit combo, air attacks | Working |
+| Shuriken projectile | Working |
+| Teleport ability | Working |
+| Ninjutsu | Working |
+| Enemies — goblin, bat, slime, skeleton, wolf | Working |
+| Hazards — spikes, lava, poison, void | Working |
+| Pickups — coins, health, items | Working |
+| Sprite animations — all player states | Working |
+| Particle effects — dust, dash, impact | Working |
+| HUD — hearts, stamina, objectives | Working |
+| Camera — world/room/free modes | Working |
+| Save/load persistence | Working |
+| Input recording and replay | Working |
+| Procedural world generation — 7 biomes | Working |
+| Minimap and full-map overlay | Working |
+| Boss system (code) | Implemented but not wired into game loop |
+| Audio | Not implemented |
+| Key binding wiring | Not implemented |
 
 ### Player Specifications
 
-```python
-# Current player dimensions and physics
-Player Size: 28x56 pixels (standing), 28x28 pixels (crouching)
-Aspect Ratio: 2:1 (height:width) - standard platformer proportions
-Tile Size: 32x32 pixels (industry standard)
-World Size: 5120x5120 pixels (160x160 tiles)
+```text
+Standing:   28 × 56 px  (2:1 ratio — under 1 tile wide, 2 tiles tall)
+Crouching:  28 × 28 px
+Tile size:  32 × 32 px
+World size: 5120 × 5120 px (160 × 160 tiles)
 
-# Physics Constants
-Gravity: 0.4 px/frame
-Max Fall Speed: 12.0 px/frame (< half tile to prevent tunneling)
-Max Run Speed: 8.0 px/frame
-Jump Power: 14.5 px/frame
-Wall Interaction: light friction clamp near walls (vy damped, clamped ~5px/frame while touching)
-Dash Speed: 16.0 px/frame
+Physics:
+  Gravity:        0.4 px/frame
+  Max fall speed: 12.0 px/frame (< half tile — no tunneling)
+  Max run speed:  8.0 px/frame
+  Jump power:     14.5 px/frame
+  Dash speed:     16.0 px/frame
+  Wall friction:  light vy clamp when touching wall
 ```
 
 ---
 
-## Completed Work
-
-### Core Infrastructure (Phase 1) - 100% Complete
-
-**Event Bus System** ([core/event_bus.py](../core/event_bus.py))
-- Priority-based pub/sub event system
-- Queue-based processing for deterministic order
-- Thread-safe event emission
-- Events: TickEvent, RenderEvent, CollisionEvent, VelocityChangeEvent, etc.
-
-**Logging System** ([core/logger.py](../core/logger.py))
-- Persistent file storage in platform-specific directories
-- Session-based log files with rotation (10MB with 3 backups)
-- User-configurable log location
-- Multi-level logging (DEBUG, INFO, WARNING, ERROR)
-
-**Game Clock** ([core/clock.py](../core/clock.py))
-- Fixed 60Hz physics timestep (Glenn Fiedler pattern)
-- Variable render rate with interpolation
-- Spiral of death prevention
-- Performance tracking and metrics
-
-**State Management** ([core/state.py](../core/state.py))
-- JSON-serializable game state
-- Snapshot/restore for rollback netcode
-- State history (5 seconds @ 60Hz = 300 snapshots)
-- PhysicsState, PlayerState, GameState classes
-
-**Entity System** ([core/entity_system.py](../core/entity_system.py))
-- Component-based architecture
-- Fast queries by type, tag, or component
-- Entity pooling ready
-- Lifecycle management
-
-**Mod System** ([core/mod_system.py](../core/mod_system.py))
-- Plugin architecture with lifecycle hooks
-- Component registration
-- Event hook system
-- Load/enable/disable/unload support
-
-### Collision System (Phase 2) - 100% Complete
-
-**Collision Detection** ([systems/collision_system.py](../systems/collision_system.py))
-- AABB collision for tiles and entities
-- Penetration resolution with normal vectors
-- Collision events for all interactions
-- Radius queries and raycasting support
-
-**Advanced Collision Features**
-- **Platform Collision**: One-way platforms using feet-based detection
-  - Works correctly with tall players (28x56)
-  - Only collides when landing from above
-  - Fixed in [collision_system.py:283-291](../systems/collision_system.py#L283-L291)
-
-- **Swept Collision**: Prevents tunneling at high speeds
-  - Traces path from previous position to current
-  - Step size: 12px (slightly under half tile)
-  - Interpolates position along movement path
-  - Fixed in [collision_system.py:319-427](../systems/collision_system.py#L319-L427)
-
-- **Corner Detection**: Smooth landings on platform edges
-  - Only activates when falling primarily downward (`abs(vy) > abs(vx) * 1.5`)
-  - Both overlap_x AND overlap_y must be small (4-14px)
-  - Prevents false positives when walking into walls
-  - Fixed in [collision_system.py:135-148](../systems/collision_system.py#L135-L148)
-
-- **Ground Detection**: Proper landing detection
-  - Requires more horizontal overlap than vertical (`overlap_y < overlap_x`)
-  - Prevents wall climbing when walking into walls sideways
-  - Feet must be within 20px of tile top
-  - Fixed in [collision_system.py:227-246](../systems/collision_system.py#L227-L246)
-
-### Player Mechanics (Phase 3) - 100% Complete (wall slide disabled for rework)
-
-**Movement Mechanic** ([mechanics/movement.py](../mechanics/movement.py))
-- Smooth interpolation instead of discrete acceleration
-- Different ground/air physics (responsive on ground, floaty in air)
-- Speed multipliers for crouch (60% speed)
-- Movement locking during dash
-
-**Jump Mechanic** ([mechanics/jump.py](../mechanics/jump.py))
-- Ground jump with variable height
-- Double jump (configurable max jumps)
-- Wall jump with horizontal boost
-- Coyote time (0.12s grace period)
-- Jump buffering (0.14s input window)
-- Crouch modifier (70% power)
-
-**Dash Mechanic** ([mechanics/dash.py](../mechanics/dash.py))
-- Quick burst at 16.0 px/frame (double normal speed)
-- 0.16s duration (~10 frames)
-- 0.45s cooldown (~27 frames)
-- Wall collision cancellation
-
-**Wall Slide Mechanic** ([mechanics/wall_slide.py](../mechanics/wall_slide.py)) — implemented, currently **disabled** while wall interaction is reworked. Fallback: wall friction + wall jump coyote buffer in player orchestrator.
-
-**Crouch Mechanic** ([mechanics/crouch.py](../mechanics/crouch.py))
-- Half-height collision box (28x28 when crouched)
-- 60% movement speed
-- 80% acceleration
-- 70% jump power
-- Ceiling detection prevents standing
-
-### Systems (Phase 4) - 95% Complete
-
-**Physics System** ([systems/physics_system.py](../systems/physics_system.py))
-- Gravity application
-- Velocity integration
-- Fall speed capping
-- Fast-fall multiplier (1.5 when holding down)
-
-**Camera System** ([systems/camera_system.py](../systems/camera_system.py)) - **NEW!**
-- **Multi-mode support**: WORLD_CLAMP, ROOM_CLAMP, FREE, LOCKED
-- **Smooth following**: Configurable lerp (0.1) and deadzone (100x80)
-- **Responsive letterboxing**: Maintains 16:9 aspect ratio at any window size
-- **Virtual resolution**: 1280x720 scaled to physical display
-- **Bounds clamping**: Prevents showing out-of-bounds areas
-- **Mode cycling**: Press 'C' key to cycle between modes
-
-**World Generation** ([systems/world_generation.py](../systems/world_generation.py), [zone_planning.py](../systems/zone_planning.py), [room_generation.py](../systems/room_generation.py))
-- Seed-based procedural generation (deterministic)
-- Hierarchical structure: World -> Biomes -> Rooms -> Zones (16x16) -> Tilemap (160x160)
-- Multi-biome support (DUNGEON, CAVE, BUILDING themes)
-- Room types: START, EXIT, SHOP, COMBAT, PLATFORM, TREASURE, BOSS
-- BFS connectivity validation
-- Door port system with alignment
-- Performance: ~2-5ms for 30-room world
-
-### Testing (Ongoing)
-
-**Test Coverage**:
-- Core infrastructure, collision, and player mechanics: strong coverage through unit, integration, and edge suites
-- World generation: covered by quick validation tests; full per-biome/per-room coverage still pending
-- Playability/regression: collision edge cases plus automated playability validation
-
-**Test Files (high level)**:
-- Unit: `tests/unit/test_core_infrastructure.py`, `tests/unit/test_collision_system.py`, `tests/unit/test_jump_mechanic.py`, `tests/unit/test_physics_system.py`
-- Integration: `tests/integration/test_player_integration.py`, `tests/integration/test_demo_simple.py`
-- Edge: `tests/edge_cases/` suite (collision and movement regressions)
-- World gen quick checks: `test_world_gen.py`, `test_zone_planning.py`, `test_zone_complexity.py`, `test_full_generation.py`
-- Playability: `test_playability_validation.py`
-
----
-
-## Recent Changes (This Session)
-
-### Session Date: 2025-12-12
-
-This session focused on fixing collision bugs and implementing the camera system.
-
-#### 1. Camera System Implementation 
-
-**Created**: [systems/camera_system.py](../systems/camera_system.py)
-
-- Implemented multi-mode camera (WORLD_CLAMP, ROOM_CLAMP, FREE, LOCKED)
-- Added smooth following with deadzone and lerp
-- Implemented responsive letterboxing for any window size
-- Virtual resolution (1280x720) with scaling
-- Integrated into [demo_game.py](../demo_game.py) with 'C' key cycling
-
-**Files Modified**:
-- Created [systems/camera_system.py](../systems/camera_system.py) (~250 lines)
-- Updated [demo_game.py](../demo_game.py) for camera integration
-- Updated [systems/__init__.py](../systems/__init__.py) to export camera classes
-
-#### 2. Tile Scaling 
-
-**Issue**: Tiles were too small, causing collision issues and visual scaling confusion
-
-**Solution**: Scaled tiles from 4px  8px  16px  32px (industry standard)
-
-**Files Modified**:
-- [demo_game.py:126](../demo_game.py#L126) - `tile_scale = 32`
-- [systems/physics_system.py:39-45](../systems/physics_system.py#L39-L45) - Reduced gravity and max fall speed
-- [entities/player.py:68-81](../entities/player.py#L68-L81) - Player dimensions updated
-
-**Impact**:
-- World size: 5120x5120 pixels (160x160 tiles @ 32px)
-- Physics tuned to prevent tunneling (max fall 12px < half tile 16px)
-
-#### 3. Player Size Adjustment 
-
-**Issue**: Player needed proper platformer proportions (2:1 height:width ratio)
-
-**Solution**: Changed player from 2020  16x16  1414  2856 (final)
-
-**Files Modified**:
-- [entities/player.py:68-81](../entities/player.py#L68-L81)
-
-**Specifications**:
-- Standing: 2856 pixels (2:1 ratio, slightly under 1 tile wide  2 tiles tall)
-- Crouching: 2828 pixels (half height)
-
-#### 4. Platform Collision Fix 
-
-**Issue**: One-way platforms not working with tall player (56px)
-
-**Root Cause**: Center-based detection (`entity_rect.centery < platform.centery`) failed because player's center could be below platform center even when landing from above
-
-**Solution**: Changed to feet-based detection (`entity_rect.bottom <= platform.bottom`)
-
-**Files Modified**:
-- [systems/collision_system.py:283-291](../systems/collision_system.py#L283-L291)
-
-**Code Change**:
-```python
-# OLD (broken with tall players)
-if entity_rect.centery < platform.centery:
-
-# NEW (works with any player height)
-if entity_rect.bottom <= platform.bottom and overlap_y > 0 and overlap_y <= 14:
-```
-
-#### 5. Wall Climbing Bug Fix 
-
-**Issue**: Player could infinitely climb walls by walking into them sideways
-
-**Root Cause #1**: Corner detection allowed large vertical overlap (up to 28px), which matched 56px tall player pressing into wall
-
-**Solution #1**: Required BOTH overlap_x AND overlap_y to be small (4-14px)
-
-**Root Cause #2**: Corner detection activated when moving horizontally, not just falling
-
-**Solution #2**: Added velocity check - only activate when `abs(vy) > abs(vx) * 1.5`
-
-**Root Cause #3**: Ground detection treated side collisions as landing on top
-
-**Solution #3**: Required more horizontal overlap than vertical (`overlap_y < overlap_x`)
-
-**Files Modified**:
-- [systems/collision_system.py:135-148](../systems/collision_system.py#L135-L148) - Corner detection fix
-- [systems/collision_system.py:227-246](../systems/collision_system.py#L227-L246) - Ground detection fix
-
-**Code Changes**:
-```python
-# Corner Detection Fix
-if (physics.vy > 0 and
-    abs(physics.vy) > abs(physics.vx) * 1.5 and  # NEW: Must be falling faster than moving sideways
-    overlap_x >= 4 and overlap_x <= 14 and
-    overlap_y >= 4 and overlap_y <= 14 and  # NEW: Both overlaps must be small
-    abs(overlap_x - overlap_y) <= 8):
-
-# Ground Detection Fix
-is_landing_on_top = (
-    feet_overlap > 0 and
-    feet_overlap <= 20 and
-    overlap_y < overlap_x and  # NEW: More horizontal overlap = landing on top
-    entity_rect.centery < tile.centery
-)
-```
-
-#### 6. Documentation Updates 
-
-**Updated Files**:
-- [docs/ARCHITECTURE.md](ARCHITECTURE.md) - Added camera system section, updated phase completion
-- [docs/WORLD_GENERATION.md](WORLD_GENERATION.md) - Updated zone grid from 55 to 16x16
-- [docs/SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) - Added camera system API, updated world gen details
-- [docs/HANDOVER.md](HANDOVER.md) - Created this comprehensive handover document (NEW)
-
----
-
-## Technical Architecture
+## Architecture
 
 ### System Hierarchy
 
-```
+```text
 Game Loop (demo_game.py)
- GameClock (60Hz fixed timestep)
-    TickEvent  Physics & Mechanics
-    RenderEvent  Rendering
- EventBus (pub/sub communication)
- EntityManager (component-based entities)
- CollisionSystem (AABB detection & resolution)
- PhysicsSystem (gravity & velocity)
- CameraSystem (smooth following & letterboxing)
- Player (orchestrates mechanics)
-     MovementMechanic
-     JumpMechanic
-     DashMechanic
-     WallSlideMechanic
-     CrouchMechanic
+  ├── GameClock (60 Hz fixed timestep)
+  ├── EventBus (pub/sub decoupling)
+  ├── GameStateManager (LANDING / MENU / PLAYING / PAUSED / DIALOGUE / SHOP)
+  ├── InputPipeline (command pattern — live / record / replay)
+  │
+  ├── Physics & Collision
+  │   ├── PhysicsSystem (gravity, velocity, tile effects)
+  │   └── CollisionSystem (AABB, swept, platform, corner)
+  │
+  ├── World Generation
+  │   ├── WorldGenerator (seed-based, 7 biome themes)
+  │   ├── ZonePlanner (16 × 16 zone grid per room)
+  │   ├── RoomGenerator (tilemap from zones)
+  │   └── ConnectivitySystem (BFS + fallback spine)
+  │
+  ├── Entities
+  │   ├── Player (orchestrates all mechanics)
+  │   │   ├── MovementMechanic, JumpMechanic, DashMechanic
+  │   │   ├── CombatMechanic, DamageMechanic
+  │   │   ├── ShurikenMechanic, TeleportMechanic, NinjutsuMechanic
+  │   │   ├── WallSlideMechanic (active — see wall slide note)
+  │   │   └── CrouchMechanic
+  │   ├── EnemyManager + EnemyAI (goblin, bat, slime, skeleton, wolf)
+  │   ├── BossManager + BossAI (6 types — NOT YET WIRED)
+  │   ├── NPCManager (story-driven dynamic spawning)
+  │   ├── HazardManager (spikes, lava, poison, void)
+  │   └── PickupManager (coins, health, items)
+  │
+  ├── Campaign Systems
+  │   ├── CampaignManager (region/ability progression)
+  │   ├── MissionSystem + MissionManager + ObjectiveTracker
+  │   ├── StoryManager + DialogueSystem + CutsceneManager
+  │   ├── InventorySystem + TradingSystem + LootSystem
+  │   └── SaveSystem (JSON persistence)
+  │
+  ├── Rendering
+  │   ├── TileLoader (PNG assets, autotiling, 7 biomes)
+  │   ├── AnimationSystem (sprite sheet state machine)
+  │   ├── SpriteManager (frame extraction, flip cache)
+  │   ├── ParticleSystem (dust, dash, impact)
+  │   ├── HazardRenderer, EnemyRenderer, PickupRenderer
+  │   ├── HUD, ObjectiveHUD, Minimap, VictoryScreen
+  │   └── CameraSystem (world/room/free, letterboxing)
+  │
+  └── UI
+      ├── MenuSystem (main, pause, settings)
+      ├── InventoryUI, ShopUI, DialogueUI, MissionMenuUI
+      └── TutorialSystem
 ```
 
 ### Data Flow
 
+```text
+Input → InputPipeline (command pattern)
+  ↓
+TickEvent → Player mechanics, EnemyAI, HazardManager
+  ↓
+PhysicsSystem → velocity integration
+  ↓
+CollisionSystem → position correction, tile effects
+  ↓
+ObjectiveTracker → mission progress checks
+  ↓
+CameraSystem → follow player
+  ↓
+RenderEvent → TileLoader, AnimationSystem, HUD, Particles
 ```
-Input  Player.process_input()
-  
-TickEvent  Mechanics.on_tick()  State changes
-  
-PhysicsSystem.apply_physics()  Velocity integration
-  
-CollisionSystem.check_and_resolve()  Position correction
-  
-CollisionEvent  Mechanics.on_collision()  State updates
-  
-CameraSystem.update()  Follow player
-  
-RenderEvent  Rendering with interpolation
-```
-
-### Key Design Patterns
-
-1. **Event-Driven Architecture**: Systems communicate via events, not direct calls
-2. **Component-Based Entities**: Mechanics are reusable components attached to entities
-3. **Fixed Timestep Physics**: Deterministic 60Hz simulation
-4. **State Management**: Serializable state for networking/replay
-5. **Modular Mechanics**: Each ability is self-contained and independently testable
 
 ---
 
-## Known Issues & Limitations
+## Completed Systems
 
-### Critical Issues
-None currently. All systems operational.
+### Core Infrastructure — 100%
 
-### Non-Critical Issues
+| File | Purpose |
+| --- | --- |
+| [core/event_bus.py](../core/event_bus.py) | Priority pub/sub event system |
+| [core/clock.py](../core/clock.py) | Fixed 60 Hz timestep (Glenn Fiedler pattern) |
+| [core/state.py](../core/state.py) | Serializable state with 5 s history for replay/rollback |
+| [core/entity_system.py](../core/entity_system.py) | Component-based entity manager |
+| [core/mod_system.py](../core/mod_system.py) | Plugin architecture with lifecycle hooks |
+| [core/logger.py](../core/logger.py) | Persistent rotating logs, platform-specific path |
 
-1. **Swept Collision Edge Case** (Low Priority)
-   - Very high speeds (>32px/frame) might still tunnel
-   - Mitigation: Physics limits prevent reaching this speed
-   - Fix: Could reduce step size further if needed
+### Collision and Physics — 100%
 
-2. **Platformcollision Threshold** (Monitoring)
-   - Current threshold: 14px for tall player (56px)
-   - Works well in testing, but may need tuning for different player sizes
-   - Location: [collision_system.py:289](../systems/collision_system.py#L289)
+| Feature | Location |
+| --- | --- |
+| AABB detection + penetration resolution | [systems/collision_system.py](../systems/collision_system.py) |
+| Swept collision (prevents tunneling) | collision_system.py L319–427 |
+| One-way platform collision (feet-based) | collision_system.py L283–291 |
+| Corner detection (smooth landings) | collision_system.py L135–148 |
+| Ground detection (prevents wall climbing) | collision_system.py L227–246 |
+| Spatial hash for tile queries | collision_system.py |
+| Gravity, velocity integration, tile effects | [systems/physics_system.py](../systems/physics_system.py) |
 
-3. **Zone Grid Visualization** (Enhancement)
-   - ASCII visualization in terminal is 1:4 scale
-   - Could add debug overlay to show zone grid in-game
-   - Low priority, dev tool only
+### Player Mechanics — 100%
 
-### Deferred Features
+| Mechanic | File | Notes |
+| --- | --- | --- |
+| Ground/air movement | [mechanics/movement.py](../mechanics/movement.py) | Smooth interpolation |
+| Jump (ground, double, wall, coyote, buffer) | [mechanics/jump.py](../mechanics/jump.py) | |
+| Dash | [mechanics/dash.py](../mechanics/dash.py) | 16 px/frame, 0.45 s cooldown |
+| Wall slide | [mechanics/wall_slide.py](../mechanics/wall_slide.py) | **Active** — see wall slide note below |
+| Crouch | [mechanics/crouch.py](../mechanics/crouch.py) | Half hitbox, ceiling detection |
+| Combat (3-hit combo + air) | [mechanics/combat_mechanic.py](../mechanics/combat_mechanic.py) | |
+| Shuriken | [mechanics/shuriken.py](../mechanics/shuriken.py) | |
+| Teleport | [mechanics/teleport.py](../mechanics/teleport.py) | Phase cursor |
+| Ninjutsu | [mechanics/ninjutsu.py](../mechanics/ninjutsu.py) | Stance + cast |
+| Damage/i-frames | [mechanics/damage.py](../mechanics/damage.py) | |
 
-The following were intentionally deferred to future phases:
+**Wall slide note**: `mechanics/wall_slide.py` is **active** and invoked by `entities/player.py`. Some older documents incorrectly state it is disabled. The fallback wall friction also remains as a safety net but is secondary.
 
-- **Spatial Partitioning** (quadtree/grid): Current brute-force collision works fine for small levels
-- **Pickup System**: Component exists but not fully integrated
-- **AI System**: Component exists but not fully integrated
-- **Comprehensive World Gen Tests**: Quick validation tests exist, full unit tests deferred
+### World Generation — 100%
+
+- 7 biome themes: **dungeon, cave, building, forest, town, sewer, hollow**
+- Hierarchical: World → Biomes → Rooms (types: start, exit, shop, combat, platform, treasure, boss)
+- Zone planning: 16 × 16 grid per room with role assignment
+- BFS connectivity validation with three-tier fallback
+- Autotiling: 3 × 3 neighbor detection for seamless terrain
+- Tile assets: PNG files in `assets/biomes/<biome>/` (real art or placeholder)
+- Performance: 2–5 ms for 30-room world
+
+### Campaign and Story — 100%
+
+- 30 missions across 6 regions (forest, town, caves, castle, sewer, hollow_depths)
+- Mission objectives: kill, collect, reach, time challenge
+- Ability-gated unlock chain (completing missions grants abilities that unlock later missions)
+- NPC dialogue trees with story branching
+- Multiple story acts and endings
+- Save/load (JSON) — mission completion, inventory, abilities, currency
+
+### Rendering — ~75%
+
+| System | Status |
+| --- | --- |
+| AnimationStateMachine (sprite sheet, all player states) | Complete |
+| SpriteManager (frame extraction, flip cache) | Complete |
+| EnemyRenderer, NPCRenderer | Complete |
+| TileLoader (PIL LANCZOS scaling, fallback colors) | Complete |
+| Autotile renderer | Complete |
+| Particle system (dust, dash, impact) | Complete |
+| HUD (hearts, stamina, objectives) | Complete |
+| Minimap + full-map overlay | Complete |
+| Victory screen | Complete |
+| Screen shake | Not implemented |
+| Flash/hit effects (beyond hurt animation) | Not implemented |
+| Audio | Not implemented |
+
+### UI — 100%
+
+- Main menu, pause menu, settings menu
+- Mode selection (campaign, arcade, sandbox)
+- Inventory UI with equipment slots
+- Shop UI, dialogue UI, mission menu
+- Tutorial system
+
+---
+
+## Known Issues and Gaps
+
+### High Priority (M1)
+
+| Issue | Impact |
+| --- | --- |
+| Boss system not wired into game loop | No boss fights despite 6 boss types and full AI implemented |
+| Ability gates not integrated into world/hub generation | Progression gating not functional |
+
+### Medium Priority (M2–M3)
+
+| Issue | Impact |
+| --- | --- |
+| Audio system absent | Silent game; settings volume sliders do nothing |
+| Key bindings not wired (config/settings.py ignored) | Settings menu key bind changes have no effect |
+| Display options (fullscreen, vsync) not wired | Settings menu display changes have no effect |
+| Screen shake | Not implemented |
+
+### Low Priority
+
+| Issue | Impact |
+| --- | --- |
+| Shuriken collision box always visible in play | Minor visual noise in non-debug play |
+| Raycast test known to fail | Test signal noise; pre-existing |
+| Build can fail if output locked by OneDrive/antivirus | Intermittent CI/build failure |
 
 ---
 
 ## Next Steps
 
-### Immediate Priority: Phase 5 - Rendering & Visual Polish
+See [PLAN_2026-03-28.md](PLAN_2026-03-28.md) for the full approved plan. Summary:
 
-The foundation is solid. The next phase focuses on transforming placeholder rectangles into polished visuals.
+| Phase | Branch | Goal |
+| --- | --- | --- |
+| Phase 0 | `fix/campaign-loop` | Campaign loop bug fixes — **done** |
+| Phase 1 | `docs/m0-completion` | Docs + UAT — **in progress** |
+| Phase 2 | `feat/boss-integration` | Wire boss encounters into campaign |
+| Phase 3 | `feat/audio-foundation` | SFX hooks and volume wiring |
+| Phase 4 | `feat/settings-wiring` | Key bindings and display options wired |
 
-#### Phase 5 Tasks (from [ROADMAP.md](ROADMAP.md))
-
-**Sprite System** (3/6)
-- [x] Sprite loader and manager (placeholder-generated)
-- [ ] Sprite sheet support
-- [x] Sprite flipping (left/right facing)
-- [ ] Layered rendering (background, player, foreground)
-- [ ] Debug visualization toggle
-- [ ] Sprite offset/anchor points
-
-**Animation System** (2/5)
-- [x] Frame-based animation
-- [x] Animation state machine (idle, run, jump, fall, wall_slide, crouch, dash)
-- [ ] Transition blending
-- [ ] Animation events (footstep, landing, etc.)
-- [ ] Sprite sheet animation support
-
-**Particle System** (3/5)
-- [x] Particle emitter base class
-- [x] Dust particles (landing)
-- [x] Trail particles (dash)
-- [ ] Impact particles (wall hit)
-- [ ] Configurable particle properties
-
-**Visual Effects** (0/4)
-- [ ] Screen shake system
-- [ ] Flash/hit effects
-- [ ] Death animation
-- [ ] Respawn effect
-
-**UI/HUD** (3/6)
-- [x] Health display
-- [x] Stamina bar (wall slide) — legacy; slide mechanic currently disabled
-- [x] Dash cooldown indicator
-- [ ] Debug overlay (FPS, position, velocity)
-- [ ] HUD positioning system
-- [ ] UI scaling support
-
-#### Success Criteria for Phase 5
-
-- Player has animated sprites for all states
-- Camera smoothly follows player ( already complete)
-- Particle effects enhance visual feedback
-- HUD displays all relevant information
-- Performance remains at 60 FPS
-
-### Suggested Workflow
-
-1. **Start with Sprite System** - Foundation for all visuals
-2. **Add Animation State Machine** - Connect animations to player state
-3. **Implement HUD** - Immediate visual feedback for testing
-4. **Add Particles** - Polish and juice
-5. **Visual Effects** - Final polish
-
-### Alternative Priorities
-
-If you want to focus on gameplay first before visuals:
-
-- **Phase 6: Gameplay Systems** (from [ROADMAP.md](ROADMAP.md))
-  - Level integration
-  - Pickup system (coins, health, power-ups)
-  - Hazard system (spikes, pits, moving platforms)
-  - Enemy system (patrol, chase, attacks)
-  - Goal/exit system
+**Long-horizon goal**: Online multiplayer via a custom launcher that manages client, server, and mod version downloads from GitHub.
 
 ---
 
@@ -530,237 +349,197 @@ If you want to focus on gameplay first before visuals:
 ### Running the Game
 
 ```bash
-# Static test level
+# Standard launch (menu-first)
 python demo_game.py
 
-# Procedural world with specific seed
+# Jump straight to campaign
+python demo_game.py --campaign
+
+# Procedural world with seed (arcade-style)
 python demo_game.py --procedural --seed 12345
 
-# Toggle between static and procedural in-game with 'P' key
-# Cycle camera modes with 'C' key
+# Record inputs for replay
+python demo_game.py --record session_name
+
+# Replay a recorded session
+python demo_game.py --replay session_name
 ```
 
-### Controls
+### In-Game Controls
 
-```
-Movement: Arrow keys / WASD
-Jump: Space / W / Up
-Dash: Shift
-Crouch: S / Down (toggle)
-Toggle Mode: P (static  procedural)
-Camera Mode: C (cycle: world  room  free)
-Free Cam: Arrow keys (when in free cam mode)
-Quit: ESC
+```text
+Movement:    Arrow keys / WASD
+Jump:        Space / W / Up
+Dash:        Shift
+Run:         Alt (hold)
+Crouch:      S / Down (hold)
+Attack:      J
+Shuriken:    K  (aim with Up/Down for diagonals)
+Teleport:    F
+Ninjutsu:    L or Q (hold for stance, release to cast)
+Inventory:   I
+Map:         M
+Minimap:     Tab
+Camera mode: C (cycle: world / room / free)
+Pause:       ESC
 ```
 
-### Testing
+### Running Tests
 
 ```bash
-# Run all core infrastructure tests
-python test_core_infrastructure.py
-
-# Run collision system tests
-python test_collision_system.py
-
-# Run jump mechanic tests
-python test_jump_mechanic.py
-
-# Run full player integration tests
-python test_player_integration.py
-
-# Run world generation tests
-python test_world_gen.py
-python test_zone_planning.py
-python test_full_generation.py
+python -m pytest tests/ -q          # all tests
+python -m pytest tests/unit/ -q     # unit tests only
+python -m pytest tests/ -x -q      # stop on first failure
 ```
 
 ### Adding New Features
 
-1. **New Mechanic**: Extend `BaseMechanic` class
-2. **New Component**: Add to `entities/components.py`
-3. **New System**: Follow pattern in `systems/`
-4. **New Event**: Add to `core/event_bus.py`
-
-See [MODDING_GUIDE.md](MODDING_GUIDE.md) for detailed examples.
-
----
-
-## Key Files & Locations
-
-### Core Systems
-
-| File | Purpose | Lines | Status |
-|------|---------|-------|--------|
-| [core/event_bus.py](../core/event_bus.py) | Pub/sub event system | ~300 |  Stable |
-| [core/logger.py](../core/logger.py) | Persistent logging | ~200 |  Stable |
-| [core/clock.py](../core/clock.py) | Fixed timestep clock | ~250 |  Stable |
-| [core/state.py](../core/state.py) | Serializable state | ~400 |  Stable |
-| [core/entity_system.py](../core/entity_system.py) | Entity/component system | ~300 |  Stable |
-| [core/mod_system.py](../core/mod_system.py) | Plugin architecture | ~250 |  Stable |
-
-### Game Systems
-
-| File | Purpose | Lines | Status |
-|------|---------|-------|--------|
-| [systems/collision_system.py](../systems/collision_system.py) | Collision detection | ~700 |  Stable |
-| [systems/physics_system.py](../systems/physics_system.py) | Physics simulation | ~150 |  Stable |
-| [systems/camera_system.py](../systems/camera_system.py) | Camera following | ~250 |  New (2025-12-12) |
-| [systems/world_generation.py](../systems/world_generation.py) | World generation | ~600 |  Stable |
-| [systems/zone_planning.py](../systems/zone_planning.py) | Zone layout | ~500 |  Stable |
-| [systems/room_generation.py](../systems/room_generation.py) | Tilemap generation | ~450 |  Stable |
-
-### Player Mechanics
-
-| File | Purpose | Lines | Status |
-|------|---------|-------|--------|
-| [entities/player.py](../entities/player.py) | Player orchestrator | ~350 |  Stable |
-| [mechanics/movement.py](../mechanics/movement.py) | Ground/air movement | ~200 |  Stable |
-| [mechanics/jump.py](../mechanics/jump.py) | All jump types | ~500 |  Stable |
-| [mechanics/dash.py](../mechanics/dash.py) | Dash mechanic | ~180 |  Stable |
-| [mechanics/wall_slide.py](../mechanics/wall_slide.py) | Wall slide mechanic | ~200 |  Stable |
-| [mechanics/crouch.py](../mechanics/crouch.py) | Crouch mechanic | ~220 |  Stable |
-
-### Documentation
-
-| File | Purpose | Status |
-|------|---------|--------|
-| [README.md](../README.md) | Project overview |  Current |
-| [docs/ARCHITECTURE.md](ARCHITECTURE.md) | System architecture |  Updated 2025-12-12 |
-| [docs/SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) | Complete API reference |  Updated 2025-12-12 |
-| [docs/WORLD_GENERATION.md](WORLD_GENERATION.md) | World gen API |  Updated 2025-12-12 |
-| [docs/ROADMAP.md](ROADMAP.md) | Development roadmap |  Needs phase update |
-| [docs/CHANGELOG.md](CHANGELOG.md) | Version history |  Needs session update |
-| [docs/DEVLOG.md](DEVLOG.md) | Development log |  Needs session entry |
-| [docs/MODDING_GUIDE.md](MODDING_GUIDE.md) | Mod development |  Current |
-| [docs/HANDOVER.md](HANDOVER.md) | This document |  New (2025-12-12) |
+- **New mechanic**: Extend `BaseMechanic` in `mechanics/base.py`
+- **New enemy type**: Add AI definition in `entities/enemy_ai.py`, register in `entities/enemy_manager.py`
+- **New mission**: Add entry to `data/missions.json`
+- **New tile asset**: Drop PNG into `assets/biomes/<biome>/tile_*.png`
+- **New system event**: Add to `core/event_bus.py`
 
 ---
 
-## Testing & Quality Assurance
+## Key Files and Locations
 
-### Test Coverage
+### Entry Points
 
-**Core Systems**: ~95% coverage
-- Event bus:  Full coverage
-- Logger:  Full coverage
-- Clock:  Full coverage
-- State:  Full coverage
-- Entity system:  Full coverage
+| File | Purpose |
+| --- | --- |
+| [demo_game.py](../demo_game.py) | Main game executable (3,600+ lines) |
+| [game/game_initialization.py](../game/game_initialization.py) | System initialization (all managers wired here) |
+| [game/play_mode.py](../game/play_mode.py) | Game mode management |
 
-**Collision System**: ~90% coverage
-- AABB detection:  Full coverage
-- Platform collision:  Full coverage
-- Swept collision:  Full coverage
-- Corner detection:  Full coverage
-- Ground detection:  Full coverage
+### Core
 
-**Player Mechanics**: ~85% coverage
-- Movement:  Full coverage
-- Jump (all types):  Full coverage
-- Dash:  Full coverage
-- Wall interaction: regression tests cover wall contact/grounding; dedicated wall slide tests paused while mechanic is disabled
-- Crouch:  Full coverage
+| File | Purpose |
+| --- | --- |
+| [core/event_bus.py](../core/event_bus.py) | Pub/sub event system |
+| [core/clock.py](../core/clock.py) | Fixed timestep clock |
+| [core/state.py](../core/state.py) | Serializable game state |
+| [core/entity_system.py](../core/entity_system.py) | Component entity manager |
 
-**World Generation**: ~30% coverage (intentionally deferred)
-- Quick validation:  Complete
-- Comprehensive unit tests:  Deferred to future phase
+### Systems
 
-### Quality Metrics
+| File | Purpose |
+| --- | --- |
+| [systems/collision_system.py](../systems/collision_system.py) | AABB + swept collision |
+| [systems/physics_system.py](../systems/physics_system.py) | Gravity + tile effects |
+| [systems/camera_system.py](../systems/camera_system.py) | Multi-mode camera |
+| [systems/world_generation.py](../systems/world_generation.py) | Procedural world with BiomeTheme enum |
+| [systems/room_generation.py](../systems/room_generation.py) | Tilemap from zone grid |
+| [systems/connectivity.py](../systems/connectivity.py) | BFS + fallback connectivity |
+| [systems/autotiling.py](../systems/autotiling.py) | 3 × 3 neighbor detection |
+| [systems/save_system.py](../systems/save_system.py) | JSON persistence |
 
-- **Code Quality**: High (modular, well-commented, consistent style)
-- **Documentation**: Excellent (comprehensive guides and API docs)
-- **Bugs**: None critical, minimal non-critical
-- **Technical Debt**: Very low (recent refactor in v0.3.0)
-- **Maintainability**: Excellent (clear separation of concerns)
+### Game / Campaign
+
+| File | Purpose |
+| --- | --- |
+| [game/hub_manager.py](../game/hub_manager.py) | Hub world generation per region |
+| [game/mission_system.py](../game/mission_system.py) | Mission definitions, 30 missions |
+| [game/mission_manager.py](../game/mission_manager.py) | Mission state tracking |
+| [game/objective_tracker.py](../game/objective_tracker.py) | Objective progress + exit unlock |
+| [game/campaign_manager.py](../game/campaign_manager.py) | Region/ability unlock progression |
+| [game/story_manager.py](../game/story_manager.py) | Story acts and events |
+| [game/dialogue_system.py](../game/dialogue_system.py) | NPC conversation trees |
+| [game/inventory_system.py](../game/inventory_system.py) | Player items |
+| [game/trading_system.py](../game/trading_system.py) | NPC shop trades |
+
+### Entities
+
+| File | Purpose |
+| --- | --- |
+| [entities/player.py](../entities/player.py) | Player orchestrator |
+| [entities/enemy_manager.py](../entities/enemy_manager.py) | Enemy spawning + update |
+| [entities/boss_manager.py](../entities/boss_manager.py) | Boss spawning (not yet wired) |
+| [entities/npc_manager.py](../entities/npc_manager.py) | Story-driven NPC spawning |
+| [entities/hazards.py](../entities/hazards.py) | Hazard collision + damage |
+| [entities/pickups.py](../entities/pickups.py) | Pickup collection |
+
+### Rendering
+
+| File | Purpose |
+| --- | --- |
+| [rendering/animation_system.py](../rendering/animation_system.py) | AnimationStateMachine, registry |
+| [rendering/sprite_manager.py](../rendering/sprite_manager.py) | Sheet loading + flip cache |
+| [rendering/tile_loader.py](../rendering/tile_loader.py) | Tile PNG loading + scaling |
+| [rendering/particles.py](../rendering/particles.py) | Dust, dash, impact effects |
+| [rendering/hud.py](../rendering/hud.py) | Hearts, stamina, dash cooldown |
+
+### Data
+
+| File | Purpose |
+| --- | --- |
+| [data/missions.json](../data/missions.json) | 30 mission definitions |
+| [data/items.json](../data/items.json) | Item definitions |
+| [data/dialogues.json](../data/dialogues.json) | NPC dialogue trees |
+| [data/hub_states.json](../data/hub_states.json) | Hub NPC spawn rules |
+
+### Config
+
+| File | Purpose |
+| --- | --- |
+| [config/settings.py](../config/settings.py) | All user settings (key bindings, volume, display) — not yet fully wired |
+| [config/physics_constants.py](../config/physics_constants.py) | Physics tuning constants |
+| [config/build_config.py](../config/build_config.py) | Production / dev / test build mode |
 
 ---
 
-## Performance Characteristics
+## Testing and QA
 
-### Current Performance
+### Test Suite: 280 tests, 42 files
 
-- **FPS**: Solid 60 FPS on modest hardware
-- **World Generation**: 2-5ms for 30-room world
-- **Collision Detection**: <1ms per frame with ~4000 tiles
-- **Memory**: <50MB RAM usage
-- **Physics**: Deterministic fixed 60Hz
+| Category | Files | Focus |
+| --- | --- | --- |
+| unit/ | 9 | Collision, physics, AI, input, UI |
+| integration/ | 4 | Player, demo, play modes, minimap |
+| world_gen/ | 5 | Generation, connectivity, zone planning |
+| edge_cases/ | 9 | Collision corners, wall, crouch-jump |
+| playability/ | 2 | Simulation validators |
+| Phase validation | 9 | Phase 1–7 regression |
+| legacy/ | 4 | Archived regressions |
 
-### Performance Considerations
+```bash
+# Run all tests
+python -m pytest tests/ -q
+# Expected: 280 passed
+```
 
-**Strengths**:
-- Fixed timestep ensures consistent performance
-- Collision system is efficient for current scale
-- Procedural generation is very fast
+### UAT
 
-**Potential Bottlenecks** (for future optimization):
-- Collision: Brute-force O(nm) (tiles  entities)
-  - Mitigation: Spatial partitioning when entity count grows
-- Rendering: No culling yet (draws all tiles)
-  - Mitigation: Add viewport culling in Phase 5
+See [docs/reviews/2026-03-25/UAT_SUITE.md](reviews/2026-03-25/UAT_SUITE.md) for the current UAT suite.
+An updated suite covering Phase 0 fixes and new systems is being created.
 
-**Recommended Optimizations** (if needed):
-1. Spatial partitioning (quadtree/grid) for collision
-2. Viewport culling for rendering
-3. Object pooling for entities
-4. Batch rendering by sprite type
+---
+
+## Performance
+
+| Metric | Value |
+| --- | --- |
+| Target FPS | 60 |
+| World generation | 2–5 ms for 30-room world |
+| Collision detection | < 1 ms per frame (~4,000 tiles, spatial hash) |
+| Memory | < 50 MB |
+| Render optimizations | O1–O10 series complete; no per-frame surface allocs in hot path |
 
 ---
 
 ## Dependencies
 
-### Python Packages
-
+```text
+pygame==2.6.1    # game framework
+Pillow           # PIL image loading for tile scaling
+PyInstaller      # production build (onefile EXE)
 ```
-pygame==2.6.1  # Game framework
-```
 
-### Python Version
+**Python**: 3.11+ required, 3.11.9 tested.
 
-- **Minimum**: Python 3.11
-- **Recommended**: Python 3.11+
-- **Tested On**: Python 3.11.9
-
-### Platform Support
-
--  Windows (tested)
--  macOS (should work, untested)
--  Linux (should work, untested)
-
-### External Assets
-
-Currently using colored rectangles for all visuals. No external assets required.
-
-**For Phase 5**, you'll need:
-- Sprite sheets (player, tiles, enemies)
-- Sound effects (optional)
-- Music (optional)
+**Platform**: Windows tested; macOS/Linux untested but should work.
 
 ---
 
-## Conclusion
-
-The project is in excellent health with a solid technical foundation. All core systems, player mechanics, collision detection, camera system, and procedural world generation are complete and working correctly.
-
-**Key Strengths**:
-1.  Modular, extensible architecture
-2.  Comprehensive documentation
-3.  High test coverage for critical systems
-4.  No blocking issues or technical debt
-5.  Clear roadmap for next phases
-
-**Next Steps**:
-- Phase 5: Rendering & Visual Polish (complete sprite/animation assets, add impact particles, HUD polish/debug overlay)
-- Networking groundwork: input command pattern, snapshot serializer, deterministic replay harness
-- Headless/CI mode: SDL dummy driver toggle, render-to-surface only, structured logging for auditing
-- OR Phase 6: Gameplay Systems (levels, pickups, hazards, enemies)
-
-**Recommended Starting Point**:
-Begin with Phase 5 (Rendering) to get visual feedback, then move to Phase 6 (Gameplay) for content.
-
----
-
-**Document Version**: 1.0
-**Last Updated**: 2025-12-12
-**Author**: AI Development Assistant (Claude Sonnet 4.5)
-**Project**: Vain Asher Gaming's: Indie Ninja Adventures
-**Status**:  Complete and Ready for Handover
+Document Version: 2.0 | Last Updated: 2026-03-28
+Author: AI Development Assistant (Claude Sonnet 4.6) | Project: Vain Asher Gaming's: Indie Ninja Adventures
