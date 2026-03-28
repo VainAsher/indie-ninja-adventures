@@ -439,6 +439,9 @@ class SettingsMenu(BaseMenu):
         self._idx_sfx_vol = len(self.items)
         self.add_item(self._label_sfx_vol(), MenuAction.NONE, callback=self._cycle_sfx_vol)
 
+        self._idx_fullscreen = len(self.items)
+        self.add_item(self._label_fullscreen(), MenuAction.NONE, callback=self._toggle_fullscreen)
+
         self.add_item("Back", MenuAction.BACK)
 
     def _label_bool(self, label: str, value: bool) -> str:
@@ -479,12 +482,22 @@ class SettingsMenu(BaseMenu):
         self._refresh_labels()
         self._apply_changes()
 
+    def _label_fullscreen(self) -> str:
+        return self._label_bool("Fullscreen", bool(self._get("fullscreen", False)))
+
+    def _toggle_fullscreen(self):
+        current = bool(self._get("fullscreen", False))
+        self._set("fullscreen", not current)
+        self._refresh_labels()
+        self._apply_changes()
+
     def _refresh_labels(self):
         self.items[self._idx_shake].label = self._label_shake()
         self.items[self._idx_particles].label = self._label_particles()
         self.items[self._idx_smoothing].label = self._label_smoothing()
         self.items[self._idx_fps].label = self._label_fps()
         self.items[self._idx_sfx_vol].label = self._label_sfx_vol()
+        self.items[self._idx_fullscreen].label = self._label_fullscreen()
 
     def _apply_changes(self):
         if self.on_change:

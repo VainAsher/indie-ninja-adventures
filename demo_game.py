@@ -1174,9 +1174,31 @@ def main():
 
     # Apply runtime settings (live changes from Settings menu)
     show_fps_overlay = False
+    _last_fullscreen = bool(runtime_settings.get("fullscreen", False))
+    player = None  # forward reference — assigned after create_player()
+
+    # Build key bindings dict from settings (defined here so apply_runtime_settings can call it)
+    def _build_key_bindings():
+        """Map settings key name strings → pygame key constants."""
+        _KEY_NAME_MAP = {
+            "left": pygame.K_LEFT, "right": pygame.K_RIGHT,
+            "up": pygame.K_UP, "down": pygame.K_DOWN,
+            "space": pygame.K_SPACE, "return": pygame.K_RETURN,
+            "shift": pygame.K_LSHIFT, "lshift": pygame.K_LSHIFT, "rshift": pygame.K_RSHIFT,
+            "ctrl": pygame.K_LCTRL, "alt": pygame.K_LALT,
+            **{chr(c): getattr(pygame, f"K_{chr(c)}", None) for c in range(ord("a"), ord("z") + 1)},
+        }
+        result = {}
+        for action in ("left", "right", "jump", "dash", "crouch"):
+            name = runtime_settings.get(f"key_{action}", None)
+            if name:
+                key_code = _KEY_NAME_MAP.get(str(name).lower())
+                if key_code is not None:
+                    result[action] = key_code
+        return result
 
     def apply_runtime_settings():
-        nonlocal show_fps_overlay
+        nonlocal show_fps_overlay, show_debug_overlay, _last_fullscreen
         camera.config.enable_shake = bool(runtime_settings.get("screenshake", True))
         smoothing = float(runtime_settings.get("camera_smoothing", 0.1))
         smoothing = max(0.02, min(0.2, smoothing))
@@ -1184,6 +1206,13 @@ def main():
         particles.enabled = bool(runtime_settings.get("particles", True))
         show_fps_overlay = bool(runtime_settings.get("show_fps", False))
         audio_manager.set_volume(float(runtime_settings.get("volume_sfx", 0.8)))
+        show_debug_overlay = bool(runtime_settings.get("show_hitboxes", False))
+        if player is not None:
+            player.set_key_bindings(_build_key_bindings())
+        desired_fs = bool(runtime_settings.get("fullscreen", False))
+        if desired_fs != _last_fullscreen:
+            pygame.display.toggle_fullscreen()
+            _last_fullscreen = desired_fs
         if not camera.config.enable_shake:
             camera.shake_intensity = 0.0
             camera.shake_duration = 0.0
@@ -1218,6 +1247,8 @@ def main():
 
     # Apply shuriken capacity bonus based on equipped armor
     apply_shuriken_capacity_bonus(player, player_inventory, item_manager)
+
+    player.set_key_bindings(_build_key_bindings())
 
     # Combat handling and camera effects
     combat_mechanic, camera_effects = create_combat_system(
