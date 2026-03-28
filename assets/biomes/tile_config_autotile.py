@@ -70,7 +70,7 @@ def _build_autotile_config() -> dict[str, dict[str, dict[str, list[str]]]]:
     Returns:
         Dictionary mapping biomes → tile types → shapes → variants
     """
-    biomes = ["dungeon", "cave", "building"]
+    biomes = ["dungeon", "cave", "building", "forest", "town", "sewer", "hollow"]
     config = {}
 
     for biome in biomes:

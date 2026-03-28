@@ -171,16 +171,60 @@ class TileLoader:
                 "solid": (100, 100, 120),  # Gray stone
                 "platform": (139, 69, 19),  # Brown
                 "decorative": (150, 100, 50),  # Bronze
+                "lava": (200, 70, 20),  # Lava
+                "water": (40, 90, 160),  # Water
+                "platform_falling": (200, 140, 60),  # Temp platform
+                "platform_moving": (60, 160, 200),  # Moving platform
             },
             "cave": {
                 "solid": (101, 67, 33),  # Brown earth
                 "platform": (121, 87, 53),  # Light brown
                 "liquid": (255, 100, 0),  # Orange lava
+                "lava": (220, 80, 20),
+                "water": (30, 80, 140),
+                "platform_falling": (190, 130, 70),
+                "platform_moving": (50, 150, 200),
             },
             "building": {
                 "solid": (64, 64, 64),  # Dark Gray
                 "platform": (160, 120, 80),  # Light wood
                 "decorative": (180, 150, 100),  # Pale wood
+                "lava": (180, 60, 20),
+                "water": (30, 90, 170),
+                "platform_falling": (210, 150, 80),
+                "platform_moving": (70, 170, 220),
+            },
+            "forest": {
+                "solid": (34, 85, 34),   # Forest green stone
+                "platform": (90, 60, 30),  # Dark bark
+                "lava": (200, 70, 20),
+                "water": (30, 100, 180),
+                "platform_falling": (110, 75, 35),
+                "platform_moving": (50, 140, 80),
+            },
+            "town": {
+                "solid": (110, 100, 90),  # Cobblestone
+                "platform": (140, 110, 70),  # Wooden plank
+                "lava": (200, 70, 20),
+                "water": (40, 90, 160),
+                "platform_falling": (160, 130, 80),
+                "platform_moving": (60, 150, 200),
+            },
+            "sewer": {
+                "solid": (50, 65, 50),   # Mossy stone
+                "platform": (60, 80, 60),  # Damp ledge
+                "lava": (180, 60, 20),
+                "water": (30, 110, 60),  # Murky green water
+                "platform_falling": (70, 90, 70),
+                "platform_moving": (40, 130, 90),
+            },
+            "hollow": {
+                "solid": (40, 35, 55),   # Deep purple-black rock
+                "platform": (55, 45, 75),  # Crystal ledge
+                "lava": (160, 40, 120),  # Corrupted magenta lava
+                "water": (20, 60, 120),
+                "platform_falling": (70, 55, 90),
+                "platform_moving": (45, 80, 140),
             },
         }
 

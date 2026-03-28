@@ -2561,12 +2561,15 @@ def main():
 
             if current_room and hasattr(current_room, "biome_theme"):
                 biome_name = current_room.biome_theme.value.lower()
-                # Map world generation biomes to tile biomes
+                # Map world generation biomes to tile asset folders
                 biome_map = {
-                    "dungeon": "dungeon",
-                    "cave": "cave",
-                    "forest": "building",  # Use building tiles for forest (placeholder)
-                    "desert": "cave",  # Use cave tiles for desert (placeholder)
+                    "dungeon":  "dungeon",
+                    "cave":     "cave",
+                    "building": "building",
+                    "forest":   "forest",
+                    "town":     "town",
+                    "sewer":    "sewer",
+                    "hollow":   "hollow",
                 }
                 current_biome = biome_map.get(biome_name, "dungeon")
 

@@ -50,7 +50,7 @@ def get_all_tiles_in_biome(biome: str) -> list[str]:
 
 def _build_biome_tiles() -> dict[str, dict[str, list[str]]]:
     """Build BIOME_TILES dictionary from extracted tiles"""
-    biomes = ["dungeon", "cave", "building"]
+    biomes = ["dungeon", "cave", "building", "forest", "town", "sewer", "hollow"]
     biome_tiles = {}
 
     for biome in biomes:

@@ -142,7 +142,10 @@ class HubManager:
         # Generate world using WorldGenerator
         generator = WorldGenerator(hub_seed)
         world = generator.generate(
-            num_biomes=1, rooms_per_biome=hub_def.room_count, shape=hub_def.world_shape
+            num_biomes=1,
+            rooms_per_biome=hub_def.room_count,
+            shape=hub_def.world_shape,
+            biome_theme=hub_def.biome_theme,
         )
 
         # Mark rooms as hub rooms
@@ -394,7 +397,7 @@ class HubManager:
             hub_type=HubType.REGION,
             display_name="Whispering Grove",
             description="A peaceful clearing in the mystical forest.",
-            biome_theme=BiomeTheme.DUNGEON,  # Will use forest theme
+            biome_theme=BiomeTheme.FOREST,
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
@@ -447,7 +450,7 @@ class HubManager:
             hub_type=HubType.REGION,
             display_name="Ashenvale Square",
             description="The heart of the troubled town.",
-            biome_theme=BiomeTheme.DUNGEON,  # Will use town theme
+            biome_theme=BiomeTheme.TOWN,
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
@@ -512,7 +515,7 @@ class HubManager:
             hub_type=HubType.REGION,
             display_name="Crystal Cavern Haven",
             description="A safe refuge deep in the crystal caverns.",
-            biome_theme=BiomeTheme.DUNGEON,  # Will use caves theme
+            biome_theme=BiomeTheme.CAVE,
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),
@@ -618,7 +621,7 @@ class HubManager:
             hub_type=HubType.REGION,
             display_name="Shadow Sewers",
             description="Toxic tunnels beneath the city.",
-            biome_theme=BiomeTheme.DUNGEON,
+            biome_theme=BiomeTheme.SEWER,
             room_count=4,
             world_shape=WorldShape.GRID,
             spawn_grid=(0, 0),

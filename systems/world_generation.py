@@ -105,6 +105,10 @@ class BiomeTheme(Enum):
     DUNGEON = "dungeon"
     CAVE = "cave"
     BUILDING = "building"
+    FOREST = "forest"
+    TOWN = "town"
+    SEWER = "sewer"
+    HOLLOW = "hollow"
 
 
 # Zone grid constants - increased from 5×5 to 16×16 for finer granularity
@@ -239,7 +243,11 @@ class WorldGenerator:
         self.rng = random.Random(seed)
 
     def generate(
-        self, num_biomes: int = 3, rooms_per_biome: int = 12, shape: WorldShape = WorldShape.BLOB
+        self,
+        num_biomes: int = 3,
+        rooms_per_biome: int = 12,
+        shape: WorldShape = WorldShape.BLOB,
+        biome_theme: "BiomeTheme | None" = None,
     ) -> World:
         """
         Generate complete world with biomes.
@@ -248,6 +256,7 @@ class WorldGenerator:
             num_biomes: Number of biome regions (1-5 recommended)
             rooms_per_biome: Average rooms per biome (8-15 recommended)
             shape: World shape style (SNAKE, BRANCHY, or BLOB)
+            biome_theme: Force all rooms to this theme (used by single-biome hub generation)
 
         Returns:
             Complete World object with all biomes and rooms
@@ -259,7 +268,7 @@ class WorldGenerator:
 
         # Divide rooms into biomes
         all_rooms_list = list(rooms_dict.values())
-        biomes = self._create_biomes(all_rooms_list, num_biomes)
+        biomes = self._create_biomes(all_rooms_list, num_biomes, forced_theme=biome_theme)
 
         # Set start and exit rooms
         start_room = rooms_dict[start_pos]
@@ -499,15 +508,20 @@ class WorldGenerator:
             return (x + 1, y)
         return pos
 
-    def _create_biomes(self, all_rooms: list[RoomNode], num_biomes: int) -> list[Biome]:
+    def _create_biomes(
+        self,
+        all_rooms: list[RoomNode],
+        num_biomes: int,
+        forced_theme: "BiomeTheme | None" = None,
+    ) -> list[Biome]:
         """
         Divide rooms into biomes and assign themes.
 
         Rooms are grouped spatially into biomes with different themes.
         """
         if num_biomes == 1:
-            # Single biome
-            theme = BiomeTheme.DUNGEON
+            # Single biome — use forced_theme if provided, else default to DUNGEON
+            theme = forced_theme if forced_theme is not None else BiomeTheme.DUNGEON
             for room in all_rooms:
                 room.biome_theme = theme
             # Find start room or use first room as fallback

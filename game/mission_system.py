@@ -42,6 +42,8 @@ class MissionObjective:
     description: str
     target_count: int = 1  # For kill/collect/switch objectives
     target_location: str | None = None  # For reach objectives (e.g., "shrine")
+    item: str | None = None  # For collect_items objectives
+    boss: str | None = None  # For defeat_boss objectives
     time_limit: float | None = None  # For time challenge (seconds)
 
 
@@ -115,7 +117,7 @@ REGION_METADATA = {
     "forest": {
         "display_name": "Whispering Forest",
         "description": "Ancient woodland full of secrets.",
-        "biome_theme": BiomeTheme.DUNGEON,
+        "biome_theme": BiomeTheme.FOREST,
         "hub_room_count": 8,
     },
     "town": {
@@ -139,7 +141,7 @@ REGION_METADATA = {
     "sewer": {
         "display_name": "Shadow Sewers",
         "description": "Toxic tunnels beneath the city.",
-        "biome_theme": BiomeTheme.DUNGEON,
+        "biome_theme": BiomeTheme.SEWER,
         "hub_room_count": 8,
     },
 }
@@ -313,6 +315,8 @@ class MissionRegistry:
             description=data.get("description", ""),
             target_count=target_count,
             target_location=data.get("location"),
+            item=data.get("item"),
+            boss=data.get("boss"),
             time_limit=time_limit,
         )
 
