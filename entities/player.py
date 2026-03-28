@@ -190,10 +190,29 @@ class Player:
         self._down_key_held = False  # For fast-fall mechanic
         self._last_air_anim = "jump"
 
+        # Configurable key bindings (action → pygame key code).
+        # Updated at runtime via set_key_bindings(); defaults fall back to
+        # hardcoded constants so WASD + arrows always work out of the box.
+        self._key_bindings: dict[str, int] = {}
+
         self.logger.info(
             f"Player {player_id} initialized at ({spawn_x}, {spawn_y}) "
             f"with {len(self.mechanics)} mechanics"
         )
+
+    # ------------------------------------------------------------------
+    # Key binding configuration
+    # ------------------------------------------------------------------
+
+    def set_key_bindings(self, bindings: dict[str, int]) -> None:
+        """
+        Set runtime key bindings for configurable actions.
+
+        Args:
+            bindings: Mapping of action name → pygame key constant.
+                      Recognised actions: left, right, jump, dash, crouch.
+        """
+        self._key_bindings = dict(bindings)
 
     def on_tick(self, event: TickEvent):
         """
@@ -335,22 +354,26 @@ class Player:
             except Exception:
                 return False
 
-        # Movement input (handle both dict and sequence-like keys)
-        left = key_down(pygame.K_a) or key_down(pygame.K_LEFT)
-        right = key_down(pygame.K_d) or key_down(pygame.K_RIGHT)
+        def bound(action: str, default: int) -> bool:
+            """Check either the settings-bound key or the default for this action."""
+            return key_down(self._key_bindings.get(action, default))
+
+        # Movement input — WASD fixed; arrow/configurable key from bindings
+        left = key_down(pygame.K_a) or bound("left", pygame.K_LEFT)
+        right = key_down(pygame.K_d) or bound("right", pygame.K_RIGHT)
 
         target_dir = (-1 if left else 0) + (1 if right else 0)
         self.movement.set_input(target_dir)
 
         # Jump input (with toggle detection)
-        jump_key = key_down(pygame.K_SPACE) or key_down(pygame.K_w) or key_down(pygame.K_UP)
+        jump_key = key_down(pygame.K_w) or key_down(pygame.K_UP) or bound("jump", pygame.K_SPACE)
 
         if jump_key and not self._jump_key_held:
             self.jump.request_jump()
         self._jump_key_held = jump_key
 
         # Dash input (with toggle detection)
-        dash_key = key_down(pygame.K_LSHIFT) or key_down(pygame.K_RSHIFT)
+        dash_key = key_down(pygame.K_LSHIFT) or bound("dash", pygame.K_RSHIFT)
 
         if dash_key and not self._dash_key_held:
             if self.feature_flags.get("dash", True):
@@ -358,7 +381,7 @@ class Player:
         self._dash_key_held = dash_key
 
         # Crouch input (with toggle detection)
-        crouch_key = key_down(pygame.K_s) or key_down(pygame.K_DOWN)
+        crouch_key = key_down(pygame.K_s) or bound("crouch", pygame.K_DOWN)
         if self.feature_flags.get("crouch", True):
             self.crouch.set_crouch(crouch_key)
         self._crouch_key_held = crouch_key
