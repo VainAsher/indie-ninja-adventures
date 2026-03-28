@@ -531,6 +531,7 @@ def main():
     campaign_data = game_managers["campaign_data"]
     hub_manager = game_managers["hub_manager"]
     portal_manager = game_managers["portal_manager"]
+    gate_manager = game_managers["gate_manager"]
     objective_tracker = game_managers["objective_tracker"]
     objective_hud_renderer = game_managers["objective_hud_renderer"]
     game_state_manager = game_managers["game_state_manager"]
@@ -1000,6 +1001,58 @@ def main():
     physics_system = physics_collision["physics_system"]
     collision_system = physics_collision["collision_system"]
     enemy_manager = physics_collision["enemy_manager"]
+    boss_manager = physics_collision["boss_manager"]
+
+    def _maybe_spawn_boss(mission_def, exit_x, exit_y):
+        """Clear any previous boss and spawn one if the mission has a defeat_boss objective."""
+        from entities.boss_manager import BossType
+        from game.mission_registry import ObjectiveType
+        boss_manager.clear()
+        # Derive boss type from the defeat_boss objective (source of truth in missions.json)
+        boss_field = None
+        for obj in mission_def.objectives:
+            if obj.objective_type == ObjectiveType.DEFEAT_BOSS and obj.boss:
+                boss_field = obj.boss
+                break
+        if not boss_field:
+            return
+        try:
+            boss_type = BossType[boss_field]
+        except KeyError:
+            print(f"[BOSS] Unknown boss type '{boss_field}' in mission {mission_def.mission_id}")
+            return
+        # Place boss near the exit; fall back to a fixed offset from spawn if no exit
+        bx = (exit_x - 64) if exit_x is not None else 400.0
+        by = (exit_y - 96) if exit_y is not None else 300.0
+        boss_manager.spawn_boss(boss_type, bx, by)
+        boss_manager.start_boss_battle(mission_def.mission_id)
+        print(f"[BOSS] Spawned {boss_field} for mission {mission_def.mission_id}")
+
+    # Region → ability required to enter (None = always open)
+    _REGION_GATE_ABILITY = {
+        "caves_hub": "double_jump",
+        "castle_hub": "dash",
+        "sewer_hub": "wall_jump",
+        "hollow_hub": "shuriken",
+    }
+
+    def _rebuild_hub_gates():
+        """Place ability gates in front of locked-region portals in the hub."""
+        from entities.ability_gate import AbilityRequirement, GateType
+        gate_manager.clear()
+        unlocked = set(campaign_data.unlocked_abilities) if campaign_data else {"basic_movement", "jump"}
+        unlocked |= {"basic_movement", "jump"}
+
+        for portal in portal_manager.portals:
+            dest = portal.destination_id
+            required = _REGION_GATE_ABILITY.get(dest)
+            if required is None:
+                continue
+            if required in unlocked:
+                continue
+            # Place a LOCKED_DOOR gate at the portal position (player must have ability to pass)
+            gate_manager.add_gate(GateType.LOCKED_DOOR, portal.x, portal.y)
+            print(f"[GATE] Placed gate at {dest} portal — requires {required}")
 
     def _carry_entities(entities, old_rect: pygame.Rect, dx: float, dy: float = 0.0):
         if dx == 0 and dy == 0:
@@ -1263,6 +1316,7 @@ def main():
             GAME_HEIGHT=GAME_HEIGHT,
         )
         refresh_platform_state()
+        _rebuild_hub_gates()
         current_world_context = "hub"
         level_complete = False
         current_hub_id = target_hub
@@ -1571,6 +1625,15 @@ def main():
                         knockback_y=-120.0,
                         stun_duration=0.35,
                     )
+                # Also check boss collision (spatial overlap required)
+                if boss_manager.is_boss_active():
+                    _ab = boss_manager.get_active_boss()
+                    if _ab:
+                        _bx, _by, _bw, _bh = _ab.get_rect()
+                        _sword_rect = pygame.Rect(int(attack_x), int(attack_y), sword_w, sword_h)
+                        _boss_rect = pygame.Rect(int(_bx), int(_by), _bw, _bh)
+                        if _sword_rect.colliderect(_boss_rect):
+                            boss_manager.damage_boss(2)
                 attack_timer = attack_cooldown
                 attack_fx_rect = pygame.Rect(attack_x, attack_y, sword_w, sword_h)
                 attack_fx_timer = 0.12
@@ -1897,6 +1960,7 @@ def main():
                             mission_def=mission_def,
                         )
                         refresh_platform_state()
+                        _maybe_spawn_boss(mission_def, exit_x, exit_y)
                         current_world_context = "mission"
                         update_replay_metadata_wrapper(mission_def.mission_id)
 
@@ -2181,6 +2245,7 @@ def main():
                             mission_def=mission_def,
                         )
                         refresh_platform_state()
+                        _maybe_spawn_boss(mission_def, exit_x, exit_y)
                         if objective_tracker:
                             targets = build_objective_location_targets(
                                 world, megamap, spawn_x, spawn_y, exit_x, exit_y
@@ -2278,6 +2343,21 @@ def main():
                 profiler=profiler,
             )
             profiler.end("enemy_manager")
+
+            # Update boss (if active)
+            if boss_manager.is_boss_active():
+                boss_damage = boss_manager.update(
+                    dt=1.0 / FPS,
+                    player_x=player.state.physics.x,
+                    player_y=player.state.physics.y,
+                    player_width=player.state.physics.width,
+                    player_height=player.state.physics.height,
+                    player_hp=player.state.health_state.current_hp,
+                    player_max_hp=player.state.health_state.max_hp,
+                )
+                if boss_damage and not player.damage.is_invincible(player.state):
+                    player.take_damage(boss_damage)
+
             # Decay sword attack cooldown
             if attack_timer > 0.0:
                 attack_timer -= 1.0 / FPS
@@ -2326,10 +2406,21 @@ def main():
                         player_height=player.state.physics.height,
                     )
                     if nearby_portal:
-                        portal_manager.interact_with_portal(nearby_portal, player_id=0)
-                        print(
-                            f"[PORTAL] Activated {nearby_portal.portal_id} -> {nearby_portal.destination_id}"
-                        )
+                        # Check ability gate — block portal if player lacks required ability
+                        from entities.ability_gate import AbilityRequirement
+                        _gate_blocked = False
+                        if current_world_context == "hub":
+                            _req = _REGION_GATE_ABILITY.get(nearby_portal.destination_id)
+                            _unlocked = set(campaign_data.unlocked_abilities) if campaign_data else set()
+                            _unlocked |= {"basic_movement", "jump"}
+                            if _req and _req not in _unlocked:
+                                _gate_blocked = True
+                                print(f"[GATE] {nearby_portal.destination_id} locked — requires {_req}")
+                        if not _gate_blocked:
+                            portal_manager.interact_with_portal(nearby_portal, player_id=0)
+                            print(
+                                f"[PORTAL] Activated {nearby_portal.portal_id} -> {nearby_portal.destination_id}"
+                            )
                     else:
                         # Find NPCs in interaction range
                         nearby_npcs = npc_manager.get_nearby_npcs(
@@ -2911,6 +3002,32 @@ def main():
                              (tail_x, tail_y),
                              (tail_x - int(perp_cos * 3), tail_y - int(perp_sin * 3)), 1)
 
+        # Draw active boss
+        if boss_manager.is_boss_active():
+            active_boss = boss_manager.get_active_boss()
+            if active_boss:
+                bx, by, bw, bh = active_boss.get_rect()
+                boss_screen_rect = camera.apply(pygame.Rect(int(bx), int(by), bw, bh))
+                # Boss body (dark crimson fill)
+                pygame.draw.rect(game_surface, (120, 20, 20), boss_screen_rect)
+                pygame.draw.rect(game_surface, (220, 60, 60), boss_screen_rect, width=3)
+                # Health bar above boss
+                defn = active_boss.get_definition()
+                hp_ratio = active_boss.health / defn.max_health if defn.max_health > 0 else 0
+                bar_w = boss_screen_rect.width
+                bar_rect = pygame.Rect(boss_screen_rect.x, boss_screen_rect.y - 12, bar_w, 8)
+                pygame.draw.rect(game_surface, (60, 0, 0), bar_rect)
+                pygame.draw.rect(game_surface, (220, 40, 40), pygame.Rect(bar_rect.x, bar_rect.y, int(bar_w * hp_ratio), 8))
+                # Boss name label
+                _boss_font = pygame.font.Font(None, 18)
+                lbl = _boss_font.render(defn.display_name, True, (255, 200, 200))
+                game_surface.blit(lbl, (boss_screen_rect.centerx - lbl.get_width() // 2, bar_rect.y - 14))
+            # Draw boss projectiles
+            for proj in boss_manager.get_projectiles():
+                px, py, pw, ph = proj.get_rect()
+                proj_screen = camera.apply(pygame.Rect(int(px), int(py), pw, ph))
+                pygame.draw.ellipse(game_surface, (255, 140, 40), proj_screen)
+
         profiler.end("render_enemies")
 
         # Draw NPCs (v0.6.0 - Phase 2)
@@ -3119,22 +3236,25 @@ def main():
         def get_objective_target():
             if not objective_tracker or not objective_tracker.get_incomplete_objectives():
                 return None
-            # Kill objectives -> nearest living enemy
-            kill_objs = [
-                o
-                for o in objective_tracker.get_incomplete_objectives()
-                if o.objective_type.value == "kill_all_enemies"
-            ]
-            collect_objs = [
-                o
-                for o in objective_tracker.get_incomplete_objectives()
-                if o.objective_type.value == "collect_items"
-            ]
-            reach_objs = [
-                o
-                for o in objective_tracker.get_incomplete_objectives()
-                if o.objective_type.value == "reach_location"
-            ]
+
+            incomplete = objective_tracker.get_incomplete_objectives()
+
+            # Boss missions: boss is always primary target while alive.
+            # Other objectives are suppressed until boss is defeated.
+            boss_objs = [o for o in incomplete if o.objective_type.value == "defeat_boss"]
+            if boss_objs and boss_manager.is_boss_active():
+                active_boss = boss_manager.get_active_boss()
+                if active_boss:
+                    return active_boss.get_center()
+                return None  # boss obj incomplete but no entity yet — wait
+
+            # Boss obj present but boss already dead (or not spawned) — fall through
+            # to normal objective priority only for non-boss objectives.
+            non_boss_incomplete = [o for o in incomplete if o.objective_type.value != "defeat_boss"]
+
+            kill_objs = [o for o in non_boss_incomplete if o.objective_type.value == "kill_all_enemies"]
+            collect_objs = [o for o in non_boss_incomplete if o.objective_type.value == "collect_items"]
+            reach_objs = [o for o in non_boss_incomplete if o.objective_type.value == "reach_location"]
 
             player_center = (
                 player.state.physics.x + player.state.physics.width / 2,
@@ -3151,7 +3271,6 @@ def main():
                     return living[0].get_center()
 
             if collect_objs:
-                # Use collectibles first, else coins
                 pickups = [
                     p
                     for p in pickup_manager.get_alive_pickups()

@@ -313,6 +313,11 @@
       "description": "Explore every corner of the hidden grove.",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Shadow Lord",
+          "boss": "SHADOW_LORD"
+        },
+        {
           "type": "collect_items",
           "description": "Collect all treasure",
           "item": "treasure_chest",
@@ -361,7 +366,8 @@
       "story_trigger": null,
       "hub_impact": {
         "degradation_increase": 1
-      }
+      },
+      "boss": "SHADOW_LORD"
     },
     {
       "mission_id": "town_1",
@@ -658,6 +664,11 @@
       "description": "Set off fireworks for the festival celebration!",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Fire Demon",
+          "boss": "FIRE_DEMON"
+        },
+        {
           "type": "collect_items",
           "description": "Collect firework canisters",
           "item": "firework",
@@ -701,7 +712,8 @@
       ],
       "act": 3,
       "story_trigger": null,
-      "hub_impact": null
+      "hub_impact": null,
+      "boss": "FIRE_DEMON"
     },
     {
       "mission_id": "caves_1",
@@ -929,6 +941,11 @@
       "description": "Find all the hidden treasure in the caves.",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Ice Queen",
+          "boss": "ICE_QUEEN"
+        },
+        {
           "type": "collect_items",
           "description": "Find all treasure chests",
           "item": "treasure_chest",
@@ -969,7 +986,8 @@
       ],
       "act": 3,
       "story_trigger": null,
-      "hub_impact": null
+      "hub_impact": null,
+      "boss": "ICE_QUEEN"
     },
     {
       "mission_id": "castle_1",
@@ -1253,6 +1271,11 @@
       "description": "Complete the king's ultimate challenge!",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Dragon",
+          "boss": "DRAGON"
+        },
+        {
           "type": "time_challenge",
           "description": "Complete within 5 minutes",
           "time_limit": 300.0
@@ -1302,7 +1325,8 @@
       ],
       "act": 4,
       "story_trigger": null,
-      "hub_impact": null
+      "hub_impact": null,
+      "boss": "DRAGON"
     },
     {
       "mission_id": "sewer_1",
@@ -1423,6 +1447,11 @@
       "description": "Uncover the ancient secrets beneath the castle.",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Necromancer",
+          "boss": "NECROMANCER"
+        },
+        {
           "type": "collect_items",
           "description": "Find all ancient tablets",
           "item": "ancient_tablet",
@@ -1478,7 +1507,8 @@
       ],
       "act": 4,
       "story_trigger": "final_confrontation",
-      "hub_impact": null
+      "hub_impact": null,
+      "boss": "NECROMANCER"
     },
     {
       "mission_id": "hollow_1",
@@ -1611,6 +1641,11 @@
       "description": "Ascend from the Hollow Depths. The hub awaits, changed but hopeful.",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Veil Maiden",
+          "boss": "VEIL_MAIDEN"
+        },
+        {
           "type": "reach_location",
           "description": "Return to the Central Hub",
           "location": "hub_entrance"
@@ -1649,7 +1684,8 @@
       "hub_impact": {
         "act_transition": 3,
         "hub_restored": true
-      }
+      },
+      "boss": "VEIL_MAIDEN"
     }
   ]
 }

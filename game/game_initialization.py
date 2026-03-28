@@ -25,6 +25,7 @@ from config.build_config import get_build_config
 from core import EntityManager, EntityType, EventBus, GameClock, GameLogger
 from entities import HazardManager, PickupManager, PlayerDamageEvent
 from entities.companions import CompanionOrbs
+from entities.boss_manager import BossManager
 from entities.enemy_manager import EnemyManager
 from entities.npc import NPCManager
 from entities.player import Player
@@ -34,6 +35,7 @@ from game.hub_manager import HubManager
 from game.inventory_system import Inventory, get_item_manager, initialize_item_manager
 from game.level_manager import LevelManager
 from game.objective_tracker import ObjectiveTracker
+from entities.ability_gate import GateManager, GateType
 from game.portal_system import PortalManager
 from game.story_manager import StoryManager
 from game.trading_system import TradingManager
@@ -300,6 +302,7 @@ def create_game_managers(
     # Hub/portal systems
     hub_manager = HubManager(base_hub_seed)
     portal_manager = PortalManager(bus)
+    gate_manager = GateManager()
 
     # Objective tracking
     objective_tracker = ObjectiveTracker(bus)
@@ -356,6 +359,7 @@ def create_game_managers(
         "campaign_data": campaign_data,
         "hub_manager": hub_manager,
         "portal_manager": portal_manager,
+        "gate_manager": gate_manager,
         "objective_tracker": objective_tracker,
         "objective_hud_renderer": objective_hud_renderer,
         "game_state_manager": game_state_manager,
@@ -381,16 +385,18 @@ def create_physics_and_collision(
         current_seed: Current world seed
 
     Returns:
-        Dict with keys: physics_system, collision_system, enemy_manager
+        Dict with keys: physics_system, collision_system, enemy_manager, boss_manager
     """
     physics_system = PhysicsSystem(bus, entity_manager, logger.get_logger("physics"))
     collision_system = CollisionSystem(bus, entity_manager, logger.get_logger("collision"))
     enemy_manager = EnemyManager(bus, current_seed if current_seed else 0)
+    boss_manager = BossManager(bus, current_seed if current_seed else 0)
 
     return {
         "physics_system": physics_system,
         "collision_system": collision_system,
         "enemy_manager": enemy_manager,
+        "boss_manager": boss_manager,
     }
 
 
