@@ -663,3 +663,209 @@ class MenuManager:
         menu = self.get_current_menu()
         if menu:
             menu.render(surface)
+
+
+# ---------------------------------------------------------------------------
+# Debug Ability Menu
+# ---------------------------------------------------------------------------
+
+class DebugAbilityMenu:
+    """
+    Password-protected overlay for toggling player abilities during testing.
+
+    Phases:
+      1. PASSWORD — player types the password (shown as asterisks).
+      2. ABILITIES — ability list with ON/OFF toggles.
+
+    Toggling an ability calls `on_toggle()` so the caller can immediately
+    sync player feature-flags and rebuild hub gates.
+
+    Trigger: F9 (handled externally — caller creates/destroys this object).
+    Password: "devmode"
+    """
+
+    _PASSWORD = "devmode"
+    _ABILITIES = [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "wall_jump",
+        "dash",
+        "shuriken",
+        "teleport",
+        "ninjutsu",
+    ]
+
+    def __init__(
+        self,
+        screen_width: int,
+        screen_height: int,
+        campaign_data,          # CampaignSaveData; may be None
+        on_toggle: callable,    # called with no args after every toggle
+    ):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self._campaign_data = campaign_data
+        self._on_toggle = on_toggle
+
+        self._phase = "password"   # "password" | "abilities"
+        self._pwd_input = ""
+        self._pwd_wrong = False
+        self._selected = 0
+
+        self._title_font = pygame.font.SysFont("impact", 46)
+        self._font = pygame.font.SysFont("consolas", 28)
+        self._small_font = pygame.font.SysFont("consolas", 20)
+
+    @property
+    def authenticated(self) -> bool:
+        return self._phase == "abilities"
+
+    def handle_event(self, event) -> bool:
+        """
+        Feed a raw pygame event.
+        Returns False when the menu should close (ESC pressed).
+        """
+        if event.type != pygame.KEYDOWN:
+            return True
+        if self._phase == "password":
+            return self._handle_password_key(event)
+        return self._handle_abilities_key(event)
+
+    def _handle_password_key(self, event) -> bool:
+        if event.key == pygame.K_ESCAPE:
+            return False
+        if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            if self._pwd_input == self._PASSWORD:
+                self._phase = "abilities"
+                self._pwd_wrong = False
+            else:
+                self._pwd_wrong = True
+                self._pwd_input = ""
+        elif event.key == pygame.K_BACKSPACE:
+            self._pwd_input = self._pwd_input[:-1]
+            self._pwd_wrong = False
+        else:
+            ch = event.unicode
+            if ch and ch.isprintable() and len(self._pwd_input) < 24:
+                self._pwd_input += ch
+        return True
+
+    def _handle_abilities_key(self, event) -> bool:
+        if event.key == pygame.K_ESCAPE:
+            return False
+        if event.key == pygame.K_UP:
+            self._selected = (self._selected - 1) % len(self._ABILITIES)
+        elif event.key == pygame.K_DOWN:
+            self._selected = (self._selected + 1) % len(self._ABILITIES)
+        elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+            self._toggle_selected()
+        return True
+
+    def _toggle_selected(self):
+        if self._campaign_data is None:
+            return
+        ability = self._ABILITIES[self._selected]
+        abilities = self._campaign_data.unlocked_abilities
+        if ability in abilities:
+            abilities.discard(ability)
+        else:
+            abilities.add(ability)
+        self._on_toggle()
+
+    # ------------------------------------------------------------------
+    # Rendering
+    # ------------------------------------------------------------------
+
+    def render(self, surface: pygame.Surface):
+        cx = self.screen_width // 2
+
+        overlay = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
+        overlay.fill((4, 4, 12, 215))
+        surface.blit(overlay, (0, 0))
+
+        # Red border strip at top
+        pygame.draw.rect(surface, (180, 30, 30), (0, 0, self.screen_width, 6))
+
+        if self._phase == "password":
+            self._render_password(surface, cx)
+        else:
+            self._render_abilities(surface, cx)
+
+    def _render_password(self, surface, cx):
+        title = self._title_font.render("DEV  —  Ability Menu", True, (255, 70, 70))
+        surface.blit(title, title.get_rect(centerx=cx, y=150))
+
+        sub = self._small_font.render("Testing tool — password required", True, (160, 100, 100))
+        surface.blit(sub, sub.get_rect(centerx=cx, y=210))
+
+        prompt = self._font.render("Enter password:", True, (200, 200, 220))
+        surface.blit(prompt, prompt.get_rect(centerx=cx, y=290))
+
+        masked = "*" * len(self._pwd_input) + "\u258c"  # block cursor
+        pwd_surf = self._font.render(masked, True, (255, 255, 100))
+        surface.blit(pwd_surf, pwd_surf.get_rect(centerx=cx, y=338))
+
+        if self._pwd_wrong:
+            err = self._small_font.render("Incorrect password.", True, (255, 80, 80))
+            surface.blit(err, err.get_rect(centerx=cx, y=395))
+
+        hint = self._small_font.render("[ENTER] Confirm     [ESC] Close", True, (100, 100, 120))
+        surface.blit(hint, hint.get_rect(centerx=cx, y=460))
+
+    def _render_abilities(self, surface, cx):
+        title = self._title_font.render("DEV  —  Ability Toggle", True, (255, 70, 70))
+        surface.blit(title, title.get_rect(centerx=cx, y=60))
+
+        warn = self._small_font.render(
+            "Changes take effect immediately — gates rebuild on each toggle.",
+            True, (255, 160, 60),
+        )
+        surface.blit(warn, warn.get_rect(centerx=cx, y=118))
+
+        unlocked: set = (
+            set(self._campaign_data.unlocked_abilities)
+            if self._campaign_data
+            else set()
+        )
+
+        start_y = 158
+        row_h = 46
+
+        for i, ability in enumerate(self._ABILITIES):
+            enabled = ability in unlocked
+            is_sel = i == self._selected
+            row_y = start_y + i * row_h
+
+            # Row highlight
+            if is_sel:
+                hl = pygame.Surface((460, row_h - 4), pygame.SRCALPHA)
+                hl.fill((255, 255, 80, 28))
+                surface.blit(hl, hl.get_rect(centerx=cx, y=row_y))
+
+            label_col = (255, 255, 100) if is_sel else (190, 190, 210)
+            label_surf = self._font.render(ability, True, label_col)
+            surface.blit(label_surf, label_surf.get_rect(right=cx - 10, centery=row_y + row_h // 2))
+
+            state_txt = " ON " if enabled else "OFF"
+            state_col = (80, 240, 80) if enabled else (220, 80, 80)
+            state_surf = self._font.render(f"[{state_txt}]", True, state_col)
+            surface.blit(state_surf, state_surf.get_rect(left=cx + 10, centery=row_y + row_h // 2))
+
+            if is_sel:
+                arrow = self._font.render(">", True, (255, 255, 80))
+                surface.blit(arrow, arrow.get_rect(right=cx - label_surf.get_width() - 20,
+                                                   centery=row_y + row_h // 2))
+
+        hint_y = start_y + len(self._ABILITIES) * row_h + 14
+        hint = self._small_font.render(
+            "[↑↓] Navigate     [SPACE / ENTER] Toggle     [ESC] Close",
+            True, (100, 100, 120),
+        )
+        surface.blit(hint, hint.get_rect(centerx=cx, y=hint_y))
+
+        if self._campaign_data is None:
+            no_data = self._small_font.render(
+                "No campaign save data — start a campaign first.", True, (255, 120, 120)
+            )
+            surface.blit(no_data, no_data.get_rect(centerx=cx, y=hint_y + 28))

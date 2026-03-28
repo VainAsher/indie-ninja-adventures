@@ -114,6 +114,7 @@ from ui import (
     PauseMenu,
     SettingsMenu,
 )
+from ui.menu_system import DebugAbilityMenu
 
 # Phase 2: Dialogue System
 from ui.mission_menu import MissionDisplay, MissionStatus
@@ -1177,6 +1178,9 @@ def main():
     _last_fullscreen = bool(runtime_settings.get("fullscreen", False))
     player = None  # forward reference — assigned after create_player()
 
+    # Debug ability menu (F9 to open; password "devmode")
+    _debug_ability_menu: DebugAbilityMenu | None = None
+
     # Build key bindings dict from settings (defined here so apply_runtime_settings can call it)
     def _build_key_bindings():
         """Map settings key name strings → pygame key constants."""
@@ -1564,6 +1568,26 @@ def main():
                 if dev_console and dev_console.visible:
                     if dev_console.handle_keydown(event):
                         continue
+
+                # F9 — toggle debug ability menu
+                if event.key == pygame.K_F9:
+                    if _debug_ability_menu is None:
+                        def _on_ability_toggle():
+                            sync_player_abilities(campaign_data.unlocked_abilities)
+                            _rebuild_hub_gates()
+                            print(f"[DEBUG] Abilities: {sorted(campaign_data.unlocked_abilities)}")
+                        _debug_ability_menu = DebugAbilityMenu(
+                            GAME_WIDTH, GAME_HEIGHT, campaign_data, _on_ability_toggle
+                        )
+                    else:
+                        _debug_ability_menu = None
+                    continue
+
+                # Route all keyboard input to debug ability menu when it's open
+                if _debug_ability_menu is not None:
+                    if not _debug_ability_menu.handle_event(event):
+                        _debug_ability_menu = None
+                    continue
 
             # Suppress raw KEYDOWN events while in dialogue — actual dialogue
             # input (including ESC-to-dismiss) is handled via pressed_once below
@@ -3883,6 +3907,10 @@ def main():
             game_surface.blit(shared_text, shared_rect)
 
         profiler.end("render_hud")
+
+        # Render debug ability menu on top of everything (F9)
+        if _debug_ability_menu is not None:
+            _debug_ability_menu.render(game_surface)
 
         # Auto-save periodically
         persist_story_state_wrapper()  # Update story state before auto-save (v0.7.0)
