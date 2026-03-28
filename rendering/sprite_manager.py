@@ -65,8 +65,24 @@ class SpriteSheet:
         self.frame_width = self.sheet_width // frame_count
         self.frame_height = self.sheet_height
 
-    def get_frames(self) -> list[pygame.Surface]:
-        """Extract all frames from the sprite sheet"""
+    def get_frames(self, boundaries: list[int] | None = None) -> list[pygame.Surface]:
+        """Extract all frames from the sprite sheet.
+
+        Args:
+            boundaries: Optional list of x-positions [x0, x1, x2, ..., end] defining
+                        variable-width frame cuts. len(boundaries) - 1 == frame count.
+                        When None, frames are split evenly using frame_count.
+        """
+        if boundaries is not None:
+            frames = []
+            for i in range(len(boundaries) - 1):
+                x0, x1 = boundaries[i], boundaries[i + 1]
+                fw = x1 - x0
+                frame_surface = pygame.Surface((fw, self.frame_height), pygame.SRCALPHA)
+                frame_surface.blit(self.sheet_surface, (0, 0), pygame.Rect(x0, 0, fw, self.frame_height))
+                frames.append(frame_surface)
+            return frames
+
         frames = []
         for i in range(self.frame_count):
             x = i * self.frame_width
@@ -89,7 +105,14 @@ class SpriteManager:
         frame = sprite_mgr.get_frame("run", facing=1, time_ms=pygame.time.get_ticks())
     """
 
-    # Animation definitions: (filename, frame_count, fps, loop)
+    # Frame boundaries for attack-sword_spritesheet.png (variable-width frames).
+    # Format: [x_start_frame0, x_start_frame1, ..., x_end_last_frame]
+    # Measured from the sprite sheet asset directly.
+    _ATKSWORD_6 = [0, 68, 144, 303, 416, 575, 688]   # all 6 attack frames
+    _ATKSWORD_4 = [0, 68, 144, 303, 416]              # first 4 frames (throw / ninjutsu)
+
+    # Animation definitions: (filename, frame_count, fps, loop[, boundaries])
+    # Optional 5th element passes variable-width boundaries to SpriteSheet.get_frames().
     ANIMATION_DEFS = {
         "idle": ("idle_spritesheet.png", 2, 8, True),
         "walk": ("walk_spritesheet.png", 4, 10, True),
@@ -106,18 +129,18 @@ class SpriteManager:
         "hurt": ("hurt_spritesheet.png", 3, 12, True),   # loop while i-frames active
         "hurt2": ("hurt_spritesheet.png", 3, 12, True),
         "death": ("death_spritesheet.png", 5, 12, False),
-        "attack": ("attack-sword_spritesheet.png", 6, 15, False),
-        "slash1": ("attack-sword_spritesheet.png", 6, 15, False),
-        "slash2": ("attack-sword_spritesheet.png", 6, 15, False),
-        "slash3": ("attack-sword_spritesheet.png", 6, 15, False),
-        "slash_air": ("attack-sword_spritesheet.png", 6, 15, False),
-        "jump_slash": ("attack-sword_spritesheet.png", 6, 15, False),
-        "throw_ground": ("attack-sword_spritesheet.png", 4, 12, False),
-        "throw_crouch": ("attack-sword_spritesheet.png", 4, 12, False),
-        "throw_air": ("attack-sword_spritesheet.png", 4, 12, False),
-        "teleport": ("attack-sword_spritesheet.png", 4, 12, False),
-        "ninjutsu_hand": ("attack-sword_spritesheet.png", 4, 10, False),
-        "ninjutsu_summon": ("attack-sword_spritesheet.png", 4, 10, False),
+        "attack":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash1":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash2":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash3":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash_air":    ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "jump_slash":   ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "throw_ground": ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
+        "throw_crouch": ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
+        "throw_air":    ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
+        "teleport":     ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
+        "ninjutsu_hand":    ("attack-sword_spritesheet.png", 4, 10, False, _ATKSWORD_4),
+        "ninjutsu_summon":  ("attack-sword_spritesheet.png", 4, 10, False, _ATKSWORD_4),
     }
 
     def __init__(self, sprites_dir: Path | None = None):
@@ -140,7 +163,10 @@ class SpriteManager:
 
     def _load_animations(self):
         """Load all animation sprite sheets"""
-        for anim_name, (filename, frame_count, fps, loop) in self.ANIMATION_DEFS.items():
+        for anim_name, anim_def in self.ANIMATION_DEFS.items():
+            filename, frame_count, fps, loop = anim_def[:4]
+            frame_boundaries: list[int] | None = anim_def[4] if len(anim_def) > 4 else None
+
             filepath = self.sprites_dir / filename
 
             if not filepath.exists():
@@ -150,7 +176,7 @@ class SpriteManager:
 
             try:
                 sheet = SpriteSheet(filepath, frame_count)
-                raw_frames = sheet.get_frames()
+                raw_frames = sheet.get_frames(frame_boundaries)
 
                 # Special handling for jump/fall (split jumpfall sheet)
                 # Sheet layout: frame 0 = falling pose, frame 1 = ascending pose
