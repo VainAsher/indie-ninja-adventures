@@ -313,6 +313,11 @@
       "description": "Explore every corner of the hidden grove.",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Shadow Lord",
+          "boss": "SHADOW_LORD"
+        },
+        {
           "type": "collect_items",
           "description": "Collect all treasure",
           "item": "treasure_chest",
@@ -659,6 +664,11 @@
       "description": "Set off fireworks for the festival celebration!",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Fire Demon",
+          "boss": "FIRE_DEMON"
+        },
+        {
           "type": "collect_items",
           "description": "Collect firework canisters",
           "item": "firework",
@@ -930,6 +940,11 @@
       "shape": "blob",
       "description": "Find all the hidden treasure in the caves.",
       "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Ice Queen",
+          "boss": "ICE_QUEEN"
+        },
         {
           "type": "collect_items",
           "description": "Find all treasure chests",
@@ -1256,6 +1271,11 @@
       "description": "Complete the king's ultimate challenge!",
       "objectives": [
         {
+          "type": "defeat_boss",
+          "description": "Defeat the Dragon",
+          "boss": "DRAGON"
+        },
+        {
           "type": "time_challenge",
           "description": "Complete within 5 minutes",
           "time_limit": 300.0
@@ -1426,6 +1446,11 @@
       "shape": "labyrinth",
       "description": "Uncover the ancient secrets beneath the castle.",
       "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Necromancer",
+          "boss": "NECROMANCER"
+        },
         {
           "type": "collect_items",
           "description": "Find all ancient tablets",
@@ -1615,6 +1640,11 @@
       "shape": "vertical",
       "description": "Ascend from the Hollow Depths. The hub awaits, changed but hopeful.",
       "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Defeat the Veil Maiden",
+          "boss": "VEIL_MAIDEN"
+        },
         {
           "type": "reach_location",
           "description": "Return to the Central Hub",
