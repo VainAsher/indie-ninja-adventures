@@ -2352,10 +2352,10 @@ def main():
                     player_y=player.state.physics.y,
                     player_width=player.state.physics.width,
                     player_height=player.state.physics.height,
-                    player_hp=player.state.current_hp,
-                    player_max_hp=player.state.max_hp,
+                    player_hp=player.state.health_state.current_hp,
+                    player_max_hp=player.state.health_state.max_hp,
                 )
-                if boss_damage and player.state.i_frames <= 0:
+                if boss_damage and not player.damage.is_invincible(player.state):
                     player.take_damage(boss_damage)
 
             # Decay sword attack cooldown
