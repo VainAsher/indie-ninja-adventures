@@ -1250,6 +1250,38 @@ def main():
 
     player.set_key_bindings(_build_key_bindings())
 
+    # Ability → feature-flag mapping used by sync_player_abilities()
+    _ABILITY_TO_FLAG = {
+        "double_jump": "double_jump",
+        "wall_jump":   "wall_jump",
+        "dash":        "dash",
+        "shuriken":    "shuriken",
+        "teleport":    "teleport",
+        "ninjutsu":    "ninjutsu",
+        # "basic_movement" and "jump" are always on — no flag needed
+        # "crouch" is always on — basic navigation, not a gated ability
+    }
+
+    def sync_player_abilities(unlocked_abilities):
+        """
+        Sync player.feature_flags (and JumpMechanic baked vars) from the
+        campaign's unlocked_abilities set.  Call this:
+          - when campaign mode starts (restricts abilities to earned ones)
+          - after every ability unlock (grants the new ability immediately)
+        Has no effect in arcade/playtest mode (caller should not call it).
+        """
+        unlocked = set(unlocked_abilities) if unlocked_abilities else set()
+        for ability, flag in _ABILITY_TO_FLAG.items():
+            player.feature_flags[flag] = ability in unlocked
+        # JumpMechanic reads double_jump_enabled / wall_jump_enabled from
+        # instance vars set at __init__ time — keep them in sync manually.
+        player.jump.double_jump_enabled = player.feature_flags.get("double_jump", False)
+        player.jump.wall_jump_enabled   = player.feature_flags.get("wall_jump", False)
+        print(
+            f"[ABILITIES] Synced — unlocked: "
+            f"{sorted(f for f, v in player.feature_flags.items() if v)}"
+        )
+
     # Combat handling and camera effects
     combat_mechanic, camera_effects = create_combat_system(
         player_entity.entity_id, bus, logger, camera
@@ -1471,6 +1503,9 @@ def main():
         game_state_manager.start_game()
         input_pipeline.set_game_start(frame_idx)  # frame_idx==0; no menu frames to skip
         menu_manager.clear_menus()
+        # Sync abilities for CLI campaign launch (--mode campaign / --mission)
+        if current_play_mode == PlayMode.CAMPAIGN and save_manager.data and save_manager.data.campaign:
+            sync_player_abilities(save_manager.data.campaign.unlocked_abilities)
     else:
         if not menu_manager.has_menu():
             menu_manager.push_menu(LandingMenu(GAME_WIDTH, GAME_HEIGHT))
@@ -1883,6 +1918,9 @@ def main():
                     level_manager.start_level(time.time())
                     game_state_manager.start_game()
                     input_pipeline.set_game_start(frame_idx)
+                    # Lock abilities to what the campaign has earned so far
+                    sync_player_abilities(save_manager.data.campaign.unlocked_abilities)
+                    _rebuild_hub_gates()
 
                 elif selected_mode == "arcade":
                     # Start arcade mode - existing procedural generation
@@ -2643,12 +2681,18 @@ def main():
                                         )
                                         # Grant ability unlocks from mission definition
                                         unlocked = save_manager.data.campaign.unlocked_abilities
+                                        newly_unlocked = []
                                         for ability in getattr(mission_def, "unlock_abilities", []):
                                             if isinstance(unlocked, set):
                                                 unlocked.add(ability)
                                             elif ability not in unlocked:
                                                 unlocked.append(ability)
+                                            newly_unlocked.append(ability)
                                             print(f"[MISSION] Ability unlocked: {ability}")
+                                        if newly_unlocked:
+                                            sync_player_abilities(
+                                                save_manager.data.campaign.unlocked_abilities
+                                            )
                                         save_manager.mark_dirty()
 
                                     # Trigger story events on mission completion (v0.7.0)
