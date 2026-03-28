@@ -3230,22 +3230,25 @@ def main():
         def get_objective_target():
             if not objective_tracker or not objective_tracker.get_incomplete_objectives():
                 return None
-            # Kill objectives -> nearest living enemy
-            kill_objs = [
-                o
-                for o in objective_tracker.get_incomplete_objectives()
-                if o.objective_type.value == "kill_all_enemies"
-            ]
-            collect_objs = [
-                o
-                for o in objective_tracker.get_incomplete_objectives()
-                if o.objective_type.value == "collect_items"
-            ]
-            reach_objs = [
-                o
-                for o in objective_tracker.get_incomplete_objectives()
-                if o.objective_type.value == "reach_location"
-            ]
+
+            incomplete = objective_tracker.get_incomplete_objectives()
+
+            # Boss missions: boss is always primary target while alive.
+            # Other objectives are suppressed until boss is defeated.
+            boss_objs = [o for o in incomplete if o.objective_type.value == "defeat_boss"]
+            if boss_objs and boss_manager.is_boss_active():
+                active_boss = boss_manager.get_active_boss()
+                if active_boss:
+                    return active_boss.get_center()
+                return None  # boss obj incomplete but no entity yet — wait
+
+            # Boss obj present but boss already dead (or not spawned) — fall through
+            # to normal objective priority only for non-boss objectives.
+            non_boss_incomplete = [o for o in incomplete if o.objective_type.value != "defeat_boss"]
+
+            kill_objs = [o for o in non_boss_incomplete if o.objective_type.value == "kill_all_enemies"]
+            collect_objs = [o for o in non_boss_incomplete if o.objective_type.value == "collect_items"]
+            reach_objs = [o for o in non_boss_incomplete if o.objective_type.value == "reach_location"]
 
             player_center = (
                 player.state.physics.x + player.state.physics.width / 2,
@@ -3262,7 +3265,6 @@ def main():
                     return living[0].get_center()
 
             if collect_objs:
-                # Use collectibles first, else coins
                 pickups = [
                     p
                     for p in pickup_manager.get_alive_pickups()
