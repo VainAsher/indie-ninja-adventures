@@ -1213,6 +1213,10 @@ def main():
         if desired_fs != _last_fullscreen:
             pygame.display.toggle_fullscreen()
             _last_fullscreen = desired_fs
+            # After toggle the window is a new size — update camera layout so
+            # present() scales into the correct dimensions (avoids ValueError).
+            new_w, new_h = pygame.display.get_surface().get_size()
+            camera.handle_resize(new_w, new_h)
         if not camera.config.enable_shake:
             camera.shake_intensity = 0.0
             camera.shake_duration = 0.0
