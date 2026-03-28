@@ -1004,10 +1004,16 @@ def main():
     boss_manager = physics_collision["boss_manager"]
 
     def _maybe_spawn_boss(mission_def, exit_x, exit_y):
-        """Clear any previous boss and spawn a new one if the mission has a boss field."""
+        """Clear any previous boss and spawn one if the mission has a defeat_boss objective."""
         from entities.boss_manager import BossType
+        from game.mission_registry import ObjectiveType
         boss_manager.clear()
-        boss_field = getattr(mission_def, "boss", None)
+        # Derive boss type from the defeat_boss objective (source of truth in missions.json)
+        boss_field = None
+        for obj in mission_def.objectives:
+            if obj.objective_type == ObjectiveType.DEFEAT_BOSS and obj.boss:
+                boss_field = obj.boss
+                break
         if not boss_field:
             return
         try:
