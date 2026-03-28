@@ -73,6 +73,7 @@ from game.game_initialization import (
     create_physics_and_collision,
     create_player,
     create_rendering_systems,
+    initialize_audio,
     initialize_pygame,
 )
 from game.hub_manager import HubManager
@@ -455,6 +456,11 @@ def main():
 
     # Initialize pygame and rendering systems
     screen, clock_pygame, window_width, window_height = initialize_pygame(headless=headless)
+
+    # Initialize audio (silent fallback if mixer unavailable or assets missing)
+    audio_manager = initialize_audio(
+        sfx_volume=float(runtime_settings.get("volume_sfx", 0.8))
+    )
 
     rendering_systems = create_rendering_systems()
     sprite_manager = rendering_systems["sprite_manager"]
@@ -1177,6 +1183,7 @@ def main():
         camera.config.follow_speed = smoothing
         particles.enabled = bool(runtime_settings.get("particles", True))
         show_fps_overlay = bool(runtime_settings.get("show_fps", False))
+        audio_manager.set_volume(float(runtime_settings.get("volume_sfx", 0.8)))
         if not camera.config.enable_shake:
             camera.shake_intensity = 0.0
             camera.shake_duration = 0.0
@@ -1615,6 +1622,7 @@ def main():
                 )
                 attack_x = px + pw if facing >= 0 else px - sword_w
                 attack_y = py + ph / 2 - sword_h / 2
+                audio_manager.play("swing")
                 hits = enemy_manager.check_attack_collision((attack_x, attack_y, sword_w, sword_h))
                 for enemy_id in hits:
                     knock_x = 300.0 if facing >= 0 else -300.0
@@ -1625,6 +1633,8 @@ def main():
                         knockback_y=-120.0,
                         stun_duration=0.35,
                     )
+                if hits:
+                    audio_manager.play("hit_enemy")
                 # Also check boss collision (spatial overlap required)
                 if boss_manager.is_boss_active():
                     _ab = boss_manager.get_active_boss()
@@ -1634,6 +1644,7 @@ def main():
                         _boss_rect = pygame.Rect(int(_bx), int(_by), _bw, _bh)
                         if _sword_rect.colliderect(_boss_rect):
                             boss_manager.damage_boss(2)
+                            audio_manager.play("hit_enemy")
                 attack_timer = attack_cooldown
                 attack_fx_rect = pygame.Rect(attack_x, attack_y, sword_w, sword_h)
                 attack_fx_timer = 0.12
@@ -1658,6 +1669,7 @@ def main():
             show_debug_overlay = not show_debug_overlay
         if pygame.K_i in pressed_once:
             inventory_ui.toggle()
+            audio_manager.play("inventory_open")
         if pygame.K_r in pressed_once and game_state_manager.is_playing():
             # Quick-use consumable (first health potion)
             used = False
@@ -1725,8 +1737,13 @@ def main():
         # Handle menu input if menu is active
         selected_mode = None
         if menu_manager.has_menu():
+            # SFX: navigate on up/down; confirm on any action except NONE
+            if pygame.K_UP in pressed_once or pygame.K_DOWN in pressed_once:
+                audio_manager.play("menu_select")
             # Drive menus via unified command pipeline (replay-compatible)
             menu_action = menu_manager.handle_input(keys, pressed_once)
+            if menu_action not in (MenuAction.NONE,):
+                audio_manager.play("menu_confirm")
 
             if menu_action == MenuAction.START_GAME:
                 # Show mode selection menu instead of starting directly
@@ -2105,6 +2122,7 @@ def main():
                             source_pos=(player.state.physics.x, player.state.physics.y),
                         )
                         if died:
+                            audio_manager.play("player_death")
                             level_manager.increment_deaths()
                             if current_world_context == "mission":
                                 queue_player_death("mission")
@@ -2112,6 +2130,8 @@ def main():
                                 queue_player_death("hub_area", hub_id="central_hub")
                             else:
                                 queue_player_death("direct")
+                        else:
+                            audio_manager.play("player_hurt")
                 else:
                     lava_damage_timer = 0.0
 
@@ -2137,6 +2157,7 @@ def main():
                             source_pos=(poison_hit.x, poison_hit.y),
                         )
                         if died:
+                            audio_manager.play("player_death")
                             level_manager.increment_deaths()
                             if current_world_context == "mission":
                                 queue_player_death("mission")
@@ -2144,6 +2165,8 @@ def main():
                                 queue_player_death("hub_area", hub_id="central_hub")
                             else:
                                 queue_player_death("direct")
+                        else:
+                            audio_manager.play("player_hurt")
                 else:
                     poison_damage_timer = 0.0
 
@@ -2303,13 +2326,17 @@ def main():
         pause_simulation = game_state_manager.is_mission_menu() or game_state_manager.is_shop()
 
         if not pause_simulation:
-            # Track state transitions for particles
+            # Track state transitions for particles and SFX
             if not last_on_ground and player.state.physics.on_ground:
+                audio_manager.play("land")
                 particles.emit_dust(
                     player.state.physics.x,
                     player.state.physics.y + player.state.physics.height // 2,
                 )
+            if last_on_ground and not player.state.physics.on_ground and player.state.physics.vy < -50:
+                audio_manager.play("jump")
             if player.state.is_dashing and not last_is_dashing:
+                audio_manager.play("dash")
                 facing = player.state.facing if player.state.facing != 0 else 1
                 particles.emit_dash(player.state.physics.x, player.state.physics.y, facing)
             last_on_ground = player.state.physics.on_ground
@@ -2389,6 +2416,7 @@ def main():
                 if damage_taken and not player.damage.is_invincible(player.state):
                     died = player.damage.take_damage(player.state, damage_taken)
                     if died:
+                        audio_manager.play("player_death")
                         level_manager.increment_deaths()
                         if current_world_context == "mission":
                             queue_player_death("mission")
@@ -2396,6 +2424,8 @@ def main():
                             queue_player_death("hub_area", hub_id="central_hub")
                         else:
                             queue_player_death("direct")
+                    else:
+                        audio_manager.play("player_hurt")
 
                 if pygame.K_e in pressed_once:
                     # Prefer portal interaction if nearby
@@ -2479,6 +2509,7 @@ def main():
                                 if collect_item_id not in ("collectible", "coin")
                                 else "treasure_ruby"
                             )
+                            audio_manager.play("pickup_item")
                             try:
                                 if player_inventory.add_item(reward_item_id, pickup.value):
                                     print(
@@ -2489,8 +2520,10 @@ def main():
                         elif pickup.pickup_type == "health":
                             # Heal player when collecting health pickup
                             player.damage.heal(player.state, pickup.value)
+                            audio_manager.play("pickup_item")
                         elif pickup.pickup_type == "coin":
                             # Treat coins as currency
+                            audio_manager.play("pickup_coin")
                             player_inventory.add_currency(pickup.value)
                             if save_manager and save_manager.data and save_manager.data.campaign:
                                 save_manager.data.campaign.currency = player_inventory.currency
