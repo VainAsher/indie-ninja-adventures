@@ -19,6 +19,7 @@ from enum import Enum, auto
 from core import EventBus
 from entities.ai_random import AIRandom, derive_ai_seed
 from entities.boss_ai import BossAI, BossAIState
+from game.objective_tracker import BossDeathEvent
 from game.scripted_events import ScriptedEventManager
 
 # ============================================================
@@ -139,6 +140,40 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
         loot_table_id="story_boss_veil_maiden",
         exp_value=0,  # Story boss, no XP
         sprite_id="boss_veil_maiden",
+    ),
+    BossType.ICE_QUEEN: BossDefinition(
+        boss_type=BossType.ICE_QUEEN,
+        display_name="Ice Queen",
+        max_health=550,
+        base_damage=3,
+        move_speed=70.0,
+        width=56,
+        height=88,
+        melee_range=60.0,
+        ranged_range=380.0,
+        special_attacks=["blizzard", "ice_spike", "freeze_ray"],
+        minion_types=["ice_golem", "snow_sprite"],
+        currency_reward=1700,
+        loot_table_id="boss_ice",
+        exp_value=850,
+        sprite_id="boss_ice_queen",
+    ),
+    BossType.DRAGON: BossDefinition(
+        boss_type=BossType.DRAGON,
+        display_name="Dragon",
+        max_health=700,
+        base_damage=5,
+        move_speed=90.0,
+        width=96,
+        height=80,
+        melee_range=100.0,
+        ranged_range=500.0,
+        special_attacks=["fire_breath", "wing_slam", "tail_sweep"],
+        minion_types=["drake", "fire_lizard"],
+        currency_reward=2500,
+        loot_table_id="boss_dragon",
+        exp_value=1250,
+        sprite_id="boss_dragon",
     ),
 }
 
@@ -524,15 +559,13 @@ class BossManager:
         boss = self.active_boss
         definition = boss.get_definition()
 
-        # Emit boss defeated event
+        # Emit BossDeathEvent so objective_tracker can respond
         self.event_bus.emit(
-            "boss_defeated",
-            {
-                "boss_id": boss.boss_id,
-                "boss_type": boss.boss_type.name,
-                "currency_reward": definition.currency_reward,
-                "exp_reward": definition.exp_value,
-            },
+            BossDeathEvent(
+                boss_id=boss.boss_id,
+                boss_type=boss.boss_type.name,
+                position=(boss.x + boss.width / 2, boss.y + boss.height / 2),
+            )
         )
 
         self.boss_defeated = True
