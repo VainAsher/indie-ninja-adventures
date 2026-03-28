@@ -417,6 +417,9 @@ class SettingsMenu(BaseMenu):
         self.settings.set(key, value)
         self.settings.save()
 
+    _SFX_VOL_STEPS = (0.0, 0.25, 0.5, 0.75, 1.0)
+    _SFX_VOL_LABELS = ("Off", "25%", "50%", "75%", "100%")
+
     def _build_items(self):
         self.items = []
         self.selected_index = 0
@@ -432,6 +435,9 @@ class SettingsMenu(BaseMenu):
 
         self._idx_fps = len(self.items)
         self.add_item(self._label_fps(), MenuAction.NONE, callback=self._toggle_fps)
+
+        self._idx_sfx_vol = len(self.items)
+        self.add_item(self._label_sfx_vol(), MenuAction.NONE, callback=self._cycle_sfx_vol)
 
         self.add_item("Back", MenuAction.BACK)
 
@@ -456,11 +462,29 @@ class SettingsMenu(BaseMenu):
                 break
         return f"Camera Smoothing: {label}"
 
+    def _label_sfx_vol(self) -> str:
+        val = float(self._get("volume_sfx", 0.8))
+        closest = min(self._SFX_VOL_STEPS, key=lambda v: abs(v - val))
+        label = self._SFX_VOL_LABELS[self._SFX_VOL_STEPS.index(closest)]
+        return f"SFX Volume: {label}"
+
+    def _cycle_sfx_vol(self):
+        val = float(self._get("volume_sfx", 0.8))
+        closest_idx = min(
+            range(len(self._SFX_VOL_STEPS)),
+            key=lambda i: abs(self._SFX_VOL_STEPS[i] - val),
+        )
+        next_idx = (closest_idx + 1) % len(self._SFX_VOL_STEPS)
+        self._set("volume_sfx", self._SFX_VOL_STEPS[next_idx])
+        self._refresh_labels()
+        self._apply_changes()
+
     def _refresh_labels(self):
         self.items[self._idx_shake].label = self._label_shake()
         self.items[self._idx_particles].label = self._label_particles()
         self.items[self._idx_smoothing].label = self._label_smoothing()
         self.items[self._idx_fps].label = self._label_fps()
+        self.items[self._idx_sfx_vol].label = self._label_sfx_vol()
 
     def _apply_changes(self):
         if self.on_change:

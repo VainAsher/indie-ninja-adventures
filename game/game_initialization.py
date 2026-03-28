@@ -505,6 +505,35 @@ def create_combat_system(
     return combat_mechanic, camera_effects
 
 
+def initialize_audio(sfx_volume: float = 0.8):
+    """
+    Initialize pygame.mixer and return a configured AudioManager.
+
+    Args:
+        sfx_volume: Initial SFX volume (0.0–1.0)
+
+    Returns:
+        AudioManager instance (silent if mixer init fails or assets missing)
+    """
+    from audio.audio_manager import AudioManager
+
+    try:
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+        print("[AUDIO] pygame.mixer initialized")
+    except Exception as exc:
+        print(f"[AUDIO] Mixer init failed ({exc}). Audio will be silent.")
+        return AudioManager(sfx_volume=sfx_volume)
+
+    manager = AudioManager(sfx_volume=sfx_volume)
+    sfx_dir = get_resource_path("assets", "audio", "sfx")
+    if sfx_dir.exists():
+        manager.load_sounds(sfx_dir)
+        print(f"[AUDIO] Loaded {len(manager._sounds)} SFX from {sfx_dir}")
+    else:
+        print(f"[AUDIO] No SFX assets at {sfx_dir}. Audio will be silent.")
+    return manager
+
+
 def apply_shuriken_capacity_bonus(player: Player, player_inventory: Inventory, item_manager):
     """
     Set shuriken max capacity based on equipped armor.
