@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.1] - 2026-03-28 (Phases 2–5: Boss, Audio, Settings, Ability Gates)
+
+### Summary
+
+Campaign loop stabilized; boss integration, SFX audio, settings wiring, and ability gate enforcement all wired end-to-end. Portal placement now acts as the mechanical ability gate for Forest and Town regions.
+
+### Added
+
+- **Boss integration** (`entities/boss_manager.py`): BossManager wired into game loop. 6 boss missions added to `data/missions.json`. `GateManager` created; `_rebuild_hub_gates()` places ability gates in hub on campaign load and after each unlock.
+- **Audio system** (`audio/audio_manager.py`): `AudioManager` wraps `pygame.mixer.Sound`. 12 named SFX slots with silent fallback if files missing. `initialize_audio()` added to `game/game_initialization.py`. SFX hooks wired: swing, hit_enemy, player_hurt, player_death, jump, land, dash, pickup_coin, pickup_item, menu_select, menu_confirm, inventory_open.
+- **Placeholder SFX** (`assets/audio/sfx/`): 12 WAV files generated via `tools/gen_placeholder_sfx.py` using stdlib only. Replace with real audio assets.
+- **Settings wiring**: `Player.set_key_bindings(dict)` added. `_build_key_bindings()` in `demo_game.py` maps settings string names → pygame constants. `apply_runtime_settings()` wires sfx_volume → `audio_manager.set_volume()`, fullscreen → `pygame.display.toggle_fullscreen()` + `camera.handle_resize()`, show_hitboxes → `show_debug_overlay`, key_* → `player.set_key_bindings()`.
+- **SettingsMenu items**: SFX Volume (cycles Off/25/50/75/100%) and Fullscreen toggle added to `ui/menu_system.py`.
+- **Ability sync**: `sync_player_abilities(unlocked_abilities)` closure syncs `player.feature_flags` and `JumpMechanic.double_jump_enabled` / `wall_jump_enabled`. Called at campaign start and after every ability unlock.
+- **Portal height gating** (`game/hub_manager.py`): Forest portal at `ROOM_PIXEL_CENTER_Y + 200` (floor level, basic jump reachable). Town portal at `ROOM_PIXEL_CENTER_Y - 200` (elevated, double_jump required). Physical placement IS the gate.
+- **F9 Debug ability menu** (`ui/menu_system.py:DebugAbilityMenu`): Password-protected overlay (password: `devmode`). Arrow keys + SPACE to toggle any ability live. Gates rebuild on each toggle.
+- **Tests**: `tests/test_ability_gates.py` (7 tests), `tests/test_phase4_settings_wiring.py` (12 tests) — all passing.
+
+### Fixed
+
+- **Fullscreen crash** (`systems/camera_system.py`): `camera.handle_resize()` now called after `pygame.display.toggle_fullscreen()` so `render_width`/`render_height` stay in sync. Previously raised `ValueError: Destination surface not the given width or height`.
+- **Player had all abilities at campaign start**: `CampaignSaveData` default `unlocked_abilities` is `{basic_movement, jump}` only. `sync_player_abilities()` now called at campaign start to enforce this.
+
+---
+
 ## [0.7.0] - 2026-01-01 (Project Restructuring Release)
 
 ### Summary

@@ -64,7 +64,7 @@ indie-ninja-adventures/
 │   ├── player.py             # Player orchestrator (wires all mechanics)
 │   ├── enemy_manager.py      # Enemy spawning and update (5 types)
 │   ├── enemy_ai.py           # Enemy AI behaviours
-│   ├── boss_manager.py       # Boss spawning (6 types — NOT YET WIRED)
+│   ├── boss_manager.py       # Boss spawning (6 types — wired; AI not yet implemented)
 │   ├── npc_manager.py        # Story-driven NPC spawning
 │   ├── hazards.py            # Hazard entity logic
 │   └── pickups.py            # Pickup entity logic

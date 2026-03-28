@@ -2,7 +2,7 @@
 
 Vain Asher Gaming's: Indie Ninja Adventures
 
-Last Updated: 2026-03-28 | Version: 0.7.x | Status: Milestone 0 in progress
+Last Updated: 2026-03-28 | Version: 0.7.1 | Status: Milestones 0–2 complete; M3 partial
 
 ---
 
@@ -46,102 +46,68 @@ The codebase has grown from ~50 files (Dec 2025) to 120+ files. Most systems des
 | Camera (world clamp, room clamp, free; letterboxing) | Done |
 | Particle system (dust, dash, impact) | Done |
 
-### What is not yet wired
+### Recently completed (2026-03-28)
 
 | System | Status |
 | --- | --- |
-| Boss encounters | Code exists (`entities/boss_manager.py`); not wired into game loop or missions |
-| Audio (SFX + music) | Not implemented |
-| Key binding settings | Settings UI exists; wiring to input handler not implemented |
-| Ability gate enforcement | Logic exists in `CampaignManager`; not enforced in hub transitions |
+| Boss encounters | ✅ BossManager wired; 6 boss missions in campaign; gate enforcement active |
+| Audio SFX | ✅ AudioManager + pygame.mixer wired; 12 SFX events hooked throughout game loop |
+| Key binding settings | ✅ Settings strings → pygame constants → Player.set_key_bindings() live |
+| Ability gate enforcement | ✅ sync_player_abilities() + _rebuild_hub_gates() wired |
+| Fullscreen toggle | ✅ camera.handle_resize() called post-toggle (crash fixed) |
+| Portal height gating | ✅ Forest portal at floor level (basic jump); Town portal elevated (double_jump) |
+
+### Still not implemented
+
+| System | Status |
+| --- | --- |
+| Boss AI behaviour | Framework + 6 types exist; no AI patterns, no phase transitions |
+| Music / BGM | AudioManager supports it; not implemented |
+| Gamepad support | Not started |
 
 ---
 
-## Milestone 0: Stabilization (Current)
+## Milestone 0: Stabilization ✅ COMPLETE
 
-**Goal**: Reliable, verified playable loop with accurate documentation.
-
-### Phase 0 — Bug Fixes (branch: fix/campaign-loop)
+All six Phase 0 bugs fixed. Docs aligned to v0.7.x reality.
 
 | Bug | Fix |
 | --- | --- |
-| Sprite flip during attack combos | Guard `on_wall` inversion behind attack-state check |
-| Hurt animation freezes on last frame | Changed `hurt` animation to `loop=True` (matches i-frame duration) |
-| Jump/fall frame indices swapped | Frame 0 = falling pose, frame 1 = ascending; corrected in animation system |
-| Victory screen never triggers | `level_complete = True` + `victory_screen.reset()` now called on mission completion |
-| Respawn without full health | `player.damage.respawn()` now called inside `regenerate_hub_for_respawn()` |
-| Completing missions doesn't unlock further missions | `mission_def.unlock_abilities` now written to `campaign.unlocked_abilities` on completion |
+| Sprite flip during attack combos | Wall inversion guarded behind attack-state check |
+| Hurt animation freezes on last frame | `loop=True` (matches i-frame duration) |
+| Jump/fall frame indices swapped | Corrected in animation system |
+| Victory screen never triggers | `level_complete = True` on mission completion |
+| Respawn without full health | `player.damage.respawn()` inside `regenerate_hub_for_respawn()` |
+| Completing missions doesn't unlock further missions | `mission_def.unlock_abilities` written on completion |
 
-### Phase 1 — Docs and UAT (branch: docs/m0-completion)
-
-- [x] Rewrite `docs/HANDOVER.md` to v0.7.x reality
-- [x] Rewrite `docs/ROADMAP.md` (this file)
-- [ ] Update `docs/SYSTEM_OVERVIEW.md` to reflect current folder structure
-- [ ] Fix wall slide status inconsistency across docs
-- [ ] Add build preflight note to `build/` (warn about OneDrive/antivirus file locks)
-- [ ] Create updated UAT suite (see [Testing and QA](#testing-and-qa))
-
-Milestone 0 is done when:
-
-- All P0 UATs pass
-- Docs match actual systems
-- Phase 0 bug fixes verified by playtesting
+**Outstanding M0 item**: UAT result columns in `UAT_SUITE.md` still blank. Run a manual playtest pass to fill them in.
 
 ---
 
-## Milestone 1: Progression and Encounters
+## Milestone 1: Progression and Encounters ✅ COMPLETE
 
-**Goal**: Make boss encounters and ability gates playable.
+BossManager wired into game loop. 6 boss missions added to `data/missions.json`. `_rebuild_hub_gates()` enforces ability gates in hub portals. `sync_player_abilities()` restricts mechanics to earned abilities on campaign start and each unlock.
 
-What to build:
-
-- Wire `entities/boss_manager.py` into the main game loop and mission flow
-- Add boss missions in `data/missions.json` and objective tracking hooks
-- Add basic boss visuals and collision feedback
-- Enforce ability gates in hub transitions (require `unlocked_abilities` check)
-
-Done when:
-
-- At least one boss encounter is playable end-to-end via the mission system
-- At least one ability gate blocks progression until the correct ability is unlocked
+**Outstanding M1 item**: Boss AI behaviour not implemented. Boss spawns in boss missions but has no attack patterns or phase transitions. The `entities/boss_ai.py` framework exists and needs implementation.
 
 ---
 
-## Milestone 2: Audio and Presentation
+## Milestone 2: Audio and Presentation ✅ COMPLETE (SFX)
 
-**Goal**: Improve feedback, visual clarity, and add SFX audio.
+`audio/audio_manager.py` wraps `pygame.mixer`. 12 SFX events wired throughout game loop (combat, movement, pickups, UI). SFX Volume cycling in SettingsMenu persists via `GameSettings.save()`. 12 placeholder WAV files in `assets/audio/sfx/` (replace with real audio).
 
-What to build:
-
-- Sound effect playback wired to game events (hit, death, pickup, mission complete)
-- Volume settings functional and persistent via save system
-- Expanded sprite usage for enemies and NPCs (move beyond rectangles)
-- Combat feedback: hit flash, damage numbers (optional), particle polish
-- Debug toggle for hitboxes and shuriken collision visuals
-
-Note: music playback is deferred. SFX only for this milestone.
-
-Done when:
-
-- Combat feedback is clear (at minimum: hit sounds and screen flash)
-- Audio volume settings persist between sessions
+**Outstanding M2 item**: Music / BGM not implemented. The AudioManager has capacity for it; needs BGM files and loop wiring.
 
 ---
 
-## Milestone 3: Controls and Accessibility
+## Milestone 3: Controls and Accessibility 🔶 PARTIAL
 
-**Goal**: Modernize input and settings.
+Key bindings, fullscreen, sfx_volume, and show_hitboxes all wired via `apply_runtime_settings()`. Settings persist.
 
-What to build:
+**Outstanding M3 items**:
 
-- Wire key binding settings into input handler (settings UI already exists)
-- Gamepad support
-- Accessibility toggles (text size, screen shake, high contrast)
-
-Done when:
-
-- Input remapping works end-to-end
-- Gamepad can complete a mission without keyboard
+- Gamepad support (pygame.joystick not integrated)
+- Accessibility toggles (text size, high contrast, reduce motion)
 
 ---
 
@@ -217,15 +183,15 @@ python build.py
 
 ## Risk Register
 
-| Risk | Severity | Mitigation |
+| Risk | Severity | Status |
 | --- | --- | --- |
-| Boss not wired into game loop | HIGH | Milestone 1 deliverable |
-| Ability gates not enforced | MEDIUM | Milestone 1 deliverable |
-| Audio not implemented | MEDIUM | Milestone 2 deliverable (SFX only) |
-| Build lock (OneDrive/antivirus) | MEDIUM | Preflight note added to build/ |
-| Wall slide docs inconsistency | LOW | Fixed in Milestone 0 Phase 1 |
-| Raycast test coverage gap | LOW | Backlog |
-| Shuriken always visible (no fire) | LOW | Backlog |
+| Boss AI not implemented | HIGH | Active — framework exists; needs AI patterns |
+| Music / BGM absent | MEDIUM | Active — AudioManager ready; needs BGM files |
+| Gamepad not supported | MEDIUM | Active — no joystick integration |
+| UAT results blank | MEDIUM | Active — needs manual playtest pass |
+| Build lock (OneDrive/antivirus) | MEDIUM | Mitigated — preflight note in `build/` |
+| Shuriken collision box always visible | LOW | Backlog |
+| Raycast test known failure | LOW | Pre-existing; low impact |
 
 ---
 

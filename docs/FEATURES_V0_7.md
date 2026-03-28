@@ -8,7 +8,7 @@
 
 ## Overview
 
-Indie Ninja Adventures v0.7.0 is a **feature-complete 2D platformer** with campaign mode, story system, enemy AI, dialogue, trading, and 25 missions across 5 zones. Built on a modular, event-driven architecture with comprehensive gameplay systems.
+Indie Ninja Adventures v0.7.0 is a **feature-complete 2D platformer** with campaign mode, story system, enemy AI, dialogue, trading, and 30 missions across 6 regions. Built on a modular, event-driven architecture with comprehensive gameplay systems.
 
 **What Changed from v0.4.0-dev**:
 - v0.4.0-dev: Basic platformer engine with procedural generation
@@ -19,7 +19,7 @@ Indie Ninja Adventures v0.7.0 is a **feature-complete 2D platformer** with campa
 ## Game Modes
 
 ### 1. Campaign Mode
-- **25 missions** across **5 zones** (Forest, Town, Caves, Castle, Sewers)
+- **30 missions** across **6 regions** (Forest, Town, Caves, Castle, Sewers, Hollow Depths)
 - Story-driven progression with dialogue and cutscenes
 - Hub-based world structure with portal fast-travel
 - Mission objectives: Collect, Reach, Survive, Defeat, Explore
@@ -69,11 +69,10 @@ Indie Ninja Adventures v0.7.0 is a **feature-complete 2D platformer** with campa
 - **Stealth**: Reduced enemy detection range
 - **Duck Under**: Access low passages
 
-### Wall Slide (**CURRENTLY DISABLED**)
-- **Status**: Disabled pending rework (v0.7.0)
-- **Reason**: Wall interaction being redesigned
-- **Fallback**: Light wall-friction clamp active
-- **Planned**: Re-enable in future update with improved stamina system
+### Wall Slide (**ACTIVE**)
+- **Status**: Active — light always-on `vy` clamp when touching a wall
+- **Behaviour**: Limits downward slide speed to 3.0 px/tick; stamina drain active
+- **Wall Jump**: Requires `wall_jump` ability (unlocked via campaign)
 
 ### Combat System
 - **3-Hit Combo**: Ground attack chain
@@ -142,8 +141,8 @@ Indie Ninja Adventures v0.7.0 is a **feature-complete 2D platformer** with campa
 ## Campaign & Missions
 
 ### Mission Structure
-- **25 Missions** total across 5 zones
-- **5 Zones**: Forest, Town, Caves, Castle, Sewers
+- **30 Missions** total across 6 regions
+- **6 Regions**: Forest, Town, Caves, Castle, Sewers, Hollow Depths
 - **Mission Types**:
   - Collect: Gather specific items
   - Reach: Arrive at destination
@@ -164,10 +163,9 @@ Indie Ninja Adventures v0.7.0 is a **feature-complete 2D platformer** with campa
 ### Narrative Features
 - **Story Manager**: Handles character arcs and plot progression
 - **Character Arcs**: Protagonist journey with choices
-- **Multiple Endings**: 3 endings based on player decisions
-  - Redemption Ending
-  - Hollow Ending
-  - Balance Ending
+- **Multiple Endings**: 2 player-chosen endings + default (not_chosen)
+  - The Path of Mercy (SAVE — redeem the Veil Maiden)
+  - The Path of Justice (DESTROY — defeat the Veil Maiden)
 - **Cutscene System**: In-game cinematics with dialogue
 - **Companion Orbs**: Story-relevant helper characters
 
@@ -399,7 +397,8 @@ Indie Ninja Adventures v0.7.0 is a **feature-complete 2D platformer** with campa
 5. **Advanced Particle Effects** - Partial implementation
 
 ### Disabled Features
-1. **Wall Slide** - Temporarily disabled during wall interaction rework
+
+None — wall slide is active in v0.7.x (light vy clamp always on when touching a wall).
 
 ### Planned Features (Future Versions)
 - Sound effects and music
