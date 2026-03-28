@@ -18,7 +18,13 @@ Hazard Types:
 import random
 
 from entities.hazards import HazardManager
-from systems.room_generation import TILE_PLATFORM, TILE_SOLID, TILES_PER_ZONE
+from systems.room_generation import (
+    TILE_PLATFORM,
+    TILE_PLATFORM_FALLING,
+    TILE_PLATFORM_MOVING,
+    TILE_SOLID,
+    TILES_PER_ZONE,
+)
 from systems.world_generation import RoomNode
 
 
@@ -54,11 +60,10 @@ HAZARD_CONFIGS: dict[str, HazardSpawnConfig] = {
         spike_density=(0, 1),  # Very safe, maybe 1 tutorial spike
         avoid_spawn_radius=640,  # Large safe zone
     ),
-    # Fire pits are disabled in the slice to avoid invisible hazards (no renderer yet)
     "combat": HazardSpawnConfig(
         spike_density=(4, 8),
         ceiling_spike_density=(1, 3),
-        fire_pit_density=(0, 0),
+        fire_pit_density=(1, 2),
         platform_spike_chance=0.15,
         ground_spike_chance=0.25,
         ceiling_spike_chance=0.10,
@@ -69,18 +74,18 @@ HAZARD_CONFIGS: dict[str, HazardSpawnConfig] = {
         platform_spike_chance=0.20,  # More platform hazards
         ground_spike_chance=0.15,
         ceiling_spike_chance=0.05,
-        fire_pit_density=(0, 0),
+        fire_pit_density=(1, 2),
     ),
     "treasure": HazardSpawnConfig(
         spike_density=(2, 5),
-        fire_pit_density=(0, 0),
+        fire_pit_density=(1, 2),
         ground_spike_chance=0.20,
         clustering=True,  # Protect treasure with clustered hazards
     ),
     "boss": HazardSpawnConfig(
         spike_density=(6, 12),
         ceiling_spike_density=(2, 4),
-        fire_pit_density=(0, 0),
+        fire_pit_density=(2, 3),
         platform_spike_chance=0.10,
         ground_spike_chance=0.30,
         ceiling_spike_chance=0.15,
@@ -93,7 +98,7 @@ HAZARD_CONFIGS: dict[str, HazardSpawnConfig] = {
     "exit": HazardSpawnConfig(
         spike_density=(1, 3),
         ground_spike_chance=0.10,
-        fire_pit_density=(0, 0),
+        fire_pit_density=(0, 1),
         avoid_exit_radius=320,  # Keep exit area safe
     ),
 }
@@ -296,7 +301,12 @@ class HazardSpawner:
                 tile_above = room.tilemap[ty - 1][tx]
 
                 # Ground tile: solid with air/platform above
-                if tile == TILE_SOLID and tile_above in (0, TILE_PLATFORM):
+                if tile == TILE_SOLID and tile_above in (
+                    0,
+                    TILE_PLATFORM,
+                    TILE_PLATFORM_FALLING,
+                    TILE_PLATFORM_MOVING,
+                ):
                     x = room_px + tx * 32
                     # Place spike on top of the ground tile (not inside it)
                     y = room_py + ty * 32 - 32

@@ -113,8 +113,11 @@ def main():
 
     print("\nOutput directories:")
     for build_type, _ in builds:
-        dist_name = f"ninja_dash_{build_type}" if build_type != "production" else "ninja_dash"
-        print(f"  - dist/{dist_name}/")
+        if build_type == "production":
+            print("  - dist/ninja_dash.exe")
+        else:
+            dist_name = f"ninja_dash_{build_type}"
+            print(f"  - dist/{dist_name}/")
     print()
 
 

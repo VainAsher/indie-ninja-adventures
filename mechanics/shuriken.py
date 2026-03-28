@@ -104,6 +104,13 @@ class ShurikenMechanic(BaseMechanic):
             if enemy.is_dead():
                 continue
             if self._rects_overlap(proj_rect, enemy.get_rect()):
+                from entities.enemy import EnemyType
+                if enemy.enemy_type == EnemyType.SLIME:
+                    # Projectiles are absorbed by the slime's oozy body — no damage,
+                    # projectile disappears quickly (visually "swallowed").
+                    proj.stuck = True
+                    proj.stuck_timer = 0.05
+                    return
                 self.enemy_manager.damage_enemy(enemy_id, self.DAMAGE, 0.0, 0.0, self.STUN)
                 proj.stuck = True
                 proj.stuck_timer = 0.1  # despawn after hit

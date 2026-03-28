@@ -7,7 +7,7 @@ User interface elements:
 - Future: Dialogs, tooltips, notifications
 """
 
-from .menu_system import MainMenu, MenuAction, MenuManager, PauseMenu, SettingsMenu
+from .menu_system import LandingMenu, MainMenu, MenuAction, MenuManager, PauseMenu, SettingsMenu
 from .tutorial_system import (
     ControlsHintOverlay,
     TutorialManager,
@@ -18,6 +18,7 @@ from .tutorial_system import (
 
 __all__ = [
     "MenuManager",
+    "LandingMenu",
     "MainMenu",
     "PauseMenu",
     "SettingsMenu",

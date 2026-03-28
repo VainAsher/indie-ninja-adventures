@@ -321,65 +321,132 @@ class EnemyAI:
         1. WINDUP: Warning phase, enemy glows/flashes, no damage
         2. ACTIVE: Brief damage window where contact deals damage
         3. RECOVERY: Post-attack cooldown, enemy slows down
+
+        Special behaviours:
+        - SLIME: launches a jump toward the player at end of WINDUP; body-contact
+          during ACTIVE deals damage (handled by combat_mechanic).
+        - BAT: swoops diagonally through the player at end of WINDUP; body-contact
+          during the pass deals damage; decelerates in RECOVERY.
+        - WOLF: dashes horizontally through the player at end of WINDUP; body-contact
+          during the pass deals damage; skids to a stop in RECOVERY.
+        - SKELETON: fires an arrow on the first frame of ACTIVE.
+        - GOBLIN: forward hitbox damage is handled by combat_mechanic; AI
+          returns None (no instant damage signal needed).
         """
+        from entities.enemy import EnemyType
+
         definition = self.enemy.get_definition()
+        is_slime    = self.enemy.enemy_type == EnemyType.SLIME
+        is_bat      = self.enemy.enemy_type == EnemyType.BAT
+        is_wolf     = self.enemy.enemy_type == EnemyType.WOLF
+        is_skeleton = self.enemy.enemy_type == EnemyType.SKELETON
 
-        # Check if player left attack range during attack sequence
-        if not self.enemy.is_in_attack_range(player_x, player_y, player_width, player_height):
-            # Cancel attack and resume chase
-            self.enemy.attack_substate = EnemyAttackSubState.NONE
-            self.enemy.attack_substate_timer = 0.0
-            self._transition_to_chase(player_x, player_y, player_width, player_height)
-            return None
+        # Enemies that physically travel through the player skip the range-cancel
+        # while mid-movement so their arc / dash can complete.
+        in_active = self.enemy.attack_substate == EnemyAttackSubState.ACTIVE
+        skip_range_cancel = (is_slime or is_bat or is_wolf) and in_active
+        if not skip_range_cancel:
+            if not self.enemy.is_in_attack_range(player_x, player_y, player_width, player_height):
+                self.enemy.attack_substate = EnemyAttackSubState.NONE
+                self.enemy.attack_substate_timer = 0.0
+                self._transition_to_chase(player_x, player_y, player_width, player_height)
+                return None
 
-        # Face player during entire attack sequence
         player_center_x = player_x + player_width / 2
-        enemy_center_x = self.enemy.x + definition.width / 2
-        self.enemy.facing_right = player_center_x > enemy_center_x
+        enemy_center_x  = self.enemy.x + definition.width / 2
 
-        # Stop movement during attack (critical for predictability)
-        self.enemy.velocity_x = 0.0
-        if self.enemy.physics:
-            self.enemy.physics.vx = 0.0
+        # Lock facing toward the player except while travelling (airborne / dashing)
+        travelling = (is_slime or is_bat or is_wolf) and in_active
+        if not travelling:
+            self.enemy.facing_right = player_center_x > enemy_center_x
+
+        # Stop movement during windup/idle phase — exempt travelling enemies mid-attack
+        # and also RECOVERY (bat/wolf need friction, not hard-stop)
+        in_recovery = self.enemy.attack_substate == EnemyAttackSubState.RECOVERY
+        if not ((is_slime or is_bat or is_wolf) and (in_active or in_recovery)):
+            self.enemy.velocity_x = 0.0
+            if self.enemy.physics:
+                self.enemy.physics.vx = 0.0
 
         # Initialize attack sequence if not started
         if self.enemy.attack_substate == EnemyAttackSubState.NONE:
             if self.attack_cooldown_timer <= 0.0:
-                # Start windup phase
                 self.enemy.attack_substate = EnemyAttackSubState.WINDUP
                 self.enemy.attack_substate_timer = 0.0
-                self.enemy.ai_state_timer = 0.0  # Reset for animation sync
+                self.enemy.ai_state_timer = 0.0
             else:
-                # Still on cooldown, wait
                 return None
 
         # Update attack sub-state timer
         self.enemy.attack_substate_timer += dt
 
-        # Handle attack sub-state transitions
         damage = None
 
         if self.enemy.attack_substate == EnemyAttackSubState.WINDUP:
-            # Telegraph phase - no damage yet
-            if self.enemy.attack_substate_timer >= definition.attack_windup_time:
-                # Transition to active phase
+            at_end = self.enemy.attack_substate_timer >= definition.attack_windup_time
+
+            if at_end:
+                player_center_y = player_y + player_height / 2
+                enemy_center_y  = self.enemy.y + definition.height / 2
+
+                if is_slime:
+                    # ── SLIME: upward jump toward player ─────────────────────
+                    dx = player_center_x - enemy_center_x
+                    dist = max(abs(dx), 1.0)
+                    hop_vx = (dx / dist) * min(abs(dx) * 0.08, 7.0)
+                    if self.enemy.physics:
+                        self.enemy.physics.vx = hop_vx
+                        self.enemy.physics.vy = -9.0
+
+                elif is_bat:
+                    # ── BAT: diagonal swoop straight through player ───────────
+                    dx = player_center_x - enemy_center_x
+                    dy = player_center_y - enemy_center_y
+                    dist = max(math.sqrt(dx * dx + dy * dy), 1.0)
+                    swoop_speed = 12.0
+                    if self.enemy.physics:
+                        self.enemy.physics.vx = (dx / dist) * swoop_speed
+                        self.enemy.physics.vy = (dy / dist) * swoop_speed
+
+                elif is_wolf:
+                    # ── WOLF: fast horizontal dash + slight leap ──────────────
+                    direction = 1.0 if player_center_x > enemy_center_x else -1.0
+                    if self.enemy.physics:
+                        self.enemy.physics.vx = direction * 10.0
+                        self.enemy.physics.vy = -2.5  # small pounce
+
                 self.enemy.attack_substate = EnemyAttackSubState.ACTIVE
                 self.enemy.attack_substate_timer = 0.0
 
         elif self.enemy.attack_substate == EnemyAttackSubState.ACTIVE:
-            # Damage window - deal damage on first frame of active phase
-            if self.enemy.attack_substate_timer < dt * 1.5:  # First frame check
-                damage = definition.base_damage
+            if is_skeleton:
+                # ── SKELETON: fire arrow on the first frame of ACTIVE ─────────
+                if self.enemy.attack_substate_timer < dt * 1.5:
+                    self.enemy.pending_arrow_fire = True
+                damage = None
+            elif is_bat or is_wolf or is_slime:
+                # Body-contact damage during the travel pass — handled by
+                # combat_mechanic._take_contact_damage (checks ATTACK+ACTIVE state)
+                damage = None
+            else:
+                # Standard melee (goblin uses forward hitbox externally)
+                if self.enemy.enemy_type == EnemyType.GOBLIN:
+                    damage = None
+                elif self.enemy.attack_substate_timer < dt * 1.5:
+                    damage = definition.base_damage
 
-            # Transition to recovery after active window
             if self.enemy.attack_substate_timer >= definition.attack_active_time:
                 self.enemy.attack_substate = EnemyAttackSubState.RECOVERY
                 self.enemy.attack_substate_timer = 0.0
 
         elif self.enemy.attack_substate == EnemyAttackSubState.RECOVERY:
-            # Post-attack recovery
+            # Bat / wolf bleed off their dash / swoop velocity during recovery
+            if (is_bat or is_wolf) and self.enemy.physics:
+                self.enemy.physics.vx *= 0.84
+                if is_bat:
+                    self.enemy.physics.vy *= 0.84
+
             if self.enemy.attack_substate_timer >= definition.attack_recovery_time:
-                # Attack sequence complete - reset and start cooldown
                 self.enemy.attack_substate = EnemyAttackSubState.NONE
                 self.enemy.attack_substate_timer = 0.0
                 self.attack_cooldown_timer = self.attack_cooldown_base

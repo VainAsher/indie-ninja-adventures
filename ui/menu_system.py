@@ -12,15 +12,18 @@ Architecture:
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import math
 from enum import Enum
 
 import pygame
 
+from utils.resource_path import get_resource_path
 
 class MenuAction(Enum):
     """Menu action results"""
 
     NONE = "none"
+    CONTINUE = "continue"
     START_GAME = "start_game"
     RESUME_GAME = "resume_game"
     QUIT_TO_MENU = "quit_to_menu"
@@ -66,7 +69,7 @@ class BaseMenu:
         self.selected_index = 0
 
         # Fonts
-        self.title_font = pygame.font.SysFont("consolas", 48, bold=True)
+        self.title_font = pygame.font.SysFont("impact", 60, bold=True)
         self.item_font = pygame.font.SysFont("consolas", 32)
         self.small_font = pygame.font.SysFont("consolas", 20)
 
@@ -157,8 +160,15 @@ class BaseMenu:
         surface.blit(overlay, (0, 0))
 
         # Title
+        title_color = (255, 215, 0)  # Gold
         title_surf = self.title_font.render(self.title, True, self.title_color)
         title_rect = title_surf.get_rect(centerx=self.screen_width // 2, y=100)
+
+        # Add a black shadow to the text
+        shadow_color = (0, 0, 0)  # Black
+        shadow_offset = (2, 2)  # Offset for the shadow
+        shadow_rect = title_surf.get_rect(centerx=self.screen_width // 2 + shadow_offset[0], y=100 + shadow_offset[1])
+        surface.blit(self.title_font.render(self.title, True, shadow_color), shadow_rect)
         surface.blit(title_surf, title_rect)
 
         # Menu items
@@ -204,6 +214,9 @@ class MainMenu(BaseMenu):
     def __init__(self, screen_width: int, screen_height: int):
         super().__init__("NINJA DASH", screen_width, screen_height)
 
+        # Fully opaque background for launch menu (obscures gameplay)
+        self.bg_color = (10, 10, 20, 255)
+
         self.add_item("Start Game", MenuAction.START_GAME)
         self.add_item("Settings", MenuAction.OPEN_SETTINGS)
         self.add_item("Quit", MenuAction.QUIT_GAME)
@@ -233,6 +246,113 @@ class MainMenu(BaseMenu):
             centerx=self.screen_width // 2, bottom=self.screen_height - 20
         )
         surface.blit(hint_surf, hint_rect)
+
+
+class LandingMenu(BaseMenu):
+    """
+    Featured landing page shown on launch before the main menu.
+    """
+
+    def __init__(self, screen_width: int, screen_height: int):
+        super().__init__("INDIE NINJA ADVENTURES", screen_width, screen_height)
+
+        self.add_item("Continue", MenuAction.CONTINUE)
+        self._start_ms = pygame.time.get_ticks()
+
+        self.title_font = pygame.font.SysFont("impact", 70, bold=True)
+        self.subtitle_font = pygame.font.SysFont("consolas", 22)
+        self.prompt_font = pygame.font.SysFont("consolas", 26, bold=True)
+        self.small_font = pygame.font.SysFont("consolas", 18)
+
+        self._bg_image = None
+        bg_path = get_resource_path("assets", "splash", "landing.png")
+        if bg_path.exists():
+            self._bg_image = pygame.image.load(str(bg_path)).convert()
+
+    def render(self, surface: pygame.Surface):
+        # Background image or solid fallback
+        if self._bg_image:
+            bg = pygame.transform.smoothscale(
+                self._bg_image, (self.screen_width, self.screen_height)
+            )
+            surface.blit(bg, (0, 0))
+        else:
+            surface.fill((8, 10, 18))
+
+        # Subtle dark overlay for text contrast
+        overlay = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 120))
+        surface.blit(overlay, (0, 0))
+
+        elapsed = (pygame.time.get_ticks() - self._start_ms) / 1000.0
+        fade = min(1.0, elapsed / 1.2)
+
+        # Title backing panel for readability
+        panel_height = 180
+        panel_y = 90
+        panel = pygame.Surface((self.screen_width, panel_height), pygame.SRCALPHA)
+        panel.fill((0, 0, 0, 150))
+        surface.blit(panel, (0, panel_y))
+
+        # Title block — per-character rendering with extra spacing for readability
+        title_text = "INDIE NINJA ADVENTURES"
+        title_color = (255, 235, 180)
+        outline_color = (0, 0, 0)
+        char_spacing = 3  # extra pixels between characters
+
+        # Pre-render each character
+        chars = [
+            (self.title_font.render(ch, True, title_color),
+             self.title_font.render(ch, True, outline_color))
+            for ch in title_text
+        ]
+        total_w = sum(cs.get_width() for cs, _ in chars) + char_spacing * (len(chars) - 1)
+        title_h = self.title_font.get_height()
+
+        # Compose onto intermediate surface so fade works as one alpha op
+        title_surf = pygame.Surface((total_w, title_h), pygame.SRCALPHA)
+        cx = 0
+        for cs, os_ in chars:
+            w = cs.get_width()
+            for odx, ody in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)):
+                title_surf.blit(os_, (cx + odx, ody))
+            title_surf.blit(cs, (cx, 0))
+            cx += w + char_spacing
+
+        title_surf.set_alpha(int(255 * fade))
+        title_rect = title_surf.get_rect(centerx=self.screen_width // 2, y=125)
+        surface.blit(title_surf, title_rect)
+
+        subtitle_text = "Vain Asher Gaming Presents"
+        subtitle_shadow = self.subtitle_font.render(subtitle_text, True, (0, 0, 0))
+        subtitle = self.subtitle_font.render(subtitle_text, True, (210, 210, 230))
+        subtitle_shadow.set_alpha(int(160 * fade))
+        subtitle.set_alpha(int(230 * fade))
+        subtitle_rect = subtitle.get_rect(centerx=self.screen_width // 2, y=210)
+        surface.blit(subtitle_shadow, (subtitle_rect.x + 1, subtitle_rect.y + 1))
+        surface.blit(subtitle, subtitle_rect)
+
+        tagline_text = "A fast, skill-based ninja platformer"
+        tagline_shadow = self.small_font.render(tagline_text, True, (0, 0, 0))
+        tagline = self.small_font.render(tagline_text, True, (170, 170, 190))
+        tagline_shadow.set_alpha(int(120 * fade))
+        tagline.set_alpha(int(210 * fade))
+        tagline_rect = tagline.get_rect(centerx=self.screen_width // 2, y=250)
+        surface.blit(tagline_shadow, (tagline_rect.x + 1, tagline_rect.y + 1))
+        surface.blit(tagline, tagline_rect)
+
+        # Press enter prompt (pulsing)
+        pulse = 0.6 + 0.4 * math.sin(pygame.time.get_ticks() / 280.0)
+        prompt_color = (200, 200, 220)
+        prompt = self.prompt_font.render("Press Enter to Continue", True, prompt_color)
+        prompt.set_alpha(int(255 * pulse))
+        prompt_rect = prompt.get_rect(centerx=self.screen_width // 2, y=520)
+        surface.blit(prompt, prompt_rect)
+
+        # Footer hint
+        hint = self.small_font.render("Menu navigation begins after continue", True, (120, 120, 140))
+        hint_rect = hint.get_rect(centerx=self.screen_width // 2, y=560)
+        surface.blit(hint, hint_rect)
 
 
 class PauseMenu(BaseMenu):
@@ -267,33 +387,125 @@ class PauseMenu(BaseMenu):
 
 class SettingsMenu(BaseMenu):
     """
-    Settings menu for game configuration
+    Settings menu for game configuration.
 
-    Options:
-    - Volume settings (placeholder)
-    - Controls (placeholder)
-    - Graphics (placeholder)
-    - Back
+    Supports live toggles that apply immediately.
     """
 
-    def __init__(self, screen_width: int, screen_height: int):
+    def __init__(self, screen_width: int, screen_height: int, settings=None, on_change=None):
         super().__init__("SETTINGS", screen_width, screen_height)
 
-        # Placeholder items for future implementation
-        self.add_item("Volume: 100%", MenuAction.NONE, enabled=False)
-        self.add_item("Controls: Keyboard", MenuAction.NONE, enabled=False)
-        self.add_item("Graphics: Normal", MenuAction.NONE, enabled=False)
+        self.settings = settings
+        self.on_change = on_change
+
+        self._smoothing_options = [
+            (0.05, "Low"),
+            (0.1, "Normal"),
+            (0.2, "High"),
+        ]
+
+        self._build_items()
+
+    def _get(self, key: str, default):
+        if self.settings is None:
+            return default
+        return self.settings.get(key, default)
+
+    def _set(self, key: str, value):
+        if self.settings is None:
+            return
+        self.settings.set(key, value)
+        self.settings.save()
+
+    def _build_items(self):
+        self.items = []
+        self.selected_index = 0
+
+        self._idx_shake = len(self.items)
+        self.add_item(self._label_shake(), MenuAction.NONE, callback=self._toggle_shake)
+
+        self._idx_particles = len(self.items)
+        self.add_item(self._label_particles(), MenuAction.NONE, callback=self._toggle_particles)
+
+        self._idx_smoothing = len(self.items)
+        self.add_item(self._label_smoothing(), MenuAction.NONE, callback=self._cycle_smoothing)
+
+        self._idx_fps = len(self.items)
+        self.add_item(self._label_fps(), MenuAction.NONE, callback=self._toggle_fps)
+
         self.add_item("Back", MenuAction.BACK)
 
+    def _label_bool(self, label: str, value: bool) -> str:
+        return f"{label}: {'On' if value else 'Off'}"
+
+    def _label_shake(self) -> str:
+        return self._label_bool("Screen Shake", bool(self._get("screenshake", True)))
+
+    def _label_particles(self) -> str:
+        return self._label_bool("Particles", bool(self._get("particles", True)))
+
+    def _label_fps(self) -> str:
+        return self._label_bool("Show FPS", bool(self._get("show_fps", False)))
+
+    def _label_smoothing(self) -> str:
+        value = float(self._get("camera_smoothing", 0.1))
+        label = "Custom"
+        for opt_value, opt_label in self._smoothing_options:
+            if abs(opt_value - value) < 1e-6:
+                label = opt_label
+                break
+        return f"Camera Smoothing: {label}"
+
+    def _refresh_labels(self):
+        self.items[self._idx_shake].label = self._label_shake()
+        self.items[self._idx_particles].label = self._label_particles()
+        self.items[self._idx_smoothing].label = self._label_smoothing()
+        self.items[self._idx_fps].label = self._label_fps()
+
+    def _apply_changes(self):
+        if self.on_change:
+            self.on_change()
+
+    def _toggle_shake(self):
+        current = bool(self._get("screenshake", True))
+        self._set("screenshake", not current)
+        self._refresh_labels()
+        self._apply_changes()
+
+    def _toggle_particles(self):
+        current = bool(self._get("particles", True))
+        self._set("particles", not current)
+        self._refresh_labels()
+        self._apply_changes()
+
+    def _toggle_fps(self):
+        current = bool(self._get("show_fps", False))
+        self._set("show_fps", not current)
+        self._refresh_labels()
+        self._apply_changes()
+
+    def _cycle_smoothing(self):
+        current = float(self._get("camera_smoothing", 0.1))
+        values = [v for v, _ in self._smoothing_options]
+        try:
+            idx = values.index(current)
+        except ValueError:
+            idx = 0
+        next_idx = (idx + 1) % len(values)
+        self._set("camera_smoothing", values[next_idx])
+        self._refresh_labels()
+        self._apply_changes()
+
     def render(self, surface: pygame.Surface):
-        """Render settings menu with note"""
+        """Render settings menu with hint"""
         super().render(surface)
 
-        # Note about placeholder
-        note = "(Settings will be implemented in future update)"
-        note_surf = self.small_font.render(note, True, (120, 120, 140))
-        note_rect = note_surf.get_rect(centerx=self.screen_width // 2, y=200)
-        surface.blit(note_surf, note_rect)
+        hint = "Enter: Toggle | ESC: Back"
+        hint_surf = self.small_font.render(hint, True, (120, 120, 140))
+        hint_rect = hint_surf.get_rect(
+            centerx=self.screen_width // 2, bottom=self.screen_height - 20
+        )
+        surface.blit(hint_surf, hint_rect)
 
 
 class MenuManager:

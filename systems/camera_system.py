@@ -39,7 +39,7 @@ class CameraConfig:
 
     # Camera follow behavior
     follow_speed: float = 0.1  # Lower = smoother (lerp factor)
-    spring_stiffness: float = 0.15  # Overshoot stiffness (0 = no spring, 0.2 = bouncy)
+    spring_stiffness: float = 0.0  # Overshoot stiffness (0 = no spring, 0.2 = bouncy)
     deadzone_width: int = 200  # Horizontal deadzone
     deadzone_height: int = 150  # Vertical deadzone
 
@@ -56,7 +56,9 @@ class CameraConfig:
     # Camera effects
     enable_shake: bool = True
     enable_pan: bool = True
-    enable_spring: bool = True
+    enable_spring: bool = False
+    shake_multiplier: float = 0.3  # Scale shake intensity (1.0 = full strength)
+    damage_shake_multiplier: float = 0.45  # Stronger shake for damage events
 
 
 class CameraSystem:
@@ -112,6 +114,13 @@ class CameraSystem:
         self.pan_target_x = 0.0
         self.pan_target_y = 0.0
 
+        # Cached integer offsets for apply() — updated once per update() call
+        self._offset_x: int = 0
+        self._offset_y: int = 0
+
+        # Pre-computed scaled rect for present() — avoids per-frame temp surface
+        self._scaled_rect = pygame.Rect(0, 0, self.render_width, self.render_height)
+
     def set_world_bounds(self, width: int, height: int):
         """Set the world boundaries for camera clamping"""
         self.config.world_width = width
@@ -140,7 +149,9 @@ class CameraSystem:
             self.x += dx * self.free_cam_speed
             self.y += dy * self.free_cam_speed
 
-    def add_screen_shake(self, intensity: float, duration: float):
+    def add_screen_shake(
+        self, intensity: float, duration: float, intensity_multiplier: float | None = None
+    ):
         """
         Add screen shake effect
 
@@ -151,10 +162,23 @@ class CameraSystem:
         if not self.config.enable_shake:
             return
 
+        multiplier = (
+            self.config.shake_multiplier
+            if intensity_multiplier is None
+            else max(0.0, intensity_multiplier)
+        )
+        scaled_intensity = max(0.0, intensity * multiplier)
+
         # Use max intensity if multiple shakes overlap
-        if intensity > self.shake_intensity:
-            self.shake_intensity = intensity
+        if scaled_intensity > self.shake_intensity:
+            self.shake_intensity = scaled_intensity
             self.shake_duration = duration
+
+    def add_damage_shake(self, intensity: float, duration: float):
+        """Add screen shake for damage events (uses damage multiplier)."""
+        self.add_screen_shake(
+            intensity, duration, intensity_multiplier=self.config.damage_shake_multiplier
+        )
 
     def add_camera_pan(self, offset_x: float, offset_y: float, speed: float = 0.1):
         """
@@ -217,6 +241,10 @@ class CameraSystem:
         # Update camera effects
         self._update_shake(dt)
         self._update_pan(dt)
+
+        # Cache integer offset once per frame for fast apply() calls
+        self._offset_x = int(-self.x + self.shake_offset_x + self.pan_offset_x)
+        self._offset_y = int(-self.y + self.shake_offset_y + self.pan_offset_y)
 
         # Skip following if in FREE or LOCKED mode
         if self.mode == CameraMode.LOCKED:
@@ -345,8 +373,8 @@ class CameraSystem:
             Screen-space rect
         """
         return pygame.Rect(
-            rect.x - int(self.x) + int(self.shake_offset_x + self.pan_offset_x),
-            rect.y - int(self.y) + int(self.shake_offset_y + self.pan_offset_y),
+            rect.x + self._offset_x,
+            rect.y + self._offset_y,
             rect.width,
             rect.height,
         )
@@ -379,6 +407,10 @@ class CameraSystem:
             self.letterbox_left = 0
             self.letterbox_top = (window_height - self.render_height) // 2
 
+        self._scaled_rect = pygame.Rect(
+            self.letterbox_left, self.letterbox_top, self.render_width, self.render_height
+        )
+
     def get_game_surface(self) -> pygame.Surface:
         """Get the virtual game surface to render to"""
         return self.game_surface
@@ -390,14 +422,15 @@ class CameraSystem:
         Args:
             screen: The actual pygame display surface
         """
-        # Fill letterbox bars with black
-        screen.fill((0, 0, 0))
+        # Fill letterbox bars only when needed (avoids full-screen fill each frame)
+        if self.letterbox_left > 0 or self.letterbox_top > 0:
+            screen.fill((0, 0, 0))
+            dest = screen.subsurface(self._scaled_rect)
+        else:
+            dest = screen
 
-        # Scale and blit game surface with letterboxing
-        scaled_surface = pygame.transform.scale(
-            self.game_surface, (self.render_width, self.render_height)
-        )
-        screen.blit(scaled_surface, (self.letterbox_left, self.letterbox_top))
+        # Scale directly into destination — no temporary surface allocation
+        pygame.transform.scale(self.game_surface, (self.render_width, self.render_height), dest)
 
     def get_viewport_rect(self) -> pygame.Rect:
         """Get the current viewport rectangle in world space"""

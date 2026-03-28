@@ -22,8 +22,11 @@ class Particle:
 class ParticleSystem:
     def __init__(self):
         self.particles: list[Particle] = []
+        self.enabled = True
 
     def emit_dust(self, x: float, y: float, count: int = 8):
+        if not self.enabled:
+            return
         for _ in range(count):
             speed = random.uniform(40, 90)
             angle = random.uniform(-0.8, 0.8)
@@ -34,6 +37,8 @@ class ParticleSystem:
             self.particles.append(Particle(x, y, vx, vy, life, size, (200, 200, 200)))
 
     def emit_dash(self, x: float, y: float, direction: int):
+        if not self.enabled:
+            return
         for _ in range(12):
             speed = random.uniform(120, 200)
             vx = speed * direction * random.uniform(0.6, 1.0)
@@ -48,6 +53,8 @@ class ParticleSystem:
 
         Red particles that pulse outward from enemy position.
         """
+        if not self.enabled:
+            return
         import math
 
         for _ in range(count):
@@ -66,6 +73,8 @@ class ParticleSystem:
 
         Bright flash particles indicating the strike.
         """
+        if not self.enabled:
+            return
         import math
 
         for _ in range(count):
@@ -79,18 +88,26 @@ class ParticleSystem:
             self.particles.append(Particle(x, y, vx, vy, life, size, (255, 255, 120)))
 
     def update(self, dt: float):
-        alive: list[Particle] = []
-        for p in self.particles:
+        if not self.enabled:
+            self.particles.clear()
+            return
+        # In-place removal: swap dead particle with last, pop — avoids list rebuild
+        i = 0
+        while i < len(self.particles):
+            p = self.particles[i]
             p.life -= dt
             if p.life <= 0:
-                continue
-            p.x += p.vx * dt
-            p.y += p.vy * dt
-            p.vy += 300 * dt  # simple gravity on particles
-            alive.append(p)
-        self.particles = alive
+                self.particles[i] = self.particles[-1]
+                self.particles.pop()
+            else:
+                p.x += p.vx * dt
+                p.y += p.vy * dt
+                p.vy += 300 * dt
+                i += 1
 
     def draw(self, surface: pygame.Surface, camera, color_override=None):
+        if not self.enabled:
+            return
         for p in self.particles:
             rect = pygame.Rect(int(p.x), int(p.y), p.size, p.size)
             screen_rect = camera.apply(rect)

@@ -38,19 +38,33 @@ if errorlevel 1 (
 )
 
 echo.
+echo Creating launcher script...
+echo @echo off > "dist\ninja_dash.bat"
+echo start "" "%%~dp0ninja_dash.exe" --build-mode production %%* >> "dist\ninja_dash.bat"
+
+echo Creating README...
+echo Ninja Dash - Production Build > "dist\ninja_dash_README.txt"
+echo. >> "dist\ninja_dash_README.txt"
+echo This is a ONE-FILE build. Run ninja_dash.exe (or ninja_dash.bat). >> "dist\ninja_dash_README.txt"
+echo. >> "dist\ninja_dash_README.txt"
+echo User data will be stored in the user_data\ folder next to the exe. >> "dist\ninja_dash_README.txt"
+echo. >> "dist\ninja_dash_README.txt"
+echo Controls: >> "dist\ninja_dash_README.txt"
+echo - Arrow keys / WASD: Move >> "dist\ninja_dash_README.txt"
+echo - Space: Jump >> "dist\ninja_dash_README.txt"
+echo - Shift: Dash >> "dist\ninja_dash_README.txt"
+echo - S/Down: Crouch >> "dist\ninja_dash_README.txt"
+echo - F3: Toggle debug overlay >> "dist\ninja_dash_README.txt"
+
+echo.
 echo ========================================
 echo Build Verification
 echo ========================================
-if exist "dist\ninja_dash\ninja_dash.exe" (
+if exist "dist\ninja_dash.exe" (
     echo [OK] Executable created: ninja_dash.exe
-    if exist "dist\ninja_dash\_internal\assets" (
-        echo [OK] Assets bundled
-    ) else (
-        echo [WARNING] Assets may be missing!
-    )
 ) else (
     echo [ERROR] Build failed - executable not found!
 )
 echo.
-echo Production build complete! Output: dist\ninja_dash\
+echo Production build complete! Output: dist\ninja_dash.exe
 pause

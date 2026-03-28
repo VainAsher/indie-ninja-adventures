@@ -129,6 +129,12 @@ class CombatMechanic:
                 if not state.health_state.is_invincible():
                     damage_taken += self._take_contact_damage(state, enemy)
 
+        # Goblin forward-hitbox check (separate from body contact)
+        if not state.health_state.is_invincible():
+            damage_taken += self._check_goblin_attacks(
+                state, enemy_manager, player_x, player_y, player_w, player_h
+            )
+
         return damage_taken
 
     # ============================================================
@@ -256,7 +262,7 @@ class CombatMechanic:
         Returns:
             Damage taken
         """
-        from entities.enemy import EnemyAIState, EnemyAttackSubState
+        from entities.enemy import EnemyAIState, EnemyAttackSubState, EnemyType
 
         # CRITICAL: Only take damage if enemy is in ACTIVE attack phase
         if enemy.ai_state != EnemyAIState.ATTACK:
@@ -264,6 +270,10 @@ class CombatMechanic:
 
         if enemy.attack_substate != EnemyAttackSubState.ACTIVE:
             return 0  # Not in damage window (windup or recovery), no damage
+
+        # Goblin damage comes from its forward hitbox (checked separately), not body contact
+        if enemy.enemy_type == EnemyType.GOBLIN:
+            return 0
 
         # Enemy is in active attack phase - apply damage
         definition = enemy.get_definition()
@@ -298,6 +308,59 @@ class CombatMechanic:
             pass
 
         return definition.base_damage
+
+    def _check_goblin_attacks(
+        self,
+        state: PlayerState,
+        enemy_manager,
+        player_x: float,
+        player_y: float,
+        player_w: int,
+        player_h: int,
+    ) -> int:
+        """
+        Check whether any goblin's forward dagger hitbox overlaps the player.
+
+        Goblins deal damage via a rect in front of them rather than body contact,
+        matching the visual of the dagger swipe.
+        """
+        from entities.enemy import EnemyAIState, EnemyAttackSubState, EnemyType
+
+        player_rect = (player_x, player_y, player_w, player_h)
+        damage = 0
+
+        for enemy in enemy_manager.enemies.values():
+            if enemy.is_dead():
+                continue
+            if enemy.enemy_type != EnemyType.GOBLIN:
+                continue
+            if enemy.ai_state != EnemyAIState.ATTACK:
+                continue
+            if enemy.attack_substate != EnemyAttackSubState.ACTIVE:
+                continue
+
+            hitbox = enemy.get_attack_hitbox()
+            if hitbox and self._overlap(player_rect, hitbox):
+                damage += self._take_contact_damage(state, enemy)
+                # _take_contact_damage returns 0 for goblin (body bypass), so
+                # apply damage directly here
+                if not damage:
+                    definition = enemy.get_definition()
+                    state.health_state.take_damage(definition.base_damage, defense=0)
+                    # Knockback away from goblin
+                    ecx = enemy.physics.x + definition.width / 2
+                    pcx = state.physics.x + state.physics.width / 2
+                    state.physics.vx = ENEMY_CONTACT_KNOCKBACK if pcx > ecx else -ENEMY_CONTACT_KNOCKBACK
+                    state.physics.vy = -150.0
+                    damage += definition.base_damage
+
+        return damage
+
+    @staticmethod
+    def _overlap(a: tuple, b: tuple) -> bool:
+        ax, ay, aw, ah = a
+        bx, by, bw, bh = b
+        return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
 
     # ============================================================
     # Helper Methods

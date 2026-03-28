@@ -290,6 +290,33 @@ class InventoryUI:
                 # Use/equip selected item
                 print(f"Use/equip item at slot {self.state.selected_slot}")
 
+    def handle_command(self, pressed_once: list[int]) -> int | None:
+        """
+        Handle command-style input (pressed-once keys).
+
+        Returns:
+            Selected slot index if "activate" pressed, else None.
+        """
+        if not self.state.open:
+            return None
+
+        max_slot = self.grid_cols * self.grid_rows - 1
+
+        # Arrow keys or WASD to navigate
+        if pygame.K_RIGHT in pressed_once or pygame.K_d in pressed_once:
+            self.state.selected_slot = min(self.state.selected_slot + 1, max_slot)
+        elif pygame.K_LEFT in pressed_once or pygame.K_a in pressed_once:
+            self.state.selected_slot = max(self.state.selected_slot - 1, 0)
+        elif pygame.K_DOWN in pressed_once or pygame.K_s in pressed_once:
+            self.state.selected_slot = min(self.state.selected_slot + self.grid_cols, max_slot)
+        elif pygame.K_UP in pressed_once or pygame.K_w in pressed_once:
+            self.state.selected_slot = max(self.state.selected_slot - self.grid_cols, 0)
+
+        if pygame.K_RETURN in pressed_once:
+            return self.state.selected_slot
+
+        return None
+
 
 # ============================================================
 # Helper Functions

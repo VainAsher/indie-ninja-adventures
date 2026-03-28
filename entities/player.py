@@ -222,14 +222,20 @@ class Player:
         # Apply movement modifiers: default walk; run when Alt
         if self.state.crouching:
             modifiers = self.crouch.get_movement_modifier(self.state)
-            self.movement.set_speed_multiplier(modifiers["speed_mult"])
-            self.movement.set_accel_multiplier(modifiers["accel_mult"])
+            env_speed = getattr(self.state, "environment_speed_mult", 1.0)
+            env_accel = getattr(self.state, "environment_accel_mult", 1.0)
+            self.movement.set_speed_multiplier(modifiers["speed_mult"] * env_speed)
+            self.movement.set_accel_multiplier(modifiers["accel_mult"] * env_accel)
         elif getattr(self.state, "is_running", False):
-            self.movement.set_speed_multiplier(1.0)
-            self.movement.set_accel_multiplier(1.0)
+            env_speed = getattr(self.state, "environment_speed_mult", 1.0)
+            env_accel = getattr(self.state, "environment_accel_mult", 1.0)
+            self.movement.set_speed_multiplier(1.0 * env_speed)
+            self.movement.set_accel_multiplier(1.0 * env_accel)
         else:
-            self.movement.set_speed_multiplier(0.6)
-            self.movement.set_accel_multiplier(0.8)
+            env_speed = getattr(self.state, "environment_speed_mult", 1.0)
+            env_accel = getattr(self.state, "environment_accel_mult", 1.0)
+            self.movement.set_speed_multiplier(0.6 * env_speed)
+            self.movement.set_accel_multiplier(0.8 * env_accel)
 
         # Lock movement during dash or wall jump lock
         if self.state.is_dashing or self.state.wall_jump_lock > 0:

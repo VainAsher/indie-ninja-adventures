@@ -103,6 +103,10 @@ class PlayerState:
     is_slow_walking: bool = False
     is_running: bool = False
 
+    # Environment modifiers (e.g., water slow)
+    environment_speed_mult: float = 1.0
+    environment_accel_mult: float = 1.0
+
     # Combat/attack state
     attack_stage: int = 0
     attack_timer: float = 0.0
@@ -168,6 +172,8 @@ class PlayerState:
             "throw_cooldown": self.throw_cooldown,
             "is_slow_walking": self.is_slow_walking,
             "is_running": self.is_running,
+            "environment_speed_mult": self.environment_speed_mult,
+            "environment_accel_mult": self.environment_accel_mult,
             "attack_stage": self.attack_stage,
             "attack_timer": self.attack_timer,
             "is_air_attacking": self.is_air_attacking,
@@ -207,6 +213,8 @@ class PlayerState:
     def from_dict(cls, data: dict) -> "PlayerState":
         """Deserialize from dictionary"""
         physics_data = data.pop("physics")
+        data.setdefault("environment_speed_mult", 1.0)
+        data.setdefault("environment_accel_mult", 1.0)
         wall_coyote_time = data.pop("wall_coyote_time", 0.0)
         is_wall_hanging = data.pop("is_wall_hanging", False)
         is_ceiling_hanging = data.pop("is_ceiling_hanging", False)

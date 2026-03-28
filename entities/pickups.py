@@ -206,6 +206,12 @@ class PickupManager:
         self.total_collectibles += 1
         return collectible
 
+    def spawn_pickup(self, item_id: str, x: float, y: float):
+        """Spawn a named objective collectible at the given position"""
+        collectible = self.spawn_collectible(x, y)
+        collectible.item_id = item_id
+        return collectible
+
     def update(self, dt: float):
         """Update all pickups"""
         for pickup in self.pickups:
@@ -245,6 +251,16 @@ class PickupManager:
                     position=(pickup.x, pickup.y),
                 )
                 self.event_bus.emit(event)
+
+                # Emit item-specific event for objective tracking
+                item_id = getattr(pickup, "item_id", None)
+                if item_id:
+                    from game.objective_tracker import ItemCollectedEvent
+                    self.event_bus.emit(ItemCollectedEvent(
+                        item_id=item_id,
+                        quantity=pickup.value,
+                        position=(pickup.x, pickup.y),
+                    ))
 
         return collected
 

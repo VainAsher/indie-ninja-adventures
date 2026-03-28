@@ -1266,6 +1266,8 @@ def main():
         current_world_context = "hub"
         level_complete = False
         current_hub_id = target_hub
+        # Restore full health when returning to hub (death or mission complete)
+        player.damage.respawn(player.state, spawn_x, spawn_y)
         if campaign_data:
             campaign_data.current_hub_id = target_hub
             campaign_data.current_hub_position = (spawn_x, spawn_y)
@@ -2484,13 +2486,13 @@ def main():
                                         save_manager.data.campaign.currency = (
                                             player_inventory.currency
                                         )
-                                        # Grant unlock_abilities from this mission (Bug 6)
-                                        camp = save_manager.data.campaign
+                                        # Grant ability unlocks from mission definition
+                                        unlocked = save_manager.data.campaign.unlocked_abilities
                                         for ability in getattr(mission_def, "unlock_abilities", []):
-                                            if isinstance(camp.unlocked_abilities, set):
-                                                camp.unlocked_abilities.add(ability)
-                                            elif ability not in camp.unlocked_abilities:
-                                                camp.unlocked_abilities.append(ability)
+                                            if isinstance(unlocked, set):
+                                                unlocked.add(ability)
+                                            elif ability not in unlocked:
+                                                unlocked.append(ability)
                                             print(f"[MISSION] Ability unlocked: {ability}")
                                         save_manager.mark_dirty()
 
@@ -2509,7 +2511,7 @@ def main():
                                             story_manager.trigger_cutscene(cutscene_id)
 
                             objective_tracker.stop_mission_objectives()
-                            # Show victory screen; SPACE handler at line ~1472 returns to hub
+                            # Show victory screen; SPACE handler returns to hub
                             level_complete = True
                             victory_screen.reset()
                         else:
@@ -2930,8 +2932,7 @@ def main():
         player_state_name = get_player_render_state(player)
 
         # Determine sprite facing.
-        # During attack animations, lock to the committed facing direction and skip
-        # the wall-inversion so the sprite doesn't flip mid-combo.
+        # During attack animations, lock to committed facing; skip wall inversion so sprite doesn't flip mid-combo.
         _attack_states = {
             "attack", "slash1", "slash2", "slash3", "slash_air", "jump_slash",
             "throw_ground", "throw_crouch", "throw_air",
@@ -2943,24 +2944,65 @@ def main():
 
         # Get sprite frame — use AnimationStateMachine when available (correct
         # transition reset for non-looping anims), fall back to SpriteManager.
-        target_size = (screen_player_rect.width, screen_player_rect.height)
+        #
+        # Attack frames (114×124px natural) are wider than the player hitbox
+        # (28×56px). Squashing them to hitbox width causes heavy distortion.
+        # For attack states: scale by height only (preserve aspect ratio), then
+        # anchor the player-body portion of the frame over the hitbox center.
+        # Idle body width ~64px at natural size; at hitbox-height scale that is
+        # approximately the same width as the hitbox itself.
+        _hitbox_h = screen_player_rect.height
+        _hitbox_w = screen_player_rect.width
+        _is_attack = player_state_name in _attack_states
+
+        # Fetch raw (unscaled) surface so we can choose target size below
+        _raw_surf: pygame.Surface | None = None
         if getattr(player, "anim_sm", None) is not None:
             player.anim_sm.transition(player_state_name)
-            raw_surf = player.anim_sm.get_frame(sprite_facing)
-            if raw_surf is not None:
-                scaled = pygame.transform.scale(raw_surf, target_size)
-                frame = SpriteFrame(surface=scaled)
+            _raw_surf = player.anim_sm.get_frame(sprite_facing)
+
+        if _raw_surf is not None:
+            nat_w, nat_h = _raw_surf.get_size()
+            if _is_attack and nat_h > 0:
+                # Scale to hitbox height, let width be natural
+                scale_w = max(1, int(nat_w * _hitbox_h / nat_h))
+                scaled_surf = pygame.transform.scale(_raw_surf, (scale_w, _hitbox_h))
+            else:
+                scaled_surf = pygame.transform.scale(_raw_surf, (_hitbox_w, _hitbox_h))
+            frame = SpriteFrame(surface=scaled_surf)
+        else:
+            if _is_attack:
+                # SpriteManager path: get at natural size then scale height only
+                raw_frame = sprite_manager.get_frame(
+                    player_state_name, sprite_facing, pygame.time.get_ticks()
+                )
+                nat_w, nat_h = raw_frame.surface.get_size()
+                scale_w = max(1, int(nat_w * _hitbox_h / nat_h)) if nat_h > 0 else _hitbox_w
+                scaled_surf = pygame.transform.scale(raw_frame.surface, (scale_w, _hitbox_h))
+                frame = SpriteFrame(surface=scaled_surf)
             else:
                 frame = sprite_manager.get_scaled_frame(
                     player_state_name, sprite_facing, pygame.time.get_ticks(),
-                    target_size=target_size,
+                    target_size=(_hitbox_w, _hitbox_h),
                 )
+
+        # Position sprite: for attack states anchor the body portion (left ~hitbox_w
+        # of the frame when facing right) over the hitbox; for others center it.
+        if _is_attack:
+            # Estimate scaled body width as the hitbox width (idle frame scales to ≈hitbox_w)
+            body_w = _hitbox_w
+            if sprite_facing >= 0:
+                # Facing right: body is on the left, sword extends right
+                sprite_rect = frame.surface.get_rect()
+                sprite_rect.centery = screen_player_rect.centery
+                sprite_rect.left = screen_player_rect.left
+            else:
+                # Facing left: sprite is flipped — body on right, sword extends left
+                sprite_rect = frame.surface.get_rect()
+                sprite_rect.centery = screen_player_rect.centery
+                sprite_rect.right = screen_player_rect.right
         else:
-            frame = sprite_manager.get_scaled_frame(
-                player_state_name, sprite_facing, pygame.time.get_ticks(),
-                target_size=target_size,
-            )
-        sprite_rect = frame.surface.get_rect(center=screen_player_rect.center)
+            sprite_rect = frame.surface.get_rect(center=screen_player_rect.center)
         # Teleport phase overlay: show semi-transparent ghost at cursor
         if player.state.is_teleporting_phase and getattr(player, "teleport", None):
             phase_pos = player.teleport.phase_cursor or (

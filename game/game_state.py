@@ -22,6 +22,7 @@ from enum import Enum
 class GameState(Enum):
     """Game state enumeration"""
 
+    LANDING = "landing"
     MENU = "menu"
     PLAYING = "playing"
     PAUSED = "paused"
@@ -78,7 +79,11 @@ class GameStateManager:
 
     def is_menu(self) -> bool:
         """Check if in menu"""
-        return self.data.current_state == GameState.MENU
+        return self.data.current_state in (GameState.MENU, GameState.LANDING)
+
+    def is_landing(self) -> bool:
+        """Check if on landing screen"""
+        return self.data.current_state == GameState.LANDING
 
     def is_victory(self) -> bool:
         """Check if showing victory screen"""
@@ -143,7 +148,7 @@ class GameStateManager:
 
     def start_game(self):
         """Start game from menu"""
-        if self.data.current_state == GameState.MENU:
+        if self.data.current_state in (GameState.MENU, GameState.LANDING):
             self.transition_to(GameState.PLAYING)
 
     def quit_to_menu(self):

@@ -26,7 +26,14 @@ from collections import deque
 from dataclasses import dataclass
 
 from config.physics_constants import ROOM_HEIGHT_TILES, ROOM_WIDTH_TILES
-from systems.room_generation import TILE_EMPTY, TILE_PLATFORM
+from systems.room_generation import (
+    TILE_EMPTY,
+    TILE_LAVA,
+    TILE_PLATFORM,
+    TILE_PLATFORM_FALLING,
+    TILE_PLATFORM_MOVING,
+    TILE_WATER,
+)
 from systems.world_generation import World
 
 
@@ -230,8 +237,15 @@ class ConnectivityValidator:
                     tilemap = room_tilemaps[new_room_coords]
                     tile = tilemap[new_tile_y][new_tile_x]
 
-                    # Walkable: empty or platform (not solid)
-                    if tile in (TILE_EMPTY, TILE_PLATFORM):
+                    # Walkable: empty, liquids, or platforms (not solid)
+                    if tile in (
+                        TILE_EMPTY,
+                        TILE_LAVA,
+                        TILE_WATER,
+                        TILE_PLATFORM,
+                        TILE_PLATFORM_FALLING,
+                        TILE_PLATFORM_MOVING,
+                    ):
                         visited_tiles.add(tile_key)
                         queue.append((new_room_coords, new_tile_x, new_tile_y))
 

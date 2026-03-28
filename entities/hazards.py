@@ -233,6 +233,8 @@ class HazardManager:
         player_height = player_state.physics.height
 
         for hazard in self.hazards:
+            if hazard.hazard_type == "poison":
+                continue
             if hazard.check_collision(player_x, player_y, player_width, player_height):
                 # Return first collision (hazards don't stack damage)
                 return (hazard, hazard.damage)

@@ -48,11 +48,12 @@ class EnemyMovementComponent:
         dir_x = dx / distance
         dir_y = dy / distance if self.can_fly else 0.0
 
-        target_vx = dir_x * self.move_speed
-        target_vy = dir_y * self.move_speed if self.can_fly else physics.vy
+        # Convert per-second speed to per-tick (integration is x += vx, no dt)
+        target_vx = dir_x * self.move_speed * dt
+        target_vy = dir_y * self.move_speed * dt if self.can_fly else physics.vy
 
         control_mult = 1.0 if physics.on_ground or self.can_fly else self.air_control
-        accel_amount = self.acceleration * control_mult * dt
+        accel_amount = self.acceleration * control_mult * dt * dt
 
         # Smooth toward target velocity
         if abs(target_vx - physics.vx) > accel_amount:

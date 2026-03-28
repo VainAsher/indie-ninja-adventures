@@ -30,7 +30,13 @@ GAME_HEIGHT = 720
 from game.mission_registry import ObjectiveType
 from systems.connectivity import validate_world_connectivity
 from systems.megamap import build_megamap
-from systems.room_generation import TILE_EMPTY, TILE_PLATFORM, TILE_SOLID
+from systems.room_generation import (
+    TILE_EMPTY,
+    TILE_PLATFORM,
+    TILE_PLATFORM_FALLING,
+    TILE_PLATFORM_MOVING,
+    TILE_SOLID,
+)
 from systems.world_generation import WorldGenerator, WorldShape, generate_world_tilemaps
 
 
@@ -133,7 +139,7 @@ def create_procedural_level(seed=None, shape_str="blob", num_rooms=10):
 
             if tile_type == TILE_SOLID:
                 tiles.append(pygame.Rect(x, y, tile_scale, tile_scale))
-            elif tile_type == TILE_PLATFORM:
+            elif tile_type in (TILE_PLATFORM, TILE_PLATFORM_FALLING, TILE_PLATFORM_MOVING):
                 platforms.append(pygame.Rect(x, y, tile_scale, tile_scale))
 
     def ensure_support(point_x: float, point_y: float, tiles_list: list, search_height: int = 96):

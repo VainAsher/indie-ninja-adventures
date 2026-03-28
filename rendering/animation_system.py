@@ -73,8 +73,8 @@ PLAYER_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
     "walk":            ("walk_spritesheet.png",         4, 10,  True),
     "run":             ("run_spritesheet.png",          6, 12,  True),
     "slow_walk":       ("walk_spritesheet.png",         4,  8,  True),
-    "jump":            ("jumpfall_spritesheet.png",     1, 10,  False),
-    "fall":            ("jumpfall_spritesheet.png",     1, 10,  False),
+    "jump":            ("jumpfall_spritesheet.png",     2, 10,  False),  # frame 1 = ascending
+    "fall":            ("jumpfall_spritesheet.png",     2, 10,  False),  # frame 0 = falling
     "crouch":          ("idle_spritesheet.png",         2,  6,  True),
     "dash":            ("run_spritesheet.png",          6, 20,  True),
     "wall_slide":      ("jumpfall_spritesheet.png",     2,  8,  True),

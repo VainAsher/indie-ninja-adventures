@@ -119,10 +119,7 @@ echo.
 
 REM Create user_data directories for each build
 echo Creating user_data templates...
-if not exist "dist\ninja_dash\user_data\replays" mkdir "dist\ninja_dash\user_data\replays"
-if not exist "dist\ninja_dash\user_data\logs" mkdir "dist\ninja_dash\user_data\logs"
-if not exist "dist\ninja_dash\user_data\saves" mkdir "dist\ninja_dash\user_data\saves"
-
+REM Production is now one-file; user_data will be created on first run.
 if not exist "dist\ninja_dash_testing\user_data\replays" mkdir "dist\ninja_dash_testing\user_data\replays"
 if not exist "dist\ninja_dash_testing\user_data\logs" mkdir "dist\ninja_dash_testing\user_data\logs"
 if not exist "dist\ninja_dash_testing\user_data\saves" mkdir "dist\ninja_dash_testing\user_data\saves"
@@ -134,8 +131,8 @@ if not exist "dist\ninja_dash_dev\user_data\saves" mkdir "dist\ninja_dash_dev\us
 REM Create launcher scripts for each build
 echo Creating launcher scripts...
 
-echo @echo off > "dist\ninja_dash\ninja_dash.bat"
-echo start "" "%%~dp0ninja_dash.exe" --build-mode production %%* >> "dist\ninja_dash\ninja_dash.bat"
+echo @echo off > "dist\ninja_dash.bat"
+echo start "" "%%~dp0ninja_dash.exe" --build-mode production %%* >> "dist\ninja_dash.bat"
 
 echo @echo off > "dist\ninja_dash_testing\ninja_dash_testing.bat"
 echo "%%~dp0ninja_dash_testing.exe" --build-mode testing %%* >> "dist\ninja_dash_testing\ninja_dash_testing.bat"
@@ -146,18 +143,18 @@ echo "%%~dp0ninja_dash_dev.exe" --build-mode dev %%* >> "dist\ninja_dash_dev\nin
 REM Create README files for each build
 echo Creating distribution README files...
 
-echo Ninja Dash - Production Build > "dist\ninja_dash\README.txt"
-echo. >> "dist\ninja_dash\README.txt"
-echo IMPORTANT: Run ninja_dash.bat (NOT the .exe directly) >> "dist\ninja_dash\README.txt"
-echo. >> "dist\ninja_dash\README.txt"
-echo User data will be stored in the user_data\ folder. >> "dist\ninja_dash\README.txt"
-echo. >> "dist\ninja_dash\README.txt"
-echo Controls: >> "dist\ninja_dash\README.txt"
-echo - Arrow keys / WASD: Move >> "dist\ninja_dash\README.txt"
-echo - Space: Jump >> "dist\ninja_dash\README.txt"
-echo - Shift: Dash >> "dist\ninja_dash\README.txt"
-echo - S/Down: Crouch >> "dist\ninja_dash\README.txt"
-echo - F3: Toggle debug overlay >> "dist\ninja_dash\README.txt"
+echo Ninja Dash - Production Build > "dist\ninja_dash_README.txt"
+echo. >> "dist\ninja_dash_README.txt"
+echo This is a ONE-FILE build. Run ninja_dash.exe (or ninja_dash.bat). >> "dist\ninja_dash_README.txt"
+echo. >> "dist\ninja_dash_README.txt"
+echo User data will be stored in the user_data\ folder next to the exe. >> "dist\ninja_dash_README.txt"
+echo. >> "dist\ninja_dash_README.txt"
+echo Controls: >> "dist\ninja_dash_README.txt"
+echo - Arrow keys / WASD: Move >> "dist\ninja_dash_README.txt"
+echo - Space: Jump >> "dist\ninja_dash_README.txt"
+echo - Shift: Dash >> "dist\ninja_dash_README.txt"
+echo - S/Down: Crouch >> "dist\ninja_dash_README.txt"
+echo - F3: Toggle debug overlay >> "dist\ninja_dash_README.txt"
 
 echo Ninja Dash - Testing Build > "dist\ninja_dash_testing\README.txt"
 echo. >> "dist\ninja_dash_testing\README.txt"
@@ -194,7 +191,7 @@ echo Checking build outputs...
 echo.
 
 REM Check if executables were created
-if exist "dist\ninja_dash\ninja_dash.exe" (
+if exist "dist\ninja_dash.exe" (
     echo [OK] Production build: ninja_dash.exe
 ) else (
     echo [ERROR] Production build failed - executable not found!
@@ -214,7 +211,7 @@ if exist "dist\ninja_dash_dev\ninja_dash_dev.exe" (
 
 echo.
 echo Checking launcher scripts...
-if exist "dist\ninja_dash\ninja_dash.bat" (
+if exist "dist\ninja_dash.bat" (
     echo [OK] Production launcher: ninja_dash.bat
 ) else (
     echo [WARNING] Production launcher not found!
@@ -234,12 +231,6 @@ if exist "dist\ninja_dash_dev\ninja_dash_dev.bat" (
 
 echo.
 echo Checking data directories...
-if exist "dist\ninja_dash\_internal\assets" (
-    echo [OK] Production assets bundled
-) else (
-    echo [WARNING] Production assets may be missing!
-)
-
 if exist "dist\ninja_dash_testing\_internal\assets" (
     echo [OK] Testing assets bundled
 ) else (
@@ -258,10 +249,10 @@ echo All builds completed successfully!
 echo ========================================
 echo.
 echo Output directories:
-echo   - dist\ninja_dash\           (PRODUCTION - %~z0 bytes)
+echo   - dist\ninja_dash.exe        (PRODUCTION - one-file)
 echo   - dist\ninja_dash_testing\   (TESTING)
 echo   - dist\ninja_dash_dev\       (DEV)
 echo.
-echo IMPORTANT: Always run the .bat launcher files, NOT the .exe directly!
+echo IMPORTANT: For TESTING/DEV, run the .bat launcher files (or pass --build-mode).
 echo.
 pause

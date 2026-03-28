@@ -103,8 +103,8 @@ class SpriteManager:
         "wall_hang": ("jumpfall_spritesheet.png", 2, 6, True),
         "ceiling_hang": ("jumpfall_spritesheet.png", 2, 6, True),
         "air_spin": ("jumpfall_spritesheet.png", 2, 10, True),
-        "hurt": ("hurt_spritesheet.png", 3, 12, False),
-        "hurt2": ("hurt_spritesheet.png", 3, 12, False),
+        "hurt": ("hurt_spritesheet.png", 3, 12, True),   # loop while i-frames active
+        "hurt2": ("hurt_spritesheet.png", 3, 12, True),
         "death": ("death_spritesheet.png", 5, 12, False),
         "attack": ("attack-sword_spritesheet.png", 6, 15, False),
         "slash1": ("attack-sword_spritesheet.png", 6, 15, False),
@@ -153,10 +153,11 @@ class SpriteManager:
                 raw_frames = sheet.get_frames()
 
                 # Special handling for jump/fall (split jumpfall sheet)
+                # Sheet layout: frame 0 = falling pose, frame 1 = ascending pose
                 if anim_name == "jump":
-                    raw_frames = [raw_frames[0]]  # First frame
+                    raw_frames = raw_frames[1:2] if len(raw_frames) > 1 else raw_frames  # ascending
                 elif anim_name == "fall":
-                    raw_frames = [raw_frames[1]]  # Second frame
+                    raw_frames = [raw_frames[0]]  # falling
 
                 # Wrap in SpriteFrame objects
                 frames = [SpriteFrame(surface=surf) for surf in raw_frames]
