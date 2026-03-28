@@ -24,42 +24,102 @@ Vain Asher Gaming's: Indie Ninja Adventures is built with a **modular, event-dri
 
 ### Project Structure
 
-```
-VainAsherGamings_IndieNinjaAdventures_v0_3/
+```text
+indie-ninja-adventures/
 ├── core/                      # Engine infrastructure
 │   ├── event_bus.py          # Pub/sub event system
-│   ├── logger.py             # Persistent logging with user-configurable location
-│   ├── clock.py              # Fixed 60Hz timestep
-│   ├── state.py              # Serializable game state
-│   ├── entity_system.py      # Component-based entities
-│   └── mod_system.py         # Plugin architecture
+│   ├── logger.py             # Persistent rotating logs
+│   ├── clock.py              # Fixed 60Hz timestep (Glenn Fiedler pattern)
+│   ├── state.py              # Serializable state (5 s history for replay/rollback)
+│   ├── entity_system.py      # Component-based entity manager
+│   └── mod_system.py         # Plugin architecture with lifecycle hooks
 │
 ├── systems/                   # High-level game systems
-│   ├── collision_system.py  # Universal collision detection
-│   ├── physics_system.py     # Gravity and velocity integration
+│   ├── collision_system.py   # AABB + swept collision
+│   ├── physics_system.py     # Gravity, velocity, tile effects
 │   ├── camera_system.py      # Multi-mode camera with letterboxing
-│   ├── world_generation.py   # Procedural world generation
-│   ├── zone_planning.py      # Zone-based room planning
-│   └── room_generation.py    # Tilemap generation
+│   ├── world_generation.py   # Procedural world — 7 BiomeTheme values
+│   ├── zone_planning.py      # 16×16 zone grid per room
+│   ├── room_generation.py    # Tilemap from zone roles
+│   ├── connectivity.py       # BFS + fallback spine connectivity
+│   ├── autotiling.py         # 3×3 neighbor autotile detection
+│   ├── save_system.py        # JSON persistence
+│   ├── hazard_spawner.py     # Spike/lava/poison/void placement
+│   └── pickup_spawner.py     # Coin/health/item placement
 │
-├── mechanics/                 # Player mechanics (modular)
+├── mechanics/                 # Player mechanics (modular, each extends BaseMechanic)
 │   ├── base.py               # BaseMechanic interface
-│   ├── jump.py               # All jump types
 │   ├── movement.py           # Ground/air acceleration
+│   ├── jump.py               # Ground, double, wall, coyote, buffer
 │   ├── dash.py               # Dash with cooldown
-│   ├── wall_slide.py         # Wall cling with stamina
-│   └── crouch.py             # Stealth movement
+│   ├── wall_slide.py         # Wall friction/cling (active — see note below)
+│   ├── crouch.py             # Stealth movement
+│   ├── combat.py             # Attack combo chain
+│   ├── damage.py             # Hurt, death, respawn, i-frames
+│   ├── shuriken.py           # Shuriken throw mechanic
+│   ├── teleport.py           # Teleport mechanic
+│   └── ninjutsu.py           # Ninjutsu stance/cast
 │
 ├── entities/                  # Game entities
-│   ├── player.py             # Player orchestrator
-│   └── components.py         # Reusable components
+│   ├── player.py             # Player orchestrator (wires all mechanics)
+│   ├── enemy_manager.py      # Enemy spawning and update (5 types)
+│   ├── enemy_ai.py           # Enemy AI behaviours
+│   ├── boss_manager.py       # Boss spawning (6 types — NOT YET WIRED)
+│   ├── npc_manager.py        # Story-driven NPC spawning
+│   ├── hazards.py            # Hazard entity logic
+│   └── pickups.py            # Pickup entity logic
 │
-├── test_*.py                  # Test scripts
+├── game/                      # Game loop subsystems
+│   ├── game_initialization.py # All managers wired here
+│   ├── game_state.py         # GameStateManager (LANDING/MENU/PLAYING/PAUSED/…)
+│   ├── hub_manager.py        # Hub world generation per region
+│   ├── level_factory.py      # Mission level construction
+│   ├── mission_system.py     # Mission definitions (30 missions, 6 regions)
+│   ├── mission_manager.py    # Mission state tracking
+│   ├── objective_tracker.py  # Objective progress + exit unlock
+│   ├── campaign_manager.py   # Region/ability unlock progression
+│   ├── story_manager.py      # Story acts and events
+│   ├── dialogue_system.py    # NPC conversation trees
+│   ├── inventory_system.py   # Player items
+│   ├── trading_system.py     # NPC shop trades
+│   └── loot_system.py        # Loot drop logic
 │
-├── ARCHITECTURE.md            # Detailed architecture docs
-├── MODDING_GUIDE.md           # Mod development guide
-└── SYSTEM_OVERVIEW.md         # This file
+├── rendering/                 # Rendering subsystems
+│   ├── animation_system.py   # Sprite sheet state machine
+│   ├── tile_loader.py        # PNG tile assets — loads, scales, caches
+│   ├── sprite_manager.py     # Frame extraction, flip cache
+│   ├── particles.py          # Dust, dash, impact particles
+│   ├── hazard_renderer.py    # Hazard visuals
+│   ├── enemy_renderer.py     # Enemy visuals
+│   └── pickup_renderer.py    # Pickup visuals
+│
+├── ui/                        # UI components
+│   ├── menu_system.py        # Main, pause, settings menus
+│   ├── hud.py                # Health, objectives, minimap
+│   ├── inventory_ui.py       # Inventory overlay
+│   ├── dialogue_ui.py        # Dialogue box
+│   ├── mission_menu_ui.py    # Mission selection screen
+│   └── tutorial_system.py    # Tutorial overlays
+│
+├── assets/                    # Game assets
+│   ├── biomes/               # Tile PNGs per biome (dungeon/cave/building/forest/town/sewer/hollow)
+│   ├── sprites/              # Player and NPC sprite sheets
+│   └── splash/               # Splash screen assets
+│
+├── data/                      # Game data
+│   └── missions.json         # Mission definitions (30 missions)
+│
+├── tests/                     # Test suite
+│   ├── unit/                 # Unit tests per module
+│   └── integration/          # Integration tests
+│
+├── build/                     # Build scripts (PyInstaller)
+├── utils/                     # Shared utilities
+├── demo_game.py               # Main game executable (~3,600 lines)
+└── docs/                      # Documentation
 ```
+
+**Wall slide note**: `mechanics/wall_slide.py` is active — the mechanic applies light wall friction (vy clamp) when the player touches a wall. An older stamina-based implementation was previously disabled; the current implementation is a lighter, always-on version.
 
 ---
 
@@ -307,7 +367,7 @@ collision_system.set_tiles(collision_rects)
 **Features:**
 - Seed-based deterministic generation (same seed = same world)
 - Hierarchical structure: World → Biomes → Rooms → Zones (16×16) → Tilemap (160×160)
-- Multi-biome support (DUNGEON, CAVE, BUILDING themes)
+- 7 biome themes: DUNGEON, CAVE, BUILDING, FOREST, TOWN, SEWER, HOLLOW
 - Room types: START, EXIT, SHOP, COMBAT, PLATFORM, TREASURE, BOSS
 - BFS connectivity validation (guarantees all critical zones are reachable)
 - Door port system with proper alignment
@@ -404,9 +464,9 @@ if dash.can_activate(state):
 - **Cooldown**: 0.45s (~27 frames)
 - **Cancellation**: Stops on wall collision
 
-### wall slide (legacy) — currently disabled
+### Wall Slide Mechanic (`mechanics/wall_slide.py`)
 
-The stamina-based wall slide mechanic remains in code for future rework but is **disabled in gameplay**. Current wall interaction uses a simple wall-friction clamp plus a wall-jump coyote buffer in `entities/player.py`. Existing wall-slide stamina APIs are retained for compatibility but should be considered legacy.
+The wall slide mechanic applies light wall friction (a vy clamp) when the player is in contact with a wall while airborne. This gives a controlled slide-down feel. A previous stamina-gated version was replaced with the current lighter always-on approach. Wall-jump coyote time is handled in `entities/player.py`.
 
 ### Crouch Mechanic (`mechanics/crouch.py`)
 
@@ -446,34 +506,17 @@ modifiers = crouch.get_movement_modifier(state)
 
 All systems have comprehensive test coverage.
 
-### Test Scripts
+### Running Tests
 
 ```bash
-# Core infrastructure
-python test_core_infrastructure.py
-
-# Collision system
-python test_collision_system.py
-
-# Jump mechanic
-python test_jump_mechanic.py
-
-# Full player integration
-python test_player_integration.py
+python -m pytest tests/ -q          # all tests
+python -m pytest tests/unit/ -q     # unit tests only
+python -m pytest tests/ -x -q       # stop on first failure
 ```
 
-### Integration Test Results
+### Test Organisation
 
-```
-[PASS] Basic Movement Test PASSED
-[PASS] Crouch + Movement Interaction Test PASSED
-[PASS] Dash Mechanics Test PASSED
-[SKIP] wall slide stamina tests (mechanic disabled during rework)
-[PASS] Collision Integration Test PASSED
-[PASS] Full Gameplay Scenario Test PASSED
-
-[PASS] ALL INTEGRATION TESTS PASSED
-```
+Tests live in `tests/unit/` and `tests/integration/`. CI runs all tests headlessly via `SDL_VIDEODRIVER=dummy` so no display is needed.
 
 **Test Coverage:**
 - Core systems (event bus, logger, clock, state)
