@@ -77,7 +77,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
     BossType.SHADOW_LORD: BossDefinition(
         boss_type=BossType.SHADOW_LORD,
         display_name="Shadow Lord",
-        max_health=500,
+        max_health=250,
         base_damage=1,
         move_speed=80.0,
         width=64,
@@ -93,7 +93,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
     BossType.FIRE_DEMON: BossDefinition(
         boss_type=BossType.FIRE_DEMON,
         display_name="Fire Demon",
-        max_health=600,
+        max_health=300,
         base_damage=1,
         move_speed=100.0,
         width=80,
@@ -110,7 +110,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
     BossType.NECROMANCER: BossDefinition(
         boss_type=BossType.NECROMANCER,
         display_name="Necromancer",
-        max_health=400,
+        max_health=200,
         base_damage=1,
         move_speed=60.0,
         width=56,
@@ -127,7 +127,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
     BossType.VEIL_MAIDEN: BossDefinition(
         boss_type=BossType.VEIL_MAIDEN,
         display_name="The Veil Maiden",
-        max_health=800,  # High HP for Act 1 (scripted defeat), balanced for Act 4
+        max_health=400,  # High HP for Act 1 (scripted defeat), balanced for Act 4
         base_damage=1,
         move_speed=90.0,
         width=48,
@@ -144,7 +144,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
     BossType.ICE_QUEEN: BossDefinition(
         boss_type=BossType.ICE_QUEEN,
         display_name="Ice Queen",
-        max_health=550,
+        max_health=275,
         base_damage=1,
         move_speed=70.0,
         width=56,
@@ -161,7 +161,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
     BossType.DRAGON: BossDefinition(
         boss_type=BossType.DRAGON,
         display_name="Dragon",
-        max_health=700,
+        max_health=350,
         base_damage=1,
         move_speed=90.0,
         width=96,
