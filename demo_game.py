@@ -1747,6 +1747,12 @@ def main():
                         if _sword_rect.colliderect(_boss_rect):
                             boss_manager.damage_boss(2)
                             audio_manager.play("hit_enemy")
+                    # Destroy any boss projectiles the sword swing overlaps
+                    destroyed = boss_manager.destroy_projectiles_in_rect(
+                        attack_x, attack_y, sword_w, sword_h
+                    )
+                    if destroyed:
+                        audio_manager.play("hit_enemy")
                 attack_timer = attack_cooldown
                 attack_fx_rect = pygame.Rect(attack_x, attack_y, sword_w, sword_h)
                 attack_fx_timer = 0.12

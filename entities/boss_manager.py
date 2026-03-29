@@ -646,6 +646,18 @@ class BossManager:
                 self.projectiles.remove(projectile)
         return total
 
+    def destroy_projectiles_in_rect(
+        self, x: float, y: float, width: int, height: int
+    ) -> int:
+        """Destroy any boss projectiles overlapping the given rect (player attack hitbox).
+        Returns the number of projectiles destroyed."""
+        destroyed = 0
+        for projectile in self.projectiles[:]:
+            if self._check_rect_collision(x, y, width, height, *projectile.get_rect()):
+                self.projectiles.remove(projectile)
+                destroyed += 1
+        return destroyed
+
     def _execute_special_attack(self, special_type: str, player_x: float, player_y: float):
         """Execute a special attack"""
         if not self.active_boss:
