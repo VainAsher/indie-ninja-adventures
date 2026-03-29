@@ -27,8 +27,13 @@ MAX_MESSAGE_BYTES = 1_048_576  # 1 MB safety cap
 
 class MessageType:
     # Client → Server
-    CLIENT_HELLO = "client_hello"   # {player_id, version}
-    INPUT        = "input"          # InputCommand.to_dict()
+    CLIENT_HELLO  = "client_hello"   # {player_id, version}
+    INPUT         = "input"          # InputCommand.to_dict()
+    # Phase 2.5: client notifies server of a world-state event (pickup collected,
+    # enemy killed, platform triggered).  Server rebroadcasts to all other clients
+    # so each simulation can apply the same mutation deterministically.
+    # etype values: "pickup_collect", "enemy_kill", "platform_trigger"
+    ENTITY_EVENT  = "entity_event"   # {etype, entity_id, slot, data?}
 
     # Server → Client
     SERVER_HELLO  = "server_hello"   # {player_id, slot, frame, seed, max_players}

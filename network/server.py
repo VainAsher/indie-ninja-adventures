@@ -29,7 +29,7 @@ from .commands import InputCommand
 from .protocol import MessageType, read_message, write_message
 from .snapshots import MultiplayerSnapshot, PlayerState
 
-log = logging.getLogger("network.server")
+log = logging.getLogger("ninja_dash.network.server")
 
 MAX_PLAYERS = 4
 SERVER_VERSION = "1.0.0"
@@ -84,15 +84,18 @@ class GameSession:
     async def add_player(self, player: ConnectedPlayer) -> bool:
         async with self._lock:
             if self.is_full:
+                log.warning("add_player: session full, rejecting %s", player.player_id)
                 return False
             self.players[player.player_id] = player
-            log.info("Player joined: %s slot=%d", player.player_id, player.slot)
+            log.info("Player joined: id=%s slot=%d  session=%d/%d",
+                     player.player_id, player.slot, len(self.players), MAX_PLAYERS)
             return True
 
     async def remove_player(self, player_id: str) -> None:
         async with self._lock:
             self.players.pop(player_id, None)
-            log.info("Player left: %s", player_id)
+            log.info("Player left: id=%s  session=%d/%d",
+                     player_id, len(self.players), MAX_PLAYERS)
 
     def next_slot(self) -> int:
         used = {p.slot for p in self.players.values()}
@@ -172,7 +175,8 @@ class GameSession:
     async def start_game(self) -> None:
         """Mark the session as started and notify all clients."""
         self.game_started = True
-        log.info("Game starting — seed=%d", self.seed)
+        player_ids = list(self.players.keys())
+        log.info("GAME_START: seed=%d  players=%s", self.seed, player_ids)
         print(f"[NET] Game starting — seed={self.seed}")
         await self.broadcast(MessageType.GAME_START, {"seed": self.seed})
 
@@ -193,7 +197,8 @@ class GameServer:
             self._handle_client, self.host, self.port
         )
         addrs = [str(s.getsockname()) for s in self._server.sockets]
-        log.info("Server listening on %s  seed=%d", addrs, self.session.seed)
+        log.info("Server listening on %s  seed=%d  max_players=%d",
+                 addrs, self.session.seed, MAX_PLAYERS)
         print(f"[NET] Server listening on {self.host}:{self.port}  seed={self.session.seed}")
 
     async def stop(self) -> None:
@@ -212,9 +217,10 @@ class GameServer:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
         addr = writer.get_extra_info("peername")
-        log.info("New connection from %s", addr)
+        log.info("Incoming connection from %s", addr)
 
         if self.session.is_full:
+            log.warning("Rejecting %s — session full (%d/%d)", addr, MAX_PLAYERS, MAX_PLAYERS)
             await write_message(writer, MessageType.ERROR, {
                 "code": "session_full",
                 "message": f"Server is full (max {MAX_PLAYERS} players).",
@@ -243,12 +249,13 @@ class GameServer:
             return
 
         client_version = hello.payload.get("version", "")
+        log.debug("CLIENT_HELLO from %s: id=%s version=%s",
+                  addr, hello.payload.get("player_id", "?"), client_version)
         if client_version != SERVER_VERSION:
             log.warning(
-                "Version mismatch from %s: client=%s server=%s",
+                "Version mismatch from %s: client=%s server=%s (continuing — Phase 1 lenient)",
                 addr, client_version, SERVER_VERSION,
             )
-            # Warn but don't reject — Phase 1 is lenient
 
         player_id = hello.payload.get("player_id") or str(uuid.uuid4())[:8]
         slot = self.session.next_slot()
@@ -287,13 +294,17 @@ class GameServer:
         if not self.session.game_started and self.session.is_full:
             await self.session.start_game()
 
+        log.info("SERVER_HELLO sent to %s: id=%s slot=%d seed=%d",
+                 addr, player_id, slot, self.session.seed)
+
         # Main client loop
         try:
             await self._client_loop(player)
         except (asyncio.IncompleteReadError, ConnectionResetError):
-            pass
+            log.info("Client %s (slot %d) disconnected from %s", player_id, slot, addr)
         except Exception as exc:
-            log.error("Client loop error for %s: %s", player_id, exc)
+            log.error("Client loop error for %s (slot %d): %s",
+                      player_id, slot, exc, exc_info=True)
         finally:
             await self.session.remove_player(player_id)
             await self.session.broadcast(MessageType.PLAYER_LEAVE, {
@@ -301,6 +312,7 @@ class GameServer:
                 "slot": slot,
             })
             await self.session.broadcast_lobby_update()
+            log.info("Cleaned up session entry for %s (slot %d)", player_id, slot)
             try:
                 writer.close()
                 await writer.wait_closed()
@@ -309,6 +321,7 @@ class GameServer:
 
     async def _client_loop(self, player: ConnectedPlayer) -> None:
         """Read input messages from one client and relay state back."""
+        _inputs_processed = 0
         while True:
             msg = await read_message(player.reader)
 
@@ -316,12 +329,31 @@ class GameServer:
                 await self.session.handle_input(player.player_id, msg.payload)
                 # Advance server frame and broadcast updated state
                 self.session.frame += 1
+                _inputs_processed += 1
+                if _inputs_processed % 300 == 0:   # ~5 s at 60 Hz
+                    log.debug("Relay: %d inputs processed for %s  server_frame=%d",
+                              _inputs_processed, player.player_id, self.session.frame)
                 snapshot = self.session.build_snapshot()
                 await self.session.broadcast(
                     MessageType.SERVER_STATE, snapshot.to_dict()
                 )
+
+            elif msg.type == MessageType.ENTITY_EVENT:
+                # Phase 2.5: relay world-state mutation to all other clients so
+                # each simulation applies the same pickup/kill/trigger event.
+                etype = msg.payload.get("etype", "?")
+                eid = msg.payload.get("entity_id", "?")
+                log.debug("ENTITY_EVENT from %s (slot %d): etype=%s entity_id=%s",
+                          player.player_id, player.slot, etype, eid)
+                # Tag the event with the originating slot so clients can ignore
+                # their own echoes.
+                payload_with_source = dict(msg.payload)
+                payload_with_source.setdefault("slot", player.slot)
+                await self.session.broadcast(MessageType.ENTITY_EVENT, payload_with_source)
+
             else:
-                log.debug("Unexpected message type '%s' from %s", msg.type, player.player_id)
+                log.debug("Unexpected message type '%s' from %s (slot %d)",
+                          msg.type, player.player_id, player.slot)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

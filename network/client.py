@@ -32,7 +32,7 @@ from .commands import InputCommand
 from .protocol import MessageType, read_message, write_message
 from .snapshots import MultiplayerSnapshot
 
-log = logging.getLogger("network.client")
+log = logging.getLogger("ninja_dash.network.client")
 
 CLIENT_VERSION = "1.0.0"
 SEND_TIMEOUT = 0.016        # 1 frame at 60 Hz — max time to block waiting for input
@@ -63,6 +63,10 @@ class NetworkClient:
 
         self._send_queue: queue.Queue[_SendItem] = queue.Queue(maxsize=120)
         self._recv_queue: queue.Queue[dict] = queue.Queue(maxsize=120)
+        # Outbound entity events (local → server)
+        self._entity_send_queue: queue.Queue[dict] = queue.Queue(maxsize=256)
+        # Inbound entity events (remote clients → this client, via server broadcast)
+        self._entity_event_queue: queue.Queue[dict] = queue.Queue(maxsize=256)
 
         self._connected = threading.Event()
         self._stop_event = threading.Event()
@@ -123,6 +127,38 @@ class NetworkClient:
                 pass
             self._send_queue.put_nowait(item)
 
+    def send_entity_event(self, etype: str, entity_id: str, **data) -> None:
+        """
+        Notify the server of a world-state mutation (Phase 2.5).
+
+        The server echoes this to all OTHER clients so they can apply the same
+        change to their local simulation.
+
+        Args:
+            etype:     Event class — "pickup_collect", "enemy_kill", "platform_trigger"
+            entity_id: Stable world-space ID for the affected entity.
+            **data:    Optional extra fields (e.g. pos=(x, y)).
+        """
+        payload: dict = {"etype": etype, "entity_id": entity_id, "slot": self.local_slot}
+        payload.update(data)
+        # Piggyback onto the send queue as a special dict sentinel so we don't
+        # need a second queue.  The send loop detects non-_SendItem dicts and
+        # emits them as ENTITY_EVENT messages.
+        self._entity_send_queue.put_nowait(payload)   # picked up by _send_loop
+
+    def poll_entity_events(self) -> list[dict]:
+        """
+        Return all pending entity-event dicts received from remote clients.
+        Drains the queue; returns [] if nothing is waiting.
+        """
+        events: list[dict] = []
+        while True:
+            try:
+                events.append(self._entity_event_queue.get_nowait())
+            except queue.Empty:
+                break
+        return events
+
     def poll_state(self) -> Optional[dict]:
         """
         Return the most recent ServerState dict received, or None.
@@ -157,6 +193,7 @@ class NetworkClient:
             self._connected.clear()
 
     async def _async_main(self) -> None:
+        log.debug("Attempting TCP connect to %s:%d", self.host, self.port)
         try:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(self.host, self.port),
@@ -164,9 +201,11 @@ class NetworkClient:
             )
         except (asyncio.TimeoutError, OSError) as exc:
             self._error = f"Could not connect to {self.host}:{self.port}: {exc}"
-            log.warning(self._error)
+            log.warning("TCP connect failed — %s", self._error)
             return
 
+        log.debug("TCP socket open to %s:%d — sending CLIENT_HELLO (id=%s, version=%s)",
+                  self.host, self.port, self.player_id, CLIENT_VERSION)
         try:
             # Send CLIENT_HELLO
             await write_message(writer, MessageType.CLIENT_HELLO, {
@@ -178,17 +217,19 @@ class NetworkClient:
             hello = await asyncio.wait_for(read_message(reader), timeout=10.0)
             if hello.type == MessageType.ERROR:
                 self._error = hello.payload.get("message", "Server rejected connection")
-                log.warning("Server error: %s", self._error)
+                log.warning("Handshake rejected by server: %s", self._error)
                 return
             if hello.type != MessageType.SERVER_HELLO:
-                self._error = f"Unexpected message: {hello.type}"
+                self._error = f"Unexpected message during handshake: {hello.type}"
+                log.warning(self._error)
                 return
 
             self.server_seed = hello.payload.get("seed")
             self.local_slot = hello.payload.get("slot")
+            max_players = hello.payload.get("max_players", "?")
             log.info(
-                "Connected to %s:%d  slot=%s  seed=%s",
-                self.host, self.port, self.local_slot, self.server_seed,
+                "Handshake OK — server=%s:%d  slot=%s  seed=%s  max_players=%s",
+                self.host, self.port, self.local_slot, self.server_seed, max_players,
             )
             print(
                 f"[NET] Connected to {self.host}:{self.port}  "
@@ -202,11 +243,12 @@ class NetworkClient:
                 self._recv_loop(reader),
             )
         except (asyncio.IncompleteReadError, ConnectionResetError):
-            log.info("Connection to %s:%d closed", self.host, self.port)
+            log.info("Connection to %s:%d closed by remote", self.host, self.port)
         except Exception as exc:
             self._error = str(exc)
-            log.error("NetworkClient error: %s", exc)
+            log.error("NetworkClient unhandled error: %s", exc, exc_info=True)
         finally:
+            log.debug("Closing writer for %s:%d", self.host, self.port)
             try:
                 writer.close()
                 await writer.wait_closed()
@@ -234,20 +276,38 @@ class NetworkClient:
             try:
                 await write_message(writer, MessageType.INPUT, payload)
             except Exception as exc:
-                log.warning("Send failed: %s", exc)
+                log.warning("Send INPUT failed: %s", exc)
                 break
+
+            # Flush any pending outbound entity events (Phase 2.5)
+            while True:
+                try:
+                    ev = self._entity_send_queue.get_nowait()
+                    await write_message(writer, MessageType.ENTITY_EVENT, ev)
+                    log.debug("Sent ENTITY_EVENT: etype=%s entity_id=%s",
+                              ev.get("etype"), ev.get("entity_id"))
+                except queue.Empty:
+                    break
+                except Exception as exc:
+                    log.warning("Send ENTITY_EVENT failed: %s", exc)
+                    break
 
     async def _recv_loop(self, reader: asyncio.StreamReader) -> None:
         """Receive server state messages and put them in the recv queue."""
+        _frames_received = 0
         while not self._stop_event.is_set():
             msg = await read_message(reader)
 
             if msg.type == MessageType.SERVER_STATE:
+                _frames_received += 1
+                if _frames_received % 300 == 0:   # log throughput every ~5 s at 60 Hz
+                    log.debug("SERVER_STATE: %d frames received so far", _frames_received)
                 try:
                     self._recv_queue.put_nowait(msg.payload)
                 except queue.Full:
+                    log.debug("Recv queue full — dropping oldest frame")
                     try:
-                        self._recv_queue.get_nowait()    # drop oldest
+                        self._recv_queue.get_nowait()
                     except queue.Empty:
                         pass
                     self._recv_queue.put_nowait(msg.payload)
@@ -255,6 +315,7 @@ class NetworkClient:
             elif msg.type == MessageType.PLAYER_JOIN:
                 pid = msg.payload.get("player_id", "?")
                 slot = msg.payload.get("slot", "?")
+                log.info("PLAYER_JOIN: id=%s slot=%s", pid, slot)
                 print(f"[NET] Player joined: {pid} (slot {slot})")
 
             elif msg.type == MessageType.PLAYER_LEAVE:
@@ -262,22 +323,44 @@ class NetworkClient:
                 slot = msg.payload.get("slot")
                 if slot is not None:
                     self.last_leave_slot = int(slot)
+                log.info("PLAYER_LEAVE: id=%s slot=%s", pid, slot)
                 print(f"[NET] Player left: {pid}")
 
             elif msg.type == MessageType.LOBBY_UPDATE:
+                prev = self.connected_count
                 self.connected_count = msg.payload.get("connected", self.connected_count)
+                if self.connected_count != prev:
+                    log.debug("LOBBY_UPDATE: %d/%s players",
+                              self.connected_count, msg.payload.get("max", "?"))
 
             elif msg.type == MessageType.GAME_START:
                 seed = msg.payload.get("seed")
                 if seed is not None:
                     self.server_seed = int(seed)
                 self.game_started.set()
+                log.info("GAME_START: seed=%s — starting game loop", self.server_seed)
                 print(f"[NET] Game started — seed={self.server_seed}")
+
+            elif msg.type == MessageType.ENTITY_EVENT:
+                # Phase 2.5: world-state mutation broadcast from server.
+                # Ignore events that originated from this client (same slot).
+                src_slot = msg.payload.get("slot")
+                if src_slot != self.local_slot:
+                    try:
+                        self._entity_event_queue.put_nowait(msg.payload)
+                    except queue.Full:
+                        try:
+                            self._entity_event_queue.get_nowait()
+                        except queue.Empty:
+                            pass
+                        self._entity_event_queue.put_nowait(msg.payload)
+                    log.debug("ENTITY_EVENT queued: etype=%s entity_id=%s from_slot=%s",
+                              msg.payload.get("etype"), msg.payload.get("entity_id"), src_slot)
 
             elif msg.type == MessageType.ERROR:
                 self._error = msg.payload.get("message", "Unknown server error")
-                log.error("Server error: %s", self._error)
+                log.error("Server sent ERROR: %s", self._error)
                 break
 
             else:
-                log.debug("Unhandled message type: %s", msg.type)
+                log.debug("Unhandled message type: %s  payload=%s", msg.type, msg.payload)

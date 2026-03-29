@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.7] - 2026-03-29 (Multiplayer Logging + Entity Sync Foundation)
+
+### Summary
+
+Network logs now flow into the game's rotating log file. `ENTITY_EVENT` message type added as the Phase 2.5 foundation for syncing entity mutations (pickup collection, enemy kills, platform triggers) across clients. Entity sync itself is not yet wired to game systems — see Phase 2.5 in the plan.
+
+### Added
+
+- **`ENTITY_EVENT` message type** (`network/protocol.py`): Client → server message carrying `{etype, entity_id, slot, data?}`. Server rebroadcasts to all other clients. Client exposes `send_entity_event(etype, entity_id, **data)` and `poll_entity_events() -> list[dict]` for game-loop integration.
+- **Outbound/inbound entity event queues** (`network/client.py`): `_entity_send_queue` (local → server) and `_entity_event_queue` (remote → local). `_send_loop` drains the send queue after each INPUT frame. `_recv_loop` routes received events to the inbound queue, ignoring echoes from the same slot.
+
+### Changed
+
+- **Network logger hierarchy** (`network/client.py`, `network/server.py`): Loggers renamed from `"network.client"` / `"network.server"` to `"ninja_dash.network.client"` / `"ninja_dash.network.server"`. They now inherit from the game's `GameLogger` root (`"ninja_dash"`) and are written to the rotating session log file in `user_data/logs/`.
+- **Structured logging** — client: connect/handshake outcome, PLAYER_JOIN/LEAVE, GAME_START, per-300-frame throughput counters. Server: incoming connections, handshake details, GAME_START with player list, relay throughput, disconnect cleanup.
+
+### Known Limitation (entity sync)
+
+Enemies, collectibles, and falling platforms are simulated independently on each client (Phase 1 design). They will diverge because:
+1. Enemy AI chase/attack decisions use the **local** player's position — each client's remote-player position lags behind by network RTT.
+2. Pickup collection events are not broadcast — each client tracks its own pickup state.
+3. Falling platform triggers are not broadcast.
+
+**Phase 2.5 plan**: wire `send_entity_event` calls into `pickup_manager` (on collect), `enemy_manager` (on kill), and the platform `TickEvent` handler (on trigger). Wire `poll_entity_events` in the game loop to suppress the matching local entity. Full server-authoritative simulation is Phase 3.
+
+---
+
 ## [0.7.6] - 2026-03-29 (Multiplayer: Colored Sprites + 4-Player Lobby + Launcher Modes)
 
 ### Summary
