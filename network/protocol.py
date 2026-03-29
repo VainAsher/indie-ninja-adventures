@@ -38,6 +38,7 @@ class MessageType:
     # Server → Client
     SERVER_HELLO  = "server_hello"   # {player_id, slot, frame, seed, max_players}
     SERVER_STATE  = "server_state"   # MultiplayerSnapshot.to_dict()
+    WORLD_STATE   = "world_state"    # WorldSnapshot.to_dict() — Phase 3 authoritative broadcast
     PLAYER_JOIN   = "player_join"    # {player_id, slot}
     PLAYER_LEAVE  = "player_leave"   # {player_id, slot}
     LOBBY_UPDATE  = "lobby_update"   # {connected: int, max: int, players: [{player_id, slot}]}

@@ -9,17 +9,25 @@ Launch modes available from the UI:
   Host Game     — launch with --host <port>  (starts a server + joins it)
   Join Game     — launch with --connect <host:port>
 
+Tab 2 — Report: pre-filled GitHub issue URL (bug / feedback / performance / crash)
+Tab 3 — Dev Tools: profiler benchmark, log viewer, replay launcher
+
 Stdlib only: tkinter for UI, urllib.request for HTTP, hashlib for SHA256.
 """
 
+import csv
 import hashlib
 import json
 import os
+import platform
+import statistics
 import subprocess
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
+import webbrowser
 from pathlib import Path
 from tkinter import messagebox
 import tkinter as tk
@@ -31,12 +39,13 @@ from tkinter import ttk
 
 GITHUB_REPO = "VainAsher/indie-ninja-adventures"
 RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=30"
+ISSUES_URL = f"https://github.com/{GITHUB_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.0.0"
+LAUNCHER_VERSION = "1.1.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 640
-WINDOW_H = 460
+WINDOW_H = 540
 SPLASH_H = 200      # canvas height — crops the 640×320 scaled image to top portion
 
 # Colours — matched to game's menu_system.py palette
@@ -53,6 +62,20 @@ PROGRESS_FG = "#ffd700"     # gold progress bar
 # Multiplayer button accent colours
 BTN_HOST_BG = "#1a2e1a"     # dark green tint
 BTN_JOIN_BG = "#1a1a2e"
+
+# Report type options and their GitHub label mappings
+_REPORT_TYPES = [
+    ("Bug Report",        "bug",         "bug,needs-repro"),
+    ("Feedback",          "feedback",    "feedback"),
+    ("Performance Issue", "performance", "performance,beta-testing"),
+    ("Crash Report",      "crash",       "crash,bug"),
+]
+
+# Benchmark: run for this many seconds then terminate
+_BENCHMARK_SECONDS = 10
+
+# Max log lines to embed in a GitHub report body
+_LOG_TAIL_LINES = 50
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -99,6 +122,18 @@ def _get_splash_path() -> Path | None:
     return p if p.exists() else None
 
 
+def _get_user_data_dir() -> Path:
+    base = _get_base_dir()
+    env = os.environ.get("NINJADASH_USER_DATA")
+    if env:
+        return Path(env)
+    return base / "user_data"
+
+
+def _get_profiler_csv() -> Path:
+    return _get_base_dir() / "docs" / "perf_baseline.csv"
+
+
 def _read_local_version() -> str:
     try:
         data = json.loads(_get_version_path().read_text(encoding="utf-8"))
@@ -138,6 +173,64 @@ def _version_label(tag: str, local_version: str, is_latest: bool) -> str:
     return f"{tag}{suffix}"
 
 
+def _list_log_files() -> list[Path]:
+    """Return log files sorted newest-first."""
+    log_dir = _get_user_data_dir() / "logs"
+    if not log_dir.exists():
+        return []
+    files = sorted(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+    files += sorted(log_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+    return files[:20]
+
+
+def _list_replay_files() -> list[Path]:
+    """Return replay files sorted newest-first."""
+    replay_dir = _get_user_data_dir() / "replays"
+    if not replay_dir.exists():
+        return []
+    return sorted(replay_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:20]
+
+
+def _read_tail(path: Path, n: int = _LOG_TAIL_LINES) -> str:
+    """Read the last n lines of a text file."""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        return "\n".join(lines[-n:])
+    except OSError:
+        return "(could not read log file)"
+
+
+def _parse_profiler_csv(csv_path: Path) -> dict | None:
+    """
+    Read the profiler CSV and return summary stats, or None if no data.
+    Returns: {section: {avg, p95, max}, ..., fps_avg, fps_p5, fps_min, frame_count}
+    """
+    if not csv_path.exists():
+        return None
+    try:
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        if not rows:
+            return None
+        result: dict = {"frame_count": len(rows)}
+        sections = [c for c in rows[0] if c not in ("frame", "fps_instantaneous")]
+        for sec in sections:
+            vals = [float(r[sec]) for r in rows if float(r[sec]) > 0]
+            if vals:
+                result[sec] = {
+                    "avg": statistics.mean(vals),
+                    "p95": sorted(vals)[int(len(vals) * 0.95)],
+                    "max": max(vals),
+                }
+        fps_vals = [float(r["fps_instantaneous"]) for r in rows]
+        result["fps_avg"] = statistics.mean(fps_vals)
+        result["fps_p5"] = sorted(fps_vals)[int(len(fps_vals) * 0.05)]
+        result["fps_min"] = min(fps_vals)
+        return result
+    except Exception:
+        return None
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # LauncherApp
 # ──────────────────────────────────────────────────────────────────────────────
@@ -155,6 +248,8 @@ class LauncherApp:
         self._selected_release: dict | None = None
         self._downloading = False
         self._splash_photo: tk.PhotoImage | None = None
+        self._benchmark_proc: subprocess.Popen | None = None
+        self._benchmark_timer: threading.Timer | None = None
 
         self._build_ui()
 
@@ -229,8 +324,66 @@ class LauncherApp:
         # ── Gold accent separator ─────────────────────────────────────────────
         tk.Frame(root, height=2, bg=ACCENT).pack(fill="x")
 
-        # ── Controls area ─────────────────────────────────────────────────────
-        ctrl = tk.Frame(root, bg=BG_DARK)
+        # ── Tab styles ────────────────────────────────────────────────────────
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure(
+            "Launcher.TNotebook",
+            background=BG_DARK,
+            borderwidth=0,
+            tabmargins=[0, 0, 0, 0],
+        )
+        style.configure(
+            "Launcher.TNotebook.Tab",
+            background=BG_MID,
+            foreground=TEXT_DIM,
+            font=("Consolas", 9),
+            padding=[14, 5],
+            borderwidth=0,
+        )
+        style.map(
+            "Launcher.TNotebook.Tab",
+            background=[("selected", BG_CARD), ("active", BG_CARD)],
+            foreground=[("selected", ACCENT), ("active", TEXT_PRIMARY)],
+        )
+        style.configure(
+            "Launcher.TCombobox",
+            fieldbackground=BG_MID,
+            background=BG_MID,
+            foreground=TEXT_PRIMARY,
+            selectbackground=BG_CARD,
+            selectforeground=TEXT_SELECTED,
+            arrowcolor=ACCENT,
+        )
+        style.configure(
+            "Launcher.Horizontal.TProgressbar",
+            troughcolor=BG_MID,
+            background=PROGRESS_FG,
+            bordercolor=BG_MID,
+            lightcolor=PROGRESS_FG,
+            darkcolor=PROGRESS_FG,
+        )
+
+        # ── Notebook ──────────────────────────────────────────────────────────
+        self._notebook = ttk.Notebook(root, style="Launcher.TNotebook")
+        self._notebook.pack(fill="both", expand=True)
+
+        play_frame = tk.Frame(self._notebook, bg=BG_DARK)
+        report_frame = tk.Frame(self._notebook, bg=BG_DARK)
+        devtools_frame = tk.Frame(self._notebook, bg=BG_DARK)
+
+        self._notebook.add(play_frame,     text="  Play  ")
+        self._notebook.add(report_frame,   text="  Report  ")
+        self._notebook.add(devtools_frame, text="  Dev Tools  ")
+
+        self._build_play_tab(play_frame)
+        self._build_report_tab(report_frame)
+        self._build_devtools_tab(devtools_frame)
+
+    # ── Tab 1: Play ───────────────────────────────────────────────────────────
+
+    def _build_play_tab(self, parent: tk.Frame) -> None:
+        ctrl = tk.Frame(parent, bg=BG_DARK)
         ctrl.pack(fill="both", expand=True, padx=20, pady=(8, 6))
 
         # Installed version + status on one row
@@ -267,26 +420,6 @@ class LauncherApp:
             fg=TEXT_DIM,
             bg=BG_DARK,
         ).pack(side="left")
-
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure(
-            "Launcher.TCombobox",
-            fieldbackground=BG_MID,
-            background=BG_MID,
-            foreground=TEXT_PRIMARY,
-            selectbackground=BG_CARD,
-            selectforeground=TEXT_SELECTED,
-            arrowcolor=ACCENT,
-        )
-        style.configure(
-            "Launcher.Horizontal.TProgressbar",
-            troughcolor=BG_MID,
-            background=PROGRESS_FG,
-            bordercolor=BG_MID,
-            lightcolor=PROGRESS_FG,
-            darkcolor=PROGRESS_FG,
-        )
 
         self._version_var = tk.StringVar()
         self._version_combo = ttk.Combobox(
@@ -491,6 +624,571 @@ class LauncherApp:
             pady=5,
             command=self._launch_join,
         ).pack(side="left")
+
+    # ── Tab 2: Report ─────────────────────────────────────────────────────────
+
+    def _build_report_tab(self, parent: tk.Frame) -> None:
+        pad = tk.Frame(parent, bg=BG_DARK)
+        pad.pack(fill="both", expand=True, padx=20, pady=(10, 8))
+
+        # Section header
+        tk.Label(
+            pad,
+            text="SUBMIT A REPORT",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x")
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 8))
+
+        # Report type + auto-info row
+        top = tk.Frame(pad, bg=BG_DARK)
+        top.pack(fill="x")
+
+        tk.Label(
+            top, text="Type:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+        ).pack(side="left")
+
+        self._report_type_var = tk.StringVar(value=_REPORT_TYPES[0][0])
+        type_combo = ttk.Combobox(
+            top,
+            textvariable=self._report_type_var,
+            values=[r[0] for r in _REPORT_TYPES],
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=22,
+            font=("Consolas", 9),
+        )
+        type_combo.pack(side="left", padx=(6, 0))
+        type_combo.bind("<<ComboboxSelected>>", self._on_report_type_changed)
+
+        # Auto-fill info label
+        os_str = platform.system()
+        ver_str = self._local_version
+        self._report_info_var = tk.StringVar(
+            value=f"v{ver_str}  |  {os_str}  |  Python {sys.version.split()[0]}"
+        )
+        tk.Label(
+            top,
+            textvariable=self._report_info_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="right")
+
+        # Title
+        tk.Label(
+            pad, text="Title:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+        ).pack(fill="x", pady=(8, 2))
+
+        self._report_title_var = tk.StringVar(value="[Bug] ")
+        tk.Entry(
+            pad,
+            textvariable=self._report_title_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+        ).pack(fill="x")
+
+        # Description
+        tk.Label(
+            pad,
+            text="Description / Steps to reproduce:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x", pady=(8, 2))
+
+        desc_frame = tk.Frame(pad, bg=BG_MID, bd=0)
+        desc_frame.pack(fill="both", expand=True)
+
+        self._report_desc = tk.Text(
+            desc_frame,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+            wrap="word",
+            height=5,
+        )
+        desc_scrollbar = tk.Scrollbar(desc_frame, command=self._report_desc.yview, bg=BG_MID)
+        self._report_desc.configure(yscrollcommand=desc_scrollbar.set)
+        desc_scrollbar.pack(side="right", fill="y")
+        self._report_desc.pack(side="left", fill="both", expand=True, padx=4, pady=4)
+
+        # Options row
+        opts = tk.Frame(pad, bg=BG_DARK)
+        opts.pack(fill="x", pady=(6, 0))
+
+        self._attach_log_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            opts,
+            text="Attach last log (tail)",
+            variable=self._attach_log_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_DARK,
+            activeforeground=TEXT_PRIMARY,
+            selectcolor=BG_MID,
+            relief="flat",
+        ).pack(side="left")
+
+        # Submit button
+        tk.Button(
+            opts,
+            text="Open Report in Browser  ->",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=self._open_report,
+        ).pack(side="right")
+
+    def _on_report_type_changed(self, _event=None) -> None:
+        name = self._report_type_var.get()
+        prefixes = {
+            "Bug Report": "[Bug] ",
+            "Feedback": "[Feedback] ",
+            "Performance Issue": "[Perf] ",
+            "Crash Report": "[Crash] ",
+        }
+        self._report_title_var.set(prefixes.get(name, ""))
+
+    def _open_report(self) -> None:
+        """Build a pre-filled GitHub issue URL and open it in the browser."""
+        import urllib.parse
+
+        report_name = self._report_type_var.get()
+        labels = next((r[2] for r in _REPORT_TYPES if r[0] == report_name), "bug")
+        title = self._report_title_var.get().strip() or report_name
+        desc_raw = self._report_desc.get("1.0", "end").strip()
+
+        os_str = platform.system()
+        py_ver = sys.version.split()[0]
+        game_ver = self._local_version
+
+        body_lines = [
+            f"**Version:** v{game_ver}",
+            f"**OS:** {os_str}",
+            f"**Python:** {py_ver}",
+            "",
+            "---",
+            "",
+            desc_raw or "(describe the issue here)",
+        ]
+
+        if self._attach_log_var.get():
+            log_files = _list_log_files()
+            if log_files:
+                tail = _read_tail(log_files[0])
+                body_lines += [
+                    "",
+                    "---",
+                    f"**Log tail** (`{log_files[0].name}`):",
+                    "```",
+                    tail,
+                    "```",
+                ]
+
+        body = "\n".join(body_lines)
+
+        params = urllib.parse.urlencode({
+            "title": title,
+            "labels": labels,
+            "body": body,
+        })
+        url = f"{ISSUES_URL}?{params}"
+        webbrowser.open(url)
+
+    # ── Tab 3: Dev Tools ──────────────────────────────────────────────────────
+
+    def _build_devtools_tab(self, parent: tk.Frame) -> None:
+        pad = tk.Frame(parent, bg=BG_DARK)
+        pad.pack(fill="both", expand=True, padx=20, pady=(10, 8))
+
+        # ── Profiler section ──────────────────────────────────────────────────
+        tk.Label(
+            pad,
+            text="PROFILER",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x")
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
+
+        prof_btn_row = tk.Frame(pad, bg=BG_DARK)
+        prof_btn_row.pack(fill="x")
+
+        self._bench_btn = tk.Button(
+            prof_btn_row,
+            text=f"Run {_BENCHMARK_SECONDS}s Benchmark",
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=self._run_benchmark,
+        )
+        self._bench_btn.pack(side="left")
+
+        self._save_baseline_btn = tk.Button(
+            prof_btn_row,
+            text="Save as Baseline",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=self._save_baseline,
+        )
+        self._save_baseline_btn.pack(side="left", padx=(6, 0))
+
+        self._bench_status_var = tk.StringVar(value="")
+        tk.Label(
+            prof_btn_row,
+            textvariable=self._bench_status_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="right")
+
+        # Results display (monospace, read-only)
+        self._prof_results_var = tk.StringVar(value="")
+        self._prof_results_label = tk.Label(
+            pad,
+            textvariable=self._prof_results_var,
+            font=("Consolas", 8),
+            fg=TEXT_PRIMARY,
+            bg=BG_CARD,
+            justify="left",
+            anchor="nw",
+            padx=6,
+            pady=4,
+        )
+        self._prof_results_label.pack(fill="x", pady=(6, 0))
+
+        # Load existing CSV on open
+        self._refresh_profiler_display()
+
+        # ── Logs section ──────────────────────────────────────────────────────
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
+        tk.Label(
+            pad,
+            text="LOGS",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x", pady=(4, 4))
+
+        log_row = tk.Frame(pad, bg=BG_DARK)
+        log_row.pack(fill="x")
+
+        self._log_var = tk.StringVar()
+        self._log_combo = ttk.Combobox(
+            log_row,
+            textvariable=self._log_var,
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=28,
+            font=("Consolas", 8),
+        )
+        self._log_combo.pack(side="left")
+
+        tk.Button(
+            log_row,
+            text="View",
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self._view_log,
+        ).pack(side="left", padx=(6, 0))
+
+        tk.Button(
+            log_row,
+            text="Reveal",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self._reveal_log,
+        ).pack(side="left", padx=(4, 0))
+
+        tk.Button(
+            log_row,
+            text="Refresh",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=6,
+            pady=3,
+            command=self._refresh_log_list,
+        ).pack(side="right")
+
+        self._refresh_log_list()
+
+        # ── Replays section ───────────────────────────────────────────────────
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
+        tk.Label(
+            pad,
+            text="REPLAYS",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x", pady=(4, 4))
+
+        replay_row = tk.Frame(pad, bg=BG_DARK)
+        replay_row.pack(fill="x")
+
+        self._replay_var = tk.StringVar()
+        self._replay_combo = ttk.Combobox(
+            replay_row,
+            textvariable=self._replay_var,
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=28,
+            font=("Consolas", 8),
+        )
+        self._replay_combo.pack(side="left")
+
+        tk.Button(
+            replay_row,
+            text="Launch Replay",
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self._launch_replay,
+        ).pack(side="left", padx=(6, 0))
+
+        tk.Button(
+            replay_row,
+            text="Refresh",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=6,
+            pady=3,
+            command=self._refresh_replay_list,
+        ).pack(side="right")
+
+        self._refresh_replay_list()
+
+    # ── Profiler actions ──────────────────────────────────────────────────────
+
+    def _refresh_profiler_display(self) -> None:
+        """Read the existing profiler CSV (if any) and show a summary."""
+        csv_path = _get_profiler_csv()
+        stats = _parse_profiler_csv(csv_path)
+        if not stats:
+            self._prof_results_var.set("No profiler data — run a benchmark first.")
+            return
+
+        lines = [
+            f"Frames: {stats['frame_count']}   "
+            f"FPS avg={stats['fps_avg']:.1f}  p5={stats['fps_p5']:.1f}  min={stats['fps_min']:.1f}"
+        ]
+        for sec in ("frame_total", "update", "enemy_manager", "render", "collision"):
+            if sec in stats:
+                d = stats[sec]
+                lines.append(
+                    f"  {sec:<18s}  avg={d['avg']:5.2f}ms  p95={d['p95']:5.2f}ms  max={d['max']:5.2f}ms"
+                )
+        self._prof_results_var.set("\n".join(lines))
+
+    def _run_benchmark(self) -> None:
+        """Launch the game headless with --profile, kill after N seconds, refresh display."""
+        if self._benchmark_proc is not None:
+            return  # already running
+
+        game_path = _get_game_exe()
+        if not game_path.exists():
+            messagebox.showerror("Game Not Found", f"Could not find:\n{game_path}", parent=self.root)
+            return
+
+        cmd = (
+            [sys.executable, str(game_path)] if game_path.suffix == ".py" else [str(game_path)]
+        )
+        cmd += ["--headless", "--profile"]
+
+        self._bench_btn.configure(state="disabled", text="Running…")
+        self._bench_status_var.set(f"Runs for {_BENCHMARK_SECONDS}s…")
+
+        try:
+            self._benchmark_proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc:
+            self._benchmark_proc = None
+            self._bench_btn.configure(state="normal", text=f"Run {_BENCHMARK_SECONDS}s Benchmark")
+            self._bench_status_var.set(f"Launch failed: {exc}")
+            return
+
+        def _kill_and_refresh() -> None:
+            proc = self._benchmark_proc
+            if proc is not None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+            self._benchmark_proc = None
+            self._benchmark_timer = None
+            self.root.after(0, self._on_benchmark_done)
+
+        self._benchmark_timer = threading.Timer(_BENCHMARK_SECONDS, _kill_and_refresh)
+        self._benchmark_timer.daemon = True
+        self._benchmark_timer.start()
+
+    def _on_benchmark_done(self) -> None:
+        self._bench_btn.configure(state="normal", text=f"Run {_BENCHMARK_SECONDS}s Benchmark")
+        # Give the profiler a moment to flush then parse
+        self.root.after(400, self._after_benchmark_parse)
+
+    def _after_benchmark_parse(self) -> None:
+        self._refresh_profiler_display()
+        stats = _parse_profiler_csv(_get_profiler_csv())
+        if stats:
+            self._bench_status_var.set(
+                f"Done — {stats['frame_count']} frames, avg {stats['fps_avg']:.1f} FPS"
+            )
+        else:
+            self._bench_status_var.set("Done (no CSV written — headless may have exited early)")
+
+    def _save_baseline(self) -> None:
+        """Copy current profiler CSV to a dated baseline file."""
+        import shutil
+        from datetime import date
+
+        csv_path = _get_profiler_csv()
+        if not csv_path.exists():
+            messagebox.showinfo("No Data", "Run a benchmark first.", parent=self.root)
+            return
+        dated = csv_path.parent / f"perf_baseline_{date.today().isoformat()}.csv"
+        try:
+            shutil.copy2(csv_path, dated)
+            self._bench_status_var.set(f"Saved: {dated.name}")
+        except Exception as exc:
+            messagebox.showerror("Save Failed", str(exc), parent=self.root)
+
+    # ── Log actions ───────────────────────────────────────────────────────────
+
+    def _refresh_log_list(self) -> None:
+        files = _list_log_files()
+        names = [f.name for f in files]
+        self._log_combo.configure(values=names)
+        if names:
+            self._log_combo.current(0)
+        else:
+            self._log_var.set("(no logs found)")
+
+    def _view_log(self) -> None:
+        name = self._log_var.get()
+        if not name or name == "(no logs found)":
+            return
+        log_path = _get_user_data_dir() / "logs" / name
+        if not log_path.exists():
+            messagebox.showerror("File Not Found", str(log_path), parent=self.root)
+            return
+
+        win = tk.Toplevel(self.root)
+        win.title(f"Log — {name}")
+        win.configure(bg=BG_DARK)
+        win.geometry("700x400")
+
+        text = tk.Text(
+            win,
+            font=("Consolas", 8),
+            bg=BG_CARD,
+            fg=TEXT_PRIMARY,
+            wrap="none",
+            relief="flat",
+        )
+        ys = tk.Scrollbar(win, orient="vertical", command=text.yview)
+        xs = tk.Scrollbar(win, orient="horizontal", command=text.xview)
+        text.configure(yscrollcommand=ys.set, xscrollcommand=xs.set)
+        xs.pack(side="bottom", fill="x")
+        ys.pack(side="right", fill="y")
+        text.pack(fill="both", expand=True)
+
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+        text.insert("1.0", content)
+        text.see("end")
+        text.configure(state="disabled")
+
+    def _reveal_log(self) -> None:
+        name = self._log_var.get()
+        if not name or name == "(no logs found)":
+            return
+        log_dir = _get_user_data_dir() / "logs"
+        try:
+            os.startfile(str(log_dir))
+        except AttributeError:
+            subprocess.Popen(["xdg-open", str(log_dir)])
+
+    # ── Replay actions ────────────────────────────────────────────────────────
+
+    def _refresh_replay_list(self) -> None:
+        files = _list_replay_files()
+        names = [f.name for f in files]
+        self._replay_combo.configure(values=names)
+        if names:
+            self._replay_combo.current(0)
+        else:
+            self._replay_var.set("(no replays found)")
+
+    def _launch_replay(self) -> None:
+        name = self._replay_var.get()
+        if not name or name == "(no replays found)":
+            return
+        self._launch_with_args("--replay", name, "--show-replay")
 
     # ── Release list fetch ────────────────────────────────────────────────────
 

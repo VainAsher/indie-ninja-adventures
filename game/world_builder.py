@@ -653,3 +653,72 @@ def regenerate_world_state(
     print("[WORLD REGEN] World regeneration complete!\n")
 
     return tiles, platforms, seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Phase 3: server-side headless world bootstrap
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def create_server_world(
+    seed: int,
+    shape: str,
+    rooms: int,
+    collision_system,
+    enemy_manager,
+    pickup_manager,
+    hazard_manager,
+):
+    """
+    Minimal world generation for the authoritative server (Phase 3).
+
+    Differs from regenerate_world_state() in that it:
+    - Does not require camera, player, level_manager, or npc_manager.
+    - Does not create a minimap renderer (display-only).
+    - Returns the subset of data the GameSimulator needs.
+
+    Args:
+        seed: World seed — must match the seed sent to clients in GAME_START.
+        shape: World shape string ("snake", "blob", etc.)
+        rooms: Number of rooms.
+        collision_system, enemy_manager, pickup_manager, hazard_manager:
+            Pre-created manager instances.
+
+    Returns:
+        Tuple of (tiles, platforms, seed, spawn_x, spawn_y, megamap)
+    """
+    # 1. Generate world geometry
+    tiles, platforms, seed, spawn_x, spawn_y, exit_x, exit_y, world, megamap = (
+        create_procedural_level(seed, shape, rooms)
+    )
+
+    # 2. Wipe any prior state in managers
+    enemy_manager.clear()
+    pickup_manager.pickups.clear()
+    pickup_manager.coins_collected = 0
+    pickup_manager.health_collected = 0
+    pickup_manager.collectibles_collected = 0
+    pickup_manager.total_collectibles = 0
+    hazard_manager.hazards.clear()
+    hazard_manager.total_spikes = 0
+    hazard_manager.total_voids = 0
+    hazard_manager.total_poison = 0
+    hazard_manager.damage_dealt = 0
+    hazard_manager.deaths_caused = 0
+
+    # 3. Update collision system
+    collision_system.set_tiles(tiles, platforms)
+
+    # 4. Spawn enemies, pickups, hazards (same logic as regenerate_world_state)
+    _spawn_pickups_and_hazards(
+        world, megamap, spawn_x, spawn_y, exit_x, exit_y,
+        seed, pickup_manager, hazard_manager,
+        hub_id=None, mission_def=None,
+    )
+    _spawn_enemies(world, megamap, seed, enemy_manager, tiles, hub_id=None)
+
+    print(
+        f"[SERVER WORLD] Generated: seed={seed}  enemies={len(enemy_manager.enemies)}"
+        f"  pickups={len(pickup_manager.get_alive_pickups())}"
+    )
+    return tiles, platforms, seed, spawn_x, spawn_y, megamap

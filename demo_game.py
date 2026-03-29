@@ -865,6 +865,7 @@ def main():
                     rect = pygame.Rect(world_x, world_y, 32, 32)
                     dynamic_platforms.append(
                         {
+                            "id": f"plat_{tx}_{ty}",
                             "type": "falling",
                             "rect": rect,
                             "origin_x": world_x,
@@ -901,6 +902,7 @@ def main():
                     speed = rng.uniform(*MOVING_PLATFORM_SPEED_RANGE) if min_x != max_x else 0.0
                     dynamic_platforms.append(
                         {
+                            "id": f"plat_{tx}_{ty}",
                             "type": "moving",
                             "rect": rect,
                             "origin_x": world_x,
@@ -1530,7 +1532,10 @@ def main():
         _net_seed = current_seed or random.randint(1, 999999)
         _net_thread = _threading.Thread(
             target=lambda: _asyncio.run(
-                _run_server(port=args.host, seed=_net_seed, max_players=args.max_players)
+                _run_server(
+                    port=args.host, seed=_net_seed, max_players=args.max_players,
+                    world_shape=initial_shape, world_rooms=initial_rooms,
+                )
             ),
             daemon=True,
             name="GameServer",
@@ -1833,14 +1838,97 @@ def main():
                 _remote_players.pop(_net_client.last_leave_slot, None)
                 _net_client.last_leave_slot = None
 
-            # Phase 2.5: apply entity events from remote clients
-            for _ev in _net_client.poll_entity_events():
-                _etype = _ev.get("etype")
-                _eid = _ev.get("entity_id", "")
-                if _etype == "pickup_collect":
-                    pickup_manager.suppress_by_id(_eid)
-                elif _etype == "enemy_kill":
-                    enemy_manager.suppress_enemy(_eid)
+            # Phase 3: apply authoritative WorldSnapshot from server simulation
+            _ws_dict = _net_client.poll_world_state()
+            if _ws_dict:
+                from network.snapshots import WorldSnapshot as _WS
+                _ws = _WS.from_dict(_ws_dict)
+                _local_slot = _net_client.local_slot or 0
+                _now_ms = float(pygame.time.get_ticks())
+
+                # --- Players (remote ghosts + rubber-band local position) ---
+                for _ps in _ws.players:
+                    if _ps.slot == _local_slot:
+                        # Rubber-band: apply server-authoritative position to local
+                        # player (1 RTT of latency; prediction is Phase 3d).
+                        # NOTE: health is NOT applied from server because the server
+                        # does not yet run combat (GameSimulator.step() omits
+                        # combat_mechanic.check_enemy_collisions).  Applying server
+                        # health here would reset the player to full HP every frame.
+                        # Phase 3b will add server-side combat and re-enable this.
+                        player.state.physics.x = _ps.pos[0]
+                        player.state.physics.y = _ps.pos[1]
+                        player.state.physics.vx = _ps.vel[0]
+                        player.state.physics.vy = _ps.vel[1]
+                    else:
+                        if _ps.slot not in _remote_players:
+                            _remote_players[_ps.slot] = _RemotePlayer(
+                                slot=_ps.slot, player_id=_ps.player_id
+                            )
+                        _rp = _remote_players[_ps.slot]
+                        if _rp.anim_sm is None:
+                            _rp.anim_sm = AnimationRegistry.make_state_machine("player")
+                        _rp.apply_state(
+                            x=_ps.pos[0], y=_ps.pos[1],
+                            vx=_ps.vel[0], vy=_ps.vel[1],
+                            health=_ps.health,
+                            facing=_ps.facing,
+                            is_dead=_ps.is_dead,
+                            now_ms=_now_ms,
+                        )
+
+                # --- Enemies: overwrite local AI state with server state ---
+                _server_enemy_ids = {e.enemy_id for e in _ws.enemies}
+                # Remove enemies killed on server
+                for _dead_id in list(enemy_manager.enemies.keys()):
+                    if _dead_id not in _server_enemy_ids:
+                        enemy_manager.suppress_enemy(_dead_id)
+                # Update or add enemies from snapshot
+                for _es in _ws.enemies:
+                    _enemy = enemy_manager.enemies.get(_es.enemy_id)
+                    if _enemy is not None:
+                        _enemy.physics.x = _es.x
+                        _enemy.physics.y = _es.y
+                        _enemy.physics.vx = _es.vx
+                        _enemy.physics.vy = _es.vy
+                        _enemy.health_state.current_hp = _es.hp
+                        _enemy.facing_right = _es.facing_right
+                        try:
+                            _enemy.ai_state = EnemyAIState(_es.ai_state)
+                        except ValueError:
+                            pass  # unknown state string — keep local state
+
+                # --- Pickups: sync alive/dead state from server ---
+                _server_alive_ids = {p.pickup_id for p in _ws.pickups if p.alive}
+                for _pickup in pickup_manager.pickups:
+                    if _pickup.alive and _pickup.pickup_id not in _server_alive_ids:
+                        _pickup.alive = False
+                        _pickup.collected = True
+
+                # --- Falling platforms: sync state from server ---
+                _plat_map = {ps.platform_id: ps for ps in _ws.platform_states}
+                for _plat in dynamic_platforms:
+                    _pid = _plat.get("id")
+                    if _pid and _pid in _plat_map:
+                        _psnap = _plat_map[_pid]
+                        _plat["state"] = _psnap.state
+                        _plat["pos_y"] = _psnap.pos_y
+                        _plat["timer"] = _psnap.timer
+                        _plat["vy"] = _psnap.vy
+                        _plat["rect"].y = int(round(_psnap.pos_y))
+                        _plat["active"] = _psnap.state in ("idle", "triggered")
+                        _plat["visible"] = _psnap.state != "respawn"
+
+            # Phase 2.5 fallback: apply entity events when Phase 3 WorldSnapshot
+            # is not yet active (server simulator not initialised).
+            elif not _ws_dict:
+                for _ev in _net_client.poll_entity_events():
+                    _etype = _ev.get("etype")
+                    _eid = _ev.get("entity_id", "")
+                    if _etype == "pickup_collect":
+                        pickup_manager.suppress_by_id(_eid)
+                    elif _etype == "enemy_kill":
+                        enemy_manager.suppress_enemy(_eid)
         # ── End multiplayer ───────────────────────────────────────────────────
 
         # Track single-press keys for dialogue/menu interactions

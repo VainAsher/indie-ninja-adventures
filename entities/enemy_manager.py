@@ -19,7 +19,7 @@ from core import EventBus
 from entities.ai_random import AIRandom, derive_ai_seed
 from entities.enemy import Enemy, EnemyAIState, EnemyType, get_enemy_definition
 from rendering.animation_system import ENEMY_AI_TO_ANIM, AnimationRegistry
-from entities.enemy_ai import EnemyAI, create_patrol_waypoints_horizontal
+from entities.enemy_ai import EnemyAI, create_patrol_waypoints_horizontal, nearest_player
 from game.health_system import HealthState
 from game.loot_system import LootGenerator, get_loot_table_database
 from game.objective_tracker import EnemyDeathEvent
@@ -352,23 +352,32 @@ class EnemyManager:
         cull_margin: float = 800.0,
         world_h: float = 0.0,
         profiler=None,
+        players: list[tuple[float, float, int, int]] | None = None,
     ) -> int:
         """
         Update all enemies.
 
         Args:
             dt: Delta time
-            player_x: Player X position
-            player_y: Player Y position
-            player_width: Player width
-            player_height: Player height
+            player_x: Player X position (single-player / fallback)
+            player_y: Player Y position (single-player / fallback)
+            player_width: Player width (single-player / fallback)
+            player_height: Player height (single-player / fallback)
+            players: Optional list of (x, y, width, height) per active player slot.
+                     When provided, each enemy targets the nearest player (Phase 3 / server mode).
+                     When None, falls back to single player_x/player_y.
 
         Returns:
-            Total damage dealt to player this frame
+            Total damage dealt to player(s) this frame
         """
         self.recently_killed_ids.clear()
         total_damage = 0
         dead_enemies = []
+
+        # Build the canonical player list used for AI targeting
+        _player_list: list[tuple[float, float, int, int]] = (
+            players if players else [(player_x, player_y, player_width, player_height)]
+        )
 
         # Update each enemy
         # Detection multiplier based on player movement/stealth
@@ -393,6 +402,11 @@ class EnemyManager:
         for enemy_id, enemy in self.enemies.items():
             # Cache definition once per enemy per frame
             definition = enemy.get_definition()
+
+            # Resolve target player — nearest of all active players
+            ex_c = enemy.physics.x + definition.width / 2
+            ey_c = enemy.physics.y + definition.height / 2
+            t_px, t_py, t_pw, t_ph = nearest_player(_player_list, ex_c, ey_c)
 
             # Determine if this enemy is off-screen (skip AI only, not physics)
             off_screen = False
@@ -421,10 +435,10 @@ class EnemyManager:
                         profiler.begin("ai")
                     damage = ai.update(
                         dt,
-                        player_x,
-                        player_y,
-                        player_width,
-                        player_height,
+                        t_px,
+                        t_py,
+                        t_pw,
+                        t_ph,
                         detection_mult,
                         collision_system,
                     )
@@ -463,7 +477,7 @@ class EnemyManager:
                             )
                         )
                         if not swooping:
-                            player_center_y = player_y + player_height / 2
+                            player_center_y = t_py + t_ph / 2
                             enemy.physics.vy += (
                                 (player_center_y - (enemy.physics.y + definition.height / 2))
                                 * 0.05 * dt
@@ -647,6 +661,23 @@ class EnemyManager:
                 colliding_enemies.append(enemy_id)
 
         return colliding_enemies
+
+    def check_players_enemy_collision(
+        self, players: list[tuple[float, float, int, int]]
+    ) -> dict[int, list[str]]:
+        """
+        Check for collisions between all active players and enemies (Phase 3 / server mode).
+
+        Args:
+            players: List of (x, y, width, height) per player slot index.
+
+        Returns:
+            Dict mapping slot index → list of enemy IDs that slot is colliding with.
+        """
+        result: dict[int, list[str]] = {}
+        for slot_idx, (px, py, pw, ph) in enumerate(players):
+            result[slot_idx] = self.check_player_enemy_collision(px, py, pw, ph)
+        return result
 
     def check_attack_collision(self, attack_rect: tuple[float, float, float, float]) -> list[str]:
         """
