@@ -122,6 +122,7 @@ class PickupSpawner:
         pickup_manager: PickupManager,
         room_px: float,
         room_py: float,
+        boss_level: bool = False,
     ):
         """
         Spawn pickups for a room based on its type and layout.
@@ -130,9 +131,34 @@ class PickupSpawner:
             room: Room node with zone grid and tilemap
             pickup_manager: Pickup manager to spawn into
             room_px, room_py: Room position in world pixels
+            boss_level: If True, health pickups are 3x more abundant (200% increase)
         """
         # Get config for this room type
         config = PICKUP_CONFIGS.get(room.room_type.value, PickupSpawnConfig())
+
+        # On boss/champion levels triple health pickup counts across all rooms
+        if boss_level and config.health_count != (0, 0):
+            lo, hi = config.health_count
+            config = PickupSpawnConfig(
+                coin_density=config.coin_density,
+                collectible_count=config.collectible_count,
+                health_count=(lo * 3, hi * 3),
+                coin_trail_chance=config.coin_trail_chance,
+                high_placement_bias=config.high_placement_bias,
+                hazard_proximity_bonus=config.hazard_proximity_bonus,
+                collectible_difficulty=config.collectible_difficulty,
+            )
+        elif boss_level:
+            # Room type has no health pickups normally — guarantee at least 1–3
+            config = PickupSpawnConfig(
+                coin_density=config.coin_density,
+                collectible_count=config.collectible_count,
+                health_count=(1, 3),
+                coin_trail_chance=config.coin_trail_chance,
+                high_placement_bias=config.high_placement_bias,
+                hazard_proximity_bonus=config.hazard_proximity_bonus,
+                collectible_difficulty=config.collectible_difficulty,
+            )
 
         # Reseed RNG for this room
         self.rng = random.Random(self.seed + room.grid_x * 1000 + room.grid_y)

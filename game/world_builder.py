@@ -203,6 +203,18 @@ def _spawn_pickups_and_hazards(
     pickup_spawner = PickupSpawner(seed)
     hazard_spawner = HazardSpawner(seed)
 
+    # Detect boss/champion level: any defeat_boss objective means tripled health drops
+    boss_level = False
+    if mission_def:
+        for obj in mission_def.objectives:
+            obj_type = getattr(obj, "objective_type", None)
+            if obj_type is not None and str(obj_type).endswith("DEFEAT_BOSS"):
+                boss_level = True
+                break
+            if getattr(obj, "type", None) == "defeat_boss":
+                boss_level = True
+                break
+
     for room in world.all_rooms:
         room_coords = (room.grid_x, room.grid_y)
         room_px, room_py = megamap.room_positions[room_coords]
@@ -210,7 +222,7 @@ def _spawn_pickups_and_hazards(
         room_spawn_pos = (spawn_x, spawn_y) if room.room_type.value == "start" else None
         room_exit_pos = (exit_x, exit_y) if room.room_type.value == "exit" else None
 
-        pickup_spawner.spawn_pickups_for_room(room, pickup_manager, room_px, room_py)
+        pickup_spawner.spawn_pickups_for_room(room, pickup_manager, room_px, room_py, boss_level=boss_level)
         if not hub_id:  # Keep hubs safe and avoid exit-based hazard offsets
             hazard_spawner.spawn_hazards_for_room(
                 room,
