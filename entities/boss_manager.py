@@ -78,7 +78,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
         boss_type=BossType.SHADOW_LORD,
         display_name="Shadow Lord",
         max_health=500,
-        base_damage=3,
+        base_damage=1,
         move_speed=80.0,
         width=64,
         height=96,
@@ -94,7 +94,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
         boss_type=BossType.FIRE_DEMON,
         display_name="Fire Demon",
         max_health=600,
-        base_damage=4,
+        base_damage=1,
         move_speed=100.0,
         width=80,
         height=96,
@@ -111,7 +111,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
         boss_type=BossType.NECROMANCER,
         display_name="Necromancer",
         max_health=400,
-        base_damage=2,
+        base_damage=1,
         move_speed=60.0,
         width=56,
         height=88,
@@ -128,7 +128,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
         boss_type=BossType.VEIL_MAIDEN,
         display_name="The Veil Maiden",
         max_health=800,  # High HP for Act 1 (scripted defeat), balanced for Act 4
-        base_damage=3,
+        base_damage=1,
         move_speed=90.0,
         width=48,
         height=80,
@@ -145,7 +145,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
         boss_type=BossType.ICE_QUEEN,
         display_name="Ice Queen",
         max_health=550,
-        base_damage=3,
+        base_damage=1,
         move_speed=70.0,
         width=56,
         height=88,
@@ -162,7 +162,7 @@ BOSS_DEFINITIONS: dict[BossType, BossDefinition] = {
         boss_type=BossType.DRAGON,
         display_name="Dragon",
         max_health=700,
-        base_damage=5,
+        base_damage=1,
         move_speed=90.0,
         width=96,
         height=80,
@@ -623,12 +623,12 @@ class BossManager:
         damage_mult = 0.75 if self.active_boss.is_champion else 1.0
 
         type_map = {
-            BossType.FIRE_DEMON: ("fireball", 220.0, int(2 * damage_mult) or 1),
-            BossType.SHADOW_LORD: ("shadow_bolt", 250.0, int(3 * damage_mult) or 1),
-            BossType.ICE_QUEEN: ("ice_shard", 200.0, int(2 * damage_mult) or 1),
-            BossType.NECROMANCER: ("death_bolt", 180.0, int(2 * damage_mult) or 1),
-            BossType.DRAGON: ("fire_ball", 230.0, int(3 * damage_mult) or 1),
-            BossType.VEIL_MAIDEN: ("veil_bolt", 220.0, int(2 * damage_mult) or 1),
+            BossType.FIRE_DEMON: ("fireball", 220.0, 1),
+            BossType.SHADOW_LORD: ("shadow_bolt", 250.0, 1),
+            BossType.ICE_QUEEN: ("ice_shard", 200.0, 1),
+            BossType.NECROMANCER: ("death_bolt", 180.0, 1),
+            BossType.DRAGON: ("fire_ball", 230.0, 1),
+            BossType.VEIL_MAIDEN: ("veil_bolt", 220.0, 1),
         }
         proj_type, speed, damage = type_map.get(boss_type, ("bolt", 200.0, 1))
         self._create_homing_projectile(origin, player_x, player_y, proj_type, speed, damage)
@@ -653,69 +653,69 @@ class BossManager:
 
         boss = self.active_boss
         boss_center = boss.get_center()
-        dmg_mult = 0.75 if boss.is_champion else 1.0
+        # All special attack damage capped at 1 for normal hits, 2 for heavy/signature moves,
+        # to match the player's 5 HP pool. Champions deal the same (already weaker via HP/size).
 
         # ── FIRE DEMON ────────────────────────────────────────────────────────
         if special_type == "fireball_barrage":
             self._create_projectile_barrage(
                 boss_center, player_x, player_y, count=5,
-                proj_type="fireball", speed=200.0, damage=int(2 * dmg_mult) or 1,
+                proj_type="fireball", speed=200.0, damage=1,
             )
         elif special_type == "flame_breath":
-            # Wide cone of fireballs
+            # Wide cone of fireballs — dodgeable by reading the cone
             self._create_projectile_barrage(
                 boss_center, player_x, player_y, count=7,
-                proj_type="flame", speed=160.0, damage=int(1 * dmg_mult) or 1, spread=0.5,
+                proj_type="flame", speed=160.0, damage=1, spread=0.5,
             )
         elif special_type == "meteor_strike":
-            # Slow heavy projectile aimed at player feet
+            # Slow heavy projectile — 2 damage as a punishing but telegraphed hit
             self._create_homing_projectile(
                 boss_center, player_x, player_y, proj_type="meteor", speed=120.0,
-                damage=int(4 * dmg_mult) or 1, width=32, height=32,
+                damage=2, width=32, height=32,
             )
 
         # ── SHADOW LORD ───────────────────────────────────────────────────────
         elif special_type == "shadow_strike":
             self._create_homing_projectile(
                 boss_center, player_x, player_y, proj_type="shadow_bolt", speed=250.0,
-                damage=int(3 * dmg_mult) or 1,
+                damage=1,
             )
         elif special_type == "dark_wave":
             # Three shadow bolts in a horizontal spread
             self._create_projectile_barrage(
                 boss_center, player_x, player_y, count=3,
-                proj_type="dark_wave", speed=220.0, damage=int(2 * dmg_mult) or 1, spread=0.35,
+                proj_type="dark_wave", speed=220.0, damage=1, spread=0.35,
             )
         elif special_type == "void_portal":
             # Teleport boss to player position + surrounding damage burst
-            self._initiate_void_portal(boss_center, player_x, player_y,
-                                       damage=int(3 * dmg_mult) or 1)
+            self._initiate_void_portal(boss_center, player_x, player_y, damage=1)
 
         # ── ICE QUEEN ─────────────────────────────────────────────────────────
         elif special_type == "blizzard":
             # Slow wide spread of ice shards
             self._create_projectile_barrage(
                 boss_center, player_x, player_y, count=6,
-                proj_type="ice_shard", speed=140.0, damage=int(1 * dmg_mult) or 1, spread=0.6,
+                proj_type="ice_shard", speed=140.0, damage=1, spread=0.6,
             )
         elif special_type == "ice_spike":
             # Single fast spike aimed directly
             self._create_homing_projectile(
                 boss_center, player_x, player_y, proj_type="ice_spike", speed=320.0,
-                damage=int(2 * dmg_mult) or 1,
+                damage=1,
             )
         elif special_type == "freeze_ray":
             # Slow homing beam
             self._create_homing_projectile(
                 boss_center, player_x, player_y, proj_type="freeze_ray", speed=180.0,
-                damage=int(2 * dmg_mult) or 1, width=20, height=8,
+                damage=1, width=20, height=8,
             )
 
         # ── NECROMANCER ───────────────────────────────────────────────────────
         elif special_type == "death_ray":
             self._create_homing_projectile(
                 boss_center, player_x, player_y, proj_type="death_ray", speed=280.0,
-                damage=int(3 * dmg_mult) or 1,
+                damage=1,
             )
         elif special_type == "soul_drain":
             self._create_light_drain(boss_center, player_x, player_y)
@@ -723,26 +723,24 @@ class BossManager:
             # Slow-moving cage of projectiles converging on player position
             self._create_projectile_barrage(
                 boss_center, player_x, player_y, count=4,
-                proj_type="bone", speed=100.0, damage=int(1 * dmg_mult) or 1, spread=0.25,
+                proj_type="bone", speed=100.0, damage=1, spread=0.25,
             )
 
         # ── DRAGON ────────────────────────────────────────────────────────────
         elif special_type == "fire_breath":
             self._create_projectile_barrage(
                 boss_center, player_x, player_y, count=8,
-                proj_type="flame", speed=180.0, damage=int(2 * dmg_mult) or 1, spread=0.55,
+                proj_type="flame", speed=180.0, damage=1, spread=0.55,
             )
         elif special_type == "wing_slam":
             # Radial burst of shockwaves around the boss
             self._create_radial_burst(
-                boss_center, count=6, proj_type="shockwave", speed=150.0,
-                damage=int(2 * dmg_mult) or 1,
+                boss_center, count=6, proj_type="shockwave", speed=150.0, damage=1,
             )
         elif special_type == "tail_sweep":
             # Horizontal wave in both directions
             self._create_horizontal_wave(
-                boss_center, proj_type="tail_wave", speed=200.0,
-                damage=int(2 * dmg_mult) or 1,
+                boss_center, proj_type="tail_wave", speed=200.0, damage=1,
             )
 
         # ── VEIL MAIDEN ───────────────────────────────────────────────────────
@@ -758,8 +756,7 @@ class BossManager:
         # ── GENERIC FALLBACK ──────────────────────────────────────────────────
         elif special_type == "shockwave":
             self._create_radial_burst(
-                boss_center, count=4, proj_type="shockwave", speed=160.0,
-                damage=int(2 * dmg_mult) or 1,
+                boss_center, count=4, proj_type="shockwave", speed=160.0, damage=1,
             )
 
         # Emit event

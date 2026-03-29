@@ -53,10 +53,10 @@ PHASE_3_HEALTH_THRESHOLD = 0.33  # 33% health triggers phase 3
 INTRO_DURATION = 3.0  # Intro animation duration (seconds)
 IDLE_DURATION_BASE = 1.0  # Base idle time between attacks
 SPECIAL_ATTACK_DURATION = 2.0  # Special attack execution time
-VULNERABLE_DURATION = 1.5  # Vulnerable period after special
+VULNERABLE_DURATION = 2.5  # Vulnerable period after special (extended so player has a window)
 SUMMONING_DURATION = 2.5  # Time to summon minions
 TELEPORT_DURATION = 0.8  # Teleportation animation time
-ATTACK_COOLDOWN_BASE = 1.5  # Base cooldown between attacks
+ATTACK_COOLDOWN_BASE = 2.5  # Base cooldown between attacks (tuned for 5 HP player)
 
 # Combat ranges
 MELEE_RANGE = 64.0  # Melee attack range (pixels)
@@ -64,9 +64,9 @@ RANGED_RANGE = 300.0  # Ranged attack range (pixels)
 TELEPORT_RANGE = 150.0  # Min distance for teleport
 
 # Phase behavior modifiers
-PHASE_2_SPEED_MULT = 1.3  # 30% faster in phase 2
-PHASE_3_SPEED_MULT = 1.5  # 50% faster in phase 3
-PHASE_3_ATTACK_SPEED_MULT = 0.7  # 30% faster attacks in phase 3
+PHASE_2_SPEED_MULT = 1.2  # 20% faster in phase 2
+PHASE_3_SPEED_MULT = 1.35  # 35% faster in phase 3
+PHASE_3_ATTACK_SPEED_MULT = 0.85  # 15% faster attacks in phase 3
 
 
 # ============================================================
