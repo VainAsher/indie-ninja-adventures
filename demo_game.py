@@ -2493,8 +2493,24 @@ def main():
                     player_hp=player.state.health_state.current_hp,
                     player_max_hp=player.state.health_state.max_hp,
                 )
-                if boss_damage and not player.damage.is_invincible(player.state):
-                    player.take_damage(boss_damage)
+                if boss_damage and not player.damage.is_invincible(player.state) and not death_anim_pending:
+                    died = player.damage.take_damage(
+                        player.state,
+                        boss_damage,
+                        source="boss",
+                        source_pos=boss_manager.get_active_boss().get_center() if boss_manager.get_active_boss() else None,
+                    )
+                    if died:
+                        audio_manager.play("player_death")
+                        level_manager.increment_deaths()
+                        if current_world_context == "mission":
+                            queue_player_death("mission")
+                        elif current_world_context == "hub" and current_hub_id != "central_hub":
+                            queue_player_death("hub_area", hub_id="central_hub")
+                        else:
+                            queue_player_death("direct")
+                    else:
+                        audio_manager.play("player_hurt")
 
             # Decay sword attack cooldown
             if attack_timer > 0.0:
