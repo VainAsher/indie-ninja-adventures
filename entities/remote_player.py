@@ -9,6 +9,7 @@ network data and optionally smoothed with linear interpolation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 # Width/height match the local player hitbox (28×56) so collision checks and
@@ -45,6 +46,10 @@ class RemotePlayer:
     # Display name shown above the health bar (e.g. "P2")
     display_name: str = ""
 
+    # AnimationStateMachine — wired up externally after registry is loaded.
+    # Use Any to avoid importing pygame at dataclass definition time.
+    anim_sm: Any = field(default=None, repr=False, compare=False)
+
     def __post_init__(self) -> None:
         if not self.display_name:
             self.display_name = f"P{self.slot + 1}"
@@ -74,6 +79,22 @@ class RemotePlayer:
         self.facing = facing
         self.is_dead = is_dead
         self.last_update_ms = now_ms
+        if self.anim_sm is not None:
+            self.anim_sm.transition(self._infer_anim_state())
+
+    def _infer_anim_state(self) -> str:
+        """Derive an animation state name from current physics values."""
+        if self.is_dead:
+            return "death"
+        if self.vy < -1.0:
+            return "jump"
+        if self.vy > 1.0:
+            return "fall"
+        if abs(self.vx) > 5.0:
+            return "run"
+        if abs(self.vx) > 0.5:
+            return "walk"
+        return "idle"
 
     def interpolated_pos(self, now_ms: float, tick_ms: float = 16.67) -> tuple[float, float]:
         """

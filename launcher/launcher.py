@@ -4,6 +4,11 @@ Indie Ninja Adventures — Launcher
 Checks for updates via the GitHub releases API, downloads and verifies
 new releases, then launches the game.
 
+Launch modes available from the UI:
+  Solo Play     — launch game without multiplayer args
+  Host Game     — launch with --host <port>  (starts a server + joins it)
+  Join Game     — launch with --connect <host:port>
+
 Stdlib only: tkinter for UI, urllib.request for HTTP, hashlib for SHA256.
 """
 
@@ -31,7 +36,7 @@ VERSION_FILE = "version.json"
 LAUNCHER_VERSION = "1.0.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 640
-WINDOW_H = 360
+WINDOW_H = 460
 SPLASH_H = 200      # canvas height — crops the 640×320 scaled image to top portion
 
 # Colours — matched to game's menu_system.py palette
@@ -44,6 +49,10 @@ TEXT_DIM = "#888899"
 TEXT_SELECTED = "#ffff64"   # game selected_color (255, 255, 100)
 BTN_PLAY_BG = "#1a1a2e"
 PROGRESS_FG = "#ffd700"     # gold progress bar
+
+# Multiplayer button accent colours
+BTN_HOST_BG = "#1a2e1a"     # dark green tint
+BTN_JOIN_BG = "#1a1a2e"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -180,14 +189,13 @@ class LauncherApp:
         if splash_path:
             try:
                 raw = tk.PhotoImage(file=str(splash_path))
-                # Determine subsample factor so result fits WINDOW_W
                 factor = max(1, (raw.width() + WINDOW_W - 1) // WINDOW_W)
                 self._splash_photo = raw.subsample(factor, factor)
                 self._splash_canvas.create_image(0, 0, anchor="nw", image=self._splash_photo)
             except Exception:
                 self._splash_photo = None
 
-        # Game title overlay — shadow then gold text (matches Impact/gold in-game style)
+        # Game title overlay
         tx, ty = 22, SPLASH_H - 16
         self._splash_canvas.create_text(
             tx + 2, ty + 2,
@@ -223,7 +231,7 @@ class LauncherApp:
 
         # ── Controls area ─────────────────────────────────────────────────────
         ctrl = tk.Frame(root, bg=BG_DARK)
-        ctrl.pack(fill="both", expand=True, padx=20, pady=(8, 0))
+        ctrl.pack(fill="both", expand=True, padx=20, pady=(8, 6))
 
         # Installed version + status on one row
         top_row = tk.Frame(ctrl, bg=BG_DARK)
@@ -307,13 +315,13 @@ class LauncherApp:
         # Thin separator
         tk.Frame(ctrl, height=1, bg=BG_MID).pack(fill="x", pady=(8, 0))
 
-        # Button row
+        # ── Primary button row (Solo + Download + Exit) ───────────────────────
         btn_row = tk.Frame(ctrl, bg=BG_DARK)
         btn_row.pack(fill="x", pady=(8, 0))
 
         self._play_btn = tk.Button(
             btn_row,
-            text="▶  PLAY",
+            text=">>  Solo Play",
             font=("Consolas", 10, "bold"),
             fg=ACCENT,
             bg=BTN_PLAY_BG,
@@ -323,13 +331,13 @@ class LauncherApp:
             cursor="hand2",
             padx=18,
             pady=5,
-            command=self._launch_game,
+            command=self._launch_solo,
         )
         self._play_btn.pack(side="left")
 
         self._download_btn = tk.Button(
             btn_row,
-            text="↓  Install",
+            text="v  Install",
             font=("Consolas", 9),
             fg=TEXT_PRIMARY,
             bg=BG_MID,
@@ -358,6 +366,108 @@ class LauncherApp:
             pady=5,
             command=self.root.destroy,
         ).pack(side="right")
+
+        # ── Multiplayer section ───────────────────────────────────────────────
+        tk.Frame(ctrl, height=1, bg=ACCENT).pack(fill="x", pady=(10, 0))
+
+        mp_header = tk.Frame(ctrl, bg=BG_DARK)
+        mp_header.pack(fill="x", pady=(4, 0))
+        tk.Label(
+            mp_header,
+            text="MULTIPLAYER",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        mp_row = tk.Frame(ctrl, bg=BG_DARK)
+        mp_row.pack(fill="x", pady=(6, 0))
+
+        # Host side
+        host_frame = tk.Frame(mp_row, bg=BG_DARK)
+        host_frame.pack(side="left")
+
+        tk.Label(
+            host_frame,
+            text="Port:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        self._host_port_var = tk.StringVar(value="7777")
+        tk.Entry(
+            host_frame,
+            textvariable=self._host_port_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+            width=6,
+        ).pack(side="left", padx=(4, 6))
+
+        tk.Button(
+            host_frame,
+            text="[H]  Host Game",
+            font=("Consolas", 9, "bold"),
+            fg=TEXT_PRIMARY,
+            bg=BTN_HOST_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=5,
+            command=self._launch_host,
+        ).pack(side="left")
+
+        # Vertical divider
+        tk.Frame(mp_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=14)
+
+        # Join side
+        join_frame = tk.Frame(mp_row, bg=BG_DARK)
+        join_frame.pack(side="left")
+
+        tk.Label(
+            join_frame,
+            text="Server:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        self._join_addr_var = tk.StringVar(value="")
+        self._join_entry = tk.Entry(
+            join_frame,
+            textvariable=self._join_addr_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+            width=16,
+        )
+        self._join_entry.pack(side="left", padx=(4, 6))
+        self._join_entry.insert(0, "host:7777")
+        self._join_entry.config(fg=TEXT_DIM)
+        self._join_entry.bind("<FocusIn>", self._on_join_focus_in)
+        self._join_entry.bind("<FocusOut>", self._on_join_focus_out)
+
+        tk.Button(
+            join_frame,
+            text="->  Join Game",
+            font=("Consolas", 9, "bold"),
+            fg=TEXT_PRIMARY,
+            bg=BTN_JOIN_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=5,
+            command=self._launch_join,
+        ).pack(side="left")
 
     # ── Release list fetch ────────────────────────────────────────────────────
 
@@ -388,7 +498,7 @@ class LauncherApp:
         self._progress_var.set(0.0)
 
         if error:
-            self._status_var.set(f"⚠  {error}")
+            self._status_var.set(f"!  {error}")
             return
 
         if not releases:
@@ -411,7 +521,7 @@ class LauncherApp:
         if _is_newer(latest_ver, self._local_version):
             self._status_var.set(f"Update available: {latest_tag}")
         else:
-            self._status_var.set("✓  Up to date")
+            self._status_var.set("OK  Up to date")
 
     # ── Version picker ────────────────────────────────────────────────────────
 
@@ -427,9 +537,9 @@ class LauncherApp:
         if ver == self._local_version:
             self._status_var.set(f"  {tag} — currently installed")
         elif _is_newer(ver, self._local_version):
-            self._status_var.set(f"↑  {tag} is newer than installed")
+            self._status_var.set(f"^ {tag} is newer than installed")
         else:
-            self._status_var.set(f"↓  {tag} is older than installed")
+            self._status_var.set(f"v {tag} is older than installed")
 
     def _refresh_download_btn(self) -> None:
         if not self._selected_release or self._downloading:
@@ -441,15 +551,15 @@ class LauncherApp:
         has_exe = any(a.get("name") == GAME_EXE_NAME for a in assets)
 
         if not has_exe:
-            self._download_btn.configure(state="disabled", text="↓  No exe asset")
+            self._download_btn.configure(state="disabled", text="v  No exe asset")
             return
 
         if ver == self._local_version:
-            label = f"↓  Reinstall {tag}"
+            label = f"v  Reinstall {tag}"
         elif _is_newer(ver, self._local_version):
-            label = f"↑  Update to {tag}"
+            label = f"^  Update to {tag}"
         else:
-            label = f"↓  Downgrade to {tag}"
+            label = f"v  Downgrade to {tag}"
 
         self._download_btn.configure(state="normal", text=label)
 
@@ -563,9 +673,8 @@ class LauncherApp:
         self._downloading = False
         self._local_version = tag.lstrip("v")
         self._progress_var.set(100.0)
-        self._status_var.set(f"✓  {tag} installed. Ready to play.")
+        self._status_var.set(f"OK  {tag} installed. Ready to play.")
 
-        # Refresh combobox so (installed) badge moves to the new version
         labels = [
             _version_label(r["tag_name"], self._local_version, i == 0)
             for i, r in enumerate(self._all_releases)
@@ -576,28 +685,86 @@ class LauncherApp:
     def _on_download_error(self, message: str) -> None:
         self._downloading = False
         self._progress_var.set(0.0)
-        self._status_var.set(f"✗  {message}")
+        self._status_var.set(f"X  {message}")
         self._refresh_download_btn()
 
-    # ── Launch ────────────────────────────────────────────────────────────────
+    # ── Join entry placeholder behaviour ─────────────────────────────────────
 
-    def _launch_game(self) -> None:
+    _JOIN_PLACEHOLDER = "host:7777"
+
+    def _on_join_focus_in(self, _event=None) -> None:
+        if self._join_addr_var.get() == self._JOIN_PLACEHOLDER:
+            self._join_entry.delete(0, "end")
+            self._join_entry.config(fg=TEXT_PRIMARY)
+
+    def _on_join_focus_out(self, _event=None) -> None:
+        if not self._join_addr_var.get().strip():
+            self._join_entry.insert(0, self._JOIN_PLACEHOLDER)
+            self._join_entry.config(fg=TEXT_DIM)
+
+    # ── Launch helpers ────────────────────────────────────────────────────────
+
+    def _launch_with_args(self, *extra_args: str) -> None:
+        """Build command for the game exe + extra_args, Popen it, then close."""
         game_path = _get_game_exe()
-
-        if game_path.suffix == ".py":
-            cmd = [sys.executable, str(game_path)]
-        else:
-            cmd = [str(game_path)]
-
-        try:
-            subprocess.Popen(cmd)
-            self.root.after(200, self.root.destroy)
-        except FileNotFoundError:
+        if not game_path.exists():
             messagebox.showerror(
                 "Game Not Found",
                 f"Could not find the game at:\n{game_path}\n\nPlease download a version first.",
                 parent=self.root,
             )
+            return
+        cmd = (
+            [sys.executable, str(game_path)]
+            if game_path.suffix == ".py"
+            else [str(game_path)]
+        )
+        cmd.extend(extra_args)
+        try:
+            subprocess.Popen(cmd)
+            self.root.after(200, self.root.destroy)
+        except Exception as exc:
+            messagebox.showerror("Launch Error", str(exc), parent=self.root)
+
+    def _launch_solo(self) -> None:
+        """Launch the game in single-player / solo mode."""
+        self._launch_with_args()
+
+    def _launch_host(self) -> None:
+        """Start a multiplayer server and join it as the host."""
+        port_str = self._host_port_var.get().strip()
+        try:
+            port = int(port_str)
+            if not (1 <= port <= 65535):
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(
+                "Invalid Port",
+                "Port must be a whole number between 1 and 65535.",
+                parent=self.root,
+            )
+            return
+        self._launch_with_args("--host", str(port))
+
+    def _launch_join(self) -> None:
+        """Connect to an existing multiplayer server."""
+        addr = self._join_addr_var.get().strip()
+        if not addr or addr == self._JOIN_PLACEHOLDER:
+            messagebox.showerror(
+                "No Server Address",
+                "Enter the server address as  host:port  (e.g. 192.168.1.5:7777).",
+                parent=self.root,
+            )
+            return
+        # Accept bare IP/hostname — default port 7777
+        if ":" not in addr:
+            addr = f"{addr}:7777"
+        self._launch_with_args("--connect", addr)
+
+    # ── Legacy alias kept for any external callers ────────────────────────────
+
+    def _launch_game(self) -> None:
+        self._launch_solo()
 
     # ── Run ──────────────────────────────────────────────────────────────────
 

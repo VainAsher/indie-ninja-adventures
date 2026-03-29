@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.6] - 2026-03-29 (Multiplayer: Colored Sprites + 4-Player Lobby + Launcher Modes)
+
+### Summary
+
+Remote players now render as actual ninja sprites color-tinted by slot (slot 0 = default, 1 = red, 2 = green, 3 = purple). Max players increased to 4. Launcher gains dedicated Solo Play, Host Game, and Join Game launch modes.
+
+### Added
+
+- **Colored remote-player sprites** (`rendering/remote_player_renderer.py`, `entities/remote_player.py`): Remote peers now use the same spritesheets as the local player via `AnimationStateMachine`, tinted per slot with `pygame.BLEND_RGB_MULT`. Slot 0 = default ninja, slot 1 = red `(220,80,80)`, slot 2 = green `(80,200,80)`, slot 3 = purple `(180,80,220)`. Ghost silhouette retained as fallback.
+- **Animation inference for remote players** (`entities/remote_player.py`): `_infer_anim_state()` maps velocity + dead flag to idle/walk/run/jump/fall/death. `apply_state()` calls `anim_sm.transition()` automatically on every network update. `anim_sm` retried each frame until non-None so timing issues on join are self-healing.
+- **Launcher multiplayer modes** (`launcher/launcher.py`): Three launch buttons — `>> Solo Play` (no args), `[H] Host Game` (port entry + `--host PORT`), `-> Join Game` (server entry + `--connect HOST:PORT`). Port validated 1–65535. Address defaults to port 7777 if only hostname given. Placeholder text with focus in/out handling. Window height increased to 460px.
+
+### Changed
+
+- **`network/server.py`**: `MAX_PLAYERS` raised from 2 to 4.
+- **`demo_game.py`**: Lobby strings updated from "2 players" to "4 players". `anim_sm` assignment moved to a per-frame retry block so it self-heals if the registry wasn't loaded at first snapshot.
+- **`launcher/launcher.py`**: Refactored launch path into `_launch_with_args(*extra)` helper used by all three launch modes. "▶ PLAY" renamed ">> Solo Play" for clarity.
+
+---
+
 ## [0.7.5] - 2026-03-29 (Multiplayer N4+L2: Remote Players + Lobby)
 
 ### Summary

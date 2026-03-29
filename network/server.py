@@ -31,7 +31,7 @@ from .snapshots import MultiplayerSnapshot, PlayerState
 
 log = logging.getLogger("network.server")
 
-MAX_PLAYERS = 2
+MAX_PLAYERS = 4
 SERVER_VERSION = "1.0.0"
 TICK_RATE = 60          # target broadcast ticks per second
 TICK_INTERVAL = 1.0 / TICK_RATE

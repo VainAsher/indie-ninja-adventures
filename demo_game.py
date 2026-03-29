@@ -1649,11 +1649,12 @@ def main():
             screen.blit(_title_surf, (_px + (_panel_w - _title_surf.get_width()) // 2, _py + 16))
 
             if _is_host:
-                _count_str = "Waiting for player 2…"
+                _n = _net_client.connected_count if _net_client else 1
+                _count_str = f"Lobby — {_n}/4 players"
                 _hint_str = "Game starts automatically when lobby is full"
             elif _net_client is not None:
                 _n = _net_client.connected_count
-                _count_str = f"Connected — {_n}/2 players"
+                _count_str = f"Connected — {_n}/4 players"
                 _hint_str = "Waiting for host to start the game…"
             else:
                 _count_str = "Connecting…"
@@ -1804,7 +1805,10 @@ def main():
                         _remote_players[_ps.slot] = _RemotePlayer(
                             slot=_ps.slot, player_id=_ps.player_id
                         )
-                    _remote_players[_ps.slot].apply_state(
+                    _rp = _remote_players[_ps.slot]
+                    if _rp.anim_sm is None:
+                        _rp.anim_sm = AnimationRegistry.make_state_machine("player")
+                    _rp.apply_state(
                         x=_ps.pos[0], y=_ps.pos[1],
                         vx=_ps.vel[0], vy=_ps.vel[1],
                         health=_ps.health,
