@@ -1654,7 +1654,7 @@ def main():
             screen.blit(_esc_surf, (_px + (_panel_w - _esc_surf.get_width()) // 2, _py + 170))
 
             pygame.display.flip()
-            clock.tick(30)
+            clock_pygame.tick(30)
 
         # Skip the main menu when entering via multiplayer — jump straight in
         level_manager.start_level(time.time())
