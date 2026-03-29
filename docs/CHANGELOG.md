@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.2] - 2026-03-28 (Boss AI + Champion System)
+
+### Summary
+
+All 6 bosses now have functional AI: they chase the player, execute type-specific ranged and melee attacks, trigger special abilities per phase, and deal contact damage. Projectiles now check collision against the player. A champion spawn system means that once a boss type has been defeated, subsequent visits to that boss room have a 40% chance to spawn a weaker champion variant instead.
+
+### Added
+
+- **Boss movement** (`entities/boss_ai.py`): `_chase_player()` drives `boss.velocity_x` each tick based on signed distance to player. Position is integrated in `BossManager.update()` with linear friction.
+- **Ranged attacks** (`entities/boss_manager.py`): `_execute_ranged_attack()` dispatches per boss type — FIRE_DEMON fires `fireball`, SHADOW_LORD fires `shadow_bolt`, ICE_QUEEN fires `ice_shard`, NECROMANCER fires `death_bolt`, DRAGON fires `fire_ball`, VEIL_MAIDEN fires `veil_bolt`.
+- **Type-specific specials** (`entities/boss_manager.py`): All 6 bosses have 3–4 special attacks fully wired: FIRE_DEMON (`fireball_barrage`, `flame_breath`, `meteor_strike`), SHADOW_LORD (`shadow_strike`, `dark_wave`, `void_portal`), ICE_QUEEN (`blizzard`, `ice_spike`, `freeze_ray`), NECROMANCER (`death_ray`, `soul_drain`, `bone_cage`), DRAGON (`fire_breath`, `wing_slam`, `tail_sweep`), VEIL_MAIDEN (`veil_strike`, `isolation_field`, `light_drain`, `shadow_step`).
+- **Projectile–player collision** (`entities/boss_manager.py`): `_check_projectile_player_collision()` tests all active boss projectiles against player AABB each tick and returns total damage to apply.
+- **Contact damage** (`entities/boss_manager.py`): Boss body AABB vs player AABB checked during active combat states; returns damage_to_player.
+- **Champion system** (`entities/boss_manager.py`, `demo_game.py`, `systems/save_system.py`):
+  - `CampaignSaveData.defeated_bosses: set[str]` — persisted set of BossType name strings of bosses killed at least once.
+  - `Boss.is_champion: bool` flag; `spawn_boss(champion=True)` spawns at 50% HP, 75% hitbox.
+  - `_maybe_spawn_boss()`: if boss type already in `defeated_bosses`, 40% chance to spawn champion instead of full boss.
+  - Defeated boss type recorded to `campaign.defeated_bosses` at mission completion.
+
+### Fixed
+
+- **Bosses stood still**: `_execute_phase_combat()` never updated `boss.velocity_x`. Now calls `_chase_player()` every tick.
+- **Generic special names**: `_choose_special_attack()` returned hardcoded strings that never matched any boss's `special_attacks` list. Now reads from `BossDefinition.special_attacks`.
+- **Projectiles never damaged player**: `update()` returned `None` for projectile hits. Now integrated into the damage return value.
+
+---
+
 ## [0.7.1] - 2026-03-28 (Phases 2–5: Boss, Audio, Settings, Ability Gates)
 
 ### Summary

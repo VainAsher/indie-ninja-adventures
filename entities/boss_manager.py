@@ -219,6 +219,9 @@ class Boss:
     invulnerable: bool = True  # Invulnerable during intro
     phase: int = 1
 
+    # Champion flag: weaker mini-boss variant spawned after original is defeated
+    is_champion: bool = False
+
     def get_definition(self) -> BossDefinition:
         """Get boss type definition"""
         return BOSS_DEFINITIONS.get(self.boss_type, BOSS_DEFINITIONS[BossType.SHADOW_LORD])
@@ -342,7 +345,12 @@ class BossManager:
         self.scripted_event_triggered = False
 
     def spawn_boss(
-        self, boss_type: BossType, x: float, y: float, boss_id: str | None = None
+        self,
+        boss_type: BossType,
+        x: float,
+        y: float,
+        boss_id: str | None = None,
+        champion: bool = False,
     ) -> Boss:
         """
         Spawn a boss at the specified position.
@@ -360,7 +368,17 @@ class BossManager:
 
         # Generate boss ID if not provided
         if boss_id is None:
-            boss_id = f"boss_{boss_type.name.lower()}"
+            boss_id = f"{'champion' if champion else 'boss'}_{boss_type.name.lower()}"
+
+        # Champions are weaker: 50% health, smaller hitbox
+        if champion:
+            max_hp = max(1, definition.max_health // 2)
+            width = max(32, int(definition.width * 0.75))
+            height = max(32, int(definition.height * 0.75))
+        else:
+            max_hp = definition.max_health
+            width = definition.width
+            height = definition.height
 
         # Create boss entity
         boss = Boss(
@@ -368,11 +386,12 @@ class BossManager:
             boss_type=boss_type,
             x=x,
             y=y,
-            health=definition.max_health,
-            max_health=definition.max_health,
-            width=definition.width,
-            height=definition.height,
+            health=max_hp,
+            max_health=max_hp,
+            width=width,
+            height=height,
             invulnerable=True,  # Invulnerable during intro
+            is_champion=champion,
         )
 
         # Create AI controller with deterministic seed
@@ -439,8 +458,17 @@ class BossManager:
         # Update AI
         action = self.boss_ai.update(dt, player_x, player_y, player_width, player_height)
 
+        # Apply boss movement (velocity set by AI chase logic)
+        boss.x += boss.velocity_x * dt
+        # Friction: decay horizontal velocity between frames
+        boss.velocity_x *= max(0.0, 1.0 - 10.0 * dt)
+
         # Handle AI actions
-        damage_to_player = action.get("damage")
+        damage_to_player = action.get("damage") or 0
+
+        # Ranged attack: fire a projectile toward the player
+        if action.get("ranged"):
+            self._execute_ranged_attack(boss.get_center(), player_x, player_y)
 
         # Handle special attacks
         if action.get("special"):
@@ -459,8 +487,20 @@ class BossManager:
                 "boss_teleported", {"boss_id": boss.boss_id, "position": (dest_x, dest_y)}
             )
 
-        # Update projectiles
+        # Update projectiles and check player collision
         self._update_projectiles(dt)
+        proj_damage = self._check_projectile_player_collision(
+            player_x, player_y, player_width, player_height
+        )
+        damage_to_player += proj_damage
+
+        # Boss body contact damage (only in active combat states)
+        from entities.boss_ai import BossAIState as _AIS
+        if self.boss_ai.get_state() not in (_AIS.VULNERABLE, _AIS.INTRO, _AIS.DEAD, _AIS.SUMMONING):
+            if self._check_rect_collision(
+                player_x, player_y, player_width, player_height, *boss.get_rect()
+            ):
+                damage_to_player += 1  # contact damage
 
         # Track phase transitions
         current_phase = self.boss_ai.get_phase()
@@ -492,7 +532,7 @@ class BossManager:
                     },
                 )
 
-        return damage_to_player
+        return damage_to_player if damage_to_player > 0 else None
 
     def check_player_collision(
         self, player_x: float, player_y: float, player_width: int, player_height: int
@@ -570,6 +610,42 @@ class BossManager:
 
         self.boss_defeated = True
 
+    def _execute_ranged_attack(
+        self, origin: tuple[float, float], player_x: float, player_y: float
+    ):
+        """Fire a single aimed projectile based on the active boss type."""
+        if not self.active_boss:
+            return
+        boss_type = self.active_boss.boss_type
+        definition = self.active_boss.get_definition()
+
+        # Champion bosses deal slightly less projectile damage
+        damage_mult = 0.75 if self.active_boss.is_champion else 1.0
+
+        type_map = {
+            BossType.FIRE_DEMON: ("fireball", 220.0, int(2 * damage_mult) or 1),
+            BossType.SHADOW_LORD: ("shadow_bolt", 250.0, int(3 * damage_mult) or 1),
+            BossType.ICE_QUEEN: ("ice_shard", 200.0, int(2 * damage_mult) or 1),
+            BossType.NECROMANCER: ("death_bolt", 180.0, int(2 * damage_mult) or 1),
+            BossType.DRAGON: ("fire_ball", 230.0, int(3 * damage_mult) or 1),
+            BossType.VEIL_MAIDEN: ("veil_bolt", 220.0, int(2 * damage_mult) or 1),
+        }
+        proj_type, speed, damage = type_map.get(boss_type, ("bolt", 200.0, 1))
+        self._create_homing_projectile(origin, player_x, player_y, proj_type, speed, damage)
+
+    def _check_projectile_player_collision(
+        self, player_x: float, player_y: float, player_width: int, player_height: int
+    ) -> int:
+        """Check all active projectiles against the player AABB. Returns total damage."""
+        total = 0
+        for projectile in self.projectiles[:]:
+            if self._check_rect_collision(
+                player_x, player_y, player_width, player_height, *projectile.get_rect()
+            ):
+                total += projectile.damage
+                self.projectiles.remove(projectile)
+        return total
+
     def _execute_special_attack(self, special_type: str, player_x: float, player_y: float):
         """Execute a special attack"""
         if not self.active_boss:
@@ -577,26 +653,114 @@ class BossManager:
 
         boss = self.active_boss
         boss_center = boss.get_center()
+        dmg_mult = 0.75 if boss.is_champion else 1.0
 
-        # Create projectiles based on attack type
+        # ── FIRE DEMON ────────────────────────────────────────────────────────
         if special_type == "fireball_barrage":
-            self._create_projectile_barrage(boss_center, player_x, player_y, count=5)
-        elif special_type == "shadow_strike":
-            self._create_homing_projectile(boss_center, player_x, player_y)
+            self._create_projectile_barrage(
+                boss_center, player_x, player_y, count=5,
+                proj_type="fireball", speed=200.0, damage=int(2 * dmg_mult) or 1,
+            )
+        elif special_type == "flame_breath":
+            # Wide cone of fireballs
+            self._create_projectile_barrage(
+                boss_center, player_x, player_y, count=7,
+                proj_type="flame", speed=160.0, damage=int(1 * dmg_mult) or 1, spread=0.5,
+            )
+        elif special_type == "meteor_strike":
+            # Slow heavy projectile aimed at player feet
+            self._create_homing_projectile(
+                boss_center, player_x, player_y, proj_type="meteor", speed=120.0,
+                damage=int(4 * dmg_mult) or 1, width=32, height=32,
+            )
 
-        # Veil Maiden attacks
+        # ── SHADOW LORD ───────────────────────────────────────────────────────
+        elif special_type == "shadow_strike":
+            self._create_homing_projectile(
+                boss_center, player_x, player_y, proj_type="shadow_bolt", speed=250.0,
+                damage=int(3 * dmg_mult) or 1,
+            )
+        elif special_type == "dark_wave":
+            # Three shadow bolts in a horizontal spread
+            self._create_projectile_barrage(
+                boss_center, player_x, player_y, count=3,
+                proj_type="dark_wave", speed=220.0, damage=int(2 * dmg_mult) or 1, spread=0.35,
+            )
+        elif special_type == "void_portal":
+            # Teleport boss to player position + surrounding damage burst
+            self._initiate_void_portal(boss_center, player_x, player_y,
+                                       damage=int(3 * dmg_mult) or 1)
+
+        # ── ICE QUEEN ─────────────────────────────────────────────────────────
+        elif special_type == "blizzard":
+            # Slow wide spread of ice shards
+            self._create_projectile_barrage(
+                boss_center, player_x, player_y, count=6,
+                proj_type="ice_shard", speed=140.0, damage=int(1 * dmg_mult) or 1, spread=0.6,
+            )
+        elif special_type == "ice_spike":
+            # Single fast spike aimed directly
+            self._create_homing_projectile(
+                boss_center, player_x, player_y, proj_type="ice_spike", speed=320.0,
+                damage=int(2 * dmg_mult) or 1,
+            )
+        elif special_type == "freeze_ray":
+            # Slow homing beam
+            self._create_homing_projectile(
+                boss_center, player_x, player_y, proj_type="freeze_ray", speed=180.0,
+                damage=int(2 * dmg_mult) or 1, width=20, height=8,
+            )
+
+        # ── NECROMANCER ───────────────────────────────────────────────────────
+        elif special_type == "death_ray":
+            self._create_homing_projectile(
+                boss_center, player_x, player_y, proj_type="death_ray", speed=280.0,
+                damage=int(3 * dmg_mult) or 1,
+            )
+        elif special_type == "soul_drain":
+            self._create_light_drain(boss_center, player_x, player_y)
+        elif special_type == "bone_cage":
+            # Slow-moving cage of projectiles converging on player position
+            self._create_projectile_barrage(
+                boss_center, player_x, player_y, count=4,
+                proj_type="bone", speed=100.0, damage=int(1 * dmg_mult) or 1, spread=0.25,
+            )
+
+        # ── DRAGON ────────────────────────────────────────────────────────────
+        elif special_type == "fire_breath":
+            self._create_projectile_barrage(
+                boss_center, player_x, player_y, count=8,
+                proj_type="flame", speed=180.0, damage=int(2 * dmg_mult) or 1, spread=0.55,
+            )
+        elif special_type == "wing_slam":
+            # Radial burst of shockwaves around the boss
+            self._create_radial_burst(
+                boss_center, count=6, proj_type="shockwave", speed=150.0,
+                damage=int(2 * dmg_mult) or 1,
+            )
+        elif special_type == "tail_sweep":
+            # Horizontal wave in both directions
+            self._create_horizontal_wave(
+                boss_center, proj_type="tail_wave", speed=200.0,
+                damage=int(2 * dmg_mult) or 1,
+            )
+
+        # ── VEIL MAIDEN ───────────────────────────────────────────────────────
         elif special_type == "veil_strike":
-            # Dark projectiles in a spread pattern
             self._create_veil_strike(boss_center, player_x, player_y)
         elif special_type == "isolation_field":
-            # Creates zone that slows player (emits event for game logic)
             self._create_isolation_field(boss_center)
         elif special_type == "light_drain":
-            # Visual effect attack (emits event for companion draining)
             self._create_light_drain(boss_center, player_x, player_y)
         elif special_type == "shadow_step":
-            # Teleportation handled separately by AI teleport action
-            pass
+            pass  # Teleportation handled by AI teleport action
+
+        # ── GENERIC FALLBACK ──────────────────────────────────────────────────
+        elif special_type == "shockwave":
+            self._create_radial_burst(
+                boss_center, count=4, proj_type="shockwave", speed=160.0,
+                damage=int(2 * dmg_mult) or 1,
+            )
 
         # Emit event
         self.event_bus.emit(
@@ -604,60 +768,145 @@ class BossManager:
         )
 
     def _create_projectile_barrage(
-        self, origin: tuple[float, float], target_x: float, target_y: float, count: int = 5
+        self,
+        origin: tuple[float, float],
+        target_x: float,
+        target_y: float,
+        count: int = 5,
+        proj_type: str = "fireball",
+        speed: float = 200.0,
+        damage: int = 2,
+        spread: float = 0.3,
     ):
-        """Create multiple projectiles in a spread pattern"""
+        """Create multiple projectiles in an arc spread toward the target."""
         origin_x, origin_y = origin
+        dx = target_x - origin_x
+        dy = target_y - origin_y
+        base_angle = math.atan2(dy, dx)
 
         for i in range(count):
-            # Spread projectiles in an arc
-            angle_offset = (i - count // 2) * 0.3  # 0.3 radians spread
-            dx = target_x - origin_x
-            dy = target_y - origin_y
-            base_angle = math.atan2(dy, dx)
+            angle_offset = (i - count // 2) * spread
             angle = base_angle + angle_offset
-
-            speed = 200.0
             velocity_x = math.cos(angle) * speed
             velocity_y = math.sin(angle) * speed
 
             projectile = BossProjectile(
                 projectile_id=f"proj_{self.next_projectile_id}",
-                projectile_type="fireball",
+                projectile_type=proj_type,
                 x=origin_x,
                 y=origin_y,
                 velocity_x=velocity_x,
                 velocity_y=velocity_y,
-                damage=2,
+                damage=damage,
             )
             self.projectiles.append(projectile)
             self.next_projectile_id += 1
 
     def _create_homing_projectile(
-        self, origin: tuple[float, float], target_x: float, target_y: float
+        self,
+        origin: tuple[float, float],
+        target_x: float,
+        target_y: float,
+        proj_type: str = "shadow_bolt",
+        speed: float = 250.0,
+        damage: int = 3,
+        width: int = 16,
+        height: int = 16,
     ):
-        """Create a single homing projectile"""
+        """Create a single aimed projectile toward the target."""
         origin_x, origin_y = origin
         dx = target_x - origin_x
         dy = target_y - origin_y
         distance = math.sqrt(dx * dx + dy * dy)
 
         if distance > 0:
-            speed = 250.0
             velocity_x = (dx / distance) * speed
             velocity_y = (dy / distance) * speed
 
             projectile = BossProjectile(
                 projectile_id=f"proj_{self.next_projectile_id}",
-                projectile_type="shadow_bolt",
+                projectile_type=proj_type,
                 x=origin_x,
                 y=origin_y,
                 velocity_x=velocity_x,
                 velocity_y=velocity_y,
-                damage=3,
+                damage=damage,
+                width=width,
+                height=height,
             )
             self.projectiles.append(projectile)
             self.next_projectile_id += 1
+
+    def _create_radial_burst(
+        self,
+        origin: tuple[float, float],
+        count: int = 6,
+        proj_type: str = "shockwave",
+        speed: float = 150.0,
+        damage: int = 2,
+    ):
+        """Fire projectiles evenly in all directions."""
+        origin_x, origin_y = origin
+        for i in range(count):
+            angle = (2 * math.pi / count) * i
+            velocity_x = math.cos(angle) * speed
+            velocity_y = math.sin(angle) * speed
+            projectile = BossProjectile(
+                projectile_id=f"proj_{self.next_projectile_id}",
+                projectile_type=proj_type,
+                x=origin_x,
+                y=origin_y,
+                velocity_x=velocity_x,
+                velocity_y=velocity_y,
+                damage=damage,
+            )
+            self.projectiles.append(projectile)
+            self.next_projectile_id += 1
+
+    def _create_horizontal_wave(
+        self,
+        origin: tuple[float, float],
+        proj_type: str = "tail_wave",
+        speed: float = 200.0,
+        damage: int = 2,
+    ):
+        """Fire two projectiles left and right from the boss."""
+        origin_x, origin_y = origin
+        for vx in (-speed, speed):
+            projectile = BossProjectile(
+                projectile_id=f"proj_{self.next_projectile_id}",
+                projectile_type=proj_type,
+                x=origin_x,
+                y=origin_y,
+                velocity_x=vx,
+                velocity_y=0.0,
+                damage=damage,
+                width=24,
+                height=16,
+            )
+            self.projectiles.append(projectile)
+            self.next_projectile_id += 1
+
+    def _initiate_void_portal(
+        self,
+        boss_center: tuple[float, float],
+        player_x: float,
+        player_y: float,
+        damage: int = 3,
+    ):
+        """Shadow Lord void portal: teleport boss near player then fire a radial burst."""
+        if not self.active_boss:
+            return
+        # Move boss to just outside melee range of the player
+        self.active_boss.x = player_x + 80
+        self.active_boss.y = player_y
+        new_center = self.active_boss.get_center()
+        self._create_radial_burst(new_center, count=8, proj_type="void_shard", speed=140.0,
+                                  damage=damage)
+        self.event_bus.emit(
+            "boss_teleported",
+            {"boss_id": self.active_boss.boss_id, "position": new_center},
+        )
 
     def _create_veil_strike(self, origin: tuple[float, float], target_x: float, target_y: float):
         """

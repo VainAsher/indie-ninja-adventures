@@ -1031,9 +1031,17 @@ def main():
         # Place boss near the exit; fall back to a fixed offset from spawn if no exit
         bx = (exit_x - 64) if exit_x is not None else 400.0
         by = (exit_y - 96) if exit_y is not None else 300.0
-        boss_manager.spawn_boss(boss_type, bx, by)
+        # Champion system: if this boss type has been defeated before, 40% chance to spawn
+        # a weaker champion version instead of the full boss
+        spawn_champion = False
+        if campaign_data and hasattr(campaign_data, "defeated_bosses"):
+            if boss_field in campaign_data.defeated_bosses:
+                import random as _random
+                spawn_champion = _random.random() < 0.40
+        boss_manager.spawn_boss(boss_type, bx, by, champion=spawn_champion)
         boss_manager.start_boss_battle(mission_def.mission_id)
-        print(f"[BOSS] Spawned {boss_field} for mission {mission_def.mission_id}")
+        label = "Champion" if spawn_champion else "Boss"
+        print(f"[BOSS] Spawned {label} {boss_field} for mission {mission_def.mission_id}")
 
     # Region → ability required to enter (None = always open)
     _REGION_GATE_ABILITY = {
@@ -2707,6 +2715,18 @@ def main():
                                         save_manager.data.campaign.currency = (
                                             player_inventory.currency
                                         )
+                                        # Track defeated bosses for champion system (v0.7.2)
+                                        from game.mission_registry import ObjectiveType as _OT
+                                        defeated_bosses = save_manager.data.campaign.defeated_bosses
+                                        for _obj in mission_def.objectives:
+                                            if (
+                                                _obj.objective_type == _OT.DEFEAT_BOSS
+                                                and _obj.boss
+                                            ):
+                                                if isinstance(defeated_bosses, set):
+                                                    defeated_bosses.add(_obj.boss)
+                                                elif _obj.boss not in defeated_bosses:
+                                                    defeated_bosses.append(_obj.boss)
                                         # Grant ability unlocks from mission definition
                                         unlocked = save_manager.data.campaign.unlocked_abilities
                                         newly_unlocked = []

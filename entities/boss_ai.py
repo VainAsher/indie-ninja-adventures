@@ -137,9 +137,10 @@ class BossAI:
         Returns:
             Dict with boss actions this frame:
             {
-                'damage': Optional[int],  # Damage to deal
-                'special': Optional[str], # Special attack type
-                'summon': Optional[str],  # Minion type to summon
+                'damage': Optional[int],      # Melee damage to deal
+                'ranged': Optional[str],      # Ranged attack type
+                'special': Optional[str],     # Special attack type
+                'summon': Optional[str],      # Minion type to summon
                 'teleport': Optional[Tuple[float, float]]  # Teleport destination
             }
         """
@@ -157,7 +158,7 @@ class BossAI:
         self._check_phase_transition()
 
         # Initialize action dict
-        action = {"damage": None, "special": None, "summon": None, "teleport": None}
+        action = {"damage": None, "ranged": None, "special": None, "summon": None, "teleport": None}
 
         # Update state machine
         if self.state == BossAIState.INTRO:
@@ -229,7 +230,8 @@ class BossAI:
             self._transition_to_state(BossAIState.VULNERABLE)
 
     def _update_vulnerable(self, dt: float, action: dict):
-        """Vulnerable state - boss can take extra damage"""
+        """Vulnerable state - boss can take extra damage. Boss stops moving."""
+        self.boss.velocity_x = 0.0
         # Return to combat after vulnerable period
         if self.state_timer >= VULNERABLE_DURATION:
             phase_state = self._get_current_phase_state()
@@ -278,31 +280,46 @@ class BossAI:
             action: Action dict to populate
             phase_mult: Speed multiplier for this phase
         """
-        # Check if should summon minions (phase 2+)
-        if self.current_phase >= 2:
+        definition = self.boss.get_definition()
+        melee_range = definition.melee_range
+        ranged_range = definition.ranged_range
+        move_speed = definition.move_speed * phase_mult
+
+        # Chase the player (move toward them)
+        self._chase_player(dt, move_speed)
+
+        # Check if should summon minions (phase 2+, only if minion types exist)
+        if self.current_phase >= 2 and definition.minion_types:
             if self.ai_random.random() < 0.05 * dt:  # 5% chance per second
                 self._transition_to_state(BossAIState.SUMMONING)
                 return
 
-        # Check if should teleport (too close or too far)
+        # Check if should teleport (too close or too far from player)
         if self.teleport_cooldown <= 0:
             if self.player_distance < 50 or self.player_distance > 400:
                 if self.ai_random.random() < 0.1 * dt:  # 10% chance per second
                     self._initiate_teleport()
                     return
 
-        # Check if should use special attack
-        if self.attack_cooldown <= 0:
+        # Check if should use special attack (requires specials defined for this boss)
+        if self.attack_cooldown <= 0 and definition.special_attacks:
             if self.ai_random.random() < 0.08 * dt:  # 8% chance per second
                 self._transition_to_state(BossAIState.SPECIAL_ATTACK)
                 return
 
-        # Execute regular attack if in range and off cooldown
+        cooldown_mult = PHASE_3_ATTACK_SPEED_MULT if self.current_phase == 3 else 1.0
+
+        # Ranged attack when player is in ranged band (not close enough for melee)
         if self.attack_cooldown <= 0:
-            if self.player_distance <= MELEE_RANGE:
-                # Melee attack
+            if melee_range < self.player_distance <= ranged_range:
+                action["ranged"] = definition.boss_type.name.lower()
+                self.attack_cooldown = self.attack_cooldown_base * cooldown_mult * 1.5
+                return
+
+        # Melee attack when player is in melee range
+        if self.attack_cooldown <= 0:
+            if self.player_distance <= melee_range:
                 action["damage"] = self._get_melee_damage()
-                cooldown_mult = PHASE_3_ATTACK_SPEED_MULT if self.current_phase == 3 else 1.0
                 self.attack_cooldown = self.attack_cooldown_base * cooldown_mult
                 self.attacks_in_pattern += 1
 
@@ -314,6 +331,19 @@ class BossAI:
     # ============================================================
     # Helper Methods
     # ============================================================
+
+    def _chase_player(self, dt: float, speed: float):
+        """Move boss horizontally toward the player."""
+        if self.target_x is None:
+            return
+        boss_cx, _ = self._get_boss_center()
+        dx = self.target_x - boss_cx
+        if abs(dx) > 8:
+            direction = 1.0 if dx > 0 else -1.0
+            self.boss.velocity_x = speed * direction
+            self.boss.facing_right = direction > 0
+        else:
+            self.boss.velocity_x = 0.0
 
     def _update_target(
         self, player_x: float, player_y: float, player_width: int, player_height: int
@@ -377,14 +407,18 @@ class BossAI:
             self.teleport_cooldown = 5.0  # 5 second cooldown
 
     def _choose_special_attack(self) -> str:
-        """Choose which special attack to use"""
-        specials = ["shockwave", "laser_beam", "ground_slam", "projectile_barrage"]
-        return self.ai_random.choice(specials)
+        """Choose which special attack to use based on this boss type's available specials."""
+        specials = self.boss.get_definition().special_attacks
+        if specials:
+            return self.ai_random.choice(specials)
+        return "shockwave"  # generic fallback
 
     def _choose_minion_type(self) -> str:
-        """Choose which minion type to summon"""
-        minions = ["imp", "skeleton", "ghost"]
-        return self.ai_random.choice(minions)
+        """Choose which minion type to summon based on this boss type's minion pool."""
+        minions = self.boss.get_definition().minion_types
+        if minions:
+            return self.ai_random.choice(minions)
+        return "imp"  # generic fallback
 
     def _get_melee_damage(self) -> int:
         """Get melee attack damage based on phase"""

@@ -128,6 +128,9 @@ class CampaignSaveData:
     total_deaths: int = 0
     total_play_time: float = 0.0
 
+    # Boss tracking — BossType.name strings of bosses defeated at least once
+    defeated_bosses: set[str] = field(default_factory=set)
+
     # Story state (The Hollowed Ninja narrative) - v0.7.0
     story_state: dict[str, Any] | None = None
 
@@ -478,6 +481,7 @@ class SaveManager:
                 "total_deaths": data.campaign.total_deaths,
                 "total_play_time": data.campaign.total_play_time,
                 "story_state": data.campaign.story_state,  # v0.7.0: Story progression
+                "defeated_bosses": list(data.campaign.defeated_bosses),  # v0.7.2: Champion system
             }
             save_dict["campaign"] = campaign_dict
 
@@ -509,6 +513,7 @@ class SaveManager:
                 total_deaths=campaign_dict.get("total_deaths", 0),
                 total_play_time=campaign_dict.get("total_play_time", 0.0),
                 story_state=campaign_dict.get("story_state", None),  # v0.7.0: Story progression
+                defeated_bosses=set(campaign_dict.get("defeated_bosses", [])),  # v0.7.2: Champion system
             )
 
         return SaveData(

@@ -2,7 +2,7 @@
 
 **Living document.** Review and update this file at the start of every development session.
 
-Last updated: 2026-03-28 | Version: 0.7.1
+Last updated: 2026-03-28 | Version: 0.7.2
 
 ---
 
@@ -23,26 +23,6 @@ Nothing actively in progress. Pick from **Next**.
 ---
 
 ## Next
-
-### 1. Implement boss AI behaviour
-
-**Why it matters**: Boss encounters exist in the mission flow (6 boss missions wired), boss entities spawn, but they stand still. The encounter is not playable.
-
-**What exists**: `entities/boss.py` (6 boss types), `entities/boss_ai.py` (state machine framework), `entities/boss_manager.py` (spawning wired). The framework is complete — it needs attack patterns and phase transitions filled in.
-
-**Suggested approach**:
-
-1. Pick one boss type to implement fully first (FIRE_GIANT recommended — it is used in forest region, the first region)
-2. Implement 2–3 attack patterns in `BossAI.update()`: patrol, charge attack, ranged projectile
-3. Add a phase transition at 50% HP (speed up, add second attack)
-4. Wire `boss_manager.handle_boss_death()` to emit `BossDeathEvent` correctly so mission objectives register the kill
-5. Playtest: enter a forest boss mission and verify the encounter plays through to completion
-
-**Files**: `entities/boss_ai.py`, `entities/boss.py`, `entities/boss_manager.py`
-
-**Acceptance**: Player can enter a boss mission, fight the boss, and have the victory screen appear.
-
----
 
 ### 2. UAT pass — fill in UAT_SUITE.md
 
@@ -124,21 +104,7 @@ No code changes needed — `AudioManager.load_sounds()` will pick them up automa
 
 ---
 
-### 6. Remaining boss types (after FIRE_GIANT)
-
-Once FIRE_GIANT AI is working as the template, implement the remaining 5:
-
-- ICE_WRAITH (town region) — ice projectiles, freeze debuff
-- SHADOW_KNIGHT (caves region) — teleport, parry
-- CORRUPTED_SAGE (castle region) — spell volleys, shield phases
-- VEIL_MAIDEN (sewer region) — invisibility, AoE
-- HOLLOW_KING (final boss) — multi-phase, all previous patterns combined
-
-**Files**: `entities/boss_ai.py` — add per-type behaviour blocks
-
----
-
-### 7. New UAT suite document
+### 6. New UAT suite document
 
 The current `UAT_SUITE.md` covers pre-Phase-2 features. Write a new suite covering:
 
@@ -221,6 +187,7 @@ Full OST with looping regional tracks, boss themes, victory sting. The SFX found
 | 2026-03-28 | Hub portal placement: forest=floor, town=elevated | `94f6541` |
 | 2026-03-28 | Settings wiring: key bindings, fullscreen, sfx_volume, hitboxes | `da60c55` |
 | 2026-03-28 | SFX audio foundation wired end-to-end (12 events) | `4e6fdd1` |
+| 2026-03-28 | Boss AI + champion system: movement, 6 boss types, per-type attacks, champion spawn | — |
 | 2026-03-28 | Boss integration: BossManager wired, 6 boss missions | `4a9a096` |
 | 2026-03-28 | Ability gates: sync_player_abilities + _rebuild_hub_gates | `88e9a93` |
 | 2026-03-28 | Phase 0: all 6 campaign loop bugs fixed | `985e811` |
