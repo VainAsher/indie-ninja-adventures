@@ -2,10 +2,11 @@
 Build script for creating PyInstaller executables.
 
 Usage:
-    python build.py --all          # Build all three versions
+    python build.py --all          # Build all three game versions
     python build.py --production   # Build production only
     python build.py --testing      # Build testing only
     python build.py --dev          # Build dev only
+    python build.py --launcher     # Build standalone launcher exe only
 """
 
 import subprocess
@@ -52,6 +53,7 @@ def main():
     parser.add_argument('--production', action='store_true', help='Build production')
     parser.add_argument('--testing', action='store_true', help='Build testing')
     parser.add_argument('--dev', action='store_true', help='Build development')
+    parser.add_argument('--launcher', action='store_true', help='Build standalone launcher exe')
 
     args = parser.parse_args()
 
@@ -75,7 +77,10 @@ def main():
 
     # Determine what to build
     builds = []
-    if args.all:
+    if args.launcher:
+        # Launcher is a standalone build — don't mix with game builds
+        builds = [('launcher', 'ninja_dash_launcher.spec')]
+    elif args.all:
         builds = [
             ('production', 'ninja_dash_production.spec'),
             ('testing', 'ninja_dash_testing.spec'),
@@ -89,7 +94,7 @@ def main():
         if args.dev:
             builds.append(('dev', 'ninja_dash_dev.spec'))
 
-    # Default to all if nothing specified
+    # Default to all game builds if nothing specified
     if not builds:
         builds = [
             ('production', 'ninja_dash_production.spec'),
@@ -115,6 +120,8 @@ def main():
     for build_type, _ in builds:
         if build_type == "production":
             print("  - dist/ninja_dash.exe")
+        elif build_type == "launcher":
+            print("  - dist/ninja_dash_launcher.exe")
         else:
             dist_name = f"ninja_dash_{build_type}"
             print(f"  - dist/{dist_name}/")

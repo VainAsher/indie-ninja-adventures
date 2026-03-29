@@ -8,6 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.3] - 2026-03-29 (Custom Launcher + Multiplayer Foundation + Boss Tuning)
+
+### Summary
+
+Three major workstreams landed together: a standalone tkinter launcher with GitHub auto-update, Phase 1 multiplayer networking (input relay over asyncio TCP), and a round of boss combat tuning based on playtesting feedback.
+
+### Added
+
+- **Custom launcher** (`launcher/launcher.py`, `build/ninja_dash_launcher.spec`):
+  - Standalone tkinter GUI (`console=False`, onefile PyInstaller exe via `python build.py --launcher`).
+  - Dark theme (`#0f0f1a` bg, `#e94560` accent). Shows installed version read from bundled `version.json`.
+  - Background thread checks GitHub Releases API for newer version; shows "Up to date" or "Update available".
+  - Download worker: `urllib.request.urlretrieve` with live progress bar, SHA256 verification, atomic rename (`.new` → `.exe`, old → `.bak`).
+  - Launch button: `subprocess.Popen([ninja_dash.exe])` then closes launcher. Dev mode launches `demo_game.py` directly.
+  - `version.json` added to repo root: `{"version": "0.7.3", "build": "production", "build_date": "2026-03-29", "min_launcher_version": "1.0.0"}`.
+
+- **Multiplayer Phase 1 — input relay** (`network/`):
+  - `network/protocol.py`: `MessageType` constants, `Message` dataclass, `read_message`/`write_message` (4-byte big-endian length prefix + UTF-8 JSON body).
+  - `network/server.py`: `GameServer` + `GameSession` — asyncio TCP server, handshake (`CLIENT_HELLO`/`SERVER_HELLO`), per-client input loop, `MultiplayerSnapshot` broadcast at 60 Hz.
+  - `network/client.py`: `NetworkClient` — asyncio I/O in daemon thread, `queue.Queue` bridge to pygame main loop. `send_input()` / `poll_state()` are non-blocking.
+  - `network/snapshots.py`: `PlayerState` and `MultiplayerSnapshot` dataclasses added (existing `Snapshot` unchanged).
+  - `demo_game.py`: `--host PORT` starts embedded server thread; `--connect HOST:PORT` connects as client. Per-frame `send_input` + `poll_state` wired after `input_pipeline.next()`.
+
+- **Boss health pickups** (`systems/pickup_spawner.py`, `game/world_builder.py`): Boss/champion levels now spawn 3× more health pickups. Rooms with no health config get a guaranteed `(1, 3)` range.
+
+### Fixed
+
+- **Player death from boss not triggering respawn** (`demo_game.py`): Replaced `player.take_damage()` (thin wrapper) with `player.damage.take_damage()` which returns a `died` bool, then calls `queue_player_death()` for proper world transition.
+
+### Changed
+
+- **Boss damage tuning** (`entities/boss_manager.py`, `entities/boss_ai.py`): All base damage scaled to 1 (was 3–5) to match player's 5 HP pool. Attack cooldown raised 1.5 → 2.5 s. Vulnerable window extended 1.5 → 2.5 s. Phase 3 speed and attack-speed multipliers softened.
+- **Boss HP** (`entities/boss_manager.py`): SHADOW_LORD 25, FIRE_DEMON 30, NECROMANCER 20, VEIL_MAIDEN 40, ICE_QUEEN 28, DRAGON 35 (scaled down from previous values).
+- **Boss contact damage** (`entities/boss_manager.py`): Contact damage now only applies when boss AI state is `SPECIAL_ATTACK` (was always-on during combat).
+- **Projectile deflection** (`entities/boss_manager.py`, `demo_game.py`): Player sword swing now calls `boss_manager.destroy_projectiles_in_rect()` — any boss projectile overlapping the attack rect is removed.
+
+---
+
 ## [0.7.2] - 2026-03-28 (Boss AI + Champion System)
 
 ### Summary

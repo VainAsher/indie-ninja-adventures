@@ -10,6 +10,16 @@ Foundation for client/server multiplayer:
 
 from .commands import InputCommand
 from .input_pipeline import CommandKeyView, InputPipeline
-from .snapshots import Snapshot
+from .protocol import Message, MessageType
+from .snapshots import MultiplayerSnapshot, PlayerState, Snapshot
 
-__all__ = ["InputCommand", "Snapshot", "InputPipeline", "CommandKeyView"]
+__all__ = [
+    "InputCommand",
+    "Snapshot",
+    "InputPipeline",
+    "CommandKeyView",
+    "Message",
+    "MessageType",
+    "PlayerState",
+    "MultiplayerSnapshot",
+]

@@ -311,7 +311,23 @@ def main():
         const="input_commands.log",
         help="Log per-frame input commands to JSONL (default: user_data/logs/input_commands.log)",
     )
+    parser.add_argument(
+        "--host",
+        type=int,
+        metavar="PORT",
+        help="Start as multiplayer server on this port (e.g. --host 7777)",
+    )
+    parser.add_argument(
+        "--connect",
+        type=str,
+        metavar="HOST:PORT",
+        help="Connect to a multiplayer server (e.g. --connect 192.168.1.5:7777)",
+    )
     args = parser.parse_args()
+
+    if args.host and args.connect:
+        print("Cannot use --host and --connect at the same time.")
+        sys.exit(1)
 
     if args.record and args.replay:
         print("Cannot use --record and --replay at the same time.")
@@ -1491,6 +1507,43 @@ def main():
         log_path=log_input_path,
     )
 
+    # ── Multiplayer setup ─────────────────────────────────────────────────────
+    import threading as _threading
+    _net_client = None
+
+    if args.host:
+        import asyncio as _asyncio
+        from network.server import run_server as _run_server
+        _net_seed = current_seed or random.randint(1, 999999)
+        _net_thread = _threading.Thread(
+            target=lambda: _asyncio.run(_run_server(port=args.host, seed=_net_seed)),
+            daemon=True,
+            name="GameServer",
+        )
+        _net_thread.start()
+
+    elif args.connect:
+        from network.client import NetworkClient as _NetworkClient
+        try:
+            _host_str, _port_str = args.connect.rsplit(":", 1)
+            _net_port = int(_port_str)
+        except ValueError:
+            print(f"[NET] Invalid --connect value '{args.connect}'. Expected HOST:PORT.")
+            _net_port = 7777
+            _host_str = args.connect
+        _net_client = _NetworkClient(
+            host=_host_str,
+            port=_net_port,
+            player_id=f"player_{random.randint(1000, 9999)}",
+        )
+        if not _net_client.connect():
+            print("[NET] Could not connect to server — running solo.")
+            _net_client = None
+        else:
+            if _net_client.server_seed is not None:
+                current_seed = _net_client.server_seed
+    # ── End multiplayer setup ─────────────────────────────────────────────────
+
     def get_arcade_seed_wrapper(depth: int) -> int:
         return get_arcade_seed(hub_manager, depth)
 
@@ -1625,6 +1678,22 @@ def main():
         # Process input via command pipeline (live/replay/record)
         raw_keys = pygame.key.get_pressed()
         keys, current_command = input_pipeline.next(raw_keys, frame_idx, keydown_keys)
+
+        # ── Multiplayer: send input to server each frame ──────────────────────
+        if _net_client is not None and _net_client.is_connected:
+            _phys = player.state.physics
+            _net_client.send_input(
+                current_command,
+                pos=(_phys.x, _phys.y),
+                vel=(_phys.vx, _phys.vy),
+                health=int(player.state.health_state.current_hp),
+                facing=int(player.state.facing),
+                is_dead=player.state.health_state.current_hp <= 0,
+            )
+            # Phase 1: state received from server is available but not yet
+            # used for rendering — that is Phase 2 (authoritative simulation).
+            _net_client.poll_state()
+        # ── End multiplayer ───────────────────────────────────────────────────
 
         # Track single-press keys for dialogue/menu interactions
         pressed_once = set(keydown_keys)
@@ -4010,6 +4079,9 @@ def main():
         print("=" * 60)
 
     pygame.quit()
+
+    if _net_client is not None:
+        _net_client.disconnect()
 
     input_pipeline.finalize()
 

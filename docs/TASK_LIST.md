@@ -2,7 +2,7 @@
 
 **Living document.** Review and update this file at the start of every development session.
 
-Last updated: 2026-03-28 | Version: 0.7.2
+Last updated: 2026-03-29 | Version: 0.7.3
 
 ---
 
@@ -139,19 +139,33 @@ The current `UAT_SUITE.md` covers pre-Phase-2 features. Write a new suite coveri
 
 ## Deferred
 
-### Multiplayer / networking
+### Multiplayer Phase 2 — authoritative simulation
 
-Full authoritative-server multiplayer. The physics are deterministic and the input pipeline is command-pattern ready. Actual network code is in `network/` but is not wired.
+Phase 1 (input relay) is complete and wired. Phase 2 requires extracting the game loop into a `GameRunner` that can run headlessly on the server. The server would then simulate physics deterministically and broadcast authoritative positions instead of relying on client-reported state.
 
-**Timeline**: v1.0.0+ — requires launcher infrastructure first.
+**Timeline**: v1.0.0+
 
 ---
 
-### Custom launcher
+### Multiplayer Phase 3 — lobby UI + reconnect
 
-Downloads and verifies client, server, and mod bundles from GitHub releases. Enforces version parity. Supports mod browser.
+- In-game lobby screen showing connected players and slot assignments
+- Reconnect/rejoin logic when client loses connection mid-session
+- Player name display over remote player sprites
 
-**Timeline**: After multiplayer foundation.
+**Timeline**: After Phase 2.
+
+---
+
+### Custom launcher — advanced features
+
+Phase 1 (update check + download + launch) is complete. Advanced features deferred:
+
+- Mod browser (download/manage user-created mission packs)
+- Server browser for multiplayer sessions
+- Per-release asset patching (patch only changed files)
+
+**Timeline**: v1.0.0+
 
 ---
 
@@ -187,6 +201,10 @@ Full OST with looping regional tracks, boss themes, victory sting. The SFX found
 | 2026-03-28 | Hub portal placement: forest=floor, town=elevated | `94f6541` |
 | 2026-03-28 | Settings wiring: key bindings, fullscreen, sfx_volume, hitboxes | `da60c55` |
 | 2026-03-28 | SFX audio foundation wired end-to-end (12 events) | `4e6fdd1` |
+| 2026-03-29 | Custom launcher: tkinter UI, update check, SHA256 verify, PyInstaller spec | — |
+| 2026-03-29 | Multiplayer Phase 1: protocol, server (input relay), client (asyncio daemon thread) | — |
+| 2026-03-29 | Boss tuning: halved HP, contact damage only in SPECIAL_ATTACK, projectile deflection | — |
+| 2026-03-29 | Boss levels: health pickups tripled; player death from boss now triggers respawn | — |
 | 2026-03-28 | Boss AI + champion system: movement, 6 boss types, per-type attacks, champion spawn | — |
 | 2026-03-28 | Boss integration: BossManager wired, 6 boss missions | `4a9a096` |
 | 2026-03-28 | Ability gates: sync_player_abilities + _rebuild_hub_gates | `88e9a93` |
