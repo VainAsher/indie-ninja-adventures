@@ -152,6 +152,17 @@ class GameSimulator:
         # 6. Advance pickup animations.
         self.pickup_manager.update(dt)
 
+        # 7. Authoritative pickup collection (server mode).
+        #    check_collections() marks pickups as alive=False when a player
+        #    overlaps them, ensuring WorldSnapshot reflects the true state.
+        for slot in sorted(self.players):
+            p = self.players[slot]
+            phys = p.state.physics
+            if p.state.health_state.current_hp > 0:
+                self.pickup_manager.check_collections(
+                    phys.x, phys.y, phys.width, phys.height
+                )
+
     def get_snapshot(self, frame: int) -> object:
         """
         Build and return a WorldSnapshot from the current simulation state.
