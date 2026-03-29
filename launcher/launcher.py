@@ -407,6 +407,29 @@ class LauncherApp:
             width=6,
         ).pack(side="left", padx=(4, 6))
 
+        tk.Label(
+            host_frame,
+            text="Max:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        self._max_players_var = tk.StringVar(value="4")
+        tk.Spinbox(
+            host_frame,
+            from_=1,
+            to=4,
+            textvariable=self._max_players_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            buttonbackground=BG_MID,
+            relief="flat",
+            width=2,
+            state="readonly",
+        ).pack(side="left", padx=(4, 6))
+
         tk.Button(
             host_frame,
             text="[H]  Host Game",
@@ -744,7 +767,18 @@ class LauncherApp:
                 parent=self.root,
             )
             return
-        self._launch_with_args("--host", str(port))
+        try:
+            max_players = int(self._max_players_var.get())
+            if not (1 <= max_players <= 4):
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(
+                "Invalid Max Players",
+                "Max players must be a number between 1 and 4.",
+                parent=self.root,
+            )
+            return
+        self._launch_with_args("--host", str(port), "--max-players", str(max_players))
 
     def _launch_join(self) -> None:
         """Connect to an existing multiplayer server."""

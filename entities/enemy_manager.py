@@ -202,6 +202,9 @@ class EnemyManager:
         self.next_enemy_id = 0
         self.next_pickup_id = 0
 
+        # Per-frame buffer of enemy IDs that died this update (for multiplayer sync)
+        self.recently_killed_ids: list[str] = []
+
     def clear(self):
         """Clear all enemies and pickups"""
         self.enemies.clear()
@@ -363,6 +366,7 @@ class EnemyManager:
         Returns:
             Total damage dealt to player this frame
         """
+        self.recently_killed_ids.clear()
         total_damage = 0
         dead_enemies = []
 
@@ -756,6 +760,9 @@ class EnemyManager:
             )
         )
 
+        # Record kill for multiplayer entity-event broadcast
+        self.recently_killed_ids.append(enemy_id)
+
         # Remove enemy
         del self.enemies[enemy_id]
         if enemy_id in self.enemy_ai:
@@ -892,6 +899,11 @@ class EnemyManager:
 
         died = enemy.take_damage(damage, knockback_x, knockback_y, stun_duration)
         return died
+
+    def suppress_enemy(self, enemy_id: str) -> None:
+        """Silently remove an enemy killed on a remote client (no loot, no event)."""
+        self.enemies.pop(enemy_id, None)
+        self.enemy_ai.pop(enemy_id, None)
 
     # ============================================================
     # Queries

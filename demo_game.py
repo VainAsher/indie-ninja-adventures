@@ -323,6 +323,14 @@ def main():
         metavar="HOST:PORT",
         help="Connect to a multiplayer server (e.g. --connect 192.168.1.5:7777)",
     )
+    parser.add_argument(
+        "--max-players",
+        type=int,
+        default=4,
+        metavar="N",
+        choices=range(1, 5),
+        help="Maximum players when hosting (1–4, default 4)",
+    )
     args = parser.parse_args()
 
     if args.host and args.connect:
@@ -1521,7 +1529,9 @@ def main():
         from network.client import NetworkClient as _NetworkClient
         _net_seed = current_seed or random.randint(1, 999999)
         _net_thread = _threading.Thread(
-            target=lambda: _asyncio.run(_run_server(port=args.host, seed=_net_seed)),
+            target=lambda: _asyncio.run(
+                _run_server(port=args.host, seed=_net_seed, max_players=args.max_players)
+            ),
             daemon=True,
             name="GameServer",
         )
@@ -1650,11 +1660,13 @@ def main():
 
             if _is_host:
                 _n = _net_client.connected_count if _net_client else 1
-                _count_str = f"Lobby — {_n}/4 players"
+                _max_p = args.max_players
+                _count_str = f"Lobby — {_n}/{_max_p} players"
                 _hint_str = "Game starts automatically when lobby is full"
             elif _net_client is not None:
                 _n = _net_client.connected_count
-                _count_str = f"Connected — {_n}/4 players"
+                _max_p = _net_client.max_players or 4
+                _count_str = f"Connected — {_n}/{_max_p} players"
                 _hint_str = "Waiting for host to start the game…"
             else:
                 _count_str = "Connecting…"
@@ -1820,6 +1832,15 @@ def main():
             if _net_client.last_leave_slot is not None:
                 _remote_players.pop(_net_client.last_leave_slot, None)
                 _net_client.last_leave_slot = None
+
+            # Phase 2.5: apply entity events from remote clients
+            for _ev in _net_client.poll_entity_events():
+                _etype = _ev.get("etype")
+                _eid = _ev.get("entity_id", "")
+                if _etype == "pickup_collect":
+                    pickup_manager.suppress_by_id(_eid)
+                elif _etype == "enemy_kill":
+                    enemy_manager.suppress_enemy(_eid)
         # ── End multiplayer ───────────────────────────────────────────────────
 
         # Track single-press keys for dialogue/menu interactions
@@ -2678,6 +2699,11 @@ def main():
             )
             profiler.end("enemy_manager")
 
+            # Phase 2.5: broadcast enemy kills to remote clients
+            if _net_client is not None and _net_client.is_connected:
+                for _killed_id in enemy_manager.recently_killed_ids:
+                    _net_client.send_entity_event("enemy_kill", _killed_id)
+
             # Update boss (if active)
             if boss_manager.is_boss_active():
                 boss_damage = boss_manager.update(
@@ -2858,6 +2884,11 @@ def main():
                                     position=(pickup.x, pickup.y),
                                 )
                             )
+
+                # Phase 2.5: broadcast pickup collections to remote clients
+                if _net_client is not None and _net_client.is_connected and collected:
+                    for _pickup in collected:
+                        _net_client.send_entity_event("pickup_collect", _pickup.pickup_id)
 
                 # Check hazard collisions (damage/death)
                 if not level_complete and not death_anim_pending:

@@ -76,6 +76,7 @@ class NetworkClient:
         # Filled in after SERVER_HELLO
         self.server_seed: Optional[int] = None
         self.local_slot: Optional[int] = None
+        self.max_players: Optional[int] = None
 
         # Lobby / game-start state (set from background thread, read from pygame thread)
         self.game_started: threading.Event = threading.Event()
@@ -226,7 +227,8 @@ class NetworkClient:
 
             self.server_seed = hello.payload.get("seed")
             self.local_slot = hello.payload.get("slot")
-            max_players = hello.payload.get("max_players", "?")
+            self.max_players = hello.payload.get("max_players")
+            max_players = self.max_players if self.max_players is not None else "?"
             log.info(
                 "Handshake OK — server=%s:%d  slot=%s  seed=%s  max_players=%s",
                 self.host, self.port, self.local_slot, self.server_seed, max_players,

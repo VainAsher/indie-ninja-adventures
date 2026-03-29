@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.8] - 2026-03-29 (Phase 2.5: Entity Sync + Configurable Max Players)
+
+### Summary
+
+Pickup collections and enemy kills are now broadcast to all connected clients via `ENTITY_EVENT` so entity state stays in sync across machines. The host can select the maximum number of players (1–4) both in the launcher UI and via `--max-players N`. The lobby display now shows the actual configured maximum.
+
+### Added
+
+- **Entity event wiring — pickups** (`entities/pickups.py`, `demo_game.py`): `BasePickup` gains a stable `pickup_id` (`"pickup_X_Y"`). When the local player collects a pickup, `send_entity_event("pickup_collect", pickup_id)` is called. `PickupManager.suppress_by_id()` silently removes the matching pickup on all remote clients.
+- **Entity event wiring — enemies** (`entities/enemy_manager.py`, `demo_game.py`): `EnemyManager` tracks `recently_killed_ids` per update tick (populated in `_handle_enemy_death`, cleared at the top of each `update()`). After each physics tick, any kills are broadcast as `send_entity_event("enemy_kill", enemy_id)`. `EnemyManager.suppress_enemy()` silently removes the enemy on all remote clients (no loot/events).
+- **`--max-players N` CLI arg** (`demo_game.py`): Integer 1–4, default 4. Passed to `run_server()` when hosting. Lobby display uses actual configured value instead of hardcoded "4".
+- **Max players selector in launcher** (`launcher/launcher.py`): Readonly spinbox (1–4, default 4) next to the port field in the Host section. Value is passed as `--max-players N` when launching a hosted game.
+
+### Changed
+
+- **`network/server.py`**: `run_server()`, `GameServer`, and `GameSession` all accept `max_players: int` (default `MAX_PLAYERS`). All internal references to the `MAX_PLAYERS` constant replaced with `self.max_players` so each session uses its own limit.
+- **`network/client.py`**: `NetworkClient` stores `max_players` from `SERVER_HELLO` payload, allowing joiners to display the correct lobby cap without knowing the host's CLI args.
+
+### Notes
+
+Entity sync covers the two highest-divergence events: pickup collection and enemy death. Enemy AI still runs independently on each client (Phase 1) — the AI's use of local player position still causes minor positional divergence between frames, but entities are now removed in sync. Full server-authoritative simulation remains Phase 3.
+
+---
+
 ## [0.7.7] - 2026-03-29 (Multiplayer Logging + Entity Sync Foundation)
 
 ### Summary

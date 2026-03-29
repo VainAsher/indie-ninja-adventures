@@ -70,8 +70,9 @@ class GameSession:
     Phase L2: tracks lobby state; game only starts when host calls start_game().
     """
 
-    def __init__(self, seed: int) -> None:
+    def __init__(self, seed: int, max_players: int = MAX_PLAYERS) -> None:
         self.seed = seed
+        self.max_players = max_players
         self.frame = 0
         self.players: Dict[str, ConnectedPlayer] = {}
         self._lock = asyncio.Lock()
@@ -79,7 +80,7 @@ class GameSession:
 
     @property
     def is_full(self) -> bool:
-        return len(self.players) >= MAX_PLAYERS
+        return len(self.players) >= self.max_players
 
     async def add_player(self, player: ConnectedPlayer) -> bool:
         async with self._lock:
@@ -88,7 +89,7 @@ class GameSession:
                 return False
             self.players[player.player_id] = player
             log.info("Player joined: id=%s slot=%d  session=%d/%d",
-                     player.player_id, player.slot, len(self.players), MAX_PLAYERS)
+                     player.player_id, player.slot, len(self.players), self.max_players)
             return True
 
     async def remove_player(self, player_id: str) -> None:
@@ -99,10 +100,10 @@ class GameSession:
 
     def next_slot(self) -> int:
         used = {p.slot for p in self.players.values()}
-        for s in range(MAX_PLAYERS):
+        for s in range(self.max_players):
             if s not in used:
                 return s
-        return MAX_PLAYERS
+        return self.max_players
 
     async def handle_input(self, player_id: str, payload: dict) -> None:
         """Store the latest input for a player and update their state."""
@@ -168,7 +169,7 @@ class GameSession:
             count = len(self.players)
         await self.broadcast(MessageType.LOBBY_UPDATE, {
             "connected": count,
-            "max": MAX_PLAYERS,
+            "max": self.max_players,
             "players": players_info,
         })
 
@@ -186,10 +187,10 @@ class GameSession:
 # ──────────────────────────────────────────────────────────────────────────────
 
 class GameServer:
-    def __init__(self, host: str, port: int, seed: int) -> None:
+    def __init__(self, host: str, port: int, seed: int, max_players: int = MAX_PLAYERS) -> None:
         self.host = host
         self.port = port
-        self.session = GameSession(seed=seed)
+        self.session = GameSession(seed=seed, max_players=max_players)
         self._server: Optional[asyncio.Server] = None
 
     async def start(self) -> None:
@@ -198,7 +199,7 @@ class GameServer:
         )
         addrs = [str(s.getsockname()) for s in self._server.sockets]
         log.info("Server listening on %s  seed=%d  max_players=%d",
-                 addrs, self.session.seed, MAX_PLAYERS)
+                 addrs, self.session.seed, self.session.max_players)
         print(f"[NET] Server listening on {self.host}:{self.port}  seed={self.session.seed}")
 
     async def stop(self) -> None:
@@ -220,10 +221,11 @@ class GameServer:
         log.info("Incoming connection from %s", addr)
 
         if self.session.is_full:
-            log.warning("Rejecting %s — session full (%d/%d)", addr, MAX_PLAYERS, MAX_PLAYERS)
+            mp = self.session.max_players
+            log.warning("Rejecting %s — session full (%d/%d)", addr, mp, mp)
             await write_message(writer, MessageType.ERROR, {
                 "code": "session_full",
-                "message": f"Server is full (max {MAX_PLAYERS} players).",
+                "message": f"Server is full (max {mp} players).",
             })
             writer.close()
             return
@@ -280,7 +282,7 @@ class GameServer:
             "slot": slot,
             "frame": self.session.frame,
             "seed": self.session.seed,
-            "max_players": MAX_PLAYERS,
+            "max_players": self.session.max_players,
         })
 
         # Notify other players and broadcast updated lobby state
@@ -364,11 +366,12 @@ async def run_server(
     host: str = "0.0.0.0",
     port: int = 7777,
     seed: int = 0,
+    max_players: int = MAX_PLAYERS,
 ) -> None:
     """
     Start the game server and run until cancelled.
     Intended to be called via asyncio.run() in a daemon thread.
     """
-    server = GameServer(host=host, port=port, seed=seed)
+    server = GameServer(host=host, port=port, seed=seed, max_players=max_players)
     await server.start()
     await server.serve_forever()

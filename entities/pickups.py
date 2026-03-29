@@ -45,6 +45,9 @@ class BasePickup:
         self.rotation = 0.0
         self.rotation_speed = 2.0  # radians per second
 
+        # Stable world-space ID — used for multiplayer entity-event sync
+        self.pickup_id = f"pickup_{int(x)}_{int(y)}"
+
         # Collection state
         self.collected = False
         self.alive = True
@@ -263,6 +266,14 @@ class PickupManager:
                     ))
 
         return collected
+
+    def suppress_by_id(self, pickup_id: str) -> None:
+        """Silently remove a pickup collected on a remote client (no stats/events)."""
+        for pickup in self.pickups:
+            if getattr(pickup, "pickup_id", None) == pickup_id and pickup.alive:
+                pickup.alive = False
+                pickup.collected = True
+                break
 
     def get_alive_pickups(self):
         """Get list of pickups that haven't been collected"""
