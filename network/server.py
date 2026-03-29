@@ -333,6 +333,10 @@ class GameServer:
             p.player_id = slot
             sim_players[slot] = p
 
+        # Reset clock so the first tick() call doesn't see accumulated wall time
+        # from world generation and fire multiple TickEvents at once.
+        game_clock.reset()
+
         from game.game_simulator import GameSimulator
         self._simulator = GameSimulator(
             bus=bus,
