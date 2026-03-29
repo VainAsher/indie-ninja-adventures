@@ -1516,7 +1516,9 @@ def main():
 
     if args.host:
         import asyncio as _asyncio
+        import time as _time
         from network.server import run_server as _run_server
+        from network.client import NetworkClient as _NetworkClient
         _net_seed = current_seed or random.randint(1, 999999)
         _net_thread = _threading.Thread(
             target=lambda: _asyncio.run(_run_server(port=args.host, seed=_net_seed)),
@@ -1524,6 +1526,20 @@ def main():
             name="GameServer",
         )
         _net_thread.start()
+        # Give the server a moment to open its socket, then connect as a client
+        # so the host receives LOBBY_UPDATE and GAME_START just like a joiner.
+        _time.sleep(0.3)
+        _net_client = _NetworkClient(
+            host="127.0.0.1",
+            port=args.host,
+            player_id=f"host_{random.randint(1000, 9999)}",
+        )
+        if not _net_client.connect():
+            print("[NET] Host could not connect to own server — running solo.")
+            _net_client = None
+        else:
+            if _net_client.server_seed is not None:
+                current_seed = _net_client.server_seed
 
     elif args.connect:
         from network.client import NetworkClient as _NetworkClient
