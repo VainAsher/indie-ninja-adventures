@@ -494,13 +494,13 @@ class BossManager:
         )
         damage_to_player += proj_damage
 
-        # Boss body contact damage (only in active combat states)
+        # Boss body contact damage only when executing a special attack
         from entities.boss_ai import BossAIState as _AIS
-        if self.boss_ai.get_state() not in (_AIS.VULNERABLE, _AIS.INTRO, _AIS.DEAD, _AIS.SUMMONING):
+        if self.boss_ai.get_state() == _AIS.SPECIAL_ATTACK:
             if self._check_rect_collision(
                 player_x, player_y, player_width, player_height, *boss.get_rect()
             ):
-                damage_to_player += 1  # contact damage
+                damage_to_player += 1  # contact damage during special attack only
 
         # Track phase transitions
         current_phase = self.boss_ai.get_phase()
