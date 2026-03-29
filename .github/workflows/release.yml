@@ -1,0 +1,83 @@
+name: Release
+
+# Triggered by pushing a version tag, e.g.:
+#   git tag v0.7.3 && git push origin v0.7.3
+#
+# Builds:
+#   - ninja_dash.exe        (production game, onefile)
+#   - ninja_dash_launcher.exe  (standalone launcher, onefile)
+# Then creates a GitHub release with both exes + SHA256 checksum attached.
+# The launcher checks this release API endpoint at startup.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write   # required to create releases and upload assets
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install runtime dependencies and PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "."
+          pip install pyinstaller
+
+      # Run pyinstaller directly (not via build.py) so both exes land in
+      # build/dist/ without the cleanup step wiping the first one.
+      - name: Build game exe (production)
+        working-directory: build
+        run: pyinstaller --clean ninja_dash_production.spec
+
+      - name: Build launcher exe
+        working-directory: build
+        run: pyinstaller --clean ninja_dash_launcher.spec
+
+      - name: Generate SHA256 checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash build\dist\ninja_dash.exe -Algorithm SHA256).Hash.ToLower()
+          # sha256sum-compatible format: "<hash>  <filename>"
+          "${hash}  ninja_dash.exe" | Out-File -FilePath build\dist\ninja_dash.exe.sha256 -Encoding ascii -NoNewline
+
+      - name: Verify expected assets exist
+        shell: pwsh
+        run: |
+          @(
+            "build\dist\ninja_dash.exe",
+            "build\dist\ninja_dash_launcher.exe",
+            "build\dist\ninja_dash.exe.sha256"
+          ) | ForEach-Object {
+            if (-not (Test-Path $_)) {
+              Write-Error "Missing expected asset: $_"
+              exit 1
+            }
+          }
+          Write-Host "All assets present."
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Indie Ninja Adventures ${{ github.ref_name }}" \
+            --generate-notes \
+            "build/dist/ninja_dash.exe" \
+            "build/dist/ninja_dash.exe.sha256" \
+            "build/dist/ninja_dash_launcher.exe"
