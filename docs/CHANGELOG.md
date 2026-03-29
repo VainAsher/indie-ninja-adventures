@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.5] - 2026-03-29 (Multiplayer N4+L2: Remote Players + Lobby)
+
+### Summary
+
+Remote peer players are now visible in-game as blue ghost silhouettes with health bars and slot labels. A lobby overlay holds both players at a "Waiting…" screen before the game starts; the server auto-starts when the second player connects.
+
+### Added
+
+- **Remote player entity** (`entities/remote_player.py`): `RemotePlayer` dataclass holds networked peer state (pos, vel, health, facing, is_dead). Linear interpolation (`interpolated_pos`) smooths position between 60 Hz server ticks.
+- **Ghost renderer** (`rendering/remote_player_renderer.py`): Draws a blue semi-transparent silhouette with directional arrow, health bar, and "P2" slot label. Dead players render as a grey ghost. All drawing uses `pygame.draw` primitives — no sprite sheet dependency.
+- **Lobby overlay** (`demo_game.py`): When launched with `--host` or `--connect`, a gold-bordered panel shows connected player count and waits for `GAME_START`. ESC cancels. Game auto-skips the main menu and starts immediately on start signal.
+- **`LOBBY_UPDATE` message** (`network/protocol.py`, `network/server.py`, `network/client.py`): Server broadcasts connected player count + player list on every join/leave. Client exposes `connected_count` property.
+- **`GAME_START` message**: Server auto-fires when lobby is full (`MAX_PLAYERS` connected). Client sets `game_started` threading.Event and updates `server_seed`. Lobby overlay exits on receipt.
+
+### Changed
+
+- `network/server.py`: `GameSession` gains `game_started: bool`; `broadcast_lobby_update()` and `start_game()` methods added. `_handle_client` sends `LOBBY_UPDATE` on join and leave, and fires `start_game()` when lobby fills.
+- `network/client.py`: `_recv_loop` handles `LOBBY_UPDATE`, `GAME_START`, and `PLAYER_LEAVE` (now also sets `last_leave_slot`).
+- `demo_game.py`: `poll_state()` output is now parsed into `_remote_players` dict each frame. Departed players removed via `last_leave_slot`. Remote players rendered after local player each frame.
+
+---
+
 ## [0.7.3] - 2026-03-29 (Custom Launcher + Multiplayer Foundation + Boss Tuning)
 
 ### Summary

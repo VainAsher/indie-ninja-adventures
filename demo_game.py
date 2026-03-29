@@ -1509,7 +1509,10 @@ def main():
 
     # ── Multiplayer setup ─────────────────────────────────────────────────────
     import threading as _threading
+    from entities.remote_player import RemotePlayer as _RemotePlayer
+    import rendering.remote_player_renderer as _rp_renderer
     _net_client = None
+    _remote_players: dict[int, _RemotePlayer] = {}   # slot → RemotePlayer
 
     if args.host:
         import asyncio as _asyncio
@@ -1578,6 +1581,90 @@ def main():
     else:
         if not menu_manager.has_menu():
             menu_manager.push_menu(LandingMenu(GAME_WIDTH, GAME_HEIGHT))
+
+    # ── L2: Multiplayer lobby ─────────────────────────────────────────────────
+    # When running with --host or --connect, hold here until GAME_START is
+    # received (clients) or the lobby fills (host — auto-starts on full lobby).
+    # Shows a pygame overlay so the player knows the game is waiting.
+    if _net_client is not None or args.host:
+        _is_host = bool(args.host)
+        _lobby_font_title = pygame.font.SysFont("impact", 42, bold=True)
+        _lobby_font_body = pygame.font.SysFont("consolas", 20)
+        _lobby_font_hint = pygame.font.SysFont("consolas", 15)
+        _GOLD = (255, 215, 0)
+        _DIM = (140, 140, 160)
+        _WHITE = (200, 200, 220)
+        _lobby_running = True
+
+        # Host: the server runs in a daemon thread; we wait for a client to
+        # join and fill the lobby (auto-starts on MAX_PLAYERS connected).
+        # Client: wait until game_started event fires.
+        # ESC cancels and exits.
+        while _lobby_running:
+            for _ev in pygame.event.get():
+                if _ev.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if _ev.type == pygame.KEYDOWN and _ev.key == pygame.K_ESCAPE:
+                    if _net_client is not None:
+                        _net_client.disconnect()
+                    pygame.quit()
+                    sys.exit()
+
+            # Check game_started (fires when server sends GAME_START)
+            if _net_client is not None and _net_client.game_started.is_set():
+                if _net_client.server_seed is not None:
+                    current_seed = _net_client.server_seed
+                _lobby_running = False
+                break
+
+            # Draw lobby overlay on top of whatever is on game_surface
+            game_surface.fill((10, 10, 20))
+            _panel_w, _panel_h = 460, 200
+            _px = (GAME_WIDTH - _panel_w) // 2
+            _py = (GAME_HEIGHT - _panel_h) // 2
+            _panel = pygame.Surface((_panel_w, _panel_h), pygame.SRCALPHA)
+            _panel.fill((15, 15, 35, 220))
+            game_surface.blit(_panel, (_px, _py))
+            pygame.draw.rect(game_surface, _GOLD, (_px, _py, _panel_w, _panel_h), 2)
+
+            _title_surf = _lobby_font_title.render("LOBBY", True, _GOLD)
+            game_surface.blit(_title_surf, (_px + (_panel_w - _title_surf.get_width()) // 2, _py + 16))
+
+            if _is_host:
+                _count_str = "Waiting for player 2…"
+                _hint_str = "Game starts automatically when lobby is full"
+            elif _net_client is not None:
+                _n = _net_client.connected_count
+                _count_str = f"Connected — {_n}/2 players"
+                _hint_str = "Waiting for host to start the game…"
+            else:
+                _count_str = "Connecting…"
+                _hint_str = ""
+
+            _body_surf = _lobby_font_body.render(_count_str, True, _WHITE)
+            game_surface.blit(_body_surf, (_px + (_panel_w - _body_surf.get_width()) // 2, _py + 80))
+
+            if _hint_str:
+                _hint_surf = _lobby_font_hint.render(_hint_str, True, _DIM)
+                game_surface.blit(_hint_surf, (_px + (_panel_w - _hint_surf.get_width()) // 2, _py + 118))
+
+            _esc_surf = _lobby_font_hint.render("ESC — cancel", True, _DIM)
+            game_surface.blit(_esc_surf, (_px + (_panel_w - _esc_surf.get_width()) // 2, _py + 170))
+
+            screen.blit(
+                pygame.transform.scale(game_surface, screen.get_size()),
+                (0, 0),
+            )
+            pygame.display.flip()
+            clock.tick(30)
+
+        # Skip the main menu when entering via multiplayer — jump straight in
+        level_manager.start_level(time.time())
+        game_state_manager.start_game()
+        input_pipeline.set_game_start(frame_idx)
+        menu_manager.clear_menus()
+    # ── End L2 lobby ──────────────────────────────────────────────────────────
 
     # Set dev console context with game objects (DEV build)
     if dev_console:
@@ -1690,9 +1777,32 @@ def main():
                 facing=int(player.state.facing),
                 is_dead=player.state.health_state.current_hp <= 0,
             )
-            # Phase 1: state received from server is available but not yet
-            # used for rendering — that is Phase 2 (authoritative simulation).
-            _net_client.poll_state()
+            # N4: parse snapshot and update remote player entities
+            _snap_dict = _net_client.poll_state()
+            if _snap_dict:
+                from network.snapshots import MultiplayerSnapshot as _MPS
+                _snap = _MPS.from_dict(_snap_dict)
+                _now_ms = float(pygame.time.get_ticks())
+                _local_slot = _net_client.local_slot or 0
+                for _ps in _snap.players:
+                    if _ps.slot == _local_slot:
+                        continue
+                    if _ps.slot not in _remote_players:
+                        _remote_players[_ps.slot] = _RemotePlayer(
+                            slot=_ps.slot, player_id=_ps.player_id
+                        )
+                    _remote_players[_ps.slot].apply_state(
+                        x=_ps.pos[0], y=_ps.pos[1],
+                        vx=_ps.vel[0], vy=_ps.vel[1],
+                        health=_ps.health,
+                        facing=_ps.facing,
+                        is_dead=_ps.is_dead,
+                        now_ms=_now_ms,
+                    )
+            # Remove ghost for any player who just left
+            if _net_client.last_leave_slot is not None:
+                _remote_players.pop(_net_client.last_leave_slot, None)
+                _net_client.last_leave_slot = None
         # ── End multiplayer ───────────────────────────────────────────────────
 
         # Track single-press keys for dialogue/menu interactions
@@ -3413,6 +3523,10 @@ def main():
         else:
             game_surface.blit(frame.surface, sprite_rect)
         profiler.end("render_player")
+
+        # Draw remote players (N4 — ghost silhouettes for networked peers)
+        if _remote_players:
+            _rp_renderer.draw_all(game_surface, _remote_players, camera, float(pygame.time.get_ticks()))
 
         # Draw Yin & Yang companion orbs (v0.7.0 - The Hollowed Ninja)
         profiler.begin("render_companions")

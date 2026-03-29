@@ -31,11 +31,13 @@ class MessageType:
     INPUT        = "input"          # InputCommand.to_dict()
 
     # Server → Client
-    SERVER_HELLO = "server_hello"   # {player_id, slot, frame, seed}
-    SERVER_STATE = "server_state"   # MultiplayerSnapshot.to_dict()
-    PLAYER_JOIN  = "player_join"    # {player_id, slot}
-    PLAYER_LEAVE = "player_leave"   # {player_id, slot}
-    ERROR        = "error"          # {code, message}
+    SERVER_HELLO  = "server_hello"   # {player_id, slot, frame, seed, max_players}
+    SERVER_STATE  = "server_state"   # MultiplayerSnapshot.to_dict()
+    PLAYER_JOIN   = "player_join"    # {player_id, slot}
+    PLAYER_LEAVE  = "player_leave"   # {player_id, slot}
+    LOBBY_UPDATE  = "lobby_update"   # {connected: int, max: int, players: [{player_id, slot}]}
+    GAME_START    = "game_start"     # {seed: int}
+    ERROR         = "error"          # {code, message}
 
 
 # ──────────────────────────────────────────────────────────────────────────────

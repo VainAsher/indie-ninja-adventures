@@ -67,6 +67,7 @@ class GameSession:
 
     Phase 1: input relay — stores latest input per player, broadcasts
     a MultiplayerSnapshot containing all players' last-known state.
+    Phase L2: tracks lobby state; game only starts when host calls start_game().
     """
 
     def __init__(self, seed: int) -> None:
@@ -74,6 +75,7 @@ class GameSession:
         self.frame = 0
         self.players: Dict[str, ConnectedPlayer] = {}
         self._lock = asyncio.Lock()
+        self.game_started: bool = False
 
     @property
     def is_full(self) -> bool:
@@ -152,6 +154,27 @@ class GameSession:
                 await write_message(writer, msg_type, payload)
             except Exception as exc:
                 log.debug("Broadcast to %s failed: %s", pid, exc)
+
+    async def broadcast_lobby_update(self) -> None:
+        """Broadcast current lobby state to all connected players."""
+        async with self._lock:
+            players_info = [
+                {"player_id": p.player_id, "slot": p.slot}
+                for p in sorted(self.players.values(), key=lambda x: x.slot)
+            ]
+            count = len(self.players)
+        await self.broadcast(MessageType.LOBBY_UPDATE, {
+            "connected": count,
+            "max": MAX_PLAYERS,
+            "players": players_info,
+        })
+
+    async def start_game(self) -> None:
+        """Mark the session as started and notify all clients."""
+        self.game_started = True
+        log.info("Game starting — seed=%d", self.seed)
+        print(f"[NET] Game starting — seed={self.seed}")
+        await self.broadcast(MessageType.GAME_START, {"seed": self.seed})
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -253,11 +276,16 @@ class GameServer:
             "max_players": MAX_PLAYERS,
         })
 
-        # Notify other players
+        # Notify other players and broadcast updated lobby state
         await self.session.broadcast(MessageType.PLAYER_JOIN, {
             "player_id": player_id,
             "slot": slot,
         })
+        await self.session.broadcast_lobby_update()
+
+        # Auto-start when lobby is full
+        if not self.session.game_started and self.session.is_full:
+            await self.session.start_game()
 
         # Main client loop
         try:
@@ -272,6 +300,7 @@ class GameServer:
                 "player_id": player_id,
                 "slot": slot,
             })
+            await self.session.broadcast_lobby_update()
             try:
                 writer.close()
                 await writer.wait_closed()

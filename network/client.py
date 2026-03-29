@@ -73,6 +73,11 @@ class NetworkClient:
         self.server_seed: Optional[int] = None
         self.local_slot: Optional[int] = None
 
+        # Lobby / game-start state (set from background thread, read from pygame thread)
+        self.game_started: threading.Event = threading.Event()
+        self.connected_count: int = 1       # at minimum, we are connected
+        self.last_leave_slot: Optional[int] = None   # slot of most recently departed player
+
     # ── Public API (pygame-side) ──────────────────────────────────────────────
 
     def connect(self, timeout: float = 5.0) -> bool:
@@ -254,7 +259,20 @@ class NetworkClient:
 
             elif msg.type == MessageType.PLAYER_LEAVE:
                 pid = msg.payload.get("player_id", "?")
+                slot = msg.payload.get("slot")
+                if slot is not None:
+                    self.last_leave_slot = int(slot)
                 print(f"[NET] Player left: {pid}")
+
+            elif msg.type == MessageType.LOBBY_UPDATE:
+                self.connected_count = msg.payload.get("connected", self.connected_count)
+
+            elif msg.type == MessageType.GAME_START:
+                seed = msg.payload.get("seed")
+                if seed is not None:
+                    self.server_seed = int(seed)
+                self.game_started.set()
+                print(f"[NET] Game started — seed={self.server_seed}")
 
             elif msg.type == MessageType.ERROR:
                 self._error = msg.payload.get("message", "Unknown server error")
