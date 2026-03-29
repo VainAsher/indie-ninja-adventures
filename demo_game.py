@@ -1889,6 +1889,10 @@ def main():
                         _enemy.physics.vy = _es.vy
                         _enemy.health_state.current_hp = _es.hp
                         _enemy.facing_right = _es.facing_right
+                        try:
+                            _enemy.ai_state = EnemyAIState(_es.ai_state)
+                        except ValueError:
+                            pass  # unknown state string — keep local state
 
                 # --- Pickups: sync alive/dead state from server ---
                 _server_alive_ids = {p.pickup_id for p in _ws.pickups if p.alive}
