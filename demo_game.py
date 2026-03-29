@@ -1618,18 +1618,19 @@ def main():
                 _lobby_running = False
                 break
 
-            # Draw lobby overlay on top of whatever is on game_surface
-            game_surface.fill((10, 10, 20))
+            # Draw lobby overlay directly on screen (game_surface not yet created)
+            _sw, _sh = screen.get_size()
+            screen.fill((10, 10, 20))
             _panel_w, _panel_h = 460, 200
-            _px = (GAME_WIDTH - _panel_w) // 2
-            _py = (GAME_HEIGHT - _panel_h) // 2
+            _px = (_sw - _panel_w) // 2
+            _py = (_sh - _panel_h) // 2
             _panel = pygame.Surface((_panel_w, _panel_h), pygame.SRCALPHA)
             _panel.fill((15, 15, 35, 220))
-            game_surface.blit(_panel, (_px, _py))
-            pygame.draw.rect(game_surface, _GOLD, (_px, _py, _panel_w, _panel_h), 2)
+            screen.blit(_panel, (_px, _py))
+            pygame.draw.rect(screen, _GOLD, (_px, _py, _panel_w, _panel_h), 2)
 
             _title_surf = _lobby_font_title.render("LOBBY", True, _GOLD)
-            game_surface.blit(_title_surf, (_px + (_panel_w - _title_surf.get_width()) // 2, _py + 16))
+            screen.blit(_title_surf, (_px + (_panel_w - _title_surf.get_width()) // 2, _py + 16))
 
             if _is_host:
                 _count_str = "Waiting for player 2…"
@@ -1643,19 +1644,15 @@ def main():
                 _hint_str = ""
 
             _body_surf = _lobby_font_body.render(_count_str, True, _WHITE)
-            game_surface.blit(_body_surf, (_px + (_panel_w - _body_surf.get_width()) // 2, _py + 80))
+            screen.blit(_body_surf, (_px + (_panel_w - _body_surf.get_width()) // 2, _py + 80))
 
             if _hint_str:
                 _hint_surf = _lobby_font_hint.render(_hint_str, True, _DIM)
-                game_surface.blit(_hint_surf, (_px + (_panel_w - _hint_surf.get_width()) // 2, _py + 118))
+                screen.blit(_hint_surf, (_px + (_panel_w - _hint_surf.get_width()) // 2, _py + 118))
 
             _esc_surf = _lobby_font_hint.render("ESC — cancel", True, _DIM)
-            game_surface.blit(_esc_surf, (_px + (_panel_w - _esc_surf.get_width()) // 2, _py + 170))
+            screen.blit(_esc_surf, (_px + (_panel_w - _esc_surf.get_width()) // 2, _py + 170))
 
-            screen.blit(
-                pygame.transform.scale(game_surface, screen.get_size()),
-                (0, 0),
-            )
             pygame.display.flip()
             clock.tick(30)
 
