@@ -25,12 +25,12 @@ from tkinter import ttk
 # ──────────────────────────────────────────────────────────────────────────────
 
 GITHUB_REPO = "VainAsher/indie-ninja-adventures"
-API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=30"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
 LAUNCHER_VERSION = "1.0.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
-WINDOW_SIZE = "480x260"
+WINDOW_SIZE = "480x300"
 
 # UI colours — dark theme matching game aesthetic
 BG_DARK = "#0f0f1a"
@@ -103,6 +103,18 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _version_label(tag: str, local_version: str, is_latest: bool) -> str:
+    """Build the display string shown in the version combobox."""
+    ver = tag.lstrip("v")
+    parts = []
+    if is_latest:
+        parts.append("latest")
+    if ver == local_version:
+        parts.append("installed")
+    suffix = f"  ({', '.join(parts)})" if parts else ""
+    return f"{tag}{suffix}"
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # LauncherApp
 # ──────────────────────────────────────────────────────────────────────────────
@@ -116,22 +128,23 @@ class LauncherApp:
         self.root.resizable(False, False)
         self.root.configure(bg=BG_DARK)
 
-        # Try to centre window on screen
+        # Centre window on screen
         self.root.update_idletasks()
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
         x = (sw - 480) // 2
-        y = (sh - 260) // 2
-        self.root.geometry(f"480x260+{x}+{y}")
+        y = (sh - 300) // 2
+        self.root.geometry(f"480x300+{x}+{y}")
 
         self._local_version = _read_local_version()
-        self._release_info: dict | None = None
+        self._all_releases: list[dict] = []
+        self._selected_release: dict | None = None
         self._downloading = False
 
         self._build_ui()
 
-        # Kick off update check immediately in background
-        threading.Thread(target=self._check_for_update, daemon=True).start()
+        # Kick off release list fetch immediately in background
+        threading.Thread(target=self._fetch_releases, daemon=True).start()
 
     # ── UI construction ───────────────────────────────────────────────────────
 
@@ -140,7 +153,7 @@ class LauncherApp:
 
         # Title row
         title_frame = tk.Frame(root, bg=BG_DARK)
-        title_frame.pack(fill="x", padx=24, pady=(20, 0))
+        title_frame.pack(fill="x", padx=24, pady=(18, 0))
 
         tk.Label(
             title_frame,
@@ -158,31 +171,18 @@ class LauncherApp:
             bg=BG_DARK,
         ).pack(side="right", anchor="s")
 
-        # Version info
-        info_frame = tk.Frame(root, bg=BG_DARK)
-        info_frame.pack(fill="x", padx=24, pady=(6, 0))
-
+        # Installed version
         tk.Label(
-            info_frame,
+            root,
             text=f"Installed:  {self._local_version}",
             font=("Segoe UI", 9),
             fg=TEXT_DIM,
             bg=BG_DARK,
             anchor="w",
-        ).pack(side="left")
-
-        self._remote_label = tk.Label(
-            info_frame,
-            text="",
-            font=("Segoe UI", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            anchor="e",
-        )
-        self._remote_label.pack(side="right")
+        ).pack(fill="x", padx=24, pady=(6, 0))
 
         # Status label
-        self._status_var = tk.StringVar(value="Checking for updates…")
+        self._status_var = tk.StringVar(value="Fetching release list…")
         self._status_label = tk.Label(
             root,
             textvariable=self._status_var,
@@ -191,11 +191,31 @@ class LauncherApp:
             bg=BG_DARK,
             anchor="w",
         )
-        self._status_label.pack(fill="x", padx=24, pady=(10, 2))
+        self._status_label.pack(fill="x", padx=24, pady=(6, 0))
 
-        # Progress bar
+        # Version picker row
+        picker_frame = tk.Frame(root, bg=BG_DARK)
+        picker_frame.pack(fill="x", padx=24, pady=(8, 0))
+
+        tk.Label(
+            picker_frame,
+            text="Version:",
+            font=("Segoe UI", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left")
+
         style = ttk.Style()
         style.theme_use("clam")
+        style.configure(
+            "Launcher.TCombobox",
+            fieldbackground=BG_MID,
+            background=BG_MID,
+            foreground=TEXT_PRIMARY,
+            selectbackground=BG_CARD,
+            selectforeground=TEXT_PRIMARY,
+            arrowcolor=TEXT_DIM,
+        )
         style.configure(
             "Launcher.Horizontal.TProgressbar",
             troughcolor=BG_MID,
@@ -204,6 +224,20 @@ class LauncherApp:
             lightcolor=PROGRESS_FG,
             darkcolor=PROGRESS_FG,
         )
+
+        self._version_var = tk.StringVar()
+        self._version_combo = ttk.Combobox(
+            picker_frame,
+            textvariable=self._version_var,
+            state="disabled",
+            style="Launcher.TCombobox",
+            width=30,
+            font=("Segoe UI", 9),
+        )
+        self._version_combo.pack(side="left", padx=(8, 0))
+        self._version_combo.bind("<<ComboboxSelected>>", self._on_version_selected)
+
+        # Progress bar
         self._progress_var = tk.DoubleVar(value=0.0)
         self._progress = ttk.Progressbar(
             root,
@@ -212,7 +246,7 @@ class LauncherApp:
             style="Launcher.Horizontal.TProgressbar",
             mode="indeterminate",
         )
-        self._progress.pack(fill="x", padx=24, pady=(0, 4))
+        self._progress.pack(fill="x", padx=24, pady=(10, 4))
         self._progress.start(12)
 
         # Separator
@@ -238,9 +272,9 @@ class LauncherApp:
         )
         self._play_btn.pack(side="left")
 
-        self._update_btn = tk.Button(
+        self._download_btn = tk.Button(
             btn_frame,
-            text="↓  Update",
+            text="↓  Install",
             font=("Segoe UI", 9),
             fg=TEXT_PRIMARY,
             bg=BG_MID,
@@ -253,7 +287,7 @@ class LauncherApp:
             state="disabled",
             command=self._start_download,
         )
-        self._update_btn.pack(side="left", padx=(8, 0))
+        self._download_btn.pack(side="left", padx=(8, 0))
 
         tk.Button(
             btn_frame,
@@ -270,32 +304,33 @@ class LauncherApp:
             command=self.root.destroy,
         ).pack(side="right")
 
-    # ── Update check ─────────────────────────────────────────────────────────
+    # ── Release list fetch ────────────────────────────────────────────────────
 
-    def _check_for_update(self) -> None:
-        """Run in a background thread. Queries GitHub releases API."""
+    def _fetch_releases(self) -> None:
+        """Background thread — fetches all releases and populates the picker."""
         try:
             req = urllib.request.Request(
-                API_URL,
+                RELEASES_API_URL,
                 headers={
                     "User-Agent": f"indie-ninja-launcher/{LAUNCHER_VERSION}",
                     "Accept": "application/vnd.github+json",
                 },
             )
             with urllib.request.urlopen(req, timeout=10) as resp:
-                self._release_info = json.loads(resp.read().decode("utf-8"))
+                releases = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            self.root.after(0, self._on_check_done, None, f"Update check failed ({exc.code})")
+            self.root.after(0, self._on_fetch_done, [], f"Could not fetch releases ({exc.code})")
             return
         except Exception as exc:
-            self.root.after(0, self._on_check_done, None, f"Update check failed: {exc}")
+            self.root.after(0, self._on_fetch_done, [], f"Could not fetch releases: {exc}")
             return
 
-        remote_version = self._release_info.get("tag_name", "")
-        self.root.after(0, self._on_check_done, remote_version, None)
+        # Filter out drafts; pre-releases shown but labelled
+        visible = [r for r in releases if not r.get("draft", False)]
+        self.root.after(0, self._on_fetch_done, visible, None)
 
-    def _on_check_done(self, remote_version: str | None, error: str | None) -> None:
-        """Called on the main thread once the update check finishes."""
+    def _on_fetch_done(self, releases: list[dict], error: str | None) -> None:
+        """Main thread — populate picker and update status once fetch completes."""
         self._progress.stop()
         self._progress.configure(mode="determinate")
         self._progress_var.set(0.0)
@@ -304,31 +339,86 @@ class LauncherApp:
             self._status_var.set(f"⚠  {error}")
             return
 
-        if not remote_version:
-            self._status_var.set("No releases found. You have the latest version.")
+        if not releases:
+            self._status_var.set("No releases found on GitHub.")
             return
 
-        self._remote_label.configure(text=f"Latest:  {remote_version.lstrip('v')}")
+        self._all_releases = releases
+        latest_tag = releases[0].get("tag_name", "")
 
-        if _is_newer(remote_version, self._local_version):
-            self._status_var.set(f"Update available: {remote_version}")
-            self._update_btn.configure(state="normal")
+        # Build combobox entries: newest first
+        labels = [
+            _version_label(r["tag_name"], self._local_version, i == 0)
+            for i, r in enumerate(releases)
+        ]
+        self._version_combo.configure(values=labels, state="readonly")
+
+        # Pre-select the latest release
+        self._version_combo.current(0)
+        self._selected_release = releases[0]
+        self._refresh_download_btn()
+
+        # Status line
+        latest_ver = latest_tag.lstrip("v")
+        if _is_newer(latest_ver, self._local_version):
+            self._status_var.set(f"Update available: {latest_tag}")
         else:
             self._status_var.set("✓  You have the latest version.")
+
+    # ── Version picker ────────────────────────────────────────────────────────
+
+    def _on_version_selected(self, _event=None) -> None:
+        """Called when the user picks a different version in the combobox."""
+        idx = self._version_combo.current()
+        if idx < 0 or idx >= len(self._all_releases):
+            return
+        self._selected_release = self._all_releases[idx]
+        self._refresh_download_btn()
+
+        tag = self._selected_release.get("tag_name", "")
+        ver = tag.lstrip("v")
+        if ver == self._local_version:
+            self._status_var.set(f"  {tag} is currently installed.")
+        elif _is_newer(ver, self._local_version):
+            self._status_var.set(f"↑  {tag} is newer than your installed version.")
+        else:
+            self._status_var.set(f"↓  {tag} is older than your installed version.")
+
+    def _refresh_download_btn(self) -> None:
+        """Update download button label and enabled state for the selected release."""
+        if not self._selected_release or self._downloading:
+            return
+
+        tag = self._selected_release.get("tag_name", "")
+        ver = tag.lstrip("v")
+        assets = self._selected_release.get("assets", [])
+        has_exe = any(a.get("name") == GAME_EXE_NAME for a in assets)
+
+        if not has_exe:
+            self._download_btn.configure(state="disabled", text="↓  No exe asset")
+            return
+
+        if ver == self._local_version:
+            label = f"↓  Reinstall {tag}"
+        elif _is_newer(ver, self._local_version):
+            label = f"↑  Update to {tag}"
+        else:
+            label = f"↓  Downgrade to {tag}"
+
+        self._download_btn.configure(state="normal", text=label)
 
     # ── Download ──────────────────────────────────────────────────────────────
 
     def _start_download(self) -> None:
-        if self._downloading or not self._release_info:
+        if self._downloading or not self._selected_release:
             return
-        assets = self._release_info.get("assets", [])
-        exe_asset = next(
-            (a for a in assets if a.get("name") == GAME_EXE_NAME), None
-        )
+
+        assets = self._selected_release.get("assets", [])
+        exe_asset = next((a for a in assets if a.get("name") == GAME_EXE_NAME), None)
         if not exe_asset:
             messagebox.showwarning(
                 "No Asset",
-                f"The latest release has no {GAME_EXE_NAME} asset.\n"
+                f"The selected release has no {GAME_EXE_NAME} asset.\n"
                 "Check the GitHub releases page manually.",
                 parent=self.root,
             )
@@ -340,22 +430,35 @@ class LauncherApp:
         expected_sha = None
         if sha_asset:
             try:
-                with urllib.request.urlopen(sha_asset["browser_download_url"], timeout=10) as r:
+                with urllib.request.urlopen(
+                    sha_asset["browser_download_url"], timeout=10
+                ) as r:
                     expected_sha = r.read().decode().strip().split()[0]
             except Exception:
                 pass  # proceed without verification if sha file unavailable
 
         self._downloading = True
-        self._update_btn.configure(state="disabled", text="Downloading…")
-        self._status_var.set("Downloading update…")
+        self._download_btn.configure(state="disabled", text="Downloading…")
+        self._status_var.set("Downloading…")
 
         threading.Thread(
             target=self._download_worker,
-            args=(exe_asset["browser_download_url"], exe_asset.get("size", 0), expected_sha),
+            args=(
+                exe_asset["browser_download_url"],
+                exe_asset.get("size", 0),
+                expected_sha,
+                self._selected_release,
+            ),
             daemon=True,
         ).start()
 
-    def _download_worker(self, url: str, total_size: int, expected_sha: str | None) -> None:
+    def _download_worker(
+        self,
+        url: str,
+        total_size: int,
+        expected_sha: str | None,
+        release: dict,
+    ) -> None:
         dest = _get_base_dir() / f"{GAME_EXE_NAME}.new"
         try:
             downloaded = 0
@@ -379,10 +482,14 @@ class LauncherApp:
                 actual = _sha256_file(dest)
                 if actual.lower() != expected_sha.lower():
                     dest.unlink(missing_ok=True)
-                    self.root.after(0, self._on_download_error, "Checksum mismatch — download corrupt. Try again.")
+                    self.root.after(
+                        0,
+                        self._on_download_error,
+                        "Checksum mismatch — download corrupt. Try again.",
+                    )
                     return
 
-            # Atomic-ish replace: rename current exe to .bak, rename .new to current
+            # Atomic-ish replace
             game_exe = _get_game_exe()
             if game_exe.exists() and game_exe.suffix == ".exe":
                 bak = game_exe.with_suffix(".bak")
@@ -390,10 +497,10 @@ class LauncherApp:
                 game_exe.rename(bak)
             dest.rename(game_exe)
 
-            # Update local version.json
-            if self._release_info:
-                tag = self._release_info.get("tag_name", "")
-                ver = tag.lstrip("v")
+            # Update local version.json to match installed release
+            tag = release.get("tag_name", "")
+            ver = tag.lstrip("v")
+            if ver:
                 vpath = _get_version_path()
                 try:
                     data = json.loads(vpath.read_text(encoding="utf-8"))
@@ -402,23 +509,31 @@ class LauncherApp:
                 except Exception:
                     pass
 
-            self.root.after(0, self._on_download_done)
+            self.root.after(0, self._on_download_done, tag)
 
         except Exception as exc:
             dest.unlink(missing_ok=True)
             self.root.after(0, self._on_download_error, str(exc))
 
-    def _on_download_done(self) -> None:
+    def _on_download_done(self, tag: str) -> None:
         self._downloading = False
+        self._local_version = tag.lstrip("v")
         self._progress_var.set(100.0)
-        self._status_var.set("✓  Update installed. Ready to play.")
-        self._update_btn.configure(text="↓  Update", state="disabled")
+        self._status_var.set(f"✓  {tag} installed. Ready to play.")
+
+        # Refresh combobox labels so "(installed)" badge moves to new version
+        labels = [
+            _version_label(r["tag_name"], self._local_version, i == 0)
+            for i, r in enumerate(self._all_releases)
+        ]
+        self._version_combo.configure(values=labels)
+        self._refresh_download_btn()
 
     def _on_download_error(self, message: str) -> None:
         self._downloading = False
         self._progress_var.set(0.0)
         self._status_var.set(f"✗  {message}")
-        self._update_btn.configure(text="↓  Update", state="normal")
+        self._refresh_download_btn()
 
     # ── Launch ────────────────────────────────────────────────────────────────
 
@@ -426,21 +541,18 @@ class LauncherApp:
         game_path = _get_game_exe()
 
         if game_path.suffix == ".py":
-            # Dev mode: run via Python interpreter
             cmd = [sys.executable, str(game_path)]
-            kwargs = {}
         else:
             cmd = [str(game_path)]
-            kwargs = {}
 
         try:
-            subprocess.Popen(cmd, **kwargs)
+            subprocess.Popen(cmd)
             self.root.after(200, self.root.destroy)
         except FileNotFoundError:
             messagebox.showerror(
                 "Game Not Found",
                 f"Could not find the game at:\n{game_path}\n\n"
-                "Please reinstall or check the install directory.",
+                "Please download a version first.",
                 parent=self.root,
             )
 
