@@ -30,18 +30,20 @@ GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
 LAUNCHER_VERSION = "1.0.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
-WINDOW_SIZE = "480x300"
+WINDOW_W = 640
+WINDOW_H = 360
+SPLASH_H = 200      # canvas height — crops the 640×320 scaled image to top portion
 
-# UI colours — dark theme matching game aesthetic
-BG_DARK = "#0f0f1a"
+# Colours — matched to game's menu_system.py palette
+BG_DARK = "#0a0a14"         # (10, 10, 20)  — game bg_color
 BG_MID = "#1a1a2e"
 BG_CARD = "#16213e"
-ACCENT = "#e94560"
-TEXT_PRIMARY = "#eaeaea"
+ACCENT = "#ffd700"          # gold — game title_color (255, 215, 0)
+TEXT_PRIMARY = "#c8c8dc"    # game item_color (200, 200, 220)
 TEXT_DIM = "#888899"
-BTN_PLAY = "#0f3460"
-BTN_PLAY_HOVER = "#16213e"
-PROGRESS_FG = "#e94560"
+TEXT_SELECTED = "#ffff64"   # game selected_color (255, 255, 100)
+BTN_PLAY_BG = "#1a1a2e"
+PROGRESS_FG = "#ffd700"     # gold progress bar
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -62,27 +64,41 @@ def _get_version_path() -> Path:
 
 
 def _get_game_exe() -> Path:
-    """Return the path used to launch the game."""
     base = _get_base_dir()
     exe = base / GAME_EXE_NAME
     if exe.exists():
         return exe
-    # Dev fallback: run from source
     return base / "demo_game.py"
 
 
+def _get_splash_path() -> Path | None:
+    """Locate landing.png — works in both frozen and dev mode."""
+    if getattr(sys, "frozen", False):
+        # PyInstaller bundles assets next to the exe under assets/splash/
+        p = Path(sys.executable).parent / "assets" / "splash" / "landing.png"
+        if p.exists():
+            return p
+        # Also check _MEIPASS for onefile builds
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            p = Path(meipass) / "assets" / "splash" / "landing.png"
+            if p.exists():
+                return p
+        return None
+    # Dev mode
+    p = Path(__file__).parent.parent / "assets" / "splash" / "landing.png"
+    return p if p.exists() else None
+
+
 def _read_local_version() -> str:
-    """Read the installed game version from version.json."""
-    path = _get_version_path()
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(_get_version_path().read_text(encoding="utf-8"))
         return data.get("version", "unknown")
     except (OSError, json.JSONDecodeError):
         return "unknown"
 
 
 def _parse_version(tag: str) -> tuple[int, ...]:
-    """Convert 'v0.8.0' or '0.8.0' to (0, 8, 0)."""
     clean = tag.lstrip("v").strip()
     try:
         return tuple(int(x) for x in clean.split("."))
@@ -91,7 +107,6 @@ def _parse_version(tag: str) -> tuple[int, ...]:
 
 
 def _is_newer(remote: str, local: str) -> bool:
-    """Return True if remote version is strictly newer than local."""
     return _parse_version(remote) > _parse_version(local)
 
 
@@ -104,7 +119,6 @@ def _sha256_file(path: Path) -> str:
 
 
 def _version_label(tag: str, local_version: str, is_latest: bool) -> str:
-    """Build the display string shown in the version combobox."""
     ver = tag.lstrip("v")
     parts = []
     if is_latest:
@@ -124,26 +138,25 @@ class LauncherApp:
     def __init__(self) -> None:
         self.root = tk.Tk()
         self.root.title(WINDOW_TITLE)
-        self.root.geometry(WINDOW_SIZE)
         self.root.resizable(False, False)
         self.root.configure(bg=BG_DARK)
-
-        # Centre window on screen
-        self.root.update_idletasks()
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        x = (sw - 480) // 2
-        y = (sh - 300) // 2
-        self.root.geometry(f"480x300+{x}+{y}")
 
         self._local_version = _read_local_version()
         self._all_releases: list[dict] = []
         self._selected_release: dict | None = None
         self._downloading = False
+        self._splash_photo: tk.PhotoImage | None = None
 
         self._build_ui()
 
-        # Kick off release list fetch immediately in background
+        # Centre window after UI is built (so winfo_reqwidth is accurate)
+        self.root.update_idletasks()
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        x = (sw - WINDOW_W) // 2
+        y = (sh - WINDOW_H) // 2
+        self.root.geometry(f"{WINDOW_W}x{WINDOW_H}+{x}+{y}")
+
         threading.Thread(target=self._fetch_releases, daemon=True).start()
 
     # ── UI construction ───────────────────────────────────────────────────────
@@ -151,56 +164,98 @@ class LauncherApp:
     def _build_ui(self) -> None:
         root = self.root
 
-        # Title row
-        title_frame = tk.Frame(root, bg=BG_DARK)
-        title_frame.pack(fill="x", padx=24, pady=(18, 0))
+        # ── Splash canvas ─────────────────────────────────────────────────────
+        self._splash_canvas = tk.Canvas(
+            root,
+            width=WINDOW_W,
+            height=SPLASH_H,
+            bd=0,
+            highlightthickness=0,
+            bg="#060610",
+        )
+        self._splash_canvas.pack()
+
+        # Load + scale splash (subsample 2× assumes 1280×640 source → 640×320)
+        splash_path = _get_splash_path()
+        if splash_path:
+            try:
+                raw = tk.PhotoImage(file=str(splash_path))
+                # Determine subsample factor so result fits WINDOW_W
+                factor = max(1, (raw.width() + WINDOW_W - 1) // WINDOW_W)
+                self._splash_photo = raw.subsample(factor, factor)
+                self._splash_canvas.create_image(0, 0, anchor="nw", image=self._splash_photo)
+            except Exception:
+                self._splash_photo = None
+
+        # Game title overlay — shadow then gold text (matches Impact/gold in-game style)
+        tx, ty = 22, SPLASH_H - 16
+        self._splash_canvas.create_text(
+            tx + 2, ty + 2,
+            text="INDIE NINJA ADVENTURES",
+            font=("Impact", 18),
+            fill="#050510",
+            anchor="sw",
+        )
+        self._splash_canvas.create_text(
+            tx, ty,
+            text="INDIE NINJA ADVENTURES",
+            font=("Impact", 18),
+            fill=ACCENT,
+            anchor="sw",
+        )
+        self._splash_canvas.create_text(
+            tx, ty - 22,
+            text="Vain Asher Gaming",
+            font=("Consolas", 9),
+            fill=TEXT_DIM,
+            anchor="sw",
+        )
+        self._splash_canvas.create_text(
+            WINDOW_W - 8, SPLASH_H - 6,
+            text=f"launcher v{LAUNCHER_VERSION}",
+            font=("Consolas", 8),
+            fill=TEXT_DIM,
+            anchor="se",
+        )
+
+        # ── Gold accent separator ─────────────────────────────────────────────
+        tk.Frame(root, height=2, bg=ACCENT).pack(fill="x")
+
+        # ── Controls area ─────────────────────────────────────────────────────
+        ctrl = tk.Frame(root, bg=BG_DARK)
+        ctrl.pack(fill="both", expand=True, padx=20, pady=(8, 0))
+
+        # Installed version + status on one row
+        top_row = tk.Frame(ctrl, bg=BG_DARK)
+        top_row.pack(fill="x")
 
         tk.Label(
-            title_frame,
-            text="◆  INDIE NINJA ADVENTURES",
-            font=("Segoe UI", 13, "bold"),
-            fg=ACCENT,
+            top_row,
+            text=f"Installed:  v{self._local_version}",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
             bg=BG_DARK,
+            anchor="w",
         ).pack(side="left")
 
+        self._status_var = tk.StringVar(value="Fetching releases…")
         tk.Label(
-            title_frame,
-            text=f"launcher v{LAUNCHER_VERSION}",
-            font=("Segoe UI", 8),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-        ).pack(side="right", anchor="s")
-
-        # Installed version
-        tk.Label(
-            root,
-            text=f"Installed:  {self._local_version}",
-            font=("Segoe UI", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            anchor="w",
-        ).pack(fill="x", padx=24, pady=(6, 0))
-
-        # Status label
-        self._status_var = tk.StringVar(value="Fetching release list…")
-        self._status_label = tk.Label(
-            root,
+            top_row,
             textvariable=self._status_var,
-            font=("Segoe UI", 9),
+            font=("Consolas", 9),
             fg=TEXT_PRIMARY,
             bg=BG_DARK,
-            anchor="w",
-        )
-        self._status_label.pack(fill="x", padx=24, pady=(6, 0))
+            anchor="e",
+        ).pack(side="right")
 
         # Version picker row
-        picker_frame = tk.Frame(root, bg=BG_DARK)
-        picker_frame.pack(fill="x", padx=24, pady=(8, 0))
+        picker_row = tk.Frame(ctrl, bg=BG_DARK)
+        picker_row.pack(fill="x", pady=(6, 0))
 
         tk.Label(
-            picker_frame,
+            picker_row,
             text="Version:",
-            font=("Segoe UI", 9),
+            font=("Consolas", 9),
             fg=TEXT_DIM,
             bg=BG_DARK,
         ).pack(side="left")
@@ -213,8 +268,8 @@ class LauncherApp:
             background=BG_MID,
             foreground=TEXT_PRIMARY,
             selectbackground=BG_CARD,
-            selectforeground=TEXT_PRIMARY,
-            arrowcolor=TEXT_DIM,
+            selectforeground=TEXT_SELECTED,
+            arrowcolor=ACCENT,
         )
         style.configure(
             "Launcher.Horizontal.TProgressbar",
@@ -227,12 +282,12 @@ class LauncherApp:
 
         self._version_var = tk.StringVar()
         self._version_combo = ttk.Combobox(
-            picker_frame,
+            picker_row,
             textvariable=self._version_var,
             state="disabled",
             style="Launcher.TCombobox",
-            width=30,
-            font=("Segoe UI", 9),
+            width=32,
+            font=("Consolas", 9),
         )
         self._version_combo.pack(side="left", padx=(8, 0))
         self._version_combo.bind("<<ComboboxSelected>>", self._on_version_selected)
@@ -240,74 +295,73 @@ class LauncherApp:
         # Progress bar
         self._progress_var = tk.DoubleVar(value=0.0)
         self._progress = ttk.Progressbar(
-            root,
+            ctrl,
             variable=self._progress_var,
             maximum=100.0,
             style="Launcher.Horizontal.TProgressbar",
             mode="indeterminate",
         )
-        self._progress.pack(fill="x", padx=24, pady=(10, 4))
+        self._progress.pack(fill="x", pady=(8, 0))
         self._progress.start(12)
 
-        # Separator
-        tk.Frame(root, height=1, bg=BG_MID).pack(fill="x", padx=24, pady=(6, 0))
+        # Thin separator
+        tk.Frame(ctrl, height=1, bg=BG_MID).pack(fill="x", pady=(8, 0))
 
         # Button row
-        btn_frame = tk.Frame(root, bg=BG_DARK)
-        btn_frame.pack(fill="x", padx=24, pady=(12, 0))
+        btn_row = tk.Frame(ctrl, bg=BG_DARK)
+        btn_row.pack(fill="x", pady=(8, 0))
 
         self._play_btn = tk.Button(
-            btn_frame,
+            btn_row,
             text="▶  PLAY",
-            font=("Segoe UI", 10, "bold"),
-            fg=TEXT_PRIMARY,
-            bg=BTN_PLAY,
-            activebackground=BTN_PLAY_HOVER,
-            activeforeground=TEXT_PRIMARY,
+            font=("Consolas", 10, "bold"),
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
             relief="flat",
             cursor="hand2",
-            padx=20,
-            pady=6,
+            padx=18,
+            pady=5,
             command=self._launch_game,
         )
         self._play_btn.pack(side="left")
 
         self._download_btn = tk.Button(
-            btn_frame,
+            btn_row,
             text="↓  Install",
-            font=("Segoe UI", 9),
+            font=("Consolas", 9),
             fg=TEXT_PRIMARY,
             bg=BG_MID,
             activebackground=BG_CARD,
-            activeforeground=TEXT_PRIMARY,
+            activeforeground=TEXT_SELECTED,
             relief="flat",
             cursor="hand2",
-            padx=12,
-            pady=6,
+            padx=10,
+            pady=5,
             state="disabled",
             command=self._start_download,
         )
         self._download_btn.pack(side="left", padx=(8, 0))
 
         tk.Button(
-            btn_frame,
+            btn_row,
             text="Exit",
-            font=("Segoe UI", 9),
+            font=("Consolas", 9),
             fg=TEXT_DIM,
             bg=BG_DARK,
             activebackground=BG_MID,
             activeforeground=TEXT_PRIMARY,
             relief="flat",
             cursor="hand2",
-            padx=12,
-            pady=6,
+            padx=10,
+            pady=5,
             command=self.root.destroy,
         ).pack(side="right")
 
     # ── Release list fetch ────────────────────────────────────────────────────
 
     def _fetch_releases(self) -> None:
-        """Background thread — fetches all releases and populates the picker."""
         try:
             req = urllib.request.Request(
                 RELEASES_API_URL,
@@ -325,12 +379,10 @@ class LauncherApp:
             self.root.after(0, self._on_fetch_done, [], f"Could not fetch releases: {exc}")
             return
 
-        # Filter out drafts; pre-releases shown but labelled
         visible = [r for r in releases if not r.get("draft", False)]
         self.root.after(0, self._on_fetch_done, visible, None)
 
     def _on_fetch_done(self, releases: list[dict], error: str | None) -> None:
-        """Main thread — populate picker and update status once fetch completes."""
         self._progress.stop()
         self._progress.configure(mode="determinate")
         self._progress_var.set(0.0)
@@ -340,35 +392,30 @@ class LauncherApp:
             return
 
         if not releases:
-            self._status_var.set("No releases found on GitHub.")
+            self._status_var.set("No releases found.")
             return
 
         self._all_releases = releases
         latest_tag = releases[0].get("tag_name", "")
 
-        # Build combobox entries: newest first
         labels = [
             _version_label(r["tag_name"], self._local_version, i == 0)
             for i, r in enumerate(releases)
         ]
         self._version_combo.configure(values=labels, state="readonly")
-
-        # Pre-select the latest release
         self._version_combo.current(0)
         self._selected_release = releases[0]
         self._refresh_download_btn()
 
-        # Status line
         latest_ver = latest_tag.lstrip("v")
         if _is_newer(latest_ver, self._local_version):
             self._status_var.set(f"Update available: {latest_tag}")
         else:
-            self._status_var.set("✓  You have the latest version.")
+            self._status_var.set("✓  Up to date")
 
     # ── Version picker ────────────────────────────────────────────────────────
 
     def _on_version_selected(self, _event=None) -> None:
-        """Called when the user picks a different version in the combobox."""
         idx = self._version_combo.current()
         if idx < 0 or idx >= len(self._all_releases):
             return
@@ -378,14 +425,13 @@ class LauncherApp:
         tag = self._selected_release.get("tag_name", "")
         ver = tag.lstrip("v")
         if ver == self._local_version:
-            self._status_var.set(f"  {tag} is currently installed.")
+            self._status_var.set(f"  {tag} — currently installed")
         elif _is_newer(ver, self._local_version):
-            self._status_var.set(f"↑  {tag} is newer than your installed version.")
+            self._status_var.set(f"↑  {tag} is newer than installed")
         else:
-            self._status_var.set(f"↓  {tag} is older than your installed version.")
+            self._status_var.set(f"↓  {tag} is older than installed")
 
     def _refresh_download_btn(self) -> None:
-        """Update download button label and enabled state for the selected release."""
         if not self._selected_release or self._downloading:
             return
 
@@ -435,7 +481,7 @@ class LauncherApp:
                 ) as r:
                     expected_sha = r.read().decode().strip().split()[0]
             except Exception:
-                pass  # proceed without verification if sha file unavailable
+                pass
 
         self._downloading = True
         self._download_btn.configure(state="disabled", text="Downloading…")
@@ -489,7 +535,6 @@ class LauncherApp:
                     )
                     return
 
-            # Atomic-ish replace
             game_exe = _get_game_exe()
             if game_exe.exists() and game_exe.suffix == ".exe":
                 bak = game_exe.with_suffix(".bak")
@@ -497,7 +542,6 @@ class LauncherApp:
                 game_exe.rename(bak)
             dest.rename(game_exe)
 
-            # Update local version.json to match installed release
             tag = release.get("tag_name", "")
             ver = tag.lstrip("v")
             if ver:
@@ -521,7 +565,7 @@ class LauncherApp:
         self._progress_var.set(100.0)
         self._status_var.set(f"✓  {tag} installed. Ready to play.")
 
-        # Refresh combobox labels so "(installed)" badge moves to new version
+        # Refresh combobox so (installed) badge moves to the new version
         labels = [
             _version_label(r["tag_name"], self._local_version, i == 0)
             for i, r in enumerate(self._all_releases)
@@ -551,8 +595,7 @@ class LauncherApp:
         except FileNotFoundError:
             messagebox.showerror(
                 "Game Not Found",
-                f"Could not find the game at:\n{game_path}\n\n"
-                "Please download a version first.",
+                f"Could not find the game at:\n{game_path}\n\nPlease download a version first.",
                 parent=self.root,
             )
 

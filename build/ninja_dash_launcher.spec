@@ -14,6 +14,8 @@ a = Analysis(
     datas=[
         # Bundle version.json so the launcher can read the installed version
         ('../version.json', '.'),
+        # Bundle splash image for the launcher UI background
+        ('../assets/splash/landing.png', 'assets/splash'),
     ],
     hiddenimports=[
         'tkinter',
