@@ -1849,13 +1849,17 @@ def main():
                 # --- Players (remote ghosts + rubber-band local position) ---
                 for _ps in _ws.players:
                     if _ps.slot == _local_slot:
-                        # Rubber-band: apply server-authoritative position/health
-                        # to local player (1 RTT of latency; prediction is Phase 3d)
+                        # Rubber-band: apply server-authoritative position to local
+                        # player (1 RTT of latency; prediction is Phase 3d).
+                        # NOTE: health is NOT applied from server because the server
+                        # does not yet run combat (GameSimulator.step() omits
+                        # combat_mechanic.check_enemy_collisions).  Applying server
+                        # health here would reset the player to full HP every frame.
+                        # Phase 3b will add server-side combat and re-enable this.
                         player.state.physics.x = _ps.pos[0]
                         player.state.physics.y = _ps.pos[1]
                         player.state.physics.vx = _ps.vel[0]
                         player.state.physics.vy = _ps.vel[1]
-                        player.state.health_state.current_hp = _ps.health
                     else:
                         if _ps.slot not in _remote_players:
                             _remote_players[_ps.slot] = _RemotePlayer(
