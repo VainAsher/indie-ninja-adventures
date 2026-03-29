@@ -619,6 +619,32 @@ class EnemyAI:
 # ============================================================
 
 
+def nearest_player(
+    players: list[tuple[float, float, int, int]],
+    enemy_cx: float,
+    enemy_cy: float,
+) -> tuple[float, float, int, int]:
+    """
+    Return the (x, y, width, height) of the player closest to the given enemy center.
+
+    Used by the server-authoritative simulation where multiple players are active.
+    For single-player, pass a one-element list.
+    """
+    if len(players) == 1:
+        return players[0]
+    best = players[0]
+    best_dist_sq = math.inf
+    for p in players:
+        px, py, pw, ph = p
+        cx = px + pw / 2
+        cy = py + ph / 2
+        d_sq = (cx - enemy_cx) ** 2 + (cy - enemy_cy) ** 2
+        if d_sq < best_dist_sq:
+            best_dist_sq = d_sq
+            best = p
+    return best
+
+
 def create_patrol_waypoints_horizontal(
     start_x: float, start_y: float, distance: float, num_points: int = 2
 ) -> list:

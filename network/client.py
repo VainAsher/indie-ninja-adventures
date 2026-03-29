@@ -63,6 +63,8 @@ class NetworkClient:
 
         self._send_queue: queue.Queue[_SendItem] = queue.Queue(maxsize=120)
         self._recv_queue: queue.Queue[dict] = queue.Queue(maxsize=120)
+        # Phase 3: authoritative WorldSnapshot queue (server-simulated world state)
+        self._world_state_queue: queue.Queue[dict] = queue.Queue(maxsize=120)
         # Outbound entity events (local → server)
         self._entity_send_queue: queue.Queue[dict] = queue.Queue(maxsize=256)
         # Inbound entity events (remote clients → this client, via server broadcast)
@@ -146,6 +148,22 @@ class NetworkClient:
         # need a second queue.  The send loop detects non-_SendItem dicts and
         # emits them as ENTITY_EVENT messages.
         self._entity_send_queue.put_nowait(payload)   # picked up by _send_loop
+
+    def poll_world_state(self) -> Optional[dict]:
+        """
+        Return the most recent WorldSnapshot dict received from the server, or None.
+
+        This is the Phase 3 equivalent of poll_state() — the server's authoritative
+        world state that clients should apply directly to their local entities.
+        Drains the queue so only the latest frame is returned.
+        """
+        latest = None
+        while True:
+            try:
+                latest = self._world_state_queue.get_nowait()
+            except queue.Empty:
+                break
+        return latest
 
     def poll_entity_events(self) -> list[dict]:
         """
@@ -313,6 +331,20 @@ class NetworkClient:
                     except queue.Empty:
                         pass
                     self._recv_queue.put_nowait(msg.payload)
+
+            elif msg.type == MessageType.WORLD_STATE:
+                # Phase 3: authoritative world snapshot from server simulation.
+                _frames_received += 1
+                if _frames_received % 300 == 0:
+                    log.debug("WORLD_STATE: %d frames received so far", _frames_received)
+                try:
+                    self._world_state_queue.put_nowait(msg.payload)
+                except queue.Full:
+                    try:
+                        self._world_state_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+                    self._world_state_queue.put_nowait(msg.payload)
 
             elif msg.type == MessageType.PLAYER_JOIN:
                 pid = msg.payload.get("player_id", "?")
