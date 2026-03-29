@@ -196,13 +196,23 @@ class GameSession:
 # ──────────────────────────────────────────────────────────────────────────────
 
 class GameServer:
-    def __init__(self, host: str, port: int, seed: int, max_players: int = MAX_PLAYERS) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        seed: int,
+        max_players: int = MAX_PLAYERS,
+        world_shape: str = "snake",
+        world_rooms: int = 8,
+    ) -> None:
         self.host = host
         self.port = port
         self.session = GameSession(seed=seed, max_players=max_players)
         self._server: Optional[asyncio.Server] = None
         self._sim_task: Optional[asyncio.Task] = None
         self._stop_event = asyncio.Event()
+        self._world_shape = world_shape
+        self._world_rooms = world_rooms
 
         # Phase 3: authoritative simulator (created lazily on first GAME_START)
         self._simulator = None
@@ -242,12 +252,12 @@ class GameServer:
         pickup_manager = PickupManager(bus)
         hazard_manager = HazardManager(bus)
 
-        # World generation — headless, same seed the clients use
+        # World generation — headless, same seed+shape+rooms the clients use
         from game.world_builder import create_server_world
         tiles, platforms, _seed, spawn_x, spawn_y, megamap = create_server_world(
             seed=seed,
-            shape="snake",
-            rooms=8,
+            shape=self._world_shape,
+            rooms=self._world_rooms,
             collision_system=collision_system,
             enemy_manager=enemy_manager,
             pickup_manager=pickup_manager,
@@ -604,11 +614,16 @@ async def run_server(
     port: int = 7777,
     seed: int = 0,
     max_players: int = MAX_PLAYERS,
+    world_shape: str = "snake",
+    world_rooms: int = 8,
 ) -> None:
     """
     Start the game server and run until cancelled.
     Intended to be called via asyncio.run() in a daemon thread.
     """
-    server = GameServer(host=host, port=port, seed=seed, max_players=max_players)
+    server = GameServer(
+        host=host, port=port, seed=seed, max_players=max_players,
+        world_shape=world_shape, world_rooms=world_rooms,
+    )
     await server.start()
     await server.serve_forever()

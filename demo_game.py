@@ -1532,7 +1532,10 @@ def main():
         _net_seed = current_seed or random.randint(1, 999999)
         _net_thread = _threading.Thread(
             target=lambda: _asyncio.run(
-                _run_server(port=args.host, seed=_net_seed, max_players=args.max_players)
+                _run_server(
+                    port=args.host, seed=_net_seed, max_players=args.max_players,
+                    world_shape=initial_shape, world_rooms=initial_rooms,
+                )
             ),
             daemon=True,
             name="GameServer",
