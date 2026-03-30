@@ -81,14 +81,17 @@ async def read_message(reader: asyncio.StreamReader) -> Message:
 
     Raises:
         asyncio.IncompleteReadError  — connection closed mid-message
-        ValueError                   — message exceeds MAX_MESSAGE_BYTES
+        ValueError                   — message exceeds MAX_MESSAGE_BYTES or malformed JSON
     """
     header = await reader.readexactly(HEADER_SIZE)
     length = struct.unpack(">I", header)[0]
     if length > MAX_MESSAGE_BYTES:
         raise ValueError(f"Incoming message too large: {length} bytes")
     body = await reader.readexactly(length)
-    return Message.decode(body)
+    try:
+        return Message.decode(body)
+    except (json.JSONDecodeError, UnicodeDecodeError, KeyError) as exc:
+        raise ValueError(f"Malformed message ({len(body)} bytes): {exc}") from exc
 
 
 async def write_message(
@@ -100,4 +103,25 @@ async def write_message(
     """
     msg = Message(type=msg_type, payload=payload)
     writer.write(msg.encode())
+    await writer.drain()
+
+
+def encode_message(msg_type: str, payload: dict[str, Any]) -> bytes:
+    """
+    Encode a message to wire bytes without sending.
+
+    Use this when broadcasting the same payload to multiple writers — encode
+    once, then pass the result to write_encoded() for each writer rather than
+    re-encoding the JSON N times.
+    """
+    return Message(type=msg_type, payload=payload).encode()
+
+
+async def write_encoded(writer: asyncio.StreamWriter, encoded: bytes) -> None:
+    """
+    Write pre-encoded bytes to a StreamWriter and flush.
+
+    Pair with encode_message() for zero-copy multi-client broadcast.
+    """
+    writer.write(encoded)
     await writer.drain()

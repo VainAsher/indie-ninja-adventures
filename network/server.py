@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 from .commands import InputCommand
-from .protocol import MessageType, read_message, write_message
+from .protocol import MessageType, encode_message, read_message, write_encoded, write_message
 from .snapshots import MultiplayerSnapshot, PlayerState
 
 log = logging.getLogger("ninja_dash.network.server")
@@ -151,14 +151,25 @@ class GameSession:
         )
 
     async def broadcast(self, msg_type: str, payload: dict) -> None:
-        """Send a message to every connected player."""
+        """
+        Send a message to every connected player.
+
+        The payload is JSON-encoded once then written concurrently to all
+        clients, so a slow or lagging client cannot delay others.
+        """
         async with self._lock:
             writers = [(p.player_id, p.writer) for p in self.players.values()]
-        for pid, writer in writers:
+        if not writers:
+            return
+        encoded = encode_message(msg_type, payload)
+
+        async def _send_one(pid: str, writer: asyncio.StreamWriter) -> None:
             try:
-                await write_message(writer, msg_type, payload)
+                await write_encoded(writer, encoded)
             except Exception as exc:
                 log.debug("Broadcast to %s failed: %s", pid, exc)
+
+        await asyncio.gather(*(_send_one(pid, w) for pid, w in writers))
 
     async def broadcast_lobby_update(self) -> None:
         """Broadcast current lobby state to all connected players."""

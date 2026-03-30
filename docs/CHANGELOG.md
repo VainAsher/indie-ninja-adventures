@@ -8,6 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.7] - 2026-03-30 (Multiplayer network performance — deep audit fixes)
+
+### Fixed / Improved
+
+- **Encode-once broadcast** (`network/protocol.py`, `network/server.py`):
+  `json.dumps()` was called once per connected client per broadcast tick — with 4 clients
+  and WORLD_STATE at 60 Hz that was 240 JSON serialisations/sec of the same payload.
+  Added `encode_message()` and `write_encoded()` helpers. `GameSession.broadcast()` now
+  encodes the payload once and passes raw bytes to every writer.
+
+- **Concurrent broadcast** (`network/server.py`):
+  Writers were sent to sequentially — a slow or lagging client stalled delivery to all
+  others. `broadcast()` now fires all writers concurrently with `asyncio.gather()`.
+
+- **Smart INPUT rate limiter** (`network/client.py`):
+  `send_input()` was enqueuing 60 packets/sec upstream even when the player held the
+  same button state. New logic: send immediately on any button change (full 60 Hz
+  responsiveness); throttle to 20 Hz when state is unchanged. Upstream bandwidth
+  during idle/hold reduces by ~66 %; new inputs are never delayed.
+
+- **Tighter send-loop sleep** (`network/client.py`):
+  Empty-queue sleep reduced from 1 ms to 100 µs — `_recv_loop` gets 10× more
+  opportunities to process inbound data between send attempts.
+
+- **Protocol decode error handling** (`network/protocol.py`):
+  Malformed or truncated JSON would surface as an unhandled crash. `read_message()`
+  now catches `JSONDecodeError`/`UnicodeDecodeError`/`KeyError` and raises a
+  descriptive `ValueError` with byte-count context.
+
+---
+
 ## [0.8.6] - 2026-03-30 (Multiplayer lag reduction)
 
 ### Fixed
