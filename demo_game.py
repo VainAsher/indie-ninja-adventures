@@ -1535,6 +1535,7 @@ def main():
                 _run_server(
                     port=args.host, seed=_net_seed, max_players=args.max_players,
                     world_shape=initial_shape, world_rooms=initial_rooms,
+                    world_hub_id=current_hub_id,
                 )
             ),
             daemon=True,
@@ -1695,10 +1696,12 @@ def main():
         # (World was built earlier from local defaults; we now rebuild it with
         # the parameters the server broadcast in GAME_START.)
         if _net_client is not None:
-            _sv_seed  = _net_client.server_seed  if _net_client.server_seed  is not None else current_seed
-            _sv_shape = _net_client.server_shape if _net_client.server_shape is not None else initial_shape
-            _sv_rooms = _net_client.server_rooms if _net_client.server_rooms is not None else initial_rooms
-            print(f"[NET] Regenerating world: seed={_sv_seed} shape={_sv_shape} rooms={_sv_rooms}")
+            _sv_seed   = _net_client.server_seed   if _net_client.server_seed   is not None else current_seed
+            _sv_shape  = _net_client.server_shape  if _net_client.server_shape  is not None else initial_shape
+            _sv_rooms  = _net_client.server_rooms  if _net_client.server_rooms  is not None else initial_rooms
+            _sv_hub_id = _net_client.server_hub_id if _net_client.server_hub_id is not None else current_hub_id
+            current_hub_id = _sv_hub_id
+            print(f"[NET] Regenerating world: seed={_sv_seed} shape={_sv_shape} rooms={_sv_rooms} hub_id={_sv_hub_id}")
             (
                 tiles, platforms, current_seed,
                 spawn_x, spawn_y, exit_x, exit_y,
@@ -1707,7 +1710,7 @@ def main():
                 seed=_sv_seed,
                 shape=_sv_shape,
                 rooms=_sv_rooms,
-                hub_id=current_hub_id,
+                hub_id=_sv_hub_id,
                 hub_manager=hub_manager,
                 portal_manager=portal_manager,
                 collision_system=collision_system,

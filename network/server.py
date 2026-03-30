@@ -181,8 +181,9 @@ class GameSession:
         print(f"[NET] Game starting — seed={self.seed}")
         await self.broadcast(MessageType.GAME_START, {
             "seed": self.seed,
-            "shape": getattr(server, "_world_shape", "snake") if server else "snake",
-            "rooms": getattr(server, "_world_rooms", 8) if server else 8,
+            "shape":  getattr(server, "_world_shape",  "snake")        if server else "snake",
+            "rooms":  getattr(server, "_world_rooms",  8)              if server else 8,
+            "hub_id": getattr(server, "_world_hub_id", "central_hub") if server else "central_hub",
         })
         # Phase 3: bootstrap the authoritative simulator now that we know the
         # seed and player count.  Init is blocking (world gen) so run it in a
@@ -208,6 +209,7 @@ class GameServer:
         max_players: int = MAX_PLAYERS,
         world_shape: str = "snake",
         world_rooms: int = 8,
+        world_hub_id: str = "central_hub",
     ) -> None:
         self.host = host
         self.port = port
@@ -217,6 +219,7 @@ class GameServer:
         self._stop_event = asyncio.Event()
         self._world_shape = world_shape
         self._world_rooms = world_rooms
+        self._world_hub_id = world_hub_id
 
         # Phase 3: authoritative simulator (created lazily on first GAME_START)
         self._simulator = None
@@ -620,6 +623,7 @@ async def run_server(
     max_players: int = MAX_PLAYERS,
     world_shape: str = "snake",
     world_rooms: int = 8,
+    world_hub_id: str = "central_hub",
 ) -> None:
     """
     Start the game server and run until cancelled.
@@ -628,6 +632,7 @@ async def run_server(
     server = GameServer(
         host=host, port=port, seed=seed, max_players=max_players,
         world_shape=world_shape, world_rooms=world_rooms,
+        world_hub_id=world_hub_id,
     )
     await server.start()
     await server.serve_forever()
