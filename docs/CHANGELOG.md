@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.1] - 2026-03-30 (Fix multiplayer visibility regression from v0.9.0)
+
+### Bug fixes
+
+- **`network/server.py` — `ConnectedPlayer.hub_id` not set on join**:
+  All connecting players were initialized with `hub_id="central_hub"` (the
+  default field value) instead of the actual initial zone. `_broadcast_to_zone`
+  filters writers by `p.hub_id == zone.hub_id`, so when the server's initial
+  zone was any hub other than `"central_hub"` the filter produced an empty set
+  and no `WORLD_STATE` frames were delivered — making every player invisible to
+  every other player. Fixed by passing `hub_id=self._world_hub_id` when
+  constructing `ConnectedPlayer` in `_handle_client`.
+
+- **`demo_game.py` — stale-frame guard discarded valid `WORLD_STATE` frames**:
+  The guard `if _ws_dict.get("hub_id") and _ws_dict["hub_id"] != current_hub_id`
+  fired when `current_hub_id` was still `None` (before `GAME_START` was
+  processed), silently dropping every frame the server sent. Fixed by adding
+  `and current_hub_id` so the guard only activates once the client has a
+  confirmed server-side hub ID.
+
+---
+
 ## [0.9.0] - 2026-03-30 (Instanced zones — independent multiplayer worlds)
 
 ### Multiplayer
