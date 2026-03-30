@@ -221,6 +221,7 @@ class WorldSnapshot:
     pickups: list[PickupState]
     platform_states: list[PlatformState]
     metadata: dict[str, Any]
+    hub_id: str = ""   # zone this snapshot belongs to; "" = pre-Phase-4 server
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -231,6 +232,7 @@ class WorldSnapshot:
             "pickups": [p.to_dict() for p in self.pickups],
             "platform_states": [ps.to_dict() for ps in self.platform_states],
             "metadata": self.metadata,
+            "hub_id": self.hub_id,
         }
 
     @classmethod
@@ -243,4 +245,5 @@ class WorldSnapshot:
             pickups=[PickupState.from_dict(p) for p in data.get("pickups", [])],
             platform_states=[PlatformState.from_dict(ps) for ps in data.get("platform_states", [])],
             metadata=dict(data.get("metadata", {})),
+            hub_id=str(data.get("hub_id", "")),
         )

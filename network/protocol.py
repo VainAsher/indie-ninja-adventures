@@ -43,14 +43,20 @@ class MessageType:
     ENTITY_EVENT  = "entity_event"   # {etype, entity_id, slot, data?}
 
     # Server → Client
-    SERVER_HELLO  = "server_hello"   # {player_id, slot, frame, seed, max_players}
-    SERVER_STATE  = "server_state"   # MultiplayerSnapshot.to_dict()
-    WORLD_STATE   = "world_state"    # WorldSnapshot.to_dict() — Phase 3 authoritative broadcast
-    PLAYER_JOIN   = "player_join"    # {player_id, slot}
-    PLAYER_LEAVE  = "player_leave"   # {player_id, slot}
-    LOBBY_UPDATE  = "lobby_update"   # {connected: int, max: int, players: [{player_id, slot}]}
-    GAME_START    = "game_start"     # {seed: int}
-    ERROR         = "error"          # {code, message}
+    SERVER_HELLO      = "server_hello"      # {player_id, slot, frame, seed, max_players}
+    SERVER_STATE      = "server_state"      # MultiplayerSnapshot.to_dict()
+    WORLD_STATE       = "world_state"       # WorldSnapshot.to_dict() — Phase 3 authoritative broadcast
+    PLAYER_JOIN       = "player_join"       # {player_id, slot}
+    PLAYER_LEAVE      = "player_leave"      # {player_id, slot}
+    LOBBY_UPDATE      = "lobby_update"      # {connected: int, max: int, players: [{player_id, slot}]}
+    GAME_START        = "game_start"        # {seed: int}
+    ERROR             = "error"             # {code, message}
+    # Phase 4 — instanced zones
+    WORLD_TRANSITION  = "world_transition"  # {hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}
+    ZONE_PRESENCE     = "zone_presence"     # {player_id, slot, hub_id, action: "arrived"|"departed"}
+
+    # Phase 4 — Client → Server (portal travel request)
+    PORTAL_TRAVEL     = "portal_travel"     # {destination_id, portal_id}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
