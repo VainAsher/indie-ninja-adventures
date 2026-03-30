@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.9] - 2026-03-30 (WORLD_STATE delta encoding)
+
+### Network
+
+- **Server-side delta encoding** (`network/server.py`):
+  `GameServer._build_world_state_payload()` tracks per-entity state hashes
+  (enemies, pickups, platform states) and emits a delta frame containing only
+  changed/removed entities for each of the FULL_SNAPSHOT_INTERVAL − 1 frames
+  between full snapshots. A full snapshot (`is_delta=False`) is broadcast every
+  180 frames (3 s at 60 Hz) to prevent drift from accumulating.
+
+- **Client-side delta reconstruction** (`network/client.py`):
+  `_EntityCache` applies incoming full/delta frames and reconstructs complete
+  world state before placing it in the receive queue. `poll_world_state()` and
+  all downstream code in `demo_game.py` are unaffected — they always receive a
+  fully-populated dict identical in shape to `WorldSnapshot.to_dict()`.
+
+- **~60% downstream bandwidth reduction**: Players sent every frame (small,
+  always-changing). Enemies (dominant cost) only sent when AI state, health, or
+  position changes. Pickups only sent on collection. Platform states only sent
+  during triggered/falling/respawn transitions.
+
+---
+
 ## [0.8.8] - 2026-03-30 (Wire protocol: JSON → msgpack)
 
 ### Added / Changed

@@ -36,6 +36,12 @@ MAX_PLAYERS = 4
 SERVER_VERSION = "2.0.0"
 TICK_RATE = 60          # target broadcast ticks per second
 TICK_INTERVAL = 1.0 / TICK_RATE
+FULL_SNAPSHOT_INTERVAL = 180   # send a full WORLD_STATE every 3 s at 60 Hz
+
+
+def _dict_hash(d: dict) -> int:
+    """Stable hash for a shallow entity dict (all values must be hashable primitives)."""
+    return hash(tuple(sorted(d.items())))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -241,6 +247,13 @@ class GameServer:
         # Phase 3: authoritative simulator (created lazily on first GAME_START)
         self._simulator = None
 
+        # Delta-encoding state for WORLD_STATE compression.
+        # Full snapshot on first tick; deltas for the next FULL_SNAPSHOT_INTERVAL - 1 ticks.
+        self._enemy_hashes: dict[str, int] = {}
+        self._pickup_hashes: dict[str, int] = {}
+        self._platform_hashes: dict[str, int] = {}
+        self._full_snap_countdown: int = 0  # <= 0 triggers a full snapshot
+
     # ── Simulator bootstrap ───────────────────────────────────────────────────
 
     def _init_simulator(self) -> None:
@@ -391,6 +404,86 @@ class GameServer:
                  len(enemy_manager.enemies),
                  len(pickup_manager.get_alive_pickups()))
 
+    # ── Delta encoding ────────────────────────────────────────────────────────
+
+    def _build_world_state_payload(self, snap_dict: dict) -> dict:
+        """
+        Build the WORLD_STATE wire payload for one tick.
+
+        Sends a full snapshot every FULL_SNAPSHOT_INTERVAL frames; all frames
+        in between are deltas that contain only changed/removed entities.
+        Players are always included (small list, position changes every frame).
+        """
+        if self._full_snap_countdown <= 0:
+            # Full snapshot — refresh all hashes and reset countdown
+            self._full_snap_countdown = FULL_SNAPSHOT_INTERVAL
+            self._enemy_hashes = {e["enemy_id"]: _dict_hash(e) for e in snap_dict["enemies"]}
+            self._pickup_hashes = {p["pickup_id"]: _dict_hash(p) for p in snap_dict["pickups"]}
+            self._platform_hashes = {
+                ps["platform_id"]: _dict_hash(ps) for ps in snap_dict["platform_states"]
+            }
+            snap_dict["is_delta"] = False
+            return snap_dict
+
+        self._full_snap_countdown -= 1
+
+        # --- Enemies ---
+        current_enemy_ids: set[str] = set()
+        enemies_changed: list[dict] = []
+        for e in snap_dict["enemies"]:
+            eid = e["enemy_id"]
+            current_enemy_ids.add(eid)
+            h = _dict_hash(e)
+            if self._enemy_hashes.get(eid) != h:
+                enemies_changed.append(e)
+                self._enemy_hashes[eid] = h
+        enemies_removed = [eid for eid in self._enemy_hashes if eid not in current_enemy_ids]
+        for eid in enemies_removed:
+            del self._enemy_hashes[eid]
+
+        # --- Pickups ---
+        current_pickup_ids: set[str] = set()
+        pickups_changed: list[dict] = []
+        for p in snap_dict["pickups"]:
+            pid = p["pickup_id"]
+            current_pickup_ids.add(pid)
+            h = _dict_hash(p)
+            if self._pickup_hashes.get(pid) != h:
+                pickups_changed.append(p)
+                self._pickup_hashes[pid] = h
+        pickups_removed = [pid for pid in self._pickup_hashes if pid not in current_pickup_ids]
+        for pid in pickups_removed:
+            del self._pickup_hashes[pid]
+
+        # --- Platform states ---
+        current_platform_ids: set[str] = set()
+        platforms_changed: list[dict] = []
+        for ps in snap_dict["platform_states"]:
+            psid = ps["platform_id"]
+            current_platform_ids.add(psid)
+            h = _dict_hash(ps)
+            if self._platform_hashes.get(psid) != h:
+                platforms_changed.append(ps)
+                self._platform_hashes[psid] = h
+        platforms_removed = [psid for psid in self._platform_hashes
+                             if psid not in current_platform_ids]
+        for psid in platforms_removed:
+            del self._platform_hashes[psid]
+
+        return {
+            "frame":             snap_dict["frame"],
+            "seed":              snap_dict["seed"],
+            "is_delta":          True,
+            "players":           snap_dict["players"],
+            "enemies_changed":   enemies_changed,
+            "enemies_removed":   enemies_removed,
+            "pickups_changed":   pickups_changed,
+            "pickups_removed":   pickups_removed,
+            "platforms_changed": platforms_changed,
+            "platforms_removed": platforms_removed,
+            "metadata":          snap_dict.get("metadata", {}),
+        }
+
     # ── Simulation loop ───────────────────────────────────────────────────────
 
     async def _simulation_loop(self) -> None:
@@ -426,12 +519,11 @@ class GameServer:
                     log.error("[SIM] step() error at frame %d: %s", self.session.frame, exc,
                               exc_info=True)
 
-                # Build and broadcast WorldSnapshot
+                # Build and broadcast WorldSnapshot (delta-encoded)
                 try:
                     snap = self._simulator.get_snapshot(self.session.frame)
-                    await self.session.broadcast(
-                        MessageType.WORLD_STATE, snap.to_dict()
-                    )
+                    payload = self._build_world_state_payload(snap.to_dict())
+                    await self.session.broadcast(MessageType.WORLD_STATE, payload)
                 except Exception as exc:
                     log.error("[SIM] get_snapshot/broadcast error: %s", exc, exc_info=True)
 
