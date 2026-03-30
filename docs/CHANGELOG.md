@@ -8,6 +8,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.0] - 2026-03-30 (Instanced zones — independent multiplayer worlds)
+
+### Multiplayer
+
+- **Instanced zone architecture** (`network/server.py`):
+  The server now manages a `_ZoneInstance` registry instead of a single
+  `GameSimulator`. Each zone runs its own 60 Hz simulation loop, its own
+  delta-encoding hash state, and its own player-membership set. Zones are
+  created on demand as players travel and are reaped after 120 s of inactivity
+  (the initial hub is never reaped).
+
+- **`_get_or_create_zone(hub_id)`**: Derives seed and world configuration for
+  any non-initial hub via `SeedDerivation.derive_region_seed()` + `HubManager`.
+
+- **`_handle_portal_travel(player, destination_id, portal_id)`**: Moves a player
+  between zones atomically — removes from old zone, initializes destination zone
+  if this is its first arrival, sends `WORLD_TRANSITION` to the traveling player,
+  and sends `ZONE_PRESENCE` to both old and new zone occupants.
+
+- **`_reap_idle_zones()`**: Background task that checks every 30 s and cancels
+  the simulation task for any zone that has been empty for more than 120 s.
+
+- **`ConnectedPlayer.hub_id`**: Tracks which zone each connected player is in.
+  Disconnect cleanup correctly removes from zone membership and notifies
+  remaining occupants.
+
+- **New protocol messages** (`network/protocol.py`):
+  - `PORTAL_TRAVEL` (client → server): `{destination_id, portal_id}`
+  - `WORLD_TRANSITION` (server → client): `{hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}`
+  - `ZONE_PRESENCE` (server → zone): `{player_id, slot, hub_id, action: "arrived"|"departed"}`
+
+- **`WorldSnapshot.hub_id`** (`network/snapshots.py`): Optional field (default
+  `""`) identifying which zone a snapshot belongs to. Backward-compatible — old
+  clients/servers that omit this field continue to work.
+
+- **Client zone API** (`network/client.py`):
+  - `poll_transition()` — returns next `WORLD_TRANSITION` payload or `None`
+  - `poll_zone_presence()` — returns all pending `ZONE_PRESENCE` events
+  - `send_portal_travel(destination_id, portal_id)` — queues a portal travel request
+  - `_EntityCache.reset()` — clears cached entity state on zone transition
+  - `current_hub_id` — tracks the zone the client is currently in
+
+### Game
+
+- **Portal travel multiplayer intercept** (`demo_game.py`):
+  `on_portal_travel()` now checks `_net_client.is_connected` — if so, sends
+  `PORTAL_TRAVEL` to the server and returns without rebuilding the world locally.
+  World rebuild is deferred until `WORLD_TRANSITION` arrives from the server.
+
+- **`_apply_world_transition(payload)`** (`demo_game.py`):
+  Applies a server-authoritative zone transition: syncs `hub_manager.world_seed`,
+  calls `regenerate_world_state()` with server params, repositions player at
+  `spawn_x`/`spawn_y`, and transitions game state to `PLAYING`.
+
+- **Main multiplayer loop** (`demo_game.py`):
+  Now polls `poll_transition()` and `poll_zone_presence()` each frame. Stale
+  `WORLD_STATE` packets from a zone the player has already left are silently
+  discarded via `hub_id` comparison.
+
+---
+
 ## [0.8.9] - 2026-03-30 (WORLD_STATE delta encoding)
 
 ### Network
