@@ -428,8 +428,11 @@ class CameraSystem:
         if screen_w != self.window_width or screen_h != self.window_height:
             self.handle_resize(screen_w, screen_h)
 
-        # Fill letterbox bars only when needed (avoids full-screen fill each frame)
-        if self.letterbox_left > 0 or self.letterbox_top > 0:
+        # Use subsurface whenever render size differs from window size — this
+        # covers both letterbox bars AND off-by-one rounding (e.g. render_height
+        # rounds to window_height-1 so letterbox_top stays 0 but sizes still
+        # mismatch, causing ValueError in transform.scale).
+        if self.render_width != self.window_width or self.render_height != self.window_height:
             screen.fill((0, 0, 0))
             dest = screen.subsurface(self._scaled_rect)
         else:
