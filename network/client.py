@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import queue
+import socket
 import threading
 import uuid
 from dataclasses import dataclass
@@ -35,7 +36,6 @@ from .snapshots import MultiplayerSnapshot
 log = logging.getLogger("ninja_dash.network.client")
 
 CLIENT_VERSION = "1.0.0"
-SEND_TIMEOUT = 0.016        # 1 frame at 60 Hz — max time to block waiting for input
 
 
 @dataclass
@@ -232,6 +232,15 @@ class NetworkClient:
             log.warning("TCP connect failed — %s", self._error)
             return
 
+        # Disable Nagle's algorithm so small INPUT packets are sent immediately
+        # rather than being buffered for up to 40ms waiting for ACK / MSS.
+        _sock = writer.transport.get_extra_info("socket")
+        if _sock is not None:
+            try:
+                _sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            except OSError:
+                pass
+
         log.debug("TCP socket open to %s:%d — sending CLIENT_HELLO (id=%s, version=%s)",
                   self.host, self.port, self.player_id, CLIENT_VERSION)
         try:
@@ -286,13 +295,15 @@ class NetworkClient:
 
     async def _send_loop(self, writer: asyncio.StreamWriter) -> None:
         """Drain the send queue and forward each item to the server."""
-        loop = asyncio.get_running_loop()
         while not self._stop_event.is_set():
             try:
-                item: _SendItem = await loop.run_in_executor(
-                    None, self._send_queue.get, True, SEND_TIMEOUT
-                )
+                item: _SendItem = self._send_queue.get_nowait()
             except queue.Empty:
+                # Nothing to send — yield to the event loop for 1 ms so that
+                # _recv_loop can process inbound data without blocking.
+                # (The old run_in_executor approach blocked the event loop for
+                # up to SEND_TIMEOUT=16 ms on each empty-queue poll.)
+                await asyncio.sleep(0.001)
                 continue
 
             payload = item.command.to_dict()

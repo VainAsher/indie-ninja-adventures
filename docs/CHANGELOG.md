@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.6] - 2026-03-30 (Multiplayer lag reduction)
+
+### Fixed
+
+- **TCP_NODELAY on all multiplayer sockets** (`network/client.py`, `network/server.py`):
+  Nagle's algorithm was active on both the client outbound socket and each server-accepted
+  client socket. Small INPUT messages (~100-300 bytes) were being buffered for up to 40ms
+  waiting for ACK/MSS before transmission. Setting `TCP_NODELAY = 1` immediately after
+  socket creation eliminates this delay on both ends.
+- **Non-blocking send loop** (`network/client.py`):
+  `_send_loop` was using `run_in_executor(None, queue.get, True, 0.016)` to wait for
+  outbound input — this blocked the asyncio event loop for up to 16ms on each empty-queue
+  poll, preventing `_recv_loop` from processing inbound server state during that window.
+  Replaced with `get_nowait()` + `await asyncio.sleep(0.001)`, which yields control to
+  the event loop every 1ms and sends immediately when data is available.
+
+---
+
 ## [0.8.5] - 2026-03-30 (Cross-machine multiplayer world desync fix)
 
 ### Fixed
