@@ -422,6 +422,12 @@ class CameraSystem:
         Args:
             screen: The actual pygame display surface
         """
+        # Re-sync if the OS resized the window without firing a VIDEORESIZE event
+        # (e.g. DPI scaling, window snap, maximise on some platforms).
+        screen_w, screen_h = screen.get_size()
+        if screen_w != self.window_width or screen_h != self.window_height:
+            self.handle_resize(screen_w, screen_h)
+
         # Fill letterbox bars only when needed (avoids full-screen fill each frame)
         if self.letterbox_left > 0 or self.letterbox_top > 0:
             screen.fill((0, 0, 0))

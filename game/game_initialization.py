@@ -164,6 +164,10 @@ def initialize_pygame(headless: bool = False) -> tuple[pygame.Surface, pygame.ti
     else:
         window_width, window_height = get_recommended_window_size()
         screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
+        # Read back actual dimensions — DPI scaling on Windows can make the real
+        # surface size differ from what was requested.  Using the wrong size here
+        # causes "destination surface not the given width or height" in present().
+        window_width, window_height = screen.get_size()
         pygame.display.set_caption("Vain Asher Gaming's: Indie Ninja Adventures - Responsive Demo")
         clock_pygame = pygame.time.Clock()
 
