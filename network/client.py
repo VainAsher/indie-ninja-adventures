@@ -35,7 +35,7 @@ from .snapshots import MultiplayerSnapshot
 
 log = logging.getLogger("ninja_dash.network.client")
 
-CLIENT_VERSION = "1.0.0"
+CLIENT_VERSION = "2.0.0"
 # Send input immediately on button change; throttle to this many frames between
 # identical-state sends (60 Hz game loop ÷ 3 = 20 Hz hold-state send rate).
 INPUT_HOLD_INTERVAL = 3
