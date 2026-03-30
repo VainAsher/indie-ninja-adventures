@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.8] - 2026-03-30 (Wire protocol: JSON → msgpack)
+
+### Added / Changed
+
+- **msgpack binary serialisation** (`network/protocol.py`, `pyproject.toml`):
+  All multiplayer wire frames previously used JSON text encoding. Switched to
+  length-prefixed msgpack binary frames (`use_bin_type=True`, `raw=False`).
+  Result: ~65% reduction in per-packet payload size; eliminates UTF-8 encode/decode
+  overhead on every send/receive path.
+
+- **Protocol version bump** (`network/protocol.py`, `network/client.py`, `network/server.py`):
+  `PROTOCOL_VERSION` promoted to `"2"` (1 = JSON, 2 = msgpack).
+  `CLIENT_VERSION` and `SERVER_VERSION` bumped to `"2.0.0"`.
+  Version mismatch between client and server is logged as a warning; the incompatible
+  wire format will cause a decode error and disconnect regardless.
+
+- **Improved decode error handling** (`network/protocol.py`):
+  `read_message()` now catches `msgpack.UnpackException`, `msgpack.UnpackValueError`,
+  `KeyError`, `TypeError`, and `ValueError` — surfacing all as a descriptive
+  `ValueError` with byte-count context instead of unhandled crashes.
+
+- **`msgpack>=1.0.0`** added to `[project.dependencies]` in `pyproject.toml`.
+
+---
+
 ## [0.8.7] - 2026-03-30 (Multiplayer network performance — deep audit fixes)
 
 ### Fixed / Improved

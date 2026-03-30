@@ -33,7 +33,7 @@ from .snapshots import MultiplayerSnapshot, PlayerState
 log = logging.getLogger("ninja_dash.network.server")
 
 MAX_PLAYERS = 4
-SERVER_VERSION = "1.0.0"
+SERVER_VERSION = "2.0.0"
 TICK_RATE = 60          # target broadcast ticks per second
 TICK_INTERVAL = 1.0 / TICK_RATE
 
