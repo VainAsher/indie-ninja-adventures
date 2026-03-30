@@ -923,10 +923,77 @@ def main():
         if collision_system:
             collision_system.update_platforms(platform_colliders)
 
+    # ── Zone transition helper (multiplayer) ──────────────────────────────────
+
+    def _apply_world_transition(payload: dict) -> None:
+        """
+        Apply a WORLD_TRANSITION payload received from the server.
+
+        Called from the main multiplayer game loop when poll_transition()
+        returns a payload.  Rebuilds the world from the server's parameters
+        so the local simulation matches the authoritative zone state.
+        """
+        nonlocal current_hub_id, current_seed, tiles, platforms, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap, current_world_context
+        _new_hub_id = payload.get("hub_id", "")
+        if not _new_hub_id:
+            return
+        _sv_seed   = payload.get("seed", current_seed)
+        _sv_shape  = payload.get("shape", "blob")
+        _sv_rooms  = int(payload.get("rooms", 8))
+        _sv_world_seed = payload.get("world_seed")
+        if _sv_world_seed is not None:
+            hub_manager.world_seed = int(_sv_world_seed)
+        _sv_spawn_x = payload.get("spawn_x")
+        _sv_spawn_y = payload.get("spawn_y")
+        (
+            tiles, platforms, current_seed,
+            spawn_x, spawn_y, exit_x, exit_y,
+            world, megamap, minimap,
+        ) = regenerate_world_state(
+            seed=_sv_seed,
+            shape=_sv_shape,
+            rooms=_sv_rooms,
+            hub_id=_new_hub_id,
+            hub_manager=hub_manager,
+            portal_manager=portal_manager,
+            collision_system=collision_system,
+            camera=camera,
+            player=player,
+            enemy_manager=enemy_manager,
+            pickup_manager=pickup_manager,
+            hazard_manager=hazard_manager,
+            level_manager=level_manager,
+            npc_manager=npc_manager,
+            bus=bus,
+            GAME_WIDTH=GAME_WIDTH,
+            GAME_HEIGHT=GAME_HEIGHT,
+        )
+        if _sv_spawn_x is not None:
+            spawn_x = float(_sv_spawn_x)
+            player.state.physics.x = spawn_x
+        if _sv_spawn_y is not None:
+            spawn_y = float(_sv_spawn_y)
+            player.state.physics.y = spawn_y
+        refresh_platform_state()
+        current_hub_id = _new_hub_id
+        current_world_context = "hub"
+        game_state_manager.transition_to(GameState.PLAYING)
+        print(f"[NET] Zone transition applied: hub_id={_new_hub_id}")
+
     # Portal travel handler
     def on_portal_travel(event: PortalTravelEvent):
         """Handle portal travel between hubs"""
         nonlocal current_hub_id, current_seed, tiles, platforms, spawn_x, spawn_y, exit_x, exit_y, world, megamap, minimap, current_world_context, current_play_mode
+
+        # Multiplayer: delegate to server — send PORTAL_TRAVEL and wait for
+        # WORLD_TRANSITION (polled in the main loop via _net_client.poll_transition()).
+        if _net_client is not None and _net_client.is_connected:
+            _net_client.send_portal_travel(
+                destination_id=event.destination_id,
+                portal_id=getattr(event, "portal_id", ""),
+            )
+            return
+
         dest_hub = event.destination_id
         if dest_hub == "arcade_loop":
             # Enter endless arcade loop from hub
@@ -1884,8 +1951,24 @@ def main():
                 _remote_players.pop(_net_client.last_leave_slot, None)
                 _net_client.last_leave_slot = None
 
+            # Phase 4: apply zone transition if the server moved us to a new hub
+            _transition = _net_client.poll_transition()
+            if _transition:
+                _apply_world_transition(_transition)
+
+            # Phase 4: sync remote-player ghost roster from zone presence events
+            for _zp in _net_client.poll_zone_presence():
+                _zp_slot   = _zp.get("slot")
+                _zp_action = _zp.get("action")
+                if _zp_action == "departed" and _zp_slot in _remote_players:
+                    del _remote_players[_zp_slot]
+                # "arrived" handled naturally: next WORLD_STATE will include the player
+
             # Phase 3: apply authoritative WorldSnapshot from server simulation
             _ws_dict = _net_client.poll_world_state()
+            # Discard stale snapshots from a zone we've already left
+            if _ws_dict and _ws_dict.get("hub_id") and _ws_dict["hub_id"] != current_hub_id:
+                _ws_dict = None
             if _ws_dict:
                 from network.snapshots import WorldSnapshot as _WS
                 _ws = _WS.from_dict(_ws_dict)

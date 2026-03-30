@@ -89,6 +89,7 @@ class _EntityCache:
         return {
             "frame":           payload["frame"],
             "seed":            payload["seed"],
+            "hub_id":          payload.get("hub_id", ""),
             "is_delta":        False,
             "players":         payload["players"],
             "enemies":         list(self._enemies.values()),
@@ -96,6 +97,12 @@ class _EntityCache:
             "platform_states": list(self._platforms.values()),
             "metadata":        payload.get("metadata", {}),
         }
+
+    def reset(self) -> None:
+        """Clear all cached entity state (call on zone transition)."""
+        self._enemies.clear()
+        self._pickups.clear()
+        self._platforms.clear()
 # Send input immediately on button change; throttle to this many frames between
 # identical-state sends (60 Hz game loop ÷ 3 = 20 Hz hold-state send rate).
 INPUT_HOLD_INTERVAL = 3
@@ -166,6 +173,16 @@ class NetworkClient:
         # WORLD_STATE delta reconstruction — applies full/delta frames from the
         # server and always presents a complete state dict to poll_world_state().
         self._world_cache = _EntityCache()
+
+        # Phase 4: zone transitions
+        # Receives WORLD_TRANSITION payload dicts from the server.
+        self._transition_queue: queue.Queue[dict] = queue.Queue(maxsize=8)
+        # Receives ZONE_PRESENCE payload dicts (player arrived/departed in our zone).
+        self._zone_presence_queue: queue.Queue[dict] = queue.Queue(maxsize=64)
+        # Outbound portal travel requests queued by send_portal_travel().
+        self._portal_send_queue: queue.Queue[dict] = queue.Queue(maxsize=8)
+        # Zone the client is currently in (updated from GAME_START + WORLD_TRANSITION).
+        self.current_hub_id: Optional[str] = None
 
     # ── Public API (pygame-side) ──────────────────────────────────────────────
 
@@ -282,6 +299,52 @@ class NetworkClient:
             except queue.Empty:
                 break
         return events
+
+    # ── Phase 4: zone transition API ──────────────────────────────────────────
+
+    def poll_transition(self) -> Optional[dict]:
+        """
+        Return the next pending WORLD_TRANSITION payload, or None.
+
+        The payload contains: hub_id, seed, shape, rooms, world_seed,
+        spawn_x, spawn_y — everything needed to call regenerate_world_state().
+        """
+        try:
+            return self._transition_queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def poll_zone_presence(self) -> list[dict]:
+        """
+        Return all pending ZONE_PRESENCE events.
+
+        Each dict has: player_id, slot, hub_id, action ("arrived"|"departed").
+        Drains the queue; returns [] if nothing is waiting.
+        """
+        events: list[dict] = []
+        while True:
+            try:
+                events.append(self._zone_presence_queue.get_nowait())
+            except queue.Empty:
+                break
+        return events
+
+    def send_portal_travel(self, destination_id: str, portal_id: str = "") -> None:
+        """
+        Ask the server to move the local player to destination_id.
+
+        Non-blocking.  The actual world rebuild happens when the server replies
+        with WORLD_TRANSITION (poll via poll_transition()).
+        """
+        try:
+            self._portal_send_queue.put_nowait({
+                "destination_id": destination_id,
+                "portal_id": portal_id,
+            })
+        except queue.Full:
+            log.warning("Portal send queue full — dropping travel request to %s", destination_id)
+
+    # ── End phase 4 API ───────────────────────────────────────────────────────
 
     def poll_state(self) -> Optional[dict]:
         """
@@ -428,6 +491,18 @@ class NetworkClient:
                     log.warning("Send ENTITY_EVENT failed: %s", exc)
                     break
 
+            # Flush any pending portal travel requests (Phase 4)
+            while True:
+                try:
+                    pt = self._portal_send_queue.get_nowait()
+                    await write_message(writer, MessageType.PORTAL_TRAVEL, pt)
+                    log.info("Sent PORTAL_TRAVEL: destination=%s", pt.get("destination_id"))
+                except queue.Empty:
+                    break
+                except Exception as exc:
+                    log.warning("Send PORTAL_TRAVEL failed: %s", exc)
+                    break
+
     async def _recv_loop(self, reader: asyncio.StreamReader) -> None:
         """Receive server state messages and put them in the recv queue."""
         _frames_received = 0
@@ -501,6 +576,7 @@ class NetworkClient:
                 world_seed = msg.payload.get("world_seed")
                 if world_seed is not None:
                     self.server_world_seed = int(world_seed)
+                self.current_hub_id = self.server_hub_id
                 self.game_started.set()
                 log.info("GAME_START: seed=%s shape=%s rooms=%s hub_id=%s world_seed=%s",
                          self.server_seed, self.server_shape, self.server_rooms,
@@ -522,6 +598,37 @@ class NetworkClient:
                         self._entity_event_queue.put_nowait(msg.payload)
                     log.debug("ENTITY_EVENT queued: etype=%s entity_id=%s from_slot=%s",
                               msg.payload.get("etype"), msg.payload.get("entity_id"), src_slot)
+
+            elif msg.type == MessageType.WORLD_TRANSITION:
+                # Phase 4: server is moving us to a new zone.
+                # Reset entity cache so the first WORLD_STATE from the new zone
+                # is always treated as a full snapshot.
+                self._world_cache.reset()
+                self.current_hub_id = msg.payload.get("hub_id")
+                try:
+                    self._transition_queue.put_nowait(msg.payload)
+                except queue.Full:
+                    try:
+                        self._transition_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+                    self._transition_queue.put_nowait(msg.payload)
+                log.info("WORLD_TRANSITION: hub_id=%s", self.current_hub_id)
+                print(f"[NET] Zone transition → {self.current_hub_id}")
+
+            elif msg.type == MessageType.ZONE_PRESENCE:
+                # Phase 4: another player arrived or departed from our zone.
+                try:
+                    self._zone_presence_queue.put_nowait(msg.payload)
+                except queue.Full:
+                    try:
+                        self._zone_presence_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+                    self._zone_presence_queue.put_nowait(msg.payload)
+                log.debug("ZONE_PRESENCE: player=%s action=%s hub=%s",
+                          msg.payload.get("player_id"), msg.payload.get("action"),
+                          msg.payload.get("hub_id"))
 
             elif msg.type == MessageType.ERROR:
                 self._error = msg.payload.get("message", "Unknown server error")

@@ -8,7 +8,7 @@ exclude = ["tests*", "user_data*", "legacy-archive*", "build*", "dist*"]
 
 [project]
 name = "indie-ninja-adventures"
-version = "0.8.9"
+version = "0.9.0"
 description = "A modular, event-driven platformer engine built with Python and Pygame"
 readme = "README.md"
 requires-python = ">=3.11"
