@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import socket
 import uuid
 from dataclasses import dataclass
 from typing import Dict, Optional
@@ -182,7 +183,7 @@ class GameSession:
         await self.broadcast(MessageType.GAME_START, {
             "seed":       self.seed,
             "shape":      getattr(server, "_world_shape",  "snake")        if server else "snake",
-            "rooms":      getattr(server, "_world_rooms",  8)              if server else 8,
+            "rooms":      getattr(server, "_world_rooms", 8)   if server else 8,
             "hub_id":     getattr(server, "_world_hub_id", "central_hub") if server else "central_hub",
             "world_seed": getattr(server, "_world_seed",  self.seed)      if server else self.seed,
         })
@@ -473,6 +474,14 @@ class GameServer:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
         addr = writer.get_extra_info("peername")
+        # Disable Nagle's algorithm so small INPUT packets are sent immediately
+        # rather than being buffered for up to 40ms waiting for ACK / MSS.
+        _sock = writer.transport.get_extra_info("socket")
+        if _sock is not None:
+            try:
+                _sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            except OSError:
+                pass
         log.info("Incoming connection from %s", addr)
 
         if self.session.is_full:
