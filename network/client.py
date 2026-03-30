@@ -36,6 +36,66 @@ from .snapshots import MultiplayerSnapshot
 log = logging.getLogger("ninja_dash.network.client")
 
 CLIENT_VERSION = "2.0.0"
+
+
+class _EntityCache:
+    """
+    Reconstructs full WorldSnapshot state from a stream of full + delta frames.
+
+    The server sends ``is_delta=False`` every FULL_SNAPSHOT_INTERVAL frames and
+    ``is_delta=True`` deltas in between.  This cache applies each delta so
+    callers always receive a complete dict regardless of frame type.
+    """
+
+    __slots__ = ("_enemies", "_pickups", "_platforms")
+
+    def __init__(self) -> None:
+        self._enemies: dict[str, dict] = {}
+        self._pickups: dict[str, dict] = {}
+        self._platforms: dict[str, dict] = {}
+
+    def apply(self, payload: dict) -> dict:
+        """
+        Apply a WORLD_STATE payload and return a full-state dict.
+
+        The returned dict always has the same shape as WorldSnapshot.to_dict()
+        so downstream code (demo_game.py) requires no changes.
+        """
+        if not payload.get("is_delta", False):
+            # Full snapshot — replace caches wholesale
+            self._enemies = {e["enemy_id"]: e for e in payload.get("enemies", [])}
+            self._pickups = {p["pickup_id"]: p for p in payload.get("pickups", [])}
+            self._platforms = {
+                ps["platform_id"]: ps for ps in payload.get("platform_states", [])
+            }
+            return payload
+
+        # Delta: apply changed and removed entities
+        for e in payload.get("enemies_changed", []):
+            self._enemies[e["enemy_id"]] = e
+        for eid in payload.get("enemies_removed", []):
+            self._enemies.pop(eid, None)
+
+        for p in payload.get("pickups_changed", []):
+            self._pickups[p["pickup_id"]] = p
+        for pid in payload.get("pickups_removed", []):
+            self._pickups.pop(pid, None)
+
+        for ps in payload.get("platforms_changed", []):
+            self._platforms[ps["platform_id"]] = ps
+        for psid in payload.get("platforms_removed", []):
+            self._platforms.pop(psid, None)
+
+        return {
+            "frame":           payload["frame"],
+            "seed":            payload["seed"],
+            "is_delta":        False,
+            "players":         payload["players"],
+            "enemies":         list(self._enemies.values()),
+            "pickups":         list(self._pickups.values()),
+            "platform_states": list(self._platforms.values()),
+            "metadata":        payload.get("metadata", {}),
+        }
 # Send input immediately on button change; throttle to this many frames between
 # identical-state sends (60 Hz game loop ÷ 3 = 20 Hz hold-state send rate).
 INPUT_HOLD_INTERVAL = 3
@@ -102,6 +162,10 @@ class NetworkClient:
         # holding the same state to avoid sending 60 identical packets/s.
         self._last_sent_buttons: tuple = ()
         self._hold_frames: int = 0
+
+        # WORLD_STATE delta reconstruction — applies full/delta frames from the
+        # server and always presents a complete state dict to poll_world_state().
+        self._world_cache = _EntityCache()
 
     # ── Public API (pygame-side) ──────────────────────────────────────────────
 
@@ -386,17 +450,19 @@ class NetworkClient:
 
             elif msg.type == MessageType.WORLD_STATE:
                 # Phase 3: authoritative world snapshot from server simulation.
+                # Reconstruct full state from full or delta frame before queuing.
                 _frames_received += 1
                 if _frames_received % 300 == 0:
                     log.debug("WORLD_STATE: %d frames received so far", _frames_received)
+                reconstructed = self._world_cache.apply(msg.payload)
                 try:
-                    self._world_state_queue.put_nowait(msg.payload)
+                    self._world_state_queue.put_nowait(reconstructed)
                 except queue.Full:
                     try:
                         self._world_state_queue.get_nowait()
                     except queue.Empty:
                         pass
-                    self._world_state_queue.put_nowait(msg.payload)
+                    self._world_state_queue.put_nowait(reconstructed)
 
             elif msg.type == MessageType.PLAYER_JOIN:
                 pid = msg.payload.get("player_id", "?")
