@@ -23,7 +23,7 @@ import logging
 import os
 import socket
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 from .commands import InputCommand
@@ -62,6 +62,44 @@ class ConnectedPlayer:
     facing: int = 1
     is_dead: bool = False
     frame: int = 0
+    # Phase 4: which zone this player is currently in
+    hub_id: str = "central_hub"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Zone instance
+# ──────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class _ZoneInstance:
+    """
+    One active instanced zone on the server.
+
+    Each zone runs its own GameSimulator at 60 Hz.  Multiple zones can be
+    live simultaneously — one per hub/mission that has at least one player in
+    it (plus a configurable idle-TTL before teardown).
+    """
+    hub_id: str
+    seed: int
+    shape: str
+    rooms: int
+    world_seed: int
+    spawn_x: float = 100.0
+    spawn_y: float = 100.0
+    simulator: Optional[object] = None
+    sim_task: Optional[asyncio.Task] = None
+    frame: int = 0
+    # Per-zone delta encoding state (not shared across zones)
+    enemy_hashes: dict = field(default_factory=dict)
+    pickup_hashes: dict = field(default_factory=dict)
+    platform_hashes: dict = field(default_factory=dict)
+    full_snap_countdown: int = 0
+    # Zone membership — player_ids currently in this zone
+    player_ids: set = field(default_factory=set)
+    # Asyncio stop signal for this zone's simulation task
+    stop_event: asyncio.Event = field(default_factory=asyncio.Event)
+    # Monotonic time when the last player left (for idle reaping)
+    last_occupied_at: float = 0.0
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -204,15 +242,25 @@ class GameSession:
             "hub_id":     getattr(server, "_world_hub_id", "central_hub") if server else "central_hub",
             "world_seed": getattr(server, "_world_seed",  self.seed)      if server else self.seed,
         })
-        # Phase 3: bootstrap the authoritative simulator now that we know the
-        # seed and player count.  Init is blocking (world gen) so run it in a
-        # thread to avoid stalling the event loop.
+        # Phase 3/4: bootstrap the authoritative simulator for the initial zone.
+        # Init is blocking (world gen) so run it in a thread to avoid stalling
+        # the event loop.
         if server is not None:
+            initial_zone = server._get_or_create_zone(
+                getattr(server, "_world_hub_id", "central_hub")
+            )
             loop = asyncio.get_event_loop()
             try:
-                await loop.run_in_executor(None, server._init_simulator)
+                await loop.run_in_executor(
+                    None, lambda: server._init_zone_simulator(initial_zone)
+                )
+                if initial_zone.sim_task is None:
+                    initial_zone.sim_task = asyncio.create_task(
+                        server._zone_simulation_loop(initial_zone)
+                    )
             except Exception as exc:
-                log.error("[SIM] Failed to initialise GameSimulator: %s", exc, exc_info=True)
+                log.error("[SIM] Failed to initialise initial zone %s: %s",
+                          initial_zone.hub_id, exc, exc_info=True)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -244,25 +292,29 @@ class GameServer:
         # same on all clients, so the server broadcasts it in GAME_START.
         self._world_seed = world_seed if world_seed != 0 else seed
 
-        # Phase 3: authoritative simulator (created lazily on first GAME_START)
-        self._simulator = None
+        # Phase 4: instanced zone registry.
+        # Each entry is a _ZoneInstance with its own simulator and delta state.
+        # Keyed by hub_id; populated lazily as players travel to new zones.
+        self._zones: dict[str, _ZoneInstance] = {}
+        # Backward-compat alias used by Phase 1/2.5 fallback in _client_loop
+        self._simulator = None   # points to initial zone's simulator once started
 
-        # Delta-encoding state for WORLD_STATE compression.
-        # Full snapshot on first tick; deltas for the next FULL_SNAPSHOT_INTERVAL - 1 ticks.
-        self._enemy_hashes: dict[str, int] = {}
-        self._pickup_hashes: dict[str, int] = {}
-        self._platform_hashes: dict[str, int] = {}
-        self._full_snap_countdown: int = 0  # <= 0 triggers a full snapshot
+        # HubManager for seed/shape derivation of non-initial zones (lazy-init)
+        self._hub_manager = None
+
+        # Background task for idle-zone reaping
+        self._reap_task: Optional[asyncio.Task] = None
 
     # ── Simulator bootstrap ───────────────────────────────────────────────────
 
-    def _init_simulator(self) -> None:
+    def _init_zone_simulator(self, zone: "_ZoneInstance") -> None:
         """
-        Initialise the headless GameSimulator for this session.
+        Initialise the headless GameSimulator for one zone.
 
         Runs pygame in dummy-video mode (already confirmed safe by --headless
-        path in demo_game.py).  Generates the world from current_seed, creates
-        one Player per configured slot, then wires everything into GameSimulator.
+        path in demo_game.py).  Generates the world from zone.seed/shape/rooms,
+        creates one Player per configured slot, then wires everything into
+        GameSimulator and stores it on zone.simulator.
         """
         import pygame
         os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -270,7 +322,7 @@ class GameServer:
         if not pygame.get_init():
             pygame.init()
 
-        seed = self.session.seed
+        seed = zone.seed
         max_slots = self.session.max_players
 
         # Core systems
@@ -293,13 +345,15 @@ class GameServer:
         from game.world_builder import create_server_world
         tiles, platforms, _seed, spawn_x, spawn_y, megamap = create_server_world(
             seed=seed,
-            shape=self._world_shape,
-            rooms=self._world_rooms,
+            shape=zone.shape,
+            rooms=zone.rooms,
             collision_system=collision_system,
             enemy_manager=enemy_manager,
             pickup_manager=pickup_manager,
             hazard_manager=hazard_manager,
         )
+        zone.spawn_x = float(spawn_x) if spawn_x else 100.0
+        zone.spawn_y = float(spawn_y) if spawn_y else 100.0
 
         # Build dynamic/static platform lists from megamap tiles
         dynamic_platforms: list[dict] = []
@@ -363,8 +417,8 @@ class GameServer:
         # Create one Player per slot (all slots pre-created for the server simulation)
         from game.game_initialization import create_player
         sim_players: dict[int, object] = {}
-        _sx = float(spawn_x) if spawn_x else 100.0
-        _sy = float(spawn_y) if spawn_y else 100.0
+        _sx = zone.spawn_x
+        _sy = zone.spawn_y
         for slot in range(max_slots):
             p, _entity, _lm = create_player(
                 spawn_x=_sx,
@@ -385,7 +439,7 @@ class GameServer:
         game_clock.reset()
 
         from game.game_simulator import GameSimulator
-        self._simulator = GameSimulator(
+        zone.simulator = GameSimulator(
             bus=bus,
             game_clock=game_clock,
             collision_system=collision_system,
@@ -399,33 +453,38 @@ class GameServer:
             seed=seed,
             handle_platforms=True,
         )
-        log.info("[SIM] GameSimulator initialised  seed=%d  slots=%d  enemies=%d  pickups=%d",
-                 seed, max_slots,
+        # Keep backward-compat alias so Phase 1/2.5 fallback check still works
+        if zone.hub_id == self._world_hub_id:
+            self._simulator = zone.simulator
+        log.info("[SIM] Zone %s initialised  seed=%d  slots=%d  enemies=%d  pickups=%d",
+                 zone.hub_id, seed, max_slots,
                  len(enemy_manager.enemies),
                  len(pickup_manager.get_alive_pickups()))
 
     # ── Delta encoding ────────────────────────────────────────────────────────
 
-    def _build_world_state_payload(self, snap_dict: dict) -> dict:
+    def _build_world_state_payload(self, snap_dict: dict, zone: "_ZoneInstance") -> dict:
         """
-        Build the WORLD_STATE wire payload for one tick.
+        Build the WORLD_STATE wire payload for one zone tick.
 
         Sends a full snapshot every FULL_SNAPSHOT_INTERVAL frames; all frames
-        in between are deltas that contain only changed/removed entities.
-        Players are always included (small list, position changes every frame).
+        in between are deltas containing only changed/removed entities.
+        Players are always included. hub_id is injected into every payload.
         """
-        if self._full_snap_countdown <= 0:
-            # Full snapshot — refresh all hashes and reset countdown
-            self._full_snap_countdown = FULL_SNAPSHOT_INTERVAL
-            self._enemy_hashes = {e["enemy_id"]: _dict_hash(e) for e in snap_dict["enemies"]}
-            self._pickup_hashes = {p["pickup_id"]: _dict_hash(p) for p in snap_dict["pickups"]}
-            self._platform_hashes = {
+        hub_id = zone.hub_id
+
+        if zone.full_snap_countdown <= 0:
+            zone.full_snap_countdown = FULL_SNAPSHOT_INTERVAL
+            zone.enemy_hashes = {e["enemy_id"]: _dict_hash(e) for e in snap_dict["enemies"]}
+            zone.pickup_hashes = {p["pickup_id"]: _dict_hash(p) for p in snap_dict["pickups"]}
+            zone.platform_hashes = {
                 ps["platform_id"]: _dict_hash(ps) for ps in snap_dict["platform_states"]
             }
             snap_dict["is_delta"] = False
+            snap_dict["hub_id"] = hub_id
             return snap_dict
 
-        self._full_snap_countdown -= 1
+        zone.full_snap_countdown -= 1
 
         # --- Enemies ---
         current_enemy_ids: set[str] = set()
@@ -434,12 +493,12 @@ class GameServer:
             eid = e["enemy_id"]
             current_enemy_ids.add(eid)
             h = _dict_hash(e)
-            if self._enemy_hashes.get(eid) != h:
+            if zone.enemy_hashes.get(eid) != h:
                 enemies_changed.append(e)
-                self._enemy_hashes[eid] = h
-        enemies_removed = [eid for eid in self._enemy_hashes if eid not in current_enemy_ids]
+                zone.enemy_hashes[eid] = h
+        enemies_removed = [eid for eid in zone.enemy_hashes if eid not in current_enemy_ids]
         for eid in enemies_removed:
-            del self._enemy_hashes[eid]
+            del zone.enemy_hashes[eid]
 
         # --- Pickups ---
         current_pickup_ids: set[str] = set()
@@ -448,12 +507,12 @@ class GameServer:
             pid = p["pickup_id"]
             current_pickup_ids.add(pid)
             h = _dict_hash(p)
-            if self._pickup_hashes.get(pid) != h:
+            if zone.pickup_hashes.get(pid) != h:
                 pickups_changed.append(p)
-                self._pickup_hashes[pid] = h
-        pickups_removed = [pid for pid in self._pickup_hashes if pid not in current_pickup_ids]
+                zone.pickup_hashes[pid] = h
+        pickups_removed = [pid for pid in zone.pickup_hashes if pid not in current_pickup_ids]
         for pid in pickups_removed:
-            del self._pickup_hashes[pid]
+            del zone.pickup_hashes[pid]
 
         # --- Platform states ---
         current_platform_ids: set[str] = set()
@@ -462,17 +521,18 @@ class GameServer:
             psid = ps["platform_id"]
             current_platform_ids.add(psid)
             h = _dict_hash(ps)
-            if self._platform_hashes.get(psid) != h:
+            if zone.platform_hashes.get(psid) != h:
                 platforms_changed.append(ps)
-                self._platform_hashes[psid] = h
-        platforms_removed = [psid for psid in self._platform_hashes
+                zone.platform_hashes[psid] = h
+        platforms_removed = [psid for psid in zone.platform_hashes
                              if psid not in current_platform_ids]
         for psid in platforms_removed:
-            del self._platform_hashes[psid]
+            del zone.platform_hashes[psid]
 
         return {
             "frame":             snap_dict["frame"],
             "seed":              snap_dict["seed"],
+            "hub_id":            hub_id,
             "is_delta":          True,
             "players":           snap_dict["players"],
             "enemies_changed":   enemies_changed,
@@ -484,52 +544,189 @@ class GameServer:
             "metadata":          snap_dict.get("metadata", {}),
         }
 
+    # ── Zone helpers ──────────────────────────────────────────────────────────
+
+    def _get_or_create_zone(self, hub_id: str) -> "_ZoneInstance":
+        """Return the existing zone for hub_id, or create a new one."""
+        if hub_id not in self._zones:
+            if hub_id == self._world_hub_id:
+                seed  = self._world_seed
+                shape = self._world_shape
+                rooms = self._world_rooms
+            else:
+                # Derive seed + config from hub definitions
+                from systems.seed_hierarchy import SeedDerivation
+                seed = SeedDerivation.derive_region_seed(self._world_seed, hub_id)
+                if self._hub_manager is None:
+                    from game.hub_manager import HubManager
+                    self._hub_manager = HubManager(self._world_seed)
+                hub_def = self._hub_manager.get_hub_definition(hub_id)
+                if hub_def is not None:
+                    shape = hub_def.world_shape.value
+                    rooms = hub_def.room_count
+                else:
+                    shape = "blob"
+                    rooms = 8
+                    log.warning("[ZONE] No hub definition for %s — using defaults", hub_id)
+            self._zones[hub_id] = _ZoneInstance(
+                hub_id=hub_id,
+                seed=seed,
+                shape=shape,
+                rooms=rooms,
+                world_seed=self._world_seed,
+            )
+            log.info("[ZONE] Created zone: hub_id=%s seed=%d shape=%s rooms=%d",
+                     hub_id, seed, shape, rooms)
+        return self._zones[hub_id]
+
+    async def _broadcast_to_zone(
+        self, zone: "_ZoneInstance", msg_type: str, payload: dict
+    ) -> None:
+        """Send a message to every player currently in zone."""
+        async with self.session._lock:
+            writers = [
+                (p.player_id, p.writer)
+                for p in self.session.players.values()
+                if p.hub_id == zone.hub_id
+            ]
+        if not writers:
+            return
+        encoded = encode_message(msg_type, payload)
+
+        async def _send_one(pid: str, w: asyncio.StreamWriter) -> None:
+            try:
+                await write_encoded(w, encoded)
+            except Exception as exc:
+                log.debug("Zone broadcast to %s failed: %s", pid, exc)
+
+        await asyncio.gather(*(_send_one(pid, w) for pid, w in writers))
+
+    async def _handle_portal_travel(
+        self, player: ConnectedPlayer, destination_id: str, portal_id: str
+    ) -> None:
+        """
+        Move a player from their current zone to destination_id.
+
+        Steps:
+          1. Remove player from old zone membership.
+          2. Get/create destination zone; init simulator if this is its first arrival.
+          3. Update player.hub_id and add to new zone membership.
+          4. Send WORLD_TRANSITION to the travelling player only.
+          5. Notify old zone occupants of departure.
+          6. Notify new zone occupants of arrival.
+        """
+        old_hub_id = player.hub_id
+        new_hub_id = destination_id
+
+        # 1. Leave old zone
+        old_zone = self._zones.get(old_hub_id)
+        if old_zone:
+            old_zone.player_ids.discard(player.player_id)
+            if not old_zone.player_ids:
+                old_zone.last_occupied_at = asyncio.get_event_loop().time()
+
+        # 2. Create/initialise destination zone
+        new_zone = self._get_or_create_zone(new_hub_id)
+        if new_zone.simulator is None and self.session.game_started:
+            loop = asyncio.get_event_loop()
+            try:
+                await loop.run_in_executor(
+                    None, lambda: self._init_zone_simulator(new_zone)
+                )
+            except Exception as exc:
+                log.error("[ZONE] Failed to init zone %s: %s", new_hub_id, exc, exc_info=True)
+                return
+            if new_zone.sim_task is None:
+                new_zone.sim_task = asyncio.create_task(
+                    self._zone_simulation_loop(new_zone)
+                )
+
+        # 3. Join new zone
+        player.hub_id = new_hub_id
+        new_zone.player_ids.add(player.player_id)
+
+        # 4. Send WORLD_TRANSITION to the travelling player
+        try:
+            await write_message(player.writer, MessageType.WORLD_TRANSITION, {
+                "hub_id":     new_hub_id,
+                "seed":       new_zone.seed,
+                "shape":      new_zone.shape,
+                "rooms":      new_zone.rooms,
+                "world_seed": new_zone.world_seed,
+                "spawn_x":    new_zone.spawn_x,
+                "spawn_y":    new_zone.spawn_y,
+            })
+        except Exception as exc:
+            log.warning("[ZONE] Could not send WORLD_TRANSITION to %s: %s",
+                        player.player_id, exc)
+
+        # 5. Notify old zone occupants
+        if old_zone:
+            await self._broadcast_to_zone(old_zone, MessageType.ZONE_PRESENCE, {
+                "player_id": player.player_id,
+                "slot": player.slot,
+                "hub_id": old_hub_id,
+                "action": "departed",
+            })
+
+        # 6. Notify new zone occupants (including the traveller themselves)
+        await self._broadcast_to_zone(new_zone, MessageType.ZONE_PRESENCE, {
+            "player_id": player.player_id,
+            "slot": player.slot,
+            "hub_id": new_hub_id,
+            "action": "arrived",
+        })
+
+        log.info("[ZONE] Player %s (slot %d) travelled: %s → %s",
+                 player.player_id, player.slot, old_hub_id, new_hub_id)
+
     # ── Simulation loop ───────────────────────────────────────────────────────
 
-    async def _simulation_loop(self) -> None:
+    async def _zone_simulation_loop(self, zone: "_ZoneInstance") -> None:
         """
-        Proactive 60 Hz simulation loop.
+        Proactive 60 Hz simulation loop for one zone.
 
-        Collects the latest InputCommand from each connected slot, advances the
-        GameSimulator by one tick, then broadcasts a WorldSnapshot to all clients.
-        Drift correction keeps the loop tight even when a tick takes longer than
-        TICK_INTERVAL.
+        Collects InputCommands only from players in this zone, advances its
+        GameSimulator, then broadcasts a delta-encoded WorldSnapshot to those
+        same players. Drift correction keeps the loop tight.
         """
         loop = asyncio.get_event_loop()
         _ticks = 0
         _behind_count = 0
 
-        while not self._stop_event.is_set():
+        while not zone.stop_event.is_set() and not self._stop_event.is_set():
             t0 = loop.time()
 
-            if self._simulator is not None and self.session.game_started:
-                # Collect latest InputCommand per slot
+            if zone.simulator is not None and self.session.game_started:
+                # Inputs only from players in this zone
                 async with self.session._lock:
-                    inputs: dict[int, InputCommand] = {}
-                    for cp in self.session.players.values():
-                        if cp.latest_input is not None:
-                            inputs[cp.slot] = cp.latest_input
+                    inputs: dict[int, InputCommand] = {
+                        cp.slot: cp.latest_input
+                        for cp in self.session.players.values()
+                        if cp.hub_id == zone.hub_id and cp.latest_input is not None
+                    }
 
-                # Advance simulation
                 try:
-                    self._simulator.step(inputs, TICK_INTERVAL)
-                    self.session.frame += 1
+                    zone.simulator.step(inputs, TICK_INTERVAL)
+                    zone.frame += 1
                     _ticks += 1
                 except Exception as exc:
-                    log.error("[SIM] step() error at frame %d: %s", self.session.frame, exc,
-                              exc_info=True)
+                    log.error("[ZONE:%s] step() error at frame %d: %s",
+                              zone.hub_id, zone.frame, exc, exc_info=True)
 
-                # Build and broadcast WorldSnapshot (delta-encoded)
                 try:
-                    snap = self._simulator.get_snapshot(self.session.frame)
-                    payload = self._build_world_state_payload(snap.to_dict())
-                    await self.session.broadcast(MessageType.WORLD_STATE, payload)
+                    snap = zone.simulator.get_snapshot(zone.frame)
+                    snap_dict = snap.to_dict()
+                    snap_dict["hub_id"] = zone.hub_id
+                    payload = self._build_world_state_payload(snap_dict, zone)
+                    await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
                 except Exception as exc:
-                    log.error("[SIM] get_snapshot/broadcast error: %s", exc, exc_info=True)
+                    log.error("[ZONE:%s] snapshot/broadcast error: %s",
+                              zone.hub_id, exc, exc_info=True)
 
-                if _ticks % (TICK_RATE * 5) == 0:  # every 5 s
-                    log.debug("[SIM] tick=%d frame=%d  players=%d",
-                              _ticks, self.session.frame, len(self.session.players))
+                if _ticks % (TICK_RATE * 5) == 0:
+                    log.debug("[ZONE:%s] tick=%d frame=%d  zone_players=%d",
+                              zone.hub_id, _ticks, zone.frame, len(zone.player_ids))
 
             elapsed = loop.time() - t0
             sleep_for = TICK_INTERVAL - elapsed
@@ -538,9 +735,33 @@ class GameServer:
             else:
                 _behind_count += 1
                 if _behind_count % 60 == 0:
-                    log.warning("[SIM] loop behind by %.1f ms (frame=%d)",
-                                -sleep_for * 1000, self.session.frame)
-                await asyncio.sleep(0)  # yield to event loop
+                    log.warning("[ZONE:%s] loop behind by %.1f ms (frame=%d)",
+                                zone.hub_id, -sleep_for * 1000, zone.frame)
+                await asyncio.sleep(0)
+
+    async def _reap_idle_zones(self) -> None:
+        """Periodically tear down zones that have been empty for IDLE_TTL seconds."""
+        IDLE_TTL = 120.0
+        while not self._stop_event.is_set():
+            await asyncio.sleep(30)
+            now = asyncio.get_event_loop().time()
+            for hub_id in list(self._zones):
+                if hub_id == self._world_hub_id:
+                    continue  # never reap the initial hub
+                zone = self._zones[hub_id]
+                if zone.player_ids:
+                    zone.last_occupied_at = now
+                    continue
+                if now - zone.last_occupied_at > IDLE_TTL:
+                    zone.stop_event.set()
+                    if zone.sim_task:
+                        zone.sim_task.cancel()
+                        try:
+                            await zone.sim_task
+                        except asyncio.CancelledError:
+                            pass
+                    del self._zones[hub_id]
+                    log.info("[ZONE] Reaped idle zone: %s", hub_id)
 
     async def start(self) -> None:
         self._server = await asyncio.start_server(
@@ -551,17 +772,30 @@ class GameServer:
                  addrs, self.session.seed, self.session.max_players)
         print(f"[NET] Server listening on {self.host}:{self.port}  seed={self.session.seed}")
 
-        # Start the proactive simulation loop task
-        self._sim_task = asyncio.create_task(self._simulation_loop())
+        # Pre-register the initial zone (no simulator yet — started on first GAME_START)
+        self._get_or_create_zone(self._world_hub_id)
+        self._reap_task = asyncio.create_task(self._reap_idle_zones())
+        # Keep _sim_task as a backward-compat alias for the initial zone task
+        self._sim_task = None
 
     async def stop(self) -> None:
         self._stop_event.set()
-        if self._sim_task:
-            self._sim_task.cancel()
+        # Cancel reaper
+        if self._reap_task:
+            self._reap_task.cancel()
             try:
-                await self._sim_task
+                await self._reap_task
             except asyncio.CancelledError:
                 pass
+        # Cancel all zone simulation tasks
+        for zone in list(self._zones.values()):
+            zone.stop_event.set()
+            if zone.sim_task:
+                zone.sim_task.cancel()
+                try:
+                    await zone.sim_task
+                except asyncio.CancelledError:
+                    pass
         if self._server:
             self._server.close()
             await self._server.wait_closed()
@@ -643,6 +877,11 @@ class GameServer:
             writer.close()
             return
 
+        # Register player in the initial zone
+        initial_zone = self._zones.get(self._world_hub_id)
+        if initial_zone is not None:
+            initial_zone.player_ids.add(player_id)
+
         # Send server hello
         await write_message(writer, MessageType.SERVER_HELLO, {
             "player_id": player_id,
@@ -675,6 +914,19 @@ class GameServer:
             log.error("Client loop error for %s (slot %d): %s",
                       player_id, slot, exc, exc_info=True)
         finally:
+            # Remove from zone membership before session cleanup
+            zone = self._zones.get(player.hub_id)
+            if zone:
+                zone.player_ids.discard(player_id)
+                if not zone.player_ids:
+                    zone.last_occupied_at = asyncio.get_event_loop().time()
+                # Notify remaining zone occupants of departure
+                await self._broadcast_to_zone(zone, MessageType.ZONE_PRESENCE, {
+                    "player_id": player_id,
+                    "slot": slot,
+                    "hub_id": player.hub_id,
+                    "action": "departed",
+                })
             await self.session.remove_player(player_id)
             await self.session.broadcast(MessageType.PLAYER_LEAVE, {
                 "player_id": player_id,
@@ -723,6 +975,15 @@ class GameServer:
                     payload_with_source = dict(msg.payload)
                     payload_with_source.setdefault("slot", player.slot)
                     await self.session.broadcast(MessageType.ENTITY_EVENT, payload_with_source)
+
+            elif msg.type == MessageType.PORTAL_TRAVEL:
+                # Phase 4: player used a portal — move them to the destination zone.
+                destination_id = msg.payload.get("destination_id", "")
+                portal_id = msg.payload.get("portal_id", "")
+                if destination_id:
+                    await self._handle_portal_travel(player, destination_id, portal_id)
+                else:
+                    log.warning("PORTAL_TRAVEL from %s missing destination_id", player.player_id)
 
             else:
                 log.debug("Unexpected message type '%s' from %s (slot %d)",
