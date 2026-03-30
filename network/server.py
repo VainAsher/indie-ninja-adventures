@@ -434,6 +434,19 @@ class GameServer:
             p.player_id = slot
             sim_players[slot] = p
 
+        # Phase 3b: Create one CombatMechanic per slot for server-authoritative
+        # damage calculation.  The server is headless so we skip CameraEffectsHandler
+        # (screen shake is a client-only visual).
+        from mechanics.combat_mechanic import CombatMechanic
+        combat_mechanics: dict[int, object] = {
+            slot: CombatMechanic(
+                entity_id=slot,
+                event_bus=bus,
+                logger=logger.get_logger(f"combat_{slot}"),
+            )
+            for slot in range(max_slots)
+        }
+
         # Reset clock so the first tick() call doesn't see accumulated wall time
         # from world generation and fire multiple TickEvents at once.
         game_clock.reset()
@@ -452,6 +465,7 @@ class GameServer:
             megamap=megamap,
             seed=seed,
             handle_platforms=True,
+            combat_mechanics=combat_mechanics,
         )
         # Keep backward-compat alias so Phase 1/2.5 fallback check still works
         if zone.hub_id == self._world_hub_id:

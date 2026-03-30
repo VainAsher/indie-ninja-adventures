@@ -8,6 +8,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.3] - 2026-03-30 (Phase 3b: server-authoritative combat + regression test suite)
+
+### Added
+
+- **`game/game_simulator.py`** — `GameSimulator.__init__` accepts a new
+  `combat_mechanics: dict[int, object] | None` parameter (default `None`).
+  `step()` now calls `check_enemy_collisions(p.state, enemy_manager, dt)` for
+  each alive player slot that has a registered `CombatMechanic` and applies
+  returned damage via `p.state.health_state.take_damage(damage, defense=0)`.
+  Runs after `enemy_manager.update()` so AI positions are current.
+
+- **`network/server.py`** — `_init_zone_simulator()` creates one
+  `CombatMechanic` per player slot (server is headless — no
+  `CameraEffectsHandler`) and passes the dict to `GameSimulator` as
+  `combat_mechanics=`. Player health in `WorldSnapshot` is now authoritative.
+
+- **`demo_game.py`** — Rubber-band block applies
+  `player.state.health_state.current_hp = _ps.health` from the server
+  snapshot, completing the server → client HP sync loop introduced in Phase 3b.
+
+- **`tests/unit/test_network_protocol.py`** — 13 tests covering
+  `Message.encode/decode`, `encode_message`, `read_message` (oversized + malformed
+  guards), `write_message`, and `MessageType` constant invariants.
+
+- **`tests/unit/test_network_snapshots.py`** — 24 tests covering round-trip
+  serialization of all six snapshot dataclasses (`Snapshot`, `PlayerState`,
+  `MultiplayerSnapshot`, `EnemyState`, `PickupState`, `PlatformState`,
+  `WorldSnapshot`) including missing-key defaults and hub_id propagation.
+
+- **`tests/unit/test_entity_cache.py`** — 18 tests covering `_EntityCache`
+  full-snapshot replacement, delta add/update/remove for enemies, pickups and
+  platforms, `reset()`, and the reconstructed-full return shape.
+
+- **`tests/unit/test_game_simulator.py`** — 16 tests covering `GameSimulator`
+  tick stepping, `get_snapshot()` output, and Phase 3b combat integration
+  (mechanic called for alive slots, skipped for dead slots, damage applied,
+  reflected in snapshot).
+
+- **`tests/integration/test_network_multiplayer.py`** — 13 integration tests
+  covering the full server→cache→client pipeline: player slot visibility,
+  dead-player flags, Phase 3b health propagation, enemy state in snapshots,
+  `_EntityCache` full + delta end-to-end, and `hub_id` preservation.
+
+---
+
 ## [0.9.2] - 2026-03-30 (Fix seed mismatch causing divergent worlds and invisible players)
 
 ### Bug fixes
