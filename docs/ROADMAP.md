@@ -2,7 +2,7 @@
 
 Vain Asher Gaming's: Indie Ninja Adventures
 
-Last Updated: 2026-03-28 | Version: 0.7.1 | Status: Milestones 0–2 complete; M3 partial
+Last Updated: 2026-03-30 | Version: 0.8.0 | Status: Milestones 0–2 complete; M3 partial; Phase 3a complete
 
 ---
 
@@ -111,20 +111,36 @@ Key bindings, fullscreen, sfx_volume, and show_hitboxes all wired via `apply_run
 
 ---
 
+## Infrastructure (v0.8.0) ✅ COMPLETE
+
+4-repo pipeline architecture and structured feedback workloop. See [docs/workflow/](workflow/) for
+sprint, branching, and release processes.
+
+| Repo | Status |
+|------|--------|
+| `VainAsher/indie-ninja-launcher` (public) | Scaffold ready — create repo |
+| `VainAsher/indie-ninja-adventures` (private) | Active — this repo |
+| `VainAsher/indie-ninja-feedback` (public) | Scaffold ready — create repo |
+| `VainAsher/indie-ninja-pipeline` (private) | Scaffold ready — create repo |
+
+One-time setup: see "One-Time Setup Actions" section in `docs/repo-scaffolds/pipeline-repo/README.md`.
+
+---
+
 ## Long-Horizon Goals
 
-### Multiplayer
+### Multiplayer (Phase 3b+)
 
-- Authoritative server / client prediction / lag compensation
+- Phase 3b: Client-side prediction + server reconciliation
+- Phase 3c: Lag compensation, rollback netcode
 - Co-op and versus modes
-- Deterministic physics (already in place) enables replay-based networking
+- Version parity enforcement (mismatched builds cannot connect)
 
-### Custom Launcher
+### Custom Launcher (v1.x)
 
-- Downloads and verifies client, server, and mod bundles from GitHub
-- Enforces version parity — mismatched builds cannot connect
-- Supports mod browser, installation, and activation
+- Mod browser, installation, and activation
 - Platform targets: Windows primary; macOS/Linux stretch
+- Launcher repo: `VainAsher/indie-ninja-launcher`
 
 ### Advanced Features (Backlog)
 

@@ -1,0 +1,47 @@
+name: Auto Label Issues
+
+# Ensures every new issue has at least `needs-triage`.
+# GitHub issue form templates already assign labels, so this is a safety net
+# for issues that arrive without labels (e.g. via API or older templates).
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  label:
+    name: Add needs-triage if unlabelled
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Add needs-triage label if no labels present
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+
+            if (issue.labels.length === 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['needs-triage'],
+              });
+              console.log(`Added needs-triage to issue #${issue.number}`);
+            } else {
+              // Ensure needs-triage is added if not already present
+              const hasTriageLabel = issue.labels.some(l => l.name === 'needs-triage');
+              if (!hasTriageLabel) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['needs-triage'],
+                });
+                console.log(`Added needs-triage to issue #${issue.number} (had other labels)`);
+              } else {
+                console.log(`Issue #${issue.number} already labelled.`);
+              }
+            }

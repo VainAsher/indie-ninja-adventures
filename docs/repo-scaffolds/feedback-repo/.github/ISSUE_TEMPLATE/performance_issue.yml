@@ -1,0 +1,65 @@
+name: Performance Issue
+description: Report low FPS, lag, stuttering, or slow loading
+labels: ["bug", "performance", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Performance issues are hard to diagnose without system details. Please fill in as much as you can.
+
+  - type: input
+    id: version
+    attributes:
+      label: Game Version
+      placeholder: "e.g. v0.8.0"
+    validations:
+      required: true
+
+  - type: input
+    id: fps
+    attributes:
+      label: FPS observed
+      description: Target is 60 FPS. What are you seeing?
+      placeholder: "e.g. 15–25 FPS in Town zone"
+    validations:
+      required: true
+
+  - type: textarea
+    id: system
+    attributes:
+      label: System specs
+      placeholder: |
+        OS: Windows 11
+        CPU: Intel i5-10400
+        RAM: 8GB
+        GPU: Intel UHD 630 (integrated)
+        Storage: HDD / SSD
+    validations:
+      required: true
+
+  - type: textarea
+    id: when
+    attributes:
+      label: When does it happen?
+      description: Specific zone, mission, action, or number of players
+      placeholder: "e.g. Always in the Castle zone with 3 players connected"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Game mode
+      options:
+        - Campaign (solo)
+        - Multiplayer (hosted)
+        - Multiplayer (joined)
+        - Arcade
+        - Sandbox
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Logs or additional context
+      description: Paste from `user_data/logs/` if available. Screenshot of FPS counter helpful.
+      render: text

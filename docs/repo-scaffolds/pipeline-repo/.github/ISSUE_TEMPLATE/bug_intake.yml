@@ -1,0 +1,82 @@
+name: Bug Intake
+description: Internal triaged bug — linked from feedback repo
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Internal tracking for a bug that has been triaged from the public feedback repo.
+        Link the original report and add root cause hypothesis before sprint planning.
+
+  - type: input
+    id: source
+    attributes:
+      label: Original report
+      description: Link to the feedback repo issue
+      placeholder: "VainAsher/indie-ninja-feedback#42"
+    validations:
+      required: true
+
+  - type: input
+    id: summary
+    attributes:
+      label: Bug summary
+      description: One sentence description (rephrase for internal clarity if needed)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - P0 — Critical (crash / data loss / unplayable)
+        - P1 — High (major feature broken)
+        - P2 — Medium (noticeable, workaround exists)
+        - P3 — Low (cosmetic / minor)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      multiple: true
+      options:
+        - combat
+        - movement / physics
+        - world generation
+        - campaign / story
+        - multiplayer / netcode
+        - replay system
+        - UI / menus
+        - rendering / animation
+        - audio
+        - launcher
+    validations:
+      required: true
+
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Root cause hypothesis
+      description: Best guess at what's causing it. "Unknown" is fine if not yet investigated.
+      placeholder: "Likely a frame ordering issue in the pickup collection event — client processes ENTITY_EVENT before local state update."
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Fix approach
+      description: Proposed fix — file paths, function names, strategy.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      placeholder: |
+        - [ ] Bug cannot be reproduced with steps from original report
+        - [ ] All tests pass (python run_tests.py)
+        - [ ] Multiplayer smoke test passes (if netcode involved)
+        - [ ] docs/CHANGELOG.md updated
+    validations:
+      required: true

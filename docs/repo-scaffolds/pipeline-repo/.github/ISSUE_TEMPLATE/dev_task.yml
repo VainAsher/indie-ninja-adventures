@@ -1,0 +1,94 @@
+name: Dev Task
+description: Planned development work — feature, improvement, or tech debt
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Complete all sections before moving this task to In Progress.
+
+  - type: input
+    id: goal
+    attributes:
+      label: Goal
+      description: One sentence — what is true when this is done?
+      placeholder: "e.g. Forest boss transitions to phase 2 at 50% HP with charge attack pattern"
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: What player experience does this unlock? What breaks without it?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: system
+    attributes:
+      label: System affected
+      multiple: true
+      options:
+        - combat
+        - movement / physics
+        - world generation
+        - campaign / story
+        - multiplayer / netcode
+        - replay system
+        - UI / menus
+        - rendering / animation
+        - audio
+        - build / CI
+        - documentation
+        - launcher
+    validations:
+      required: true
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Estimated size
+      options:
+        - Small (2–4 hrs)
+        - Medium (4–8 hrs)
+        - Large (8–15 hrs)
+    validations:
+      required: true
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Approach
+      description: File paths, function names, key design decisions
+      placeholder: |
+        - `entities/boss_ai.py`: implement `_phase_transition()` method
+        - `entities/boss.py`: expose `hp_percent` property
+        - `game/game_simulator.py`: wire boss tick into server loop
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: Regressions, unknowns, dependencies
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      placeholder: |
+        - [ ] Boss transitions to phase 2 at 50% HP
+        - [ ] Charge attack fires in phase 2
+        - [ ] All tests pass (python run_tests.py)
+        - [ ] 2-player multiplayer: boss state syncs correctly
+        - [ ] docs/CHANGELOG.md updated
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Source (if from feedback repo)
+      placeholder: "VainAsher/indie-ninja-feedback#42"

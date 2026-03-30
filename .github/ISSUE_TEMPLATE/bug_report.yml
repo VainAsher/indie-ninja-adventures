@@ -1,0 +1,91 @@
+name: Bug Report
+description: Report a bug, crash, or unexpected behaviour
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Fill in as much as you can — it helps a lot.
+
+  - type: input
+    id: version
+    attributes:
+      label: Game Version
+      description: Found in the launcher title bar or the in-game pause menu
+      placeholder: "e.g. v0.8.0"
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: OS and hardware
+      placeholder: "e.g. Windows 11, 16GB RAM, Intel i7"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Step-by-step instructions to trigger the bug
+      placeholder: |
+        1. Start a hosted multiplayer game
+        2. Join with a second client
+        3. Collect a coin on client 1
+        4. Observe: coin remains on client 2's screen
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: How often does it happen?
+      options:
+        - Always
+        - Often (>50%)
+        - Sometimes (<50%)
+        - Rarely (once)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical (crash / data loss / unplayable)
+        - High (major feature broken)
+        - Medium (noticeable issue, workaround exists)
+        - Low (cosmetic / minor)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: Paste relevant logs from `user_data/logs/` or the console. Not required but very helpful.
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, video, save file location, seed number, multiplayer setup details, etc.

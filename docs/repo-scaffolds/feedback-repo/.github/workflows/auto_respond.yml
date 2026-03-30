@@ -1,0 +1,49 @@
+name: Auto Respond to New Issues
+
+# Posts a thank-you comment on every new issue.
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  respond:
+    name: Post acknowledgement comment
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Comment on new issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+
+            const isUrgent = issue.labels.some(l =>
+              l.name === 'urgent' || l.name.includes('critical')
+            );
+
+            const urgentNote = isUrgent
+              ? '\n\n> **Urgent/Critical label detected** — this will be reviewed as soon as possible.'
+              : '';
+
+            const body = [
+              `Thanks for taking the time to submit this, @${issue.user.login}! 🙏`,
+              '',
+              'This has been logged and will be reviewed in the next triage pass (typically within 7 days).' + urgentNote,
+              '',
+              '**While you wait:**',
+              '- Check the [Known Issues](https://vainasher.github.io/indie-ninja-launcher/known-issues) page for workarounds',
+              '- See the [FAQ](https://vainasher.github.io/indie-ninja-launcher/faq) for common questions',
+              '- Add the `urgent` label if this is a crash or makes the game unplayable',
+              '',
+              '_— Vain Asher Gaming_',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body,
+            });

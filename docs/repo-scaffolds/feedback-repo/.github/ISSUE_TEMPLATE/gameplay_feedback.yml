@@ -1,0 +1,61 @@
+name: Gameplay Feedback
+description: Share how a session felt — what worked, what didn't
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        General feedback about your experience. No specific bug needed — just share what you observed.
+
+  - type: input
+    id: version
+    attributes:
+      label: Game Version
+      placeholder: "e.g. v0.8.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Game mode played
+      options:
+        - Campaign
+        - Arcade (endless procedural)
+        - Sandbox
+        - Multiplayer
+    validations:
+      required: true
+
+  - type: input
+    id: session_length
+    attributes:
+      label: Approximate session length
+      placeholder: "e.g. 45 minutes"
+
+  - type: textarea
+    id: what_worked
+    attributes:
+      label: What felt good?
+      description: Mechanics, moments, or systems that worked well
+
+  - type: textarea
+    id: what_didnt
+    attributes:
+      label: What felt off or frustrating?
+      description: Anything that broke flow, felt unfair, or was confusing
+
+  - type: dropdown
+    id: overall
+    attributes:
+      label: Overall feel
+      options:
+        - Very fun — couldn't stop playing
+        - Good — enjoyable session
+        - Mixed — some good, some frustrating
+        - Rough — more frustration than fun
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else to add?

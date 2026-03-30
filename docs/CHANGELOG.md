@@ -8,6 +8,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.5] - 2026-03-30 (Cross-machine multiplayer world desync fix)
+
+### Fixed
+
+- **Cross-machine world desync** (`network/server.py`, `network/client.py`, `demo_game.py`):
+  Remote clients now generate an identical tile layout and collision geometry to the host.
+  Root cause: `regenerate_world_state()` derives the actual seed via
+  `SeedDerivation.derive_region_seed(hub_manager.world_seed, hub_id)` — ignoring the passed
+  `seed` — so if `hub_manager.world_seed` differed between machines (loaded from different local
+  saves) the derived seed differed and layouts diverged.  Fix: host broadcasts its
+  `hub_manager.world_seed` as `"world_seed"` in the `GAME_START` message; remote clients apply
+  it to their `hub_manager.world_seed` before calling `regenerate_world_state()`.
+
+---
+
+## [0.8.0] - 2026-03-29 (Phase 3a Authoritative Server + Launcher v1.1.0 + Infrastructure)
+
+### Summary
+
+Phase 3a delivers a full authoritative server running the game simulation at 60Hz and broadcasting
+`WorldSnapshot` to all connected clients. The launcher adds Report and Dev Tools tabs. Biome tileset
+assets (building, cave, dungeon) and a shuriken sprite are added. The project adopts a 4-repo
+architecture with a structured feedback workloop pipeline.
+
+### Added
+
+- **Phase 3a authoritative server** (`network/server.py`, `network/client.py`, `game/game_simulator.py`):
+  Server runs a full `GameSimulator` at 60Hz. Clients receive `WorldSnapshot` each tick and reconcile
+  local state. Host still plays locally; remote clients drive from server snapshots.
+- **Launcher v1.1.0** (`launcher/launcher.py`): Added Report tab (bug/feedback/performance/crash
+  pre-fills GitHub issue URL) and Dev Tools tab (10s profiler benchmark, log viewer, replay launcher).
+- **Biome tileset assets** (`assets/tilesets/`): Building, cave, and dungeon spritesheets added.
+- **Shuriken sprite** (`assets/sprites/`): Dedicated shuriken projectile sprite.
+- **4-repo pipeline architecture** (documentation + scaffolds): `docs/repo-scaffolds/` contains
+  ready-to-deploy files for the launcher, feedback, and pipeline repositories.
+- **Workflow documentation** (`docs/workflow/`): BRANCHING.md, SPRINT_WORKFLOW.md, RELEASE_CHECKLIST.md.
+- **GitHub issue templates** (`.github/ISSUE_TEMPLATE/`): bug_report.yml, task.yml, config.yml.
+- **PR template** (`.github/PULL_REQUEST_TEMPLATE.md`).
+- **Weekly feedback sync workflow** (`.github/workflows/sync_feedback.yml`).
+- **Cross-repo dispatch** (`.github/workflows/release.yml`): Notifies launcher repo on game release.
+- **Developer documentation** (`docs/dev/`, `CONTRIBUTING.md`): Setup guide, architecture reference,
+  systems API, contributing guide.
+- **Public user docs scaffold** (`docs/repo-scaffolds/launcher-repo/docs/`): Installation, controls,
+  gameplay guide, multiplayer guide, FAQ, known issues, changelog pages for GitHub Pages.
+- **`develop` branch** added to CI triggers.
+
+### Changed
+
+- **`pyproject.toml`**: version bumped from 0.7.0 → 0.8.0 (now consistent with `version.json`).
+- **`README.md`**: Full rewrite — v0.8.0, 4-repo architecture diagram, accurate feature table,
+  multi-repo links, cleaned Quick Start.
+- **`version.json`**: `min_launcher_version` set to `"1.1.0"`.
+
+### Infrastructure
+
+- Multi-repo architecture documented and scaffolded (see `docs/repo-scaffolds/`)
+- Feedback workloop: Player → Feedback → Triage → Plan → Build → Test → Release → Document → Repeat
+
+---
+
 ## [0.7.8] - 2026-03-29 (Phase 2.5: Entity Sync + Configurable Max Players)
 
 ### Summary

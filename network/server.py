@@ -180,10 +180,11 @@ class GameSession:
         log.info("GAME_START: seed=%d  players=%s", self.seed, player_ids)
         print(f"[NET] Game starting — seed={self.seed}")
         await self.broadcast(MessageType.GAME_START, {
-            "seed": self.seed,
-            "shape":  getattr(server, "_world_shape",  "snake")        if server else "snake",
-            "rooms":  getattr(server, "_world_rooms",  8)              if server else 8,
-            "hub_id": getattr(server, "_world_hub_id", "central_hub") if server else "central_hub",
+            "seed":       self.seed,
+            "shape":      getattr(server, "_world_shape",  "snake")        if server else "snake",
+            "rooms":      getattr(server, "_world_rooms",  8)              if server else 8,
+            "hub_id":     getattr(server, "_world_hub_id", "central_hub") if server else "central_hub",
+            "world_seed": getattr(server, "_world_seed",  self.seed)      if server else self.seed,
         })
         # Phase 3: bootstrap the authoritative simulator now that we know the
         # seed and player count.  Init is blocking (world gen) so run it in a
@@ -210,6 +211,7 @@ class GameServer:
         world_shape: str = "snake",
         world_rooms: int = 8,
         world_hub_id: str = "central_hub",
+        world_seed: int = 0,
     ) -> None:
         self.host = host
         self.port = port
@@ -220,6 +222,9 @@ class GameServer:
         self._world_shape = world_shape
         self._world_rooms = world_rooms
         self._world_hub_id = world_hub_id
+        # Base world_seed used by hub_manager for SeedDerivation — must be the
+        # same on all clients, so the server broadcasts it in GAME_START.
+        self._world_seed = world_seed if world_seed != 0 else seed
 
         # Phase 3: authoritative simulator (created lazily on first GAME_START)
         self._simulator = None
@@ -624,6 +629,7 @@ async def run_server(
     world_shape: str = "snake",
     world_rooms: int = 8,
     world_hub_id: str = "central_hub",
+    world_seed: int = 0,
 ) -> None:
     """
     Start the game server and run until cancelled.
@@ -632,7 +638,7 @@ async def run_server(
     server = GameServer(
         host=host, port=port, seed=seed, max_players=max_players,
         world_shape=world_shape, world_rooms=world_rooms,
-        world_hub_id=world_hub_id,
+        world_hub_id=world_hub_id, world_seed=world_seed,
     )
     await server.start()
     await server.serve_forever()

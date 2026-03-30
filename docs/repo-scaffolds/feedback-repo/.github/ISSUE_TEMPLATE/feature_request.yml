@@ -1,0 +1,57 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests are always welcome. Describe the idea and why it would improve the game.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What would you like to see?
+      description: A clear description of the feature or improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would this improve the game?
+      description: What problem does it solve? What experience does it enable?
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples or references
+      description: Other games that do this well, mockups, screenshots, etc.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area of the game
+      multiple: true
+      options:
+        - Player movement / mechanics
+        - Combat
+        - Enemies / AI
+        - World generation
+        - Campaign / story
+        - Multiplayer
+        - Replay system
+        - UI / menus
+        - Audio
+        - Launcher
+        - Other
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - Nice to have
+        - Would significantly improve my experience
+        - Game feels incomplete without it

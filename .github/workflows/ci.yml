@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ master, feature/** ]
+    branches: [ master, develop, feature/** ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
 
 jobs:
   test:
-    name: Test on Python ${{ matrix.python-version }}
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -41,18 +41,17 @@ jobs:
       - name: Check formatting with black
         run: |
           black --check .
-          # v0.7.0: 100% Black compliance achieved
 
       - name: Type check with mypy
         run: |
           mypy core/ systems/ entities/ --ignore-missing-imports
-        continue-on-error: true  # v0.7.0: Core modules 98% coverage, gradual typing in progress
+        continue-on-error: true  # Gradual typing — core modules 98% coverage
 
       - name: Run tests
         run: |
           python run_tests.py
         env:
-          SDL_VIDEODRIVER: dummy  # Headless mode for pygame
+          SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
 
       - name: Upload test results
@@ -65,9 +64,9 @@ jobs:
             quality_baseline_*.txt
 
   lint-strict:
-    name: Linting (Strict Mode - Informational)
+    name: Linting (Informational)
     runs-on: windows-latest
-    continue-on-error: true  # This job is informational only
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -82,9 +81,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff black mypy
 
-      - name: Ruff statistics (informational)
+      - name: Ruff statistics
         run: |
-          ruff check . --statistics || echo "Current status: 105 minor warnings (acceptable)"
+          ruff check . --statistics || echo "Minor warnings present (acceptable)"
           exit 0
 
       - name: Black statistics

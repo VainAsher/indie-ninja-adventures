@@ -85,6 +85,9 @@ class NetworkClient:
         self.server_shape: Optional[str] = None
         self.server_rooms: Optional[int] = None
         self.server_hub_id: Optional[str] = None
+        # Base world_seed used by hub_manager — must equal the host's
+        # hub_manager.world_seed so SeedDerivation produces identical results.
+        self.server_world_seed: Optional[int] = None
 
         # Lobby / game-start state (set from background thread, read from pygame thread)
         self.game_started: threading.Event = threading.Event()
@@ -386,10 +389,14 @@ class NetworkClient:
                 hub_id = msg.payload.get("hub_id")
                 if hub_id is not None:
                     self.server_hub_id = str(hub_id)
+                world_seed = msg.payload.get("world_seed")
+                if world_seed is not None:
+                    self.server_world_seed = int(world_seed)
                 self.game_started.set()
-                log.info("GAME_START: seed=%s shape=%s rooms=%s hub_id=%s",
-                         self.server_seed, self.server_shape, self.server_rooms, self.server_hub_id)
-                print(f"[NET] Game started — seed={self.server_seed} shape={self.server_shape} rooms={self.server_rooms} hub_id={self.server_hub_id}")
+                log.info("GAME_START: seed=%s shape=%s rooms=%s hub_id=%s world_seed=%s",
+                         self.server_seed, self.server_shape, self.server_rooms,
+                         self.server_hub_id, self.server_world_seed)
+                print(f"[NET] Game started — seed={self.server_seed} shape={self.server_shape} rooms={self.server_rooms} hub_id={self.server_hub_id} world_seed={self.server_world_seed}")
 
             elif msg.type == MessageType.ENTITY_EVENT:
                 # Phase 2.5: world-state mutation broadcast from server.

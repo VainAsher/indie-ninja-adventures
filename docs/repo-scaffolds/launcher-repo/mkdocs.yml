@@ -1,0 +1,29 @@
+site_name: Indie Ninja Adventures
+site_description: Player guide for Indie Ninja Adventures by Vain Asher Gaming
+site_url: https://vainasher.github.io/indie-ninja-launcher/
+repo_url: https://github.com/VainAsher/indie-ninja-launcher
+repo_name: VainAsher/indie-ninja-launcher
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: amber
+      accent: orange
+  features:
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Controls: controls.md
+  - Guides:
+    - Gameplay Guide: gameplay-guide.md
+    - Multiplayer: multiplayer.md
+  - Support:
+    - FAQ: faq.md
+    - Known Issues: known-issues.md
+    - Changelog: changelog.md

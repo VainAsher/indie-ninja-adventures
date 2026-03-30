@@ -37,9 +37,16 @@ from tkinter import ttk
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-GITHUB_REPO = "VainAsher/indie-ninja-adventures"
-RELEASES_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=30"
-ISSUES_URL = f"https://github.com/{GITHUB_REPO}/issues/new"
+# Game repo (private) — source of game exe releases and update checks
+GAME_REPO = "VainAsher/indie-ninja-adventures"
+# Launcher repo (public) — future: launcher update checks and player guides
+LAUNCHER_REPO = "VainAsher/indie-ninja-launcher"
+# Feedback repo (public) — player bug reports and feature requests
+FEEDBACK_REPO = "VainAsher/indie-ninja-feedback"
+
+GITHUB_REPO = GAME_REPO  # kept for backwards compatibility
+RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=30"
+ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
 LAUNCHER_VERSION = "1.1.0"

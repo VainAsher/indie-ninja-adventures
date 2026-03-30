@@ -1,0 +1,73 @@
+name: Dev Task
+description: Internal development task (feature, fix, improvement)
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for planned development work. Complete all sections before marking In Progress.
+
+  - type: input
+    id: goal
+    attributes:
+      label: Goal
+      description: One sentence — what will be true when this is done?
+      placeholder: "e.g. Boss encounters in Forest and Town zones have working AI phase transitions"
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: What player experience does this unlock? What breaks without it?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: system
+    attributes:
+      label: System affected
+      multiple: true
+      options:
+        - combat
+        - movement / physics
+        - world generation
+        - campaign / story
+        - multiplayer / netcode
+        - replay system
+        - UI / menus
+        - rendering / animation
+        - audio
+        - build / CI
+        - documentation
+        - launcher
+    validations:
+      required: true
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Approach
+      description: How you plan to implement this. File paths, function names, design decisions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: What could go wrong? Dependencies, potential regressions, unknowns.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Checklist of what must be true for this task to be done
+      placeholder: |
+        - [ ] Boss transitions to phase 2 at 50% HP
+        - [ ] All existing tests pass (python run_tests.py)
+        - [ ] Multiplayer: boss state sync verified for 2-player session
+        - [ ] docs/CHANGELOG.md updated
+    validations:
+      required: true

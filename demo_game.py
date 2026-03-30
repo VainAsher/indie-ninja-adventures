@@ -1536,6 +1536,7 @@ def main():
                     port=args.host, seed=_net_seed, max_players=args.max_players,
                     world_shape=initial_shape, world_rooms=initial_rooms,
                     world_hub_id=current_hub_id,
+                    world_seed=hub_manager.world_seed,
                 )
             ),
             daemon=True,
@@ -1701,7 +1702,15 @@ def main():
             _sv_rooms  = _net_client.server_rooms  if _net_client.server_rooms  is not None else initial_rooms
             _sv_hub_id = _net_client.server_hub_id if _net_client.server_hub_id is not None else current_hub_id
             current_hub_id = _sv_hub_id
-            print(f"[NET] Regenerating world: seed={_sv_seed} shape={_sv_shape} rooms={_sv_rooms} hub_id={_sv_hub_id}")
+            # Critical: sync hub_manager.world_seed to the host's value BEFORE
+            # calling regenerate_world_state.  The world_builder overrides the
+            # passed seed via SeedDerivation.derive_region_seed(hub_manager.world_seed,
+            # hub_id) when hub_manager is present.  If world_seed differs between
+            # machines (loaded from different local saves) the derived seed differs
+            # and the tile/collision layout diverges cross-machine.
+            if _net_client.server_world_seed is not None:
+                hub_manager.world_seed = _net_client.server_world_seed
+            print(f"[NET] Regenerating world: seed={_sv_seed} shape={_sv_shape} rooms={_sv_rooms} hub_id={_sv_hub_id} world_seed={hub_manager.world_seed}")
             (
                 tiles, platforms, current_seed,
                 spawn_x, spawn_y, exit_x, exit_y,

@@ -1,13 +1,19 @@
 name: Release
 
 # Triggered by pushing a version tag, e.g.:
-#   git tag v0.7.3 && git push origin v0.7.3
+#   git tag v0.8.0 && git push origin v0.8.0
 #
 # Builds:
-#   - ninja_dash.exe        (production game, onefile)
+#   - ninja_dash.exe           (production game, onefile)
 #   - ninja_dash_launcher.exe  (standalone launcher, onefile)
-# Then creates a GitHub release with both exes + SHA256 checksum attached.
-# The launcher checks this release API endpoint at startup.
+# Then creates a GitHub release with both exes + SHA256 checksum,
+# and dispatches a notification to the launcher repo.
+#
+# Required secret: CROSS_REPO_PAT
+#   A classic Personal Access Token with `repo` scope.
+#   Used to dispatch `game-release` to VainAsher/indie-ninja-launcher.
+#   Create at: https://github.com/settings/tokens
+#   Add at:    Settings → Secrets → Actions → New repository secret
 
 on:
   push:
@@ -52,7 +58,6 @@ jobs:
         shell: pwsh
         run: |
           $hash = (Get-FileHash build\dist\ninja_dash.exe -Algorithm SHA256).Hash.ToLower()
-          # sha256sum-compatible format: "<hash>  <filename>"
           "${hash}  ninja_dash.exe" | Out-File -FilePath build\dist\ninja_dash.exe.sha256 -Encoding ascii -NoNewline
 
       - name: Verify expected assets exist
@@ -81,3 +86,17 @@ jobs:
             "build/dist/ninja_dash.exe" \
             "build/dist/ninja_dash.exe.sha256" \
             "build/dist/ninja_dash_launcher.exe"
+
+      - name: Notify launcher repo of new game release
+        # Requires CROSS_REPO_PAT secret — step is skipped gracefully if not configured
+        continue-on-error: true
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          repository: VainAsher/indie-ninja-launcher
+          event-type: game-release
+          client-payload: |
+            {
+              "version": "${{ github.ref_name }}",
+              "release_url": "https://github.com/VainAsher/indie-ninja-adventures/releases/tag/${{ github.ref_name }}"
+            }
