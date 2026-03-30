@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.2] - 2026-03-30 (Fix seed mismatch causing divergent worlds and invisible players)
+
+### Bug fixes
+
+- **`network/server.py` — initial zone seed diverged from client world seed**:
+  `_get_or_create_zone` used `self._world_seed` directly as the zone seed for
+  the initial hub. Clients regenerate the world via `regenerate_world_state`,
+  which always derives the effective seed as
+  `SeedDerivation.derive_region_seed(hub_manager.world_seed, hub_id)` when
+  both `hub_manager` and `hub_id` are provided. Because the two values differ,
+  the server simulation ran with a completely different tile and collision layout
+  than the clients: entity IDs never matched, server-reported player positions
+  were meaningless in client space, and remote player ghosts appeared at
+  off-screen coordinates, making all players invisible to each other.
+
+  Fixed by always calling `derive_region_seed` in `_get_or_create_zone` for
+  every hub including the initial one, matching the client derivation exactly.
+
+- **`network/server.py` — hub definition shape/rooms not applied for initial zone**:
+  The same function also did not consult `hub_def.world_shape` /
+  `hub_def.room_count` for the initial hub, while `regenerate_world_state`
+  overrides shape and rooms from the hub definition when one exists. Fixed by
+  applying the hub_def override for all hubs; initial hub falls back to
+  host-supplied values when no definition is found.
+
+---
+
 ## [0.9.1] - 2026-03-30 (Fix multiplayer visibility regression from v0.9.0)
 
 ### Bug fixes

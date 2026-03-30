@@ -549,25 +549,36 @@ class GameServer:
     def _get_or_create_zone(self, hub_id: str) -> "_ZoneInstance":
         """Return the existing zone for hub_id, or create a new one."""
         if hub_id not in self._zones:
+            # Always derive the zone seed the same way clients do in
+            # regenerate_world_state() — which calls
+            # SeedDerivation.derive_region_seed(hub_manager.world_seed, hub_id)
+            # whenever hub_manager and hub_id are both set.  Using _world_seed
+            # directly (as the initial-hub branch previously did) produced a
+            # different numeric seed and caused divergent tile/collision layouts,
+            # making all server-reported entity positions wrong in client space.
+            from systems.seed_hierarchy import SeedDerivation
+            seed = SeedDerivation.derive_region_seed(self._world_seed, hub_id)
+
+            # Shape/rooms: start from host-supplied defaults for the initial hub,
+            # plain defaults otherwise, then let hub_def override — matching the
+            # shape/rooms override logic inside regenerate_world_state().
             if hub_id == self._world_hub_id:
-                seed  = self._world_seed
                 shape = self._world_shape
                 rooms = self._world_rooms
             else:
-                # Derive seed + config from hub definitions
-                from systems.seed_hierarchy import SeedDerivation
-                seed = SeedDerivation.derive_region_seed(self._world_seed, hub_id)
-                if self._hub_manager is None:
-                    from game.hub_manager import HubManager
-                    self._hub_manager = HubManager(self._world_seed)
-                hub_def = self._hub_manager.get_hub_definition(hub_id)
-                if hub_def is not None:
-                    shape = hub_def.world_shape.value
-                    rooms = hub_def.room_count
-                else:
-                    shape = "blob"
-                    rooms = 8
-                    log.warning("[ZONE] No hub definition for %s — using defaults", hub_id)
+                shape = "blob"
+                rooms = 8
+
+            if self._hub_manager is None:
+                from game.hub_manager import HubManager
+                self._hub_manager = HubManager(self._world_seed)
+            hub_def = self._hub_manager.get_hub_definition(hub_id)
+            if hub_def is not None:
+                shape = hub_def.world_shape.value
+                rooms = hub_def.room_count
+            elif hub_id != self._world_hub_id:
+                log.warning("[ZONE] No hub definition for %s — using defaults", hub_id)
+
             self._zones[hub_id] = _ZoneInstance(
                 hub_id=hub_id,
                 seed=seed,
