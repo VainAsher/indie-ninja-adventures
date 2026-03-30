@@ -36,6 +36,9 @@ from .snapshots import MultiplayerSnapshot
 log = logging.getLogger("ninja_dash.network.client")
 
 CLIENT_VERSION = "1.0.0"
+# Send input immediately on button change; throttle to this many frames between
+# identical-state sends (60 Hz game loop ÷ 3 = 20 Hz hold-state send rate).
+INPUT_HOLD_INTERVAL = 3
 
 
 @dataclass
@@ -94,6 +97,12 @@ class NetworkClient:
         self.connected_count: int = 1       # at minimum, we are connected
         self.last_leave_slot: Optional[int] = None   # slot of most recently departed player
 
+        # INPUT rate-limiting (pygame-side, called from main thread only)
+        # Send immediately when any button changes; throttle to 20 Hz when
+        # holding the same state to avoid sending 60 identical packets/s.
+        self._last_sent_buttons: tuple = ()
+        self._hold_frames: int = 0
+
     # ── Public API (pygame-side) ──────────────────────────────────────────────
 
     def connect(self, timeout: float = 5.0) -> bool:
@@ -128,7 +137,30 @@ class NetworkClient:
         """
         Queue an input frame for sending. Non-blocking; drops oldest item
         if the queue is full (i.e. the network thread is lagging).
+
+        Rate limiting: any button-state change is sent immediately (full 60 Hz
+        responsiveness for new presses/releases).  When the same button state
+        is held across consecutive frames we throttle to INPUT_HOLD_INTERVAL
+        (≈ 20 Hz) to avoid sending 60 identical packets per second upstream.
         """
+        # Compare all gameplay-relevant boolean fields + facing/is_dead.
+        # Deliberately exclude command.frame so a frame-counter difference
+        # alone does not count as a "new" input.
+        buttons = (
+            command.up, command.down, command.left, command.right,
+            command.jump, command.dash, command.crouch,
+            command.attack, command.throw, command.teleport, command.ninjutsu,
+            command.interact, command.inventory, command.consumable,
+            command.slow_walk, command.menu_confirm, command.menu_back,
+            facing, is_dead,
+        )
+        if buttons == self._last_sent_buttons:
+            self._hold_frames += 1
+            if self._hold_frames < INPUT_HOLD_INTERVAL:
+                return  # same state, throttle
+        self._last_sent_buttons = buttons
+        self._hold_frames = 0
+
         item = _SendItem(command, pos, vel, health, facing, is_dead)
         try:
             self._send_queue.put_nowait(item)
@@ -299,11 +331,11 @@ class NetworkClient:
             try:
                 item: _SendItem = self._send_queue.get_nowait()
             except queue.Empty:
-                # Nothing to send — yield to the event loop for 1 ms so that
+                # Nothing to send — yield to the event loop briefly so that
                 # _recv_loop can process inbound data without blocking.
-                # (The old run_in_executor approach blocked the event loop for
-                # up to SEND_TIMEOUT=16 ms on each empty-queue poll.)
-                await asyncio.sleep(0.001)
+                # 100 µs gives ~10× tighter input latency than the previous
+                # 1 ms sleep while still avoiding a busy-spin.
+                await asyncio.sleep(0.0001)
                 continue
 
             payload = item.command.to_dict()
