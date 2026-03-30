@@ -59,6 +59,7 @@ class GameSimulator:
         megamap=None,
         seed: int = 0,
         handle_platforms: bool = True,
+        combat_mechanics: "dict[int, object] | None" = None,
     ):
         """
         Args:
@@ -78,6 +79,10 @@ class GameSimulator:
                               (server mode).  If False, platforms are assumed to
                               be updated by an external TickEvent subscriber
                               (demo_game.py mode).
+            combat_mechanics: Optional mapping of slot → CombatMechanic for
+                              server-side authoritative combat (Phase 3b).
+                              When provided, step() calls check_enemy_collisions
+                              for each alive player slot and applies damage.
         """
         self.bus = bus
         self.game_clock = game_clock
@@ -91,6 +96,7 @@ class GameSimulator:
         self.megamap = megamap
         self.seed = seed
         self.handle_platforms = handle_platforms
+        self.combat_mechanics: dict[int, object] = combat_mechanics or {}
 
     # ─────────────────────────────────────────────────────────────────────────
     # Public API
@@ -149,10 +155,27 @@ class GameSimulator:
             players=player_tuples,
         )
 
-        # 6. Advance pickup animations.
+        # 6. Server-side player-enemy combat (Phase 3b).
+        #    Only active when combat_mechanics were supplied (server mode).
+        #    Runs after enemy AI so enemy positions / attack sub-states are
+        #    already updated for this tick before damage is evaluated.
+        for slot in sorted(self.players):
+            mechanic = self.combat_mechanics.get(slot)
+            if mechanic is None:
+                continue
+            p = self.players[slot]
+            if p.state.health_state.current_hp <= 0:
+                continue  # dead players skip combat
+            damage = mechanic.check_enemy_collisions(
+                p.state, self.enemy_manager, dt
+            )
+            if damage > 0:
+                p.state.health_state.take_damage(damage, defense=0)
+
+        # 7. Advance pickup animations.
         self.pickup_manager.update(dt)
 
-        # 7. Authoritative pickup collection (server mode).
+        # 8. Authoritative pickup collection (server mode).
         #    check_collections() marks pickups as alive=False when a player
         #    overlaps them, ensuring WorldSnapshot reflects the true state.
         for slot in sorted(self.players):
