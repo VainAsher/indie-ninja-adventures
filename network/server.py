@@ -867,6 +867,7 @@ class GameServer:
             slot=slot,
             reader=reader,
             writer=writer,
+            hub_id=self._world_hub_id,
         )
 
         if not await self.session.add_player(player):

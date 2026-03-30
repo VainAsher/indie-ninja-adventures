@@ -1967,7 +1967,7 @@ def main():
             # Phase 3: apply authoritative WorldSnapshot from server simulation
             _ws_dict = _net_client.poll_world_state()
             # Discard stale snapshots from a zone we've already left
-            if _ws_dict and _ws_dict.get("hub_id") and _ws_dict["hub_id"] != current_hub_id:
+            if _ws_dict and _ws_dict.get("hub_id") and current_hub_id and _ws_dict["hub_id"] != current_hub_id:
                 _ws_dict = None
             if _ws_dict:
                 from network.snapshots import WorldSnapshot as _WS
