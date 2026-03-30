@@ -179,7 +179,11 @@ class GameSession:
         player_ids = list(self.players.keys())
         log.info("GAME_START: seed=%d  players=%s", self.seed, player_ids)
         print(f"[NET] Game starting — seed={self.seed}")
-        await self.broadcast(MessageType.GAME_START, {"seed": self.seed})
+        await self.broadcast(MessageType.GAME_START, {
+            "seed": self.seed,
+            "shape": getattr(server, "_world_shape", "snake") if server else "snake",
+            "rooms": getattr(server, "_world_rooms", 8) if server else 8,
+        })
         # Phase 3: bootstrap the authoritative simulator now that we know the
         # seed and player count.  Init is blocking (world gen) so run it in a
         # thread to avoid stalling the event loop.

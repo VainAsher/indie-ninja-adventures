@@ -80,6 +80,11 @@ class NetworkClient:
         self.local_slot: Optional[int] = None
         self.max_players: Optional[int] = None
 
+        # Filled in after GAME_START — world generation parameters that must
+        # match the server so all clients produce identical tile layouts.
+        self.server_shape: Optional[str] = None
+        self.server_rooms: Optional[int] = None
+
         # Lobby / game-start state (set from background thread, read from pygame thread)
         self.game_started: threading.Event = threading.Event()
         self.connected_count: int = 1       # at minimum, we are connected
@@ -371,9 +376,16 @@ class NetworkClient:
                 seed = msg.payload.get("seed")
                 if seed is not None:
                     self.server_seed = int(seed)
+                shape = msg.payload.get("shape")
+                if shape is not None:
+                    self.server_shape = str(shape)
+                rooms = msg.payload.get("rooms")
+                if rooms is not None:
+                    self.server_rooms = int(rooms)
                 self.game_started.set()
-                log.info("GAME_START: seed=%s — starting game loop", self.server_seed)
-                print(f"[NET] Game started — seed={self.server_seed}")
+                log.info("GAME_START: seed=%s shape=%s rooms=%s",
+                         self.server_seed, self.server_shape, self.server_rooms)
+                print(f"[NET] Game started — seed={self.server_seed} shape={self.server_shape} rooms={self.server_rooms}")
 
             elif msg.type == MessageType.ENTITY_EVENT:
                 # Phase 2.5: world-state mutation broadcast from server.

@@ -1690,6 +1690,40 @@ def main():
             pygame.display.flip()
             clock_pygame.tick(30)
 
+        # Regenerate world from the server's authoritative seed/shape/rooms so
+        # every client's tile layout and collision geometry matches exactly.
+        # (World was built earlier from local defaults; we now rebuild it with
+        # the parameters the server broadcast in GAME_START.)
+        if _net_client is not None:
+            _sv_seed  = _net_client.server_seed  if _net_client.server_seed  is not None else current_seed
+            _sv_shape = _net_client.server_shape if _net_client.server_shape is not None else initial_shape
+            _sv_rooms = _net_client.server_rooms if _net_client.server_rooms is not None else initial_rooms
+            print(f"[NET] Regenerating world: seed={_sv_seed} shape={_sv_shape} rooms={_sv_rooms}")
+            (
+                tiles, platforms, current_seed,
+                spawn_x, spawn_y, exit_x, exit_y,
+                world, megamap, minimap,
+            ) = regenerate_world_state(
+                seed=_sv_seed,
+                shape=_sv_shape,
+                rooms=_sv_rooms,
+                hub_id=current_hub_id,
+                hub_manager=hub_manager,
+                portal_manager=portal_manager,
+                collision_system=collision_system,
+                camera=camera,
+                player=player,
+                enemy_manager=enemy_manager,
+                pickup_manager=pickup_manager,
+                hazard_manager=hazard_manager,
+                level_manager=level_manager,
+                npc_manager=npc_manager,
+                bus=bus,
+                GAME_WIDTH=GAME_WIDTH,
+                GAME_HEIGHT=GAME_HEIGHT,
+            )
+            refresh_platform_state()
+
         # Skip the main menu when entering via multiplayer — jump straight in
         level_manager.start_level(time.time())
         game_state_manager.start_game()
