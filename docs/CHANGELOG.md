@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.12] - 2026-03-31 (Hotfix: remote player exaggerated input / no fine control)
+
+### Fixed
+
+- **`network/server.py`** — Reverted the v0.9.10 60 Hz player-only broadcast back
+  to 20 Hz (`BROADCAST_EVERY_N_TICKS = 3`).  Since v0.9.11 made movement fully
+  client-authoritative, the broadcast rate no longer affects remote player
+  responsiveness — only ghost position and health sync.  The 60 Hz path was
+  causing GIL contention in the remote client's `recv_loop`, which slowed the
+  main game-loop thread and allowed the `GameClock` fixed-timestep accumulator
+  to fire 2–3 `TickEvent`s per frame.
+- **`demo_game.py`** — Added a network-mode accumulator clamp immediately before
+  `game_clock.tick()`.  Root cause of exaggerated input: `process_input(keys)`
+  is called once per game-loop frame (outside the `TickEvent` loop) so all
+  2–3 physics ticks in a slow frame applied the same key-state, multiplying
+  movement distance 2–3× per visible frame and eliminating fine control.
+  The clamp caps the accumulator at exactly one `PHYSICS_DT` when a network
+  client is connected, guaranteeing one physics tick per game-loop frame at the
+  cost of a small amount of physics accuracy under load (acceptable for the
+  ~16 ms GIL hiccup).
+
+---
+
 ## [0.9.11] - 2026-03-31 (Hotfix: remote player animation lag + lerp-vs-physics oscillation)
 
 ### Fixed

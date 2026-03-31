@@ -2608,6 +2608,18 @@ def main():
 
             # Update game (fixed timestep)
             profiler.begin("update")
+            # In networked play, cap the clock accumulator to 1 physics tick
+            # before game_clock.tick().  process_input(keys) is called once per
+            # game-loop frame (outside the TickEvent loop), so if 2-3 TickEvents
+            # fire due to a slow frame (GIL contention, GPU hiccup, etc.) the
+            # same key state is applied 2-3× → 2-3× movement exaggeration.
+            # Capping to 1 tick ensures movement is always proportional to
+            # visible frames, giving the remote player the same fine-grained
+            # control as the local host.
+            if _net_client is not None and _net_client.is_connected:
+                game_clock.accumulator = min(
+                    game_clock.accumulator, game_clock.PHYSICS_DT
+                )
             game_clock.tick()
             bus.process()
             profiler.end("update")

@@ -781,15 +781,15 @@ class GameServer:
                     log.error("[ZONE:%s] step() error at frame %d: %s",
                               zone.hub_id, zone.frame, exc, exc_info=True)
 
-                # Broadcast strategy:
-                #   • Every BROADCAST_EVERY_N_TICKS (20 Hz): full entity delta
-                #     (enemies, pickups, platforms). The expensive get_snapshot()
-                #     + delta-encode path; keeps entity traffic low.
-                #   • Every other tick (60 Hz): lightweight player-only payload.
-                #     Reads player physics directly — no get_snapshot() overhead.
-                #     Clients receive fresh player positions every frame, so the
-                #     rubber-band lerp can correct each frame instead of every
-                #     3rd, eliminating the 3× over-travel regression.
+                # Broadcast WORLD_STATE at 20 Hz (every BROADCAST_EVERY_N_TICKS).
+                # Player movement is client-authoritative (v0.9.11), so broadcast
+                # rate no longer affects remote player responsiveness — it only
+                # drives the ghost and health sync.  20 Hz is sufficient for both.
+                # 60 Hz broadcasts (v0.9.10) were reverted because the extra
+                # recv_loop wake-ups created GIL contention on the remote client,
+                # slowing their game loop and causing multi-tick physics steps
+                # (GameClock accumulator pattern), which produced 2-3× movement
+                # exaggeration — the "exaggerated input / no fine control" symptom.
                 if _ticks % BROADCAST_EVERY_N_TICKS == 0:
                     try:
                         snap = zone.simulator.get_snapshot(zone.frame)
@@ -799,13 +799,6 @@ class GameServer:
                         await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
                     except Exception as exc:
                         log.error("[ZONE:%s] snapshot/broadcast error: %s",
-                                  zone.hub_id, exc, exc_info=True)
-                else:
-                    try:
-                        payload = self._build_player_only_payload(zone)
-                        await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
-                    except Exception as exc:
-                        log.error("[ZONE:%s] player-only broadcast error: %s",
                                   zone.hub_id, exc, exc_info=True)
 
                 if _ticks % (TICK_RATE * 5) == 0:
