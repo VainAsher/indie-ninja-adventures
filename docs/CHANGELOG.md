@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.11] - 2026-03-31 (Hotfix: remote player animation lag + lerp-vs-physics oscillation)
+
+### Fixed
+
+- **`demo_game.py`** — Removed the rubber-band lerp correction entirely.  The
+  remote player's local physics is now fully client-authoritative (matching the
+  v0.7.0 architecture): small server/client divergences (< 128 px) are ignored
+  so no external force ever fights the physics engine.  Hard snap is kept for
+  genuine large divergence only (respawn, OOB, zone transition).
+  Root cause of animation lag: the lerp was pushing the player's position into
+  collision geometry each frame, causing the collision system to fire a recovery
+  response, which made `on_ground` / velocity state flicker and the animation
+  state machine oscillate between idle↔walk on every correction tick.
+- **`entities/remote_player.py`** — `_infer_anim_state()` now uses
+  `max(abs(vx), abs(x - prev_x))` as the speed signal instead of `vx` alone.
+  Since `smooth_factor = 1.0` collapses server-side `vx` to 0 in one tick,
+  the ghost previously snapped to "idle" while `interpolated_pos()` was still
+  visually sliding to the stopped position — disconnecting animation from
+  movement.  The positional-delta fallback keeps the animation in "run"/"walk"
+  for as long as the ghost is actually moving on screen.
+
+---
+
 ## [0.9.10] - 2026-03-30 (Hotfix: remote player 3× over-travel / no responsiveness)
 
 ### Fixed
