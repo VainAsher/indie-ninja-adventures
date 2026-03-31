@@ -53,7 +53,7 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.5.0"
+LAUNCHER_VERSION = "1.6.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
@@ -95,12 +95,59 @@ _LOG_TAIL_LINES = 50
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def _get_base_dir() -> Path:
-    """Return the directory that contains the launcher (and game) exe."""
+def _get_launcher_exe_dir() -> Path:
+    """The directory containing the launcher executable (or launcher.py in dev mode).
+    This is where launcher_config.json is always stored — independent of game_dir."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
-    # Dev mode: launcher.py lives in <root>/launcher/, game is at <root>/
+    # Dev mode: launcher.py lives in <root>/launcher/
+    return Path(__file__).parent
+
+
+def _get_launcher_config_path() -> Path:
+    return _get_launcher_exe_dir() / "launcher_config.json"
+
+
+def _read_launcher_config() -> dict:
+    try:
+        return json.loads(_get_launcher_config_path().read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _write_launcher_config(cfg: dict) -> None:
+    path = _get_launcher_config_path()
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _default_game_dir() -> Path:
+    """The game directory used when no launcher_config.json exists."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    # Dev mode: launcher.py in <root>/launcher/, game at <root>/
     return Path(__file__).parent.parent
+
+
+# Module-level current game directory — initialised lazily on first call to _get_base_dir().
+# Update this (and write launcher_config.json) whenever the user changes the game directory.
+_GAME_DIR: Path | None = None
+
+
+def _get_base_dir() -> Path:
+    """Return the configured game directory (game exe + user_data + mods live here)."""
+    global _GAME_DIR
+    if _GAME_DIR is None:
+        cfg = _read_launcher_config()
+        candidate = cfg.get("game_dir")
+        if candidate:
+            p = Path(candidate)
+            if p.is_dir():
+                _GAME_DIR = p
+        if _GAME_DIR is None:
+            _GAME_DIR = _default_game_dir()
+    return _GAME_DIR
 
 
 def _get_version_path() -> Path:
@@ -400,6 +447,10 @@ class LauncherApp:
         self._settings_vars: dict[str, tk.Variable] = {}
         self._ctrl_key_labels: dict[str, tk.Label] = {}
         self._save_fields: dict[str, tk.StringVar] = {}
+        # Initialise _GAME_DIR before UI is built so the first call to _get_base_dir()
+        # inside any tab builder picks up the configured path.
+        _get_base_dir()
+        self._game_dir_var = tk.StringVar(value=str(_get_base_dir()))
 
         self._build_ui()
 
@@ -2084,6 +2135,77 @@ class LauncherApp:
                 activeforeground=TEXT_SELECTED, selectcolor=BG_MID, relief="flat", bd=0,
             ).pack(anchor="w", pady=2)
 
+        # PATHS
+        _sec("PATHS")
+        tk.Label(
+            pad,
+            text=(
+                "Game Directory — the folder containing ninja_dash.exe,\n"
+                "user_data/, mods/, and version.json.\n"
+                "Default: same folder as the launcher."
+            ),
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            justify="left",
+            anchor="w",
+        ).pack(fill="x", pady=(0, 4))
+
+        game_dir_row = tk.Frame(pad, bg=BG_DARK)
+        game_dir_row.pack(fill="x", pady=2)
+        tk.Label(
+            game_dir_row, text="Game Dir:", font=("Consolas", 9),
+            fg=TEXT_DIM, bg=BG_DARK, width=10, anchor="w",
+        ).pack(side="left")
+        self._game_dir_entry = tk.Entry(
+            game_dir_row,
+            textvariable=self._game_dir_var,
+            font=("Consolas", 8),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+        )
+        self._game_dir_entry.pack(side="left", fill="x", expand=True, padx=(4, 4))
+        tk.Button(
+            game_dir_row,
+            text="Browse…",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self._browse_game_dir,
+        ).pack(side="left")
+        tk.Button(
+            game_dir_row,
+            text="Apply",
+            font=("Consolas", 9),
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self._apply_game_dir,
+        ).pack(side="left", padx=(4, 0))
+
+        self._game_dir_status_var = tk.StringVar(value="")
+        tk.Label(
+            pad,
+            textvariable=self._game_dir_status_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x", pady=(2, 6))
+
         # AUDIO
         _sec("AUDIO")
         _sldr("volume_master", "Master Volume")
@@ -2243,6 +2365,56 @@ class LauncherApp:
             os.startfile(str(path))
         except AttributeError:
             subprocess.Popen(["xdg-open", str(path)])
+
+    # ── Game directory config ─────────────────────────────────────────────────
+
+    def _browse_game_dir(self) -> None:
+        from tkinter import filedialog
+        current = self._game_dir_var.get() or str(_get_base_dir())
+        chosen = filedialog.askdirectory(
+            title="Select Game Directory",
+            initialdir=current,
+            parent=self.root,
+        )
+        if chosen:
+            self._game_dir_var.set(chosen)
+
+    def _apply_game_dir(self) -> None:
+        """Validate and apply the new game directory, then refresh all data tabs."""
+        global _GAME_DIR
+        raw = self._game_dir_var.get().strip()
+        if not raw:
+            self._game_dir_status_var.set("Path cannot be empty.")
+            return
+        p = Path(raw)
+        if not p.is_dir():
+            self._game_dir_status_var.set(f"Directory not found: {p}")
+            return
+
+        _GAME_DIR = p
+        cfg = _read_launcher_config()
+        cfg["game_dir"] = str(p)
+        try:
+            _write_launcher_config(cfg)
+        except Exception as exc:
+            self._game_dir_status_var.set(f"Could not save config: {exc}")
+            return
+
+        self._game_dir_var.set(str(p))
+        self._game_dir_status_var.set(f"Applied — {p.name}/")
+        self._refresh_all_data_tabs()
+
+    def _refresh_all_data_tabs(self) -> None:
+        """Reload every data-driven tab after the game directory changes."""
+        self._refresh_saves_display()
+        self._refresh_backups_list()
+        self._refresh_replays_tab()
+        self._refresh_replay_list()
+        self._refresh_log_list()
+        self._refresh_mods_list()
+        self._refresh_baseline_list()
+        # Also re-read the local game version from the new directory
+        self._local_version = _read_local_version()
 
     # ── Tab 7: Mods ───────────────────────────────────────────────────────────
 
