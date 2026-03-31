@@ -879,22 +879,65 @@ class LauncherApp:
             bg=BG_DARK,
         ).pack(side="right")
 
-        # Results display (monospace, read-only)
-        self._prof_results_var = tk.StringVar(value="")
-        self._prof_results_label = tk.Label(
-            pad,
-            textvariable=self._prof_results_var,
+        # Baseline selector row
+        prof_btn_row2 = tk.Frame(pad, bg=BG_DARK)
+        prof_btn_row2.pack(fill="x", pady=(4, 0))
+
+        tk.Label(
+            prof_btn_row2,
+            text="Baseline:",
             font=("Consolas", 8),
-            fg=TEXT_PRIMARY,
-            bg=BG_CARD,
-            justify="left",
-            anchor="nw",
-            padx=6,
-            pady=4,
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        self._baseline_var = tk.StringVar()
+        self._baseline_combo = ttk.Combobox(
+            prof_btn_row2,
+            textvariable=self._baseline_var,
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=26,
+            font=("Consolas", 8),
         )
-        self._prof_results_label.pack(fill="x", pady=(6, 0))
+        self._baseline_combo.pack(side="left", padx=(4, 0))
+
+        tk.Button(
+            prof_btn_row2,
+            text="Compare",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self._compare_to_baseline,
+        ).pack(side="left", padx=(6, 0))
+
+        # Results display — scrollable Text (read-only)
+        prof_text_frame = tk.Frame(pad, bg=BG_CARD)
+        prof_text_frame.pack(fill="both", expand=False, pady=(6, 0))
+
+        self._prof_txt = tk.Text(
+            prof_text_frame,
+            font=("Consolas", 8),
+            bg=BG_CARD,
+            fg=TEXT_PRIMARY,
+            relief="flat",
+            height=8,
+            wrap="none",
+            state="disabled",
+        )
+        _prof_ys = tk.Scrollbar(prof_text_frame, orient="vertical", command=self._prof_txt.yview)
+        self._prof_txt.configure(yscrollcommand=_prof_ys.set)
+        _prof_ys.pack(side="right", fill="y")
+        self._prof_txt.pack(fill="both", expand=True, padx=4, pady=2)
 
         # Load existing CSV on open
+        self._refresh_baseline_list()
         self._refresh_profiler_display()
 
         # ── Logs section ──────────────────────────────────────────────────────
@@ -983,6 +1026,7 @@ class LauncherApp:
         replay_row = tk.Frame(pad, bg=BG_DARK)
         replay_row.pack(fill="x")
 
+        self._replay_meta_var = tk.StringVar(value="")
         self._replay_var = tk.StringVar()
         self._replay_combo = ttk.Combobox(
             replay_row,
@@ -993,6 +1037,7 @@ class LauncherApp:
             font=("Consolas", 8),
         )
         self._replay_combo.pack(side="left")
+        self._replay_combo.bind("<<ComboboxSelected>>", self._on_replay_selected)
 
         tk.Button(
             replay_row,
@@ -1011,6 +1056,21 @@ class LauncherApp:
 
         tk.Button(
             replay_row,
+            text="Delete",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=6,
+            pady=3,
+            command=self._delete_selected_replay_devtools,
+        ).pack(side="left", padx=(4, 0))
+
+        tk.Button(
+            replay_row,
             text="Refresh",
             font=("Consolas", 8),
             fg=TEXT_DIM,
@@ -1024,29 +1084,57 @@ class LauncherApp:
             command=self._refresh_replay_list,
         ).pack(side="right")
 
+        tk.Label(
+            pad,
+            textvariable=self._replay_meta_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
+            justify="left",
+        ).pack(fill="x", pady=(2, 0))
+
         self._refresh_replay_list()
 
     # ── Profiler actions ──────────────────────────────────────────────────────
 
-    def _refresh_profiler_display(self) -> None:
-        """Read the existing profiler CSV (if any) and show a summary."""
+    def _refresh_profiler_display(self, baseline_stats: dict | None = None) -> None:
+        """Read the existing profiler CSV (if any) and show all timing sections."""
         csv_path = _get_profiler_csv()
         stats = _parse_profiler_csv(csv_path)
+
+        self._prof_txt.configure(state="normal")
+        self._prof_txt.delete("1.0", "end")
+
         if not stats:
-            self._prof_results_var.set("No profiler data — run a benchmark first.")
+            self._prof_txt.insert("end", "No profiler data — run a benchmark first.")
+            self._prof_txt.configure(state="disabled")
             return
 
-        lines = [
+        _skip = {"fps_avg", "fps_p5", "fps_min", "frame_count"}
+        header = (
             f"Frames: {stats['frame_count']}   "
-            f"FPS avg={stats['fps_avg']:.1f}  p5={stats['fps_p5']:.1f}  min={stats['fps_min']:.1f}"
-        ]
-        for sec in ("frame_total", "update", "enemy_manager", "render", "collision"):
-            if sec in stats:
-                d = stats[sec]
-                lines.append(
-                    f"  {sec:<18s}  avg={d['avg']:5.2f}ms  p95={d['p95']:5.2f}ms  max={d['max']:5.2f}ms"
-                )
-        self._prof_results_var.set("\n".join(lines))
+            f"FPS avg={stats['fps_avg']:.1f}  p5={stats['fps_p5']:.1f}  min={stats['fps_min']:.1f}\n"
+        )
+        col_head = f"\n  {'Section':<22s} {'avg':>7s}  {'p95':>7s}  {'max':>7s}"
+        if baseline_stats:
+            col_head += "   vs baseline (avg)"
+        col_head += "\n  " + "-" * (44 + (22 if baseline_stats else 0))
+
+        rows = []
+        for sec in sorted(k for k in stats if k not in _skip):
+            d = stats[sec]
+            row = f"  {sec:<22s} {d['avg']:>6.2f}ms  {d['p95']:>6.2f}ms  {d['max']:>6.2f}ms"
+            if baseline_stats and sec in baseline_stats:
+                bd = baseline_stats[sec]
+                delta = d["avg"] - bd["avg"]
+                pct = (delta / bd["avg"] * 100) if bd["avg"] > 0 else 0.0
+                sign = "+" if delta >= 0 else ""
+                row += f"   {sign}{delta:.2f}ms ({sign}{pct:.0f}%)"
+            rows.append(row)
+
+        self._prof_txt.insert("end", header + col_head + "\n" + "\n".join(rows))
+        self._prof_txt.configure(state="disabled")
 
     def _run_benchmark(self) -> None:
         """Launch the game headless with --profile, kill after N seconds, refresh display."""
@@ -1122,8 +1210,31 @@ class LauncherApp:
         try:
             shutil.copy2(csv_path, dated)
             self._bench_status_var.set(f"Saved: {dated.name}")
+            self._refresh_baseline_list()
         except Exception as exc:
             messagebox.showerror("Save Failed", str(exc), parent=self.root)
+
+    def _refresh_baseline_list(self) -> None:
+        """Scan docs/ for perf_baseline*.csv files and populate the baseline combobox."""
+        docs_dir = _get_base_dir() / "docs"
+        files = sorted(docs_dir.glob("perf_baseline*.csv"), key=lambda p: p.name, reverse=True)
+        names = [p.name for p in files if p.name != "perf_baseline.csv"]
+        self._baseline_combo.configure(values=names)
+        if names and not self._baseline_var.get():
+            self._baseline_combo.current(0)
+
+    def _compare_to_baseline(self) -> None:
+        """Parse the selected baseline CSV and re-render the profiler display with delta column."""
+        name = self._baseline_var.get()
+        if not name:
+            messagebox.showinfo("No Baseline", "Select a baseline CSV first.", parent=self.root)
+            return
+        baseline_path = _get_base_dir() / "docs" / name
+        baseline_stats = _parse_profiler_csv(baseline_path)
+        if not baseline_stats:
+            messagebox.showerror("Parse Error", f"Could not parse {name}", parent=self.root)
+            return
+        self._refresh_profiler_display(baseline_stats=baseline_stats)
 
     # ── Log actions ───────────────────────────────────────────────────────────
 
@@ -1145,11 +1256,49 @@ class LauncherApp:
             messagebox.showerror("File Not Found", str(log_path), parent=self.root)
             return
 
+        full_content = log_path.read_text(encoding="utf-8", errors="replace")
+
         win = tk.Toplevel(self.root)
         win.title(f"Log — {name}")
         win.configure(bg=BG_DARK)
-        win.geometry("700x400")
+        win.geometry("700x440")
 
+        # ── Filter row ────────────────────────────────────────────────────────
+        filter_row = tk.Frame(win, bg=BG_DARK)
+        filter_row.pack(fill="x", padx=6, pady=(6, 2))
+
+        tk.Label(
+            filter_row, text="Level:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
+        ).pack(side="left")
+        level_var = tk.StringVar(value="ALL")
+        level_combo = ttk.Combobox(
+            filter_row,
+            textvariable=level_var,
+            values=["ALL", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=10,
+            font=("Consolas", 8),
+        )
+        level_combo.pack(side="left", padx=(4, 12))
+
+        tk.Label(
+            filter_row, text="Search:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
+        ).pack(side="left")
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(
+            filter_row,
+            textvariable=search_var,
+            font=("Consolas", 8),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+            width=22,
+        )
+        search_entry.pack(side="left", padx=(4, 6))
+
+        # ── Log text area ─────────────────────────────────────────────────────
         text = tk.Text(
             win,
             font=("Consolas", 8),
@@ -1165,10 +1314,52 @@ class LauncherApp:
         ys.pack(side="right", fill="y")
         text.pack(fill="both", expand=True)
 
-        content = log_path.read_text(encoding="utf-8", errors="replace")
-        text.insert("1.0", content)
-        text.see("end")
-        text.configure(state="disabled")
+        def _apply_filter(*_args) -> None:
+            level = level_var.get()
+            search = search_var.get().lower()
+            lines = full_content.splitlines()
+            if level != "ALL":
+                lines = [ln for ln in lines if level in ln]
+            if search:
+                lines = [ln for ln in lines if search in ln.lower()]
+            text.configure(state="normal")
+            text.delete("1.0", "end")
+            text.insert("1.0", "\n".join(lines))
+            text.see("end")
+            text.configure(state="disabled")
+
+        tk.Button(
+            filter_row,
+            text="Apply",
+            font=("Consolas", 8),
+            fg=TEXT_PRIMARY,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=6,
+            pady=2,
+            command=_apply_filter,
+        ).pack(side="left")
+        tk.Button(
+            filter_row,
+            text="Clear",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=6,
+            pady=2,
+            command=lambda: (search_var.set(""), level_var.set("ALL"), _apply_filter()),
+        ).pack(side="left", padx=(4, 0))
+
+        search_entry.bind("<Return>", _apply_filter)
+        level_combo.bind("<<ComboboxSelected>>", _apply_filter)
+        _apply_filter()
 
     def _reveal_log(self) -> None:
         name = self._log_var.get()
@@ -1188,8 +1379,53 @@ class LauncherApp:
         self._replay_combo.configure(values=names)
         if names:
             self._replay_combo.current(0)
+            self._on_replay_selected()
         else:
             self._replay_var.set("(no replays found)")
+            self._replay_meta_var.set("")
+
+    def _on_replay_selected(self, _event=None) -> None:
+        """Read selected replay JSON and display its metadata."""
+        name = self._replay_var.get()
+        if not name or name.startswith("("):
+            self._replay_meta_var.set("")
+            return
+        path = _get_user_data_dir() / "replays" / name
+        if not path.exists():
+            self._replay_meta_var.set("(file not found)")
+            return
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            self._replay_meta_var.set("(could not read file)")
+            return
+        meta = data.get("metadata", {})
+        frame_count = len(data.get("commands", []))
+        parts: list[str] = []
+        if "hub_id" in meta:
+            parts.append(f"Hub: {meta['hub_id']}")
+        if "mission_id" in meta:
+            parts.append(f"Mission: {meta['mission_id']}")
+        if frame_count:
+            parts.append(f"Frames: {frame_count:,}")
+        if "world_seed" in meta:
+            parts.append(f"Seed: {meta['world_seed']}")
+        self._replay_meta_var.set("  |  ".join(parts) if parts else "No metadata")
+
+    def _delete_selected_replay_devtools(self) -> None:
+        """Confirm and delete the selected replay file."""
+        name = self._replay_var.get()
+        if not name or name.startswith("("):
+            return
+        if not messagebox.askyesno("Delete Replay", f"Delete '{name}'?", parent=self.root):
+            return
+        path = _get_user_data_dir() / "replays" / name
+        try:
+            path.unlink(missing_ok=True)
+        except Exception as exc:
+            messagebox.showerror("Delete Failed", str(exc), parent=self.root)
+            return
+        self._refresh_replay_list()
 
     def _launch_replay(self) -> None:
         name = self._replay_var.get()
