@@ -1617,10 +1617,6 @@ class LauncherApp:
             if game_path.suffix == ".py"
             else [str(game_path)]
         )
-        # Inject active profile (silently ignored by game until native support lands)
-        profile = self._profile_var.get()
-        if profile:
-            cmd += ["--profile", profile]
         cmd.extend(extra_args)
         try:
             proc = subprocess.Popen(cmd)
