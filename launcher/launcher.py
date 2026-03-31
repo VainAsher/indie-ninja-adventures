@@ -51,7 +51,7 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.3.0"
+LAUNCHER_VERSION = "1.4.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
@@ -211,6 +211,59 @@ def _verify_save_hmac(data_dict: dict, signature: str) -> bool:
     data_str = json.dumps(data_dict, sort_keys=True)
     expected = hmac.new(_SAVE_HMAC_KEY, data_str.encode("utf-8"), hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
+
+
+def _get_mods_dir() -> Path:
+    return _get_user_data_dir() / "mods"
+
+
+def _get_enabled_mods_path() -> Path:
+    return _get_mods_dir() / "enabled_mods.json"
+
+
+def _read_mod_manifests() -> list[dict]:
+    """Return list of mod manifest dicts (each has an extra '_path' key)."""
+    mods_dir = _get_mods_dir()
+    results = []
+    if not mods_dir.exists():
+        return results
+    for subdir in sorted(mods_dir.iterdir()):
+        if not subdir.is_dir():
+            continue
+        manifest_path = subdir / "mod.json"
+        if not manifest_path.exists():
+            continue
+        try:
+            data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            data["_path"] = str(subdir)
+            results.append(data)
+        except Exception:
+            pass
+    return results
+
+
+def _read_enabled_mods() -> "set | None":
+    """Return set of enabled mod IDs, or None if no config exists (treat all as enabled)."""
+    path = _get_enabled_mods_path()
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return set(data.get("enabled", []))
+    except Exception:
+        return None
+
+
+def _write_enabled_mods(enabled: set) -> None:
+    """Write enabled_mods.json listing enabled and disabled mod IDs."""
+    all_ids = {m["mod_id"] for m in _read_mod_manifests()}
+    disabled = sorted(all_ids - enabled)
+    data = {"enabled": sorted(enabled), "disabled": disabled}
+    path = _get_enabled_mods_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    tmp.replace(path)
 
 
 def _read_local_version() -> str:
@@ -490,6 +543,7 @@ class LauncherApp:
         replays_frame = tk.Frame(self._notebook, bg=BG_DARK)
         saves_frame = tk.Frame(self._notebook, bg=BG_DARK)
         settings_frame = tk.Frame(self._notebook, bg=BG_DARK)
+        mods_frame = tk.Frame(self._notebook, bg=BG_DARK)
 
         self._notebook.add(play_frame,     text="  Play  ")
         self._notebook.add(report_frame,   text="  Report  ")
@@ -497,6 +551,7 @@ class LauncherApp:
         self._notebook.add(replays_frame,  text="  Replays  ")
         self._notebook.add(saves_frame,    text="  Saves  ")
         self._notebook.add(settings_frame, text="  Settings  ")
+        self._notebook.add(mods_frame,     text="  Mods  ")
 
         self._build_play_tab(play_frame)
         self._build_report_tab(report_frame)
@@ -504,6 +559,7 @@ class LauncherApp:
         self._build_replays_tab(replays_frame)
         self._build_saves_tab(saves_frame)
         self._build_settings_tab(settings_frame)
+        self._build_mods_tab(mods_frame)
 
     # ── Tab 1: Play ───────────────────────────────────────────────────────────
 
@@ -1504,6 +1560,7 @@ class LauncherApp:
             subprocess.Popen(["xdg-open", str(replay_dir)])
 
     # ── Tab 5: Saves ──────────────────────────────────────────────────────────
+    # (renumbered; Mods is Tab 7 added below Tab 6 Settings)
 
     def _build_saves_tab(self, parent: tk.Frame) -> None:
         pad = tk.Frame(parent, bg=BG_DARK)
@@ -2005,6 +2062,374 @@ class LauncherApp:
             os.startfile(str(path))
         except AttributeError:
             subprocess.Popen(["xdg-open", str(path)])
+
+    # ── Tab 7: Mods ───────────────────────────────────────────────────────────
+
+    def _build_mods_tab(self, parent: tk.Frame) -> None:
+        pad = tk.Frame(parent, bg=BG_DARK)
+        pad.pack(fill="both", expand=True, padx=16, pady=(8, 6))
+
+        # Header
+        hdr_row = tk.Frame(pad, bg=BG_DARK)
+        hdr_row.pack(fill="x")
+        tk.Label(
+            hdr_row, text="INSTALLED MODS",
+            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+        ).pack(side="left")
+        _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=8, pady=3)
+        tk.Button(
+            hdr_row, text="Open Folder",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._reveal_mods_folder, **_b,
+        ).pack(side="right")
+        tk.Button(
+            hdr_row, text="Refresh",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._refresh_mods_list, **_b,
+        ).pack(side="right", padx=(0, 4))
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
+
+        # Mods Treeview
+        tree_frame = tk.Frame(pad, bg=BG_CARD)
+        tree_frame.pack(fill="x")
+
+        cols = ("en", "name", "version", "author", "status")
+        self._mods_tree = ttk.Treeview(
+            tree_frame, columns=cols, show="headings",
+            style="Replay.Treeview", height=6, selectmode="browse",
+        )
+        for col, width, label in [
+            ("en",      30, ""),
+            ("name",   160, "Name"),
+            ("version", 70, "Version"),
+            ("author",  90, "Author"),
+            ("status",  90, "Status"),
+        ]:
+            self._mods_tree.heading(col, text=label, anchor="w")
+            self._mods_tree.column(col, width=width, minwidth=20, stretch=(col == "name"))
+
+        mods_ys = tk.Scrollbar(tree_frame, orient="vertical", command=self._mods_tree.yview)
+        self._mods_tree.configure(yscrollcommand=mods_ys.set)
+        mods_ys.pack(side="right", fill="y")
+        self._mods_tree.pack(fill="x")
+        self._mods_tree.bind("<<TreeviewSelect>>", self._on_mod_selected)
+        self._mods_tree.bind("<ButtonRelease-1>", self._on_mods_tree_click)
+
+        # Pending-restart note
+        self._mods_note_var = tk.StringVar(value="")
+        tk.Label(
+            pad, textvariable=self._mods_note_var,
+            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+        ).pack(fill="x", pady=(3, 0))
+
+        # Detail panel
+        detail_frame = tk.Frame(pad, bg=BG_CARD)
+        detail_frame.pack(fill="x", pady=(6, 0))
+        self._mod_detail_var = tk.StringVar(value="Select a mod above to see details.")
+        tk.Label(
+            detail_frame, textvariable=self._mod_detail_var,
+            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_CARD,
+            anchor="w", justify="left", padx=6, pady=4,
+        ).pack(fill="x")
+
+        # Action buttons
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(8, 0))
+        btn_row = tk.Frame(pad, bg=BG_DARK)
+        btn_row.pack(fill="x", pady=(6, 0))
+
+        _b2 = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
+        tk.Button(
+            btn_row, text="Toggle Enable",
+            fg=TEXT_PRIMARY, bg=BG_MID,
+            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
+            command=self._toggle_selected_mod, **_b2,
+        ).pack(side="left")
+        tk.Button(
+            btn_row, text="Reveal Folder",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._reveal_selected_mod_folder, **_b2,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_row, text="Delete Mod",
+            fg="#e05252", bg=BG_DARK,
+            activebackground=BG_MID, activeforeground="#e05252",
+            command=self._delete_selected_mod, **_b2,
+        ).pack(side="left", padx=(6, 0))
+
+        # Install section
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
+        inst_hdr = tk.Frame(pad, bg=BG_DARK)
+        inst_hdr.pack(fill="x", pady=(4, 4))
+        tk.Label(
+            inst_hdr, text="INSTALL MOD",
+            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+        ).pack(side="left")
+
+        inst_row = tk.Frame(pad, bg=BG_DARK)
+        inst_row.pack(fill="x")
+        tk.Label(
+            inst_row, text="From ZIP:",
+            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK, width=10, anchor="w",
+        ).pack(side="left")
+        self._mod_zip_var = tk.StringVar()
+        tk.Entry(
+            inst_row, textvariable=self._mod_zip_var,
+            font=("Consolas", 9), bg=BG_MID, fg=TEXT_PRIMARY,
+            insertbackground=ACCENT, relief="flat", width=28,
+        ).pack(side="left", padx=(4, 6))
+        tk.Button(
+            inst_row, text="Browse…",
+            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            relief="flat", cursor="hand2", padx=8, pady=3,
+            command=self._browse_mod_zip,
+        ).pack(side="left")
+        tk.Button(
+            inst_row, text="Install",
+            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BTN_PLAY_BG,
+            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
+            relief="flat", cursor="hand2", padx=10, pady=3,
+            command=self._install_mod_zip,
+        ).pack(side="left", padx=(6, 0))
+
+        self._refresh_mods_list()
+
+    # ── Mods tab actions ──────────────────────────────────────────────────────
+
+    def _refresh_mods_list(self) -> None:
+        for row in self._mods_tree.get_children():
+            self._mods_tree.delete(row)
+        manifests = _read_mod_manifests()
+        if not manifests:
+            self._mods_note_var.set("No mods found in user_data/mods/")
+            self._mod_detail_var.set("No mods installed.")
+            return
+
+        enabled_set = _read_enabled_mods()
+        all_ids = {m["mod_id"] for m in manifests}
+
+        for m in manifests:
+            mod_id = m.get("mod_id", "?")
+            # enabled_set is None means all enabled (no config written yet)
+            is_enabled = enabled_set is None or mod_id in enabled_set
+            en_str = "☑" if is_enabled else "☐"
+
+            deps = m.get("dependencies", [])
+            missing = [d for d in deps if d not in all_ids]
+            if missing:
+                status = f"Missing: {', '.join(missing)}"
+            else:
+                status = "OK"
+
+            self._mods_tree.insert(
+                "", "end", iid=mod_id,
+                values=(en_str, m.get("name", mod_id), m.get("version", "?"),
+                        m.get("author", "?"), status),
+            )
+
+        note = "(enable/disable takes effect after game restart)" if manifests else ""
+        self._mods_note_var.set(note)
+
+        first = self._mods_tree.get_children()
+        if first:
+            self._mods_tree.selection_set(first[0])
+            self._on_mod_selected()
+
+    def _on_mod_selected(self, _event=None) -> None:
+        sel = self._mods_tree.selection()
+        if not sel:
+            return
+        mod_id = sel[0]
+        manifests = _read_mod_manifests()
+        m = next((x for x in manifests if x.get("mod_id") == mod_id), None)
+        if not m:
+            return
+        deps = m.get("dependencies", []) or []
+        dep_str = ", ".join(deps) if deps else "none"
+        self._mod_detail_var.set(
+            f"ID: {mod_id}   Version: {m.get('version', '?')}   Entry: {m.get('entry_point', '?')}\n"
+            f"Description: {m.get('description', '—')}\n"
+            f"Dependencies: {dep_str}\n"
+            f"Path: {m.get('_path', '?')}"
+        )
+
+    def _on_mods_tree_click(self, event) -> None:
+        region = self._mods_tree.identify_region(event.x, event.y)
+        if region != "cell":
+            return
+        col = self._mods_tree.identify_column(event.x)
+        if col != "#1":  # "en" column
+            return
+        iid = self._mods_tree.identify_row(event.y)
+        if iid:
+            self._toggle_mod_enabled(iid)
+
+    def _toggle_selected_mod(self) -> None:
+        sel = self._mods_tree.selection()
+        if not sel:
+            messagebox.showwarning("No Mod Selected", "Select a mod first.", parent=self.root)
+            return
+        self._toggle_mod_enabled(sel[0])
+
+    def _toggle_mod_enabled(self, mod_id: str) -> None:
+        enabled_set = _read_enabled_mods()
+        if enabled_set is None:
+            # First write: start with all enabled, then toggle
+            all_ids = {m["mod_id"] for m in _read_mod_manifests()}
+            enabled_set = all_ids.copy()
+        if mod_id in enabled_set:
+            enabled_set.discard(mod_id)
+        else:
+            enabled_set.add(mod_id)
+        _write_enabled_mods(enabled_set)
+        self._refresh_mods_list()
+        # Re-select the toggled mod
+        if self._mods_tree.exists(mod_id):
+            self._mods_tree.selection_set(mod_id)
+
+    def _reveal_selected_mod_folder(self) -> None:
+        sel = self._mods_tree.selection()
+        if not sel:
+            return
+        mod_id = sel[0]
+        mod_dir = _get_mods_dir() / mod_id
+        if not mod_dir.exists():
+            return
+        try:
+            os.startfile(str(mod_dir))
+        except AttributeError:
+            subprocess.Popen(["xdg-open", str(mod_dir)])
+
+    def _reveal_mods_folder(self) -> None:
+        mods_dir = _get_mods_dir()
+        mods_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            os.startfile(str(mods_dir))
+        except AttributeError:
+            subprocess.Popen(["xdg-open", str(mods_dir)])
+
+    def _delete_selected_mod(self) -> None:
+        sel = self._mods_tree.selection()
+        if not sel:
+            messagebox.showwarning("No Mod Selected", "Select a mod first.", parent=self.root)
+            return
+        mod_id = sel[0]
+        mod_dir = _get_mods_dir() / mod_id
+        if not messagebox.askyesno(
+            "Delete Mod",
+            f"Delete mod '{mod_id}' and all its files?\n\nThis cannot be undone.",
+            parent=self.root,
+        ):
+            return
+        try:
+            shutil.rmtree(mod_dir)
+        except OSError as exc:
+            messagebox.showerror("Delete Failed", str(exc), parent=self.root)
+            return
+        # Remove from enabled list if present
+        enabled_set = _read_enabled_mods()
+        if enabled_set is not None:
+            enabled_set.discard(mod_id)
+            _write_enabled_mods(enabled_set)
+        self._refresh_mods_list()
+
+    def _browse_mod_zip(self) -> None:
+        from tkinter import filedialog
+        path = filedialog.askopenfilename(
+            title="Select Mod ZIP",
+            filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")],
+            parent=self.root,
+        )
+        if path:
+            self._mod_zip_var.set(path)
+
+    def _install_mod_zip(self) -> None:
+        import zipfile
+        zip_path_str = self._mod_zip_var.get().strip()
+        if not zip_path_str:
+            messagebox.showwarning(
+                "No File Selected", "Browse to a ZIP file first.", parent=self.root
+            )
+            return
+        zip_path = Path(zip_path_str)
+        if not zip_path.exists():
+            messagebox.showerror("Not Found", f"File not found:\n{zip_path}", parent=self.root)
+            return
+
+        if not messagebox.askyesno(
+            "Security Warning",
+            "Mods execute Python code on your machine.\n\n"
+            "Only install mods from sources you trust.\n\n"
+            "Continue with installation?",
+            parent=self.root,
+            icon="warning",
+        ):
+            return
+
+        try:
+            with zipfile.ZipFile(zip_path) as zf:
+                names = zf.namelist()
+                candidates = [n for n in names if n.rstrip("/").endswith("mod.json")]
+                if not candidates:
+                    messagebox.showerror(
+                        "Invalid Mod ZIP", "No mod.json found in the ZIP file.", parent=self.root
+                    )
+                    return
+                # Pick the shallowest mod.json
+                manifest_name = min(candidates, key=lambda n: n.count("/"))
+                manifest_data = json.loads(zf.read(manifest_name).decode("utf-8"))
+                mod_id = manifest_data.get("mod_id", "").strip()
+                if not mod_id:
+                    messagebox.showerror(
+                        "Invalid mod.json", "mod.json is missing the 'mod_id' field.", parent=self.root
+                    )
+                    return
+
+                dest_dir = _get_mods_dir() / mod_id
+                if dest_dir.exists():
+                    if not messagebox.askyesno(
+                        "Overwrite?",
+                        f"Mod '{mod_id}' is already installed. Overwrite?",
+                        parent=self.root,
+                    ):
+                        return
+                    shutil.rmtree(dest_dir)
+                dest_dir.mkdir(parents=True, exist_ok=True)
+
+                # Strip common prefix (supports both flat and subfolder layout)
+                prefix = manifest_name[: manifest_name.rfind("/") + 1]
+                for member in zf.infolist():
+                    fname = member.filename
+                    if not fname.startswith(prefix) or fname == prefix:
+                        continue
+                    rel = fname[len(prefix):]
+                    out = dest_dir / rel
+                    if fname.endswith("/"):
+                        out.mkdir(parents=True, exist_ok=True)
+                    else:
+                        out.parent.mkdir(parents=True, exist_ok=True)
+                        out.write_bytes(zf.read(fname))
+        except Exception as exc:
+            messagebox.showerror("Install Failed", str(exc), parent=self.root)
+            return
+
+        # Auto-enable the newly installed mod
+        enabled_set = _read_enabled_mods()
+        if enabled_set is None:
+            enabled_set = {m["mod_id"] for m in _read_mod_manifests()}
+        else:
+            enabled_set.add(mod_id)
+        _write_enabled_mods(enabled_set)
+
+        self._mod_zip_var.set("")
+        self._refresh_mods_list()
+        messagebox.showinfo(
+            "Installed", f"Mod '{mod_id}' installed and enabled.\n\nRestart the game to apply.",
+            parent=self.root,
+        )
 
     # ── Profiler actions ──────────────────────────────────────────────────────
 
