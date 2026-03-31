@@ -53,7 +53,7 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.6.1"
+LAUNCHER_VERSION = "1.6.2"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
@@ -3435,19 +3435,24 @@ class LauncherApp:
                     )
                     return
 
-            game_exe = _get_game_exe()
-            if game_exe.exists() and game_exe.suffix == ".exe":
-                bak = game_exe.with_suffix(".bak")
+            # Always install to the fixed exe name — never use _get_game_exe() here
+            # because that fallback returns demo_game.py when ninja_dash.exe is absent.
+            final_exe = _get_base_dir() / GAME_EXE_NAME
+            if final_exe.exists():
+                bak = final_exe.with_suffix(".bak")
                 bak.unlink(missing_ok=True)
-                game_exe.rename(bak)
-            dest.rename(game_exe)
+                final_exe.rename(bak)
+            dest.rename(final_exe)
 
             tag = release.get("tag_name", "")
             ver = tag.lstrip("v")
             if ver:
                 vpath = _get_version_path()
                 try:
-                    data = json.loads(vpath.read_text(encoding="utf-8"))
+                    try:
+                        data = json.loads(vpath.read_text(encoding="utf-8"))
+                    except Exception:
+                        data = {}
                     data["version"] = ver
                     vpath.write_text(json.dumps(data, indent=2), encoding="utf-8")
                 except Exception:
