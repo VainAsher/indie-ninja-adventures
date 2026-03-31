@@ -458,11 +458,13 @@ class NetworkClient:
             try:
                 item: _SendItem = self._send_queue.get_nowait()
             except queue.Empty:
-                # Nothing to send — yield to the event loop briefly so that
+                # Nothing to send — yield to the event loop so that
                 # _recv_loop can process inbound data without blocking.
-                # 100 µs gives ~10× tighter input latency than the previous
-                # 1 ms sleep while still avoiding a busy-spin.
-                await asyncio.sleep(0.0001)
+                # 2 ms (500 Hz poll) is well above the game's 60 Hz input
+                # rate while generating 50× fewer event-loop wake-ups than
+                # the previous 100 µs sleep, leaving more CPU for the
+                # game loop and recv processing.
+                await asyncio.sleep(0.002)
                 continue
 
             payload = item.command.to_dict()

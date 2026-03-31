@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.4] - 2026-03-31 (Hotfix: multiplayer FPS + remote input lag)
+
+### Fixed
+
+- **`network/server.py`** — Decoupled simulation rate from broadcast rate.
+  Physics still advances at 60 Hz (`TICK_RATE = 60`) for accuracy, but
+  `WORLD_STATE` is serialised and broadcast every `BROADCAST_EVERY_N_TICKS = 3`
+  simulation ticks (≈ 20 Hz).  This reduces serialisation/msgpack/TCP work on
+  the server thread by 3×, releasing the GIL more often for the client's main
+  game loop and eliminating host-side FPS drops.  `FULL_SNAPSHOT_INTERVAL`
+  adjusted from 180 to 60 broadcasts to preserve the 3-second full-refresh
+  cadence for late-joining clients.
+
+- **`demo_game.py`** — Rubber-band position correction now applies a 32-pixel
+  dead zone: the server-authoritative position is only snapped when the
+  client/server discrepancy exceeds 32 px (squared distance > 1024).  Within
+  the dead zone local physics runs uninterrupted, eliminating the sticky/lagged
+  input feel for remote clients caused by per-frame position overwrites at
+  1 RTT of latency.  Health remains always-authoritative.
+
+- **`network/client.py`** — `_send_loop` idle sleep raised from 100 µs to 2 ms
+  (0.0001 → 0.002).  The loop still polls at 500 Hz — 8× the game's 60 Hz
+  input rate — while generating 50× fewer asyncio event-loop wake-ups, giving
+  `_recv_loop` and `_handle_client` more CPU time.
+
+---
+
 ## [0.9.3] - 2026-03-30 (Phase 3b: server-authoritative combat + regression test suite)
 
 ### Added
