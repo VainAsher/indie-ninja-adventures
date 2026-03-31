@@ -17,9 +17,11 @@ Stdlib only: tkinter for UI, urllib.request for HTTP, hashlib for SHA256.
 
 import csv
 import hashlib
+import hmac
 import json
 import os
 import platform
+import shutil
 import statistics
 import subprocess
 import sys
@@ -49,10 +51,11 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.2.0"
+LAUNCHER_VERSION = "1.3.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
-WINDOW_W = 640
-WINDOW_H = 600
+WINDOW_W = 760
+WINDOW_H = 640
+SPLASH_W = 640      # splash image/text stays fixed at 640; window can be wider
 SPLASH_H = 200      # canvas height — crops the 640×320 scaled image to top portion
 
 # Colours — matched to game's menu_system.py palette
@@ -151,6 +154,63 @@ def _format_bytes(n: int) -> str:
 
 def _get_profiler_csv() -> Path:
     return _get_base_dir() / "docs" / "perf_baseline.csv"
+
+
+def _get_saves_dir() -> Path:
+    return _get_user_data_dir() / "saves"
+
+
+def _get_settings_path() -> Path:
+    return _get_user_data_dir() / "settings" / "settings.json"
+
+
+# Default settings — duplicated from config/settings.py (launcher cannot import game modules)
+_DEFAULT_SETTINGS: dict = {
+    "volume_master": 1.0,  "volume_music": 0.7,  "volume_sfx": 0.8,
+    "fullscreen": False,   "vsync": True,         "show_fps": False,
+    "window_width": 1280,  "window_height": 720,
+    "screenshake": True,   "particles": True,     "camera_smoothing": 0.1,
+    "key_left": "left",    "key_right": "right",  "key_jump": "space",
+    "key_dash": "shift",   "key_crouch": "down",
+    "show_hitboxes": False, "log_level": "INFO",
+}
+
+# HMAC key — duplicated from systems/save_system.py; must stay in sync
+_SAVE_HMAC_KEY = b"ninja_dash_v0_3_save_integrity_key_2025"
+
+
+def _read_settings() -> dict:
+    try:
+        loaded = json.loads(_get_settings_path().read_text(encoding="utf-8"))
+        return {**_DEFAULT_SETTINGS, **loaded}
+    except Exception:
+        return _DEFAULT_SETTINGS.copy()
+
+
+def _write_settings_safe(data: dict) -> None:
+    path = _get_settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _format_playtime(seconds: float) -> str:
+    s = int(seconds)
+    if s < 60:
+        return f"{s}s"
+    m, s = divmod(s, 60)
+    if m < 60:
+        return f"{m}m {s:02d}s"
+    h, m = divmod(m, 60)
+    return f"{h}h {m:02d}m"
+
+
+def _verify_save_hmac(data_dict: dict, signature: str) -> bool:
+    """Verify a save file's HMAC-SHA256 integrity signature."""
+    data_str = json.dumps(data_dict, sort_keys=True)
+    expected = hmac.new(_SAVE_HMAC_KEY, data_str.encode("utf-8"), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
 
 
 def _read_local_version() -> str:
@@ -268,7 +328,8 @@ class LauncherApp:
     def __init__(self) -> None:
         self.root = tk.Tk()
         self.root.title(WINDOW_TITLE)
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
+        self.root.minsize(640, 540)
         self.root.configure(bg=BG_DARK)
 
         self._local_version = _read_local_version()
@@ -281,6 +342,9 @@ class LauncherApp:
         self._benchmark_timer: threading.Timer | None = None
         self._record_var = tk.IntVar(value=0)
         self._record_name_var = tk.StringVar(value="")
+        self._settings_vars: dict[str, tk.Variable] = {}
+        self._ctrl_key_labels: dict[str, tk.Label] = {}
+        self._save_fields: dict[str, tk.StringVar] = {}
 
         self._build_ui()
 
@@ -302,7 +366,7 @@ class LauncherApp:
         # ── Splash canvas ─────────────────────────────────────────────────────
         self._splash_canvas = tk.Canvas(
             root,
-            width=WINDOW_W,
+            width=SPLASH_W,
             height=SPLASH_H,
             bd=0,
             highlightthickness=0,
@@ -345,7 +409,7 @@ class LauncherApp:
             anchor="sw",
         )
         self._splash_canvas.create_text(
-            WINDOW_W - 8, SPLASH_H - 6,
+            SPLASH_W - 8, SPLASH_H - 6,
             text=f"launcher v{LAUNCHER_VERSION}",
             font=("Consolas", 8),
             fill=TEXT_DIM,
@@ -424,16 +488,22 @@ class LauncherApp:
         report_frame = tk.Frame(self._notebook, bg=BG_DARK)
         devtools_frame = tk.Frame(self._notebook, bg=BG_DARK)
         replays_frame = tk.Frame(self._notebook, bg=BG_DARK)
+        saves_frame = tk.Frame(self._notebook, bg=BG_DARK)
+        settings_frame = tk.Frame(self._notebook, bg=BG_DARK)
 
         self._notebook.add(play_frame,     text="  Play  ")
         self._notebook.add(report_frame,   text="  Report  ")
         self._notebook.add(devtools_frame, text="  Dev Tools  ")
         self._notebook.add(replays_frame,  text="  Replays  ")
+        self._notebook.add(saves_frame,    text="  Saves  ")
+        self._notebook.add(settings_frame, text="  Settings  ")
 
         self._build_play_tab(play_frame)
         self._build_report_tab(report_frame)
         self._build_devtools_tab(devtools_frame)
         self._build_replays_tab(replays_frame)
+        self._build_saves_tab(saves_frame)
+        self._build_settings_tab(settings_frame)
 
     # ── Tab 1: Play ───────────────────────────────────────────────────────────
 
@@ -1432,6 +1502,509 @@ class LauncherApp:
             os.startfile(str(replay_dir))
         except AttributeError:
             subprocess.Popen(["xdg-open", str(replay_dir)])
+
+    # ── Tab 5: Saves ──────────────────────────────────────────────────────────
+
+    def _build_saves_tab(self, parent: tk.Frame) -> None:
+        pad = tk.Frame(parent, bg=BG_DARK)
+        pad.pack(fill="both", expand=True, padx=16, pady=(8, 6))
+
+        # Header
+        hdr_row = tk.Frame(pad, bg=BG_DARK)
+        hdr_row.pack(fill="x")
+        tk.Label(
+            hdr_row, text="SAVE FILE",
+            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+        ).pack(side="left")
+        self._save_status_var = tk.StringVar(value="—")
+        tk.Label(
+            hdr_row, textvariable=self._save_status_var,
+            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK, anchor="e",
+        ).pack(side="right")
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
+
+        # File info
+        info_row = tk.Frame(pad, bg=BG_DARK)
+        info_row.pack(fill="x")
+        self._save_path_var = tk.StringVar(value="—")
+        tk.Label(
+            info_row, textvariable=self._save_path_var,
+            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+        ).pack(side="left")
+        self._save_date_var = tk.StringVar(value="")
+        tk.Label(
+            info_row, textvariable=self._save_date_var,
+            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="e",
+        ).pack(side="right")
+
+        # Data panels
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(8, 4))
+        data_row = tk.Frame(pad, bg=BG_DARK)
+        data_row.pack(fill="x")
+
+        camp_frame = tk.Frame(data_row, bg=BG_DARK)
+        camp_frame.pack(side="left", fill="both", expand=True)
+        stats_frame = tk.Frame(data_row, bg=BG_DARK)
+        stats_frame.pack(side="left", fill="both", expand=True)
+
+        tk.Label(
+            camp_frame, text="CAMPAIGN",
+            font=("Consolas", 8, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+        ).pack(fill="x")
+        tk.Label(
+            stats_frame, text="STATISTICS",
+            font=("Consolas", 8, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+        ).pack(fill="x")
+
+        def _field(parent_f: tk.Frame, key: str, label: str) -> None:
+            var = tk.StringVar(value="—")
+            self._save_fields[key] = var
+            row = tk.Frame(parent_f, bg=BG_DARK)
+            row.pack(fill="x")
+            tk.Label(
+                row, text=f"{label}:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
+                width=16, anchor="w",
+            ).pack(side="left")
+            tk.Label(
+                row, textvariable=var, font=("Consolas", 8), fg=TEXT_PRIMARY, bg=BG_DARK, anchor="w",
+            ).pack(side="left")
+
+        _field(camp_frame, "hub",        "Hub")
+        _field(camp_frame, "currency",   "Currency")
+        _field(camp_frame, "abilities",  "Abilities")
+        _field(camp_frame, "missions",   "Missions done")
+        _field(camp_frame, "bosses",     "Bosses beaten")
+        _field(camp_frame, "c_playtime", "Playtime")
+
+        _field(stats_frame, "deaths",     "Deaths")
+        _field(stats_frame, "jumps",      "Jumps")
+        _field(stats_frame, "dashes",     "Dashes")
+        _field(stats_frame, "coins",      "Coins collected")
+        _field(stats_frame, "s_playtime", "Playtime")
+        _field(stats_frame, "perf_runs",  "Perfect runs")
+
+        # Action buttons
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
+        btn_row = tk.Frame(pad, bg=BG_DARK)
+        btn_row.pack(fill="x", pady=(6, 0))
+        _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
+        tk.Button(
+            btn_row, text="Backup Now",
+            fg=ACCENT, bg=BTN_PLAY_BG,
+            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
+            command=self._backup_save_now, **_b,
+        ).pack(side="left")
+        tk.Button(
+            btn_row, text="Restore Selected",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._restore_selected_backup, **_b,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_row, text="Delete Save",
+            fg="#e05252", bg=BG_DARK,
+            activebackground=BG_MID, activeforeground="#e05252",
+            command=self._delete_save, **_b,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_row, text="Refresh",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._refresh_saves_display, **_b,
+        ).pack(side="right")
+
+        # Backups list
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
+        bak_hdr = tk.Frame(pad, bg=BG_DARK)
+        bak_hdr.pack(fill="x", pady=(4, 4))
+        tk.Label(
+            bak_hdr, text="BACKUPS",
+            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+        ).pack(side="left")
+
+        bak_frame = tk.Frame(pad, bg=BG_CARD)
+        bak_frame.pack(fill="both", expand=True)
+        self._backups_tree = ttk.Treeview(
+            bak_frame,
+            columns=("name", "date", "size"),
+            show="headings",
+            style="Replay.Treeview",
+            height=4,
+            selectmode="browse",
+        )
+        for col, width, label in [
+            ("name", 200, "Filename"), ("date", 140, "Date"), ("size", 70, "Size"),
+        ]:
+            self._backups_tree.heading(col, text=label, anchor="w")
+            self._backups_tree.column(col, width=width, minwidth=40, stretch=(col == "name"))
+        bak_ys = tk.Scrollbar(bak_frame, orient="vertical", command=self._backups_tree.yview)
+        self._backups_tree.configure(yscrollcommand=bak_ys.set)
+        bak_ys.pack(side="right", fill="y")
+        self._backups_tree.pack(fill="both", expand=True)
+
+        self._refresh_saves_display()
+
+    # ── Saves tab actions ─────────────────────────────────────────────────────
+
+    def _refresh_saves_display(self) -> None:
+        saves_dir = _get_saves_dir()
+        save_path = saves_dir / "savegame.json"
+        if not save_path.exists():
+            self._save_status_var.set("Status:  (no save file)")
+            self._save_path_var.set("savegame.json  —  not found")
+            self._save_date_var.set("")
+            for var in self._save_fields.values():
+                var.set("—")
+            self._refresh_backups_list()
+            return
+        try:
+            wrapper = json.loads(save_path.read_text(encoding="utf-8"))
+        except Exception:
+            self._save_status_var.set("Status:  ✗ Parse error")
+            self._save_path_var.set("savegame.json  —  corrupted?")
+            self._save_date_var.set("")
+            self._refresh_backups_list()
+            return
+
+        sig = wrapper.get("signature", "")
+        inner = wrapper.get("data", {})
+        if sig and inner:
+            ok = _verify_save_hmac(inner, sig)
+            status = "★ Verified" if ok else "✗ Signature mismatch"
+        elif inner:
+            status = "? No signature (old format)"
+        else:
+            status = "? Unknown format"
+        self._save_status_var.set(f"Status:  {status}")
+
+        ver = wrapper.get("version", "?")
+        self._save_path_var.set(f"savegame.json   version: {ver}")
+        self._save_date_var.set(f"Saved: {inner.get('save_date', '')}")
+
+        camp = inner.get("campaign", {})
+        self._save_fields["hub"].set(camp.get("current_hub_id", "—"))
+        self._save_fields["currency"].set(str(camp.get("currency", 0)))
+        abilities = camp.get("unlocked_abilities", [])
+        ab_str = ", ".join(abilities[:3]) + ("…" if len(abilities) > 3 else "")
+        self._save_fields["abilities"].set(f"{len(abilities)}  ({ab_str})" if abilities else "0")
+        self._save_fields["missions"].set(str(len(camp.get("completed_missions", []))))
+        self._save_fields["bosses"].set(str(len(camp.get("defeated_bosses", []))))
+        self._save_fields["c_playtime"].set(_format_playtime(camp.get("total_play_time", 0.0)))
+
+        stats = inner.get("statistics", {})
+        self._save_fields["deaths"].set(str(stats.get("total_deaths", 0)))
+        self._save_fields["jumps"].set(str(stats.get("total_jumps", 0)))
+        self._save_fields["dashes"].set(str(stats.get("total_dashes", 0)))
+        self._save_fields["coins"].set(str(stats.get("total_coins_collected", 0)))
+        self._save_fields["s_playtime"].set(_format_playtime(stats.get("total_playtime", 0.0)))
+        self._save_fields["perf_runs"].set(str(stats.get("perfect_runs", 0)))
+
+        self._refresh_backups_list()
+
+    def _refresh_backups_list(self) -> None:
+        for row in self._backups_tree.get_children():
+            self._backups_tree.delete(row)
+        backups_dir = _get_saves_dir() / "backups"
+        if not backups_dir.exists():
+            return
+        files = sorted(backups_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for path in files[:30]:
+            try:
+                st = path.stat()
+                date_str = time.strftime("%Y-%m-%d %H:%M", time.localtime(st.st_mtime))
+                size_str = _format_bytes(st.st_size)
+            except OSError:
+                date_str = ""
+                size_str = ""
+            self._backups_tree.insert(
+                "", "end", iid=str(path),
+                values=(path.name, date_str, size_str),
+            )
+
+    def _backup_save_now(self, *, silent: bool = False) -> "Path | None":
+        save_path = _get_saves_dir() / "savegame.json"
+        if not save_path.exists():
+            if not silent:
+                messagebox.showwarning("No Save", "No savegame.json found.", parent=self.root)
+            return None
+        backups_dir = _get_saves_dir() / "backups"
+        backups_dir.mkdir(parents=True, exist_ok=True)
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        dest = backups_dir / f"savegame_{ts}.json"
+        dest.write_bytes(save_path.read_bytes())
+        if not silent:
+            self._refresh_backups_list()
+            messagebox.showinfo("Backup Created", f"Saved as:\n{dest.name}", parent=self.root)
+        return dest
+
+    def _restore_selected_backup(self) -> None:
+        sel = self._backups_tree.selection()
+        if not sel:
+            messagebox.showwarning(
+                "No Backup Selected", "Select a backup from the list first.", parent=self.root
+            )
+            return
+        path = Path(sel[0])
+        if not messagebox.askyesno(
+            "Restore Backup",
+            f"Restore '{path.name}' as the current save?\n\nThe current save will be backed up first.",
+            parent=self.root,
+        ):
+            return
+        self._backup_save_now(silent=True)
+        dest = _get_saves_dir() / "savegame.json"
+        dest.write_bytes(path.read_bytes())
+        self._refresh_saves_display()
+        messagebox.showinfo("Restored", f"Restore complete: {path.name}", parent=self.root)
+
+    def _delete_save(self) -> None:
+        save_path = _get_saves_dir() / "savegame.json"
+        if not save_path.exists():
+            messagebox.showwarning("No Save", "savegame.json not found.", parent=self.root)
+            return
+        if not messagebox.askyesno(
+            "Delete Save",
+            "Delete savegame.json?\n\nA backup will be created automatically before deletion.",
+            parent=self.root,
+        ):
+            return
+        bak = self._backup_save_now(silent=True)
+        save_path.unlink()
+        self._refresh_saves_display()
+        note = f"\nBackup saved as: {bak.name}" if bak else ""
+        messagebox.showinfo("Deleted", f"Save file deleted.{note}", parent=self.root)
+
+    # ── Tab 6: Settings ───────────────────────────────────────────────────────
+
+    def _build_settings_tab(self, parent: tk.Frame) -> None:
+        # Fixed button row at bottom
+        btn_frame = tk.Frame(parent, bg=BG_DARK)
+        btn_frame.pack(side="bottom", fill="x", padx=16, pady=(0, 8))
+        tk.Frame(parent, height=1, bg=BG_MID).pack(side="bottom", fill="x")
+
+        _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
+        tk.Button(
+            btn_frame, text="Save Settings",
+            fg=ACCENT, bg=BTN_PLAY_BG,
+            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
+            command=self._save_settings_from_ui, **_b,
+        ).pack(side="left")
+        tk.Button(
+            btn_frame, text="Reset to Defaults",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._reset_settings_to_defaults, **_b,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_frame, text="Open File",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._open_settings_file, **_b,
+        ).pack(side="right")
+
+        # Scrollable body
+        inner = self._build_scrollable_frame(parent)
+        pad = tk.Frame(inner, bg=BG_DARK)
+        pad.pack(fill="both", expand=True, padx=16, pady=4)
+
+        def _sec(label: str) -> None:
+            tk.Label(
+                pad, text=label, font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            ).pack(fill="x", pady=(10, 2))
+            tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(0, 4))
+
+        def _sldr(key: str, label: str, lo: float = 0.0, hi: float = 1.0) -> None:
+            var = tk.DoubleVar()
+            self._settings_vars[key] = var
+            row = tk.Frame(pad, bg=BG_DARK)
+            row.pack(fill="x", pady=2)
+            tk.Label(
+                row, text=label, font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+                width=20, anchor="w",
+            ).pack(side="left")
+            val_lbl = tk.Label(
+                row, text="0.00", font=("Consolas", 9), fg=TEXT_PRIMARY, bg=BG_DARK,
+                width=5, anchor="e",
+            )
+            val_lbl.pack(side="right")
+
+            def _upd(*_): val_lbl.config(text=f"{var.get():.2f}")
+            var.trace_add("write", _upd)
+            tk.Scale(
+                row, variable=var, from_=lo, to=hi, orient="horizontal",
+                length=200, bg=BG_DARK, fg=TEXT_DIM, troughcolor=BG_MID,
+                highlightbackground=BG_DARK, activebackground=ACCENT,
+                sliderrelief="flat", showvalue=0, resolution=0.01, bd=0,
+            ).pack(side="right", padx=(0, 4))
+
+        def _chk(key: str, label: str) -> None:
+            var = tk.BooleanVar()
+            self._settings_vars[key] = var
+            tk.Checkbutton(
+                pad, text=label, variable=var, font=("Consolas", 9),
+                fg=TEXT_PRIMARY, bg=BG_DARK, activebackground=BG_DARK,
+                activeforeground=TEXT_SELECTED, selectcolor=BG_MID, relief="flat", bd=0,
+            ).pack(anchor="w", pady=2)
+
+        # AUDIO
+        _sec("AUDIO")
+        _sldr("volume_master", "Master Volume")
+        _sldr("volume_music", "Music Volume")
+        _sldr("volume_sfx", "SFX Volume")
+
+        # DISPLAY
+        _sec("DISPLAY")
+        disp_row = tk.Frame(pad, bg=BG_DARK)
+        disp_row.pack(fill="x", pady=2)
+        for key, label in [("fullscreen", "Fullscreen"), ("vsync", "VSync"), ("show_fps", "Show FPS")]:
+            var = tk.BooleanVar()
+            self._settings_vars[key] = var
+            tk.Checkbutton(
+                disp_row, text=label, variable=var, font=("Consolas", 9),
+                fg=TEXT_PRIMARY, bg=BG_DARK, activebackground=BG_DARK,
+                activeforeground=TEXT_SELECTED, selectcolor=BG_MID, relief="flat", bd=0,
+            ).pack(side="left", padx=(0, 16))
+
+        res_row = tk.Frame(pad, bg=BG_DARK)
+        res_row.pack(fill="x", pady=2)
+        tk.Label(
+            res_row, text="Resolution:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+            width=14, anchor="w",
+        ).pack(side="left")
+        res_var = tk.StringVar()
+        self._settings_vars["resolution"] = res_var
+        ttk.Combobox(
+            res_row, textvariable=res_var,
+            values=["800x600", "1280x720", "1920x1080", "2560x1440"],
+            state="readonly", style="Launcher.TCombobox", width=13, font=("Consolas", 9),
+        ).pack(side="left", padx=(4, 8))
+        tk.Label(
+            res_row, text="(requires restart)", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
+        ).pack(side="left")
+
+        # GAMEPLAY
+        _sec("GAMEPLAY")
+        _chk("screenshake", "Screen Shake")
+        _chk("particles", "Particles")
+        _sldr("camera_smoothing", "Camera Smoothing")
+
+        # CONTROLS (read-only display)
+        _sec("CONTROLS")
+        ctrl_grid = tk.Frame(pad, bg=BG_DARK)
+        ctrl_grid.pack(fill="x", pady=(0, 4))
+        for i, (key, label) in enumerate([
+            ("key_left", "Left"), ("key_right", "Right"), ("key_jump", "Jump"),
+            ("key_dash", "Dash"), ("key_crouch", "Crouch"),
+        ]):
+            col_f = tk.Frame(ctrl_grid, bg=BG_DARK)
+            col_f.pack(side="left", padx=(0, 20))
+            tk.Label(
+                col_f, text=f"{label}:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+            ).pack(fill="x")
+            klbl = tk.Label(
+                col_f, text="—", font=("Consolas", 9, "bold"), fg=TEXT_PRIMARY, bg=BG_DARK, anchor="w",
+            )
+            klbl.pack(fill="x")
+            self._ctrl_key_labels[key] = klbl
+
+        # DEVELOPER
+        _sec("DEVELOPER")
+        _chk("show_hitboxes", "Show Hitboxes")
+        dev_row = tk.Frame(pad, bg=BG_DARK)
+        dev_row.pack(fill="x", pady=2)
+        tk.Label(
+            dev_row, text="Log Level:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+            width=14, anchor="w",
+        ).pack(side="left")
+        log_var = tk.StringVar()
+        self._settings_vars["log_level"] = log_var
+        ttk.Combobox(
+            dev_row, textvariable=log_var,
+            values=["DEBUG", "INFO", "WARNING", "ERROR"],
+            state="readonly", style="Launcher.TCombobox", width=10, font=("Consolas", 9),
+        ).pack(side="left", padx=(4, 0))
+
+        self._load_settings_into_ui()
+
+    def _build_scrollable_frame(self, parent: tk.Frame) -> tk.Frame:
+        """Return an inner tk.Frame inside a canvas+scrollbar; mousewheel scrolls on hover."""
+        canvas = tk.Canvas(parent, bg=BG_DARK, highlightthickness=0, bd=0)
+        sb = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        inner = tk.Frame(canvas, bg=BG_DARK)
+        win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
+
+        def _on_inner_cfg(e): canvas.configure(scrollregion=canvas.bbox("all"))
+        inner.bind("<Configure>", _on_inner_cfg)
+
+        def _on_canvas_cfg(e): canvas.itemconfig(win_id, width=e.width)
+        canvas.bind("<Configure>", _on_canvas_cfg)
+
+        def _on_wheel(e): canvas.yview_scroll(-1 * (e.delta // 120), "units")
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_wheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+
+        canvas.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        return inner
+
+    # ── Settings tab actions ──────────────────────────────────────────────────
+
+    def _load_settings_into_ui(self) -> None:
+        settings = _read_settings()
+        for key, var in self._settings_vars.items():
+            if key == "resolution":
+                w = settings.get("window_width", 1280)
+                h = settings.get("window_height", 720)
+                var.set(f"{w}x{h}")
+            else:
+                val = settings.get(key, _DEFAULT_SETTINGS.get(key))
+                if val is not None:
+                    var.set(val)
+        for key, lbl in self._ctrl_key_labels.items():
+            lbl.config(text=str(settings.get(key, _DEFAULT_SETTINGS.get(key, "—"))))
+
+    def _save_settings_from_ui(self) -> None:
+        settings = _read_settings()
+        for key, var in self._settings_vars.items():
+            if key == "resolution":
+                try:
+                    w, h = var.get().split("x")
+                    settings["window_width"] = int(w)
+                    settings["window_height"] = int(h)
+                except ValueError:
+                    pass
+            else:
+                settings[key] = var.get()
+        try:
+            _write_settings_safe(settings)
+            messagebox.showinfo("Saved", "Settings saved.", parent=self.root)
+        except Exception as exc:
+            messagebox.showerror("Save Failed", str(exc), parent=self.root)
+
+    def _reset_settings_to_defaults(self) -> None:
+        if not messagebox.askyesno(
+            "Reset Settings", "Reset all settings to defaults?", parent=self.root
+        ):
+            return
+        try:
+            _write_settings_safe(_DEFAULT_SETTINGS.copy())
+            self._load_settings_into_ui()
+            messagebox.showinfo("Reset", "Settings reset to defaults.", parent=self.root)
+        except Exception as exc:
+            messagebox.showerror("Reset Failed", str(exc), parent=self.root)
+
+    def _open_settings_file(self) -> None:
+        path = _get_settings_path()
+        if not path.exists():
+            try:
+                _write_settings_safe(_DEFAULT_SETTINGS.copy())
+            except Exception:
+                pass
+        try:
+            os.startfile(str(path))
+        except AttributeError:
+            subprocess.Popen(["xdg-open", str(path)])
 
     # ── Profiler actions ──────────────────────────────────────────────────────
 
