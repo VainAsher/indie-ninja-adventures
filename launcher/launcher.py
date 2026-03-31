@@ -52,7 +52,7 @@ VERSION_FILE = "version.json"
 LAUNCHER_VERSION = "1.1.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 640
-WINDOW_H = 540
+WINDOW_H = 560
 SPLASH_H = 200      # canvas height — crops the 640×320 scaled image to top portion
 
 # Colours — matched to game's menu_system.py palette
@@ -135,6 +135,18 @@ def _get_user_data_dir() -> Path:
     if env:
         return Path(env)
     return base / "user_data"
+
+
+def _get_profiles_path() -> Path:
+    return _get_user_data_dir() / "profiles" / "profiles.json"
+
+
+def _format_bytes(n: int) -> str:
+    if n >= 1_048_576:
+        return f"{n / 1_048_576:.1f} MB"
+    if n >= 1024:
+        return f"{n // 1024} KB"
+    return f"{n} B"
 
 
 def _get_profiler_csv() -> Path:
@@ -254,6 +266,7 @@ class LauncherApp:
         self._all_releases: list[dict] = []
         self._selected_release: dict | None = None
         self._downloading = False
+        self._download_cancel = threading.Event()
         self._splash_photo: tk.PhotoImage | None = None
         self._benchmark_proc: subprocess.Popen | None = None
         self._benchmark_timer: threading.Timer | None = None
@@ -440,6 +453,47 @@ class LauncherApp:
         self._version_combo.pack(side="left", padx=(8, 0))
         self._version_combo.bind("<<ComboboxSelected>>", self._on_version_selected)
 
+        # ── Profile row ───────────────────────────────────────────────────────
+        prof_row = tk.Frame(ctrl, bg=BG_DARK)
+        prof_row.pack(fill="x", pady=(6, 0))
+
+        tk.Label(
+            prof_row,
+            text="Profile:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        self._profile_var = tk.StringVar()
+        self._profile_combo = ttk.Combobox(
+            prof_row,
+            textvariable=self._profile_var,
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=18,
+            font=("Consolas", 9),
+        )
+        self._profile_combo.pack(side="left", padx=(8, 0))
+        self._profile_combo.bind("<<ComboboxSelected>>", self._on_profile_selected)
+
+        tk.Button(
+            prof_row,
+            text="+ New",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self._on_new_profile,
+        ).pack(side="left", padx=(8, 0))
+
+        self._load_profiles()
+
         # Progress bar
         self._progress_var = tk.DoubleVar(value=0.0)
         self._progress = ttk.Progressbar(
@@ -491,6 +545,22 @@ class LauncherApp:
             command=self._start_download,
         )
         self._download_btn.pack(side="left", padx=(8, 0))
+
+        self._cancel_btn = tk.Button(
+            btn_row,
+            text="Cancel",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=5,
+            command=self._cancel_download,
+        )
+        # Not packed here — shown only during an active download
 
         tk.Button(
             btn_row,
@@ -631,6 +701,66 @@ class LauncherApp:
             pady=5,
             command=self._launch_join,
         ).pack(side="left")
+
+    # ── Profile actions ───────────────────────────────────────────────────────
+
+    def _read_profiles(self) -> dict:
+        from datetime import date
+        _default: dict = {
+            "active_profile": "Player1",
+            "profiles": {"Player1": {"created": str(date.today()), "save_slot": "savegame.json"}},
+        }
+        path = _get_profiles_path()
+        if not path.exists():
+            return _default
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return _default
+
+    def _write_profiles(self, data: dict) -> None:
+        path = _get_profiles_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        tmp.replace(path)
+
+    def _load_profiles(self) -> None:
+        data = self._read_profiles()
+        names = list(data.get("profiles", {}).keys()) or ["Player1"]
+        active = data.get("active_profile", names[0])
+        self._profile_combo.configure(values=names)
+        if active in names:
+            self._profile_var.set(active)
+        else:
+            self._profile_combo.current(0)
+
+    def _on_profile_selected(self, _event=None) -> None:
+        name = self._profile_var.get()
+        if not name:
+            return
+        data = self._read_profiles()
+        data["active_profile"] = name
+        self._write_profiles(data)
+
+    def _on_new_profile(self) -> None:
+        from tkinter import simpledialog
+        from datetime import date
+        name = simpledialog.askstring("New Profile", "Profile name:", parent=self.root)
+        if not name or not name.strip():
+            return
+        name = name.strip()
+        data = self._read_profiles()
+        if name in data.get("profiles", {}):
+            messagebox.showwarning("Exists", f"Profile '{name}' already exists.", parent=self.root)
+            return
+        data.setdefault("profiles", {})[name] = {
+            "created": str(date.today()),
+            "save_slot": "savegame.json",
+        }
+        data["active_profile"] = name
+        self._write_profiles(data)
+        self._load_profiles()
 
     # ── Tab 2: Report ─────────────────────────────────────────────────────────
 
@@ -1322,8 +1452,10 @@ class LauncherApp:
                 pass
 
         self._downloading = True
+        self._download_cancel.clear()
         self._download_btn.configure(state="disabled", text="Downloading…")
-        self._status_var.set("Downloading…")
+        self._cancel_btn.pack(side="left", padx=(8, 0))
+        self._status_var.set("Connecting…")
 
         threading.Thread(
             target=self._download_worker,
@@ -1336,6 +1468,10 @@ class LauncherApp:
             daemon=True,
         ).start()
 
+    def _cancel_download(self) -> None:
+        self._download_cancel.set()
+        self._status_var.set("Cancelling…")
+
     def _download_worker(
         self,
         url: str,
@@ -1345,21 +1481,53 @@ class LauncherApp:
     ) -> None:
         dest = _get_base_dir() / f"{GAME_EXE_NAME}.new"
         try:
-            downloaded = 0
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": f"indie-ninja-launcher/{LAUNCHER_VERSION}"},
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                if total_size <= 0:
+                    total_size = int(resp.headers.get("Content-Length", 0))
 
-            def _hook(block_num: int, block_size: int, file_size: int) -> None:
-                nonlocal downloaded
-                downloaded = min(block_num * block_size, file_size if file_size > 0 else total_size)
-                if total_size > 0:
-                    pct = min(100.0, downloaded / total_size * 100)
-                    self.root.after(0, self._progress_var.set, pct)
-                    self.root.after(
-                        0,
-                        self._status_var.set,
-                        f"Downloading… {downloaded // 1024:,} KB / {total_size // 1024:,} KB",
-                    )
+                downloaded = 0
+                speed_samples: list[tuple[float, int]] = []
+                last_t = time.monotonic()
 
-            urllib.request.urlretrieve(url, dest, reporthook=_hook)
+                with open(dest, "wb") as f:
+                    while True:
+                        if self._download_cancel.is_set():
+                            raise OSError("Download cancelled.")
+                        chunk = resp.read(65536)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+
+                        now = time.monotonic()
+                        dt = now - last_t
+                        last_t = now
+                        speed_samples.append((dt, len(chunk)))
+                        if len(speed_samples) > 6:
+                            speed_samples.pop(0)
+
+                        total_dt = sum(s[0] for s in speed_samples)
+                        total_b = sum(s[1] for s in speed_samples)
+                        speed = total_b / total_dt if total_dt > 0 else 0
+
+                        if total_size > 0:
+                            pct = min(100.0, downloaded / total_size * 100)
+                            remaining = total_size - downloaded
+                            eta_s = int(remaining / speed) if speed > 0 else 0
+                            eta_str = (
+                                f"{eta_s}s" if eta_s < 60 else f"{eta_s // 60}m {eta_s % 60}s"
+                            )
+                            status = (
+                                f"Downloading…  "
+                                f"{_format_bytes(downloaded)} / {_format_bytes(total_size)}"
+                                f"  {_format_bytes(int(speed))}/s  ETA: {eta_str}"
+                            )
+                            self.root.after(0, self._progress_var.set, pct)
+                            self.root.after(0, self._status_var.set, status)
 
             if expected_sha:
                 self.root.after(0, self._status_var.set, "Verifying checksum…")
@@ -1399,6 +1567,7 @@ class LauncherApp:
 
     def _on_download_done(self, tag: str) -> None:
         self._downloading = False
+        self._cancel_btn.pack_forget()
         self._local_version = tag.lstrip("v")
         self._progress_var.set(100.0)
         self._status_var.set(f"OK  {tag} installed. Ready to play.")
@@ -1412,6 +1581,7 @@ class LauncherApp:
 
     def _on_download_error(self, message: str) -> None:
         self._downloading = False
+        self._cancel_btn.pack_forget()
         self._progress_var.set(0.0)
         self._status_var.set(f"X  {message}")
         self._refresh_download_btn()
@@ -1433,7 +1603,7 @@ class LauncherApp:
     # ── Launch helpers ────────────────────────────────────────────────────────
 
     def _launch_with_args(self, *extra_args: str) -> None:
-        """Build command for the game exe + extra_args, Popen it, then close."""
+        """Build command for the game exe + extra_args, Popen it, then minimise launcher."""
         game_path = _get_game_exe()
         if not game_path.exists():
             messagebox.showerror(
@@ -1447,10 +1617,18 @@ class LauncherApp:
             if game_path.suffix == ".py"
             else [str(game_path)]
         )
+        # Inject active profile (silently ignored by game until native support lands)
+        profile = self._profile_var.get()
+        if profile:
+            cmd += ["--profile", profile]
         cmd.extend(extra_args)
         try:
-            subprocess.Popen(cmd)
-            self.root.after(200, self.root.destroy)
+            proc = subprocess.Popen(cmd)
+            self._status_var.set("Game Running…  (launcher minimised)")
+            self.root.iconify()
+            threading.Thread(
+                target=self._watch_game_process, args=(proc,), daemon=True
+            ).start()
         except Exception as exc:
             messagebox.showerror("Launch Error", str(exc), parent=self.root)
 
@@ -1499,6 +1677,172 @@ class LauncherApp:
         if ":" not in addr:
             addr = f"{addr}:7777"
         self._launch_with_args("--connect", addr)
+
+    # ── Game process watcher + crash detection (P1-F6) ───────────────────────
+
+    _EXIT_CODE_NAMES: dict[int, str] = {
+        -1073741819: "ACCESS_VIOLATION",
+        -1073741571: "STACK_OVERFLOW",
+        -1073741676: "ILLEGAL_INSTRUCTION",
+        -1073741510: "CTRL_C_EXIT",
+        0xC0000005:  "ACCESS_VIOLATION",
+        0xC00000FD:  "STACK_OVERFLOW",
+        0xC000001D:  "ILLEGAL_INSTRUCTION",
+        0xC0000409:  "STACK_BUFFER_OVERRUN",
+        0xC0000094:  "INTEGER_DIVIDE_BY_ZERO",
+    }
+
+    def _watch_game_process(self, proc: subprocess.Popen) -> None:
+        proc.wait()
+        self.root.after(0, self._on_game_exited, proc.returncode)
+
+    def _decode_exit_code(self, code: int) -> str:
+        name = self._EXIT_CODE_NAMES.get(code) or self._EXIT_CODE_NAMES.get(code & 0xFFFFFFFF)
+        hex_str = f"0x{code & 0xFFFFFFFF:08X}"
+        return f"{hex_str} ({name})" if name else hex_str
+
+    def _on_game_exited(self, returncode: int) -> None:
+        self.root.deiconify()
+        if returncode == 0:
+            self._status_var.set("OK  Game exited normally.")
+            return
+        log_tail = ""
+        log_files = _list_log_files()
+        if log_files:
+            log_tail = _read_tail(log_files[0], 30)
+        self._build_crash_dialog(returncode, log_tail)
+
+    def _build_crash_dialog(self, returncode: int, log_tail: str) -> None:
+        import urllib.parse
+        code_str = self._decode_exit_code(returncode)
+
+        win = tk.Toplevel(self.root)
+        win.title("Game Crashed")
+        win.configure(bg=BG_DARK)
+        win.geometry("620x440")
+        win.grab_set()
+
+        pad = tk.Frame(win, bg=BG_DARK)
+        pad.pack(fill="both", expand=True, padx=16, pady=12)
+
+        tk.Label(
+            pad,
+            text="  Game Crashed",
+            font=("Consolas", 11, "bold"),
+            fg="#e05252",
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x")
+        tk.Frame(pad, height=1, bg="#e05252").pack(fill="x", pady=(4, 6))
+        tk.Label(
+            pad,
+            text=f"Exit code:  {code_str}",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x")
+
+        if log_tail:
+            tk.Label(
+                pad,
+                text="Last 30 log lines:",
+                font=("Consolas", 9),
+                fg=TEXT_DIM,
+                bg=BG_DARK,
+                anchor="w",
+            ).pack(fill="x", pady=(8, 2))
+            log_frame = tk.Frame(pad, bg=BG_CARD)
+            log_frame.pack(fill="both", expand=True)
+            log_txt = tk.Text(
+                log_frame,
+                font=("Consolas", 7),
+                bg=BG_CARD,
+                fg=TEXT_PRIMARY,
+                relief="flat",
+                height=10,
+                wrap="none",
+                state="disabled",
+            )
+            log_ys = tk.Scrollbar(log_frame, orient="vertical", command=log_txt.yview)
+            log_txt.configure(yscrollcommand=log_ys.set)
+            log_ys.pack(side="right", fill="y")
+            log_txt.pack(fill="both", expand=True, padx=4, pady=2)
+            log_txt.configure(state="normal")
+            log_txt.insert("1.0", log_tail)
+            log_txt.see("end")
+            log_txt.configure(state="disabled")
+
+        btn_row = tk.Frame(pad, bg=BG_DARK)
+        btn_row.pack(fill="x", pady=(10, 0))
+
+        def _open_report() -> None:
+            body_lines = [
+                f"**Exit code:** {code_str}",
+                f"**Version:** v{self._local_version}",
+                f"**OS:** {platform.platform()}",
+                "",
+                "---",
+                "",
+                "*(describe what you were doing when the crash happened)*",
+            ]
+            if log_tail:
+                body_lines += ["", "---", "**Log tail:**", "```", log_tail, "```"]
+            params = urllib.parse.urlencode({
+                "title": f"[Crash] Exit {code_str}",
+                "labels": "crash,bug",
+                "body": "\n".join(body_lines),
+            })
+            webbrowser.open(f"{ISSUES_URL}?{params}")
+
+        def _copy_to_clipboard() -> None:
+            text = f"Exit code: {code_str}\n\n{log_tail}"
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+            messagebox.showinfo("Copied", "Crash info copied to clipboard.", parent=win)
+
+        tk.Button(
+            btn_row,
+            text="Open Crash Report",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=_open_report,
+        ).pack(side="left")
+        tk.Button(
+            btn_row,
+            text="Copy to Clipboard",
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=_copy_to_clipboard,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_row,
+            text="Dismiss",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=win.destroy,
+        ).pack(side="right")
 
     # ── Legacy alias kept for any external callers ────────────────────────────
 
