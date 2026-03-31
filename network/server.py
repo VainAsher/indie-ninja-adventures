@@ -560,6 +560,46 @@ class GameServer:
             "metadata":          snap_dict.get("metadata", {}),
         }
 
+    def _build_player_only_payload(self, zone: "_ZoneInstance") -> dict:
+        """
+        Build a lightweight player-positions-only WORLD_STATE payload.
+
+        Sent on every simulation tick so clients receive 60 Hz player
+        corrections instead of 20 Hz.  Entity state is omitted — the client's
+        _EntityCache reconstructs it from the most recent full/delta frame.
+        This eliminates the 3-tick drift window that caused 3× over-travel.
+        """
+        player_dicts: list[dict] = []
+        for slot in sorted(zone.simulator.players):
+            p = zone.simulator.players[slot]
+            phys = p.state.physics
+            facing = int(p.state.facing)
+            if facing == 0:
+                facing = 1
+            player_dicts.append({
+                "player_id": str(p.player_id),
+                "slot":      slot,
+                "pos":       [phys.x, phys.y],
+                "vel":       [phys.vx, phys.vy],
+                "health":    int(p.state.health_state.current_hp),
+                "facing":    facing,
+                "is_dead":   p.state.health_state.current_hp <= 0,
+            })
+        return {
+            "frame":             zone.frame,
+            "seed":              zone.seed,
+            "hub_id":            zone.hub_id,
+            "is_delta":          True,
+            "players":           player_dicts,
+            "enemies_changed":   [],
+            "enemies_removed":   [],
+            "pickups_changed":   [],
+            "pickups_removed":   [],
+            "platforms_changed": [],
+            "platforms_removed": [],
+            "metadata":          {},
+        }
+
     # ── Zone helpers ──────────────────────────────────────────────────────────
 
     def _get_or_create_zone(self, hub_id: str) -> "_ZoneInstance":
@@ -741,11 +781,15 @@ class GameServer:
                     log.error("[ZONE:%s] step() error at frame %d: %s",
                               zone.hub_id, zone.frame, exc, exc_info=True)
 
-                # Broadcast WORLD_STATE at BROADCAST_EVERY_N_TICKS rate (20 Hz
-                # when BROADCAST_EVERY_N_TICKS=3 and TICK_RATE=60).  Physics
-                # still advances every tick for accuracy; serialisation and
-                # network I/O are the expensive parts, so doing them less often
-                # reduces server CPU load and frees the GIL for the client loop.
+                # Broadcast strategy:
+                #   • Every BROADCAST_EVERY_N_TICKS (20 Hz): full entity delta
+                #     (enemies, pickups, platforms). The expensive get_snapshot()
+                #     + delta-encode path; keeps entity traffic low.
+                #   • Every other tick (60 Hz): lightweight player-only payload.
+                #     Reads player physics directly — no get_snapshot() overhead.
+                #     Clients receive fresh player positions every frame, so the
+                #     rubber-band lerp can correct each frame instead of every
+                #     3rd, eliminating the 3× over-travel regression.
                 if _ticks % BROADCAST_EVERY_N_TICKS == 0:
                     try:
                         snap = zone.simulator.get_snapshot(zone.frame)
@@ -755,6 +799,13 @@ class GameServer:
                         await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
                     except Exception as exc:
                         log.error("[ZONE:%s] snapshot/broadcast error: %s",
+                                  zone.hub_id, exc, exc_info=True)
+                else:
+                    try:
+                        payload = self._build_player_only_payload(zone)
+                        await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
+                    except Exception as exc:
+                        log.error("[ZONE:%s] player-only broadcast error: %s",
                                   zone.hub_id, exc, exc_info=True)
 
                 if _ticks % (TICK_RATE * 5) == 0:
