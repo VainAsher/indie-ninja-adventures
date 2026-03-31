@@ -1978,32 +1978,25 @@ def main():
                 # --- Players (remote ghosts + rubber-band local position) ---
                 for _ps in _ws.players:
                     if _ps.slot == _local_slot:
-                        # Rubber-band: two-tier correction so input stays
-                        # responsive while server authority is preserved.
-                        #
-                        # • Hard snap (> 128 px): genuine OOB / respawn /
-                        #   collision fix — snap position AND velocity.
-                        # • Lerp (≤ 128 px, > 1 px): gentle 20 % nudge toward
-                        #   server position each update; velocity is intentionally
-                        #   NOT overwritten so local physics keeps driving
-                        #   movement.  Factor 0.2 (not 0.6) because the server
-                        #   now broadcasts at 60 Hz (every tick) — at that rate
-                        #   0.2 converges 97 % within ~150 ms while 0.6 would
-                        #   over-correct and amplify short-tap travel distance.
+                        # Client-authoritative movement: local physics drives
+                        # the remote player's own character with no server
+                        # corrections for normal drift (< 128 px).  This gives
+                        # v0.7.0-level responsiveness — zero correction latency.
+                        # Lerp corrections were removed because they fought the
+                        # physics engine: corrected positions pushed the player
+                        # into collision geometry, triggering bounces and
+                        # animation state flicker ("animation lag").
+                        # Hard snap kept only for genuine large divergence
+                        # (respawn, OOB, zone transition).
                         # Health is always authoritative (Phase 3b).
                         _dx = _ps.pos[0] - player.state.physics.x
                         _dy = _ps.pos[1] - player.state.physics.y
-                        _dist_sq = _dx * _dx + _dy * _dy
-                        if _dist_sq > 128 * 128:
-                            # Hard snap — large divergence (teleport, OOB)
+                        if _dx * _dx + _dy * _dy > 128 * 128:
+                            # Hard snap — respawn / OOB / zone transition only
                             player.state.physics.x = _ps.pos[0]
                             player.state.physics.y = _ps.pos[1]
                             player.state.physics.vx = _ps.vel[0]
                             player.state.physics.vy = _ps.vel[1]
-                        elif _dist_sq > 1.0:
-                            # Smooth lerp — nudge position only, leave velocity
-                            player.state.physics.x += _dx * 0.2
-                            player.state.physics.y += _dy * 0.2
                         player.state.health_state.current_hp = _ps.health
                     else:
                         if _ps.slot not in _remote_players:

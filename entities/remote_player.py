@@ -83,16 +83,24 @@ class RemotePlayer:
             self.anim_sm.transition(self._infer_anim_state())
 
     def _infer_anim_state(self) -> str:
-        """Derive an animation state name from current physics values."""
+        """
+        Derive an animation state name from current physics values.
+
+        Uses the larger of reported vx and the positional delta (prev→current)
+        as the speed signal.  This prevents the ghost from snapping to "idle"
+        while interpolated_pos() is still sliding it toward the new position —
+        keeping animation in sync with the visible movement.
+        """
         if self.is_dead:
             return "death"
         if self.vy < -1.0:
             return "jump"
         if self.vy > 1.0:
             return "fall"
-        if abs(self.vx) > 5.0:
+        speed = max(abs(self.vx), abs(self.x - self.prev_x))
+        if speed > 5.0:
             return "run"
-        if abs(self.vx) > 0.5:
+        if speed > 0.5:
             return "walk"
         return "idle"
 
