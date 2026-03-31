@@ -21,7 +21,9 @@ import hmac
 import json
 import os
 import platform
+import re
 import shutil
+import socket
 import statistics
 import subprocess
 import sys
@@ -51,7 +53,7 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.4.0"
+LAUNCHER_VERSION = "1.5.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
@@ -863,6 +865,71 @@ class LauncherApp:
             command=self._launch_join,
         ).pack(side="left")
 
+        # Ping button + result label
+        tk.Frame(mp_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=12)
+        ping_frame = tk.Frame(mp_row, bg=BG_DARK)
+        ping_frame.pack(side="left")
+        tk.Button(
+            ping_frame,
+            text="Ping",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=5,
+            command=self._ping_server_addr,
+        ).pack(side="left")
+        self._ping_result_var = tk.StringVar(value="")
+        self._ping_result_label_widget = tk.Label(
+            ping_frame,
+            textvariable=self._ping_result_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        )
+        self._ping_result_label_widget.pack(side="left", padx=(4, 0))
+
+        # ── Changelog / News Feed ─────────────────────────────────────────────
+        tk.Frame(ctrl, height=1, bg=BG_MID).pack(fill="x", pady=(12, 0))
+        changelog_header = tk.Frame(ctrl, bg=BG_DARK)
+        changelog_header.pack(fill="x", pady=(4, 0))
+        tk.Label(
+            changelog_header,
+            text="LATEST RELEASE",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+        ).pack(side="left")
+        self._changelog_tag_var = tk.StringVar(value="")
+        tk.Label(
+            changelog_header,
+            textvariable=self._changelog_tag_var,
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left", padx=(8, 0))
+
+        cl_frame = tk.Frame(ctrl, bg=BG_CARD)
+        cl_frame.pack(fill="x", pady=(4, 0))
+        self._changelog_txt = tk.Text(
+            cl_frame,
+            font=("Consolas", 8),
+            bg=BG_CARD,
+            fg=TEXT_PRIMARY,
+            wrap="word",
+            relief="flat",
+            height=5,
+            state="disabled",
+        )
+        cl_ys = ttk.Scrollbar(cl_frame, orient="vertical", command=self._changelog_txt.yview)
+        self._changelog_txt.configure(yscrollcommand=cl_ys.set)
+        cl_ys.pack(side="right", fill="y")
+        self._changelog_txt.pack(fill="both", expand=True)
+
     # ── Profile actions ───────────────────────────────────────────────────────
 
     def _read_profiles(self) -> dict:
@@ -1170,33 +1237,30 @@ class LauncherApp:
             bg=BG_DARK,
         ).pack(side="right")
 
-        # Baseline selector row
+        # Baseline compare row
         prof_btn_row2 = tk.Frame(pad, bg=BG_DARK)
         prof_btn_row2.pack(fill="x", pady=(4, 0))
-
         tk.Label(
             prof_btn_row2,
             text="Baseline:",
-            font=("Consolas", 8),
+            font=("Consolas", 9),
             fg=TEXT_DIM,
             bg=BG_DARK,
         ).pack(side="left")
-
         self._baseline_var = tk.StringVar()
         self._baseline_combo = ttk.Combobox(
             prof_btn_row2,
             textvariable=self._baseline_var,
             state="readonly",
             style="Launcher.TCombobox",
-            width=26,
+            width=22,
             font=("Consolas", 8),
         )
-        self._baseline_combo.pack(side="left", padx=(4, 0))
-
+        self._baseline_combo.pack(side="left", padx=(4, 6))
         tk.Button(
             prof_btn_row2,
             text="Compare",
-            font=("Consolas", 8),
+            font=("Consolas", 9),
             fg=TEXT_DIM,
             bg=BG_DARK,
             activebackground=BG_MID,
@@ -1204,31 +1268,77 @@ class LauncherApp:
             relief="flat",
             cursor="hand2",
             padx=8,
-            pady=3,
+            pady=4,
             command=self._compare_to_baseline,
-        ).pack(side="left", padx=(6, 0))
+        ).pack(side="left")
 
-        # Results display — scrollable Text (read-only)
+        # Table / Chart toggle
+        self._prof_view_mode = "table"
+        toggle_row = tk.Frame(pad, bg=BG_DARK)
+        toggle_row.pack(fill="x", pady=(4, 0))
+        self._prof_table_btn = tk.Button(
+            toggle_row,
+            text="[Table]",
+            font=("Consolas", 8, "bold"),
+            fg=TEXT_SELECTED,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=6,
+            pady=2,
+            command=lambda: self._set_prof_view("table"),
+        )
+        self._prof_table_btn.pack(side="left")
+        self._prof_chart_btn = tk.Button(
+            toggle_row,
+            text="Chart",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=6,
+            pady=2,
+            command=lambda: self._set_prof_view("chart"),
+        )
+        self._prof_chart_btn.pack(side="left", padx=(4, 0))
+
+        # Results display: text table (read-only, scrollable)
         prof_text_frame = tk.Frame(pad, bg=BG_CARD)
-        prof_text_frame.pack(fill="both", expand=False, pady=(6, 0))
-
+        prof_text_frame.pack(fill="x", pady=(6, 0))
         self._prof_txt = tk.Text(
             prof_text_frame,
             font=("Consolas", 8),
             bg=BG_CARD,
             fg=TEXT_PRIMARY,
+            wrap="none",
             relief="flat",
             height=8,
-            wrap="none",
             state="disabled",
         )
-        _prof_ys = tk.Scrollbar(prof_text_frame, orient="vertical", command=self._prof_txt.yview)
-        self._prof_txt.configure(yscrollcommand=_prof_ys.set)
+        _prof_ys = ttk.Scrollbar(prof_text_frame, orient="vertical", command=self._prof_txt.yview)
+        _prof_xs = ttk.Scrollbar(prof_text_frame, orient="horizontal", command=self._prof_txt.xview)
+        self._prof_txt.configure(yscrollcommand=_prof_ys.set, xscrollcommand=_prof_xs.set)
+        _prof_xs.pack(side="bottom", fill="x")
         _prof_ys.pack(side="right", fill="y")
-        self._prof_txt.pack(fill="both", expand=True, padx=4, pady=2)
+        self._prof_txt.pack(fill="both", expand=True)
+        self._prof_text_frame = prof_text_frame
 
-        # Load existing CSV on open
+        # Chart canvas (hidden until chart mode selected)
+        self._prof_canvas = tk.Canvas(
+            pad,
+            bg=BG_CARD,
+            height=120,
+            highlightthickness=0,
+        )
+        # Not packed yet — shown on demand
+
         self._refresh_baseline_list()
+        # Load existing CSV on open
         self._refresh_profiler_display()
 
         # ── Logs section ──────────────────────────────────────────────────────
@@ -1317,7 +1427,6 @@ class LauncherApp:
         replay_row = tk.Frame(pad, bg=BG_DARK)
         replay_row.pack(fill="x")
 
-        self._replay_meta_var = tk.StringVar(value="")
         self._replay_var = tk.StringVar()
         self._replay_combo = ttk.Combobox(
             replay_row,
@@ -1352,7 +1461,7 @@ class LauncherApp:
             fg=TEXT_DIM,
             bg=BG_DARK,
             activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
+            activeforeground="#e53935",
             relief="flat",
             cursor="hand2",
             padx=6,
@@ -1375,10 +1484,12 @@ class LauncherApp:
             command=self._refresh_replay_list,
         ).pack(side="right")
 
+        # Metadata display
+        self._replay_meta_var = tk.StringVar(value="")
         tk.Label(
             pad,
             textvariable=self._replay_meta_var,
-            font=("Consolas", 8),
+            font=("Consolas", 7),
             fg=TEXT_DIM,
             bg=BG_DARK,
             anchor="w",
@@ -2504,7 +2615,7 @@ class LauncherApp:
     # ── Profiler actions ──────────────────────────────────────────────────────
 
     def _refresh_profiler_display(self, baseline_stats: dict | None = None) -> None:
-        """Read the existing profiler CSV (if any) and show all timing sections."""
+        """Read the existing profiler CSV (if any) and show a summary in the Text widget."""
         csv_path = _get_profiler_csv()
         stats = _parse_profiler_csv(csv_path)
 
@@ -2512,34 +2623,133 @@ class LauncherApp:
         self._prof_txt.delete("1.0", "end")
 
         if not stats:
-            self._prof_txt.insert("end", "No profiler data — run a benchmark first.")
+            self._prof_txt.insert("1.0", "No profiler data — run a benchmark first.")
             self._prof_txt.configure(state="disabled")
             return
 
-        _skip = {"fps_avg", "fps_p5", "fps_min", "frame_count"}
-        header = (
-            f"Frames: {stats['frame_count']}   "
-            f"FPS avg={stats['fps_avg']:.1f}  p5={stats['fps_p5']:.1f}  min={stats['fps_min']:.1f}\n"
-        )
-        col_head = f"\n  {'Section':<22s} {'avg':>7s}  {'p95':>7s}  {'max':>7s}"
-        if baseline_stats:
-            col_head += "   vs baseline (avg)"
-        col_head += "\n  " + "-" * (44 + (22 if baseline_stats else 0))
+        has_baseline = baseline_stats is not None
+        if has_baseline:
+            header = f"{'Section':<20s}  {'avg':>7s}  {'p95':>7s}  {'max':>7s}  {'Δavg':>8s}"
+        else:
+            header = f"{'Section':<20s}  {'avg':>7s}  {'p95':>7s}  {'max':>7s}"
+        sep = "─" * len(header)
 
-        rows = []
-        for sec in sorted(k for k in stats if k not in _skip):
+        fps_line = (
+            f"Frames: {stats['frame_count']}    "
+            f"FPS  avg={stats['fps_avg']:.1f}  p5={stats['fps_p5']:.1f}  min={stats['fps_min']:.1f}"
+        )
+        lines = [fps_line, sep, header, sep]
+
+        sections = [k for k in stats if k not in ("frame_count", "fps_avg", "fps_p5", "fps_min")]
+        for sec in sections:
             d = stats[sec]
-            row = f"  {sec:<22s} {d['avg']:>6.2f}ms  {d['p95']:>6.2f}ms  {d['max']:>6.2f}ms"
-            if baseline_stats and sec in baseline_stats:
+            if has_baseline and sec in baseline_stats:
                 bd = baseline_stats[sec]
                 delta = d["avg"] - bd["avg"]
-                pct = (delta / bd["avg"] * 100) if bd["avg"] > 0 else 0.0
                 sign = "+" if delta >= 0 else ""
-                row += f"   {sign}{delta:.2f}ms ({sign}{pct:.0f}%)"
-            rows.append(row)
+                lines.append(
+                    f"  {sec:<18s}  {d['avg']:6.2f}ms  {d['p95']:6.2f}ms  {d['max']:6.2f}ms  "
+                    f"{sign}{delta:+.2f}ms"
+                )
+            else:
+                lines.append(
+                    f"  {sec:<18s}  {d['avg']:6.2f}ms  {d['p95']:6.2f}ms  {d['max']:6.2f}ms"
+                )
 
-        self._prof_txt.insert("end", header + col_head + "\n" + "\n".join(rows))
+        self._prof_txt.insert("1.0", "\n".join(lines))
         self._prof_txt.configure(state="disabled")
+
+        if self._prof_view_mode == "chart":
+            self._draw_profiler_chart(stats)
+
+    def _refresh_baseline_list(self) -> None:
+        """Populate the baseline combobox with perf_baseline*.csv files."""
+        base_dir = _get_base_dir() / "docs"
+        files = sorted(base_dir.glob("perf_baseline*.csv"), reverse=True) if base_dir.exists() else []
+        names = [f.name for f in files]
+        self._baseline_combo.configure(values=names)
+        if names:
+            self._baseline_combo.current(0)
+
+    def _compare_to_baseline(self) -> None:
+        """Parse selected baseline CSV and re-render profiler display with delta column."""
+        name = self._baseline_var.get()
+        if not name:
+            messagebox.showinfo("No Baseline", "No baseline file selected.", parent=self.root)
+            return
+        baseline_path = _get_base_dir() / "docs" / name
+        baseline_stats = _parse_profiler_csv(baseline_path)
+        if not baseline_stats:
+            messagebox.showerror(
+                "Parse Error", f"Could not read baseline:\n{baseline_path}", parent=self.root
+            )
+            return
+        self._refresh_profiler_display(baseline_stats=baseline_stats)
+        self._bench_status_var.set(f"Comparing vs {name}")
+
+    def _set_prof_view(self, mode: str) -> None:
+        """Toggle between 'table' and 'chart' view for profiler results."""
+        self._prof_view_mode = mode
+        if mode == "table":
+            self._prof_table_btn.configure(fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold"))
+            self._prof_chart_btn.configure(fg=TEXT_DIM, bg=BG_DARK, font=("Consolas", 8))
+            self._prof_canvas.pack_forget()
+            self._prof_text_frame.pack(fill="x", pady=(6, 0))
+        else:
+            self._prof_chart_btn.configure(fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold"))
+            self._prof_table_btn.configure(fg=TEXT_DIM, bg=BG_DARK, font=("Consolas", 8))
+            self._prof_text_frame.pack_forget()
+            self._prof_canvas.pack(fill="x", pady=(6, 0))
+            csv_path = _get_profiler_csv()
+            stats = _parse_profiler_csv(csv_path)
+            if stats:
+                self._draw_profiler_chart(stats)
+            else:
+                self._prof_canvas.delete("all")
+                self._prof_canvas.create_text(
+                    4, 60, text="No data", fill=TEXT_DIM, anchor="w", font=("Consolas", 8)
+                )
+
+    def _draw_profiler_chart(self, stats: dict) -> None:
+        """Draw a horizontal bar chart of per-section avg timings on the Canvas."""
+        canvas = self._prof_canvas
+        canvas.update_idletasks()
+        canvas.delete("all")
+
+        sections = [k for k in stats if k not in ("frame_count", "fps_avg", "fps_p5", "fps_min")]
+        if not sections:
+            return
+
+        W = canvas.winfo_width() or 400
+        label_w = 130
+        bar_area = W - label_w - 60
+        max_val = max(stats[s]["avg"] for s in sections) or 1.0
+        bar_h = 14
+        gap = 6
+        y0 = 8
+
+        for i, sec in enumerate(sections):
+            avg = stats[sec]["avg"]
+            y = y0 + i * (bar_h + gap)
+            bar_len = int(bar_area * avg / max_val)
+            # Color thresholds (ms)
+            if avg < 8:
+                color = "#4caf50"   # green
+            elif avg < 16:
+                color = "#ffd700"   # yellow (ACCENT)
+            else:
+                color = "#e53935"   # red
+            canvas.create_text(
+                label_w - 4, y + bar_h // 2,
+                text=sec[:20], fill=TEXT_DIM, anchor="e", font=("Consolas", 7)
+            )
+            canvas.create_rectangle(
+                label_w, y, label_w + bar_len, y + bar_h, fill=color, outline=""
+            )
+            canvas.create_text(
+                label_w + bar_len + 4, y + bar_h // 2,
+                text=f"{avg:.2f}ms", fill=TEXT_PRIMARY, anchor="w", font=("Consolas", 7)
+            )
 
     def _run_benchmark(self) -> None:
         """Launch the game headless with --profile, kill after N seconds, refresh display."""
@@ -2615,31 +2825,8 @@ class LauncherApp:
         try:
             shutil.copy2(csv_path, dated)
             self._bench_status_var.set(f"Saved: {dated.name}")
-            self._refresh_baseline_list()
         except Exception as exc:
             messagebox.showerror("Save Failed", str(exc), parent=self.root)
-
-    def _refresh_baseline_list(self) -> None:
-        """Scan docs/ for perf_baseline*.csv files and populate the baseline combobox."""
-        docs_dir = _get_base_dir() / "docs"
-        files = sorted(docs_dir.glob("perf_baseline*.csv"), key=lambda p: p.name, reverse=True)
-        names = [p.name for p in files if p.name != "perf_baseline.csv"]
-        self._baseline_combo.configure(values=names)
-        if names and not self._baseline_var.get():
-            self._baseline_combo.current(0)
-
-    def _compare_to_baseline(self) -> None:
-        """Parse the selected baseline CSV and re-render the profiler display with delta column."""
-        name = self._baseline_var.get()
-        if not name:
-            messagebox.showinfo("No Baseline", "Select a baseline CSV first.", parent=self.root)
-            return
-        baseline_path = _get_base_dir() / "docs" / name
-        baseline_stats = _parse_profiler_csv(baseline_path)
-        if not baseline_stats:
-            messagebox.showerror("Parse Error", f"Could not parse {name}", parent=self.root)
-            return
-        self._refresh_profiler_display(baseline_stats=baseline_stats)
 
     # ── Log actions ───────────────────────────────────────────────────────────
 
@@ -2661,20 +2848,16 @@ class LauncherApp:
             messagebox.showerror("File Not Found", str(log_path), parent=self.root)
             return
 
-        full_content = log_path.read_text(encoding="utf-8", errors="replace")
-
         win = tk.Toplevel(self.root)
         win.title(f"Log — {name}")
         win.configure(bg=BG_DARK)
         win.geometry("700x440")
 
-        # ── Filter row ────────────────────────────────────────────────────────
+        # Filter / search bar
         filter_row = tk.Frame(win, bg=BG_DARK)
         filter_row.pack(fill="x", padx=6, pady=(6, 2))
 
-        tk.Label(
-            filter_row, text="Level:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
-        ).pack(side="left")
+        tk.Label(filter_row, text="Level:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(side="left")
         level_var = tk.StringVar(value="ALL")
         level_combo = ttk.Combobox(
             filter_row,
@@ -2685,13 +2868,11 @@ class LauncherApp:
             width=10,
             font=("Consolas", 8),
         )
-        level_combo.pack(side="left", padx=(4, 12))
+        level_combo.pack(side="left", padx=(4, 10))
 
-        tk.Label(
-            filter_row, text="Search:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
-        ).pack(side="left")
+        tk.Label(filter_row, text="Search:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(side="left")
         search_var = tk.StringVar()
-        search_entry = tk.Entry(
+        tk.Entry(
             filter_row,
             textvariable=search_var,
             font=("Consolas", 8),
@@ -2700,10 +2881,10 @@ class LauncherApp:
             insertbackground=ACCENT,
             relief="flat",
             width=22,
-        )
-        search_entry.pack(side="left", padx=(4, 6))
+        ).pack(side="left", padx=(4, 6))
 
-        # ── Log text area ─────────────────────────────────────────────────────
+        full_content = log_path.read_text(encoding="utf-8", errors="replace")
+
         text = tk.Text(
             win,
             font=("Consolas", 8),
@@ -2715,9 +2896,6 @@ class LauncherApp:
         ys = tk.Scrollbar(win, orient="vertical", command=text.yview)
         xs = tk.Scrollbar(win, orient="horizontal", command=text.xview)
         text.configure(yscrollcommand=ys.set, xscrollcommand=xs.set)
-        xs.pack(side="bottom", fill="x")
-        ys.pack(side="right", fill="y")
-        text.pack(fill="both", expand=True)
 
         def _apply_filter(*_args) -> None:
             level = level_var.get()
@@ -2759,12 +2937,18 @@ class LauncherApp:
             cursor="hand2",
             padx=6,
             pady=2,
-            command=lambda: (search_var.set(""), level_var.set("ALL"), _apply_filter()),
+            command=lambda: (level_var.set("ALL"), search_var.set(""), _apply_filter()),
         ).pack(side="left", padx=(4, 0))
 
-        search_entry.bind("<Return>", _apply_filter)
-        level_combo.bind("<<ComboboxSelected>>", _apply_filter)
-        _apply_filter()
+        level_var.trace_add("write", _apply_filter)
+
+        xs.pack(side="bottom", fill="x")
+        ys.pack(side="right", fill="y")
+        text.pack(fill="both", expand=True)
+
+        text.insert("1.0", full_content)
+        text.see("end")
+        text.configure(state="disabled")
 
     def _reveal_log(self) -> None:
         name = self._log_var.get()
@@ -2790,41 +2974,34 @@ class LauncherApp:
             self._replay_meta_var.set("")
 
     def _on_replay_selected(self, _event=None) -> None:
-        """Read selected replay JSON and display its metadata."""
+        """Show metadata for the currently selected replay in the Dev Tools combo."""
         name = self._replay_var.get()
-        if not name or name.startswith("("):
+        if not name or name == "(no replays found)":
             self._replay_meta_var.set("")
             return
         path = _get_user_data_dir() / "replays" / name
-        if not path.exists():
-            self._replay_meta_var.set("(file not found)")
+        meta = _read_replay_meta(path)
+        if not meta:
+            self._replay_meta_var.set("(no metadata)")
             return
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            self._replay_meta_var.set("(could not read file)")
-            return
-        meta = data.get("metadata", {})
-        frame_count = len(data.get("commands", []))
-        parts: list[str] = []
-        if "hub_id" in meta:
-            parts.append(f"Hub: {meta['hub_id']}")
-        if "mission_id" in meta:
-            parts.append(f"Mission: {meta['mission_id']}")
-        if frame_count:
-            parts.append(f"Frames: {frame_count:,}")
-        if "world_seed" in meta:
-            parts.append(f"Seed: {meta['world_seed']}")
-        self._replay_meta_var.set("  |  ".join(parts) if parts else "No metadata")
+        hub = meta.get("hub_id", "—")
+        mode = meta.get("mode", "—")
+        seed = meta.get("world_seed", "—")
+        frames = meta.get("total_frames", meta.get("frame_count", "—"))
+        self._replay_meta_var.set(
+            f"hub={hub}  mode={mode}  seed={seed}  frames={frames}"
+        )
 
     def _delete_selected_replay_devtools(self) -> None:
-        """Confirm and delete the selected replay file."""
+        """Delete the replay selected in the Dev Tools combobox."""
         name = self._replay_var.get()
-        if not name or name.startswith("("):
-            return
-        if not messagebox.askyesno("Delete Replay", f"Delete '{name}'?", parent=self.root):
+        if not name or name == "(no replays found)":
             return
         path = _get_user_data_dir() / "replays" / name
+        if not messagebox.askyesno(
+            "Delete Replay", f"Delete '{name}'?", parent=self.root
+        ):
+            return
         try:
             path.unlink(missing_ok=True)
         except Exception as exc:
@@ -2891,6 +3068,25 @@ class LauncherApp:
             self._status_var.set(f"Update available: {latest_tag}")
         else:
             self._status_var.set("OK  Up to date")
+
+        self._update_changelog(releases[0])
+
+    def _update_changelog(self, release: dict) -> None:
+        """Populate the changelog Text widget with the latest release body."""
+        tag = release.get("tag_name", "")
+        self._changelog_tag_var.set(f"— {tag}")
+        body = release.get("body") or "(no release notes)"
+        # Strip markdown headings, bold/italic markers, and HTML tags for plain display
+        body = re.sub(r"<[^>]+>", "", body)
+        body = re.sub(r"^#{1,6}\s*", "", body, flags=re.MULTILINE)
+        body = re.sub(r"\*\*(.+?)\*\*", r"\1", body)
+        body = re.sub(r"\*(.+?)\*", r"\1", body)
+        body = re.sub(r"`(.+?)`", r"\1", body)
+        body = body.strip()
+        self._changelog_txt.configure(state="normal")
+        self._changelog_txt.delete("1.0", "end")
+        self._changelog_txt.insert("1.0", body)
+        self._changelog_txt.configure(state="disabled")
 
     # ── Version picker ────────────────────────────────────────────────────────
 
@@ -3194,6 +3390,55 @@ class LauncherApp:
         if ":" not in addr:
             addr = f"{addr}:7777"
         self._launch_with_args("--connect", addr)
+
+    # ── Server ping (P3-F5) ───────────────────────────────────────────────────
+
+    def _ping_server_addr(self) -> None:
+        """TCP-connect to the join address and report latency."""
+        addr = self._join_addr_var.get().strip()
+        if not addr or addr == self._JOIN_PLACEHOLDER:
+            self._ping_result_var.set("no address")
+            return
+        if ":" in addr:
+            host, _, port_str = addr.rpartition(":")
+            try:
+                port = int(port_str)
+            except ValueError:
+                self._ping_result_var.set("bad address")
+                return
+        else:
+            host = addr
+            port = 7777
+        self._ping_result_var.set("pinging…")
+        threading.Thread(
+            target=self._do_ping, args=(host, port), daemon=True
+        ).start()
+
+    def _do_ping(self, host: str, port: int) -> None:
+        try:
+            t0 = time.perf_counter()
+            with socket.create_connection((host, port), timeout=3):
+                pass
+            ms = (time.perf_counter() - t0) * 1000
+        except OSError:
+            self.root.after(0, self._on_ping_done, None)
+            return
+        self.root.after(0, self._on_ping_done, ms)
+
+    def _on_ping_done(self, ms: float | None) -> None:
+        if ms is None:
+            self._ping_result_var.set("unreachable")
+            self._ping_result_label_widget.configure(fg="#e53935")
+            return
+        label = f"{ms:.0f}ms"
+        if ms < 100:
+            color = "#4caf50"
+        elif ms < 250:
+            color = "#ffd700"
+        else:
+            color = "#e53935"
+        self._ping_result_var.set(label)
+        self._ping_result_label_widget.configure(fg=color)
 
     # ── Game process watcher + crash detection (P1-F6) ───────────────────────
 
