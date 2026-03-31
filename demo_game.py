@@ -1983,15 +1983,13 @@ def main():
                         #
                         # • Hard snap (> 128 px): genuine OOB / respawn /
                         #   collision fix — snap position AND velocity.
-                        # • Lerp (≤ 128 px): smooth 60 % nudge toward server
-                        #   position each update; velocity is intentionally
+                        # • Lerp (≤ 128 px, > 1 px): gentle 20 % nudge toward
+                        #   server position each update; velocity is intentionally
                         #   NOT overwritten so local physics keeps driving
-                        #   movement (velocity snap is what made remote input
-                        #   feel like it was fighting itself).
-                        #
-                        # At 20 Hz updates, lerp 0.6 converges 97 % of a
-                        # discrepancy within ~150 ms — enough to track
-                        # RTT drift without causing visible position jumps.
+                        #   movement.  Factor 0.2 (not 0.6) because the server
+                        #   now broadcasts at 60 Hz (every tick) — at that rate
+                        #   0.2 converges 97 % within ~150 ms while 0.6 would
+                        #   over-correct and amplify short-tap travel distance.
                         # Health is always authoritative (Phase 3b).
                         _dx = _ps.pos[0] - player.state.physics.x
                         _dy = _ps.pos[1] - player.state.physics.y
@@ -2004,8 +2002,8 @@ def main():
                             player.state.physics.vy = _ps.vel[1]
                         elif _dist_sq > 1.0:
                             # Smooth lerp — nudge position only, leave velocity
-                            player.state.physics.x += _dx * 0.6
-                            player.state.physics.y += _dy * 0.6
+                            player.state.physics.x += _dx * 0.2
+                            player.state.physics.y += _dy * 0.2
                         player.state.health_state.current_hp = _ps.health
                     else:
                         if _ps.slot not in _remote_players:

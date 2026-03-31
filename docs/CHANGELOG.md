@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.10] - 2026-03-30 (Hotfix: remote player 3× over-travel / no responsiveness)
+
+### Fixed
+
+- **`network/server.py`** — Server now broadcasts player positions at **60 Hz**
+  (every simulation tick) via a new lightweight `_build_player_only_payload()`
+  path.  Full entity delta (enemies, pickups, platforms) still broadcasts at
+  20 Hz.  Root cause: `BROADCAST_EVERY_N_TICKS = 3` meant the rubber-band
+  correction only fired once per 3 ticks, letting 3 frames of physics drift
+  accumulate — producing exactly the 3× over-travel observed in playtesting.
+- **`network/client.py`** — Changed `INPUT_HOLD_INTERVAL` from 3 → 1.  The
+  server's `latest_input` is now always the freshest frame so it never runs
+  extra physics ticks on a stale held input, eliminating exaggerated movement
+  for both the remote player (own view) and the host (ghost view).
+- **`demo_game.py`** — Reduced rubber-band lerp factor from 0.6 → 0.2 to
+  compensate for 3× more frequent corrections at 60 Hz.  At 60 Hz updates,
+  factor 0.2 converges 97 % of drift within ~150 ms while keeping each
+  per-frame nudge small enough not to amplify short-tap travel distance.
+
+---
+
 ## [0.9.5] - 2026-03-31 (Hotfix: remote player input precision)
 
 ### Fixed

@@ -103,9 +103,10 @@ class _EntityCache:
         self._enemies.clear()
         self._pickups.clear()
         self._platforms.clear()
-# Send input immediately on button change; throttle to this many frames between
-# identical-state sends (60 Hz game loop ÷ 3 = 20 Hz hold-state send rate).
-INPUT_HOLD_INTERVAL = 3
+# Send input immediately on button change; also send every frame when holding
+# (INPUT_HOLD_INTERVAL = 1 = no throttle).  This keeps the server's latest_input
+# always current so it never runs extra physics frames from stale held inputs.
+INPUT_HOLD_INTERVAL = 1
 
 
 @dataclass
