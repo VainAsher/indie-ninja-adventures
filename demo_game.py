@@ -1534,7 +1534,7 @@ def main():
     # Frame profiler (enabled via --profile flag, zero-overhead when disabled)
     profiler = FrameProfiler(
         enabled=enable_profile,
-        csv_path=str(user_data_dir / ".." / "docs" / "perf_baseline.csv"),
+        csv_path=str(user_data_dir / "perf_baseline.csv"),
     )
 
     # Wire profiler into systems for per-section timing (no-op when disabled)
