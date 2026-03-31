@@ -1978,15 +1978,19 @@ def main():
                 # --- Players (remote ghosts + rubber-band local position) ---
                 for _ps in _ws.players:
                     if _ps.slot == _local_slot:
-                        # Rubber-band: apply server-authoritative position and
-                        # health to local player (1 RTT latency; prediction
-                        # is Phase 3d).  Health sync is safe from Phase 3b
-                        # onward because the server now runs CombatMechanic
-                        # per slot and the snapshot value is authoritative.
-                        player.state.physics.x = _ps.pos[0]
-                        player.state.physics.y = _ps.pos[1]
-                        player.state.physics.vx = _ps.vel[0]
-                        player.state.physics.vy = _ps.vel[1]
+                        # Rubber-band: apply server-authoritative position only
+                        # when the discrepancy is large enough to be a genuine
+                        # correction (e.g. collision fix, teleport) rather than
+                        # normal latency drift.  Small differences are left to
+                        # local physics so input feels responsive.  Health is
+                        # always authoritative (Phase 3b).
+                        _dx = _ps.pos[0] - player.state.physics.x
+                        _dy = _ps.pos[1] - player.state.physics.y
+                        if _dx * _dx + _dy * _dy > 32 * 32:
+                            player.state.physics.x = _ps.pos[0]
+                            player.state.physics.y = _ps.pos[1]
+                            player.state.physics.vx = _ps.vel[0]
+                            player.state.physics.vy = _ps.vel[1]
                         player.state.health_state.current_hp = _ps.health
                     else:
                         if _ps.slot not in _remote_players:

@@ -34,9 +34,11 @@ log = logging.getLogger("ninja_dash.network.server")
 
 MAX_PLAYERS = 4
 SERVER_VERSION = "2.0.0"
-TICK_RATE = 60          # target broadcast ticks per second
+TICK_RATE = 60          # simulation ticks per second (physics accuracy)
 TICK_INTERVAL = 1.0 / TICK_RATE
-FULL_SNAPSHOT_INTERVAL = 180   # send a full WORLD_STATE every 3 s at 60 Hz
+BROADCAST_EVERY_N_TICKS = 3    # broadcast WORLD_STATE every 3rd sim tick (20 Hz)
+# Full snapshots every 60 broadcasts = 60 × 3 ticks = 180 sim ticks ≈ 3 s
+FULL_SNAPSHOT_INTERVAL = 60
 
 
 def _dict_hash(d: dict) -> int:
@@ -739,15 +741,21 @@ class GameServer:
                     log.error("[ZONE:%s] step() error at frame %d: %s",
                               zone.hub_id, zone.frame, exc, exc_info=True)
 
-                try:
-                    snap = zone.simulator.get_snapshot(zone.frame)
-                    snap_dict = snap.to_dict()
-                    snap_dict["hub_id"] = zone.hub_id
-                    payload = self._build_world_state_payload(snap_dict, zone)
-                    await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
-                except Exception as exc:
-                    log.error("[ZONE:%s] snapshot/broadcast error: %s",
-                              zone.hub_id, exc, exc_info=True)
+                # Broadcast WORLD_STATE at BROADCAST_EVERY_N_TICKS rate (20 Hz
+                # when BROADCAST_EVERY_N_TICKS=3 and TICK_RATE=60).  Physics
+                # still advances every tick for accuracy; serialisation and
+                # network I/O are the expensive parts, so doing them less often
+                # reduces server CPU load and frees the GIL for the client loop.
+                if _ticks % BROADCAST_EVERY_N_TICKS == 0:
+                    try:
+                        snap = zone.simulator.get_snapshot(zone.frame)
+                        snap_dict = snap.to_dict()
+                        snap_dict["hub_id"] = zone.hub_id
+                        payload = self._build_world_state_payload(snap_dict, zone)
+                        await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
+                    except Exception as exc:
+                        log.error("[ZONE:%s] snapshot/broadcast error: %s",
+                                  zone.hub_id, exc, exc_info=True)
 
                 if _ticks % (TICK_RATE * 5) == 0:
                     log.debug("[ZONE:%s] tick=%d frame=%d  zone_players=%d",
