@@ -53,7 +53,7 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.6.0"
+LAUNCHER_VERSION = "1.6.1"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
@@ -3236,8 +3236,12 @@ class LauncherApp:
         self._refresh_download_btn()
 
         latest_ver = latest_tag.lstrip("v")
-        if _is_newer(latest_ver, self._local_version):
-            self._status_var.set(f"Update available: {latest_tag}")
+        if not self._game_exe_installed():
+            self._status_var.set(
+                f"v  Game not installed — click  Install {latest_tag}  to set up"
+            )
+        elif _is_newer(latest_ver, self._local_version):
+            self._status_var.set(f"^  Update available: {latest_tag}")
         else:
             self._status_var.set("OK  Up to date")
 
@@ -3278,6 +3282,10 @@ class LauncherApp:
         else:
             self._status_var.set(f"v {tag} is older than installed")
 
+    def _game_exe_installed(self) -> bool:
+        """Return True if ninja_dash.exe exists in the current game directory."""
+        return (_get_base_dir() / GAME_EXE_NAME).exists()
+
     def _refresh_download_btn(self) -> None:
         if not self._selected_release or self._downloading:
             return
@@ -3291,7 +3299,10 @@ class LauncherApp:
             self._download_btn.configure(state="disabled", text="v  No exe asset")
             return
 
-        if ver == self._local_version:
+        installed = self._game_exe_installed()
+        if not installed:
+            label = f"v  Install {tag}"
+        elif ver == self._local_version:
             label = f"v  Reinstall {tag}"
         elif _is_newer(ver, self._local_version):
             label = f"^  Update to {tag}"
@@ -3299,6 +3310,10 @@ class LauncherApp:
             label = f"v  Downgrade to {tag}"
 
         self._download_btn.configure(state="normal", text=label)
+        # Dim play buttons until the game exe is present
+        play_state = "normal" if installed else "disabled"
+        play_fg = ACCENT if installed else TEXT_DIM
+        self._play_btn.configure(state=play_state, fg=play_fg)
 
     # ── Download ──────────────────────────────────────────────────────────────
 
@@ -3450,6 +3465,7 @@ class LauncherApp:
         self._local_version = tag.lstrip("v")
         self._progress_var.set(100.0)
         self._status_var.set(f"OK  {tag} installed. Ready to play.")
+        self._play_btn.configure(state="normal", fg=ACCENT)
 
         labels = [
             _version_label(r["tag_name"], self._local_version, i == 0)
