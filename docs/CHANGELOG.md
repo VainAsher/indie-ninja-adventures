@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.5] - 2026-03-31 (Hotfix: remote player input precision)
+
+### Fixed
+
+- **`demo_game.py`** — Replaced the v0.9.4 dead-zone rubber-band (all-or-nothing
+  32 px threshold) with a two-tier correction:
+  - **Hard snap** when discrepancy > 128 px (genuine OOB / respawn / collision
+    fix) — snaps both position and velocity.
+  - **Smooth lerp** (factor 0.6) for discrepancies ≤ 128 px — nudges position
+    60 % toward server each update without touching velocity.
+  Velocity is intentionally never overwritten during lerp corrections so local
+  physics continues driving movement and input stays fully responsive.  At the
+  20 Hz broadcast rate lerp 0.6 converges 97 % of drift within ~150 ms,
+  eliminating the over-travel that the v0.9.4 dead-zone allowed on short taps.
+
+---
+
 ## [0.9.4] - 2026-03-31 (Hotfix: multiplayer FPS + remote input lag)
 
 ### Fixed
