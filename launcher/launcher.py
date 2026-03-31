@@ -49,10 +49,10 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.1.0"
+LAUNCHER_VERSION = "1.2.0"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 640
-WINDOW_H = 560
+WINDOW_H = 600
 SPLASH_H = 200      # canvas height — crops the 640×320 scaled image to top portion
 
 # Colours — matched to game's menu_system.py palette
@@ -210,6 +210,15 @@ def _list_replay_files() -> list[Path]:
     return sorted(replay_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:20]
 
 
+def _read_replay_meta(path: Path) -> dict:
+    """Read a replay JSON and return its metadata keys (omits 'commands' list)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return {k: v for k, v in data.items() if k != "commands"}
+    except Exception:
+        return {}
+
+
 def _read_tail(path: Path, n: int = _LOG_TAIL_LINES) -> str:
     """Read the last n lines of a text file."""
     try:
@@ -270,6 +279,8 @@ class LauncherApp:
         self._splash_photo: tk.PhotoImage | None = None
         self._benchmark_proc: subprocess.Popen | None = None
         self._benchmark_timer: threading.Timer | None = None
+        self._record_var = tk.IntVar(value=0)
+        self._record_name_var = tk.StringVar(value="")
 
         self._build_ui()
 
@@ -383,6 +394,27 @@ class LauncherApp:
             lightcolor=PROGRESS_FG,
             darkcolor=PROGRESS_FG,
         )
+        style.configure(
+            "Replay.Treeview",
+            background=BG_CARD,
+            foreground=TEXT_PRIMARY,
+            fieldbackground=BG_CARD,
+            rowheight=20,
+            font=("Consolas", 8),
+            borderwidth=0,
+        )
+        style.configure(
+            "Replay.Treeview.Heading",
+            background=BG_MID,
+            foreground=ACCENT,
+            font=("Consolas", 8, "bold"),
+            relief="flat",
+        )
+        style.map(
+            "Replay.Treeview",
+            background=[("selected", BG_MID)],
+            foreground=[("selected", TEXT_SELECTED)],
+        )
 
         # ── Notebook ──────────────────────────────────────────────────────────
         self._notebook = ttk.Notebook(root, style="Launcher.TNotebook")
@@ -391,14 +423,17 @@ class LauncherApp:
         play_frame = tk.Frame(self._notebook, bg=BG_DARK)
         report_frame = tk.Frame(self._notebook, bg=BG_DARK)
         devtools_frame = tk.Frame(self._notebook, bg=BG_DARK)
+        replays_frame = tk.Frame(self._notebook, bg=BG_DARK)
 
         self._notebook.add(play_frame,     text="  Play  ")
         self._notebook.add(report_frame,   text="  Report  ")
         self._notebook.add(devtools_frame, text="  Dev Tools  ")
+        self._notebook.add(replays_frame,  text="  Replays  ")
 
         self._build_play_tab(play_frame)
         self._build_report_tab(report_frame)
         self._build_devtools_tab(devtools_frame)
+        self._build_replays_tab(replays_frame)
 
     # ── Tab 1: Play ───────────────────────────────────────────────────────────
 
@@ -1226,6 +1261,248 @@ class LauncherApp:
 
         self._refresh_replay_list()
 
+    # ── Tab 4: Replays ────────────────────────────────────────────────────────
+
+    def _build_replays_tab(self, parent: tk.Frame) -> None:
+        pad = tk.Frame(parent, bg=BG_DARK)
+        pad.pack(fill="both", expand=True, padx=16, pady=(8, 6))
+
+        tk.Label(
+            pad,
+            text="REPLAYS",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(fill="x")
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
+
+        # Treeview
+        tree_frame = tk.Frame(pad, bg=BG_CARD)
+        tree_frame.pack(fill="both", expand=True)
+
+        cols = ("name", "mode", "hub", "frames", "date")
+        self._replay_tree = ttk.Treeview(
+            tree_frame,
+            columns=cols,
+            show="headings",
+            style="Replay.Treeview",
+            height=8,
+            selectmode="browse",
+        )
+        for col, width, label in [
+            ("name",   180, "Name"),
+            ("mode",    70, "Mode"),
+            ("hub",     90, "Hub"),
+            ("frames",  60, "Frames"),
+            ("date",    82, "Date"),
+        ]:
+            self._replay_tree.heading(col, text=label, anchor="w")
+            self._replay_tree.column(col, width=width, minwidth=40, stretch=(col == "name"))
+
+        tree_ys = tk.Scrollbar(tree_frame, orient="vertical", command=self._replay_tree.yview)
+        self._replay_tree.configure(yscrollcommand=tree_ys.set)
+        tree_ys.pack(side="right", fill="y")
+        self._replay_tree.pack(fill="both", expand=True)
+        self._replay_tree.bind("<<TreeviewSelect>>", self._on_replay_tree_select)
+
+        # Detail panel
+        detail_frame = tk.Frame(pad, bg=BG_CARD)
+        detail_frame.pack(fill="x", pady=(6, 0))
+
+        self._replay_detail_var = tk.StringVar(value="Select a replay to see details.")
+        tk.Label(
+            detail_frame,
+            textvariable=self._replay_detail_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_CARD,
+            anchor="w",
+            justify="left",
+            padx=6,
+            pady=4,
+        ).pack(fill="x")
+
+        # Action buttons
+        btn_row = tk.Frame(pad, bg=BG_DARK)
+        btn_row.pack(fill="x", pady=(8, 0))
+
+        _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
+        tk.Button(
+            btn_row, text=">>  Launch",
+            fg=ACCENT, bg=BTN_PLAY_BG,
+            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
+            command=self._launch_selected_replay, **_b,
+        ).pack(side="left")
+        tk.Button(
+            btn_row, text="Delete",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._delete_selected_replay, **_b,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_row, text="Rename",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._rename_selected_replay, **_b,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_row, text="Open Folder",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._reveal_replay_dir, **_b,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            btn_row, text="Refresh",
+            fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            command=self._refresh_replays_tab, **_b,
+        ).pack(side="right")
+
+        # Record on next launch
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
+        rec_row = tk.Frame(pad, bg=BG_DARK)
+        rec_row.pack(fill="x", pady=(6, 0))
+
+        tk.Checkbutton(
+            rec_row,
+            text="Record on next launch:",
+            variable=self._record_var,
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_DARK,
+            activeforeground=TEXT_PRIMARY,
+            selectcolor=BG_MID,
+            relief="flat",
+        ).pack(side="left")
+        tk.Entry(
+            rec_row,
+            textvariable=self._record_name_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+            width=20,
+        ).pack(side="left", padx=(8, 0))
+        tk.Label(
+            rec_row,
+            text=".json",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left", padx=(2, 0))
+
+        self._refresh_replays_tab()
+
+    # ── Replays tab actions ───────────────────────────────────────────────────
+
+    def _refresh_replays_tab(self) -> None:
+        for row in self._replay_tree.get_children():
+            self._replay_tree.delete(row)
+        files = _list_replay_files()
+        for path in files:
+            meta = _read_replay_meta(path)
+            mode = meta.get("mode", "")
+            hub = meta.get("hub_id", "")
+            frames = meta.get("terminated_frame", "")
+            try:
+                date_str = time.strftime("%Y-%m-%d", time.localtime(path.stat().st_mtime))
+            except OSError:
+                date_str = ""
+            self._replay_tree.insert(
+                "", "end",
+                iid=str(path),
+                values=(path.name, mode, hub, str(frames), date_str),
+            )
+        if files:
+            first = self._replay_tree.get_children()[0]
+            self._replay_tree.selection_set(first)
+            self._replay_tree.focus(first)
+            self._on_replay_tree_select()
+        else:
+            self._replay_detail_var.set("No replays found in user_data/replays/")
+        # Keep Dev Tools replay combo in sync
+        self._refresh_replay_list()
+
+    def _on_replay_tree_select(self, _event=None) -> None:
+        sel = self._replay_tree.selection()
+        if not sel:
+            return
+        meta = _read_replay_meta(Path(sel[0]))
+        world_seed = meta.get("world_seed", "—")
+        current_seed = meta.get("current_seed", "—")
+        start = meta.get("game_start_frame", "—")
+        end = meta.get("terminated_frame", "—")
+        procedural = "Yes" if meta.get("procedural") else "No"
+        mission = meta.get("mission_id") or "—"
+        self._replay_detail_var.set(
+            f"World seed: {world_seed}   Current seed: {current_seed}   "
+            f"Procedural: {procedural}   Mission: {mission}\n"
+            f"Frame range: {start} → {end}"
+        )
+
+    def _launch_selected_replay(self) -> None:
+        sel = self._replay_tree.selection()
+        if not sel:
+            messagebox.showwarning(
+                "No Replay Selected", "Select a replay in the list first.", parent=self.root
+            )
+            return
+        self._launch_with_args("--replay", Path(sel[0]).name, "--show-replay")
+
+    def _delete_selected_replay(self) -> None:
+        sel = self._replay_tree.selection()
+        if not sel:
+            return
+        path = Path(sel[0])
+        if not messagebox.askyesno(
+            "Delete Replay",
+            f"Delete '{path.name}'?\n\nThis cannot be undone.",
+            parent=self.root,
+        ):
+            return
+        try:
+            path.unlink()
+        except OSError as exc:
+            messagebox.showerror("Delete Failed", str(exc), parent=self.root)
+            return
+        self._refresh_replays_tab()
+
+    def _rename_selected_replay(self) -> None:
+        from tkinter import simpledialog
+        sel = self._replay_tree.selection()
+        if not sel:
+            return
+        path = Path(sel[0])
+        new_name = simpledialog.askstring(
+            "Rename Replay", "New name:", initialvalue=path.stem, parent=self.root
+        )
+        if not new_name or not new_name.strip():
+            return
+        new_name = new_name.strip()
+        if not new_name.endswith(".json"):
+            new_name += ".json"
+        dest = path.parent / new_name
+        if dest.exists():
+            messagebox.showwarning("Exists", f"'{new_name}' already exists.", parent=self.root)
+            return
+        try:
+            path.rename(dest)
+        except OSError as exc:
+            messagebox.showerror("Rename Failed", str(exc), parent=self.root)
+            return
+        self._refresh_replays_tab()
+
+    def _reveal_replay_dir(self) -> None:
+        replay_dir = _get_user_data_dir() / "replays"
+        replay_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            os.startfile(str(replay_dir))
+        except AttributeError:
+            subprocess.Popen(["xdg-open", str(replay_dir)])
+
     # ── Profiler actions ──────────────────────────────────────────────────────
 
     def _refresh_profiler_display(self, baseline_stats: dict | None = None) -> None:
@@ -1853,10 +2130,16 @@ class LauncherApp:
             if game_path.suffix == ".py"
             else [str(game_path)]
         )
-        # Inject active profile (silently ignored by game until native support lands)
-        profile = self._profile_var.get()
-        if profile:
-            cmd += ["--profile", profile]
+        # Inject --record if the Replays tab checkbox is set (skip for replay playback)
+        if self._record_var.get() and "--replay" not in extra_args:
+            rec_name = self._record_name_var.get().strip()
+            if not rec_name:
+                rec_name = f"session_{int(time.time())}"
+            if not rec_name.endswith(".json"):
+                rec_name += ".json"
+            cmd += ["--record", rec_name]
+            self._record_var.set(0)
+
         cmd.extend(extra_args)
         try:
             proc = subprocess.Popen(cmd)
