@@ -25,6 +25,7 @@ Design goals:
 import csv
 import time
 from collections import defaultdict
+from pathlib import Path
 
 
 class FrameProfiler:
@@ -67,6 +68,7 @@ class FrameProfiler:
         ]
 
         if enabled:
+            Path(csv_path).parent.mkdir(parents=True, exist_ok=True)
             self._file = open(csv_path, "w", newline="", encoding="utf-8")
             self._writer = csv.writer(self._file)
             header = ["frame"] + self._sections + ["fps_instantaneous"]

@@ -53,7 +53,7 @@ RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.6.2"
+LAUNCHER_VERSION = "1.6.3"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
@@ -202,7 +202,7 @@ def _format_bytes(n: int) -> str:
 
 
 def _get_profiler_csv() -> Path:
-    return _get_base_dir() / "docs" / "perf_baseline.csv"
+    return _get_user_data_dir() / "perf_baseline.csv"
 
 
 def _get_saves_dir() -> Path:
@@ -2836,7 +2836,7 @@ class LauncherApp:
 
     def _refresh_baseline_list(self) -> None:
         """Populate the baseline combobox with perf_baseline*.csv files."""
-        base_dir = _get_base_dir() / "docs"
+        base_dir = _get_user_data_dir()
         files = sorted(base_dir.glob("perf_baseline*.csv"), reverse=True) if base_dir.exists() else []
         names = [f.name for f in files]
         self._baseline_combo.configure(values=names)
@@ -2849,7 +2849,7 @@ class LauncherApp:
         if not name:
             messagebox.showinfo("No Baseline", "No baseline file selected.", parent=self.root)
             return
-        baseline_path = _get_base_dir() / "docs" / name
+        baseline_path = _get_user_data_dir() / name
         baseline_stats = _parse_profiler_csv(baseline_path)
         if not baseline_stats:
             messagebox.showerror(
