@@ -54,6 +54,7 @@ class PlayerState:
     health: int
     facing: int                        # 1 = right, -1 = left
     is_dead: bool = False
+    anim_state: str = ""               # resolved animation state name; "" = use inference
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -64,6 +65,7 @@ class PlayerState:
             "health": self.health,
             "facing": self.facing,
             "is_dead": self.is_dead,
+            "anim_state": self.anim_state,
         }
 
     @classmethod
@@ -76,6 +78,7 @@ class PlayerState:
             health=int(data["health"]),
             facing=int(data.get("facing", 1)),
             is_dead=bool(data.get("is_dead", False)),
+            anim_state=str(data.get("anim_state", "")),
         )
 
 
