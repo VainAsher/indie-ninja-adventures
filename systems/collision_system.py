@@ -325,7 +325,10 @@ class CollisionSystem:
         """
         events = []
         physics = entity.physics
-        entity_rect = physics.get_rect()
+        # Use x before horizontal movement was applied this frame so that wall
+        # tiles the player is pressing into are not misread as ceiling tiles.
+        check_x = physics.x - physics.vx
+        entity_rect = pygame.Rect(int(check_x), int(physics.y), physics.width, physics.height)
         candidate_tiles = self._get_candidate_tiles(entity_rect, self.tiles)
 
         # Reset ground flag, but remember previous state for stickiness
@@ -501,6 +504,10 @@ class CollisionSystem:
         collision_found = False
         collision_y = end_y  # Where collision occurred
 
+        # Use x before horizontal movement was applied this frame so wall tiles
+        # the player is pressing into are not misread as ceiling tiles.
+        check_x = physics.x - physics.vx
+
         # Step through the movement path from start to end
         for step in range(num_steps + 1):
             if collision_found:
@@ -509,7 +516,7 @@ class CollisionSystem:
             # Interpolate position along the path
             t = step / max(num_steps, 1)
             test_y = start_y + (end_y - start_y) * t
-            entity_rect = pygame.Rect(int(physics.x), int(test_y), physics.width, physics.height)
+            entity_rect = pygame.Rect(int(check_x), int(test_y), physics.width, physics.height)
 
             # Check solid tile collisions at this step
             for tile in self._get_candidate_tiles(entity_rect, self.tiles):
