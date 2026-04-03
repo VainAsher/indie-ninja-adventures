@@ -40,6 +40,20 @@ BROADCAST_EVERY_N_TICKS = 3    # broadcast WORLD_STATE every 3rd sim tick (20 Hz
 # Full snapshots every 60 broadcasts = 60 × 3 ticks = 180 sim ticks ≈ 3 s
 FULL_SNAPSHOT_INTERVAL = 60
 
+# Animation states that the server simulator cannot compute because the
+# underlying flags (attack_stage, is_dashing via DashMechanic, is_throwing,
+# etc.) are driven client-side in demo_game.py.  When the client reports one
+# of these, the server trusts it over its own server-computed anim_state.
+# Movement/physics states are always server-authoritative (omit from this set).
+_ACTION_ANIM_STATES: frozenset[str] = frozenset({
+    "dash",
+    "slash1", "slash2", "slash3", "slash_air", "jump_slash", "attack",
+    "throw_ground", "throw_crouch", "throw_air",
+    "teleport",
+    "ninjutsu_hand", "ninjutsu_summon",
+    "hurt", "hurt2",
+})
+
 
 def _dict_hash(d: dict) -> int:
     """Stable hash for a shallow entity dict (all values must be hashable primitives)."""
@@ -799,6 +813,25 @@ class GameServer:
                         snap = zone.simulator.get_snapshot(zone.frame)
                         snap_dict = snap.to_dict()
                         snap_dict["hub_id"] = zone.hub_id
+
+                        # Patch anim_state for action states that the server sim
+                        # cannot compute (attack_stage, is_dashing, etc. are
+                        # managed client-side in demo_game.py).  Use the client's
+                        # INPUT-reported anim_state (stored in ConnectedPlayer)
+                        # whenever it is a non-movement action state.  Movement
+                        # states (idle/walk/run/jump/fall/…) remain server-computed
+                        # so they stay accurate to the server-authoritative position.
+                        async with self.session._lock:
+                            _client_anim: dict[int, str] = {
+                                cp.slot: cp.anim_state
+                                for cp in self.session.players.values()
+                                if cp.hub_id == zone.hub_id
+                            }
+                        for _ps_dict in snap_dict.get("players", []):
+                            _client_state = _client_anim.get(_ps_dict["slot"], "")
+                            if _client_state in _ACTION_ANIM_STATES:
+                                _ps_dict["anim_state"] = _client_state
+
                         payload = self._build_world_state_payload(snap_dict, zone)
                         await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
                     except Exception as exc:
