@@ -1872,6 +1872,7 @@ def main():
                 health=int(player.state.health_state.current_hp),
                 facing=int(player.state.facing),
                 is_dead=player.state.health_state.current_hp <= 0,
+                anim_state=get_player_render_state(player),
             )
             # N4: parse snapshot and update remote player entities
             _snap_dict = _net_client.poll_state()
@@ -1897,6 +1898,7 @@ def main():
                         facing=_ps.facing,
                         is_dead=_ps.is_dead,
                         now_ms=_now_ms,
+                        anim_state=_ps.anim_state,
                     )
             # Remove ghost for any player who just left
             if _net_client.last_leave_slot is not None:
@@ -1965,6 +1967,7 @@ def main():
                             facing=_ps.facing,
                             is_dead=_ps.is_dead,
                             now_ms=_now_ms,
+                            anim_state=_ps.anim_state,
                         )
 
                 # --- Enemies: overwrite local AI state with server state ---
