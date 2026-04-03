@@ -63,6 +63,7 @@ class ConnectedPlayer:
     health: int = 5
     facing: int = 1
     is_dead: bool = False
+    anim_state: str = ""   # last known animation state (Phase 1/2.5 relay only)
     frame: int = 0
     # Phase 4: which zone this player is currently in
     hub_id: str = "central_hub"
@@ -174,6 +175,8 @@ class GameSession:
                 player.facing = int(payload["facing"])
             if "is_dead" in payload:
                 player.is_dead = bool(payload["is_dead"])
+            if "anim_state" in payload:
+                player.anim_state = str(payload["anim_state"])
 
     def build_snapshot(self) -> MultiplayerSnapshot:
         """Build a MultiplayerSnapshot from current player states."""
@@ -186,6 +189,7 @@ class GameSession:
                 health=p.health,
                 facing=p.facing,
                 is_dead=p.is_dead,
+                anim_state=p.anim_state,
             )
             for p in sorted(self.players.values(), key=lambda x: x.slot)
         ]

@@ -103,10 +103,10 @@ class _EntityCache:
         self._enemies.clear()
         self._pickups.clear()
         self._platforms.clear()
-# Send input immediately on button change; also send every frame when holding
-# (INPUT_HOLD_INTERVAL = 1 = no throttle).  This keeps the server's latest_input
-# always current so it never runs extra physics frames from stale held inputs.
-INPUT_HOLD_INTERVAL = 1
+# Send input immediately on button change; also send periodically while holding
+# (INPUT_HOLD_INTERVAL frames between repeats).  This reduces CPU/network load
+# without delaying new presses/releases.
+INPUT_HOLD_INTERVAL = 2
 
 
 @dataclass
@@ -117,6 +117,7 @@ class _SendItem:
     health: int
     facing: int
     is_dead: bool
+    anim_state: str = ""
 
 
 class NetworkClient:
@@ -215,6 +216,7 @@ class NetworkClient:
         health: int = 5,
         facing: int = 1,
         is_dead: bool = False,
+        anim_state: str = "",
     ) -> None:
         """
         Queue an input frame for sending. Non-blocking; drops oldest item
@@ -243,7 +245,7 @@ class NetworkClient:
         self._last_sent_buttons = buttons
         self._hold_frames = 0
 
-        item = _SendItem(command, pos, vel, health, facing, is_dead)
+        item = _SendItem(command, pos, vel, health, facing, is_dead, anim_state)
         try:
             self._send_queue.put_nowait(item)
         except queue.Full:
@@ -474,6 +476,8 @@ class NetworkClient:
             payload["health"] = item.health
             payload["facing"] = item.facing
             payload["is_dead"] = item.is_dead
+            if item.anim_state:
+                payload["anim_state"] = item.anim_state
 
             try:
                 await write_message(writer, MessageType.INPUT, payload)
