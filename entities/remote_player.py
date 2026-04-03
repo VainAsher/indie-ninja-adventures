@@ -137,18 +137,38 @@ class RemotePlayer:
         self, now_ms: float, tick_ms: float | None = None
     ) -> tuple[float, float]:
         """
-        Return a smoothed position between prev and current using linear
-        interpolation based on time elapsed since the last server update.
+        Return a smoothed position for rendering.
+
+        Behaviour:
+        - While elapsed < expected_ms: linearly interpolate prev→current.
+        - When elapsed >= expected_ms (packet is late or we've reached the
+          target): extrapolate X using the last known horizontal velocity to
+          prevent the ghost from freezing mid-stride.  Y is kept at the
+          authoritative target to avoid gravity-drift artifacts (the server
+          will supply the correct Y in the next update).
 
         *tick_ms* is the expected server update interval. If None, uses the
-        measured update interval from apply_state().
-        t is clamped to [0, 1] so we never extrapolate beyond the latest known pos.
+        EMA-measured update interval from apply_state().
+
+        Extrapolation is capped at 3 physics frames (~50 ms) so the ghost
+        cannot diverge far from truth during a prolonged network gap.
         """
         expected_ms = self.update_interval_ms if tick_ms is None else tick_ms
         if expected_ms <= 0:
             expected_ms = 1.0
         elapsed = now_ms - self.last_update_ms
-        t = min(1.0, elapsed / expected_ms)
-        ix = self.prev_x + (self.x - self.prev_x) * t
-        iy = self.prev_y + (self.y - self.prev_y) * t
+
+        if elapsed <= expected_ms:
+            # Normal interpolation window — slide smoothly from prev to current.
+            t = elapsed / expected_ms
+            ix = self.prev_x + (self.x - self.prev_x) * t
+            iy = self.prev_y + (self.y - self.prev_y) * t
+        else:
+            # Past the expected update time — extrapolate X to fill the gap.
+            # vx is in px/frame (physics runs at 60 Hz = 16.667 ms/frame).
+            extra_ms = elapsed - expected_ms
+            extra_frames = min(extra_ms / 16.667, 3.0)   # cap at 3 frames ≈ 50 ms
+            ix = self.x + self.vx * extra_frames
+            iy = self.y   # keep Y authoritative; avoids floating/sinking artifacts
+
         return ix, iy
