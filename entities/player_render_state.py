@@ -73,8 +73,14 @@ def compute_anim_state(player: object) -> str:
         return "fall"
     if state.crouching:
         return "crouch"
-    if getattr(state, "is_running", False) and abs(physics.vx) > 0.5:
+    vx_abs = abs(physics.vx)
+    # Fast movement (>5 px/frame) always shows "run" regardless of the run modifier
+    # key, matching the pre-v0.9.14 _infer_anim_state threshold so observers see a
+    # running sprite whenever the player is actually running at speed.
+    if vx_abs > 5.0:
         return "run"
-    if abs(physics.vx) > 0.1:
+    if getattr(state, "is_running", False) and vx_abs > 0.5:
+        return "run"
+    if vx_abs > 0.5:
         return "slow_walk"
     return "idle"
