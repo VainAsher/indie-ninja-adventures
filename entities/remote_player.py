@@ -43,6 +43,11 @@ class RemotePlayer:
     # pygame.time.get_ticks() value (ms) when this player was last updated
     last_update_ms: float = 0.0
 
+    # Estimated server update interval (ms) for this player. Used to smooth
+    # interpolated_pos() so ghosts don't snap then freeze when the server
+    # broadcasts at < 60 Hz.
+    update_interval_ms: float = 50.0
+
     # Display name shown above the health bar (e.g. "P2")
     display_name: str = ""
 
@@ -64,10 +69,16 @@ class RemotePlayer:
         facing: int,
         is_dead: bool,
         now_ms: float,
+        anim_state: str = "",
     ) -> None:
         """
         Update from a received PlayerState.
         Saves previous position so the renderer can interpolate.
+
+        *anim_state* is the resolved animation state name from the server
+        (e.g. "dash", "slash1", "hurt").  When non-empty it is applied
+        directly; when empty the local _infer_anim_state() heuristic is
+        used as a fallback for older servers.
         """
         self.prev_x = self.x
         self.prev_y = self.y
@@ -78,9 +89,27 @@ class RemotePlayer:
         self.health = health
         self.facing = facing
         self.is_dead = is_dead
+
+        # Track the real inter-update interval so interpolated_pos() can
+        # adapt to the server's broadcast rate (commonly 20 Hz = 50 ms).
+        if self.last_update_ms > 0.0:
+            interval = now_ms - self.last_update_ms
+            if interval > 0.0:
+                # Exponential moving average to reduce jitter.
+                self.update_interval_ms = 0.85 * self.update_interval_ms + 0.15 * interval
+                # Clamp to sane bounds (ms)
+                self.update_interval_ms = max(10.0, min(250.0, self.update_interval_ms))
+
         self.last_update_ms = now_ms
         if self.anim_sm is not None:
-            self.anim_sm.transition(self._infer_anim_state())
+            resolved = anim_state if anim_state else self._infer_anim_state()
+            # Don't interrupt a non-looping animation (attack, hurt, teleport,
+            # throw, ninjutsu) that is still playing — let it finish.
+            # Looping states (idle, walk, run, jump, fall, death) always yield.
+            _LOOPING = {"idle", "walk", "run", "slow_walk", "jump", "fall",
+                        "crouch", "wall_slide", "air_spin", "death"}
+            if self.anim_sm.state in _LOOPING or self.anim_sm.finished:
+                self.anim_sm.transition(resolved)
 
     def _infer_anim_state(self) -> str:
         """
@@ -104,16 +133,22 @@ class RemotePlayer:
             return "walk"
         return "idle"
 
-    def interpolated_pos(self, now_ms: float, tick_ms: float = 16.67) -> tuple[float, float]:
+    def interpolated_pos(
+        self, now_ms: float, tick_ms: float | None = None
+    ) -> tuple[float, float]:
         """
         Return a smoothed position between prev and current using linear
         interpolation based on time elapsed since the last server update.
 
-        *tick_ms* is the expected server tick interval (default 16.67 ms = 60 Hz).
+        *tick_ms* is the expected server update interval. If None, uses the
+        measured update interval from apply_state().
         t is clamped to [0, 1] so we never extrapolate beyond the latest known pos.
         """
+        expected_ms = self.update_interval_ms if tick_ms is None else tick_ms
+        if expected_ms <= 0:
+            expected_ms = 1.0
         elapsed = now_ms - self.last_update_ms
-        t = min(1.0, elapsed / tick_ms) if tick_ms > 0 else 1.0
+        t = min(1.0, elapsed / expected_ms)
         ix = self.prev_x + (self.x - self.prev_x) * t
         iy = self.prev_y + (self.y - self.prev_y) * t
         return ix, iy

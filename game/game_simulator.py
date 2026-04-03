@@ -196,6 +196,7 @@ class GameSimulator:
         Returns:
             WorldSnapshot instance ready for serialisation and broadcast.
         """
+        from entities.player_render_state import compute_anim_state
         from network.snapshots import (
             EnemyState,
             PickupState,
@@ -221,6 +222,7 @@ class GameSimulator:
                     health=int(p.state.health_state.current_hp),
                     facing=facing,
                     is_dead=p.state.health_state.current_hp <= 0,
+                    anim_state=compute_anim_state(p),
                 )
             )
 

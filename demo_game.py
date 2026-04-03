@@ -91,6 +91,7 @@ from game.play_mode import PlayMode
 from game.portal_system import PortalTravelEvent, PortalType, draw_portal
 from game.trading_system import ShopTier
 from game.world_builder import regenerate_world_state
+from entities.player_render_state import compute_anim_state
 from network import InputPipeline
 from rendering import (
     VictoryScreen,
@@ -170,56 +171,7 @@ def ensure_user_data_dirs():
 
 def get_player_render_state(player):
     """Derive a simple render state string for animation selection."""
-    physics = player.state.physics
-    state = player.state
-    # Highest priority: death/hurt placeholders based on health
-    if state.health_state.current_hp <= 0:
-        return "death"
-    if state.health_state.invincibility_frames > 0:
-        return "hurt"
-    if state.is_teleporting_phase or state.is_teleporting_invuln:
-        return "teleport"
-    if state.ninjutsu_casting:
-        return "ninjutsu_summon"
-    if state.ninjutsu_active:
-        return "ninjutsu_hand"
-    if state.is_throwing:
-        if not physics.on_ground:
-            return "throw_air"
-        if state.crouching:
-            return "throw_crouch"
-        return "throw_ground"
-    if state.is_air_attacking or (not physics.on_ground and getattr(state, "attack_stage", 0) > 0):
-        return "slash_air"
-    if state.attack_stage == 1:
-        return "slash1"
-    if state.attack_stage == 2:
-        return "slash2"
-    if state.attack_stage >= 3:
-        return "slash3"
-    if state.is_dashing:
-        return "dash"
-    if state.is_wall_hanging:
-        return "wall_hang"
-    if state.is_ceiling_hanging:
-        return "ceiling_hang"
-    if not physics.on_ground:
-        if physics.on_wall:
-            return "wall_slide"
-        # Air spin if mid-air and jumps_left < max_jumps
-        if state.jumps_left < state.max_jumps:
-            return "air_spin"
-        # Simple sign-based air anim
-        if physics.vy < 0:
-            return "jump"
-        return "fall"
-    if state.crouching:
-        return "crouch"
-    if getattr(state, "is_running", False) and abs(physics.vx) > 0.5:
-        return "run"
-    if abs(physics.vx) > 0.1:
-        return "slow_walk"
-    return "idle"
+    return compute_anim_state(player)
 
 
 # ==============================================================================
@@ -1920,6 +1872,7 @@ def main():
                 health=int(player.state.health_state.current_hp),
                 facing=int(player.state.facing),
                 is_dead=player.state.health_state.current_hp <= 0,
+                anim_state=get_player_render_state(player),
             )
             # N4: parse snapshot and update remote player entities
             _snap_dict = _net_client.poll_state()
@@ -1945,6 +1898,7 @@ def main():
                         facing=_ps.facing,
                         is_dead=_ps.is_dead,
                         now_ms=_now_ms,
+                        anim_state=_ps.anim_state,
                     )
             # Remove ghost for any player who just left
             if _net_client.last_leave_slot is not None:
@@ -2013,6 +1967,7 @@ def main():
                             facing=_ps.facing,
                             is_dead=_ps.is_dead,
                             now_ms=_now_ms,
+                            anim_state=_ps.anim_state,
                         )
 
                 # --- Enemies: overwrite local AI state with server state ---
@@ -2608,7 +2563,7 @@ def main():
 
             # Update game (fixed timestep)
             profiler.begin("update")
-            # In networked play, cap the clock accumulator to 1 physics tick
+            # In networked play, cap the measured frame time to 1 physics tick
             # before game_clock.tick().  process_input(keys) is called once per
             # game-loop frame (outside the TickEvent loop), so if 2-3 TickEvents
             # fire due to a slow frame (GIL contention, GPU hiccup, etc.) the
@@ -2617,10 +2572,9 @@ def main():
             # visible frames, giving the remote player the same fine-grained
             # control as the local host.
             if _net_client is not None and _net_client.is_connected:
-                game_clock.accumulator = min(
-                    game_clock.accumulator, game_clock.PHYSICS_DT
-                )
-            game_clock.tick()
+                game_clock.tick(max_frame_time=game_clock.PHYSICS_DT)
+            else:
+                game_clock.tick()
             bus.process()
             profiler.end("update")
 
