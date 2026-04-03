@@ -65,12 +65,19 @@ class GameClock:
                 f"({self.PHYSICS_DT*1000:.2f}ms per tick)"
             )
 
-    def tick(self) -> bool:
+    def tick(self, max_frame_time: float | None = None) -> bool:
         """
         Update clock and emit tick/render events
 
         This should be called once per game loop iteration.
         Emits TickEvent(s) for fixed timestep physics and one RenderEvent.
+
+        Args:
+            max_frame_time: Optional cap for the measured wall-clock frame time.
+                When set, prevents the accumulator from growing beyond this
+                value in a single call. Useful for networked play where a slow
+                frame (e.g. GIL contention) can otherwise trigger multiple
+                physics ticks and exaggerate short-tap inputs.
 
         Returns:
             True if should continue, False if should quit (currently always True)
@@ -78,14 +85,18 @@ class GameClock:
         new_time = time.perf_counter()
         frame_time = new_time - self.current_time
 
-        # Prevent spiral of death
-        if frame_time > self.MAX_FRAME_TIME:
-            if self.logger:
+        # Prevent spiral of death (or apply a tighter caller-supplied cap)
+        frame_time_cap = self.MAX_FRAME_TIME if max_frame_time is None else max_frame_time
+        if frame_time > frame_time_cap:
+            # Only warn for the default "spiral of death" clamp.
+            # A caller-supplied cap (e.g. networked mode) is intentional and
+            # would spam logs at 60 Hz if logged here.
+            if self.logger and max_frame_time is None:
                 self.logger.warning(
                     f"Frame time {frame_time*1000:.1f}ms exceeds max "
-                    f"{self.MAX_FRAME_TIME*1000:.1f}ms, clamping"
+                    f"{frame_time_cap*1000:.1f}ms, clamping"
                 )
-            frame_time = self.MAX_FRAME_TIME
+            frame_time = frame_time_cap
 
         self.current_time = new_time
         self.accumulator += frame_time
