@@ -1,5 +1,6 @@
 package com.indieniinja.physics;
 
+import com.indieniinja.core.Entity;
 import com.indieniinja.core.EventBus;
 import com.indieniinja.core.TickEvent;
 
@@ -24,11 +25,11 @@ import static com.indieniinja.physics.PhysicsConstants.*;
  */
 public final class CollisionSystem {
 
-    private final List<PhysicsState> states;
-    private final SpatialHash        spatialHash;
+    private final List<Entity> entities;
+    private final SpatialHash  spatialHash;
 
-    public CollisionSystem(EventBus bus, List<PhysicsState> states, SpatialHash spatialHash) {
-        this.states      = states;
+    public CollisionSystem(EventBus bus, List<Entity> entities, SpatialHash spatialHash) {
+        this.entities    = entities;
         this.spatialHash = spatialHash;
         // Priority 45 — after physics (60), before mechanics (40)
         bus.subscribe(TickEvent.class, this::onTick, 45);
@@ -37,7 +38,9 @@ public final class CollisionSystem {
     // ── Tick handler ─────────────────────────────────────────────────────────
 
     private void onTick(TickEvent event) {
-        for (PhysicsState p : states) {
+        for (Entity entity : entities) {
+            PhysicsState p = entity.physics;
+            if (p == null) continue;
             p.resetCollisionFlags();
             resolveEntity(p);
         }

@@ -1,5 +1,6 @@
 package com.indieniinja.physics;
 
+import com.indieniinja.core.Entity;
 import com.indieniinja.core.EventBus;
 import com.indieniinja.core.TickEvent;
 
@@ -18,11 +19,11 @@ import static com.indieniinja.physics.PhysicsConstants.*;
  */
 public final class PhysicsSystem {
 
-    /** Live entity physics states managed externally (e.g., by EntityManager). */
-    private final List<PhysicsState> states;
+    /** Live entities managed externally (e.g., by EntityManager). */
+    private final List<Entity> entities;
 
-    public PhysicsSystem(EventBus bus, List<PhysicsState> states) {
-        this.states = states;
+    public PhysicsSystem(EventBus bus, List<Entity> entities) {
+        this.entities = entities;
         // Priority 60 — runs before CollisionSystem (priority 45)
         bus.subscribe(TickEvent.class, this::onTick, 60);
     }
@@ -30,7 +31,9 @@ public final class PhysicsSystem {
     // ── Tick handler ─────────────────────────────────────────────────────────
 
     private void onTick(TickEvent event) {
-        for (PhysicsState p : states) {
+        for (Entity entity : entities) {
+            PhysicsState p = entity.physics;
+            if (p == null) continue;
             applyGravity(p);
             // Integrate velocity → position
             p.x += p.vx;
