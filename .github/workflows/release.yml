@@ -32,6 +32,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Build server + client JARs
+        working-directory: java
+        shell: bash
+        run: ./gradlew :server:shadowJar :client:shadowJar --no-daemon
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -60,6 +72,20 @@ jobs:
           $hash = (Get-FileHash build\dist\ninja_dash.exe -Algorithm SHA256).Hash.ToLower()
           "${hash}  ninja_dash.exe" | Out-File -FilePath build\dist\ninja_dash.exe.sha256 -Encoding ascii -NoNewline
 
+      - name: Locate JARs
+        shell: pwsh
+        run: |
+          $server = Get-ChildItem -Path "java\server\build\libs" -Filter "*-all.jar" | Select-Object -First 1
+          if (-not $server) { Write-Error "Server JAR not found"; exit 1 }
+          echo "SERVER_JAR=$($server.FullName)" >> $env:GITHUB_ENV
+
+          $client = Get-ChildItem -Path "java\client\build\libs" -Filter "*-all.jar" | Select-Object -First 1
+          if (-not $client) { Write-Error "Client JAR not found"; exit 1 }
+          echo "CLIENT_JAR=$($client.FullName)" >> $env:GITHUB_ENV
+
+          Write-Host "Server JAR: $($server.FullName)"
+          Write-Host "Client JAR: $($client.FullName)"
+
       - name: Verify expected assets exist
         shell: pwsh
         run: |
@@ -85,7 +111,9 @@ jobs:
             --generate-notes \
             "build/dist/ninja_dash.exe" \
             "build/dist/ninja_dash.exe.sha256" \
-            "build/dist/ninja_dash_launcher.exe"
+            "build/dist/ninja_dash_launcher.exe" \
+            "$SERVER_JAR" \
+            "$CLIENT_JAR"
 
       - name: Notify launcher repo of new game release
         # Requires CROSS_REPO_PAT secret — step is skipped gracefully if not configured
