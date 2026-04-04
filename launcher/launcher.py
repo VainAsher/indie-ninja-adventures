@@ -52,8 +52,11 @@ GITHUB_REPO = GAME_REPO  # kept for backwards compatibility
 RELEASES_API_URL = f"https://api.github.com/repos/{GAME_REPO}/releases?per_page=30"
 ISSUES_URL = f"https://github.com/{FEEDBACK_REPO}/issues/new"
 GAME_EXE_NAME = "ninja_dash.exe"
+SERVER_JAR_NAME = "ninja-server-all.jar"
+CLIENT_JAR_NAME = "ninja-client-all.jar"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.6.3"
+LAUNCHER_VERSION = "1.7.0"
+JAVA_MIN_VERSION = 21
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
@@ -401,6 +404,77 @@ def _read_tail(path: Path, n: int = _LOG_TAIL_LINES) -> str:
         return "(could not read log file)"
 
 
+def _get_server_jar() -> Path:
+    return _get_base_dir() / SERVER_JAR_NAME
+
+
+def _get_client_jar() -> Path:
+    return _get_base_dir() / CLIENT_JAR_NAME
+
+
+def _find_java_exe() -> str | None:
+    """Return path to a java executable (>= JAVA_MIN_VERSION), or None."""
+    # 1. java on PATH
+    java = shutil.which("java")
+    if java:
+        return java
+    # 2. Common Windows install locations
+    if platform.system() == "Windows":
+        import glob as _glob
+
+        patterns = [
+            r"C:\Program Files\Java\*\bin\java.exe",
+            r"C:\Program Files\Eclipse Adoptium\*\bin\java.exe",
+            r"C:\Program Files\Microsoft\*\bin\java.exe",
+            r"C:\Program Files\Eclipse Foundation\*\bin\java.exe",
+        ]
+        for pat in patterns:
+            hits = sorted(_glob.glob(pat), reverse=True)
+            if hits:
+                return hits[0]
+    return None
+
+
+def _detect_java() -> tuple[bool, str]:
+    """Return (ok, message) — ok=True if Java >= JAVA_MIN_VERSION is available."""
+    exe = _find_java_exe()
+    if not exe:
+        return False, f"Java not found — Java {JAVA_MIN_VERSION}+ required"
+    try:
+        result = subprocess.run(
+            [exe, "-version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        output = result.stderr or result.stdout  # java -version writes to stderr
+        # Parse: 'openjdk version "21.0.2" ...' or 'java version "1.8.0_...'
+        m = re.search(r'"(\d+)(?:\.(\d+))?', output)
+        if not m:
+            return False, "Java found but version unreadable"
+        major = int(m.group(1))
+        if major == 1:
+            # Old-style: 1.8 → 8
+            major = int(m.group(2) or 0)
+        if major < JAVA_MIN_VERSION:
+            return False, f"Java {major} found — Java {JAVA_MIN_VERSION}+ required"
+        # Grab the full quoted version string for display
+        vm = re.search(r'"([^"]+)"', output)
+        ver_str = vm.group(1) if vm else str(major)
+        return True, f"Java {ver_str}"
+    except Exception as exc:
+        return False, f"Java check failed: {exc}"
+
+
+def _find_jar_asset(assets: list[dict], prefix: str) -> dict | None:
+    """Return the first release asset whose name starts with prefix and ends with -all.jar."""
+    for a in assets:
+        name = a.get("name", "")
+        if name.startswith(prefix) and name.endswith("-all.jar"):
+            return a
+    return None
+
+
 def _parse_profiler_csv(csv_path: Path) -> dict | None:
     """
     Read the profiler CSV and return summary stats, or None if no data.
@@ -458,6 +532,7 @@ class LauncherApp:
         self._settings_vars: dict[str, tk.Variable] = {}
         self._ctrl_key_labels: dict[str, tk.Label] = {}
         self._save_fields: dict[str, tk.StringVar] = {}
+        self._java_ok, self._java_version_str = _detect_java()
         # Initialise _GAME_DIR before UI is built so the first call to _get_base_dir()
         # inside any tab builder picks up the configured path.
         _get_base_dir()
@@ -958,6 +1033,154 @@ class LauncherApp:
             bg=BG_DARK,
         )
         self._ping_result_label_widget.pack(side="left", padx=(4, 0))
+
+        # ── Java Client section ───────────────────────────────────────────────
+        tk.Frame(ctrl, height=1, bg=ACCENT).pack(fill="x", pady=(10, 0))
+
+        java_header = tk.Frame(ctrl, bg=BG_DARK)
+        java_header.pack(fill="x", pady=(4, 0))
+        tk.Label(
+            java_header,
+            text="JAVA CLIENT",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+        ).pack(side="left")
+        tk.Label(
+            java_header,
+            text="beta",
+            font=("Consolas", 7),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left", padx=(6, 0))
+
+        # Status row: Java runtime + JAR state
+        java_status_row = tk.Frame(ctrl, bg=BG_DARK)
+        java_status_row.pack(fill="x", pady=(4, 0))
+
+        java_color = "#4caf50" if self._java_ok else "#e53935"
+        self._java_runtime_var = tk.StringVar(value=self._java_version_str)
+        tk.Label(
+            java_status_row,
+            textvariable=self._java_runtime_var,
+            font=("Consolas", 8),
+            fg=java_color,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        if not self._java_ok:
+            tk.Button(
+                java_status_row,
+                text="Get Java",
+                font=("Consolas", 8),
+                fg=ACCENT,
+                bg=BG_DARK,
+                activebackground=BG_MID,
+                activeforeground=TEXT_SELECTED,
+                relief="flat",
+                cursor="hand2",
+                padx=6,
+                pady=1,
+                command=lambda: webbrowser.open("https://adoptium.net/"),
+            ).pack(side="left", padx=(8, 0))
+
+        tk.Frame(java_status_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=10)
+
+        self._java_jar_var = tk.StringVar()
+        self._java_jar_label = tk.Label(
+            java_status_row,
+            textvariable=self._java_jar_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        )
+        self._java_jar_label.pack(side="left")
+
+        # Launch row
+        java_btn_row = tk.Frame(ctrl, bg=BG_DARK)
+        java_btn_row.pack(fill="x", pady=(6, 0))
+
+        self._java_solo_btn = tk.Button(
+            java_btn_row,
+            text="[J]  Launch Java Client",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=12,
+            pady=5,
+            command=self._launch_java_solo,
+        )
+        self._java_solo_btn.pack(side="left")
+
+        tk.Frame(java_btn_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=12)
+
+        # Java server controls (host port + start server button)
+        java_server_frame = tk.Frame(java_btn_row, bg=BG_DARK)
+        java_server_frame.pack(side="left")
+
+        tk.Label(
+            java_server_frame,
+            text="Connect:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        ).pack(side="left")
+
+        self._java_addr_var = tk.StringVar(value="")
+        self._java_addr_entry = tk.Entry(
+            java_server_frame,
+            textvariable=self._java_addr_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_DIM,
+            insertbackground=ACCENT,
+            relief="flat",
+            width=14,
+        )
+        self._java_addr_entry.pack(side="left", padx=(4, 6))
+        self._java_addr_entry.insert(0, "host:7777")
+        self._java_addr_entry.bind("<FocusIn>", self._on_java_addr_focus_in)
+        self._java_addr_entry.bind("<FocusOut>", self._on_java_addr_focus_out)
+
+        self._java_join_btn = tk.Button(
+            java_server_frame,
+            text="->  Join",
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BTN_JOIN_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=5,
+            command=self._launch_java_join,
+        )
+        self._java_join_btn.pack(side="left")
+
+        tk.Frame(java_btn_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=12)
+
+        self._java_server_btn = tk.Button(
+            java_btn_row,
+            text="[S]  Start Server",
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BTN_HOST_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=5,
+            command=self._launch_java_server,
+        )
+        self._java_server_btn.pack(side="left")
+
+        self._refresh_java_section()
 
         # ── Changelog / News Feed ─────────────────────────────────────────────
         tk.Frame(ctrl, height=1, bg=BG_MID).pack(fill="x", pady=(12, 0))
@@ -3607,17 +3830,23 @@ class LauncherApp:
             return
 
         installed = self._game_exe_installed()
+        has_jars = _find_jar_asset(assets, "ninja-server") and _find_jar_asset(
+            assets, "ninja-client"
+        )
+        jars_installed = _get_server_jar().exists() and _get_client_jar().exists()
+
         if not installed:
             label = f"v  Install {tag}"
-        elif ver == self._local_version:
+        elif ver == self._local_version and (not has_jars or jars_installed):
             label = f"v  Reinstall {tag}"
+        elif has_jars and not jars_installed:
+            label = f"v  Install JARs for {tag}"
         elif _is_newer(ver, self._local_version):
             label = f"^  Update to {tag}"
         else:
             label = f"v  Downgrade to {tag}"
 
         self._download_btn.configure(state="normal", text=label)
-        # Dim play buttons until the game exe is present
         play_state = "normal" if installed else "disabled"
         play_fg = ACCENT if installed else TEXT_DIM
         self._play_btn.configure(state=play_state, fg=play_fg)
@@ -3648,6 +3877,9 @@ class LauncherApp:
             except Exception:
                 pass
 
+        server_jar_asset = _find_jar_asset(assets, "ninja-server")
+        client_jar_asset = _find_jar_asset(assets, "ninja-client")
+
         self._downloading = True
         self._download_cancel.clear()
         self._download_btn.configure(state="disabled", text="Downloading…")
@@ -3661,6 +3893,8 @@ class LauncherApp:
                 exe_asset.get("size", 0),
                 expected_sha,
                 self._selected_release,
+                server_jar_asset,
+                client_jar_asset,
             ),
             daemon=True,
         ).start()
@@ -3675,6 +3909,8 @@ class LauncherApp:
         total_size: int,
         expected_sha: str | None,
         release: dict,
+        server_jar_asset: dict | None = None,
+        client_jar_asset: dict | None = None,
     ) -> None:
         dest = _get_base_dir() / f"{GAME_EXE_NAME}.new"
         try:
@@ -3759,6 +3995,45 @@ class LauncherApp:
                 except Exception:
                     pass
 
+            # ── Download JARs if present in this release ──────────────────────
+            for jar_asset, jar_dest_name, label in [
+                (server_jar_asset, SERVER_JAR_NAME, "server JAR"),
+                (client_jar_asset, CLIENT_JAR_NAME, "client JAR"),
+            ]:
+                if not jar_asset or self._download_cancel.is_set():
+                    continue
+                jar_url = jar_asset["browser_download_url"]
+                jar_size = jar_asset.get("size", 0)
+                jar_dest = _get_base_dir() / f"{jar_dest_name}.new"
+                self.root.after(0, self._status_var.set, f"Downloading {label}…")
+                try:
+                    req = urllib.request.Request(
+                        jar_url,
+                        headers={"User-Agent": f"indie-ninja-launcher/{LAUNCHER_VERSION}"},
+                    )
+                    with urllib.request.urlopen(req, timeout=60) as resp:
+                        if jar_size <= 0:
+                            jar_size = int(resp.headers.get("Content-Length", 0))
+                        downloaded = 0
+                        with open(jar_dest, "wb") as f:
+                            while True:
+                                if self._download_cancel.is_set():
+                                    raise OSError("Download cancelled.")
+                                chunk = resp.read(65536)
+                                if not chunk:
+                                    break
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                if jar_size > 0:
+                                    pct = min(100.0, downloaded / jar_size * 100)
+                                    self.root.after(0, self._progress_var.set, pct)
+                    final_jar = _get_base_dir() / jar_dest_name
+                    final_jar.unlink(missing_ok=True)
+                    jar_dest.rename(final_jar)
+                except Exception:
+                    jar_dest.unlink(missing_ok=True)
+                    # Non-fatal — JAR download failure doesn't break the exe install
+
             self.root.after(0, self._on_download_done, tag)
 
         except Exception as exc:
@@ -3779,6 +4054,7 @@ class LauncherApp:
         ]
         self._version_combo.configure(values=labels)
         self._refresh_download_btn()
+        self._refresh_java_section()
 
     def _on_download_error(self, message: str) -> None:
         self._downloading = False
@@ -3925,6 +4201,129 @@ class LauncherApp:
             color = "#e53935"
         self._ping_result_var.set(label)
         self._ping_result_label_widget.configure(fg=color)
+
+    # ── Java section helpers ──────────────────────────────────────────────────
+
+    _JAVA_ADDR_PLACEHOLDER = "host:7777"
+
+    def _on_java_addr_focus_in(self, _event=None) -> None:
+        if self._java_addr_var.get() == self._JAVA_ADDR_PLACEHOLDER:
+            self._java_addr_entry.delete(0, "end")
+            self._java_addr_entry.config(fg=TEXT_PRIMARY)
+
+    def _on_java_addr_focus_out(self, _event=None) -> None:
+        if not self._java_addr_var.get().strip():
+            self._java_addr_entry.insert(0, self._JAVA_ADDR_PLACEHOLDER)
+            self._java_addr_entry.config(fg=TEXT_DIM)
+
+    def _refresh_java_section(self) -> None:
+        """Update JAR status label and button states based on current disk state."""
+        client_ok = _get_client_jar().exists()
+        server_ok = _get_server_jar().exists()
+
+        if client_ok and server_ok:
+            self._java_jar_var.set("JARs installed")
+            self._java_jar_label.configure(fg="#4caf50")
+        elif client_ok or server_ok:
+            missing = "server" if not server_ok else "client"
+            self._java_jar_var.set(f"{missing} JAR missing — reinstall")
+            self._java_jar_label.configure(fg="#ffd700")
+        else:
+            self._java_jar_var.set("JARs not installed — click Install")
+            self._java_jar_label.configure(fg=TEXT_DIM)
+
+        ready = self._java_ok and client_ok
+        server_ready = self._java_ok and server_ok
+        btn_state = "normal" if ready else "disabled"
+        srv_state = "normal" if server_ready else "disabled"
+        btn_fg = ACCENT if ready else TEXT_DIM
+        self._java_solo_btn.configure(state=btn_state, fg=btn_fg)
+        self._java_join_btn.configure(state=btn_state)
+        self._java_server_btn.configure(state=srv_state)
+
+    def _launch_java_solo(self) -> None:
+        self._launch_java_client("127.0.0.1", 7777)
+
+    def _launch_java_join(self) -> None:
+        addr = self._java_addr_var.get().strip()
+        if not addr or addr == self._JAVA_ADDR_PLACEHOLDER:
+            messagebox.showerror(
+                "No Server Address",
+                "Enter the server address as  host:port  (e.g. 192.168.1.5:7777).",
+                parent=self.root,
+            )
+            return
+        if ":" not in addr:
+            addr = f"{addr}:7777"
+        host, _, port_str = addr.rpartition(":")
+        try:
+            port = int(port_str)
+        except ValueError:
+            messagebox.showerror(
+                "Bad Address", f"Port must be a number, got: {port_str}", parent=self.root
+            )
+            return
+        self._launch_java_client(host, port)
+
+    def _launch_java_client(self, host: str, port: int) -> None:
+        java = _find_java_exe()
+        if not java:
+            messagebox.showerror(
+                "Java Not Found",
+                f"Java {JAVA_MIN_VERSION}+ is required to run the Java client.\n"
+                "Download it from adoptium.net",
+                parent=self.root,
+            )
+            return
+        jar = _get_client_jar()
+        if not jar.exists():
+            messagebox.showerror(
+                "Client JAR Not Found",
+                f"Could not find:\n{jar}\n\nPlease install the latest version first.",
+                parent=self.root,
+            )
+            return
+        cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), host, str(port)]
+        try:
+            proc = subprocess.Popen(cmd)
+            self._status_var.set(f"Java Client Running…  ({host}:{port})")
+            self.root.iconify()
+            threading.Thread(target=self._watch_game_process, args=(proc,), daemon=True).start()
+        except Exception as exc:
+            messagebox.showerror("Launch Error", str(exc), parent=self.root)
+
+    def _launch_java_server(self) -> None:
+        java = _find_java_exe()
+        if not java:
+            messagebox.showerror(
+                "Java Not Found",
+                f"Java {JAVA_MIN_VERSION}+ is required to run the Java server.\n"
+                "Download it from adoptium.net",
+                parent=self.root,
+            )
+            return
+        jar = _get_server_jar()
+        if not jar.exists():
+            messagebox.showerror(
+                "Server JAR Not Found",
+                f"Could not find:\n{jar}\n\nPlease install the latest version first.",
+                parent=self.root,
+            )
+            return
+        port_str = self._host_port_var.get().strip()
+        try:
+            port = int(port_str)
+            if not (1 <= port <= 65535):
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Invalid Port", "Port must be 1–65535.", parent=self.root)
+            return
+        cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), str(port)]
+        try:
+            subprocess.Popen(cmd)
+            self._status_var.set(f"Java Server started on port {port}")
+        except Exception as exc:
+            messagebox.showerror("Launch Error", str(exc), parent=self.root)
 
     # ── Game process watcher + crash detection (P1-F6) ───────────────────────
 
