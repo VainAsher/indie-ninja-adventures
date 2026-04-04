@@ -1,0 +1,12 @@
+# Gradle build outputs and caches
+.gradle/
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Generated wrapper jar (too large for git — devs run gradlew which downloads it)
+gradle/wrapper/gradle-wrapper.jar
