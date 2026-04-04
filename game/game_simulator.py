@@ -166,9 +166,7 @@ class GameSimulator:
             p = self.players[slot]
             if p.state.health_state.current_hp <= 0:
                 continue  # dead players skip combat
-            damage = mechanic.check_enemy_collisions(
-                p.state, self.enemy_manager, dt
-            )
+            damage = mechanic.check_enemy_collisions(p.state, self.enemy_manager, dt)
             if damage > 0:
                 p.state.health_state.take_damage(damage, defense=0)
 
@@ -182,9 +180,7 @@ class GameSimulator:
             p = self.players[slot]
             phys = p.state.physics
             if p.state.health_state.current_hp > 0:
-                self.pickup_manager.check_collections(
-                    phys.x, phys.y, phys.width, phys.height
-                )
+                self.pickup_manager.check_collections(phys.x, phys.y, phys.width, phys.height)
 
     def get_snapshot(self, frame: int) -> object:
         """
@@ -291,9 +287,7 @@ class GameSimulator:
         """Update all dynamic platform states and refresh collision map."""
         # Gather PhysicsState of alive players for "entity on platform" checks.
         physics_list = [
-            p.state.physics
-            for p in self.players.values()
-            if p.state.health_state.current_hp > 0
+            p.state.physics for p in self.players.values() if p.state.health_state.current_hp > 0
         ]
 
         for platform in self.dynamic_platforms:
@@ -309,11 +303,14 @@ class GameSimulator:
         self.collision_system.update_platforms(platform_colliders)
 
     @staticmethod
-    def _entity_on_platform(physics, platform_rect, tolerance: int = _PLATFORM_CARRY_TOLERANCE) -> bool:
+    def _entity_on_platform(
+        physics, platform_rect, tolerance: int = _PLATFORM_CARRY_TOLERANCE
+    ) -> bool:
         """Return True if the entity's physics state is resting on platform_rect."""
         if not physics or not physics.on_ground:
             return False
         import pygame
+
         rect = pygame.Rect(int(physics.x), int(physics.y), physics.width, physics.height)
         if rect.right <= platform_rect.left or rect.left >= platform_rect.right:
             return False
@@ -333,9 +330,7 @@ class GameSimulator:
     def _update_falling_platform(self, platform: dict, dt: float, physics_list: list) -> None:
         """State-machine update for a single falling platform."""
         rect = platform["rect"]
-        supported = any(
-            self._entity_on_platform(phys, rect) for phys in physics_list
-        )
+        supported = any(self._entity_on_platform(phys, rect) for phys in physics_list)
         state = platform["state"]
 
         if state == "idle":
@@ -389,6 +384,7 @@ class GameSimulator:
     def _update_moving_platform(self, platform: dict, dt: float, physics_list: list) -> None:
         """Advance a moving platform and carry any standing entities."""
         import pygame
+
         rect = platform["rect"]
         if platform["speed"] <= 0 or platform["min_x"] == platform["max_x"]:
             return

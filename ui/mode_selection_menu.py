@@ -187,22 +187,28 @@ class MissionSelectorMenu(BaseMenu):
 
             if i == self.selected_index and item.enabled:
                 indicator = self.item_font.render(">", True, self.selected_color)
-                surface.blit(indicator, indicator.get_rect(
-                    right=item_rect.left - 12, centery=item_rect.centery
-                ))
+                surface.blit(
+                    indicator,
+                    indicator.get_rect(right=item_rect.left - 12, centery=item_rect.centery),
+                )
 
             surface.blit(item_surf, item_rect)
 
         # Scroll indicators
         if self.scroll_offset > 0:
             up_surf = self.small_font.render("▲ more above", True, (180, 180, 200))
-            surface.blit(up_surf, up_surf.get_rect(centerx=self.screen_width // 2, y=self._START_Y - 22))
+            surface.blit(
+                up_surf, up_surf.get_rect(centerx=self.screen_width // 2, y=self._START_Y - 22)
+            )
         if self.scroll_offset + visible < len(self.items):
             down_surf = self.small_font.render("▼ more below", True, (180, 180, 200))
-            surface.blit(down_surf, down_surf.get_rect(
-                centerx=self.screen_width // 2,
-                y=self._START_Y + visible * self._ITEM_SPACING + 4,
-            ))
+            surface.blit(
+                down_surf,
+                down_surf.get_rect(
+                    centerx=self.screen_width // 2,
+                    y=self._START_Y + visible * self._ITEM_SPACING + 4,
+                ),
+            )
 
         # Mission detail line for currently highlighted item
         if self.selected_index < len(self.items):
@@ -213,12 +219,16 @@ class MissionSelectorMenu(BaseMenu):
                 if mission:
                     info = f"Difficulty: {mission.difficulty} | Rooms: {mission.room_count} | Shape: {mission.shape}"
                     info_surf = self.small_font.render(info, True, (150, 150, 170))
-                    surface.blit(info_surf, info_surf.get_rect(
-                        centerx=self.screen_width // 2, bottom=self.screen_height - 50
-                    ))
+                    surface.blit(
+                        info_surf,
+                        info_surf.get_rect(
+                            centerx=self.screen_width // 2, bottom=self.screen_height - 50
+                        ),
+                    )
 
         hint = "Arrow Keys: Navigate | Enter: Select | ESC: Back"
         hint_surf = self.small_font.render(hint, True, (120, 120, 140))
-        surface.blit(hint_surf, hint_surf.get_rect(
-            centerx=self.screen_width // 2, bottom=self.screen_height - 20
-        ))
+        surface.blit(
+            hint_surf,
+            hint_surf.get_rect(centerx=self.screen_width // 2, bottom=self.screen_height - 20),
+        )

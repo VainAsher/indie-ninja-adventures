@@ -79,7 +79,9 @@ class SpriteSheet:
                 x0, x1 = boundaries[i], boundaries[i + 1]
                 fw = x1 - x0
                 frame_surface = pygame.Surface((fw, self.frame_height), pygame.SRCALPHA)
-                frame_surface.blit(self.sheet_surface, (0, 0), pygame.Rect(x0, 0, fw, self.frame_height))
+                frame_surface.blit(
+                    self.sheet_surface, (0, 0), pygame.Rect(x0, 0, fw, self.frame_height)
+                )
                 frames.append(frame_surface)
             return frames
 
@@ -108,8 +110,8 @@ class SpriteManager:
     # Frame boundaries for attack-sword_spritesheet.png (variable-width frames).
     # Format: [x_start_frame0, x_start_frame1, ..., x_end_last_frame]
     # Measured from the sprite sheet asset directly.
-    _ATKSWORD_6 = [0, 68, 144, 303, 416, 575, 688]   # all 6 attack frames
-    _ATKSWORD_4 = [0, 68, 144, 303, 416]              # first 4 frames (throw / ninjutsu)
+    _ATKSWORD_6 = [0, 68, 144, 303, 416, 575, 688]  # all 6 attack frames
+    _ATKSWORD_4 = [0, 68, 144, 303, 416]  # first 4 frames (throw / ninjutsu)
 
     # Animation definitions: (filename, frame_count, fps, loop[, boundaries])
     # Optional 5th element passes variable-width boundaries to SpriteSheet.get_frames().
@@ -126,21 +128,21 @@ class SpriteManager:
         "wall_hang": ("jumpfall_spritesheet.png", 2, 6, True),
         "ceiling_hang": ("jumpfall_spritesheet.png", 2, 6, True),
         "air_spin": ("jumpfall_spritesheet.png", 2, 10, True),
-        "hurt": ("hurt_spritesheet.png", 3, 12, True),   # loop while i-frames active
+        "hurt": ("hurt_spritesheet.png", 3, 12, True),  # loop while i-frames active
         "hurt2": ("hurt_spritesheet.png", 3, 12, True),
         "death": ("death_spritesheet.png", 5, 12, False),
-        "attack":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
-        "slash1":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
-        "slash2":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
-        "slash3":       ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
-        "slash_air":    ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
-        "jump_slash":   ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "attack": ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash1": ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash2": ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash3": ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "slash_air": ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
+        "jump_slash": ("attack-sword_spritesheet.png", 6, 15, False, _ATKSWORD_6),
         "throw_ground": ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
         "throw_crouch": ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
-        "throw_air":    ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
-        "teleport":     ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
-        "ninjutsu_hand":    ("attack-sword_spritesheet.png", 4, 10, False, _ATKSWORD_4),
-        "ninjutsu_summon":  ("attack-sword_spritesheet.png", 4, 10, False, _ATKSWORD_4),
+        "throw_air": ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
+        "teleport": ("attack-sword_spritesheet.png", 4, 12, False, _ATKSWORD_4),
+        "ninjutsu_hand": ("attack-sword_spritesheet.png", 4, 10, False, _ATKSWORD_4),
+        "ninjutsu_summon": ("attack-sword_spritesheet.png", 4, 10, False, _ATKSWORD_4),
     }
 
     def __init__(self, sprites_dir: Path | None = None):
@@ -209,6 +211,7 @@ class SpriteManager:
         # Register loaded data with the global AnimationRegistry so the player
         # can use an AnimationStateMachine without re-loading any assets.
         from rendering.animation_system import AnimationRegistry
+
         AnimationRegistry.register_from_sprite_manager("player", self.animations, self.cache)
 
     def _create_fallback_animation(self, anim_name: str, frame_count: int, fps: int, loop: bool):

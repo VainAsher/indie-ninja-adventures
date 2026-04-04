@@ -19,6 +19,7 @@ import pygame
 
 from utils.resource_path import get_resource_path
 
+
 class MenuAction(Enum):
     """Menu action results"""
 
@@ -167,7 +168,9 @@ class BaseMenu:
         # Add a black shadow to the text
         shadow_color = (0, 0, 0)  # Black
         shadow_offset = (2, 2)  # Offset for the shadow
-        shadow_rect = title_surf.get_rect(centerx=self.screen_width // 2 + shadow_offset[0], y=100 + shadow_offset[1])
+        shadow_rect = title_surf.get_rect(
+            centerx=self.screen_width // 2 + shadow_offset[0], y=100 + shadow_offset[1]
+        )
         surface.blit(self.title_font.render(self.title, True, shadow_color), shadow_rect)
         surface.blit(title_surf, title_rect)
 
@@ -302,8 +305,10 @@ class LandingMenu(BaseMenu):
 
         # Pre-render each character
         chars = [
-            (self.title_font.render(ch, True, title_color),
-             self.title_font.render(ch, True, outline_color))
+            (
+                self.title_font.render(ch, True, title_color),
+                self.title_font.render(ch, True, outline_color),
+            )
             for ch in title_text
         ]
         total_w = sum(cs.get_width() for cs, _ in chars) + char_spacing * (len(chars) - 1)
@@ -350,7 +355,9 @@ class LandingMenu(BaseMenu):
         surface.blit(prompt, prompt_rect)
 
         # Footer hint
-        hint = self.small_font.render("Menu navigation begins after continue", True, (120, 120, 140))
+        hint = self.small_font.render(
+            "Menu navigation begins after continue", True, (120, 120, 140)
+        )
         hint_rect = hint.get_rect(centerx=self.screen_width // 2, y=560)
         surface.blit(hint, hint_rect)
 
@@ -669,6 +676,7 @@ class MenuManager:
 # Debug Ability Menu
 # ---------------------------------------------------------------------------
 
+
 class DebugAbilityMenu:
     """
     Password-protected overlay for toggling player abilities during testing.
@@ -700,15 +708,15 @@ class DebugAbilityMenu:
         self,
         screen_width: int,
         screen_height: int,
-        campaign_data,          # CampaignSaveData; may be None
-        on_toggle: callable,    # called with no args after every toggle
+        campaign_data,  # CampaignSaveData; may be None
+        on_toggle: callable,  # called with no args after every toggle
     ):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self._campaign_data = campaign_data
         self._on_toggle = on_toggle
 
-        self._phase = "password"   # "password" | "abilities"
+        self._phase = "password"  # "password" | "abilities"
         self._pwd_input = ""
         self._pwd_wrong = False
         self._selected = 0
@@ -819,14 +827,13 @@ class DebugAbilityMenu:
 
         warn = self._small_font.render(
             "Changes take effect immediately — gates rebuild on each toggle.",
-            True, (255, 160, 60),
+            True,
+            (255, 160, 60),
         )
         surface.blit(warn, warn.get_rect(centerx=cx, y=118))
 
         unlocked: set = (
-            set(self._campaign_data.unlocked_abilities)
-            if self._campaign_data
-            else set()
+            set(self._campaign_data.unlocked_abilities) if self._campaign_data else set()
         )
 
         start_y = 158
@@ -854,13 +861,18 @@ class DebugAbilityMenu:
 
             if is_sel:
                 arrow = self._font.render(">", True, (255, 255, 80))
-                surface.blit(arrow, arrow.get_rect(right=cx - label_surf.get_width() - 20,
-                                                   centery=row_y + row_h // 2))
+                surface.blit(
+                    arrow,
+                    arrow.get_rect(
+                        right=cx - label_surf.get_width() - 20, centery=row_y + row_h // 2
+                    ),
+                )
 
         hint_y = start_y + len(self._ABILITIES) * row_h + 14
         hint = self._small_font.render(
             "[↑↓] Navigate     [SPACE / ENTER] Toggle     [ESC] Close",
-            True, (100, 100, 120),
+            True,
+            (100, 100, 120),
         )
         surface.blit(hint, hint.get_rect(centerx=cx, y=hint_y))
 

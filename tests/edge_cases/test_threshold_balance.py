@@ -62,9 +62,7 @@ print("Testing different collision scenarios")
 print("=" * 60)
 
 # Test 1: Clear wall collision (small X overlap, should stop)
-run_scenario(
-    "Wall collision (side approach)", 85.0, 505.0, 3.0, 5.0, pygame.Rect(100, 500, 32, 32)
-)
+run_scenario("Wall collision (side approach)", 85.0, 505.0, 3.0, 5.0, pygame.Rect(100, 500, 32, 32))
 
 # Test 2: Landing on platform edge (moderate overlaps)
 run_scenario("Platform edge landing", 50.0, 595.0, 5.0, 10.0, pygame.Rect(60, 600, 32, 32))

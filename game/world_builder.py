@@ -222,7 +222,9 @@ def _spawn_pickups_and_hazards(
         room_spawn_pos = (spawn_x, spawn_y) if room.room_type.value == "start" else None
         room_exit_pos = (exit_x, exit_y) if room.room_type.value == "exit" else None
 
-        pickup_spawner.spawn_pickups_for_room(room, pickup_manager, room_px, room_py, boss_level=boss_level)
+        pickup_spawner.spawn_pickups_for_room(
+            room, pickup_manager, room_px, room_py, boss_level=boss_level
+        )
         if not hub_id:  # Keep hubs safe and avoid exit-based hazard offsets
             hazard_spawner.spawn_hazards_for_room(
                 room,
@@ -711,9 +713,17 @@ def create_server_world(
 
     # 4. Spawn enemies, pickups, hazards (same logic as regenerate_world_state)
     _spawn_pickups_and_hazards(
-        world, megamap, spawn_x, spawn_y, exit_x, exit_y,
-        seed, pickup_manager, hazard_manager,
-        hub_id=None, mission_def=None,
+        world,
+        megamap,
+        spawn_x,
+        spawn_y,
+        exit_x,
+        exit_y,
+        seed,
+        pickup_manager,
+        hazard_manager,
+        hub_id=None,
+        mission_def=None,
     )
     _spawn_enemies(world, megamap, seed, enemy_manager, tiles, hub_id=None)
 

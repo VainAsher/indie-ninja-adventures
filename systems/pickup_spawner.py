@@ -337,7 +337,10 @@ class PickupSpawner:
                 tile_above = room.tilemap[ty - 1][tx]
 
                 # Platform with air above
-                if tile in (TILE_PLATFORM, TILE_PLATFORM_FALLING, TILE_PLATFORM_MOVING) and tile_above == 0:
+                if (
+                    tile in (TILE_PLATFORM, TILE_PLATFORM_FALLING, TILE_PLATFORM_MOVING)
+                    and tile_above == 0
+                ):
                     x = room_px + tx * 32
                     y = room_py + (ty - 1) * 32  # Spawn above platform
                     positions.append((x, y))

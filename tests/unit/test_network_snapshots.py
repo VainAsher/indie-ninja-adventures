@@ -28,6 +28,7 @@ from network.snapshots import (
 
 # ── Snapshot (single-player replay) ──────────────────────────────────────────
 
+
 def test_snapshot_roundtrip():
     snap = Snapshot(
         frame=10,
@@ -58,6 +59,7 @@ def test_snapshot_from_dict_missing_metadata_defaults_to_empty():
 
 
 # ── PlayerState ───────────────────────────────────────────────────────────────
+
 
 def test_player_state_roundtrip_full():
     ps = PlayerState(
@@ -95,9 +97,7 @@ def test_player_state_from_dict_defaults():
 
 
 def test_player_state_pos_vel_are_tuples():
-    ps = PlayerState(
-        player_id="t", slot=0, pos=(1.0, 2.0), vel=(3.0, 4.0), health=5, facing=1
-    )
+    ps = PlayerState(player_id="t", slot=0, pos=(1.0, 2.0), vel=(3.0, 4.0), health=5, facing=1)
     d = ps.to_dict()
     recovered = PlayerState.from_dict(d)
     assert isinstance(recovered.pos, tuple)
@@ -105,6 +105,7 @@ def test_player_state_pos_vel_are_tuples():
 
 
 # ── MultiplayerSnapshot ───────────────────────────────────────────────────────
+
 
 def test_multiplayer_snapshot_roundtrip_two_players():
     ps0 = PlayerState("h", 0, (0.0, 0.0), (0.0, 0.0), 5, facing=1)
@@ -127,11 +128,14 @@ def test_multiplayer_snapshot_empty_players():
 
 # ── EnemyState ────────────────────────────────────────────────────────────────
 
+
 def test_enemy_state_roundtrip():
     es = EnemyState(
         enemy_id="goblin_0",
-        x=200.0, y=300.0,
-        vx=1.5, vy=0.0,
+        x=200.0,
+        y=300.0,
+        vx=1.5,
+        vy=0.0,
         hp=3,
         ai_state="chase",
         facing_right=False,
@@ -153,6 +157,7 @@ def test_enemy_state_dead():
 
 # ── PickupState ───────────────────────────────────────────────────────────────
 
+
 def test_pickup_state_roundtrip():
     ps = PickupState(pickup_id="coin_1", x=50.0, y=80.0, pickup_type="coin", alive=True)
     recovered = PickupState.from_dict(ps.to_dict())
@@ -169,6 +174,7 @@ def test_pickup_state_not_alive():
 
 
 # ── PlatformState ─────────────────────────────────────────────────────────────
+
 
 def test_platform_state_roundtrip():
     pls = PlatformState(
@@ -194,6 +200,7 @@ def test_platform_state_idle():
 
 
 # ── WorldSnapshot ─────────────────────────────────────────────────────────────
+
 
 def _make_world_snapshot() -> WorldSnapshot:
     players = [

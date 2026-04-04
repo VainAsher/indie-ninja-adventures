@@ -259,11 +259,14 @@ class PickupManager:
                 item_id = getattr(pickup, "item_id", None)
                 if item_id:
                     from game.objective_tracker import ItemCollectedEvent
-                    self.event_bus.emit(ItemCollectedEvent(
-                        item_id=item_id,
-                        quantity=pickup.value,
-                        position=(pickup.x, pickup.y),
-                    ))
+
+                    self.event_bus.emit(
+                        ItemCollectedEvent(
+                            item_id=item_id,
+                            quantity=pickup.value,
+                            position=(pickup.x, pickup.y),
+                        )
+                    )
 
         return collected
 

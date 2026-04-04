@@ -105,6 +105,7 @@ class ShurikenMechanic(BaseMechanic):
                 continue
             if self._rects_overlap(proj_rect, enemy.get_rect()):
                 from entities.enemy import EnemyType
+
                 if enemy.enemy_type == EnemyType.SLIME:
                     # Projectiles are absorbed by the slime's oozy body — no damage,
                     # projectile disappears quickly (visually "swallowed").

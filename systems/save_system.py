@@ -513,7 +513,9 @@ class SaveManager:
                 total_deaths=campaign_dict.get("total_deaths", 0),
                 total_play_time=campaign_dict.get("total_play_time", 0.0),
                 story_state=campaign_dict.get("story_state", None),  # v0.7.0: Story progression
-                defeated_bosses=set(campaign_dict.get("defeated_bosses", [])),  # v0.7.2: Champion system
+                defeated_bosses=set(
+                    campaign_dict.get("defeated_bosses", [])
+                ),  # v0.7.2: Champion system
             )
 
         return SaveData(

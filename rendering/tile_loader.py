@@ -195,7 +195,7 @@ class TileLoader:
                 "platform_moving": (70, 170, 220),
             },
             "forest": {
-                "solid": (34, 85, 34),   # Forest green stone
+                "solid": (34, 85, 34),  # Forest green stone
                 "platform": (90, 60, 30),  # Dark bark
                 "lava": (200, 70, 20),
                 "water": (30, 100, 180),
@@ -211,7 +211,7 @@ class TileLoader:
                 "platform_moving": (60, 150, 200),
             },
             "sewer": {
-                "solid": (50, 65, 50),   # Mossy stone
+                "solid": (50, 65, 50),  # Mossy stone
                 "platform": (60, 80, 60),  # Damp ledge
                 "lava": (180, 60, 20),
                 "water": (30, 110, 60),  # Murky green water
@@ -219,7 +219,7 @@ class TileLoader:
                 "platform_moving": (40, 130, 90),
             },
             "hollow": {
-                "solid": (40, 35, 55),   # Deep purple-black rock
+                "solid": (40, 35, 55),  # Deep purple-black rock
                 "platform": (55, 45, 75),  # Crystal ledge
                 "lava": (160, 40, 120),  # Corrupted magenta lava
                 "water": (20, 60, 120),

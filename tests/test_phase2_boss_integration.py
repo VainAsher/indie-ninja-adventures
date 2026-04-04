@@ -20,6 +20,7 @@ class TestBossManagerSpawn(unittest.TestCase):
     def _make_bus(self):
         """Create a minimal EventBus that records emitted events."""
         from core import EventBus
+
         bus = EventBus()
         self._emitted = []
         original_emit = bus.emit
@@ -125,7 +126,9 @@ class TestBossDeathObjectiveChain(unittest.TestCase):
         tracker._on_boss_death = spy
         bus.subscribe(BossDeathEvent, spy)
 
-        event = BossDeathEvent(boss_id="boss_shadow_lord", boss_type="SHADOW_LORD", position=(100.0, 200.0))
+        event = BossDeathEvent(
+            boss_id="boss_shadow_lord", boss_type="SHADOW_LORD", position=(100.0, 200.0)
+        )
         bus.emit(event, immediate=True)
 
         self.assertEqual(len(received), 1)
@@ -144,6 +147,7 @@ class TestMissionsBossField(unittest.TestCase):
         """Each region should have exactly one mission with a 'boss' field set."""
         missions = self._load_missions()
         from collections import Counter
+
         boss_counts = Counter(m["region"] for m in missions if m.get("boss"))
         expected_regions = {"forest", "town", "caves", "castle", "sewer", "hollow_depths"}
         for region in expected_regions:
@@ -152,12 +156,15 @@ class TestMissionsBossField(unittest.TestCase):
     def test_boss_types_are_valid(self):
         """Boss field values should match BossType enum names."""
         from entities.boss_manager import BossType
+
         valid = {bt.name for bt in BossType}
         missions = self._load_missions()
         for m in missions:
             boss = m.get("boss")
             if boss:
-                self.assertIn(boss, valid, f"Mission {m['mission_id']} has unknown boss type '{boss}'")
+                self.assertIn(
+                    boss, valid, f"Mission {m['mission_id']} has unknown boss type '{boss}'"
+                )
 
 
 class TestAbilityGateManager(unittest.TestCase):
@@ -171,8 +178,10 @@ class TestAbilityGateManager(unittest.TestCase):
         gm.add_gate(GateType.LOCKED_DOOR, x=100.0, y=100.0)
 
         blocked = gm.check_gate_collision(
-            player_x=100.0, player_y=100.0,
-            player_width=28, player_height=56,
+            player_x=100.0,
+            player_y=100.0,
+            player_width=28,
+            player_height=56,
             unlocked_abilities={AbilityRequirement.BASIC_MOVEMENT, AbilityRequirement.JUMP},
         )
         self.assertIsNotNone(blocked, "Gate should block player without required ability")
@@ -185,8 +194,10 @@ class TestAbilityGateManager(unittest.TestCase):
         gm.add_gate(GateType.WIDE_GAP, x=100.0, y=100.0)
 
         blocked = gm.check_gate_collision(
-            player_x=100.0, player_y=100.0,
-            player_width=28, player_height=56,
+            player_x=100.0,
+            player_y=100.0,
+            player_width=28,
+            player_height=56,
             unlocked_abilities={
                 AbilityRequirement.BASIC_MOVEMENT,
                 AbilityRequirement.JUMP,

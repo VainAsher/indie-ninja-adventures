@@ -54,12 +54,12 @@ from rendering.sprite_manager import SpriteAnimation, SpriteFrame, SpriteSheet
 
 #: Map EnemyAIState.value strings to animation state names.
 ENEMY_AI_TO_ANIM: dict[str, str] = {
-    "idle":    "idle",
-    "patrol":  "walk",
-    "chase":   "run",
-    "attack":  "attack",
+    "idle": "idle",
+    "patrol": "walk",
+    "chase": "run",
+    "attack": "attack",
     "stunned": "stunned",
-    "dead":    "death",
+    "dead": "death",
 }
 
 # ---------------------------------------------------------------------------
@@ -69,84 +69,84 @@ ENEMY_AI_TO_ANIM: dict[str, str] = {
 
 #: Player — sheets live in assets/sprites/player/
 PLAYER_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
-    "idle":            ("idle_spritesheet.png",         2,  8,  True),
-    "walk":            ("walk_spritesheet.png",         4, 10,  True),
-    "run":             ("run_spritesheet.png",          6, 12,  True),
-    "slow_walk":       ("walk_spritesheet.png",         4,  8,  True),
-    "jump":            ("jumpfall_spritesheet.png",     2, 10,  False),  # frame 1 = ascending
-    "fall":            ("jumpfall_spritesheet.png",     2, 10,  False),  # frame 0 = falling
-    "crouch":          ("idle_spritesheet.png",         2,  6,  True),
-    "dash":            ("run_spritesheet.png",          6, 20,  True),
-    "wall_slide":      ("jumpfall_spritesheet.png",     2,  8,  True),
-    "wall_hang":       ("jumpfall_spritesheet.png",     2,  6,  True),
-    "ceiling_hang":    ("jumpfall_spritesheet.png",     2,  6,  True),
-    "air_spin":        ("jumpfall_spritesheet.png",     2, 10,  True),
-    "hurt":            ("hurt_spritesheet.png",         3, 12,  True),   # loop while i-frames active
-    "hurt2":           ("hurt_spritesheet.png",         3, 12,  True),
-    "death":           ("death_spritesheet.png",        5, 12,  False),
-    "attack":          ("attack-sword_spritesheet.png", 6, 15,  False),
-    "slash1":          ("attack-sword_spritesheet.png", 6, 15,  False),
-    "slash2":          ("attack-sword_spritesheet.png", 6, 15,  False),
-    "slash3":          ("attack-sword_spritesheet.png", 6, 15,  False),
-    "slash_air":       ("attack-sword_spritesheet.png", 6, 15,  False),
-    "jump_slash":      ("attack-sword_spritesheet.png", 6, 15,  False),
-    "throw_ground":    ("attack-sword_spritesheet.png", 4, 12,  False),
-    "throw_crouch":    ("attack-sword_spritesheet.png", 4, 12,  False),
-    "throw_air":       ("attack-sword_spritesheet.png", 4, 12,  False),
-    "teleport":        ("attack-sword_spritesheet.png", 4, 12,  False),
-    "ninjutsu_hand":   ("attack-sword_spritesheet.png", 4, 10,  False),
-    "ninjutsu_summon": ("attack-sword_spritesheet.png", 4, 10,  False),
+    "idle": ("idle_spritesheet.png", 2, 8, True),
+    "walk": ("walk_spritesheet.png", 4, 10, True),
+    "run": ("run_spritesheet.png", 6, 12, True),
+    "slow_walk": ("walk_spritesheet.png", 4, 8, True),
+    "jump": ("jumpfall_spritesheet.png", 2, 10, False),  # frame 1 = ascending
+    "fall": ("jumpfall_spritesheet.png", 2, 10, False),  # frame 0 = falling
+    "crouch": ("idle_spritesheet.png", 2, 6, True),
+    "dash": ("run_spritesheet.png", 6, 20, True),
+    "wall_slide": ("jumpfall_spritesheet.png", 2, 8, True),
+    "wall_hang": ("jumpfall_spritesheet.png", 2, 6, True),
+    "ceiling_hang": ("jumpfall_spritesheet.png", 2, 6, True),
+    "air_spin": ("jumpfall_spritesheet.png", 2, 10, True),
+    "hurt": ("hurt_spritesheet.png", 3, 12, True),  # loop while i-frames active
+    "hurt2": ("hurt_spritesheet.png", 3, 12, True),
+    "death": ("death_spritesheet.png", 5, 12, False),
+    "attack": ("attack-sword_spritesheet.png", 6, 15, False),
+    "slash1": ("attack-sword_spritesheet.png", 6, 15, False),
+    "slash2": ("attack-sword_spritesheet.png", 6, 15, False),
+    "slash3": ("attack-sword_spritesheet.png", 6, 15, False),
+    "slash_air": ("attack-sword_spritesheet.png", 6, 15, False),
+    "jump_slash": ("attack-sword_spritesheet.png", 6, 15, False),
+    "throw_ground": ("attack-sword_spritesheet.png", 4, 12, False),
+    "throw_crouch": ("attack-sword_spritesheet.png", 4, 12, False),
+    "throw_air": ("attack-sword_spritesheet.png", 4, 12, False),
+    "teleport": ("attack-sword_spritesheet.png", 4, 12, False),
+    "ninjutsu_hand": ("attack-sword_spritesheet.png", 4, 10, False),
+    "ninjutsu_summon": ("attack-sword_spritesheet.png", 4, 10, False),
 }
 
 GOBLIN_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
-    "idle":    ("idle_spritesheet.png",   2,  8, True),
-    "walk":    ("walk_spritesheet.png",   4, 10, True),
-    "run":     ("run_spritesheet.png",    4, 12, True),
-    "attack":  ("attack_spritesheet.png", 4, 12, False),
-    "hurt":    ("hurt_spritesheet.png",   2, 10, False),
-    "stunned": ("hurt_spritesheet.png",   2,  6, True),
-    "death":   ("death_spritesheet.png",  4, 10, False),
+    "idle": ("idle_spritesheet.png", 2, 8, True),
+    "walk": ("walk_spritesheet.png", 4, 10, True),
+    "run": ("run_spritesheet.png", 4, 12, True),
+    "attack": ("attack_spritesheet.png", 4, 12, False),
+    "hurt": ("hurt_spritesheet.png", 2, 10, False),
+    "stunned": ("hurt_spritesheet.png", 2, 6, True),
+    "death": ("death_spritesheet.png", 4, 10, False),
 }
 
 BAT_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
     # Bat uses its idle sheet for all movement (it flies)
-    "idle":    ("idle_spritesheet.png",   4, 12, True),
-    "walk":    ("idle_spritesheet.png",   4, 12, True),
-    "run":     ("idle_spritesheet.png",   4, 16, True),
-    "attack":  ("attack_spritesheet.png", 4, 14, False),
-    "hurt":    ("hurt_spritesheet.png",   2, 10, False),
-    "stunned": ("hurt_spritesheet.png",   2,  6, True),
-    "death":   ("death_spritesheet.png",  4, 10, False),
+    "idle": ("idle_spritesheet.png", 4, 12, True),
+    "walk": ("idle_spritesheet.png", 4, 12, True),
+    "run": ("idle_spritesheet.png", 4, 16, True),
+    "attack": ("attack_spritesheet.png", 4, 14, False),
+    "hurt": ("hurt_spritesheet.png", 2, 10, False),
+    "stunned": ("hurt_spritesheet.png", 2, 6, True),
+    "death": ("death_spritesheet.png", 4, 10, False),
 }
 
 SLIME_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
-    "idle":    ("idle_spritesheet.png",   2,  6, True),
-    "walk":    ("walk_spritesheet.png",   4,  8, True),
-    "run":     ("walk_spritesheet.png",   4, 10, True),
-    "attack":  ("attack_spritesheet.png", 4, 10, False),
-    "hurt":    ("hurt_spritesheet.png",   2, 10, False),
-    "stunned": ("hurt_spritesheet.png",   2,  6, True),
-    "death":   ("death_spritesheet.png",  4,  8, False),
+    "idle": ("idle_spritesheet.png", 2, 6, True),
+    "walk": ("walk_spritesheet.png", 4, 8, True),
+    "run": ("walk_spritesheet.png", 4, 10, True),
+    "attack": ("attack_spritesheet.png", 4, 10, False),
+    "hurt": ("hurt_spritesheet.png", 2, 10, False),
+    "stunned": ("hurt_spritesheet.png", 2, 6, True),
+    "death": ("death_spritesheet.png", 4, 8, False),
 }
 
 SKELETON_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
-    "idle":    ("idle_spritesheet.png",   2,  8, True),
-    "walk":    ("walk_spritesheet.png",   4, 10, True),
-    "run":     ("walk_spritesheet.png",   4, 12, True),
-    "attack":  ("attack_spritesheet.png", 4, 12, False),
-    "hurt":    ("hurt_spritesheet.png",   2, 10, False),
-    "stunned": ("hurt_spritesheet.png",   2,  6, True),
-    "death":   ("death_spritesheet.png",  4, 10, False),
+    "idle": ("idle_spritesheet.png", 2, 8, True),
+    "walk": ("walk_spritesheet.png", 4, 10, True),
+    "run": ("walk_spritesheet.png", 4, 12, True),
+    "attack": ("attack_spritesheet.png", 4, 12, False),
+    "hurt": ("hurt_spritesheet.png", 2, 10, False),
+    "stunned": ("hurt_spritesheet.png", 2, 6, True),
+    "death": ("death_spritesheet.png", 4, 10, False),
 }
 
 WOLF_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
-    "idle":    ("idle_spritesheet.png",   2,  8, True),
-    "walk":    ("walk_spritesheet.png",   4, 10, True),
-    "run":     ("run_spritesheet.png",    6, 14, True),
-    "attack":  ("attack_spritesheet.png", 4, 14, False),
-    "hurt":    ("hurt_spritesheet.png",   2, 10, False),
-    "stunned": ("hurt_spritesheet.png",   2,  6, True),
-    "death":   ("death_spritesheet.png",  4, 10, False),
+    "idle": ("idle_spritesheet.png", 2, 8, True),
+    "walk": ("walk_spritesheet.png", 4, 10, True),
+    "run": ("run_spritesheet.png", 6, 14, True),
+    "attack": ("attack_spritesheet.png", 4, 14, False),
+    "hurt": ("hurt_spritesheet.png", 2, 10, False),
+    "stunned": ("hurt_spritesheet.png", 2, 6, True),
+    "death": ("death_spritesheet.png", 4, 10, False),
 }
 
 NPC_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
@@ -156,25 +156,26 @@ NPC_ANIM_DEFS: dict[str, tuple[str, int, int, bool]] = {
 
 # Maps EnemyType.value → (anim_defs, hitbox_size)
 _ENEMY_REGISTRY_CONFIG: dict[str, tuple[dict, tuple[int, int]]] = {
-    "goblin":   (GOBLIN_ANIM_DEFS,   (32, 48)),
-    "bat":      (BAT_ANIM_DEFS,      (24, 24)),
-    "slime":    (SLIME_ANIM_DEFS,    (40, 32)),
+    "goblin": (GOBLIN_ANIM_DEFS, (32, 48)),
+    "bat": (BAT_ANIM_DEFS, (24, 24)),
+    "slime": (SLIME_ANIM_DEFS, (40, 32)),
     "skeleton": (SKELETON_ANIM_DEFS, (32, 56)),
-    "wolf":     (WOLF_ANIM_DEFS,     (48, 32)),
+    "wolf": (WOLF_ANIM_DEFS, (48, 32)),
 }
 
 # Maps NPCType.value → (sprite subdir, anim_defs, hitbox_size)
 _NPC_REGISTRY_CONFIG: dict[str, tuple[str, dict, tuple[int, int]]] = {
     "mission_giver": ("npc_mission_giver", NPC_ANIM_DEFS, (32, 48)),
-    "shop":          ("npc_shop",          NPC_ANIM_DEFS, (32, 48)),
-    "tutorial":      ("npc_tutorial",      NPC_ANIM_DEFS, (32, 48)),
-    "lore":          ("npc_lore",          NPC_ANIM_DEFS, (32, 48)),
+    "shop": ("npc_shop", NPC_ANIM_DEFS, (32, 48)),
+    "tutorial": ("npc_tutorial", NPC_ANIM_DEFS, (32, 48)),
+    "lore": ("npc_lore", NPC_ANIM_DEFS, (32, 48)),
 }
 
 
 # ---------------------------------------------------------------------------
 # AnimationStateMachine
 # ---------------------------------------------------------------------------
+
 
 class AnimationStateMachine:
     """
@@ -241,10 +242,7 @@ class AnimationStateMachine:
         frames = self._flip_cache.get((self._state, facing))
         if not frames:
             # Graceful fallback: idle in requested facing, then idle right
-            frames = (
-                self._flip_cache.get(("idle", facing))
-                or self._flip_cache.get(("idle", 1))
-            )
+            frames = self._flip_cache.get(("idle", facing)) or self._flip_cache.get(("idle", 1))
         if not frames:
             return None
 
@@ -288,6 +286,7 @@ class AnimationStateMachine:
 # AnimationRegistry
 # ---------------------------------------------------------------------------
 
+
 class AnimationRegistry:
     """
     Global animation data store. Load once at startup, zero duplication.
@@ -330,14 +329,18 @@ class AnimationRegistry:
         for state, (filename, frame_count, fps, loop) in anim_defs.items():
             fallback_size = target_size or (32, 48)
             frames_r, frames_l = cls._load_state_frames(
-                sprites_dir / filename, state, frame_count,
-                char_type, target_size, fallback_size,
+                sprites_dir / filename,
+                state,
+                frame_count,
+                char_type,
+                target_size,
+                fallback_size,
             )
             anims[state] = SpriteAnimation(name=state, frames=frames_r, fps=fps, loop=loop)
-            flip_cache[(state, 1)]  = frames_r
+            flip_cache[(state, 1)] = frames_r
             flip_cache[(state, -1)] = frames_l
 
-        cls._anims[char_type]      = anims
+        cls._anims[char_type] = anims
         cls._flip_cache[char_type] = flip_cache
 
     @classmethod
@@ -390,7 +393,7 @@ class AnimationRegistry:
 
         Called automatically by SpriteManager after it finishes loading.
         """
-        cls._anims[char_type]      = animations
+        cls._anims[char_type] = animations
         cls._flip_cache[char_type] = cache
 
     # ── Factory ────────────────────────────────────────────────────────────
@@ -424,18 +427,18 @@ class AnimationRegistry:
     ) -> tuple[list[SpriteFrame], list[SpriteFrame]]:
         """Generate coloured placeholder frames when a sprite sheet is missing."""
         _colors: dict[str, tuple[int, int, int]] = {
-            "idle":    (80,  80,  180),
-            "walk":    (80,  150, 180),
-            "run":     (80,  200, 200),
-            "jump":    (120, 220, 120),
-            "fall":    (180, 180, 80),
-            "attack":  (220, 120, 80),
-            "hurt":    (220, 80,  80),
-            "stunned": (180, 80,  180),
-            "death":   (120, 120, 120),
-            "patrol":  (100, 160, 200),
-            "chase":   (200, 140, 80),
-            "dead":    (80,  80,  80),
+            "idle": (80, 80, 180),
+            "walk": (80, 150, 180),
+            "run": (80, 200, 200),
+            "jump": (120, 220, 120),
+            "fall": (180, 180, 80),
+            "attack": (220, 120, 80),
+            "hurt": (220, 80, 80),
+            "stunned": (180, 80, 180),
+            "death": (120, 120, 120),
+            "patrol": (100, 160, 200),
+            "chase": (200, 140, 80),
+            "dead": (80, 80, 80),
         }
         color = _colors.get(state, (160, 160, 160))
         w, h = size
@@ -447,8 +450,7 @@ class AnimationRegistry:
                 pygame.draw.rect(surf, (255, 255, 255, 40), (0, 0, w, max(1, h // 4)))
             frames_r.append(SpriteFrame(surface=surf))
         frames_l = [
-            SpriteFrame(surface=pygame.transform.flip(f.surface, True, False))
-            for f in frames_r
+            SpriteFrame(surface=pygame.transform.flip(f.surface, True, False)) for f in frames_r
         ]
         return frames_r, frames_l
 
@@ -456,6 +458,7 @@ class AnimationRegistry:
 # ---------------------------------------------------------------------------
 # Startup registration helper
 # ---------------------------------------------------------------------------
+
 
 def register_all_characters(assets_root: Path) -> None:
     """

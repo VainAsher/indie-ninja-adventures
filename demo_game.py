@@ -435,9 +435,7 @@ def main():
     screen, clock_pygame, window_width, window_height = initialize_pygame(headless=headless)
 
     # Initialize audio (silent fallback if mixer unavailable or assets missing)
-    audio_manager = initialize_audio(
-        sfx_volume=float(runtime_settings.get("volume_sfx", 0.8))
-    )
+    audio_manager = initialize_audio(sfx_volume=float(runtime_settings.get("volume_sfx", 0.8)))
 
     rendering_systems = create_rendering_systems()
     sprite_manager = rendering_systems["sprite_manager"]
@@ -728,7 +726,9 @@ def main():
     static_platforms: list[pygame.Rect] = []
     dynamic_platforms: list[dict] = []
     platform_colliders: list[pygame.Rect] = []
-    liquid_tiles: list[tuple] = []  # [(world_x, world_y, "lava"|"water"), ...]  — built at level load
+    liquid_tiles: list[tuple] = (
+        []
+    )  # [(world_x, world_y, "lava"|"water"), ...]  — built at level load
 
     MOVING_PLATFORM_MAX_SCAN = 8
     MOVING_PLATFORM_SPEED_RANGE = (30.0, 70.0)  # pixels per second
@@ -750,7 +750,9 @@ def main():
     lava_damage_timer = 0.0
     poison_damage_timer = 0.0
 
-    def _entity_on_platform(physics, platform_rect, tolerance: int = PLATFORM_CARRY_TOLERANCE) -> bool:
+    def _entity_on_platform(
+        physics, platform_rect, tolerance: int = PLATFORM_CARRY_TOLERANCE
+    ) -> bool:
         if not physics or not physics.on_ground:
             return False
         rect = pygame.Rect(int(physics.x), int(physics.y), physics.width, physics.height)
@@ -845,9 +847,7 @@ def main():
                         min(left_free, rng.randint(1, min(3, left_free))) if left_free > 0 else 0
                     )
                     span_right = (
-                        min(right_free, rng.randint(1, min(3, right_free)))
-                        if right_free > 0
-                        else 0
+                        min(right_free, rng.randint(1, min(3, right_free))) if right_free > 0 else 0
                     )
                     min_x = world_x - span_left * 32
                     max_x = world_x + span_right * 32
@@ -871,7 +871,9 @@ def main():
                     )
 
         platforms = static_platforms + [p["rect"] for p in dynamic_platforms]
-        platform_colliders = static_platforms + [p["rect"] for p in dynamic_platforms if p["active"]]
+        platform_colliders = static_platforms + [
+            p["rect"] for p in dynamic_platforms if p["active"]
+        ]
         if collision_system:
             collision_system.update_platforms(platform_colliders)
 
@@ -889,18 +891,25 @@ def main():
         _new_hub_id = payload.get("hub_id", "")
         if not _new_hub_id:
             return
-        _sv_seed   = payload.get("seed", current_seed)
-        _sv_shape  = payload.get("shape", "blob")
-        _sv_rooms  = int(payload.get("rooms", 8))
+        _sv_seed = payload.get("seed", current_seed)
+        _sv_shape = payload.get("shape", "blob")
+        _sv_rooms = int(payload.get("rooms", 8))
         _sv_world_seed = payload.get("world_seed")
         if _sv_world_seed is not None:
             hub_manager.world_seed = int(_sv_world_seed)
         _sv_spawn_x = payload.get("spawn_x")
         _sv_spawn_y = payload.get("spawn_y")
         (
-            tiles, platforms, current_seed,
-            spawn_x, spawn_y, exit_x, exit_y,
-            world, megamap, minimap,
+            tiles,
+            platforms,
+            current_seed,
+            spawn_x,
+            spawn_y,
+            exit_x,
+            exit_y,
+            world,
+            megamap,
+            minimap,
         ) = regenerate_world_state(
             seed=_sv_seed,
             shape=_sv_shape,
@@ -1059,6 +1068,7 @@ def main():
         """Clear any previous boss and spawn one if the mission has a defeat_boss objective."""
         from entities.boss_manager import BossType
         from game.mission_registry import ObjectiveType
+
         boss_manager.clear()
         # Derive boss type from the defeat_boss objective (source of truth in missions.json)
         boss_field = None
@@ -1082,6 +1092,7 @@ def main():
         if campaign_data and hasattr(campaign_data, "defeated_bosses"):
             if boss_field in campaign_data.defeated_bosses:
                 import random as _random
+
                 spawn_champion = _random.random() < 0.40
         boss_manager.spawn_boss(boss_type, bx, by, champion=spawn_champion)
         boss_manager.start_boss_battle(mission_def.mission_id)
@@ -1099,8 +1110,11 @@ def main():
     def _rebuild_hub_gates():
         """Place ability gates in front of locked-region portals in the hub."""
         from entities.ability_gate import AbilityRequirement, GateType
+
         gate_manager.clear()
-        unlocked = set(campaign_data.unlocked_abilities) if campaign_data else {"basic_movement", "jump"}
+        unlocked = (
+            set(campaign_data.unlocked_abilities) if campaign_data else {"basic_movement", "jump"}
+        )
         unlocked |= {"basic_movement", "jump"}
 
         for portal in portal_manager.portals:
@@ -1238,11 +1252,17 @@ def main():
     def _build_key_bindings():
         """Map settings key name strings → pygame key constants."""
         _KEY_NAME_MAP = {
-            "left": pygame.K_LEFT, "right": pygame.K_RIGHT,
-            "up": pygame.K_UP, "down": pygame.K_DOWN,
-            "space": pygame.K_SPACE, "return": pygame.K_RETURN,
-            "shift": pygame.K_LSHIFT, "lshift": pygame.K_LSHIFT, "rshift": pygame.K_RSHIFT,
-            "ctrl": pygame.K_LCTRL, "alt": pygame.K_LALT,
+            "left": pygame.K_LEFT,
+            "right": pygame.K_RIGHT,
+            "up": pygame.K_UP,
+            "down": pygame.K_DOWN,
+            "space": pygame.K_SPACE,
+            "return": pygame.K_RETURN,
+            "shift": pygame.K_LSHIFT,
+            "lshift": pygame.K_LSHIFT,
+            "rshift": pygame.K_RSHIFT,
+            "ctrl": pygame.K_LCTRL,
+            "alt": pygame.K_LALT,
             **{chr(c): getattr(pygame, f"K_{chr(c)}", None) for c in range(ord("a"), ord("z") + 1)},
         }
         result = {}
@@ -1314,11 +1334,11 @@ def main():
     # Ability → feature-flag mapping used by sync_player_abilities()
     _ABILITY_TO_FLAG = {
         "double_jump": "double_jump",
-        "wall_jump":   "wall_jump",
-        "dash":        "dash",
-        "shuriken":    "shuriken",
-        "teleport":    "teleport",
-        "ninjutsu":    "ninjutsu",
+        "wall_jump": "wall_jump",
+        "dash": "dash",
+        "shuriken": "shuriken",
+        "teleport": "teleport",
+        "ninjutsu": "ninjutsu",
         # "basic_movement" and "jump" are always on — no flag needed
         # "crouch" is always on — basic navigation, not a gated ability
     }
@@ -1337,7 +1357,7 @@ def main():
         # JumpMechanic reads double_jump_enabled / wall_jump_enabled from
         # instance vars set at __init__ time — keep them in sync manually.
         player.jump.double_jump_enabled = player.feature_flags.get("double_jump", False)
-        player.jump.wall_jump_enabled   = player.feature_flags.get("wall_jump", False)
+        player.jump.wall_jump_enabled = player.feature_flags.get("wall_jump", False)
         print(
             f"[ABILITIES] Synced — unlocked: "
             f"{sorted(f for f, v in player.feature_flags.items() if v)}"
@@ -1394,10 +1414,10 @@ def main():
     level_complete = False
 
     # Death animation delay — defers hub transition so the death animation has time to play
-    DEATH_ANIM_WAIT = 30      # ~0.5 s at 60 fps; covers the 5-frame 12 fps death anim
+    DEATH_ANIM_WAIT = 30  # ~0.5 s at 60 fps; covers the 5-frame 12 fps death anim
     death_anim_pending = False
     death_anim_ticks = 0
-    death_anim_ctx = ""       # "mission", "hub_area", "direct"
+    death_anim_ctx = ""  # "mission", "hub_area", "direct"
     death_anim_hub: str | None = None
 
     def regenerate_hub_for_respawn(reason: str = "", target_hub_id=None):
@@ -1495,11 +1515,11 @@ def main():
         collision_system.profiler = profiler
 
     # Pre-allocate misc overlay surfaces (avoid per-frame SRCALPHA/copy allocations)
-    _player_flash_surf = pygame.Surface((256, 256))   # Player i-frame white flash
+    _player_flash_surf = pygame.Surface((256, 256))  # Player i-frame white flash
     _player_flash_surf.fill((255, 255, 255))
     _platform_overlay_surf = pygame.Surface((64, 64))  # Falling platform warning
     _platform_overlay_surf.fill((255, 200, 120))
-    _heart_warn_surf = pygame.Surface((32, 32))        # Low-health heart pulse
+    _heart_warn_surf = pygame.Surface((32, 32))  # Low-health heart pulse
     _heart_warn_surf.fill((255, 0, 0))
     _fullmap_overlay_surf = pygame.Surface((GAME_WIDTH, GAME_HEIGHT))  # Full-map dim overlay
     _fullmap_overlay_surf.fill((0, 0, 0))
@@ -1540,20 +1560,25 @@ def main():
     import threading as _threading
     from entities.remote_player import RemotePlayer as _RemotePlayer
     import rendering.remote_player_renderer as _rp_renderer
+
     _net_client = None
-    _remote_players: dict[int, _RemotePlayer] = {}   # slot → RemotePlayer
+    _remote_players: dict[int, _RemotePlayer] = {}  # slot → RemotePlayer
 
     if args.host:
         import asyncio as _asyncio
         import time as _time
         from network.server import run_server as _run_server
         from network.client import NetworkClient as _NetworkClient
+
         _net_seed = current_seed or random.randint(1, 999999)
         _net_thread = _threading.Thread(
             target=lambda: _asyncio.run(
                 _run_server(
-                    port=args.host, seed=_net_seed, max_players=args.max_players,
-                    world_shape=initial_shape, world_rooms=initial_rooms,
+                    port=args.host,
+                    seed=_net_seed,
+                    max_players=args.max_players,
+                    world_shape=initial_shape,
+                    world_rooms=initial_rooms,
                     world_hub_id=current_hub_id,
                     world_seed=hub_manager.world_seed,
                 )
@@ -1579,6 +1604,7 @@ def main():
 
     elif args.connect:
         from network.client import NetworkClient as _NetworkClient
+
         try:
             _host_str, _port_str = args.connect.rsplit(":", 1)
             _net_port = int(_port_str)
@@ -1617,10 +1643,7 @@ def main():
 
     # If started with replay/headless or explicit CLI mode/mission, skip menu
     skip_menu = (
-        replay_path is not None
-        or headless
-        or "--mode" in sys.argv
-        or "--mission" in sys.argv
+        replay_path is not None or headless or "--mode" in sys.argv or "--mission" in sys.argv
     )
     if skip_menu:
         level_manager.start_level(time.time())
@@ -1628,7 +1651,11 @@ def main():
         input_pipeline.set_game_start(frame_idx)  # frame_idx==0; no menu frames to skip
         menu_manager.clear_menus()
         # Sync abilities for CLI campaign launch (--mode campaign / --mission)
-        if current_play_mode == PlayMode.CAMPAIGN and save_manager.data and save_manager.data.campaign:
+        if (
+            current_play_mode == PlayMode.CAMPAIGN
+            and save_manager.data
+            and save_manager.data.campaign
+        ):
             sync_player_abilities(save_manager.data.campaign.unlocked_abilities)
     else:
         if not menu_manager.has_menu():
@@ -1716,10 +1743,20 @@ def main():
         # (World was built earlier from local defaults; we now rebuild it with
         # the parameters the server broadcast in GAME_START.)
         if _net_client is not None:
-            _sv_seed   = _net_client.server_seed   if _net_client.server_seed   is not None else current_seed
-            _sv_shape  = _net_client.server_shape  if _net_client.server_shape  is not None else initial_shape
-            _sv_rooms  = _net_client.server_rooms  if _net_client.server_rooms  is not None else initial_rooms
-            _sv_hub_id = _net_client.server_hub_id if _net_client.server_hub_id is not None else current_hub_id
+            _sv_seed = (
+                _net_client.server_seed if _net_client.server_seed is not None else current_seed
+            )
+            _sv_shape = (
+                _net_client.server_shape if _net_client.server_shape is not None else initial_shape
+            )
+            _sv_rooms = (
+                _net_client.server_rooms if _net_client.server_rooms is not None else initial_rooms
+            )
+            _sv_hub_id = (
+                _net_client.server_hub_id
+                if _net_client.server_hub_id is not None
+                else current_hub_id
+            )
             current_hub_id = _sv_hub_id
             # Critical: sync hub_manager.world_seed to the host's value BEFORE
             # calling regenerate_world_state.  The world_builder overrides the
@@ -1729,11 +1766,20 @@ def main():
             # and the tile/collision layout diverges cross-machine.
             if _net_client.server_world_seed is not None:
                 hub_manager.world_seed = _net_client.server_world_seed
-            print(f"[NET] Regenerating world: seed={_sv_seed} shape={_sv_shape} rooms={_sv_rooms} hub_id={_sv_hub_id} world_seed={hub_manager.world_seed}")
+            print(
+                f"[NET] Regenerating world: seed={_sv_seed} shape={_sv_shape} rooms={_sv_rooms} hub_id={_sv_hub_id} world_seed={hub_manager.world_seed}"
+            )
             (
-                tiles, platforms, current_seed,
-                spawn_x, spawn_y, exit_x, exit_y,
-                world, megamap, minimap,
+                tiles,
+                platforms,
+                current_seed,
+                spawn_x,
+                spawn_y,
+                exit_x,
+                exit_y,
+                world,
+                megamap,
+                minimap,
             ) = regenerate_world_state(
                 seed=_sv_seed,
                 shape=_sv_shape,
@@ -1816,10 +1862,12 @@ def main():
                 # F9 — toggle debug ability menu
                 if event.key == pygame.K_F9:
                     if _debug_ability_menu is None:
+
                         def _on_ability_toggle():
                             sync_player_abilities(campaign_data.unlocked_abilities)
                             _rebuild_hub_gates()
                             print(f"[DEBUG] Abilities: {sorted(campaign_data.unlocked_abilities)}")
+
                         _debug_ability_menu = DebugAbilityMenu(
                             GAME_WIDTH, GAME_HEIGHT, campaign_data, _on_ability_toggle
                         )
@@ -1878,6 +1926,7 @@ def main():
             _snap_dict = _net_client.poll_state()
             if _snap_dict:
                 from network.snapshots import MultiplayerSnapshot as _MPS
+
                 _snap = _MPS.from_dict(_snap_dict)
                 _now_ms = float(pygame.time.get_ticks())
                 _local_slot = _net_client.local_slot or 0
@@ -1892,8 +1941,10 @@ def main():
                     if _rp.anim_sm is None:
                         _rp.anim_sm = AnimationRegistry.make_state_machine("player")
                     _rp.apply_state(
-                        x=_ps.pos[0], y=_ps.pos[1],
-                        vx=_ps.vel[0], vy=_ps.vel[1],
+                        x=_ps.pos[0],
+                        y=_ps.pos[1],
+                        vx=_ps.vel[0],
+                        vy=_ps.vel[1],
                         health=_ps.health,
                         facing=_ps.facing,
                         is_dead=_ps.is_dead,
@@ -1912,7 +1963,7 @@ def main():
 
             # Phase 4: sync remote-player ghost roster from zone presence events
             for _zp in _net_client.poll_zone_presence():
-                _zp_slot   = _zp.get("slot")
+                _zp_slot = _zp.get("slot")
                 _zp_action = _zp.get("action")
                 if _zp_action == "departed" and _zp_slot in _remote_players:
                     del _remote_players[_zp_slot]
@@ -1921,10 +1972,16 @@ def main():
             # Phase 3: apply authoritative WorldSnapshot from server simulation
             _ws_dict = _net_client.poll_world_state()
             # Discard stale snapshots from a zone we've already left
-            if _ws_dict and _ws_dict.get("hub_id") and current_hub_id and _ws_dict["hub_id"] != current_hub_id:
+            if (
+                _ws_dict
+                and _ws_dict.get("hub_id")
+                and current_hub_id
+                and _ws_dict["hub_id"] != current_hub_id
+            ):
                 _ws_dict = None
             if _ws_dict:
                 from network.snapshots import WorldSnapshot as _WS
+
                 _ws = _WS.from_dict(_ws_dict)
                 _local_slot = _net_client.local_slot or 0
                 _now_ms = float(pygame.time.get_ticks())
@@ -1961,8 +2018,10 @@ def main():
                         if _rp.anim_sm is None:
                             _rp.anim_sm = AnimationRegistry.make_state_machine("player")
                         _rp.apply_state(
-                            x=_ps.pos[0], y=_ps.pos[1],
-                            vx=_ps.vel[0], vy=_ps.vel[1],
+                            x=_ps.pos[0],
+                            y=_ps.pos[1],
+                            vx=_ps.vel[0],
+                            vy=_ps.vel[1],
                             health=_ps.health,
                             facing=_ps.facing,
                             is_dead=_ps.is_dead,
@@ -2519,7 +2578,9 @@ def main():
                     if _ctx == "mission":
                         regenerate_hub_for_respawn("mission failed")
                     elif _ctx == "hub_area":
-                        regenerate_hub_for_respawn("area hub death", target_hub_id=_hub or "central_hub")
+                        regenerate_hub_for_respawn(
+                            "area hub death", target_hub_id=_hub or "central_hub"
+                        )
                     else:
                         player.damage.respawn(player.state, spawn_x, spawn_y)
 
@@ -2621,9 +2682,7 @@ def main():
                     player.state.physics.vx *= WATER_DRAG_X
                     if player.state.physics.vy > 0:
                         player.state.physics.vy *= WATER_DRAG_Y
-                        player.state.physics.vy = min(
-                            player.state.physics.vy, WATER_MAX_FALL_SPEED
-                        )
+                        player.state.physics.vy = min(player.state.physics.vy, WATER_MAX_FALL_SPEED)
                     else:
                         player.state.physics.vy *= 0.95
                 else:
@@ -2853,7 +2912,11 @@ def main():
                     player.state.physics.x,
                     player.state.physics.y + player.state.physics.height // 2,
                 )
-            if last_on_ground and not player.state.physics.on_ground and player.state.physics.vy < -50:
+            if (
+                last_on_ground
+                and not player.state.physics.on_ground
+                and player.state.physics.vy < -50
+            ):
                 audio_manager.play("jump")
             if player.state.is_dashing and not last_is_dashing:
                 audio_manager.play("dash")
@@ -2907,12 +2970,20 @@ def main():
                     player_hp=player.state.health_state.current_hp,
                     player_max_hp=player.state.health_state.max_hp,
                 )
-                if boss_damage and not player.damage.is_invincible(player.state) and not death_anim_pending:
+                if (
+                    boss_damage
+                    and not player.damage.is_invincible(player.state)
+                    and not death_anim_pending
+                ):
                     died = player.damage.take_damage(
                         player.state,
                         boss_damage,
                         source="boss",
-                        source_pos=boss_manager.get_active_boss().get_center() if boss_manager.get_active_boss() else None,
+                        source_pos=(
+                            boss_manager.get_active_boss().get_center()
+                            if boss_manager.get_active_boss()
+                            else None
+                        ),
                     )
                     if died:
                         audio_manager.play("player_death")
@@ -2979,14 +3050,19 @@ def main():
                     if nearby_portal:
                         # Check ability gate — block portal if player lacks required ability
                         from entities.ability_gate import AbilityRequirement
+
                         _gate_blocked = False
                         if current_world_context == "hub":
                             _req = _REGION_GATE_ABILITY.get(nearby_portal.destination_id)
-                            _unlocked = set(campaign_data.unlocked_abilities) if campaign_data else set()
+                            _unlocked = (
+                                set(campaign_data.unlocked_abilities) if campaign_data else set()
+                            )
                             _unlocked |= {"basic_movement", "jump"}
                             if _req and _req not in _unlocked:
                                 _gate_blocked = True
-                                print(f"[GATE] {nearby_portal.destination_id} locked — requires {_req}")
+                                print(
+                                    f"[GATE] {nearby_portal.destination_id} locked — requires {_req}"
+                                )
                         if not _gate_blocked:
                             portal_manager.interact_with_portal(nearby_portal, player_id=0)
                             print(
@@ -3158,12 +3234,10 @@ def main():
                                         )
                                         # Track defeated bosses for champion system (v0.7.2)
                                         from game.mission_registry import ObjectiveType as _OT
+
                                         defeated_bosses = save_manager.data.campaign.defeated_bosses
                                         for _obj in mission_def.objectives:
-                                            if (
-                                                _obj.objective_type == _OT.DEFEAT_BOSS
-                                                and _obj.boss
-                                            ):
+                                            if _obj.objective_type == _OT.DEFEAT_BOSS and _obj.boss:
                                                 if isinstance(defeated_bosses, set):
                                                     defeated_bosses.add(_obj.boss)
                                                 elif _obj.boss not in defeated_bosses:
@@ -3288,13 +3362,13 @@ def main():
                 biome_name = current_room.biome_theme.value.lower()
                 # Map world generation biomes to tile asset folders
                 biome_map = {
-                    "dungeon":  "dungeon",
-                    "cave":     "cave",
+                    "dungeon": "dungeon",
+                    "cave": "cave",
                     "building": "building",
-                    "forest":   "forest",
-                    "town":     "town",
-                    "sewer":    "sewer",
-                    "hollow":   "hollow",
+                    "forest": "forest",
+                    "town": "town",
+                    "sewer": "sewer",
+                    "hollow": "hollow",
                 }
                 current_biome = biome_map.get(biome_name, "dungeon")
 
@@ -3398,8 +3472,11 @@ def main():
                 if platform_data["type"] == "falling" and platform_data.get("state") == "triggered":
                     pulse = abs(math.sin(pygame.time.get_ticks() / 120.0))
                     _platform_overlay_surf.set_alpha(int(60 + 80 * pulse))
-                    game_surface.blit(_platform_overlay_surf, screen_rect.topleft,
-                                      (0, 0, screen_rect.width, screen_rect.height))
+                    game_surface.blit(
+                        _platform_overlay_surf,
+                        screen_rect.topleft,
+                        (0, 0, screen_rect.width, screen_rect.height),
+                    )
 
         else:
             # Fallback to simple tiling (for static levels without tilemap)
@@ -3559,14 +3636,20 @@ def main():
 
         # Draw goblin forward dagger hitboxes during active attack
         for enemy in enemy_manager.enemies.values():
-            if (enemy.enemy_type == EnemyType.GOBLIN
-                    and enemy.ai_state == EnemyAIState.ATTACK
-                    and enemy.attack_substate == EnemyAttackSubState.ACTIVE):
+            if (
+                enemy.enemy_type == EnemyType.GOBLIN
+                and enemy.ai_state == EnemyAIState.ATTACK
+                and enemy.attack_substate == EnemyAttackSubState.ACTIVE
+            ):
                 hb = enemy.get_attack_hitbox()
                 if hb:
-                    hb_screen = camera.apply(pygame.Rect(int(hb[0]), int(hb[1]), int(hb[2]), int(hb[3])))
+                    hb_screen = camera.apply(
+                        pygame.Rect(int(hb[0]), int(hb[1]), int(hb[2]), int(hb[3]))
+                    )
                     pulse = abs(math.sin(pygame.time.get_ticks() / 80.0))
-                    pygame.draw.rect(game_surface, (255, int(180 + 60 * pulse), 60), hb_screen, width=2)
+                    pygame.draw.rect(
+                        game_surface, (255, int(180 + 60 * pulse), 60), hb_screen, width=2
+                    )
 
         # Draw enemy arrows (skeleton projectiles)
         _cam_ox = camera._offset_x
@@ -3576,7 +3659,7 @@ def main():
             ay = int(arrow.y) + _cam_oy
             angle_rad = math.atan2(arrow.vy, arrow.vx)
             shaft_color = (180, 140, 80)
-            tip_color   = (200, 200, 210)
+            tip_color = (200, 200, 210)
             cos_a = math.cos(angle_rad)
             sin_a = math.sin(angle_rad)
             # Shaft
@@ -3592,12 +3675,20 @@ def main():
             tail_y = ay_mid - int(sin_a * 4)
             perp_cos = math.cos(angle_rad + math.pi / 2)
             perp_sin = math.sin(angle_rad + math.pi / 2)
-            pygame.draw.line(game_surface, (120, 80, 60),
-                             (tail_x, tail_y),
-                             (tail_x + int(perp_cos * 3), tail_y + int(perp_sin * 3)), 1)
-            pygame.draw.line(game_surface, (120, 80, 60),
-                             (tail_x, tail_y),
-                             (tail_x - int(perp_cos * 3), tail_y - int(perp_sin * 3)), 1)
+            pygame.draw.line(
+                game_surface,
+                (120, 80, 60),
+                (tail_x, tail_y),
+                (tail_x + int(perp_cos * 3), tail_y + int(perp_sin * 3)),
+                1,
+            )
+            pygame.draw.line(
+                game_surface,
+                (120, 80, 60),
+                (tail_x, tail_y),
+                (tail_x - int(perp_cos * 3), tail_y - int(perp_sin * 3)),
+                1,
+            )
 
         # Draw active boss
         if boss_manager.is_boss_active():
@@ -3614,11 +3705,17 @@ def main():
                 bar_w = boss_screen_rect.width
                 bar_rect = pygame.Rect(boss_screen_rect.x, boss_screen_rect.y - 12, bar_w, 8)
                 pygame.draw.rect(game_surface, (60, 0, 0), bar_rect)
-                pygame.draw.rect(game_surface, (220, 40, 40), pygame.Rect(bar_rect.x, bar_rect.y, int(bar_w * hp_ratio), 8))
+                pygame.draw.rect(
+                    game_surface,
+                    (220, 40, 40),
+                    pygame.Rect(bar_rect.x, bar_rect.y, int(bar_w * hp_ratio), 8),
+                )
                 # Boss name label
                 _boss_font = pygame.font.Font(None, 18)
                 lbl = _boss_font.render(defn.display_name, True, (255, 200, 200))
-                game_surface.blit(lbl, (boss_screen_rect.centerx - lbl.get_width() // 2, bar_rect.y - 14))
+                game_surface.blit(
+                    lbl, (boss_screen_rect.centerx - lbl.get_width() // 2, bar_rect.y - 14)
+                )
             # Draw boss projectiles
             for proj in boss_manager.get_projectiles():
                 px, py, pw, ph = proj.get_rect()
@@ -3648,8 +3745,15 @@ def main():
         # Determine sprite facing.
         # During attack animations, lock to committed facing; skip wall inversion so sprite doesn't flip mid-combo.
         _attack_states = {
-            "attack", "slash1", "slash2", "slash3", "slash_air", "jump_slash",
-            "throw_ground", "throw_crouch", "throw_air",
+            "attack",
+            "slash1",
+            "slash2",
+            "slash3",
+            "slash_air",
+            "jump_slash",
+            "throw_ground",
+            "throw_crouch",
+            "throw_air",
         }
         sprite_facing = player.state.facing or 1
         if player_state_name not in _attack_states:
@@ -3696,7 +3800,9 @@ def main():
                 frame = SpriteFrame(surface=scaled_surf)
             else:
                 frame = sprite_manager.get_scaled_frame(
-                    player_state_name, sprite_facing, pygame.time.get_ticks(),
+                    player_state_name,
+                    sprite_facing,
+                    pygame.time.get_ticks(),
                     target_size=(_hitbox_w, _hitbox_h),
                 )
 
@@ -3766,7 +3872,9 @@ def main():
 
         # Draw remote players (N4 — ghost silhouettes for networked peers)
         if _remote_players:
-            _rp_renderer.draw_all(game_surface, _remote_players, camera, float(pygame.time.get_ticks()))
+            _rp_renderer.draw_all(
+                game_surface, _remote_players, camera, float(pygame.time.get_ticks())
+            )
 
         # Draw Yin & Yang companion orbs (v0.7.0 - The Hollowed Ninja)
         profiler.begin("render_companions")
@@ -3853,9 +3961,15 @@ def main():
             # to normal objective priority only for non-boss objectives.
             non_boss_incomplete = [o for o in incomplete if o.objective_type.value != "defeat_boss"]
 
-            kill_objs = [o for o in non_boss_incomplete if o.objective_type.value == "kill_all_enemies"]
-            collect_objs = [o for o in non_boss_incomplete if o.objective_type.value == "collect_items"]
-            reach_objs = [o for o in non_boss_incomplete if o.objective_type.value == "reach_location"]
+            kill_objs = [
+                o for o in non_boss_incomplete if o.objective_type.value == "kill_all_enemies"
+            ]
+            collect_objs = [
+                o for o in non_boss_incomplete if o.objective_type.value == "collect_items"
+            ]
+            reach_objs = [
+                o for o in non_boss_incomplete if o.objective_type.value == "reach_location"
+            ]
 
             player_center = (
                 player.state.physics.x + player.state.physics.width / 2,
@@ -3936,9 +4050,7 @@ def main():
                 collectibles=pickup_stats["collectibles"],
             )
         elif show_fps_overlay:
-            fps_text = hud.small.render(
-                f"FPS: {clock_pygame.get_fps():.0f}", True, (220, 220, 230)
-            )
+            fps_text = hud.small.render(f"FPS: {clock_pygame.get_fps():.0f}", True, (220, 220, 230))
             game_surface.blit(fps_text, (12, 10))
 
         # Inventory UI overlay
@@ -3995,8 +4107,9 @@ def main():
                 pulse = abs(math.sin(pygame.time.get_ticks() / 200.0))
                 warning_alpha = int(100 * pulse)
                 _heart_warn_surf.set_alpha(warning_alpha)
-                game_surface.blit(_heart_warn_surf, (heart_x, health_y),
-                                  (0, 0, heart_size, heart_size))
+                game_surface.blit(
+                    _heart_warn_surf, (heart_x, health_y), (0, 0, heart_size, heart_size)
+                )
 
         # Objective HUD (v0.6.0) - Only for campaign/playtest modes
         if (

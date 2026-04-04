@@ -23,45 +23,49 @@ import msgpack
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-HEADER_SIZE = 4          # 4-byte big-endian uint32
+HEADER_SIZE = 4  # 4-byte big-endian uint32
 MAX_MESSAGE_BYTES = 1_048_576  # 1 MB safety cap
-PROTOCOL_VERSION = "2"   # bump when wire format changes (1 = JSON, 2 = msgpack)
+PROTOCOL_VERSION = "2"  # bump when wire format changes (1 = JSON, 2 = msgpack)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Message types
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class MessageType:
     # Client → Server
-    CLIENT_HELLO  = "client_hello"   # {player_id, version}
-    INPUT         = "input"          # InputCommand.to_dict()
+    CLIENT_HELLO = "client_hello"  # {player_id, version}
+    INPUT = "input"  # InputCommand.to_dict()
     # Phase 2.5: client notifies server of a world-state event (pickup collected,
     # enemy killed, platform triggered).  Server rebroadcasts to all other clients
     # so each simulation can apply the same mutation deterministically.
     # etype values: "pickup_collect", "enemy_kill", "platform_trigger"
-    ENTITY_EVENT  = "entity_event"   # {etype, entity_id, slot, data?}
+    ENTITY_EVENT = "entity_event"  # {etype, entity_id, slot, data?}
 
     # Server → Client
-    SERVER_HELLO      = "server_hello"      # {player_id, slot, frame, seed, max_players}
-    SERVER_STATE      = "server_state"      # MultiplayerSnapshot.to_dict()
-    WORLD_STATE       = "world_state"       # WorldSnapshot.to_dict() — Phase 3 authoritative broadcast
-    PLAYER_JOIN       = "player_join"       # {player_id, slot}
-    PLAYER_LEAVE      = "player_leave"      # {player_id, slot}
-    LOBBY_UPDATE      = "lobby_update"      # {connected: int, max: int, players: [{player_id, slot}]}
-    GAME_START        = "game_start"        # {seed: int}
-    ERROR             = "error"             # {code, message}
+    SERVER_HELLO = "server_hello"  # {player_id, slot, frame, seed, max_players}
+    SERVER_STATE = "server_state"  # MultiplayerSnapshot.to_dict()
+    WORLD_STATE = "world_state"  # WorldSnapshot.to_dict() — Phase 3 authoritative broadcast
+    PLAYER_JOIN = "player_join"  # {player_id, slot}
+    PLAYER_LEAVE = "player_leave"  # {player_id, slot}
+    LOBBY_UPDATE = "lobby_update"  # {connected: int, max: int, players: [{player_id, slot}]}
+    GAME_START = "game_start"  # {seed: int}
+    ERROR = "error"  # {code, message}
     # Phase 4 — instanced zones
-    WORLD_TRANSITION  = "world_transition"  # {hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}
-    ZONE_PRESENCE     = "zone_presence"     # {player_id, slot, hub_id, action: "arrived"|"departed"}
+    WORLD_TRANSITION = (
+        "world_transition"  # {hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}
+    )
+    ZONE_PRESENCE = "zone_presence"  # {player_id, slot, hub_id, action: "arrived"|"departed"}
 
     # Phase 4 — Client → Server (portal travel request)
-    PORTAL_TRAVEL     = "portal_travel"     # {destination_id, portal_id}
+    PORTAL_TRAVEL = "portal_travel"  # {destination_id, portal_id}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Message dataclass
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class Message:
@@ -87,6 +91,7 @@ class Message:
 # Async I/O helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 async def read_message(reader: asyncio.StreamReader) -> Message:
     """
     Read one length-prefixed message from an asyncio StreamReader.
@@ -102,8 +107,13 @@ async def read_message(reader: asyncio.StreamReader) -> Message:
     body = await reader.readexactly(length)
     try:
         return Message.decode(body)
-    except (msgpack.UnpackException, msgpack.UnpackValueError, KeyError,
-            TypeError, ValueError) as exc:
+    except (
+        msgpack.UnpackException,
+        msgpack.UnpackValueError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
         raise ValueError(f"Malformed message ({len(body)} bytes): {exc}") from exc
 
 

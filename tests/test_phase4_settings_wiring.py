@@ -40,10 +40,7 @@ class TestKeyBindingResolution(unittest.TestCase):
             "rshift": pygame.K_RSHIFT,
             "ctrl": pygame.K_LCTRL,
             "alt": pygame.K_LALT,
-            **{
-                chr(c): getattr(pygame, f"K_{chr(c)}", None)
-                for c in range(ord("a"), ord("z") + 1)
-            },
+            **{chr(c): getattr(pygame, f"K_{chr(c)}", None) for c in range(ord("a"), ord("z") + 1)},
         }
         result = {}
         for action in ("left", "right", "jump", "dash", "crouch"):

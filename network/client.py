@@ -65,9 +65,7 @@ class _EntityCache:
             # Full snapshot — replace caches wholesale
             self._enemies = {e["enemy_id"]: e for e in payload.get("enemies", [])}
             self._pickups = {p["pickup_id"]: p for p in payload.get("pickups", [])}
-            self._platforms = {
-                ps["platform_id"]: ps for ps in payload.get("platform_states", [])
-            }
+            self._platforms = {ps["platform_id"]: ps for ps in payload.get("platform_states", [])}
             return payload
 
         # Delta: apply changed and removed entities
@@ -87,15 +85,15 @@ class _EntityCache:
             self._platforms.pop(psid, None)
 
         return {
-            "frame":           payload["frame"],
-            "seed":            payload["seed"],
-            "hub_id":          payload.get("hub_id", ""),
-            "is_delta":        False,
-            "players":         payload["players"],
-            "enemies":         list(self._enemies.values()),
-            "pickups":         list(self._pickups.values()),
+            "frame": payload["frame"],
+            "seed": payload["seed"],
+            "hub_id": payload.get("hub_id", ""),
+            "is_delta": False,
+            "players": payload["players"],
+            "enemies": list(self._enemies.values()),
+            "pickups": list(self._pickups.values()),
             "platform_states": list(self._platforms.values()),
-            "metadata":        payload.get("metadata", {}),
+            "metadata": payload.get("metadata", {}),
         }
 
     def reset(self) -> None:
@@ -103,6 +101,8 @@ class _EntityCache:
         self._enemies.clear()
         self._pickups.clear()
         self._platforms.clear()
+
+
 # Send input immediately on button change; also send periodically while holding
 # (INPUT_HOLD_INTERVAL frames between repeats).  This reduces CPU/network load
 # without delaying new presses/releases.
@@ -163,8 +163,8 @@ class NetworkClient:
 
         # Lobby / game-start state (set from background thread, read from pygame thread)
         self.game_started: threading.Event = threading.Event()
-        self.connected_count: int = 1       # at minimum, we are connected
-        self.last_leave_slot: Optional[int] = None   # slot of most recently departed player
+        self.connected_count: int = 1  # at minimum, we are connected
+        self.last_leave_slot: Optional[int] = None  # slot of most recently departed player
 
         # INPUT rate-limiting (pygame-side, called from main thread only)
         # Send immediately when any button changes; throttle to 20 Hz when
@@ -193,9 +193,7 @@ class NetworkClient:
         Start the background thread and wait for the server handshake.
         Returns True if connected successfully within *timeout* seconds.
         """
-        self._thread = threading.Thread(
-            target=self._run, daemon=True, name="NetworkClient"
-        )
+        self._thread = threading.Thread(target=self._run, daemon=True, name="NetworkClient")
         self._thread.start()
         ok = self._connected.wait(timeout=timeout)
         if not ok:
@@ -231,12 +229,25 @@ class NetworkClient:
         # Deliberately exclude command.frame so a frame-counter difference
         # alone does not count as a "new" input.
         buttons = (
-            command.up, command.down, command.left, command.right,
-            command.jump, command.dash, command.crouch,
-            command.attack, command.throw, command.teleport, command.ninjutsu,
-            command.interact, command.inventory, command.consumable,
-            command.slow_walk, command.menu_confirm, command.menu_back,
-            facing, is_dead,
+            command.up,
+            command.down,
+            command.left,
+            command.right,
+            command.jump,
+            command.dash,
+            command.crouch,
+            command.attack,
+            command.throw,
+            command.teleport,
+            command.ninjutsu,
+            command.interact,
+            command.inventory,
+            command.consumable,
+            command.slow_walk,
+            command.menu_confirm,
+            command.menu_back,
+            facing,
+            is_dead,
         )
         if buttons == self._last_sent_buttons:
             self._hold_frames += 1
@@ -250,7 +261,7 @@ class NetworkClient:
             self._send_queue.put_nowait(item)
         except queue.Full:
             try:
-                self._send_queue.get_nowait()   # drop oldest
+                self._send_queue.get_nowait()  # drop oldest
             except queue.Empty:
                 pass
             self._send_queue.put_nowait(item)
@@ -272,7 +283,7 @@ class NetworkClient:
         # Piggyback onto the send queue as a special dict sentinel so we don't
         # need a second queue.  The send loop detects non-_SendItem dicts and
         # emits them as ENTITY_EVENT messages.
-        self._entity_send_queue.put_nowait(payload)   # picked up by _send_loop
+        self._entity_send_queue.put_nowait(payload)  # picked up by _send_loop
 
     def poll_world_state(self) -> Optional[dict]:
         """
@@ -340,10 +351,12 @@ class NetworkClient:
         with WORLD_TRANSITION (poll via poll_transition()).
         """
         try:
-            self._portal_send_queue.put_nowait({
-                "destination_id": destination_id,
-                "portal_id": portal_id,
-            })
+            self._portal_send_queue.put_nowait(
+                {
+                    "destination_id": destination_id,
+                    "portal_id": portal_id,
+                }
+            )
         except queue.Full:
             log.warning("Portal send queue full — dropping travel request to %s", destination_id)
 
@@ -403,14 +416,23 @@ class NetworkClient:
             except OSError:
                 pass
 
-        log.debug("TCP socket open to %s:%d — sending CLIENT_HELLO (id=%s, version=%s)",
-                  self.host, self.port, self.player_id, CLIENT_VERSION)
+        log.debug(
+            "TCP socket open to %s:%d — sending CLIENT_HELLO (id=%s, version=%s)",
+            self.host,
+            self.port,
+            self.player_id,
+            CLIENT_VERSION,
+        )
         try:
             # Send CLIENT_HELLO
-            await write_message(writer, MessageType.CLIENT_HELLO, {
-                "player_id": self.player_id,
-                "version": CLIENT_VERSION,
-            })
+            await write_message(
+                writer,
+                MessageType.CLIENT_HELLO,
+                {
+                    "player_id": self.player_id,
+                    "version": CLIENT_VERSION,
+                },
+            )
 
             # Wait for SERVER_HELLO
             hello = await asyncio.wait_for(read_message(reader), timeout=10.0)
@@ -429,7 +451,11 @@ class NetworkClient:
             max_players = self.max_players if self.max_players is not None else "?"
             log.info(
                 "Handshake OK — server=%s:%d  slot=%s  seed=%s  max_players=%s",
-                self.host, self.port, self.local_slot, self.server_seed, max_players,
+                self.host,
+                self.port,
+                self.local_slot,
+                self.server_seed,
+                max_players,
             )
             print(
                 f"[NET] Connected to {self.host}:{self.port}  "
@@ -490,8 +516,11 @@ class NetworkClient:
                 try:
                     ev = self._entity_send_queue.get_nowait()
                     await write_message(writer, MessageType.ENTITY_EVENT, ev)
-                    log.debug("Sent ENTITY_EVENT: etype=%s entity_id=%s",
-                              ev.get("etype"), ev.get("entity_id"))
+                    log.debug(
+                        "Sent ENTITY_EVENT: etype=%s entity_id=%s",
+                        ev.get("etype"),
+                        ev.get("entity_id"),
+                    )
                 except queue.Empty:
                     break
                 except Exception as exc:
@@ -518,7 +547,7 @@ class NetworkClient:
 
             if msg.type == MessageType.SERVER_STATE:
                 _frames_received += 1
-                if _frames_received % 300 == 0:   # log throughput every ~5 s at 60 Hz
+                if _frames_received % 300 == 0:  # log throughput every ~5 s at 60 Hz
                     log.debug("SERVER_STATE: %d frames received so far", _frames_received)
                 try:
                     self._recv_queue.put_nowait(msg.payload)
@@ -564,8 +593,11 @@ class NetworkClient:
                 prev = self.connected_count
                 self.connected_count = msg.payload.get("connected", self.connected_count)
                 if self.connected_count != prev:
-                    log.debug("LOBBY_UPDATE: %d/%s players",
-                              self.connected_count, msg.payload.get("max", "?"))
+                    log.debug(
+                        "LOBBY_UPDATE: %d/%s players",
+                        self.connected_count,
+                        msg.payload.get("max", "?"),
+                    )
 
             elif msg.type == MessageType.GAME_START:
                 seed = msg.payload.get("seed")
@@ -585,10 +617,17 @@ class NetworkClient:
                     self.server_world_seed = int(world_seed)
                 self.current_hub_id = self.server_hub_id
                 self.game_started.set()
-                log.info("GAME_START: seed=%s shape=%s rooms=%s hub_id=%s world_seed=%s",
-                         self.server_seed, self.server_shape, self.server_rooms,
-                         self.server_hub_id, self.server_world_seed)
-                print(f"[NET] Game started — seed={self.server_seed} shape={self.server_shape} rooms={self.server_rooms} hub_id={self.server_hub_id} world_seed={self.server_world_seed}")
+                log.info(
+                    "GAME_START: seed=%s shape=%s rooms=%s hub_id=%s world_seed=%s",
+                    self.server_seed,
+                    self.server_shape,
+                    self.server_rooms,
+                    self.server_hub_id,
+                    self.server_world_seed,
+                )
+                print(
+                    f"[NET] Game started — seed={self.server_seed} shape={self.server_shape} rooms={self.server_rooms} hub_id={self.server_hub_id} world_seed={self.server_world_seed}"
+                )
 
             elif msg.type == MessageType.ENTITY_EVENT:
                 # Phase 2.5: world-state mutation broadcast from server.
@@ -603,8 +642,12 @@ class NetworkClient:
                         except queue.Empty:
                             pass
                         self._entity_event_queue.put_nowait(msg.payload)
-                    log.debug("ENTITY_EVENT queued: etype=%s entity_id=%s from_slot=%s",
-                              msg.payload.get("etype"), msg.payload.get("entity_id"), src_slot)
+                    log.debug(
+                        "ENTITY_EVENT queued: etype=%s entity_id=%s from_slot=%s",
+                        msg.payload.get("etype"),
+                        msg.payload.get("entity_id"),
+                        src_slot,
+                    )
 
             elif msg.type == MessageType.WORLD_TRANSITION:
                 # Phase 4: server is moving us to a new zone.
@@ -633,9 +676,12 @@ class NetworkClient:
                     except queue.Empty:
                         pass
                     self._zone_presence_queue.put_nowait(msg.payload)
-                log.debug("ZONE_PRESENCE: player=%s action=%s hub=%s",
-                          msg.payload.get("player_id"), msg.payload.get("action"),
-                          msg.payload.get("hub_id"))
+                log.debug(
+                    "ZONE_PRESENCE: player=%s action=%s hub=%s",
+                    msg.payload.get("player_id"),
+                    msg.payload.get("action"),
+                    msg.payload.get("hub_id"),
+                )
 
             elif msg.type == MessageType.ERROR:
                 self._error = msg.payload.get("message", "Unknown server error")

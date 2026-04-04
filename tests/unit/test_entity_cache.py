@@ -21,9 +21,18 @@ from network.client import _EntityCache
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _enemy(eid: str, hp: int = 3) -> dict:
-    return {"enemy_id": eid, "x": 0.0, "y": 0.0, "vx": 0.0, "vy": 0.0,
-            "hp": hp, "ai_state": "patrol", "facing_right": True}
+    return {
+        "enemy_id": eid,
+        "x": 0.0,
+        "y": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "hp": hp,
+        "ai_state": "patrol",
+        "facing_right": True,
+    }
 
 
 def _pickup(pid: str, alive: bool = True) -> dict:
@@ -36,7 +45,10 @@ def _platform(plid: str, state: str = "idle") -> dict:
 
 def _full(enemies=None, pickups=None, platforms=None, frame=1, seed=1, hub="h") -> dict:
     return {
-        "frame": frame, "seed": seed, "hub_id": hub, "is_delta": False,
+        "frame": frame,
+        "seed": seed,
+        "hub_id": hub,
+        "is_delta": False,
         "players": [],
         "enemies": enemies or [],
         "pickups": pickups or [],
@@ -46,13 +58,21 @@ def _full(enemies=None, pickups=None, platforms=None, frame=1, seed=1, hub="h") 
 
 
 def _delta(
-    enemies_changed=None, enemies_removed=None,
-    pickups_changed=None, pickups_removed=None,
-    platforms_changed=None, platforms_removed=None,
-    frame=2, seed=1, hub="h",
+    enemies_changed=None,
+    enemies_removed=None,
+    pickups_changed=None,
+    pickups_removed=None,
+    platforms_changed=None,
+    platforms_removed=None,
+    frame=2,
+    seed=1,
+    hub="h",
 ) -> dict:
     return {
-        "frame": frame, "seed": seed, "hub_id": hub, "is_delta": True,
+        "frame": frame,
+        "seed": seed,
+        "hub_id": hub,
+        "is_delta": True,
         "players": [],
         "enemies_changed": enemies_changed or [],
         "enemies_removed": enemies_removed or [],
@@ -65,6 +85,7 @@ def _delta(
 
 
 # ── full snapshot behaviour ───────────────────────────────────────────────────
+
 
 def test_full_snapshot_replaces_cache():
     cache = _EntityCache()
@@ -89,6 +110,7 @@ def test_full_snapshot_is_delta_remains_false():
 
 
 # ── delta — enemies ───────────────────────────────────────────────────────────
+
 
 def test_delta_adds_changed_enemy():
     cache = _EntityCache()
@@ -120,12 +142,13 @@ def test_full_after_deltas_resets_to_full():
     cache = _EntityCache()
     cache.apply(_full(enemies=[_enemy("e1")]))
     cache.apply(_delta(enemies_changed=[_enemy("e2")]))  # cache now has e1 + e2
-    result = cache.apply(_full(enemies=[_enemy("e3")]))   # new full: only e3
+    result = cache.apply(_full(enemies=[_enemy("e3")]))  # new full: only e3
     ids = {e["enemy_id"] for e in result["enemies"]}
     assert ids == {"e3"}
 
 
 # ── delta — pickups ───────────────────────────────────────────────────────────
+
 
 def test_delta_pickup_changed():
     cache = _EntityCache()
@@ -144,6 +167,7 @@ def test_delta_pickup_removed():
 
 
 # ── delta — platforms ─────────────────────────────────────────────────────────
+
 
 def test_delta_platform_changed():
     cache = _EntityCache()
@@ -166,13 +190,16 @@ def test_delta_platform_removed():
 
 # ── reset ─────────────────────────────────────────────────────────────────────
 
+
 def test_reset_clears_all_caches():
     cache = _EntityCache()
-    cache.apply(_full(
-        enemies=[_enemy("e1")],
-        pickups=[_pickup("p1")],
-        platforms=[_platform("plat_0")],
-    ))
+    cache.apply(
+        _full(
+            enemies=[_enemy("e1")],
+            pickups=[_pickup("p1")],
+            platforms=[_platform("plat_0")],
+        )
+    )
     cache.reset()
     # After reset, a delta with nothing changed should produce empty lists
     result = cache.apply(_delta())
@@ -182,6 +209,7 @@ def test_reset_clears_all_caches():
 
 
 # ── delta returns reconstructed full ─────────────────────────────────────────
+
 
 def test_delta_returns_is_delta_false():
     cache = _EntityCache()
@@ -202,8 +230,17 @@ def test_delta_preserves_players_from_payload():
     """Players are passed through unchanged — not cached by _EntityCache."""
     cache = _EntityCache()
     cache.apply(_full())
-    player_payload = [{"player_id": "p0", "slot": 0, "pos": [1.0, 2.0],
-                       "vel": [0.0, 0.0], "health": 5, "facing": 1, "is_dead": False}]
+    player_payload = [
+        {
+            "player_id": "p0",
+            "slot": 0,
+            "pos": [1.0, 2.0],
+            "vel": [0.0, 0.0],
+            "health": 5,
+            "facing": 1,
+            "is_dead": False,
+        }
+    ]
     result = cache.apply(_delta(frame=2))
     # Players key comes from the delta payload (empty list in _delta helper)
     assert "players" in result

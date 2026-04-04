@@ -34,6 +34,7 @@ from network.protocol import (
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _run(coro):
     """Run a coroutine synchronously in a fresh event loop."""
     return asyncio.get_event_loop().run_until_complete(coro)
@@ -64,6 +65,7 @@ class _MemoryWriter:
 
 
 # ── Message encode / decode ───────────────────────────────────────────────────
+
 
 def test_message_encode_decode_roundtrip():
     payload = {"player_id": "abc", "slot": 1, "frame": 42}
@@ -114,6 +116,7 @@ def test_nested_payload_roundtrip():
 
 # ── read_message ──────────────────────────────────────────────────────────────
 
+
 def test_read_message_roundtrip_via_feed():
     payload = {"action": "ping", "ts": 999}
     encoded = encode_message(MessageType.CLIENT_HELLO, payload)
@@ -144,6 +147,7 @@ def test_read_message_raises_on_malformed_body():
 
 # ── write_message ─────────────────────────────────────────────────────────────
 
+
 def test_write_message_produces_decodable_frame():
     payload = {"seed": 7777, "hub_id": "central_hub"}
     writer = _MemoryWriter()
@@ -161,12 +165,9 @@ def test_write_message_produces_decodable_frame():
 
 # ── MessageType constants ─────────────────────────────────────────────────────
 
+
 def test_all_message_type_values_are_non_empty_strings():
-    attrs = {
-        k: v
-        for k, v in vars(MessageType).items()
-        if not k.startswith("_")
-    }
+    attrs = {k: v for k, v in vars(MessageType).items() if not k.startswith("_")}
     assert len(attrs) > 0, "MessageType has no attributes"
     for name, value in attrs.items():
         assert isinstance(value, str), f"MessageType.{name} is not a str"
@@ -175,13 +176,13 @@ def test_all_message_type_values_are_non_empty_strings():
 
 def test_message_type_values_are_unique():
     values = [
-        v for k, v in vars(MessageType).items()
-        if not k.startswith("_") and isinstance(v, str)
+        v for k, v in vars(MessageType).items() if not k.startswith("_") and isinstance(v, str)
     ]
     assert len(values) == len(set(values)), "Duplicate MessageType values detected"
 
 
 # ── PROTOCOL_VERSION ──────────────────────────────────────────────────────────
+
 
 def test_protocol_version_is_string():
     assert isinstance(PROTOCOL_VERSION, str)

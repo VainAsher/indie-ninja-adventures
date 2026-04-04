@@ -159,11 +159,11 @@ class EnemyArrow:
 
     x: float
     y: float
-    vx: float          # per-tick velocity
+    vx: float  # per-tick velocity
     vy: float
     width: int = 14
     height: int = 5
-    ttl: float = 2.5   # seconds alive
+    ttl: float = 2.5  # seconds alive
     hit: bool = False  # consumed after hitting player
 
 
@@ -175,7 +175,7 @@ class EnemyManager:
     """
 
     # Arrow constants
-    ARROW_SPEED = 8.0    # px/tick
+    ARROW_SPEED = 8.0  # px/tick
     ARROW_DAMAGE = 1
     ARROW_GRAVITY = 0.04  # gentle arc
 
@@ -413,8 +413,10 @@ class EnemyManager:
             if cull_active:
                 ex, ey = enemy.physics.x, enemy.physics.y
                 off_screen = (
-                    ex + definition.width < cull_left or ex > cull_right or
-                    ey + definition.height < cull_top or ey > cull_bottom
+                    ex + definition.width < cull_left
+                    or ex > cull_right
+                    or ey + definition.height < cull_top
+                    or ey > cull_bottom
                 )
 
             if not off_screen:
@@ -469,9 +471,11 @@ class EnemyManager:
                         # During a swoop (ACTIVE + RECOVERY), don't override the bat's
                         # velocity — let the AI-set swoop vector carry through.
                         from entities.enemy import EnemyAttackSubState
+
                         swooping = (
                             enemy.ai_state == EnemyAIState.ATTACK
-                            and enemy.attack_substate in (
+                            and enemy.attack_substate
+                            in (
                                 EnemyAttackSubState.ACTIVE,
                                 EnemyAttackSubState.RECOVERY,
                             )
@@ -480,7 +484,8 @@ class EnemyManager:
                             player_center_y = t_py + t_ph / 2
                             enemy.physics.vy += (
                                 (player_center_y - (enemy.physics.y + definition.height / 2))
-                                * 0.05 * dt
+                                * 0.05
+                                * dt
                             )
                             max_vy = definition.move_speed * dt
                             enemy.physics.vy = max(min(enemy.physics.vy, max_vy), -max_vy)
@@ -557,6 +562,7 @@ class EnemyManager:
     def _update_arrows(self, dt: float, collision_system=None):
         """Move arrows, apply gravity, and remove expired/hit ones."""
         import pygame as _pg
+
         active = []
         for arrow in self.enemy_arrows:
             if arrow.hit:

@@ -34,9 +34,9 @@ log = logging.getLogger("ninja_dash.network.server")
 
 MAX_PLAYERS = 4
 SERVER_VERSION = "2.0.0"
-TICK_RATE = 60          # simulation ticks per second (physics accuracy)
+TICK_RATE = 60  # simulation ticks per second (physics accuracy)
 TICK_INTERVAL = 1.0 / TICK_RATE
-BROADCAST_EVERY_N_TICKS = 3    # broadcast WORLD_STATE every 3rd sim tick (20 Hz)
+BROADCAST_EVERY_N_TICKS = 3  # broadcast WORLD_STATE every 3rd sim tick (20 Hz)
 # Full snapshots every 60 broadcasts = 60 × 3 ticks = 180 sim ticks ≈ 3 s
 FULL_SNAPSHOT_INTERVAL = 60
 
@@ -45,14 +45,25 @@ FULL_SNAPSHOT_INTERVAL = 60
 # etc.) are driven client-side in demo_game.py.  When the client reports one
 # of these, the server trusts it over its own server-computed anim_state.
 # Movement/physics states are always server-authoritative (omit from this set).
-_ACTION_ANIM_STATES: frozenset[str] = frozenset({
-    "dash",
-    "slash1", "slash2", "slash3", "slash_air", "jump_slash", "attack",
-    "throw_ground", "throw_crouch", "throw_air",
-    "teleport",
-    "ninjutsu_hand", "ninjutsu_summon",
-    "hurt", "hurt2",
-})
+_ACTION_ANIM_STATES: frozenset[str] = frozenset(
+    {
+        "dash",
+        "slash1",
+        "slash2",
+        "slash3",
+        "slash_air",
+        "jump_slash",
+        "attack",
+        "throw_ground",
+        "throw_crouch",
+        "throw_air",
+        "teleport",
+        "ninjutsu_hand",
+        "ninjutsu_summon",
+        "hurt",
+        "hurt2",
+    }
+)
 
 
 def _dict_hash(d: dict) -> int:
@@ -63,6 +74,7 @@ def _dict_hash(d: dict) -> int:
 # ──────────────────────────────────────────────────────────────────────────────
 # Connected player record
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ConnectedPlayer:
@@ -77,7 +89,7 @@ class ConnectedPlayer:
     health: int = 5
     facing: int = 1
     is_dead: bool = False
-    anim_state: str = ""   # last known animation state (Phase 1/2.5 relay only)
+    anim_state: str = ""  # last known animation state (Phase 1/2.5 relay only)
     frame: int = 0
     # Phase 4: which zone this player is currently in
     hub_id: str = "central_hub"
@@ -86,6 +98,7 @@ class ConnectedPlayer:
 # ──────────────────────────────────────────────────────────────────────────────
 # Zone instance
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class _ZoneInstance:
@@ -96,6 +109,7 @@ class _ZoneInstance:
     live simultaneously — one per hub/mission that has at least one player in
     it (plus a configurable idle-TTL before teardown).
     """
+
     hub_id: str
     seed: int
     shape: str
@@ -122,6 +136,7 @@ class _ZoneInstance:
 # ──────────────────────────────────────────────────────────────────────────────
 # Game session
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class GameSession:
     """
@@ -150,15 +165,19 @@ class GameSession:
                 log.warning("add_player: session full, rejecting %s", player.player_id)
                 return False
             self.players[player.player_id] = player
-            log.info("Player joined: id=%s slot=%d  session=%d/%d",
-                     player.player_id, player.slot, len(self.players), self.max_players)
+            log.info(
+                "Player joined: id=%s slot=%d  session=%d/%d",
+                player.player_id,
+                player.slot,
+                len(self.players),
+                self.max_players,
+            )
             return True
 
     async def remove_player(self, player_id: str) -> None:
         async with self._lock:
             self.players.pop(player_id, None)
-            log.info("Player left: id=%s  session=%d/%d",
-                     player_id, len(self.players), MAX_PLAYERS)
+            log.info("Player left: id=%s  session=%d/%d", player_id, len(self.players), MAX_PLAYERS)
 
     def next_slot(self) -> int:
         used = {p.slot for p in self.players.values()}
@@ -243,11 +262,14 @@ class GameSession:
                 for p in sorted(self.players.values(), key=lambda x: x.slot)
             ]
             count = len(self.players)
-        await self.broadcast(MessageType.LOBBY_UPDATE, {
-            "connected": count,
-            "max": self.max_players,
-            "players": players_info,
-        })
+        await self.broadcast(
+            MessageType.LOBBY_UPDATE,
+            {
+                "connected": count,
+                "max": self.max_players,
+                "players": players_info,
+            },
+        )
 
     async def start_game(self, server: "GameServer | None" = None) -> None:
         """Mark the session as started and notify all clients."""
@@ -255,13 +277,18 @@ class GameSession:
         player_ids = list(self.players.keys())
         log.info("GAME_START: seed=%d  players=%s", self.seed, player_ids)
         print(f"[NET] Game starting — seed={self.seed}")
-        await self.broadcast(MessageType.GAME_START, {
-            "seed":       self.seed,
-            "shape":      getattr(server, "_world_shape",  "snake")        if server else "snake",
-            "rooms":      getattr(server, "_world_rooms", 8)   if server else 8,
-            "hub_id":     getattr(server, "_world_hub_id", "central_hub") if server else "central_hub",
-            "world_seed": getattr(server, "_world_seed",  self.seed)      if server else self.seed,
-        })
+        await self.broadcast(
+            MessageType.GAME_START,
+            {
+                "seed": self.seed,
+                "shape": getattr(server, "_world_shape", "snake") if server else "snake",
+                "rooms": getattr(server, "_world_rooms", 8) if server else 8,
+                "hub_id": (
+                    getattr(server, "_world_hub_id", "central_hub") if server else "central_hub"
+                ),
+                "world_seed": getattr(server, "_world_seed", self.seed) if server else self.seed,
+            },
+        )
         # Phase 3/4: bootstrap the authoritative simulator for the initial zone.
         # Init is blocking (world gen) so run it in a thread to avoid stalling
         # the event loop.
@@ -271,21 +298,24 @@ class GameSession:
             )
             loop = asyncio.get_event_loop()
             try:
-                await loop.run_in_executor(
-                    None, lambda: server._init_zone_simulator(initial_zone)
-                )
+                await loop.run_in_executor(None, lambda: server._init_zone_simulator(initial_zone))
                 if initial_zone.sim_task is None:
                     initial_zone.sim_task = asyncio.create_task(
                         server._zone_simulation_loop(initial_zone)
                     )
             except Exception as exc:
-                log.error("[SIM] Failed to initialise initial zone %s: %s",
-                          initial_zone.hub_id, exc, exc_info=True)
+                log.error(
+                    "[SIM] Failed to initialise initial zone %s: %s",
+                    initial_zone.hub_id,
+                    exc,
+                    exc_info=True,
+                )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Game server
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class GameServer:
     def __init__(
@@ -317,7 +347,7 @@ class GameServer:
         # Keyed by hub_id; populated lazily as players travel to new zones.
         self._zones: dict[str, _ZoneInstance] = {}
         # Backward-compat alias used by Phase 1/2.5 fallback in _client_loop
-        self._simulator = None   # points to initial zone's simulator once started
+        self._simulator = None  # points to initial zone's simulator once started
 
         # HubManager for seed/shape derivation of non-initial zones (lazy-init)
         self._hub_manager = None
@@ -337,6 +367,7 @@ class GameServer:
         GameSimulator and stores it on zone.simulator.
         """
         import pygame
+
         os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         if not pygame.get_init():
@@ -347,6 +378,7 @@ class GameServer:
 
         # Core systems
         from game.game_initialization import create_core_systems, create_physics_and_collision
+
         core = create_core_systems()
         bus = core["bus"]
         game_clock = core["game_clock"]
@@ -358,11 +390,13 @@ class GameServer:
         enemy_manager = phys["enemy_manager"]
 
         from entities import PickupManager, HazardManager
+
         pickup_manager = PickupManager(bus)
         hazard_manager = HazardManager(bus)
 
         # World generation — headless, same seed+shape+rooms the clients use
         from game.world_builder import create_server_world
+
         tiles, platforms, _seed, spawn_x, spawn_y, megamap = create_server_world(
             seed=seed,
             shape=zone.shape,
@@ -382,8 +416,11 @@ class GameServer:
             import pygame as _pg
             import random as _rnd
             from systems.room_generation import (
-                TILE_PLATFORM, TILE_PLATFORM_FALLING, TILE_PLATFORM_MOVING,
+                TILE_PLATFORM,
+                TILE_PLATFORM_FALLING,
+                TILE_PLATFORM_MOVING,
             )
+
             tilemap = megamap.tilemap
             height = len(tilemap)
             width = len(tilemap[0]) if height > 0 else 0
@@ -397,45 +434,50 @@ class GameServer:
                         static_platforms.append(_pg.Rect(world_x, world_y, 32, 32))
                     elif tile_id == TILE_PLATFORM_FALLING:
                         rect = _pg.Rect(world_x, world_y, 32, 32)
-                        dynamic_platforms.append({
-                            "id": f"plat_{tx}_{ty}",
-                            "type": "falling",
-                            "rect": rect,
-                            "origin_x": world_x,
-                            "origin_y": world_y,
-                            "pos_x": float(world_x),
-                            "pos_y": float(world_y),
-                            "state": "idle",
-                            "timer": 0.0,
-                            "vy": 0.0,
-                            "active": True,
-                            "visible": True,
-                        })
+                        dynamic_platforms.append(
+                            {
+                                "id": f"plat_{tx}_{ty}",
+                                "type": "falling",
+                                "rect": rect,
+                                "origin_x": world_x,
+                                "origin_y": world_y,
+                                "pos_x": float(world_x),
+                                "pos_y": float(world_y),
+                                "state": "idle",
+                                "timer": 0.0,
+                                "vy": 0.0,
+                                "active": True,
+                                "visible": True,
+                            }
+                        )
                     elif tile_id == TILE_PLATFORM_MOVING:
                         rect = _pg.Rect(world_x, world_y, 32, 32)
                         _seed_p = seed ^ (tx * 73856093) ^ (ty * 19349663)
                         _rng = _rnd.Random(_seed_p)
-                        dynamic_platforms.append({
-                            "id": f"plat_{tx}_{ty}",
-                            "type": "moving",
-                            "rect": rect,
-                            "origin_x": world_x,
-                            "origin_y": world_y,
-                            "pos_x": float(world_x),
-                            "pos_y": float(world_y),
-                            "min_x": float(world_x - 2 * 32),
-                            "max_x": float(world_x + 2 * 32),
-                            "speed": _rng.uniform(30.0, 70.0),
-                            "dir": _rng.choice([-1, 1]),
-                            "active": True,
-                            "visible": True,
-                        })
+                        dynamic_platforms.append(
+                            {
+                                "id": f"plat_{tx}_{ty}",
+                                "type": "moving",
+                                "rect": rect,
+                                "origin_x": world_x,
+                                "origin_y": world_y,
+                                "pos_x": float(world_x),
+                                "pos_y": float(world_y),
+                                "min_x": float(world_x - 2 * 32),
+                                "max_x": float(world_x + 2 * 32),
+                                "speed": _rng.uniform(30.0, 70.0),
+                                "dir": _rng.choice([-1, 1]),
+                                "active": True,
+                                "visible": True,
+                            }
+                        )
             collision_system.update_platforms(
                 static_platforms + [p["rect"] for p in dynamic_platforms if p["active"]]
             )
 
         # Create one Player per slot (all slots pre-created for the server simulation)
         from game.game_initialization import create_player
+
         sim_players: dict[int, object] = {}
         _sx = zone.spawn_x
         _sy = zone.spawn_y
@@ -458,6 +500,7 @@ class GameServer:
         # damage calculation.  The server is headless so we skip CameraEffectsHandler
         # (screen shake is a client-only visual).
         from mechanics.combat_mechanic import CombatMechanic
+
         combat_mechanics: dict[int, object] = {
             slot: CombatMechanic(
                 entity_id=slot,
@@ -472,6 +515,7 @@ class GameServer:
         game_clock.reset()
 
         from game.game_simulator import GameSimulator
+
         zone.simulator = GameSimulator(
             bus=bus,
             game_clock=game_clock,
@@ -490,10 +534,14 @@ class GameServer:
         # Keep backward-compat alias so Phase 1/2.5 fallback check still works
         if zone.hub_id == self._world_hub_id:
             self._simulator = zone.simulator
-        log.info("[SIM] Zone %s initialised  seed=%d  slots=%d  enemies=%d  pickups=%d",
-                 zone.hub_id, seed, max_slots,
-                 len(enemy_manager.enemies),
-                 len(pickup_manager.get_alive_pickups()))
+        log.info(
+            "[SIM] Zone %s initialised  seed=%d  slots=%d  enemies=%d  pickups=%d",
+            zone.hub_id,
+            seed,
+            max_slots,
+            len(enemy_manager.enemies),
+            len(pickup_manager.get_alive_pickups()),
+        )
 
     # ── Delta encoding ────────────────────────────────────────────────────────
 
@@ -558,24 +606,25 @@ class GameServer:
             if zone.platform_hashes.get(psid) != h:
                 platforms_changed.append(ps)
                 zone.platform_hashes[psid] = h
-        platforms_removed = [psid for psid in zone.platform_hashes
-                             if psid not in current_platform_ids]
+        platforms_removed = [
+            psid for psid in zone.platform_hashes if psid not in current_platform_ids
+        ]
         for psid in platforms_removed:
             del zone.platform_hashes[psid]
 
         return {
-            "frame":             snap_dict["frame"],
-            "seed":              snap_dict["seed"],
-            "hub_id":            hub_id,
-            "is_delta":          True,
-            "players":           snap_dict["players"],
-            "enemies_changed":   enemies_changed,
-            "enemies_removed":   enemies_removed,
-            "pickups_changed":   pickups_changed,
-            "pickups_removed":   pickups_removed,
+            "frame": snap_dict["frame"],
+            "seed": snap_dict["seed"],
+            "hub_id": hub_id,
+            "is_delta": True,
+            "players": snap_dict["players"],
+            "enemies_changed": enemies_changed,
+            "enemies_removed": enemies_removed,
+            "pickups_changed": pickups_changed,
+            "pickups_removed": pickups_removed,
             "platforms_changed": platforms_changed,
             "platforms_removed": platforms_removed,
-            "metadata":          snap_dict.get("metadata", {}),
+            "metadata": snap_dict.get("metadata", {}),
         }
 
     def _build_player_only_payload(self, zone: "_ZoneInstance") -> dict:
@@ -594,28 +643,30 @@ class GameServer:
             facing = int(p.state.facing)
             if facing == 0:
                 facing = 1
-            player_dicts.append({
-                "player_id": str(p.player_id),
-                "slot":      slot,
-                "pos":       [phys.x, phys.y],
-                "vel":       [phys.vx, phys.vy],
-                "health":    int(p.state.health_state.current_hp),
-                "facing":    facing,
-                "is_dead":   p.state.health_state.current_hp <= 0,
-            })
+            player_dicts.append(
+                {
+                    "player_id": str(p.player_id),
+                    "slot": slot,
+                    "pos": [phys.x, phys.y],
+                    "vel": [phys.vx, phys.vy],
+                    "health": int(p.state.health_state.current_hp),
+                    "facing": facing,
+                    "is_dead": p.state.health_state.current_hp <= 0,
+                }
+            )
         return {
-            "frame":             zone.frame,
-            "seed":              zone.seed,
-            "hub_id":            zone.hub_id,
-            "is_delta":          True,
-            "players":           player_dicts,
-            "enemies_changed":   [],
-            "enemies_removed":   [],
-            "pickups_changed":   [],
-            "pickups_removed":   [],
+            "frame": zone.frame,
+            "seed": zone.seed,
+            "hub_id": zone.hub_id,
+            "is_delta": True,
+            "players": player_dicts,
+            "enemies_changed": [],
+            "enemies_removed": [],
+            "pickups_changed": [],
+            "pickups_removed": [],
             "platforms_changed": [],
             "platforms_removed": [],
-            "metadata":          {},
+            "metadata": {},
         }
 
     # ── Zone helpers ──────────────────────────────────────────────────────────
@@ -631,6 +682,7 @@ class GameServer:
             # different numeric seed and caused divergent tile/collision layouts,
             # making all server-reported entity positions wrong in client space.
             from systems.seed_hierarchy import SeedDerivation
+
             seed = SeedDerivation.derive_region_seed(self._world_seed, hub_id)
 
             # Shape/rooms: start from host-supplied defaults for the initial hub,
@@ -645,6 +697,7 @@ class GameServer:
 
             if self._hub_manager is None:
                 from game.hub_manager import HubManager
+
                 self._hub_manager = HubManager(self._world_seed)
             hub_def = self._hub_manager.get_hub_definition(hub_id)
             if hub_def is not None:
@@ -660,13 +713,16 @@ class GameServer:
                 rooms=rooms,
                 world_seed=self._world_seed,
             )
-            log.info("[ZONE] Created zone: hub_id=%s seed=%d shape=%s rooms=%d",
-                     hub_id, seed, shape, rooms)
+            log.info(
+                "[ZONE] Created zone: hub_id=%s seed=%d shape=%s rooms=%d",
+                hub_id,
+                seed,
+                shape,
+                rooms,
+            )
         return self._zones[hub_id]
 
-    async def _broadcast_to_zone(
-        self, zone: "_ZoneInstance", msg_type: str, payload: dict
-    ) -> None:
+    async def _broadcast_to_zone(self, zone: "_ZoneInstance", msg_type: str, payload: dict) -> None:
         """Send a message to every player currently in zone."""
         async with self.session._lock:
             writers = [
@@ -715,16 +771,12 @@ class GameServer:
         if new_zone.simulator is None and self.session.game_started:
             loop = asyncio.get_event_loop()
             try:
-                await loop.run_in_executor(
-                    None, lambda: self._init_zone_simulator(new_zone)
-                )
+                await loop.run_in_executor(None, lambda: self._init_zone_simulator(new_zone))
             except Exception as exc:
                 log.error("[ZONE] Failed to init zone %s: %s", new_hub_id, exc, exc_info=True)
                 return
             if new_zone.sim_task is None:
-                new_zone.sim_task = asyncio.create_task(
-                    self._zone_simulation_loop(new_zone)
-                )
+                new_zone.sim_task = asyncio.create_task(self._zone_simulation_loop(new_zone))
 
         # 3. Join new zone
         player.hub_id = new_hub_id
@@ -732,38 +784,54 @@ class GameServer:
 
         # 4. Send WORLD_TRANSITION to the travelling player
         try:
-            await write_message(player.writer, MessageType.WORLD_TRANSITION, {
-                "hub_id":     new_hub_id,
-                "seed":       new_zone.seed,
-                "shape":      new_zone.shape,
-                "rooms":      new_zone.rooms,
-                "world_seed": new_zone.world_seed,
-                "spawn_x":    new_zone.spawn_x,
-                "spawn_y":    new_zone.spawn_y,
-            })
+            await write_message(
+                player.writer,
+                MessageType.WORLD_TRANSITION,
+                {
+                    "hub_id": new_hub_id,
+                    "seed": new_zone.seed,
+                    "shape": new_zone.shape,
+                    "rooms": new_zone.rooms,
+                    "world_seed": new_zone.world_seed,
+                    "spawn_x": new_zone.spawn_x,
+                    "spawn_y": new_zone.spawn_y,
+                },
+            )
         except Exception as exc:
-            log.warning("[ZONE] Could not send WORLD_TRANSITION to %s: %s",
-                        player.player_id, exc)
+            log.warning("[ZONE] Could not send WORLD_TRANSITION to %s: %s", player.player_id, exc)
 
         # 5. Notify old zone occupants
         if old_zone:
-            await self._broadcast_to_zone(old_zone, MessageType.ZONE_PRESENCE, {
-                "player_id": player.player_id,
-                "slot": player.slot,
-                "hub_id": old_hub_id,
-                "action": "departed",
-            })
+            await self._broadcast_to_zone(
+                old_zone,
+                MessageType.ZONE_PRESENCE,
+                {
+                    "player_id": player.player_id,
+                    "slot": player.slot,
+                    "hub_id": old_hub_id,
+                    "action": "departed",
+                },
+            )
 
         # 6. Notify new zone occupants (including the traveller themselves)
-        await self._broadcast_to_zone(new_zone, MessageType.ZONE_PRESENCE, {
-            "player_id": player.player_id,
-            "slot": player.slot,
-            "hub_id": new_hub_id,
-            "action": "arrived",
-        })
+        await self._broadcast_to_zone(
+            new_zone,
+            MessageType.ZONE_PRESENCE,
+            {
+                "player_id": player.player_id,
+                "slot": player.slot,
+                "hub_id": new_hub_id,
+                "action": "arrived",
+            },
+        )
 
-        log.info("[ZONE] Player %s (slot %d) travelled: %s → %s",
-                 player.player_id, player.slot, old_hub_id, new_hub_id)
+        log.info(
+            "[ZONE] Player %s (slot %d) travelled: %s → %s",
+            player.player_id,
+            player.slot,
+            old_hub_id,
+            new_hub_id,
+        )
 
     # ── Simulation loop ───────────────────────────────────────────────────────
 
@@ -796,8 +864,13 @@ class GameServer:
                     zone.frame += 1
                     _ticks += 1
                 except Exception as exc:
-                    log.error("[ZONE:%s] step() error at frame %d: %s",
-                              zone.hub_id, zone.frame, exc, exc_info=True)
+                    log.error(
+                        "[ZONE:%s] step() error at frame %d: %s",
+                        zone.hub_id,
+                        zone.frame,
+                        exc,
+                        exc_info=True,
+                    )
 
                 # Broadcast WORLD_STATE at 20 Hz (every BROADCAST_EVERY_N_TICKS).
                 # Player movement is client-authoritative (v0.9.11), so broadcast
@@ -835,12 +908,21 @@ class GameServer:
                         payload = self._build_world_state_payload(snap_dict, zone)
                         await self._broadcast_to_zone(zone, MessageType.WORLD_STATE, payload)
                     except Exception as exc:
-                        log.error("[ZONE:%s] snapshot/broadcast error: %s",
-                                  zone.hub_id, exc, exc_info=True)
+                        log.error(
+                            "[ZONE:%s] snapshot/broadcast error: %s",
+                            zone.hub_id,
+                            exc,
+                            exc_info=True,
+                        )
 
                 if _ticks % (TICK_RATE * 5) == 0:
-                    log.debug("[ZONE:%s] tick=%d frame=%d  zone_players=%d",
-                              zone.hub_id, _ticks, zone.frame, len(zone.player_ids))
+                    log.debug(
+                        "[ZONE:%s] tick=%d frame=%d  zone_players=%d",
+                        zone.hub_id,
+                        _ticks,
+                        zone.frame,
+                        len(zone.player_ids),
+                    )
 
             elapsed = loop.time() - t0
             sleep_for = TICK_INTERVAL - elapsed
@@ -849,8 +931,12 @@ class GameServer:
             else:
                 _behind_count += 1
                 if _behind_count % 60 == 0:
-                    log.warning("[ZONE:%s] loop behind by %.1f ms (frame=%d)",
-                                zone.hub_id, -sleep_for * 1000, zone.frame)
+                    log.warning(
+                        "[ZONE:%s] loop behind by %.1f ms (frame=%d)",
+                        zone.hub_id,
+                        -sleep_for * 1000,
+                        zone.frame,
+                    )
                 await asyncio.sleep(0)
 
     async def _reap_idle_zones(self) -> None:
@@ -878,12 +964,14 @@ class GameServer:
                     log.info("[ZONE] Reaped idle zone: %s", hub_id)
 
     async def start(self) -> None:
-        self._server = await asyncio.start_server(
-            self._handle_client, self.host, self.port
-        )
+        self._server = await asyncio.start_server(self._handle_client, self.host, self.port)
         addrs = [str(s.getsockname()) for s in self._server.sockets]
-        log.info("Server listening on %s  seed=%d  max_players=%d",
-                 addrs, self.session.seed, self.session.max_players)
+        log.info(
+            "Server listening on %s  seed=%d  max_players=%d",
+            addrs,
+            self.session.seed,
+            self.session.max_players,
+        )
         print(f"[NET] Server listening on {self.host}:{self.port}  seed={self.session.seed}")
 
         # Pre-register the initial zone (no simulator yet — started on first GAME_START)
@@ -938,10 +1026,14 @@ class GameServer:
         if self.session.is_full:
             mp = self.session.max_players
             log.warning("Rejecting %s — session full (%d/%d)", addr, mp, mp)
-            await write_message(writer, MessageType.ERROR, {
-                "code": "session_full",
-                "message": f"Server is full (max {mp} players).",
-            })
+            await write_message(
+                writer,
+                MessageType.ERROR,
+                {
+                    "code": "session_full",
+                    "message": f"Server is full (max {mp} players).",
+                },
+            )
             writer.close()
             return
 
@@ -958,20 +1050,30 @@ class GameServer:
             return
 
         if hello.type != MessageType.CLIENT_HELLO:
-            await write_message(writer, MessageType.ERROR, {
-                "code": "expected_hello",
-                "message": "Expected client_hello as first message.",
-            })
+            await write_message(
+                writer,
+                MessageType.ERROR,
+                {
+                    "code": "expected_hello",
+                    "message": "Expected client_hello as first message.",
+                },
+            )
             writer.close()
             return
 
         client_version = hello.payload.get("version", "")
-        log.debug("CLIENT_HELLO from %s: id=%s version=%s",
-                  addr, hello.payload.get("player_id", "?"), client_version)
+        log.debug(
+            "CLIENT_HELLO from %s: id=%s version=%s",
+            addr,
+            hello.payload.get("player_id", "?"),
+            client_version,
+        )
         if client_version != SERVER_VERSION:
             log.warning(
                 "Version mismatch from %s: client=%s server=%s (continuing — Phase 1 lenient)",
-                addr, client_version, SERVER_VERSION,
+                addr,
+                client_version,
+                SERVER_VERSION,
             )
 
         player_id = hello.payload.get("player_id") or str(uuid.uuid4())[:8]
@@ -985,10 +1087,14 @@ class GameServer:
         )
 
         if not await self.session.add_player(player):
-            await write_message(writer, MessageType.ERROR, {
-                "code": "session_full",
-                "message": "Session filled up between check and join.",
-            })
+            await write_message(
+                writer,
+                MessageType.ERROR,
+                {
+                    "code": "session_full",
+                    "message": "Session filled up between check and join.",
+                },
+            )
             writer.close()
             return
 
@@ -998,27 +1104,39 @@ class GameServer:
             initial_zone.player_ids.add(player_id)
 
         # Send server hello
-        await write_message(writer, MessageType.SERVER_HELLO, {
-            "player_id": player_id,
-            "slot": slot,
-            "frame": self.session.frame,
-            "seed": self.session.seed,
-            "max_players": self.session.max_players,
-        })
+        await write_message(
+            writer,
+            MessageType.SERVER_HELLO,
+            {
+                "player_id": player_id,
+                "slot": slot,
+                "frame": self.session.frame,
+                "seed": self.session.seed,
+                "max_players": self.session.max_players,
+            },
+        )
 
         # Notify other players and broadcast updated lobby state
-        await self.session.broadcast(MessageType.PLAYER_JOIN, {
-            "player_id": player_id,
-            "slot": slot,
-        })
+        await self.session.broadcast(
+            MessageType.PLAYER_JOIN,
+            {
+                "player_id": player_id,
+                "slot": slot,
+            },
+        )
         await self.session.broadcast_lobby_update()
 
         # Auto-start when lobby is full
         if not self.session.game_started and self.session.is_full:
             await self.session.start_game(server=self)
 
-        log.info("SERVER_HELLO sent to %s: id=%s slot=%d seed=%d",
-                 addr, player_id, slot, self.session.seed)
+        log.info(
+            "SERVER_HELLO sent to %s: id=%s slot=%d seed=%d",
+            addr,
+            player_id,
+            slot,
+            self.session.seed,
+        )
 
         # Main client loop
         try:
@@ -1026,8 +1144,7 @@ class GameServer:
         except (asyncio.IncompleteReadError, ConnectionResetError):
             log.info("Client %s (slot %d) disconnected from %s", player_id, slot, addr)
         except Exception as exc:
-            log.error("Client loop error for %s (slot %d): %s",
-                      player_id, slot, exc, exc_info=True)
+            log.error("Client loop error for %s (slot %d): %s", player_id, slot, exc, exc_info=True)
         finally:
             # Remove from zone membership before session cleanup
             zone = self._zones.get(player.hub_id)
@@ -1036,17 +1153,24 @@ class GameServer:
                 if not zone.player_ids:
                     zone.last_occupied_at = asyncio.get_event_loop().time()
                 # Notify remaining zone occupants of departure
-                await self._broadcast_to_zone(zone, MessageType.ZONE_PRESENCE, {
+                await self._broadcast_to_zone(
+                    zone,
+                    MessageType.ZONE_PRESENCE,
+                    {
+                        "player_id": player_id,
+                        "slot": slot,
+                        "hub_id": player.hub_id,
+                        "action": "departed",
+                    },
+                )
+            await self.session.remove_player(player_id)
+            await self.session.broadcast(
+                MessageType.PLAYER_LEAVE,
+                {
                     "player_id": player_id,
                     "slot": slot,
-                    "hub_id": player.hub_id,
-                    "action": "departed",
-                })
-            await self.session.remove_player(player_id)
-            await self.session.broadcast(MessageType.PLAYER_LEAVE, {
-                "player_id": player_id,
-                "slot": slot,
-            })
+                },
+            )
             await self.session.broadcast_lobby_update()
             log.info("Cleaned up session entry for %s (slot %d)", player_id, slot)
             try:
@@ -1064,18 +1188,20 @@ class GameServer:
             if msg.type == MessageType.INPUT:
                 await self.session.handle_input(player.player_id, msg.payload)
                 _inputs_processed += 1
-                if _inputs_processed % 300 == 0:   # ~5 s at 60 Hz
-                    log.debug("Input: %d processed for %s  server_frame=%d",
-                              _inputs_processed, player.player_id, self.session.frame)
+                if _inputs_processed % 300 == 0:  # ~5 s at 60 Hz
+                    log.debug(
+                        "Input: %d processed for %s  server_frame=%d",
+                        _inputs_processed,
+                        player.player_id,
+                        self.session.frame,
+                    )
 
                 # Phase 1/2.5 fallback: broadcast a MultiplayerSnapshot only
                 # when the authoritative simulator is not yet running.
                 if self._simulator is None:
                     self.session.frame += 1
                     snapshot = self.session.build_snapshot()
-                    await self.session.broadcast(
-                        MessageType.SERVER_STATE, snapshot.to_dict()
-                    )
+                    await self.session.broadcast(MessageType.SERVER_STATE, snapshot.to_dict())
 
             elif msg.type == MessageType.ENTITY_EVENT:
                 # Phase 2.5: relay world-state mutation to all other clients so
@@ -1083,8 +1209,13 @@ class GameServer:
                 # This becomes a no-op once Phase 3 WorldSnapshot is authoritative.
                 etype = msg.payload.get("etype", "?")
                 eid = msg.payload.get("entity_id", "?")
-                log.debug("ENTITY_EVENT from %s (slot %d): etype=%s entity_id=%s",
-                          player.player_id, player.slot, etype, eid)
+                log.debug(
+                    "ENTITY_EVENT from %s (slot %d): etype=%s entity_id=%s",
+                    player.player_id,
+                    player.slot,
+                    etype,
+                    eid,
+                )
                 if self._simulator is None:
                     # Only relay during Phase 2.5 — WorldSnapshot covers this in Phase 3
                     payload_with_source = dict(msg.payload)
@@ -1101,13 +1232,18 @@ class GameServer:
                     log.warning("PORTAL_TRAVEL from %s missing destination_id", player.player_id)
 
             else:
-                log.debug("Unexpected message type '%s' from %s (slot %d)",
-                          msg.type, player.player_id, player.slot)
+                log.debug(
+                    "Unexpected message type '%s' from %s (slot %d)",
+                    msg.type,
+                    player.player_id,
+                    player.slot,
+                )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Top-level coroutine
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 async def run_server(
     host: str = "0.0.0.0",
@@ -1124,9 +1260,14 @@ async def run_server(
     Intended to be called via asyncio.run() in a daemon thread.
     """
     server = GameServer(
-        host=host, port=port, seed=seed, max_players=max_players,
-        world_shape=world_shape, world_rooms=world_rooms,
-        world_hub_id=world_hub_id, world_seed=world_seed,
+        host=host,
+        port=port,
+        seed=seed,
+        max_players=max_players,
+        world_shape=world_shape,
+        world_rooms=world_rooms,
+        world_hub_id=world_hub_id,
+        world_seed=world_seed,
     )
     await server.start()
     await server.serve_forever()

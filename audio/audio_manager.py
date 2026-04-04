@@ -23,17 +23,17 @@ class AudioManager:
 
     # All expected SFX names. Add new names here to extend the system.
     _SFX_NAMES = (
-        "swing",           # sword attack swing
-        "hit_enemy",       # sword connects with enemy / boss
-        "player_hurt",     # player takes non-lethal damage
-        "player_death",    # player dies
-        "jump",            # player jumps
-        "land",            # player lands after being airborne
-        "dash",            # dash ability activates
-        "pickup_coin",     # coin collected
-        "pickup_item",     # collectible or health pickup
-        "menu_select",     # menu cursor moves
-        "menu_confirm",    # menu item activated
+        "swing",  # sword attack swing
+        "hit_enemy",  # sword connects with enemy / boss
+        "player_hurt",  # player takes non-lethal damage
+        "player_death",  # player dies
+        "jump",  # player jumps
+        "land",  # player lands after being airborne
+        "dash",  # dash ability activates
+        "pickup_coin",  # coin collected
+        "pickup_item",  # collectible or health pickup
+        "menu_select",  # menu cursor moves
+        "menu_confirm",  # menu item activated
         "inventory_open",  # inventory opened or closed
     )
 

@@ -158,9 +158,7 @@ class FrameProfiler:
             print(f"FRAME PROFILER SUMMARY — last {len(rows)} frames")
             print(f"{'='*60}")
 
-            section_names = [
-                c for c in rows[0].keys() if c not in ("frame", "fps_instantaneous")
-            ]
+            section_names = [c for c in rows[0].keys() if c not in ("frame", "fps_instantaneous")]
 
             for sec in section_names:
                 values = [float(r[sec]) for r in rows if float(r[sec]) > 0]

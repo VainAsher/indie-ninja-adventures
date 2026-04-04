@@ -336,9 +336,9 @@ class EnemyAI:
         from entities.enemy import EnemyType
 
         definition = self.enemy.get_definition()
-        is_slime    = self.enemy.enemy_type == EnemyType.SLIME
-        is_bat      = self.enemy.enemy_type == EnemyType.BAT
-        is_wolf     = self.enemy.enemy_type == EnemyType.WOLF
+        is_slime = self.enemy.enemy_type == EnemyType.SLIME
+        is_bat = self.enemy.enemy_type == EnemyType.BAT
+        is_wolf = self.enemy.enemy_type == EnemyType.WOLF
         is_skeleton = self.enemy.enemy_type == EnemyType.SKELETON
 
         # Enemies that physically travel through the player skip the range-cancel
@@ -353,7 +353,7 @@ class EnemyAI:
                 return None
 
         player_center_x = player_x + player_width / 2
-        enemy_center_x  = self.enemy.x + definition.width / 2
+        enemy_center_x = self.enemy.x + definition.width / 2
 
         # Lock facing toward the player except while travelling (airborne / dashing)
         travelling = (is_slime or is_bat or is_wolf) and in_active
@@ -387,7 +387,7 @@ class EnemyAI:
 
             if at_end:
                 player_center_y = player_y + player_height / 2
-                enemy_center_y  = self.enemy.y + definition.height / 2
+                enemy_center_y = self.enemy.y + definition.height / 2
 
                 if is_slime:
                     # ── SLIME: upward jump toward player ─────────────────────

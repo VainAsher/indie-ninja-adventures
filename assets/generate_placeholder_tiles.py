@@ -72,22 +72,20 @@ def generate_all_tiles(base_path="assets/biomes", size=8):
 
     # Per-biome RGB tint multipliers applied to each base tile color
     biome_tints = {
-        "dungeon":  (1.0,  1.0,  1.0),   # Standard grey stone
-        "cave":     (0.8,  0.8,  0.8),   # Darker, earthy
-        "building": (1.1,  1.1,  1.1),   # Lighter, dressed stone
-        "forest":   (0.6,  1.1,  0.6),   # Green tint
-        "town":     (1.05, 1.0,  0.9),   # Warm cobblestone
-        "sewer":    (0.7,  0.9,  0.7),   # Mossy green-grey
-        "hollow":   (0.7,  0.6,  0.9),   # Deep purple-black
+        "dungeon": (1.0, 1.0, 1.0),  # Standard grey stone
+        "cave": (0.8, 0.8, 0.8),  # Darker, earthy
+        "building": (1.1, 1.1, 1.1),  # Lighter, dressed stone
+        "forest": (0.6, 1.1, 0.6),  # Green tint
+        "town": (1.05, 1.0, 0.9),  # Warm cobblestone
+        "sewer": (0.7, 0.9, 0.7),  # Mossy green-grey
+        "hollow": (0.7, 0.6, 0.9),  # Deep purple-black
     }
 
     for biome, tint in biome_tints.items():
         biome_path = os.path.join(base_path, biome)
 
         for tile_name, color in tiles.items():
-            adjusted_color = tuple(
-                min(255, max(0, int(c * t))) for c, t in zip(color, tint)
-            )
+            adjusted_color = tuple(min(255, max(0, int(c * t))) for c, t in zip(color, tint))
             surface = generate_tile_sprite(adjusted_color, size)
             filename = os.path.join(biome_path, tile_name)
             save_tile(surface, filename)

@@ -37,12 +37,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.7"
+          cache-read-only: false
 
       - name: Build server + client JARs
         working-directory: java
         shell: bash
-        run: ./gradlew :server:shadowJar :client:shadowJar --no-daemon
+        run: gradle :server:shadowJar :client:shadowJar --no-daemon
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5

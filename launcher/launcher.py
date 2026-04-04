@@ -57,30 +57,30 @@ LAUNCHER_VERSION = "1.6.3"
 WINDOW_TITLE = "Indie Ninja Adventures"
 WINDOW_W = 760
 WINDOW_H = 640
-SPLASH_W = 640      # splash image/text stays fixed at 640; window can be wider
-SPLASH_H = 200      # canvas height — crops the 640×320 scaled image to top portion
+SPLASH_W = 640  # splash image/text stays fixed at 640; window can be wider
+SPLASH_H = 200  # canvas height — crops the 640×320 scaled image to top portion
 
 # Colours — matched to game's menu_system.py palette
-BG_DARK = "#0a0a14"         # (10, 10, 20)  — game bg_color
+BG_DARK = "#0a0a14"  # (10, 10, 20)  — game bg_color
 BG_MID = "#1a1a2e"
 BG_CARD = "#16213e"
-ACCENT = "#ffd700"          # gold — game title_color (255, 215, 0)
-TEXT_PRIMARY = "#c8c8dc"    # game item_color (200, 200, 220)
+ACCENT = "#ffd700"  # gold — game title_color (255, 215, 0)
+TEXT_PRIMARY = "#c8c8dc"  # game item_color (200, 200, 220)
 TEXT_DIM = "#888899"
-TEXT_SELECTED = "#ffff64"   # game selected_color (255, 255, 100)
+TEXT_SELECTED = "#ffff64"  # game selected_color (255, 255, 100)
 BTN_PLAY_BG = "#1a1a2e"
-PROGRESS_FG = "#ffd700"     # gold progress bar
+PROGRESS_FG = "#ffd700"  # gold progress bar
 
 # Multiplayer button accent colours
-BTN_HOST_BG = "#1a2e1a"     # dark green tint
+BTN_HOST_BG = "#1a2e1a"  # dark green tint
 BTN_JOIN_BG = "#1a1a2e"
 
 # Report type options and their GitHub label mappings
 _REPORT_TYPES = [
-    ("Bug Report",        "bug",         "bug,needs-repro"),
-    ("Feedback",          "feedback",    "feedback"),
+    ("Bug Report", "bug", "bug,needs-repro"),
+    ("Feedback", "feedback", "feedback"),
     ("Performance Issue", "performance", "performance,beta-testing"),
-    ("Crash Report",      "crash",       "crash,bug"),
+    ("Crash Report", "crash", "crash,bug"),
 ]
 
 # Benchmark: run for this many seconds then terminate
@@ -215,13 +215,24 @@ def _get_settings_path() -> Path:
 
 # Default settings — duplicated from config/settings.py (launcher cannot import game modules)
 _DEFAULT_SETTINGS: dict = {
-    "volume_master": 1.0,  "volume_music": 0.7,  "volume_sfx": 0.8,
-    "fullscreen": False,   "vsync": True,         "show_fps": False,
-    "window_width": 1280,  "window_height": 720,
-    "screenshake": True,   "particles": True,     "camera_smoothing": 0.1,
-    "key_left": "left",    "key_right": "right",  "key_jump": "space",
-    "key_dash": "shift",   "key_crouch": "down",
-    "show_hitboxes": False, "log_level": "INFO",
+    "volume_master": 1.0,
+    "volume_music": 0.7,
+    "volume_sfx": 0.8,
+    "fullscreen": False,
+    "vsync": True,
+    "show_fps": False,
+    "window_width": 1280,
+    "window_height": 720,
+    "screenshake": True,
+    "particles": True,
+    "camera_smoothing": 0.1,
+    "key_left": "left",
+    "key_right": "right",
+    "key_jump": "space",
+    "key_dash": "shift",
+    "key_crouch": "down",
+    "show_hitboxes": False,
+    "log_level": "INFO",
 }
 
 # HMAC key — duplicated from systems/save_system.py; must stay in sync
@@ -494,28 +505,32 @@ class LauncherApp:
         # Game title overlay
         tx, ty = 22, SPLASH_H - 16
         self._splash_canvas.create_text(
-            tx + 2, ty + 2,
+            tx + 2,
+            ty + 2,
             text="INDIE NINJA ADVENTURES",
             font=("Impact", 18),
             fill="#050510",
             anchor="sw",
         )
         self._splash_canvas.create_text(
-            tx, ty,
+            tx,
+            ty,
             text="INDIE NINJA ADVENTURES",
             font=("Impact", 18),
             fill=ACCENT,
             anchor="sw",
         )
         self._splash_canvas.create_text(
-            tx, ty - 22,
+            tx,
+            ty - 22,
             text="Vain Asher Gaming",
             font=("Consolas", 9),
             fill=TEXT_DIM,
             anchor="sw",
         )
         self._splash_canvas.create_text(
-            SPLASH_W - 8, SPLASH_H - 6,
+            SPLASH_W - 8,
+            SPLASH_H - 6,
             text=f"launcher v{LAUNCHER_VERSION}",
             font=("Consolas", 8),
             fill=TEXT_DIM,
@@ -598,13 +613,13 @@ class LauncherApp:
         settings_frame = tk.Frame(self._notebook, bg=BG_DARK)
         mods_frame = tk.Frame(self._notebook, bg=BG_DARK)
 
-        self._notebook.add(play_frame,     text="  Play  ")
-        self._notebook.add(report_frame,   text="  Report  ")
+        self._notebook.add(play_frame, text="  Play  ")
+        self._notebook.add(report_frame, text="  Report  ")
         self._notebook.add(devtools_frame, text="  Dev Tools  ")
-        self._notebook.add(replays_frame,  text="  Replays  ")
-        self._notebook.add(saves_frame,    text="  Saves  ")
+        self._notebook.add(replays_frame, text="  Replays  ")
+        self._notebook.add(saves_frame, text="  Saves  ")
         self._notebook.add(settings_frame, text="  Settings  ")
-        self._notebook.add(mods_frame,     text="  Mods  ")
+        self._notebook.add(mods_frame, text="  Mods  ")
 
         self._build_play_tab(play_frame)
         self._build_report_tab(report_frame)
@@ -985,6 +1000,7 @@ class LauncherApp:
 
     def _read_profiles(self) -> dict:
         from datetime import date
+
         _default: dict = {
             "active_profile": "Player1",
             "profiles": {"Player1": {"created": str(date.today()), "save_slot": "savegame.json"}},
@@ -1025,6 +1041,7 @@ class LauncherApp:
     def _on_new_profile(self) -> None:
         from tkinter import simpledialog
         from datetime import date
+
         name = simpledialog.askstring("New Profile", "Profile name:", parent=self.root)
         if not name or not name.strip():
             return
@@ -1063,7 +1080,11 @@ class LauncherApp:
         top.pack(fill="x")
 
         tk.Label(
-            top, text="Type:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+            top,
+            text="Type:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
         ).pack(side="left")
 
         self._report_type_var = tk.StringVar(value=_REPORT_TYPES[0][0])
@@ -1095,7 +1116,12 @@ class LauncherApp:
 
         # Title
         tk.Label(
-            pad, text="Title:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+            pad,
+            text="Title:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(fill="x", pady=(8, 2))
 
         self._report_title_var = tk.StringVar(value="[Bug] ")
@@ -1219,11 +1245,13 @@ class LauncherApp:
 
         body = "\n".join(body_lines)
 
-        params = urllib.parse.urlencode({
-            "title": title,
-            "labels": labels,
-            "body": body,
-        })
+        params = urllib.parse.urlencode(
+            {
+                "title": title,
+                "labels": labels,
+                "body": body,
+            }
+        )
         url = f"{ISSUES_URL}?{params}"
         webbrowser.open(url)
 
@@ -1579,11 +1607,11 @@ class LauncherApp:
             selectmode="browse",
         )
         for col, width, label in [
-            ("name",   180, "Name"),
-            ("mode",    70, "Mode"),
-            ("hub",     90, "Hub"),
-            ("frames",  60, "Frames"),
-            ("date",    82, "Date"),
+            ("name", 180, "Name"),
+            ("mode", 70, "Mode"),
+            ("hub", 90, "Hub"),
+            ("frames", 60, "Frames"),
+            ("date", 82, "Date"),
         ]:
             self._replay_tree.heading(col, text=label, anchor="w")
             self._replay_tree.column(col, width=width, minwidth=40, stretch=(col == "name"))
@@ -1617,34 +1645,54 @@ class LauncherApp:
 
         _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
         tk.Button(
-            btn_row, text=">>  Launch",
-            fg=ACCENT, bg=BTN_PLAY_BG,
-            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
-            command=self._launch_selected_replay, **_b,
+            btn_row,
+            text=">>  Launch",
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            command=self._launch_selected_replay,
+            **_b,
         ).pack(side="left")
         tk.Button(
-            btn_row, text="Delete",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._delete_selected_replay, **_b,
+            btn_row,
+            text="Delete",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._delete_selected_replay,
+            **_b,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            btn_row, text="Rename",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._rename_selected_replay, **_b,
+            btn_row,
+            text="Rename",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._rename_selected_replay,
+            **_b,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            btn_row, text="Open Folder",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._reveal_replay_dir, **_b,
+            btn_row,
+            text="Open Folder",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._reveal_replay_dir,
+            **_b,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            btn_row, text="Refresh",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._refresh_replays_tab, **_b,
+            btn_row,
+            text="Refresh",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._refresh_replays_tab,
+            **_b,
         ).pack(side="right")
 
         # Record on next launch
@@ -1700,7 +1748,8 @@ class LauncherApp:
             except OSError:
                 date_str = ""
             self._replay_tree.insert(
-                "", "end",
+                "",
+                "end",
                 iid=str(path),
                 values=(path.name, mode, hub, str(frames), date_str),
             )
@@ -1760,6 +1809,7 @@ class LauncherApp:
 
     def _rename_selected_replay(self) -> None:
         from tkinter import simpledialog
+
         sel = self._replay_tree.selection()
         if not sel:
             return
@@ -1802,13 +1852,21 @@ class LauncherApp:
         hdr_row = tk.Frame(pad, bg=BG_DARK)
         hdr_row.pack(fill="x")
         tk.Label(
-            hdr_row, text="SAVE FILE",
-            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            hdr_row,
+            text="SAVE FILE",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(side="left")
         self._save_status_var = tk.StringVar(value="—")
         tk.Label(
-            hdr_row, textvariable=self._save_status_var,
-            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK, anchor="e",
+            hdr_row,
+            textvariable=self._save_status_var,
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="e",
         ).pack(side="right")
         tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
 
@@ -1817,13 +1875,21 @@ class LauncherApp:
         info_row.pack(fill="x")
         self._save_path_var = tk.StringVar(value="—")
         tk.Label(
-            info_row, textvariable=self._save_path_var,
-            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+            info_row,
+            textvariable=self._save_path_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(side="left")
         self._save_date_var = tk.StringVar(value="")
         tk.Label(
-            info_row, textvariable=self._save_date_var,
-            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="e",
+            info_row,
+            textvariable=self._save_date_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="e",
         ).pack(side="right")
 
         # Data panels
@@ -1837,12 +1903,20 @@ class LauncherApp:
         stats_frame.pack(side="left", fill="both", expand=True)
 
         tk.Label(
-            camp_frame, text="CAMPAIGN",
-            font=("Consolas", 8, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            camp_frame,
+            text="CAMPAIGN",
+            font=("Consolas", 8, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(fill="x")
         tk.Label(
-            stats_frame, text="STATISTICS",
-            font=("Consolas", 8, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            stats_frame,
+            text="STATISTICS",
+            font=("Consolas", 8, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(fill="x")
 
         def _field(parent_f: tk.Frame, key: str, label: str) -> None:
@@ -1851,26 +1925,36 @@ class LauncherApp:
             row = tk.Frame(parent_f, bg=BG_DARK)
             row.pack(fill="x")
             tk.Label(
-                row, text=f"{label}:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
-                width=16, anchor="w",
+                row,
+                text=f"{label}:",
+                font=("Consolas", 8),
+                fg=TEXT_DIM,
+                bg=BG_DARK,
+                width=16,
+                anchor="w",
             ).pack(side="left")
             tk.Label(
-                row, textvariable=var, font=("Consolas", 8), fg=TEXT_PRIMARY, bg=BG_DARK, anchor="w",
+                row,
+                textvariable=var,
+                font=("Consolas", 8),
+                fg=TEXT_PRIMARY,
+                bg=BG_DARK,
+                anchor="w",
             ).pack(side="left")
 
-        _field(camp_frame, "hub",        "Hub")
-        _field(camp_frame, "currency",   "Currency")
-        _field(camp_frame, "abilities",  "Abilities")
-        _field(camp_frame, "missions",   "Missions done")
-        _field(camp_frame, "bosses",     "Bosses beaten")
+        _field(camp_frame, "hub", "Hub")
+        _field(camp_frame, "currency", "Currency")
+        _field(camp_frame, "abilities", "Abilities")
+        _field(camp_frame, "missions", "Missions done")
+        _field(camp_frame, "bosses", "Bosses beaten")
         _field(camp_frame, "c_playtime", "Playtime")
 
-        _field(stats_frame, "deaths",     "Deaths")
-        _field(stats_frame, "jumps",      "Jumps")
-        _field(stats_frame, "dashes",     "Dashes")
-        _field(stats_frame, "coins",      "Coins collected")
+        _field(stats_frame, "deaths", "Deaths")
+        _field(stats_frame, "jumps", "Jumps")
+        _field(stats_frame, "dashes", "Dashes")
+        _field(stats_frame, "coins", "Coins collected")
         _field(stats_frame, "s_playtime", "Playtime")
-        _field(stats_frame, "perf_runs",  "Perfect runs")
+        _field(stats_frame, "perf_runs", "Perfect runs")
 
         # Action buttons
         tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
@@ -1878,28 +1962,44 @@ class LauncherApp:
         btn_row.pack(fill="x", pady=(6, 0))
         _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
         tk.Button(
-            btn_row, text="Backup Now",
-            fg=ACCENT, bg=BTN_PLAY_BG,
-            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
-            command=self._backup_save_now, **_b,
+            btn_row,
+            text="Backup Now",
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            command=self._backup_save_now,
+            **_b,
         ).pack(side="left")
         tk.Button(
-            btn_row, text="Restore Selected",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._restore_selected_backup, **_b,
+            btn_row,
+            text="Restore Selected",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._restore_selected_backup,
+            **_b,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            btn_row, text="Delete Save",
-            fg="#e05252", bg=BG_DARK,
-            activebackground=BG_MID, activeforeground="#e05252",
-            command=self._delete_save, **_b,
+            btn_row,
+            text="Delete Save",
+            fg="#e05252",
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground="#e05252",
+            command=self._delete_save,
+            **_b,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            btn_row, text="Refresh",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._refresh_saves_display, **_b,
+            btn_row,
+            text="Refresh",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._refresh_saves_display,
+            **_b,
         ).pack(side="right")
 
         # Backups list
@@ -1907,8 +2007,12 @@ class LauncherApp:
         bak_hdr = tk.Frame(pad, bg=BG_DARK)
         bak_hdr.pack(fill="x", pady=(4, 4))
         tk.Label(
-            bak_hdr, text="BACKUPS",
-            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            bak_hdr,
+            text="BACKUPS",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(side="left")
 
         bak_frame = tk.Frame(pad, bg=BG_CARD)
@@ -1922,7 +2026,9 @@ class LauncherApp:
             selectmode="browse",
         )
         for col, width, label in [
-            ("name", 200, "Filename"), ("date", 140, "Date"), ("size", 70, "Size"),
+            ("name", 200, "Filename"),
+            ("date", 140, "Date"),
+            ("size", 70, "Size"),
         ]:
             self._backups_tree.heading(col, text=label, anchor="w")
             self._backups_tree.column(col, width=width, minwidth=40, stretch=(col == "name"))
@@ -2006,7 +2112,9 @@ class LauncherApp:
                 date_str = ""
                 size_str = ""
             self._backups_tree.insert(
-                "", "end", iid=str(path),
+                "",
+                "end",
+                iid=str(path),
                 values=(path.name, date_str, size_str),
             )
 
@@ -2073,22 +2181,34 @@ class LauncherApp:
 
         _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
         tk.Button(
-            btn_frame, text="Save Settings",
-            fg=ACCENT, bg=BTN_PLAY_BG,
-            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
-            command=self._save_settings_from_ui, **_b,
+            btn_frame,
+            text="Save Settings",
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            command=self._save_settings_from_ui,
+            **_b,
         ).pack(side="left")
         tk.Button(
-            btn_frame, text="Reset to Defaults",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._reset_settings_to_defaults, **_b,
+            btn_frame,
+            text="Reset to Defaults",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._reset_settings_to_defaults,
+            **_b,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            btn_frame, text="Open File",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._open_settings_file, **_b,
+            btn_frame,
+            text="Open File",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._open_settings_file,
+            **_b,
         ).pack(side="right")
 
         # Scrollable body
@@ -2098,7 +2218,12 @@ class LauncherApp:
 
         def _sec(label: str) -> None:
             tk.Label(
-                pad, text=label, font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+                pad,
+                text=label,
+                font=("Consolas", 9, "bold"),
+                fg=ACCENT,
+                bg=BG_DARK,
+                anchor="w",
             ).pack(fill="x", pady=(10, 2))
             tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(0, 4))
 
@@ -2108,31 +2233,62 @@ class LauncherApp:
             row = tk.Frame(pad, bg=BG_DARK)
             row.pack(fill="x", pady=2)
             tk.Label(
-                row, text=label, font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
-                width=20, anchor="w",
+                row,
+                text=label,
+                font=("Consolas", 9),
+                fg=TEXT_DIM,
+                bg=BG_DARK,
+                width=20,
+                anchor="w",
             ).pack(side="left")
             val_lbl = tk.Label(
-                row, text="0.00", font=("Consolas", 9), fg=TEXT_PRIMARY, bg=BG_DARK,
-                width=5, anchor="e",
+                row,
+                text="0.00",
+                font=("Consolas", 9),
+                fg=TEXT_PRIMARY,
+                bg=BG_DARK,
+                width=5,
+                anchor="e",
             )
             val_lbl.pack(side="right")
 
-            def _upd(*_): val_lbl.config(text=f"{var.get():.2f}")
+            def _upd(*_):
+                val_lbl.config(text=f"{var.get():.2f}")
+
             var.trace_add("write", _upd)
             tk.Scale(
-                row, variable=var, from_=lo, to=hi, orient="horizontal",
-                length=200, bg=BG_DARK, fg=TEXT_DIM, troughcolor=BG_MID,
-                highlightbackground=BG_DARK, activebackground=ACCENT,
-                sliderrelief="flat", showvalue=0, resolution=0.01, bd=0,
+                row,
+                variable=var,
+                from_=lo,
+                to=hi,
+                orient="horizontal",
+                length=200,
+                bg=BG_DARK,
+                fg=TEXT_DIM,
+                troughcolor=BG_MID,
+                highlightbackground=BG_DARK,
+                activebackground=ACCENT,
+                sliderrelief="flat",
+                showvalue=0,
+                resolution=0.01,
+                bd=0,
             ).pack(side="right", padx=(0, 4))
 
         def _chk(key: str, label: str) -> None:
             var = tk.BooleanVar()
             self._settings_vars[key] = var
             tk.Checkbutton(
-                pad, text=label, variable=var, font=("Consolas", 9),
-                fg=TEXT_PRIMARY, bg=BG_DARK, activebackground=BG_DARK,
-                activeforeground=TEXT_SELECTED, selectcolor=BG_MID, relief="flat", bd=0,
+                pad,
+                text=label,
+                variable=var,
+                font=("Consolas", 9),
+                fg=TEXT_PRIMARY,
+                bg=BG_DARK,
+                activebackground=BG_DARK,
+                activeforeground=TEXT_SELECTED,
+                selectcolor=BG_MID,
+                relief="flat",
+                bd=0,
             ).pack(anchor="w", pady=2)
 
         # PATHS
@@ -2154,8 +2310,13 @@ class LauncherApp:
         game_dir_row = tk.Frame(pad, bg=BG_DARK)
         game_dir_row.pack(fill="x", pady=2)
         tk.Label(
-            game_dir_row, text="Game Dir:", font=("Consolas", 9),
-            fg=TEXT_DIM, bg=BG_DARK, width=10, anchor="w",
+            game_dir_row,
+            text="Game Dir:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            width=10,
+            anchor="w",
         ).pack(side="left")
         self._game_dir_entry = tk.Entry(
             game_dir_row,
@@ -2216,30 +2377,55 @@ class LauncherApp:
         _sec("DISPLAY")
         disp_row = tk.Frame(pad, bg=BG_DARK)
         disp_row.pack(fill="x", pady=2)
-        for key, label in [("fullscreen", "Fullscreen"), ("vsync", "VSync"), ("show_fps", "Show FPS")]:
+        for key, label in [
+            ("fullscreen", "Fullscreen"),
+            ("vsync", "VSync"),
+            ("show_fps", "Show FPS"),
+        ]:
             var = tk.BooleanVar()
             self._settings_vars[key] = var
             tk.Checkbutton(
-                disp_row, text=label, variable=var, font=("Consolas", 9),
-                fg=TEXT_PRIMARY, bg=BG_DARK, activebackground=BG_DARK,
-                activeforeground=TEXT_SELECTED, selectcolor=BG_MID, relief="flat", bd=0,
+                disp_row,
+                text=label,
+                variable=var,
+                font=("Consolas", 9),
+                fg=TEXT_PRIMARY,
+                bg=BG_DARK,
+                activebackground=BG_DARK,
+                activeforeground=TEXT_SELECTED,
+                selectcolor=BG_MID,
+                relief="flat",
+                bd=0,
             ).pack(side="left", padx=(0, 16))
 
         res_row = tk.Frame(pad, bg=BG_DARK)
         res_row.pack(fill="x", pady=2)
         tk.Label(
-            res_row, text="Resolution:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
-            width=14, anchor="w",
+            res_row,
+            text="Resolution:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            width=14,
+            anchor="w",
         ).pack(side="left")
         res_var = tk.StringVar()
         self._settings_vars["resolution"] = res_var
         ttk.Combobox(
-            res_row, textvariable=res_var,
+            res_row,
+            textvariable=res_var,
             values=["800x600", "1280x720", "1920x1080", "2560x1440"],
-            state="readonly", style="Launcher.TCombobox", width=13, font=("Consolas", 9),
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=13,
+            font=("Consolas", 9),
         ).pack(side="left", padx=(4, 8))
         tk.Label(
-            res_row, text="(requires restart)", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK,
+            res_row,
+            text="(requires restart)",
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
         ).pack(side="left")
 
         # GAMEPLAY
@@ -2252,17 +2438,32 @@ class LauncherApp:
         _sec("CONTROLS")
         ctrl_grid = tk.Frame(pad, bg=BG_DARK)
         ctrl_grid.pack(fill="x", pady=(0, 4))
-        for i, (key, label) in enumerate([
-            ("key_left", "Left"), ("key_right", "Right"), ("key_jump", "Jump"),
-            ("key_dash", "Dash"), ("key_crouch", "Crouch"),
-        ]):
+        for i, (key, label) in enumerate(
+            [
+                ("key_left", "Left"),
+                ("key_right", "Right"),
+                ("key_jump", "Jump"),
+                ("key_dash", "Dash"),
+                ("key_crouch", "Crouch"),
+            ]
+        ):
             col_f = tk.Frame(ctrl_grid, bg=BG_DARK)
             col_f.pack(side="left", padx=(0, 20))
             tk.Label(
-                col_f, text=f"{label}:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+                col_f,
+                text=f"{label}:",
+                font=("Consolas", 8),
+                fg=TEXT_DIM,
+                bg=BG_DARK,
+                anchor="w",
             ).pack(fill="x")
             klbl = tk.Label(
-                col_f, text="—", font=("Consolas", 9, "bold"), fg=TEXT_PRIMARY, bg=BG_DARK, anchor="w",
+                col_f,
+                text="—",
+                font=("Consolas", 9, "bold"),
+                fg=TEXT_PRIMARY,
+                bg=BG_DARK,
+                anchor="w",
             )
             klbl.pack(fill="x")
             self._ctrl_key_labels[key] = klbl
@@ -2273,15 +2474,24 @@ class LauncherApp:
         dev_row = tk.Frame(pad, bg=BG_DARK)
         dev_row.pack(fill="x", pady=2)
         tk.Label(
-            dev_row, text="Log Level:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
-            width=14, anchor="w",
+            dev_row,
+            text="Log Level:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            width=14,
+            anchor="w",
         ).pack(side="left")
         log_var = tk.StringVar()
         self._settings_vars["log_level"] = log_var
         ttk.Combobox(
-            dev_row, textvariable=log_var,
+            dev_row,
+            textvariable=log_var,
             values=["DEBUG", "INFO", "WARNING", "ERROR"],
-            state="readonly", style="Launcher.TCombobox", width=10, font=("Consolas", 9),
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=10,
+            font=("Consolas", 9),
         ).pack(side="left", padx=(4, 0))
 
         self._load_settings_into_ui()
@@ -2293,13 +2503,19 @@ class LauncherApp:
         inner = tk.Frame(canvas, bg=BG_DARK)
         win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
 
-        def _on_inner_cfg(e): canvas.configure(scrollregion=canvas.bbox("all"))
+        def _on_inner_cfg(e):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
         inner.bind("<Configure>", _on_inner_cfg)
 
-        def _on_canvas_cfg(e): canvas.itemconfig(win_id, width=e.width)
+        def _on_canvas_cfg(e):
+            canvas.itemconfig(win_id, width=e.width)
+
         canvas.bind("<Configure>", _on_canvas_cfg)
 
-        def _on_wheel(e): canvas.yview_scroll(-1 * (e.delta // 120), "units")
+        def _on_wheel(e):
+            canvas.yview_scroll(-1 * (e.delta // 120), "units")
+
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_wheel))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
@@ -2370,6 +2586,7 @@ class LauncherApp:
 
     def _browse_game_dir(self) -> None:
         from tkinter import filedialog
+
         current = self._game_dir_var.get() or str(_get_base_dir())
         chosen = filedialog.askdirectory(
             title="Select Game Directory",
@@ -2426,21 +2643,33 @@ class LauncherApp:
         hdr_row = tk.Frame(pad, bg=BG_DARK)
         hdr_row.pack(fill="x")
         tk.Label(
-            hdr_row, text="INSTALLED MODS",
-            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            hdr_row,
+            text="INSTALLED MODS",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(side="left")
         _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=8, pady=3)
         tk.Button(
-            hdr_row, text="Open Folder",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._reveal_mods_folder, **_b,
+            hdr_row,
+            text="Open Folder",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._reveal_mods_folder,
+            **_b,
         ).pack(side="right")
         tk.Button(
-            hdr_row, text="Refresh",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._refresh_mods_list, **_b,
+            hdr_row,
+            text="Refresh",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._refresh_mods_list,
+            **_b,
         ).pack(side="right", padx=(0, 4))
         tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
 
@@ -2450,15 +2679,19 @@ class LauncherApp:
 
         cols = ("en", "name", "version", "author", "status")
         self._mods_tree = ttk.Treeview(
-            tree_frame, columns=cols, show="headings",
-            style="Replay.Treeview", height=6, selectmode="browse",
+            tree_frame,
+            columns=cols,
+            show="headings",
+            style="Replay.Treeview",
+            height=6,
+            selectmode="browse",
         )
         for col, width, label in [
-            ("en",      30, ""),
-            ("name",   160, "Name"),
+            ("en", 30, ""),
+            ("name", 160, "Name"),
             ("version", 70, "Version"),
-            ("author",  90, "Author"),
-            ("status",  90, "Status"),
+            ("author", 90, "Author"),
+            ("status", 90, "Status"),
         ]:
             self._mods_tree.heading(col, text=label, anchor="w")
             self._mods_tree.column(col, width=width, minwidth=20, stretch=(col == "name"))
@@ -2473,8 +2706,12 @@ class LauncherApp:
         # Pending-restart note
         self._mods_note_var = tk.StringVar(value="")
         tk.Label(
-            pad, textvariable=self._mods_note_var,
-            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+            pad,
+            textvariable=self._mods_note_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(fill="x", pady=(3, 0))
 
         # Detail panel
@@ -2482,9 +2719,15 @@ class LauncherApp:
         detail_frame.pack(fill="x", pady=(6, 0))
         self._mod_detail_var = tk.StringVar(value="Select a mod above to see details.")
         tk.Label(
-            detail_frame, textvariable=self._mod_detail_var,
-            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_CARD,
-            anchor="w", justify="left", padx=6, pady=4,
+            detail_frame,
+            textvariable=self._mod_detail_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_CARD,
+            anchor="w",
+            justify="left",
+            padx=6,
+            pady=4,
         ).pack(fill="x")
 
         # Action buttons
@@ -2494,22 +2737,34 @@ class LauncherApp:
 
         _b2 = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
         tk.Button(
-            btn_row, text="Toggle Enable",
-            fg=TEXT_PRIMARY, bg=BG_MID,
-            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
-            command=self._toggle_selected_mod, **_b2,
+            btn_row,
+            text="Toggle Enable",
+            fg=TEXT_PRIMARY,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            command=self._toggle_selected_mod,
+            **_b2,
         ).pack(side="left")
         tk.Button(
-            btn_row, text="Reveal Folder",
-            fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            command=self._reveal_selected_mod_folder, **_b2,
+            btn_row,
+            text="Reveal Folder",
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            command=self._reveal_selected_mod_folder,
+            **_b2,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            btn_row, text="Delete Mod",
-            fg="#e05252", bg=BG_DARK,
-            activebackground=BG_MID, activeforeground="#e05252",
-            command=self._delete_selected_mod, **_b2,
+            btn_row,
+            text="Delete Mod",
+            fg="#e05252",
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground="#e05252",
+            command=self._delete_selected_mod,
+            **_b2,
         ).pack(side="left", padx=(6, 0))
 
         # Install section
@@ -2517,34 +2772,62 @@ class LauncherApp:
         inst_hdr = tk.Frame(pad, bg=BG_DARK)
         inst_hdr.pack(fill="x", pady=(4, 4))
         tk.Label(
-            inst_hdr, text="INSTALL MOD",
-            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            inst_hdr,
+            text="INSTALL MOD",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(side="left")
 
         inst_row = tk.Frame(pad, bg=BG_DARK)
         inst_row.pack(fill="x")
         tk.Label(
-            inst_row, text="From ZIP:",
-            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK, width=10, anchor="w",
+            inst_row,
+            text="From ZIP:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            width=10,
+            anchor="w",
         ).pack(side="left")
         self._mod_zip_var = tk.StringVar()
         tk.Entry(
-            inst_row, textvariable=self._mod_zip_var,
-            font=("Consolas", 9), bg=BG_MID, fg=TEXT_PRIMARY,
-            insertbackground=ACCENT, relief="flat", width=28,
+            inst_row,
+            textvariable=self._mod_zip_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
+            width=28,
         ).pack(side="left", padx=(4, 6))
         tk.Button(
-            inst_row, text="Browse…",
-            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            relief="flat", cursor="hand2", padx=8, pady=3,
+            inst_row,
+            text="Browse…",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
             command=self._browse_mod_zip,
         ).pack(side="left")
         tk.Button(
-            inst_row, text="Install",
-            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BTN_PLAY_BG,
-            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
-            relief="flat", cursor="hand2", padx=10, pady=3,
+            inst_row,
+            text="Install",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=3,
             command=self._install_mod_zip,
         ).pack(side="left", padx=(6, 0))
 
@@ -2578,9 +2861,16 @@ class LauncherApp:
                 status = "OK"
 
             self._mods_tree.insert(
-                "", "end", iid=mod_id,
-                values=(en_str, m.get("name", mod_id), m.get("version", "?"),
-                        m.get("author", "?"), status),
+                "",
+                "end",
+                iid=mod_id,
+                values=(
+                    en_str,
+                    m.get("name", mod_id),
+                    m.get("version", "?"),
+                    m.get("author", "?"),
+                    status,
+                ),
             )
 
         note = "(enable/disable takes effect after game restart)" if manifests else ""
@@ -2691,6 +2981,7 @@ class LauncherApp:
 
     def _browse_mod_zip(self) -> None:
         from tkinter import filedialog
+
         path = filedialog.askopenfilename(
             title="Select Mod ZIP",
             filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")],
@@ -2701,6 +2992,7 @@ class LauncherApp:
 
     def _install_mod_zip(self) -> None:
         import zipfile
+
         zip_path_str = self._mod_zip_var.get().strip()
         if not zip_path_str:
             messagebox.showwarning(
@@ -2737,7 +3029,9 @@ class LauncherApp:
                 mod_id = manifest_data.get("mod_id", "").strip()
                 if not mod_id:
                     messagebox.showerror(
-                        "Invalid mod.json", "mod.json is missing the 'mod_id' field.", parent=self.root
+                        "Invalid mod.json",
+                        "mod.json is missing the 'mod_id' field.",
+                        parent=self.root,
                     )
                     return
 
@@ -2758,7 +3052,7 @@ class LauncherApp:
                     fname = member.filename
                     if not fname.startswith(prefix) or fname == prefix:
                         continue
-                    rel = fname[len(prefix):]
+                    rel = fname[len(prefix) :]
                     out = dest_dir / rel
                     if fname.endswith("/"):
                         out.mkdir(parents=True, exist_ok=True)
@@ -2780,7 +3074,8 @@ class LauncherApp:
         self._mod_zip_var.set("")
         self._refresh_mods_list()
         messagebox.showinfo(
-            "Installed", f"Mod '{mod_id}' installed and enabled.\n\nRestart the game to apply.",
+            "Installed",
+            f"Mod '{mod_id}' installed and enabled.\n\nRestart the game to apply.",
             parent=self.root,
         )
 
@@ -2837,7 +3132,9 @@ class LauncherApp:
     def _refresh_baseline_list(self) -> None:
         """Populate the baseline combobox with perf_baseline*.csv files."""
         base_dir = _get_user_data_dir()
-        files = sorted(base_dir.glob("perf_baseline*.csv"), reverse=True) if base_dir.exists() else []
+        files = (
+            sorted(base_dir.glob("perf_baseline*.csv"), reverse=True) if base_dir.exists() else []
+        )
         names = [f.name for f in files]
         self._baseline_combo.configure(values=names)
         if names:
@@ -2863,12 +3160,16 @@ class LauncherApp:
         """Toggle between 'table' and 'chart' view for profiler results."""
         self._prof_view_mode = mode
         if mode == "table":
-            self._prof_table_btn.configure(fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold"))
+            self._prof_table_btn.configure(
+                fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold")
+            )
             self._prof_chart_btn.configure(fg=TEXT_DIM, bg=BG_DARK, font=("Consolas", 8))
             self._prof_canvas.pack_forget()
             self._prof_text_frame.pack(fill="x", pady=(6, 0))
         else:
-            self._prof_chart_btn.configure(fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold"))
+            self._prof_chart_btn.configure(
+                fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold")
+            )
             self._prof_table_btn.configure(fg=TEXT_DIM, bg=BG_DARK, font=("Consolas", 8))
             self._prof_text_frame.pack_forget()
             self._prof_canvas.pack(fill="x", pady=(6, 0))
@@ -2906,21 +3207,29 @@ class LauncherApp:
             bar_len = int(bar_area * avg / max_val)
             # Color thresholds (ms)
             if avg < 8:
-                color = "#4caf50"   # green
+                color = "#4caf50"  # green
             elif avg < 16:
-                color = "#ffd700"   # yellow (ACCENT)
+                color = "#ffd700"  # yellow (ACCENT)
             else:
-                color = "#e53935"   # red
+                color = "#e53935"  # red
             canvas.create_text(
-                label_w - 4, y + bar_h // 2,
-                text=sec[:20], fill=TEXT_DIM, anchor="e", font=("Consolas", 7)
+                label_w - 4,
+                y + bar_h // 2,
+                text=sec[:20],
+                fill=TEXT_DIM,
+                anchor="e",
+                font=("Consolas", 7),
             )
             canvas.create_rectangle(
                 label_w, y, label_w + bar_len, y + bar_h, fill=color, outline=""
             )
             canvas.create_text(
-                label_w + bar_len + 4, y + bar_h // 2,
-                text=f"{avg:.2f}ms", fill=TEXT_PRIMARY, anchor="w", font=("Consolas", 7)
+                label_w + bar_len + 4,
+                y + bar_h // 2,
+                text=f"{avg:.2f}ms",
+                fill=TEXT_PRIMARY,
+                anchor="w",
+                font=("Consolas", 7),
             )
 
     def _run_benchmark(self) -> None:
@@ -2930,12 +3239,12 @@ class LauncherApp:
 
         game_path = _get_game_exe()
         if not game_path.exists():
-            messagebox.showerror("Game Not Found", f"Could not find:\n{game_path}", parent=self.root)
+            messagebox.showerror(
+                "Game Not Found", f"Could not find:\n{game_path}", parent=self.root
+            )
             return
 
-        cmd = (
-            [sys.executable, str(game_path)] if game_path.suffix == ".py" else [str(game_path)]
-        )
+        cmd = [sys.executable, str(game_path)] if game_path.suffix == ".py" else [str(game_path)]
         cmd += ["--headless", "--profile"]
 
         self._bench_btn.configure(state="disabled", text="Running…")
@@ -3029,7 +3338,9 @@ class LauncherApp:
         filter_row = tk.Frame(win, bg=BG_DARK)
         filter_row.pack(fill="x", padx=6, pady=(6, 2))
 
-        tk.Label(filter_row, text="Level:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(side="left")
+        tk.Label(filter_row, text="Level:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(
+            side="left"
+        )
         level_var = tk.StringVar(value="ALL")
         level_combo = ttk.Combobox(
             filter_row,
@@ -3042,7 +3353,9 @@ class LauncherApp:
         )
         level_combo.pack(side="left", padx=(4, 10))
 
-        tk.Label(filter_row, text="Search:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(side="left")
+        tk.Label(filter_row, text="Search:", font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(
+            side="left"
+        )
         search_var = tk.StringVar()
         tk.Entry(
             filter_row,
@@ -3160,9 +3473,7 @@ class LauncherApp:
         mode = meta.get("mode", "—")
         seed = meta.get("world_seed", "—")
         frames = meta.get("total_frames", meta.get("frame_count", "—"))
-        self._replay_meta_var.set(
-            f"hub={hub}  mode={mode}  seed={seed}  frames={frames}"
-        )
+        self._replay_meta_var.set(f"hub={hub}  mode={mode}  seed={seed}  frames={frames}")
 
     def _delete_selected_replay_devtools(self) -> None:
         """Delete the replay selected in the Dev Tools combobox."""
@@ -3170,9 +3481,7 @@ class LauncherApp:
         if not name or name == "(no replays found)":
             return
         path = _get_user_data_dir() / "replays" / name
-        if not messagebox.askyesno(
-            "Delete Replay", f"Delete '{name}'?", parent=self.root
-        ):
+        if not messagebox.askyesno("Delete Replay", f"Delete '{name}'?", parent=self.root):
             return
         try:
             path.unlink(missing_ok=True)
@@ -3237,9 +3546,7 @@ class LauncherApp:
 
         latest_ver = latest_tag.lstrip("v")
         if not self._game_exe_installed():
-            self._status_var.set(
-                f"v  Game not installed — click  Install {latest_tag}  to set up"
-            )
+            self._status_var.set(f"v  Game not installed — click  Install {latest_tag}  to set up")
         elif _is_newer(latest_ver, self._local_version):
             self._status_var.set(f"^  Update available: {latest_tag}")
         else:
@@ -3332,15 +3639,11 @@ class LauncherApp:
             )
             return
 
-        sha_asset = next(
-            (a for a in assets if a.get("name") == f"{GAME_EXE_NAME}.sha256"), None
-        )
+        sha_asset = next((a for a in assets if a.get("name") == f"{GAME_EXE_NAME}.sha256"), None)
         expected_sha = None
         if sha_asset:
             try:
-                with urllib.request.urlopen(
-                    sha_asset["browser_download_url"], timeout=10
-                ) as r:
+                with urllib.request.urlopen(sha_asset["browser_download_url"], timeout=10) as r:
                     expected_sha = r.read().decode().strip().split()[0]
             except Exception:
                 pass
@@ -3412,9 +3715,7 @@ class LauncherApp:
                             pct = min(100.0, downloaded / total_size * 100)
                             remaining = total_size - downloaded
                             eta_s = int(remaining / speed) if speed > 0 else 0
-                            eta_str = (
-                                f"{eta_s}s" if eta_s < 60 else f"{eta_s // 60}m {eta_s % 60}s"
-                            )
+                            eta_str = f"{eta_s}s" if eta_s < 60 else f"{eta_s // 60}m {eta_s % 60}s"
                             status = (
                                 f"Downloading…  "
                                 f"{_format_bytes(downloaded)} / {_format_bytes(total_size)}"
@@ -3512,11 +3813,7 @@ class LauncherApp:
                 parent=self.root,
             )
             return
-        cmd = (
-            [sys.executable, str(game_path)]
-            if game_path.suffix == ".py"
-            else [str(game_path)]
-        )
+        cmd = [sys.executable, str(game_path)] if game_path.suffix == ".py" else [str(game_path)]
         # Inject --record if the Replays tab checkbox is set (skip for replay playback)
         if self._record_var.get() and "--replay" not in extra_args:
             rec_name = self._record_name_var.get().strip()
@@ -3532,9 +3829,7 @@ class LauncherApp:
             proc = subprocess.Popen(cmd)
             self._status_var.set("Game Running…  (launcher minimised)")
             self.root.iconify()
-            threading.Thread(
-                target=self._watch_game_process, args=(proc,), daemon=True
-            ).start()
+            threading.Thread(target=self._watch_game_process, args=(proc,), daemon=True).start()
         except Exception as exc:
             messagebox.showerror("Launch Error", str(exc), parent=self.root)
 
@@ -3603,9 +3898,7 @@ class LauncherApp:
             host = addr
             port = 7777
         self._ping_result_var.set("pinging…")
-        threading.Thread(
-            target=self._do_ping, args=(host, port), daemon=True
-        ).start()
+        threading.Thread(target=self._do_ping, args=(host, port), daemon=True).start()
 
     def _do_ping(self, host: str, port: int) -> None:
         try:
@@ -3640,11 +3933,11 @@ class LauncherApp:
         -1073741571: "STACK_OVERFLOW",
         -1073741676: "ILLEGAL_INSTRUCTION",
         -1073741510: "CTRL_C_EXIT",
-        0xC0000005:  "ACCESS_VIOLATION",
-        0xC00000FD:  "STACK_OVERFLOW",
-        0xC000001D:  "ILLEGAL_INSTRUCTION",
-        0xC0000409:  "STACK_BUFFER_OVERRUN",
-        0xC0000094:  "INTEGER_DIVIDE_BY_ZERO",
+        0xC0000005: "ACCESS_VIOLATION",
+        0xC00000FD: "STACK_OVERFLOW",
+        0xC000001D: "ILLEGAL_INSTRUCTION",
+        0xC0000409: "STACK_BUFFER_OVERRUN",
+        0xC0000094: "INTEGER_DIVIDE_BY_ZERO",
     }
 
     def _watch_game_process(self, proc: subprocess.Popen) -> None:
@@ -3669,6 +3962,7 @@ class LauncherApp:
 
     def _build_crash_dialog(self, returncode: int, log_tail: str) -> None:
         import urllib.parse
+
         code_str = self._decode_exit_code(returncode)
 
         win = tk.Toplevel(self.root)
@@ -3743,11 +4037,13 @@ class LauncherApp:
             ]
             if log_tail:
                 body_lines += ["", "---", "**Log tail:**", "```", log_tail, "```"]
-            params = urllib.parse.urlencode({
-                "title": f"[Crash] Exit {code_str}",
-                "labels": "crash,bug",
-                "body": "\n".join(body_lines),
-            })
+            params = urllib.parse.urlencode(
+                {
+                    "title": f"[Crash] Exit {code_str}",
+                    "labels": "crash,bug",
+                    "body": "\n".join(body_lines),
+                }
+            )
             webbrowser.open(f"{ISSUES_URL}?{params}")
 
         def _copy_to_clipboard() -> None:

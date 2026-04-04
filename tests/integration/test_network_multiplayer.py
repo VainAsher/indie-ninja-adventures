@@ -29,6 +29,7 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import pygame
+
 pygame.init()
 
 from core import EventBus, GameClock, GameLogger
@@ -39,6 +40,7 @@ from network.snapshots import WorldSnapshot, EnemyState, PickupState
 
 
 # ── shared stubs (mirrored from test_game_simulator.py — no conftest needed) ──
+
 
 class _FakePhysics:
     def __init__(self, x=0.0, y=0.0):
@@ -128,6 +130,7 @@ def _make_sim(players=None, enemy_manager=None, combat_mechanics=None):
 
 # ── player visibility ─────────────────────────────────────────────────────────
 
+
 def test_single_player_appears_in_snapshot():
     sim = _make_sim()
     snap = sim.get_snapshot(1)
@@ -159,6 +162,7 @@ def test_alive_player_not_flagged_dead():
 
 # ── Phase 3b: health sync ─────────────────────────────────────────────────────
 
+
 def test_player_health_in_snapshot_matches_state():
     p = _FakePlayer(0)
     p.state.health_state.current_hp = 3
@@ -186,6 +190,7 @@ def test_no_combat_mechanics_health_unchanged_after_step():
 
 # ── enemy state in snapshot ───────────────────────────────────────────────────
 
+
 def test_enemy_state_reflected_in_snapshot():
     """Enemies present in EnemyManager appear in the WorldSnapshot."""
     from game.game_simulator import GameSimulator
@@ -194,10 +199,13 @@ def test_enemy_state_reflected_in_snapshot():
         def __init__(self):
             class _Phys:
                 x, y, vx, vy = 200.0, 300.0, 0.0, 0.0
+
             class _Health:
                 current_hp = 3
+
             class _AIState:
                 value = "patrol"
+
             self.physics = _Phys()
             self.health_state = _Health()
             self.ai_state = _AIState()
@@ -214,16 +222,34 @@ def test_enemy_state_reflected_in_snapshot():
 
 # ── _EntityCache full + delta end-to-end ──────────────────────────────────────
 
+
 def _ws_dict(enemies=None, pickups=None, frame=1, hub="test") -> dict:
     """Build a WorldSnapshot dict as the server would broadcast."""
     players = [
-        {"player_id": "0", "slot": 0, "pos": [10.0, 20.0],
-         "vel": [0.0, 0.0], "health": 5, "facing": 1, "is_dead": False},
-        {"player_id": "1", "slot": 1, "pos": [50.0, 20.0],
-         "vel": [0.0, 0.0], "health": 5, "facing": 1, "is_dead": False},
+        {
+            "player_id": "0",
+            "slot": 0,
+            "pos": [10.0, 20.0],
+            "vel": [0.0, 0.0],
+            "health": 5,
+            "facing": 1,
+            "is_dead": False,
+        },
+        {
+            "player_id": "1",
+            "slot": 1,
+            "pos": [50.0, 20.0],
+            "vel": [0.0, 0.0],
+            "health": 5,
+            "facing": 1,
+            "is_dead": False,
+        },
     ]
     return {
-        "frame": frame, "seed": 1, "hub_id": hub, "is_delta": False,
+        "frame": frame,
+        "seed": 1,
+        "hub_id": hub,
+        "is_delta": False,
         "players": players,
         "enemies": enemies or [],
         "pickups": pickups or [],
@@ -235,8 +261,16 @@ def _ws_dict(enemies=None, pickups=None, frame=1, hub="test") -> dict:
 def test_entity_cache_reconstructs_full_state():
     cache = _EntityCache()
     enemies = [
-        {"enemy_id": "e0", "x": 0.0, "y": 0.0, "vx": 0.0, "vy": 0.0,
-         "hp": 3, "ai_state": "patrol", "facing_right": True},
+        {
+            "enemy_id": "e0",
+            "x": 0.0,
+            "y": 0.0,
+            "vx": 0.0,
+            "vy": 0.0,
+            "hp": 3,
+            "ai_state": "patrol",
+            "facing_right": True,
+        },
     ]
     result = cache.apply(_ws_dict(enemies=enemies))
     ws = WorldSnapshot.from_dict(result)
@@ -247,22 +281,43 @@ def test_entity_cache_reconstructs_full_state():
 def test_entity_cache_delta_enemy_update_reflected():
     cache = _EntityCache()
     enemies = [
-        {"enemy_id": "e0", "x": 0.0, "y": 0.0, "vx": 0.0, "vy": 0.0,
-         "hp": 3, "ai_state": "patrol", "facing_right": True},
+        {
+            "enemy_id": "e0",
+            "x": 0.0,
+            "y": 0.0,
+            "vx": 0.0,
+            "vy": 0.0,
+            "hp": 3,
+            "ai_state": "patrol",
+            "facing_right": True,
+        },
     ]
     cache.apply(_ws_dict(enemies=enemies, frame=1))
 
     # Send a delta reducing e0 HP to 1
     delta = {
-        "frame": 2, "seed": 1, "hub_id": "test", "is_delta": True,
+        "frame": 2,
+        "seed": 1,
+        "hub_id": "test",
+        "is_delta": True,
         "players": [],
         "enemies_changed": [
-            {"enemy_id": "e0", "x": 0.0, "y": 0.0, "vx": 0.0, "vy": 0.0,
-             "hp": 1, "ai_state": "chase", "facing_right": True},
+            {
+                "enemy_id": "e0",
+                "x": 0.0,
+                "y": 0.0,
+                "vx": 0.0,
+                "vy": 0.0,
+                "hp": 1,
+                "ai_state": "chase",
+                "facing_right": True,
+            },
         ],
         "enemies_removed": [],
-        "pickups_changed": [], "pickups_removed": [],
-        "platforms_changed": [], "platforms_removed": [],
+        "pickups_changed": [],
+        "pickups_removed": [],
+        "platforms_changed": [],
+        "platforms_removed": [],
         "metadata": {},
     }
     result = cache.apply(delta)
@@ -274,20 +329,41 @@ def test_entity_cache_delta_enemy_update_reflected():
 def test_entity_cache_delta_enemy_removal():
     cache = _EntityCache()
     enemies = [
-        {"enemy_id": "e0", "x": 0.0, "y": 0.0, "vx": 0.0, "vy": 0.0,
-         "hp": 3, "ai_state": "patrol", "facing_right": True},
-        {"enemy_id": "e1", "x": 100.0, "y": 0.0, "vx": 0.0, "vy": 0.0,
-         "hp": 2, "ai_state": "idle", "facing_right": False},
+        {
+            "enemy_id": "e0",
+            "x": 0.0,
+            "y": 0.0,
+            "vx": 0.0,
+            "vy": 0.0,
+            "hp": 3,
+            "ai_state": "patrol",
+            "facing_right": True,
+        },
+        {
+            "enemy_id": "e1",
+            "x": 100.0,
+            "y": 0.0,
+            "vx": 0.0,
+            "vy": 0.0,
+            "hp": 2,
+            "ai_state": "idle",
+            "facing_right": False,
+        },
     ]
     cache.apply(_ws_dict(enemies=enemies, frame=1))
 
     delta = {
-        "frame": 2, "seed": 1, "hub_id": "test", "is_delta": True,
+        "frame": 2,
+        "seed": 1,
+        "hub_id": "test",
+        "is_delta": True,
         "players": [],
         "enemies_changed": [],
-        "enemies_removed": ["e0"],   # e0 was killed
-        "pickups_changed": [], "pickups_removed": [],
-        "platforms_changed": [], "platforms_removed": [],
+        "enemies_removed": ["e0"],  # e0 was killed
+        "pickups_changed": [],
+        "pickups_removed": [],
+        "platforms_changed": [],
+        "platforms_removed": [],
         "metadata": {},
     }
     result = cache.apply(delta)

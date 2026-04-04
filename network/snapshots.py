@@ -48,13 +48,13 @@ class PlayerState:
     """Per-player state broadcast in a multiplayer frame."""
 
     player_id: str
-    slot: int                          # 0 = host, 1 = first client, …
+    slot: int  # 0 = host, 1 = first client, …
     pos: tuple[float, float]
     vel: tuple[float, float]
     health: int
-    facing: int                        # 1 = right, -1 = left
+    facing: int  # 1 = right, -1 = left
     is_dead: bool = False
-    anim_state: str = ""               # resolved animation state name; "" = use inference
+    anim_state: str = ""  # resolved animation state name; "" = use inference
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -124,7 +124,7 @@ class EnemyState:
     vx: float
     vy: float
     hp: int
-    ai_state: str          # "idle" | "patrol" | "chase" | "attack" | "dead"
+    ai_state: str  # "idle" | "patrol" | "chase" | "attack" | "dead"
     facing_right: bool
 
     def to_dict(self) -> dict[str, Any]:
@@ -187,8 +187,8 @@ class PickupState:
 class PlatformState:
     """Authoritative state of one falling or moving platform."""
 
-    platform_id: str       # "plat_{origin_x}_{origin_y}"
-    state: str             # "idle" | "triggered" | "falling" | "respawn"
+    platform_id: str  # "plat_{origin_x}_{origin_y}"
+    state: str  # "idle" | "triggered" | "falling" | "respawn"
     pos_y: float
     timer: float
     vy: float
@@ -224,7 +224,7 @@ class WorldSnapshot:
     pickups: list[PickupState]
     platform_states: list[PlatformState]
     metadata: dict[str, Any]
-    hub_id: str = ""   # zone this snapshot belongs to; "" = pre-Phase-4 server
+    hub_id: str = ""  # zone this snapshot belongs to; "" = pre-Phase-4 server
 
     def to_dict(self) -> dict[str, Any]:
         return {

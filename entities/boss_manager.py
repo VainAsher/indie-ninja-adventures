@@ -496,6 +496,7 @@ class BossManager:
 
         # Boss body contact damage only when executing a special attack
         from entities.boss_ai import BossAIState as _AIS
+
         if self.boss_ai.get_state() == _AIS.SPECIAL_ATTACK:
             if self._check_rect_collision(
                 player_x, player_y, player_width, player_height, *boss.get_rect()
@@ -610,9 +611,7 @@ class BossManager:
 
         self.boss_defeated = True
 
-    def _execute_ranged_attack(
-        self, origin: tuple[float, float], player_x: float, player_y: float
-    ):
+    def _execute_ranged_attack(self, origin: tuple[float, float], player_x: float, player_y: float):
         """Fire a single aimed projectile based on the active boss type."""
         if not self.active_boss:
             return
@@ -646,9 +645,7 @@ class BossManager:
                 self.projectiles.remove(projectile)
         return total
 
-    def destroy_projectiles_in_rect(
-        self, x: float, y: float, width: int, height: int
-    ) -> int:
+    def destroy_projectiles_in_rect(self, x: float, y: float, width: int, height: int) -> int:
         """Destroy any boss projectiles overlapping the given rect (player attack hitbox).
         Returns the number of projectiles destroyed."""
         destroyed = 0
@@ -671,33 +668,60 @@ class BossManager:
         # ── FIRE DEMON ────────────────────────────────────────────────────────
         if special_type == "fireball_barrage":
             self._create_projectile_barrage(
-                boss_center, player_x, player_y, count=5,
-                proj_type="fireball", speed=200.0, damage=1,
+                boss_center,
+                player_x,
+                player_y,
+                count=5,
+                proj_type="fireball",
+                speed=200.0,
+                damage=1,
             )
         elif special_type == "flame_breath":
             # Wide cone of fireballs — dodgeable by reading the cone
             self._create_projectile_barrage(
-                boss_center, player_x, player_y, count=7,
-                proj_type="flame", speed=160.0, damage=1, spread=0.5,
+                boss_center,
+                player_x,
+                player_y,
+                count=7,
+                proj_type="flame",
+                speed=160.0,
+                damage=1,
+                spread=0.5,
             )
         elif special_type == "meteor_strike":
             # Slow heavy projectile — 2 damage as a punishing but telegraphed hit
             self._create_homing_projectile(
-                boss_center, player_x, player_y, proj_type="meteor", speed=120.0,
-                damage=2, width=32, height=32,
+                boss_center,
+                player_x,
+                player_y,
+                proj_type="meteor",
+                speed=120.0,
+                damage=2,
+                width=32,
+                height=32,
             )
 
         # ── SHADOW LORD ───────────────────────────────────────────────────────
         elif special_type == "shadow_strike":
             self._create_homing_projectile(
-                boss_center, player_x, player_y, proj_type="shadow_bolt", speed=250.0,
+                boss_center,
+                player_x,
+                player_y,
+                proj_type="shadow_bolt",
+                speed=250.0,
                 damage=1,
             )
         elif special_type == "dark_wave":
             # Three shadow bolts in a horizontal spread
             self._create_projectile_barrage(
-                boss_center, player_x, player_y, count=3,
-                proj_type="dark_wave", speed=220.0, damage=1, spread=0.35,
+                boss_center,
+                player_x,
+                player_y,
+                count=3,
+                proj_type="dark_wave",
+                speed=220.0,
+                damage=1,
+                spread=0.35,
             )
         elif special_type == "void_portal":
             # Teleport boss to player position + surrounding damage burst
@@ -707,26 +731,46 @@ class BossManager:
         elif special_type == "blizzard":
             # Slow wide spread of ice shards
             self._create_projectile_barrage(
-                boss_center, player_x, player_y, count=6,
-                proj_type="ice_shard", speed=140.0, damage=1, spread=0.6,
+                boss_center,
+                player_x,
+                player_y,
+                count=6,
+                proj_type="ice_shard",
+                speed=140.0,
+                damage=1,
+                spread=0.6,
             )
         elif special_type == "ice_spike":
             # Single fast spike aimed directly
             self._create_homing_projectile(
-                boss_center, player_x, player_y, proj_type="ice_spike", speed=320.0,
+                boss_center,
+                player_x,
+                player_y,
+                proj_type="ice_spike",
+                speed=320.0,
                 damage=1,
             )
         elif special_type == "freeze_ray":
             # Slow homing beam
             self._create_homing_projectile(
-                boss_center, player_x, player_y, proj_type="freeze_ray", speed=180.0,
-                damage=1, width=20, height=8,
+                boss_center,
+                player_x,
+                player_y,
+                proj_type="freeze_ray",
+                speed=180.0,
+                damage=1,
+                width=20,
+                height=8,
             )
 
         # ── NECROMANCER ───────────────────────────────────────────────────────
         elif special_type == "death_ray":
             self._create_homing_projectile(
-                boss_center, player_x, player_y, proj_type="death_ray", speed=280.0,
+                boss_center,
+                player_x,
+                player_y,
+                proj_type="death_ray",
+                speed=280.0,
                 damage=1,
             )
         elif special_type == "soul_drain":
@@ -734,25 +778,44 @@ class BossManager:
         elif special_type == "bone_cage":
             # Slow-moving cage of projectiles converging on player position
             self._create_projectile_barrage(
-                boss_center, player_x, player_y, count=4,
-                proj_type="bone", speed=100.0, damage=1, spread=0.25,
+                boss_center,
+                player_x,
+                player_y,
+                count=4,
+                proj_type="bone",
+                speed=100.0,
+                damage=1,
+                spread=0.25,
             )
 
         # ── DRAGON ────────────────────────────────────────────────────────────
         elif special_type == "fire_breath":
             self._create_projectile_barrage(
-                boss_center, player_x, player_y, count=8,
-                proj_type="flame", speed=180.0, damage=1, spread=0.55,
+                boss_center,
+                player_x,
+                player_y,
+                count=8,
+                proj_type="flame",
+                speed=180.0,
+                damage=1,
+                spread=0.55,
             )
         elif special_type == "wing_slam":
             # Radial burst of shockwaves around the boss
             self._create_radial_burst(
-                boss_center, count=6, proj_type="shockwave", speed=150.0, damage=1,
+                boss_center,
+                count=6,
+                proj_type="shockwave",
+                speed=150.0,
+                damage=1,
             )
         elif special_type == "tail_sweep":
             # Horizontal wave in both directions
             self._create_horizontal_wave(
-                boss_center, proj_type="tail_wave", speed=200.0, damage=1,
+                boss_center,
+                proj_type="tail_wave",
+                speed=200.0,
+                damage=1,
             )
 
         # ── VEIL MAIDEN ───────────────────────────────────────────────────────
@@ -768,7 +831,11 @@ class BossManager:
         # ── GENERIC FALLBACK ──────────────────────────────────────────────────
         elif special_type == "shockwave":
             self._create_radial_burst(
-                boss_center, count=4, proj_type="shockwave", speed=160.0, damage=1,
+                boss_center,
+                count=4,
+                proj_type="shockwave",
+                speed=160.0,
+                damage=1,
             )
 
         # Emit event
@@ -910,8 +977,9 @@ class BossManager:
         self.active_boss.x = player_x + 80
         self.active_boss.y = player_y
         new_center = self.active_boss.get_center()
-        self._create_radial_burst(new_center, count=8, proj_type="void_shard", speed=140.0,
-                                  damage=damage)
+        self._create_radial_burst(
+            new_center, count=8, proj_type="void_shard", speed=140.0, damage=damage
+        )
         self.event_bus.emit(
             "boss_teleported",
             {"boss_id": self.active_boss.boss_id, "position": new_center},

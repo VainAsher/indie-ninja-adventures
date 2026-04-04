@@ -76,12 +76,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.7"
+          cache-read-only: false
 
       - name: Build server JAR + run tests
         working-directory: java
         shell: bash
-        run: ./gradlew :server:test :server:shadowJar --no-daemon --stacktrace
+        run: gradle :server:test :server:shadowJar --no-daemon --stacktrace
 
       - name: Upload server JAR
         uses: actions/upload-artifact@v4

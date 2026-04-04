@@ -46,9 +46,9 @@ def _make_system():
     mgr = EntityManager(bus)
     sys = CollisionSystem(bus, mgr)
     tiles = [
-        pygame.Rect(WALL_X, 0, TILE_SIZE, TILE_SIZE),           # upper wall
-        pygame.Rect(WALL_X, TILE_SIZE, TILE_SIZE, TILE_SIZE),   # lower wall (adjacent to floor)
-        pygame.Rect(0, FLOOR_Y, TILE_SIZE * 4, TILE_SIZE),      # wide floor
+        pygame.Rect(WALL_X, 0, TILE_SIZE, TILE_SIZE),  # upper wall
+        pygame.Rect(WALL_X, TILE_SIZE, TILE_SIZE, TILE_SIZE),  # lower wall (adjacent to floor)
+        pygame.Rect(0, FLOOR_Y, TILE_SIZE * 4, TILE_SIZE),  # wide floor
     ]
     sys.set_tiles(tiles)
     return sys
@@ -63,8 +63,12 @@ def _make_player(vx: float, vy: float) -> Entity:
         entity_id=0,
         entity_type=EntityType.PLAYER,
         physics=PhysicsState(
-            x=px, y=py, vx=vx, vy=vy,
-            width=PLAYER_W, height=PLAYER_H,
+            x=px,
+            y=py,
+            vx=vx,
+            vy=vy,
+            width=PLAYER_W,
+            height=PLAYER_H,
             on_ground=False,  # PhysicsSystem already cleared this before collision
         ),
     )
@@ -73,6 +77,7 @@ def _make_player(vx: float, vy: float) -> Entity:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestJumpIntoWallFloorClip:
     """Player must NOT be pushed below the floor when jumping into a wall."""
@@ -87,8 +92,8 @@ class TestJumpIntoWallFloorClip:
         # and up (vy=-14.5, first jump frame).
         player = _make_player(vx=8.0, vy=-14.5)
         # Apply the same displacement PhysicsSystem would have applied
-        player.physics.x += player.physics.vx    # now overlapping wall
-        player.physics.y += player.physics.vy    # now airborne
+        player.physics.x += player.physics.vx  # now overlapping wall
+        player.physics.y += player.physics.vy  # now airborne
 
         entity_manager = sys.entity_manager
         entity_manager.entities[0] = player
@@ -96,9 +101,9 @@ class TestJumpIntoWallFloorClip:
 
         floor_top = FLOOR_Y
         player_bottom = player.physics.y + PLAYER_H
-        assert player_bottom <= floor_top + 1, (
-            f"Player sank below floor: feet at {player_bottom}, floor at {floor_top}"
-        )
+        assert (
+            player_bottom <= floor_top + 1
+        ), f"Player sank below floor: feet at {player_bottom}, floor at {floor_top}"
 
     def test_normal_jump_does_not_sink_below_floor(self):
         """
@@ -116,9 +121,9 @@ class TestJumpIntoWallFloorClip:
 
         floor_top = FLOOR_Y
         player_bottom = player.physics.y + PLAYER_H
-        assert player_bottom <= floor_top + 1, (
-            f"Player sank below floor: feet at {player_bottom}, floor at {floor_top}"
-        )
+        assert (
+            player_bottom <= floor_top + 1
+        ), f"Player sank below floor: feet at {player_bottom}, floor at {floor_top}"
 
     def test_player_is_pushed_away_from_wall_not_into_floor(self):
         """
@@ -137,12 +142,12 @@ class TestJumpIntoWallFloorClip:
         wall_tile = pygame.Rect(WALL_X, TILE_SIZE, TILE_SIZE, TILE_SIZE)
         floor_tile = pygame.Rect(0, FLOOR_Y, TILE_SIZE * 4, TILE_SIZE)
 
-        assert not player_rect.colliderect(wall_tile), (
-            "Player is still overlapping the wall tile after resolution"
-        )
-        assert not player_rect.colliderect(floor_tile), (
-            "Player is overlapping the floor tile — sank into the ground"
-        )
+        assert not player_rect.colliderect(
+            wall_tile
+        ), "Player is still overlapping the wall tile after resolution"
+        assert not player_rect.colliderect(
+            floor_tile
+        ), "Player is overlapping the floor tile — sank into the ground"
 
     def test_jump_velocity_not_zeroed_by_false_ceiling(self):
         """
@@ -177,14 +182,18 @@ class TestJumpIntoWallFloorClip:
         sys2.set_tiles(tiles)
 
         # Player stands to the right of the left wall, pressing left
-        px = float(TILE_SIZE)          # left edge at x=32 (touching wall.right)
+        px = float(TILE_SIZE)  # left edge at x=32 (touching wall.right)
         py = float(FLOOR_Y - PLAYER_H)
         player = Entity(
             entity_id=0,
             entity_type=EntityType.PLAYER,
             physics=PhysicsState(
-                x=px, y=py, vx=-8.0, vy=-14.5,
-                width=PLAYER_W, height=PLAYER_H,
+                x=px,
+                y=py,
+                vx=-8.0,
+                vy=-14.5,
+                width=PLAYER_W,
+                height=PLAYER_H,
                 on_ground=False,
             ),
         )
@@ -196,7 +205,7 @@ class TestJumpIntoWallFloorClip:
 
         floor_top = FLOOR_Y
         player_bottom = player.physics.y + PLAYER_H
-        assert player_bottom <= floor_top + 1, (
-            f"Player sank below floor when pressing left: feet at {player_bottom}"
-        )
+        assert (
+            player_bottom <= floor_top + 1
+        ), f"Player sank below floor when pressing left: feet at {player_bottom}"
         assert player.physics.vy < 0, "Jump velocity was zeroed by false ceiling (left wall)"

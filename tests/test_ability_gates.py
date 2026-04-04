@@ -17,6 +17,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame
+
 pygame.init()
 
 
@@ -26,11 +27,11 @@ pygame.init()
 
 _ABILITY_TO_FLAG = {
     "double_jump": "double_jump",
-    "wall_jump":   "wall_jump",
-    "dash":        "dash",
-    "shuriken":    "shuriken",
-    "teleport":    "teleport",
-    "ninjutsu":    "ninjutsu",
+    "wall_jump": "wall_jump",
+    "dash": "dash",
+    "shuriken": "shuriken",
+    "teleport": "teleport",
+    "ninjutsu": "ninjutsu",
 }
 
 
@@ -40,7 +41,7 @@ def _sync_player_abilities(player, unlocked_abilities):
     for ability, flag in _ABILITY_TO_FLAG.items():
         player.feature_flags[flag] = ability in unlocked
     player.jump.double_jump_enabled = player.feature_flags.get("double_jump", False)
-    player.jump.wall_jump_enabled   = player.feature_flags.get("wall_jump", False)
+    player.jump.wall_jump_enabled = player.feature_flags.get("wall_jump", False)
 
 
 def _make_player(all_enabled: bool = True):
@@ -57,12 +58,12 @@ def _make_player(all_enabled: bool = True):
     cs = CollisionSystem(bus, em, logger.get_logger("cs"))
     flags = {
         "double_jump": all_enabled,
-        "wall_jump":   all_enabled,
-        "dash":        all_enabled,
-        "crouch":      True,
-        "shuriken":    all_enabled,
-        "teleport":    all_enabled,
-        "ninjutsu":    all_enabled,
+        "wall_jump": all_enabled,
+        "dash": all_enabled,
+        "crouch": True,
+        "shuriken": all_enabled,
+        "teleport": all_enabled,
+        "ninjutsu": all_enabled,
     }
     return Player(
         player_id=0,
@@ -79,20 +80,23 @@ def _make_player(all_enabled: bool = True):
 # Tests
 # ------------------------------------------------------------------
 
+
 class TestCampaignStartAbilities(unittest.TestCase):
     """At campaign start only basic_movement + jump should be unlocked."""
 
     def test_fresh_campaign_unlocked_abilities(self):
         """save_system's default unlocked_abilities is basic_movement + jump only."""
         from systems.save_system import CampaignSaveData
+
         campaign = CampaignSaveData()
         self.assertIn("basic_movement", campaign.unlocked_abilities)
         self.assertIn("jump", campaign.unlocked_abilities)
         # Advanced abilities must NOT be present at start
         for ability in ("double_jump", "wall_jump", "dash", "shuriken", "teleport", "ninjutsu"):
             self.assertNotIn(
-                ability, campaign.unlocked_abilities,
-                f"'{ability}' should not be unlocked at campaign start"
+                ability,
+                campaign.unlocked_abilities,
+                f"'{ability}' should not be unlocked at campaign start",
             )
 
 
@@ -107,7 +111,7 @@ class TestSyncPlayerAbilities(unittest.TestCase):
         for ability, flag in _ABILITY_TO_FLAG.items():
             self.assertFalse(
                 player.feature_flags.get(flag),
-                f"feature_flags['{flag}'] should be False after basic-only sync"
+                f"feature_flags['{flag}'] should be False after basic-only sync",
             )
 
     def test_sync_updates_jump_mechanic_instance_vars(self):
@@ -119,10 +123,13 @@ class TestSyncPlayerAbilities(unittest.TestCase):
 
         _sync_player_abilities(player, {"basic_movement", "jump"})
 
-        self.assertFalse(player.jump.double_jump_enabled,
-                         "JumpMechanic.double_jump_enabled must be False after sync")
-        self.assertFalse(player.jump.wall_jump_enabled,
-                         "JumpMechanic.wall_jump_enabled must be False after sync")
+        self.assertFalse(
+            player.jump.double_jump_enabled,
+            "JumpMechanic.double_jump_enabled must be False after sync",
+        )
+        self.assertFalse(
+            player.jump.wall_jump_enabled, "JumpMechanic.wall_jump_enabled must be False after sync"
+        )
 
     def test_unlocking_double_jump_enables_it(self):
         """Adding double_jump to unlocked set should enable double_jump flag."""
@@ -149,7 +156,7 @@ class TestSyncPlayerAbilities(unittest.TestCase):
         for ability, flag in _ABILITY_TO_FLAG.items():
             self.assertTrue(
                 player.feature_flags.get(flag),
-                f"feature_flags['{flag}'] should be True after full unlock"
+                f"feature_flags['{flag}'] should be True after full unlock",
             )
 
     def test_empty_unlocked_disables_everything(self):

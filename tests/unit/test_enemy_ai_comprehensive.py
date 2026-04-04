@@ -127,6 +127,7 @@ def test_attack_deals_damage():
     rather than a return value from AI.update().
     """
     import pygame
+
     pygame.init()
 
     from entities.enemy import EnemyAttackSubState
@@ -141,9 +142,9 @@ def test_attack_deals_damage():
     for _ in range(35):
         ai.update(1 / 60, 110.0, 100.0, 32, 56)
 
-    assert enemy.attack_substate == EnemyAttackSubState.ACTIVE, (
-        f"Should reach ACTIVE substate, got {enemy.attack_substate}"
-    )
+    assert (
+        enemy.attack_substate == EnemyAttackSubState.ACTIVE
+    ), f"Should reach ACTIVE substate, got {enemy.attack_substate}"
     hitbox = enemy.get_attack_hitbox()
     assert hitbox is not None, "Goblin should expose forward hitbox during ACTIVE"
     assert hitbox[2] > 0, "Hitbox width should be positive"
@@ -157,6 +158,7 @@ def test_attack_cooldown():
     In 125 frames (~2.08s) exactly one complete ACTIVE phase should occur.
     """
     import pygame
+
     pygame.init()
 
     from entities.enemy import EnemyAttackSubState
@@ -178,9 +180,9 @@ def test_attack_cooldown():
             active_events += 1
         prev_substate = enemy.attack_substate
 
-    assert active_events == 1, (
-        f"Expected 1 ACTIVE phase in 125 frames (cycle ~1.85s), got {active_events}"
-    )
+    assert (
+        active_events == 1
+    ), f"Expected 1 ACTIVE phase in 125 frames (cycle ~1.85s), got {active_events}"
     print("[PASS] Attack cooldown limits to 1 cycle in 125 frames")
 
 

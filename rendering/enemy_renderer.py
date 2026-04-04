@@ -17,6 +17,7 @@ import pygame
 
 # ─────────────────────────────────────────────────────────────── helpers ────
 
+
 def _shadow(surface: pygame.Surface, rect: pygame.Rect) -> None:
     """Soft ellipse drop-shadow beneath a character."""
     sw = max(rect.width - 6, 4)
@@ -40,6 +41,7 @@ def _hurt_flash(surface: pygame.Surface, rect: pygame.Rect, invincibility_frames
 #  Small humanoid enemy: pointed hat, big eyes, dagger.
 #  Goblin (32 × 48)
 
+
 def draw_goblin(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -55,12 +57,12 @@ def draw_goblin(
     cx = rect.centerx
     flip = 1 if facing_right else -1
 
-    C_BODY   = (65, 140, 65)
-    C_HEAD   = (90, 165, 80)
-    C_SKIN   = (135, 195, 105)
-    C_EYE    = (15, 15, 15)
-    C_MOUTH  = (145, 65, 65)
-    C_HAT    = (45, 95, 45)
+    C_BODY = (65, 140, 65)
+    C_HEAD = (90, 165, 80)
+    C_SKIN = (135, 195, 105)
+    C_EYE = (15, 15, 15)
+    C_MOUTH = (145, 65, 65)
+    C_HAT = (45, 95, 45)
     C_WEAPON = (175, 145, 85)
 
     _shadow(surface, rect)
@@ -74,8 +76,11 @@ def draw_goblin(
     lh = h // 4
     ly = y + h - lh
     for i, lx in enumerate((cx - lw - 1, cx + 1)):
-        walk = ((-3 if i == 0 else 3) if animation_frame % 2 == 0
-                else (3 if i == 0 else -3)) if moving else 0
+        walk = (
+            ((-3 if i == 0 else 3) if animation_frame % 2 == 0 else (3 if i == 0 else -3))
+            if moving
+            else 0
+        )
         pygame.draw.rect(surface, C_BODY, (lx, ly + walk, lw, lh))
 
     # Body
@@ -127,6 +132,7 @@ def draw_goblin(
 #  Flying enemy: leathery wings that flap, glowing red eyes.
 #  Bat (24 × 24)
 
+
 def draw_bat(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -140,10 +146,10 @@ def draw_bat(
     cx, cy = rect.centerx, rect.centery
 
     C_BODY = (55, 50, 75)
-    C_MEM  = (72, 62, 95)   # wing membrane
-    C_EDGE = (38, 33, 58)   # wing outline
-    C_EYE  = (215, 55, 55)
-    C_EAR  = (80, 68, 100)
+    C_MEM = (72, 62, 95)  # wing membrane
+    C_EDGE = (38, 33, 58)  # wing outline
+    C_EYE = (215, 55, 55)
+    C_EAR = (80, 68, 100)
 
     _shadow(surface, rect)
 
@@ -178,11 +184,15 @@ def draw_bat(
 
     # Ears
     for side, ex in ((-1, cx - 5), (1, cx + 5)):
-        pygame.draw.polygon(surface, C_EAR, [
-            (ex, cy - bry),
-            (ex + side * 5, cy - bry - 7),
-            (ex + side * 1, cy - bry - 1),
-        ])
+        pygame.draw.polygon(
+            surface,
+            C_EAR,
+            [
+                (ex, cy - bry),
+                (ex + side * 5, cy - bry - 7),
+                (ex + side * 1, cy - bry - 1),
+            ],
+        )
 
     # Eyes
     for ex in (cx - 4, cx + 4):
@@ -195,6 +205,7 @@ def draw_bat(
 #
 #  Slow blob: squishes wide when walking, glossy highlight, wobbly eyes.
 #  Slime (40 × 32)
+
 
 def draw_slime(
     surface: pygame.Surface,
@@ -210,9 +221,9 @@ def draw_slime(
     x, y, w, h = rect.x, rect.y, rect.width, rect.height
     cx = rect.centerx
 
-    C_BODY  = (120, 80, 188)
+    C_BODY = (120, 80, 188)
     C_SHINE = (168, 128, 228)
-    C_EYE   = (240, 240, 255)
+    C_EYE = (240, 240, 255)
     C_PUPIL = (28, 18, 58)
 
     _shadow(surface, rect)
@@ -231,13 +242,11 @@ def draw_slime(
     # Top bump
     bump_w = bw // 2
     bump_h = bh // 3
-    pygame.draw.ellipse(surface, C_BODY,
-                        (cx - bump_w // 2, by - bump_h // 2, bump_w, bump_h))
+    pygame.draw.ellipse(surface, C_BODY, (cx - bump_w // 2, by - bump_h // 2, bump_w, bump_h))
 
     # Shine
     sw, sh = bw // 5, bh // 6
-    pygame.draw.ellipse(surface, C_SHINE,
-                        (bx + bw // 5, by + bh // 6, sw, sh))
+    pygame.draw.ellipse(surface, C_SHINE, (bx + bw // 5, by + bh // 6, sw, sh))
 
     # Eyes
     eye_cy = by + bh // 3
@@ -254,6 +263,7 @@ def draw_slime(
 #  Undead humanoid: visible ribcage, glowing green eye sockets, bony joints.
 #  Skeleton (32 × 56)
 
+
 def draw_skeleton(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -269,10 +279,10 @@ def draw_skeleton(
     cx = rect.centerx
     flip = 1 if facing_right else -1
 
-    C_BONE  = (215, 205, 185)
+    C_BONE = (215, 205, 185)
     C_JOINT = (150, 138, 120)
-    C_EYE   = (15, 15, 15)
-    C_GLOW  = (75, 200, 95)
+    C_EYE = (15, 15, 15)
+    C_GLOW = (75, 200, 95)
     C_TEETH = (255, 255, 255)
 
     _shadow(surface, rect)
@@ -281,30 +291,32 @@ def draw_skeleton(
     stunned = ai_state == EnemyAIState.STUNNED
     bob = -1 if (moving and animation_frame % 2 == 0) else 0
 
-    bw = max(w // 7, 3)   # bone width
-    base = y + h          # floor
+    bw = max(w // 7, 3)  # bone width
+    base = y + h  # floor
 
     # Proportions
-    leg_h   = int(h * 0.28)
+    leg_h = int(h * 0.28)
     torso_h = int(h * 0.32)
-    arm_h   = int(torso_h * 0.85)
-    head_r  = int(w * 0.37)
+    arm_h = int(torso_h * 0.85)
+    head_r = int(w * 0.37)
 
     # Legs
     for i, lx in enumerate((cx - bw - 1, cx + 1)):
-        walk = ((-3 if i == 0 else 3) if animation_frame % 2 == 0
-                else (3 if i == 0 else -3)) if moving else 0
+        walk = (
+            ((-3 if i == 0 else 3) if animation_frame % 2 == 0 else (3 if i == 0 else -3))
+            if moving
+            else 0
+        )
         femur_top = base - leg_h + bob
         pygame.draw.rect(surface, C_BONE, (lx, femur_top, bw, leg_h // 2))
-        pygame.draw.circle(surface, C_JOINT,
-                           (lx + bw // 2, femur_top + leg_h // 2), bw // 2 + 1)
+        pygame.draw.circle(surface, C_JOINT, (lx + bw // 2, femur_top + leg_h // 2), bw // 2 + 1)
         shin_x = lx + walk // 2
         pygame.draw.rect(surface, C_BONE, (shin_x, femur_top + leg_h // 2, bw, leg_h // 2))
         pygame.draw.rect(surface, C_BONE, (shin_x - 1, base - 3 + bob, bw + 2, 3))
 
     # Torso / ribcage
     torso_top = base - leg_h - torso_h + bob
-    torso_w   = int(w * 0.70)
+    torso_w = int(w * 0.70)
     # Spine
     pygame.draw.line(surface, C_BONE, (cx, torso_top), (cx, torso_top + torso_h), max(bw - 1, 2))
     # Three rib pairs
@@ -318,10 +330,14 @@ def draw_skeleton(
         ax = cx + side * int(w * 0.38) - (bw if side > 0 else 0)
         arm_off = (-2 if side == flip else 2) if moving else 0
         pygame.draw.rect(surface, C_BONE, (ax, torso_top + 2 + arm_off, bw, arm_h // 2))
-        pygame.draw.circle(surface, C_JOINT,
-                           (ax + bw // 2, torso_top + 2 + arm_off + arm_h // 2), bw // 2 + 1)
-        pygame.draw.rect(surface, C_BONE,
-                         (ax - arm_off // 2, torso_top + 2 + arm_off + arm_h // 2, bw, arm_h // 2))
+        pygame.draw.circle(
+            surface, C_JOINT, (ax + bw // 2, torso_top + 2 + arm_off + arm_h // 2), bw // 2 + 1
+        )
+        pygame.draw.rect(
+            surface,
+            C_BONE,
+            (ax - arm_off // 2, torso_top + 2 + arm_off + arm_h // 2, bw, arm_h // 2),
+        )
 
     # Skull
     skull_cy = torso_top - head_r + bob
@@ -353,6 +369,7 @@ def draw_skeleton(
 #  Fast quadruped: four legs, snout, perked ears, wagging tail.
 #  Wolf (48 × 32)
 
+
 def draw_wolf(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -368,11 +385,11 @@ def draw_wolf(
     cx, cy = rect.centerx, rect.centery
     flip = 1 if facing_right else -1
 
-    C_FUR   = (92, 72, 52)
-    C_DARK  = (52, 40, 28)
+    C_FUR = (92, 72, 52)
+    C_DARK = (52, 40, 28)
     C_BELLY = (142, 118, 92)
-    C_EYE   = (198, 158, 38)
-    C_NOSE  = (28, 22, 22)
+    C_EYE = (198, 158, 38)
+    C_NOSE = (28, 22, 22)
     C_TEETH = (242, 238, 225)
 
     _shadow(surface, rect)
@@ -382,8 +399,8 @@ def draw_wolf(
 
     body_w = int(w * 0.58)
     body_h = int(h * 0.52)
-    leg_w  = max(w // 10, 3)
-    leg_h  = int(h * 0.44)
+    leg_w = max(w // 10, 3)
+    leg_h = int(h * 0.44)
     head_w = int(w * 0.30)
     head_h = int(h * 0.56)
 
@@ -415,16 +432,22 @@ def draw_wolf(
         body_x + body_w * 4 // 5,
     ]
     for i, lx in enumerate(leg_xs):
-        walk = ((-3 if i % 2 == 0 else 3) if animation_frame % 2 == 0
-                else (3 if i % 2 == 0 else -3)) if moving else 0
-        pygame.draw.rect(surface, C_DARK, (lx - leg_w // 2, body_y + body_h - 2, leg_w, leg_h + walk))
+        walk = (
+            ((-3 if i % 2 == 0 else 3) if animation_frame % 2 == 0 else (3 if i % 2 == 0 else -3))
+            if moving
+            else 0
+        )
+        pygame.draw.rect(
+            surface, C_DARK, (lx - leg_w // 2, body_y + body_h - 2, leg_w, leg_h + walk)
+        )
 
     # Body
     pygame.draw.rect(surface, C_FUR, (body_x, body_y, body_w, body_h), border_radius=4)
     # Belly patch
     belly_y = body_y + body_h // 3
-    pygame.draw.ellipse(surface, C_BELLY,
-                        (body_x + body_w // 5, belly_y, body_w * 3 // 5, body_h // 2))
+    pygame.draw.ellipse(
+        surface, C_BELLY, (body_x + body_w // 5, belly_y, body_w * 3 // 5, body_h // 2)
+    )
 
     # Head
     head_y = y + h - head_h - leg_h + 2
@@ -453,9 +476,9 @@ def draw_wolf(
     else:
         ear_xs = (head_x + head_w - 8, head_x + head_w // 2 - 2)
     for ex in ear_xs:
-        pygame.draw.polygon(surface, C_DARK, [
-            (ex, ear_base_y), (ex + 4, ear_base_y), (ex + 2, ear_base_y - 6)
-        ])
+        pygame.draw.polygon(
+            surface, C_DARK, [(ex, ear_base_y), (ex + 4, ear_base_y), (ex + 2, ear_base_y - 6)]
+        )
 
     # Eye
     eye_y = head_y + head_h // 4
@@ -467,6 +490,7 @@ def draw_wolf(
 
 
 # ──────────────────────────────────────────────────────────── NPC HELPERS ────
+
 
 def _npc_base(
     surface: pygame.Surface,
@@ -532,6 +556,7 @@ def _npc_base(
 #
 #  Golden-cloaked figure with a scroll — quest givers.
 
+
 def draw_npc_mission_giver(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -543,7 +568,10 @@ def draw_npc_mission_giver(
     flip = 1 if facing_right else -1
 
     cx, bx, by, bw, bh, hcx, hcy, hr = _npc_base(
-        surface, rect, facing_right, animation_frame,
+        surface,
+        rect,
+        facing_right,
+        animation_frame,
         body_color=(175, 138, 58),
         skin_color=(218, 182, 138),
         leg_color=(138, 102, 42),
@@ -551,8 +579,10 @@ def draw_npc_mission_giver(
 
     # Cloak over body
     cloak_pts = [
-        (bx - 2, by), (bx + bw + 2, by),
-        (bx + bw + 6, by + bh), (bx - 6, by + bh),
+        (bx - 2, by),
+        (bx + bw + 2, by),
+        (bx + bw + 6, by + bh),
+        (bx - 6, by + bh),
     ]
     pygame.draw.polygon(surface, (128, 92, 28), cloak_pts)
     pygame.draw.line(surface, (255, 212, 58), (bx - 2, by + 2), (bx + bw + 2, by + 2), 1)
@@ -569,6 +599,7 @@ def draw_npc_mission_giver(
 #
 #  Green-aproned merchant carrying a coin bag.
 
+
 def draw_npc_shop(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -580,7 +611,10 @@ def draw_npc_shop(
     flip = 1 if facing_right else -1
 
     cx, bx, by, bw, bh, hcx, hcy, hr = _npc_base(
-        surface, rect, facing_right, animation_frame,
+        surface,
+        rect,
+        facing_right,
+        animation_frame,
         body_color=(48, 175, 88),
         skin_color=(182, 222, 168),
         leg_color=(38, 138, 68),
@@ -588,8 +622,10 @@ def draw_npc_shop(
 
     # Apron
     apron_pts = [
-        (cx - bw // 4, by + 2), (cx + bw // 4, by + 2),
-        (cx + bw // 3, by + bh), (cx - bw // 3, by + bh),
+        (cx - bw // 4, by + 2),
+        (cx + bw // 4, by + 2),
+        (cx + bw // 3, by + bh),
+        (cx - bw // 3, by + bh),
     ]
     pygame.draw.polygon(surface, (198, 228, 198), apron_pts)
 
@@ -606,6 +642,7 @@ def draw_npc_shop(
 #
 #  Blue-robed elder with a glowing staff.
 
+
 def draw_npc_tutorial(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -617,7 +654,10 @@ def draw_npc_tutorial(
     flip = 1 if facing_right else -1
 
     cx, bx, by, bw, bh, hcx, hcy, hr = _npc_base(
-        surface, rect, facing_right, animation_frame,
+        surface,
+        rect,
+        facing_right,
+        animation_frame,
         body_color=(58, 108, 198),
         skin_color=(168, 192, 232),
         leg_color=(48, 88, 168),
@@ -625,8 +665,10 @@ def draw_npc_tutorial(
 
     # Robe over body
     robe_pts = [
-        (bx, by), (bx + bw, by),
-        (bx + bw + 4, by + bh), (bx - 4, by + bh),
+        (bx, by),
+        (bx + bw, by),
+        (bx + bw + 4, by + bh),
+        (bx - 4, by + bh),
     ]
     pygame.draw.polygon(surface, (48, 92, 178), robe_pts)
 
@@ -645,6 +687,7 @@ def draw_npc_tutorial(
 #
 #  Gray-robed scholar reading a book.
 
+
 def draw_npc_lore(
     surface: pygame.Surface,
     rect: pygame.Rect,
@@ -655,7 +698,10 @@ def draw_npc_lore(
     x, y, w, h = rect.x, rect.y, rect.width, rect.height
 
     cx, bx, by, bw, bh, hcx, hcy, hr = _npc_base(
-        surface, rect, facing_right, animation_frame,
+        surface,
+        rect,
+        facing_right,
+        animation_frame,
         body_color=(138, 128, 158),
         skin_color=(198, 192, 212),
         leg_color=(108, 102, 128),
@@ -665,14 +711,21 @@ def draw_npc_lore(
     book_x = cx - 8
     book_y = by + bh // 5
     pygame.draw.rect(surface, (178, 128, 78), (book_x, book_y, 16, 12))
-    pygame.draw.line(surface, (238, 232, 218), (book_x + 7, book_y + 1), (book_x + 7, book_y + 10), 1)
+    pygame.draw.line(
+        surface, (238, 232, 218), (book_x + 7, book_y + 1), (book_x + 7, book_y + 10), 1
+    )
     for i in range(3):
-        pygame.draw.line(surface, (98, 88, 78),
-                         (book_x + 2, book_y + 2 + i * 3),
-                         (book_x + 6, book_y + 2 + i * 3), 1)
+        pygame.draw.line(
+            surface,
+            (98, 88, 78),
+            (book_x + 2, book_y + 2 + i * 3),
+            (book_x + 6, book_y + 2 + i * 3),
+            1,
+        )
 
 
 # ─────────────────────────────────────────────────────────── PUBLIC API ────
+
 
 def draw_enemy(
     surface: pygame.Surface,
@@ -699,9 +752,9 @@ def draw_enemy(
 
     # ── Procedural fallback ────────────────────────────────────────────────
     inv = enemy.health_state.invincibility_frames
-    fr  = enemy.facing_right
-    af  = enemy.animation_frame
-    st  = enemy.ai_state
+    fr = enemy.facing_right
+    af = enemy.animation_frame
+    st = enemy.ai_state
 
     t = enemy.enemy_type
     if t == EnemyType.GOBLIN:
@@ -728,7 +781,7 @@ def draw_npc(
     """Render one NPC to surface at the given camera-space rect."""
     from entities.npc import NPCType
 
-    fr = (npc.facing == 1)
+    fr = npc.facing == 1
     af = npc.animation_frame
 
     if npc_def is None:

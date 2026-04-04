@@ -350,7 +350,9 @@ class CombatMechanic:
                     # Knockback away from goblin
                     ecx = enemy.physics.x + definition.width / 2
                     pcx = state.physics.x + state.physics.width / 2
-                    state.physics.vx = ENEMY_CONTACT_KNOCKBACK if pcx > ecx else -ENEMY_CONTACT_KNOCKBACK
+                    state.physics.vx = (
+                        ENEMY_CONTACT_KNOCKBACK if pcx > ecx else -ENEMY_CONTACT_KNOCKBACK
+                    )
                     state.physics.vy = -150.0
                     damage += definition.base_damage
 

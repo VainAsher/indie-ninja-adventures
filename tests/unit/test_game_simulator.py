@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import pygame
+
 pygame.init()
 
 from core import EventBus, GameClock, GameLogger
@@ -30,6 +31,7 @@ from network.snapshots import WorldSnapshot
 
 
 # ── stubs ─────────────────────────────────────────────────────────────────────
+
 
 class _FakePhysics:
     def __init__(self, x=100.0, y=100.0):
@@ -135,6 +137,7 @@ def _make_simulator(
 
 # ── constructor ───────────────────────────────────────────────────────────────
 
+
 def test_simulator_combat_mechanics_default_to_empty_dict():
     sim = _make_simulator()
     assert sim.combat_mechanics == {}
@@ -147,6 +150,7 @@ def test_simulator_stores_combat_mechanics():
 
 
 # ── step — basic ──────────────────────────────────────────────────────────────
+
 
 def test_step_advances_without_error():
     sim = _make_simulator()
@@ -161,6 +165,7 @@ def test_step_all_dead_players_returns_early():
 
 
 # ── get_snapshot ──────────────────────────────────────────────────────────────
+
 
 def test_get_snapshot_returns_world_snapshot():
     sim = _make_simulator()
@@ -206,6 +211,7 @@ def test_get_snapshot_dead_player_is_dead_true():
 
 
 # ── Phase 3b: combat mechanics integration ────────────────────────────────────
+
 
 def test_no_combat_mechanics_leaves_health_unchanged():
     sim = _make_simulator(combat_mechanics=None)

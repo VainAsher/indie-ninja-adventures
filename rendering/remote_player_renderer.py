@@ -23,26 +23,26 @@ from entities.remote_player import REMOTE_H, REMOTE_W, RemotePlayer
 # BLEND_RGB_MULT so white pixels take the tint and black pixels stay black.
 _SLOT_TINT: dict[int, tuple[int, int, int] | None] = {
     0: None,
-    1: (220, 80,  80),   # red
-    2: (80,  200, 80),   # green
-    3: (180, 80,  220),  # purple
+    1: (220, 80, 80),  # red
+    2: (80, 200, 80),  # green
+    3: (180, 80, 220),  # purple
 }
 
 # ── Ghost fallback colours (RGBA) ─────────────────────────────────────────────
 _GHOST_ALIVE: dict[int, tuple[int, int, int, int]] = {
-    0: (80,  160, 255, 140),
-    1: (220, 80,  80,  140),
-    2: (80,  200, 80,  140),
-    3: (180, 80,  220, 140),
+    0: (80, 160, 255, 140),
+    1: (220, 80, 80, 140),
+    2: (80, 200, 80, 140),
+    3: (180, 80, 220, 140),
 }
 _GHOST_DEAD = (120, 120, 120, 60)
 
 # ── Overhead UI ───────────────────────────────────────────────────────────────
-_HEALTH_BG  = (60,  20,  20)
-_HEALTH_FG  = (80,  220, 80)
-_HEALTH_LOW = (220, 60,  60)
+_HEALTH_BG = (60, 20, 20)
+_HEALTH_FG = (80, 220, 80)
+_HEALTH_LOW = (220, 60, 60)
 _BAR_BORDER = (140, 200, 255)
-_LABEL_FG   = (200, 230, 255)
+_LABEL_FG = (200, 230, 255)
 _LABEL_SHADOW = (10, 10, 30)
 
 _OVERHEAD_OFFSET = 4

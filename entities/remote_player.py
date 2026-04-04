@@ -33,7 +33,7 @@ class RemotePlayer:
 
     health: int = 5
     max_health: int = 5
-    facing: int = 1       # 1 = right, -1 = left (matches local player convention)
+    facing: int = 1  # 1 = right, -1 = left (matches local player convention)
     is_dead: bool = False
 
     # Previous position — used for interpolation
@@ -106,8 +106,18 @@ class RemotePlayer:
             # Don't interrupt a non-looping animation (attack, hurt, teleport,
             # throw, ninjutsu) that is still playing — let it finish.
             # Looping states (idle, walk, run, jump, fall, death) always yield.
-            _LOOPING = {"idle", "walk", "run", "slow_walk", "jump", "fall",
-                        "crouch", "wall_slide", "air_spin", "death"}
+            _LOOPING = {
+                "idle",
+                "walk",
+                "run",
+                "slow_walk",
+                "jump",
+                "fall",
+                "crouch",
+                "wall_slide",
+                "air_spin",
+                "death",
+            }
             if self.anim_sm.state in _LOOPING or self.anim_sm.finished:
                 self.anim_sm.transition(resolved)
 
@@ -133,9 +143,7 @@ class RemotePlayer:
             return "walk"
         return "idle"
 
-    def interpolated_pos(
-        self, now_ms: float, tick_ms: float | None = None
-    ) -> tuple[float, float]:
+    def interpolated_pos(self, now_ms: float, tick_ms: float | None = None) -> tuple[float, float]:
         """
         Return a smoothed position for rendering.
 
@@ -167,8 +175,8 @@ class RemotePlayer:
             # Past the expected update time — extrapolate X to fill the gap.
             # vx is in px/frame (physics runs at 60 Hz = 16.667 ms/frame).
             extra_ms = elapsed - expected_ms
-            extra_frames = min(extra_ms / 16.667, 3.0)   # cap at 3 frames ≈ 50 ms
+            extra_frames = min(extra_ms / 16.667, 3.0)  # cap at 3 frames ≈ 50 ms
             ix = self.x + self.vx * extra_frames
-            iy = self.y   # keep Y authoritative; avoids floating/sinking artifacts
+            iy = self.y  # keep Y authoritative; avoids floating/sinking artifacts
 
         return ix, iy
