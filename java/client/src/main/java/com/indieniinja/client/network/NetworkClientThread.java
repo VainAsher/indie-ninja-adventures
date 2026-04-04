@@ -116,7 +116,7 @@ public final class NetworkClientThread extends Thread {
                         handleMessage(WireCodec.decodeBody(body));
                     }
                 }
-            } catch (IOException | InterruptedException ex) {
+            } catch (IOException ex) {
                 synchronized (writeLock) { this.out = null; }
                 buffer.markDisconnected();
                 if (!running) break;

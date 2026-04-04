@@ -36,7 +36,7 @@ import com.indieniinja.physics.PhysicsConstants;
 public final class NinjaGameClient extends ApplicationAdapter {
 
     // Fixed timestep — must match server PHYSICS_DT
-    private static final float PHYSICS_DT     = PhysicsConstants.PHYSICS_DT;  // 1/60 s
+    private static final float PHYSICS_DT     = PhysicsConstants.FIXED_DT;   // 1/60 s
     private static final float MAX_FRAME_TIME = 0.25f;  // cap spiral of death
 
     // Level world size in tiles (matches LevelLayout.buildTestLayout)
