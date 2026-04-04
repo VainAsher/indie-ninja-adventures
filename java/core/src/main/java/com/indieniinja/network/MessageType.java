@@ -1,0 +1,31 @@
+package com.indieniinja.network;
+
+/**
+ * Wire protocol message type strings.
+ *
+ * Must stay byte-for-byte identical to Python's network/protocol.py MessageType class.
+ * PROTOCOL_VERSION = "2" (msgpack, length-prefixed 4-byte big-endian uint32 frames).
+ */
+public final class MessageType {
+    private MessageType() {}
+
+    // Client → Server
+    public static final String CLIENT_HELLO  = "client_hello";
+    public static final String INPUT         = "input";
+    public static final String ENTITY_EVENT  = "entity_event";
+    public static final String PORTAL_TRAVEL = "portal_travel";
+
+    // Server → Client
+    public static final String SERVER_HELLO     = "server_hello";
+    public static final String SERVER_STATE     = "server_state";
+    public static final String WORLD_STATE      = "world_state";
+    public static final String PLAYER_JOIN      = "player_join";
+    public static final String PLAYER_LEAVE     = "player_leave";
+    public static final String LOBBY_UPDATE     = "lobby_update";
+    public static final String GAME_START       = "game_start";
+    public static final String ERROR            = "error";
+    public static final String WORLD_TRANSITION = "world_transition";
+    public static final String ZONE_PRESENCE    = "zone_presence";
+
+    public static final String PROTOCOL_VERSION = "2";
+}
