@@ -1,4 +1,4 @@
-// Root build — shared config for all sub-modules
+// Root build — shared config for all sub-modules (v0.10.1 — Phase B)
 plugins {
     java apply false
 }

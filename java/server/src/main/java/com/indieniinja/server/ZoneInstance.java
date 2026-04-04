@@ -1,5 +1,8 @@
 package com.indieniinja.server;
 
+import com.indieniinja.sim.GameSimulator;
+import com.indieniinja.sim.LevelLayout;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -39,6 +42,13 @@ public final class ZoneInstance {
 
     /** Epoch ms of last player departure — used for idle TTL reaping. */
     public volatile long lastActivityMs = System.currentTimeMillis();
+
+    /**
+     * Java authoritative game simulator for this zone.
+     * Null before the zone is started; assigned in ZoneSimulationLoop.
+     * Phase B: fully populated with enemies, pickups, platforms from LevelLayout.
+     */
+    public volatile GameSimulator simulator;
 
     public ZoneInstance(
             String hubId, long seed, String shape, int rooms,

@@ -8,6 +8,9 @@ import com.indieniinja.network.PlatformState;
 import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WireCodec;
 import com.indieniinja.network.WorldSnapshot;
+import com.indieniinja.sim.GameSimulator;
+import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.sim.SimPlayer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -57,8 +60,22 @@ public final class ZoneSimulationLoop implements Runnable {
         this.shutdown = shutdown;
     }
 
+    // ── Simulator init ────────────────────────────────────────────────────────
+
+    /**
+     * Build and attach a GameSimulator to this zone using the LevelLayout.
+     * Called once before the loop starts (from ServerProtocolHandler.getOrCreateZone).
+     */
+    public static void initSimulator(ZoneInstance zone) {
+        LevelLayout layout = LevelLayout.buildTestLayout(zone.seed);
+        zone.simulator = new GameSimulator(zone.seed, zone.hubId, layout);
+        log.info("[Zone {}] GameSimulator initialised (seed={})", zone.hubId, zone.seed);
+    }
+
     @Override
     public void run() {
+        // Phase B: initialise the server-side GameSimulator for this zone
+        initSimulator(zone);
         log.info("[Zone {}] simulation loop started", zone.hubId);
         long nextTickNs   = System.nanoTime();
         int  broadcastCtr = 0;
@@ -112,25 +129,50 @@ public final class ZoneSimulationLoop implements Runnable {
     // ── Simulation tick ───────────────────────────────────────────────────────
 
     /**
-     * Placeholder for the real game simulation step.
+     * Phase B: drive the Java GameSimulator one tick.
      *
-     * Phase A: The Java server proxies inputs to/from Python-side simulation.
-     * Phase B: This will call JavaGameSimulator.step(inputs, FIXED_DT).
+     * Player positions remain client-authoritative (written from INPUT messages
+     * by ServerProtocolHandler into PlayerRecord.posX/Y). The simulator syncs
+     * each SimPlayer's physics state from the PlayerRecord before stepping, so
+     * enemies and pickups respond to accurate player positions.
      *
-     * For now, applies player inputs to the PlayerRecord position fields so that
-     * WORLD_STATE reflects the client-reported positions (matching Python Phase 1/2.5 behaviour).
+     * Phase C will flip players to full server-authoritative movement.
      */
     private void simulateTick() {
+        GameSimulator sim = zone.simulator;
+        if (sim == null) return;
+
+        // Sync client-reported positions into the SimPlayers before each tick
+        java.util.Map<Integer, InputCommand> inputs = new java.util.LinkedHashMap<>();
         for (String pid : zone.playerIds) {
-            PlayerRecord player = session.players.get(pid);
-            if (player == null) continue;
+            PlayerRecord pr = session.players.get(pid);
+            if (pr == null) continue;
 
-            InputCommand input = player.latestInput.get();
-            if (input == null) continue;
+            SimPlayer sp = sim.getPlayers().get(pr.slot);
+            if (sp != null) {
+                // Client-authoritative: overwrite sim position from latest INPUT
+                sp.physics.x   = pr.posX;
+                sp.physics.y   = pr.posY;
+                sp.physics.vx  = pr.velX;
+                sp.physics.vy  = pr.velY;
+                sp.facing      = pr.facing;
+                sp.animState   = pr.animState;
+                sp.isDead      = pr.isDead;
+                sp.health      = pr.health;
+            } else {
+                // Player not yet in sim — add them
+                SimPlayer newSp = new SimPlayer(pid, pr.slot, pr.posX, pr.posY);
+                newSp.health    = pr.health;
+                newSp.facing    = pr.facing;
+                newSp.animState = pr.animState;
+                sim.addPlayer(newSp);
+            }
 
-            // Phase A: client-authoritative — positions come from INPUT messages.
-            // No server-side physics in Phase A; PhysicsSystem will drive this in Phase B.
+            InputCommand cmd = pr.latestInput.get();
+            if (cmd != null) inputs.put(pr.slot, cmd);
         }
+
+        sim.step(inputs);
     }
 
     // ── Broadcast ─────────────────────────────────────────────────────────────
@@ -166,14 +208,47 @@ public final class ZoneSimulationLoop implements Runnable {
         }
     }
 
+    /**
+     * Phase B: get snapshot from GameSimulator (enemies + pickups + platforms included).
+     * Delta encoding applied on top for bandwidth efficiency.
+     */
     private WorldSnapshot buildSnapshot(boolean full, List<PlayerRecord> zonePlayers) {
+        GameSimulator sim = zone.simulator;
+
+        // Full snapshot from the authoritative simulator
+        WorldSnapshot snap = (sim != null)
+            ? sim.getSnapshot(zone.frame.get())
+            : buildFallbackSnapshot(zonePlayers);
+
+        snap.isDelta = !full;
+
+        if (!full) {
+            // Swap full lists with delta lists computed by DeltaEncoder
+            List<EnemyState>    allEnemies   = snap.enemies;
+            List<PickupState>   allPickups   = snap.pickups;
+            List<PlatformState> allPlatforms = snap.platformStates;
+
+            snap.enemies        = Collections.emptyList();
+            snap.pickups        = Collections.emptyList();
+            snap.platformStates = Collections.emptyList();
+
+            snap.enemiesChanged   = zone.deltaEncoder.enemiesChanged(allEnemies);
+            snap.enemiesRemoved   = zone.deltaEncoder.enemiesRemoved(allEnemies);
+            snap.pickupsChanged   = zone.deltaEncoder.pickupsChanged(allPickups);
+            snap.pickupsRemoved   = zone.deltaEncoder.pickupsRemoved(allPickups);
+            snap.platformsChanged = zone.deltaEncoder.platformsChanged(allPlatforms);
+            snap.platformsRemoved = zone.deltaEncoder.platformsRemoved(allPlatforms);
+        }
+
+        return snap;
+    }
+
+    /** Fallback for the brief window before the simulator is ready (rare). */
+    private WorldSnapshot buildFallbackSnapshot(List<PlayerRecord> zonePlayers) {
         WorldSnapshot snap = new WorldSnapshot();
         snap.frame  = zone.frame.get();
         snap.seed   = zone.seed;
         snap.hubId  = zone.hubId;
-        snap.isDelta = !full;
-
-        // Players always sent in full (never delta'd)
         for (PlayerRecord pr : zonePlayers) {
             PlayerState ps = new PlayerState();
             ps.playerId  = pr.playerId;
@@ -188,26 +263,6 @@ public final class ZoneSimulationLoop implements Runnable {
             ps.animState = pr.animState;
             snap.players.add(ps);
         }
-
-        // Phase A: no server-side entities yet — send empty lists
-        // Phase B: populate from JavaGameSimulator.getEnemyStates(), etc.
-        List<EnemyState>    enemies   = Collections.emptyList();
-        List<PickupState>   pickups   = Collections.emptyList();
-        List<PlatformState> platforms = Collections.emptyList();
-
-        if (full) {
-            snap.enemies        = enemies;
-            snap.pickups        = pickups;
-            snap.platformStates = platforms;
-        } else {
-            snap.enemiesChanged   = zone.deltaEncoder.enemiesChanged(enemies);
-            snap.enemiesRemoved   = zone.deltaEncoder.enemiesRemoved(enemies);
-            snap.pickupsChanged   = zone.deltaEncoder.pickupsChanged(pickups);
-            snap.pickupsRemoved   = zone.deltaEncoder.pickupsRemoved(pickups);
-            snap.platformsChanged = zone.deltaEncoder.platformsChanged(platforms);
-            snap.platformsRemoved = zone.deltaEncoder.platformsRemoved(platforms);
-        }
-
         return snap;
     }
 
