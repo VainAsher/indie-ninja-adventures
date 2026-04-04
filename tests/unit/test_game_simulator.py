@@ -29,7 +29,6 @@ from game.game_simulator import GameSimulator
 from game.health_system import HealthState
 from network.snapshots import WorldSnapshot
 
-
 # ── stubs ─────────────────────────────────────────────────────────────────────
 
 

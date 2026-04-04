@@ -25,7 +25,6 @@ from network.snapshots import (
     WorldSnapshot,
 )
 
-
 # ── Snapshot (single-player replay) ──────────────────────────────────────────
 
 

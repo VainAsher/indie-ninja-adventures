@@ -38,7 +38,6 @@ from game.health_system import HealthState
 from network.client import _EntityCache
 from network.snapshots import WorldSnapshot, EnemyState, PickupState
 
-
 # ── shared stubs (mirrored from test_game_simulator.py — no conftest needed) ──
 
 

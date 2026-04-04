@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # Width/height match the local player hitbox (28×56) so collision checks and
 # rendering can use the same rect logic.
 REMOTE_W = 28

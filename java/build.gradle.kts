@@ -1,8 +1,4 @@
 // Root build — shared config for all sub-modules (v0.10.2 — Phase C)
-plugins {
-    java apply false
-}
-
 subprojects {
     apply(plugin = "java")
 
