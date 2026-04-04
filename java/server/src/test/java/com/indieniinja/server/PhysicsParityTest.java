@@ -1,16 +1,13 @@
 package com.indieniinja.server;
 
+import com.indieniinja.core.EntityManager;
+import com.indieniinja.core.EntityType;
 import com.indieniinja.core.EventBus;
 import com.indieniinja.core.TickEvent;
 import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.physics.PhysicsState;
 import com.indieniinja.physics.PhysicsSystem;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -32,9 +29,9 @@ class PhysicsParityTest {
         p.vy = startVy;
         p.onGround = onGround;
 
-        List<PhysicsState> states = new ArrayList<>();
-        states.add(p);
-        new PhysicsSystem(bus, states);
+        EntityManager em = new EntityManager(bus);
+        em.create(EntityType.PLAYER, p);
+        new PhysicsSystem(bus, em.activeEntities());
 
         for (int i = 0; i < ticks; i++) {
             bus.emit(new TickEvent(PhysicsConstants.FIXED_DT, i));
@@ -82,8 +79,9 @@ class PhysicsParityTest {
         p.vy = -8f;  // rising
         p.jumpCutActive = true;
 
-        List<PhysicsState> states = List.of(p);
-        new PhysicsSystem(bus, states);
+        EntityManager em = new EntityManager(bus);
+        em.create(EntityType.PLAYER, p);
+        new PhysicsSystem(bus, em.activeEntities());
         bus.emit(new TickEvent(PhysicsConstants.FIXED_DT, 0));
 
         // Expected: vy += 0.4 (base) + 0.4*(3.0-1.0) = 0.4 + 0.8 = 1.2 added
