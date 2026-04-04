@@ -86,13 +86,20 @@ jobs:
       - name: Build server JAR + run tests
         working-directory: java
         shell: bash
-        run: gradle :server:test :server:shadowJar --no-daemon --stacktrace
+        run: gradle :server:test :server:shadowJar :client:shadowJar --no-daemon --stacktrace
 
       - name: Upload server JAR
         uses: actions/upload-artifact@v4
         with:
           name: ninja-server-jar
           path: java/server/build/libs/*-all.jar
+          if-no-files-found: error
+
+      - name: Upload client JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: ninja-client-jar
+          path: java/client/build/libs/*-all.jar
           if-no-files-found: error
 
       - name: Upload test reports
