@@ -1102,7 +1102,7 @@ class LauncherApp:
 
         self._java_solo_btn = tk.Button(
             java_btn_row,
-            text="[J]  Launch Java Client",
+            text="[J]  Connect to localhost",
             font=("Consolas", 9, "bold"),
             fg=ACCENT,
             bg=BTN_PLAY_BG,
@@ -4242,7 +4242,14 @@ class LauncherApp:
         self._java_server_btn.configure(state=srv_state)
 
     def _launch_java_solo(self) -> None:
-        self._launch_java_client("127.0.0.1", 7777)
+        port_str = self._host_port_var.get().strip()
+        try:
+            port = int(port_str)
+            if not (1 <= port <= 65535):
+                raise ValueError
+        except ValueError:
+            port = 7777
+        self._launch_java_client("127.0.0.1", port)
 
     def _launch_java_join(self) -> None:
         addr = self._java_addr_var.get().strip()
@@ -4288,7 +4295,11 @@ class LauncherApp:
             proc = subprocess.Popen(cmd)
             self._status_var.set(f"Java Client Running…  ({host}:{port})")
             self.root.iconify()
-            threading.Thread(target=self._watch_game_process, args=(proc,), daemon=True).start()
+            threading.Thread(
+                target=self._watch_java_process,
+                args=(proc, "Java Client"),
+                daemon=True,
+            ).start()
         except Exception as exc:
             messagebox.showerror("Launch Error", str(exc), parent=self.root)
 
@@ -4342,6 +4353,17 @@ class LauncherApp:
     def _watch_game_process(self, proc: subprocess.Popen) -> None:
         proc.wait()
         self.root.after(0, self._on_game_exited, proc.returncode)
+
+    def _watch_java_process(self, proc: subprocess.Popen, label: str) -> None:
+        """Watch a Java process — restore window on exit, no crash dialog."""
+        proc.wait()
+        code = proc.returncode
+        if code == 0:
+            msg = f"{label} exited."
+        else:
+            msg = f"{label} exited (code {code}). Check the terminal for details."
+        self.root.after(0, self.root.deiconify)
+        self.root.after(0, self._status_var.set, msg)
 
     def _decode_exit_code(self, code: int) -> str:
         name = self._EXIT_CODE_NAMES.get(code) or self._EXIT_CODE_NAMES.get(code & 0xFFFFFFFF)
