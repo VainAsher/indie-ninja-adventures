@@ -63,6 +63,40 @@ jobs:
             test_baseline.txt
             quality_baseline_*.txt
 
+  java-build:
+    name: Java Build & Test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Build server JAR + run tests
+        working-directory: java
+        shell: bash
+        run: ./gradlew :server:test :server:shadowJar --no-daemon --stacktrace
+
+      - name: Upload server JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: ninja-server-jar
+          path: java/server/build/libs/*-all.jar
+          if-no-files-found: error
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-test-reports
+          path: java/server/build/reports/tests/
+
   lint-strict:
     name: Linting (Informational)
     runs-on: windows-latest

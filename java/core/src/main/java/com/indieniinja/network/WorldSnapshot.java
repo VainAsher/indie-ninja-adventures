@@ -42,6 +42,58 @@ public final class WorldSnapshot {
 
     public WorldSnapshot() {}
 
+    /** Deserialize from a decoded payload map (client-side receive path). */
+    @SuppressWarnings("unchecked")
+    public static WorldSnapshot fromMap(java.util.Map<String, Object> m) {
+        WorldSnapshot s = new WorldSnapshot();
+        s.frame   = num(m, "frame",    0L);
+        s.seed    = num(m, "seed",     0L);
+        s.isDelta = bool(m, "is_delta");
+        s.hubId   = str(m, "hub_id",   "");
+
+        for (Object p : list(m, "players"))
+            if (p instanceof java.util.Map<?,?> pm)
+                s.players.add(PlayerState.fromMap((java.util.Map<String,Object>) pm));
+
+        if (s.isDelta) {
+            for (Object e : list(m, "enemies_changed"))
+                if (e instanceof java.util.Map<?,?> em)
+                    s.enemiesChanged.add(EnemyState.fromMap((java.util.Map<String,Object>) em));
+            for (Object e : list(m, "enemies_removed"))
+                s.enemiesRemoved.add(e.toString());
+            for (Object p : list(m, "pickups_changed"))
+                if (p instanceof java.util.Map<?,?> pm)
+                    s.pickupsChanged.add(PickupState.fromMap((java.util.Map<String,Object>) pm));
+            for (Object p : list(m, "pickups_removed"))
+                s.pickupsRemoved.add(p.toString());
+            for (Object p : list(m, "platforms_changed"))
+                if (p instanceof java.util.Map<?,?> pm)
+                    s.platformsChanged.add(PlatformState.fromMap((java.util.Map<String,Object>) pm));
+            for (Object p : list(m, "platforms_removed"))
+                s.platformsRemoved.add(p.toString());
+        } else {
+            for (Object e : list(m, "enemies"))
+                if (e instanceof java.util.Map<?,?> em)
+                    s.enemies.add(EnemyState.fromMap((java.util.Map<String,Object>) em));
+            for (Object p : list(m, "pickups"))
+                if (p instanceof java.util.Map<?,?> pm)
+                    s.pickups.add(PickupState.fromMap((java.util.Map<String,Object>) pm));
+            for (Object p : list(m, "platform_states"))
+                if (p instanceof java.util.Map<?,?> pm)
+                    s.platformStates.add(PlatformState.fromMap((java.util.Map<String,Object>) pm));
+        }
+        return s;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static java.util.List<Object> list(java.util.Map<String,Object> m, String k) {
+        Object v = m.get(k);
+        return v instanceof java.util.List<?> l ? (java.util.List<Object>) l : java.util.List.of();
+    }
+    private static long    num(java.util.Map<String,Object> m, String k, long   d) { Object v=m.get(k); return v instanceof Number n?n.longValue():d; }
+    private static boolean bool(java.util.Map<String,Object> m, String k)           { Object v=m.get(k); return v instanceof Boolean b&&b; }
+    private static String  str(java.util.Map<String,Object> m, String k, String d)  { Object v=m.get(k); return v!=null?v.toString():d; }
+
     /**
      * Serialize to a Map that can be msgpack-encoded for the wire.
      * Key order matches Python's WorldSnapshot.to_dict().
