@@ -7,8 +7,6 @@ plugins {
 dependencies {
     // msgpack for protocol DTOs (encoding/decoding shared by server + client)
     implementation("org.msgpack:msgpack-core:0.9.8")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-msgpack:0.9.8")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.13")
