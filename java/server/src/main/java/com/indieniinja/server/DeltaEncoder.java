@@ -3,8 +3,6 @@ package com.indieniinja.server;
 import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.PickupState;
 import com.indieniinja.network.PlatformState;
-import com.indieniinja.network.WorldSnapshot;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,7 +35,7 @@ final class DeltaEncoder {
         List<EnemyState> changed = new ArrayList<>();
         for (EnemyState e : current) {
             long cs = checksumEnemy(e);
-            if (!cs.equals(enemyChecksums.get(e.enemyId))) {
+            if (!Long.valueOf(cs).equals(enemyChecksums.get(e.enemyId))) {
                 enemyChecksums.put(e.enemyId, cs);
                 changed.add(e);
             }
@@ -62,7 +60,7 @@ final class DeltaEncoder {
         List<PickupState> changed = new ArrayList<>();
         for (PickupState p : current) {
             long cs = checksumPickup(p);
-            if (!cs.equals(pickupChecksums.get(p.pickupId))) {
+            if (!Long.valueOf(cs).equals(pickupChecksums.get(p.pickupId))) {
                 pickupChecksums.put(p.pickupId, cs);
                 changed.add(p);
             }
@@ -87,7 +85,7 @@ final class DeltaEncoder {
         List<PlatformState> changed = new ArrayList<>();
         for (PlatformState p : current) {
             long cs = checksumPlatform(p);
-            if (!cs.equals(platformChecksums.get(p.platformId))) {
+            if (!Long.valueOf(cs).equals(platformChecksums.get(p.platformId))) {
                 platformChecksums.put(p.platformId, cs);
                 changed.add(p);
             }
