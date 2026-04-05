@@ -80,9 +80,8 @@ public final class GameStateBuffer {
         current.set(merged);
     }
 
-    public void markDisconnected() {
-        connected = false;
-    }
+    public void markConnected()    { connected = true; }
+    public void markDisconnected() { connected = false; }
 
     // ── Render thread reads ───────────────────────────────────────────────────
 

@@ -139,6 +139,7 @@ public final class NetworkClientThread extends Thread {
             case MessageType.SERVER_HELLO -> {
                 String ver = msg.getString("version", "?");
                 log.info("[Net] SERVER_HELLO version={}", ver);
+                buffer.markConnected();  // HUD goes Online as soon as handshake completes
             }
             default -> log.debug("[Net] Ignored message type: {}", msg.type());
         }
@@ -149,7 +150,7 @@ public final class NetworkClientThread extends Thread {
     private void sendHello(DataOutputStream os) throws IOException {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("player_id", playerId);
-        payload.put("version",   "2.0.0");
+        payload.put("version",   MessageType.PROTOCOL_VERSION);  // "2" — matches server
         payload.put("protocol",  MessageType.PROTOCOL_VERSION);
         sendRaw(os, MessageType.CLIENT_HELLO, payload);
     }

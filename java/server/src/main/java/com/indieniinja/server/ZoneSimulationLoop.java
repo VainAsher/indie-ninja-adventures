@@ -142,37 +142,48 @@ public final class ZoneSimulationLoop implements Runnable {
         GameSimulator sim = zone.simulator;
         if (sim == null) return;
 
-        // Sync client-reported positions into the SimPlayers before each tick
+        // Server-authoritative physics: player positions are owned by the server sim.
+        // PlayerRecord.posX/Y is only used for the initial spawn — after that the
+        // sim drives positions, and we write results BACK to PlayerRecord for broadcast.
         java.util.Map<Integer, InputCommand> inputs = new java.util.LinkedHashMap<>();
         for (String pid : zone.playerIds) {
             PlayerRecord pr = session.players.get(pid);
             if (pr == null) continue;
 
             SimPlayer sp = sim.getPlayers().get(pr.slot);
-            if (sp != null) {
-                // Client-authoritative: overwrite sim position from latest INPUT
-                sp.physics.x   = pr.posX;
-                sp.physics.y   = pr.posY;
-                sp.physics.vx  = pr.velX;
-                sp.physics.vy  = pr.velY;
-                sp.facing      = pr.facing;
-                sp.animState   = pr.animState;
-                sp.isDead      = pr.isDead;
-                sp.health      = pr.health;
-            } else {
-                // Player not yet in sim — add them
+            if (sp == null) {
+                // First appearance — seed from PlayerRecord spawn position
                 SimPlayer newSp = new SimPlayer(pid, pr.slot, pr.posX, pr.posY);
                 newSp.health    = pr.health;
                 newSp.facing    = pr.facing;
                 newSp.animState = pr.animState;
                 sim.addPlayer(newSp);
+                sp = newSp;
             }
+            // Do NOT overwrite sp.physics from pr — let the sim own positions.
+            // Only sync cosmetic state that the client reports.
+            sp.animState = pr.animState;
 
             InputCommand cmd = pr.latestInput.get();
             if (cmd != null) inputs.put(pr.slot, cmd);
         }
 
         sim.step(inputs);
+
+        // Write authoritative physics results back to PlayerRecords for broadcast
+        for (String pid : zone.playerIds) {
+            PlayerRecord pr = session.players.get(pid);
+            if (pr == null) continue;
+            SimPlayer sp = sim.getPlayers().get(pr.slot);
+            if (sp == null) continue;
+            pr.posX     = sp.physics.x;
+            pr.posY     = sp.physics.y;
+            pr.velX     = sp.physics.vx;
+            pr.velY     = sp.physics.vy;
+            pr.facing   = sp.facing;
+            pr.isDead   = sp.isDead;
+            pr.health   = sp.health;
+        }
     }
 
     // ── Broadcast ─────────────────────────────────────────────────────────────

@@ -152,11 +152,11 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             "slot",      slot
         ));
 
-        // If game already started, bootstrap this late-joiner
+        // Start game: immediately on first player (solo/dev), or when full lobby
         if (session.gameStarted.get()) {
             bootstrapLateJoiner(ctx.channel(), player);
-        } else if (session.players.size() >= GameSession.MAX_PLAYERS) {
-            startGame();
+        } else {
+            startGame();  // start as soon as any player joins
         }
     }
 
