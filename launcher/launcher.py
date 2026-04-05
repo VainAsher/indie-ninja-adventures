@@ -487,6 +487,30 @@ def _is_port_in_use(port: int) -> bool:
             return True
 
 
+def _kill_process_on_port(port: int) -> bool:
+    """Terminate whatever process is listening on the given port.
+    Returns True if the port is free afterwards, False on failure."""
+    import platform, time
+    try:
+        if platform.system() == "Windows":
+            result = subprocess.run(
+                ["netstat", "-ano"], capture_output=True, text=True)
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    if parts:
+                        subprocess.run(
+                            ["taskkill", "/F", "/PID", parts[-1]],
+                            capture_output=True)
+                        break
+        else:
+            subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
+    except Exception:
+        pass
+    time.sleep(0.3)
+    return not _is_port_in_use(port)
+
+
 def _parse_profiler_csv(csv_path: Path) -> dict | None:
     """
     Read the profiler CSV and return summary stats, or None if no data.
@@ -4358,14 +4382,22 @@ class LauncherApp:
             messagebox.showerror("Invalid Port", "Port must be 1–65535.", parent=self.root)
             return
         if _is_port_in_use(port):
-            messagebox.showerror(
+            kill = messagebox.askyesno(
                 "Port In Use",
-                f"Port {port} is already in use.\n\n"
-                "A server may already be running. Check your system tray or\n"
-                "Task Manager for an existing ninja-server process.",
+                f"Port {port} is already in use — a server from a previous session "
+                f"may still be running.\n\nStop the existing process and start fresh?",
                 parent=self.root,
             )
-            return
+            if not kill:
+                return
+            if not _kill_process_on_port(port):
+                messagebox.showerror(
+                    "Could Not Stop",
+                    f"Failed to free port {port}. Try stopping the process manually "
+                    "in Task Manager.",
+                    parent=self.root,
+                )
+                return
         cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), str(port)]
         try:
             self._java_server_proc = subprocess.Popen(cmd)
