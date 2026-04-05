@@ -26,8 +26,8 @@ public final class GameCamera {
     private float targetY;
 
     public GameCamera(float viewportW, float viewportH) {
-        cam = new OrthographicCamera(viewportW, viewportH);
-        cam.position.set(viewportW / 2f, viewportH / 2f, 0f);
+        cam = new OrthographicCamera();
+        cam.setToOrtho(true, viewportW, viewportH);  // Y-DOWN: matches physics/Python
         cam.update();
         targetX = cam.position.x;
         targetY = cam.position.y;
@@ -65,7 +65,7 @@ public final class GameCamera {
         cam.update();
     }
 
-    /** Update viewport on window resize. */
+    /** Update viewport on window resize. Preserves Y-DOWN orientation set at construction. */
     public void resize(float w, float h) {
         cam.viewportWidth  = w;
         cam.viewportHeight = h;

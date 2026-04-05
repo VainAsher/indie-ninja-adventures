@@ -77,24 +77,23 @@ public final class ChunkRenderer {
         placeholderPlatform = new TextureRegion(new Texture(plat));
         plat.dispose();
 
-        // Build a minimal test layout matching LevelLayout.buildTestLayout():
-        //  - row 0 (bottom)  : solid floor across full width
-        //  - row rows-1 (top): solid ceiling
-        //  - col 0 and cols-1: solid walls
-        //  - row 15           : mid platform (cols 5..10)
+        // Build a minimal test layout matching LevelLayout.buildTestLayout() exactly.
+        // Coordinate system is Y-DOWN: row 0 = top of world (y=0), row rows-1 = bottom.
+        //  - rows rows-2 and rows-1 (y=960,992): floor across full width
+        //  - col 0 and cols-1               : solid walls top-to-bottom
+        //  - row 16 (y=512), cols 8..19     : one-way mid platform
         this.tileMap = new TextureRegion[rows][cols];
         for (int c = 0; c < cols; c++) {
-            tileMap[0][c]        = placeholderSolid;  // floor
-            tileMap[rows-1][c]   = placeholderSolid;  // ceiling
+            tileMap[rows - 2][c] = placeholderSolid;  // floor (upper)
+            tileMap[rows - 1][c] = placeholderSolid;  // floor (lower)
         }
         for (int r = 0; r < rows; r++) {
             tileMap[r][0]        = placeholderSolid;  // left wall
-            tileMap[r][cols-1]   = placeholderSolid;  // right wall
+            tileMap[r][cols - 1] = placeholderSolid;  // right wall
         }
-        // Mid platform
-        int midRow = rows / 2;
-        for (int c = 5; c <= 10 && c < cols; c++) {
-            tileMap[midRow][c] = placeholderPlatform;
+        // Mid platform (cols 8..19, row 16 — matches LevelLayout)
+        for (int c = 8; c <= 19 && c < cols; c++) {
+            tileMap[16][c] = placeholderPlatform;
         }
     }
 

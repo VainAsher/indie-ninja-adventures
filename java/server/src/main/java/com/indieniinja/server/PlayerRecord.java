@@ -22,7 +22,10 @@ public final class PlayerRecord {
     public final AtomicReference<InputCommand> latestInput = new AtomicReference<>();
 
     // Last known player state — updated on each INPUT message, used in WORLD_STATE
-    public volatile float  posX = 0f, posY = 0f;
+    // Default spawn: 5 tiles from left wall (x=160), above the floor (floor top y=960,
+    // player height=56, so posY=904 puts player bottom exactly on the floor).
+    // In Y-DOWN coords (matching LevelLayout.buildTestLayout 64×32 grid).
+    public volatile float  posX = 160f, posY = 904f;
     public volatile float  velX = 0f, velY = 0f;
     public volatile int    health = 5;
     public volatile int    facing = 1;     // 1=right, -1=left

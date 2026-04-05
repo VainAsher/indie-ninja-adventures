@@ -29,8 +29,8 @@ public final class GameScreen implements Screen {
 
     private static final float PHYSICS_DT     = PhysicsConstants.FIXED_DT;
     private static final float MAX_FRAME_TIME = PhysicsConstants.MAX_FRAME_TIME;
-    private static final int   LEVEL_COLS     = 50;
-    private static final int   LEVEL_ROWS     = 28;
+    private static final int   LEVEL_COLS     = 64;  // matches LevelLayout.buildTestLayout W
+    private static final int   LEVEL_ROWS     = 32;  // matches LevelLayout.buildTestLayout H
 
     private final NinjaGameClient game;
     private final String          host;
