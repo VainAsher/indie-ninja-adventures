@@ -241,6 +241,12 @@ def main():
 
     # Technical options
     parser.add_argument(
+        "--legacy-client",
+        action="store_true",
+        help="Explicitly run the Python/Pygame client (deprecated; Java client is now primary). "
+             "Accepted for backwards-compatibility — has no effect on behaviour.",
+    )
+    parser.add_argument(
         "--headless", action="store_true", help="Run without opening a window (SDL dummy driver)"
     )
     parser.add_argument(
@@ -284,6 +290,14 @@ def main():
         help="Maximum players when hosting (1–4, default 4)",
     )
     args = parser.parse_args()
+
+    if getattr(args, "legacy_client", False):
+        print(
+            "[launcher] Note: --legacy-client flag detected. "
+            "The Java/libGDX client is now the primary client. "
+            "This Python/Pygame client will be removed in a future release.",
+            file=sys.stderr,
+        )
 
     if args.host and args.connect:
         print("Cannot use --host and --connect at the same time.")

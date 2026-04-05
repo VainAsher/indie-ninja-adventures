@@ -24,7 +24,11 @@ public final class DesktopLauncher {
         cfg.setForegroundFPS(0);   // uncapped — NinjaGameClient drives its own fixed timestep
         cfg.useVsync(true);
         cfg.setResizable(true);
-        cfg.setWindowIcon("icon.png");  // loaded from assets/ if present
+        // Only set icon if the file is available — avoids GdxRuntimeException when missing
+        if (DesktopLauncher.class.getResourceAsStream("/icon.png") != null
+                || new java.io.File("icon.png").exists()) {
+            cfg.setWindowIcon("icon.png");
+        }
 
         new Lwjgl3Application(new NinjaGameClient(host, port), cfg);
     }
