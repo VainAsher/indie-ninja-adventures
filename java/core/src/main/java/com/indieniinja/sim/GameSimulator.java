@@ -133,6 +133,11 @@ public final class GameSimulator {
      * @param inputs Map from slot → InputCommand (slots absent hold last known)
      */
     public void step(Map<Integer, InputCommand> inputs) {
+        // Rebuild the active-entity list if dirty (e.g. addPlayer was just called).
+        // PhysicsSystem and CollisionSystem hold a reference to this same list object;
+        // without this call the list stays stale and physics never runs for new entities.
+        entityManager.activeEntities();
+
         // 1. Store latest inputs and apply movement to player physics
         for (Map.Entry<Integer, InputCommand> e : inputs.entrySet()) {
             SimPlayer p = players.get(e.getKey());
