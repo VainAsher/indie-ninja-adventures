@@ -235,43 +235,120 @@ public final class GameSimulator {
     // ── Step helpers ──────────────────────────────────────────────────────────
 
     /**
-     * Translate a player's InputCommand into velocity changes on their PhysicsState.
-     * Ports the core movement loop from Python mechanics/ (run, jump, gravity flags).
-     * Advanced mechanics (dash, double-jump, wall-jump, coyote time) are deferred to
-     * Phase C when the full MechanicsSystem is ported.
+     * Full mechanics pipeline: dash, double-jump, wall-jump, coyote time, jump buffer.
+     * Called once per 60 Hz tick before the physics/collision pass.
+     *
+     * Convention: p.physics.onGround reflects the result from the PREVIOUS tick's
+     * collision pass — correct for coyote time and ground-jump detection.
      */
     private static void applyPlayerInput(SimPlayer sp, InputCommand cmd) {
         PhysicsState p = sp.physics;
 
-        // ── Horizontal movement ───────────────────────────────────────────────
-        float targetVx = 0f;
-        if (cmd.right) targetVx =  PhysicsConstants.MAX_RUN_SPEED;
-        if (cmd.left)  targetVx = -PhysicsConstants.MAX_RUN_SPEED;
-        if (cmd.crouch) targetVx *= PhysicsConstants.CROUCH_SPEED_MULT;
+        // ── Ground-state change detection ─────────────────────────────────────
+        boolean justLanded    = !sp.wasOnGround && p.onGround;
+        boolean justLeftGround = sp.wasOnGround  && !p.onGround;
 
-        // Instant velocity (matches Python's direct vx assignment)
-        p.vx = targetVx;
-
-        // Update facing direction for broadcast
-        if (cmd.right) sp.facing =  1;
-        if (cmd.left)  sp.facing = -1;
-
-        // ── Jump ──────────────────────────────────────────────────────────────
-        if (cmd.jump && p.onGround) {
-            p.vy = -PhysicsConstants.JUMP_POWER;  // negative = upward in Y-DOWN
-            p.onGround = false;
+        // ── Landing: reset jump state ─────────────────────────────────────────
+        if (justLanded) {
+            sp.jumpCount   = 0;
+            sp.coyoteTimer = 0f;
+            sp.jumpBuffer  = 0f;
         }
 
-        // ── Jump-cut: release jump while still rising ──────────────────────
-        p.jumpCutActive  = !cmd.jump && p.vy < 0;
+        // ── Coyote time: walking off an edge without jumping ──────────────────
+        // Only grant coyote window when the player left the ground naturally (not by jumping).
+        if (justLeftGround && sp.jumpCount == 0) {
+            sp.coyoteTimer = PhysicsConstants.COYOTE_TIME;
+        }
+        if (sp.coyoteTimer > 0f) sp.coyoteTimer -= DT;
 
-        // ── Fast-fall: hold down while airborne ───────────────────────────
+        // ── Dash timers ───────────────────────────────────────────────────────
+        if (sp.isDashing) {
+            sp.dashTimer -= DT;
+            if (sp.dashTimer <= 0f) {
+                sp.isDashing    = false;
+                sp.dashTimer    = 0f;
+                sp.dashCooldown = PhysicsConstants.DASH_COOLDOWN;
+            }
+        }
+        if (sp.dashCooldown > 0f) sp.dashCooldown -= DT;
+
+        // ── Rising-edge input detection ───────────────────────────────────────
+        boolean jumpJustPressed = cmd.jump && !sp.prevJump;
+        boolean dashJustPressed = cmd.dash && !sp.prevDash;
+
+        // ── Jump buffer: store a jump press for landing ───────────────────────
+        if (jumpJustPressed) sp.jumpBuffer = PhysicsConstants.JUMP_BUFFER_TIME;
+        if (sp.jumpBuffer > 0f) sp.jumpBuffer -= DT;
+
+        // ── Dash initiation ───────────────────────────────────────────────────
+        if (dashJustPressed && sp.dashCooldown <= 0f && !sp.isDashing) {
+            sp.isDashing = true;
+            sp.dashTimer = PhysicsConstants.DASH_DURATION;
+            p.vy = 0f;  // cancel vertical momentum for horizontal dash
+        }
+
+        // ── Horizontal movement ───────────────────────────────────────────────
+        if (sp.isDashing) {
+            // Dash overrides normal velocity; direction locked to current facing
+            p.vx = PhysicsConstants.DASH_SPEED * sp.facing;
+        } else {
+            float targetVx = 0f;
+            if (cmd.right) targetVx =  PhysicsConstants.MAX_RUN_SPEED;
+            if (cmd.left)  targetVx = -PhysicsConstants.MAX_RUN_SPEED;
+            if (cmd.crouch) targetVx *= PhysicsConstants.CROUCH_SPEED_MULT;
+            p.vx = targetVx;
+            if (cmd.right) sp.facing =  1;
+            if (cmd.left)  sp.facing = -1;
+        }
+
+        // ── Jump logic ────────────────────────────────────────────────────────
+        boolean canGroundJump = p.onGround || sp.coyoteTimer > 0f;
+        boolean jumpTriggered = jumpJustPressed || (sp.jumpBuffer > 0f && canGroundJump);
+
+        if (canGroundJump && jumpTriggered && sp.jumpCount == 0) {
+            // First jump — ground or coyote
+            p.vy           = -PhysicsConstants.JUMP_POWER;
+            p.onGround     = false;
+            sp.jumpCount   = 1;
+            sp.coyoteTimer = 0f;
+            sp.jumpBuffer  = 0f;
+        } else if (!canGroundJump && jumpJustPressed && sp.jumpCount == 1 && !sp.isDashing) {
+            // Double jump — airborne, first jump already used
+            p.vy          = -PhysicsConstants.DOUBLE_JUMP_POWER;
+            sp.jumpCount  = 2;
+            sp.jumpBuffer = 0f;
+        }
+
+        // ── Wall jump ─────────────────────────────────────────────────────────
+        if (jumpJustPressed && p.onWall && !p.onGround && sp.jumpCount < 2) {
+            p.vx        = -p.wallDir * PhysicsConstants.WALL_JUMP_POWER_X;
+            p.vy        = -PhysicsConstants.WALL_JUMP_POWER_Y;
+            sp.facing   = -p.wallDir;
+            // Wall jump counts as the first (or second) jump
+            sp.jumpCount = Math.max(sp.jumpCount + 1, 1);
+            sp.jumpBuffer = 0f;
+        }
+
+        // ── Gravity modifier flags ────────────────────────────────────────────
+        // Jump-cut: release jump while still rising → extra gravity via PhysicsSystem
+        p.jumpCutActive  = !cmd.jump && p.vy < 0f;
+        // Fast-fall: hold down while airborne
         p.fastFallActive = cmd.down && !p.onGround;
 
-        // ── Animation state ───────────────────────────────────────────────
-        if (!p.onGround) {
-            sp.animState = p.vy < 0 ? "jump" : "fall";
-        } else if (targetVx != 0) {
+        // ── Persist state for next tick ───────────────────────────────────────
+        sp.wasOnGround = p.onGround;
+        sp.prevJump    = cmd.jump;
+        sp.prevDash    = cmd.dash;
+
+        // ── Animation state ───────────────────────────────────────────────────
+        if (sp.isDashing) {
+            sp.animState = "dash";
+        } else if (!p.onGround) {
+            sp.animState = p.vy < 0f ? "jump" : "fall";
+        } else if (cmd.crouch) {
+            sp.animState = "crouch";
+        } else if (Math.abs(p.vx) > 0.1f) {
             sp.animState = "run";
         } else {
             sp.animState = "idle";
@@ -343,7 +420,7 @@ public final class GameSimulator {
             }
             case CHASE -> {
                 // Move toward nearest player
-                float tx = nearest[0], ty = nearest[1];
+                float tx = nearest[0];
                 float cx = en.physics.x + en.physics.width * 0.5f;
                 float speed = en.moveSpeed * DT;
                 if (tx > cx) { en.physics.x += speed; en.facingRight = true; }

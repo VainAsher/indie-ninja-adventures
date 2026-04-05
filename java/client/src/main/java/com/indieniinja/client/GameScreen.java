@@ -79,15 +79,22 @@ public final class GameScreen implements Screen {
         inputPoller = new InputPoller();
 
         anims = new AnimationRegistry();
-        FileHandle atlasFile = Gdx.files.internal("assets/characters.atlas");
+        FileHandle atlasFile   = Gdx.files.internal("assets/characters.atlas");
+        FileHandle playerDir   = Gdx.files.internal("assets/sprites/player");
         if (atlasFile.exists()) {
             anims.loadAtlas(new TextureAtlas(atlasFile));
+        } else if (playerDir.exists()) {
+            anims.loadSpriteSheets(playerDir);
         } else {
             anims.loadPlaceholder();
         }
 
         chunkRenderer = new ChunkRenderer();
         chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
+        FileHandle biomeDir = Gdx.files.internal("assets/biomes/dungeon");
+        if (biomeDir.exists()) {
+            chunkRenderer.loadTileTextures(biomeDir, LEVEL_COLS, LEVEL_ROWS);
+        }
 
         entityRenderer = new EntityRenderer(anims);
         hudRenderer    = new HudRenderer();

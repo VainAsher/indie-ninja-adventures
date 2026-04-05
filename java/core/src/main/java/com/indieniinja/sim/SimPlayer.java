@@ -33,6 +33,24 @@ public final class SimPlayer {
     // Invincibility frames after taking damage (ticks)
     public int invincibilityTicks = 0;
 
+    // ── Advanced movement mechanics state ────────────────────────────────────
+    // Dash
+    public float   dashTimer    = 0f;    // seconds remaining while dash is active
+    public float   dashCooldown = 0f;    // seconds until next dash is allowed
+    public boolean isDashing    = false;
+
+    // Jump
+    public int     jumpCount    = 0;     // jumps consumed (0=grounded, 1=first, 2=double)
+    public float   coyoteTimer  = 0f;    // seconds remaining to jump after walking off edge
+    public float   jumpBuffer   = 0f;    // seconds remaining from a buffered jump press
+
+    // Previous-tick input state for rising-edge detection
+    public boolean prevJump     = false;
+    public boolean prevDash     = false;
+
+    // Ground state from previous tick (for coyote-time detection)
+    public boolean wasOnGround  = false;
+
     // Input — written by Netty I/O thread, read by sim thread via AtomicRef in PlayerRecord
     public InputCommand latestInput = InputCommand.neutral(0);
 

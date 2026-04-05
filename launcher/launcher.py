@@ -4344,7 +4344,7 @@ class LauncherApp:
             return
         cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), host, str(port)]
         try:
-            proc = subprocess.Popen(cmd)
+            proc = subprocess.Popen(cmd, cwd=str(_get_base_dir()))
             self._status_var.set(f"Java Client Running…  ({host}:{port})")
             self.root.iconify()
             threading.Thread(

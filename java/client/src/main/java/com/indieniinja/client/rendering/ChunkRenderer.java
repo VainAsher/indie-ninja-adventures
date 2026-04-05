@@ -1,5 +1,6 @@
 package com.indieniinja.client.rendering;
 
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -61,37 +62,73 @@ public final class ChunkRenderer {
         this.mapCols = cols;
         this.mapRows = rows;
 
-        // Solid tile (grey)
-        Pixmap solid = new Pixmap(TILE, TILE, Pixmap.Format.RGBA8888);
-        solid.setColor(0.35f, 0.35f, 0.38f, 1f);
-        solid.fill();
-        solid.setColor(0.25f, 0.25f, 0.28f, 1f);
-        solid.drawRectangle(0, 0, TILE - 1, TILE - 1);
-        placeholderSolid = new TextureRegion(new Texture(solid));
-        solid.dispose();
+        if (placeholderSolid == null) {
+            // Solid tile (grey)
+            Pixmap solid = new Pixmap(TILE, TILE, Pixmap.Format.RGBA8888);
+            solid.setColor(0.35f, 0.35f, 0.38f, 1f);
+            solid.fill();
+            solid.setColor(0.25f, 0.25f, 0.28f, 1f);
+            solid.drawRectangle(0, 0, TILE - 1, TILE - 1);
+            placeholderSolid = new TextureRegion(new Texture(solid));
+            solid.dispose();
+        }
 
-        // Platform tile (brown)
-        Pixmap plat = new Pixmap(TILE, TILE / 2, Pixmap.Format.RGBA8888);
-        plat.setColor(0.55f, 0.38f, 0.20f, 1f);
-        plat.fill();
-        placeholderPlatform = new TextureRegion(new Texture(plat));
-        plat.dispose();
+        if (placeholderPlatform == null) {
+            // Platform tile (brown)
+            Pixmap plat = new Pixmap(TILE, TILE / 2, Pixmap.Format.RGBA8888);
+            plat.setColor(0.55f, 0.38f, 0.20f, 1f);
+            plat.fill();
+            placeholderPlatform = new TextureRegion(new Texture(plat));
+            plat.dispose();
+        }
 
-        // Build a minimal test layout matching LevelLayout.buildTestLayout() exactly.
+        rebuildTestLayout(cols, rows);
+    }
+
+    /**
+     * Load real tile textures from a biome directory and rebuild the tile map.
+     * Falls back to whichever placeholder is already set for any missing file.
+     *
+     * Expected files in biomeDir:
+     *   tile_terrain.png   — solid terrain
+     *   tile_platform.png  — one-way platform
+     *
+     * Call after loadPlaceholderLayout so the grid dimensions are already set.
+     */
+    public void loadTileTextures(FileHandle biomeDir, int cols, int rows) {
+        FileHandle terrainFh  = biomeDir.child("tile_terrain.png");
+        FileHandle platformFh = biomeDir.child("tile_platform.png");
+
+        if (terrainFh.exists()) {
+            if (placeholderSolid != null) placeholderSolid.getTexture().dispose();
+            placeholderSolid = new TextureRegion(new Texture(terrainFh));
+        }
+        if (platformFh.exists()) {
+            if (placeholderPlatform != null) placeholderPlatform.getTexture().dispose();
+            placeholderPlatform = new TextureRegion(new Texture(platformFh));
+        }
+
+        rebuildTestLayout(cols, rows);
+    }
+
+    /** Rebuild tileMap grid from the current solid/platform TextureRegions. */
+    private void rebuildTestLayout(int cols, int rows) {
+        this.mapCols = cols;
+        this.mapRows = rows;
+
         // Coordinate system is Y-DOWN: row 0 = top of world (y=0), row rows-1 = bottom.
-        //  - rows rows-2 and rows-1 (y=960,992): floor across full width
-        //  - col 0 and cols-1               : solid walls top-to-bottom
-        //  - row 16 (y=512), cols 8..19     : one-way mid platform
+        //  - rows rows-2 and rows-1: floor across full width
+        //  - col 0 and cols-1      : solid walls top-to-bottom
+        //  - row 16, cols 8..19    : one-way mid platform (matches LevelLayout)
         this.tileMap = new TextureRegion[rows][cols];
         for (int c = 0; c < cols; c++) {
-            tileMap[rows - 2][c] = placeholderSolid;  // floor (upper)
-            tileMap[rows - 1][c] = placeholderSolid;  // floor (lower)
+            tileMap[rows - 2][c] = placeholderSolid;
+            tileMap[rows - 1][c] = placeholderSolid;
         }
         for (int r = 0; r < rows; r++) {
-            tileMap[r][0]        = placeholderSolid;  // left wall
-            tileMap[r][cols - 1] = placeholderSolid;  // right wall
+            tileMap[r][0]        = placeholderSolid;
+            tileMap[r][cols - 1] = placeholderSolid;
         }
-        // Mid platform (cols 8..19, row 16 — matches LevelLayout)
         for (int c = 8; c <= 19 && c < cols; c++) {
             tileMap[16][c] = placeholderPlatform;
         }
