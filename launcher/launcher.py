@@ -549,6 +549,7 @@ class LauncherApp:
         self.root.geometry(f"{WINDOW_W}x{WINDOW_H}+{x}+{y}")
 
         threading.Thread(target=self._fetch_releases, daemon=True).start()
+        self._schedule_periodic_check()
 
     # ── UI construction ───────────────────────────────────────────────────────
 
@@ -714,9 +715,10 @@ class LauncherApp:
         top_row = tk.Frame(ctrl, bg=BG_DARK)
         top_row.pack(fill="x")
 
+        self._installed_label_var = tk.StringVar(value=f"Installed:  v{self._local_version}")
         tk.Label(
             top_row,
-            text=f"Installed:  v{self._local_version}",
+            textvariable=self._installed_label_var,
             font=("Consolas", 9),
             fg=TEXT_DIM,
             bg=BG_DARK,
@@ -3719,7 +3721,19 @@ class LauncherApp:
             return
         self._launch_with_args("--replay", name, "--show-replay")
 
-    # ── Release list fetch ────────────────────────────────────────────────────
+    # ── Release list fetch + periodic re-check ───────────────────────────────
+
+    _PERIODIC_CHECK_MS = 15 * 60 * 1000  # re-check every 15 minutes
+
+    def _schedule_periodic_check(self) -> None:
+        """Schedule a silent update check in 15 minutes."""
+        self.root.after(self._PERIODIC_CHECK_MS, self._run_periodic_check)
+
+    def _run_periodic_check(self) -> None:
+        """Silently re-fetch releases and update status if a newer version is found."""
+        if not self._downloading:
+            threading.Thread(target=self._fetch_releases, daemon=True).start()
+        self._schedule_periodic_check()
 
     def _fetch_releases(self) -> None:
         try:
@@ -4047,6 +4061,7 @@ class LauncherApp:
         self._progress_var.set(100.0)
         self._status_var.set(f"OK  {tag} installed. Ready to play.")
         self._play_btn.configure(state="normal", fg=ACCENT)
+        self._installed_label_var.set(f"Installed:  v{self._local_version}")
 
         labels = [
             _version_label(r["tag_name"], self._local_version, i == 0)
