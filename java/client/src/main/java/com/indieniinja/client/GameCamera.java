@@ -65,6 +65,18 @@ public final class GameCamera {
         cam.update();
     }
 
+    /**
+     * Instantly reposition the camera with no lerp — use on screen entry to
+     * avoid the camera panning from world-origin to the spawn area.
+     */
+    public void snapTo(float x, float y) {
+        cam.position.x = x;
+        cam.position.y = y;
+        targetX = x;
+        targetY = y;
+        cam.update();
+    }
+
     /** Update viewport on window resize. Preserves Y-DOWN orientation set at construction. */
     public void resize(float w, float h) {
         cam.viewportWidth  = w;

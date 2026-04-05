@@ -69,6 +69,12 @@ public final class GameScreen implements Screen {
     public void show() {
         batch       = new SpriteBatch();
         camera      = new GameCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        // Snap to spawn area immediately so the floor is visible before the first
+        // server snapshot arrives (default camera position is world-top, floor is at y=960).
+        camera.snapTo(
+            LEVEL_COLS * PhysicsConstants.TILE_SIZE / 2f,  // centre of level horizontally
+            29 * PhysicsConstants.TILE_SIZE                 // just above the floor (Y-DOWN)
+        );
         stateBuffer = new GameStateBuffer();
         inputPoller = new InputPoller();
 

@@ -538,6 +538,7 @@ class LauncherApp:
         self._download_cancel = threading.Event()
         self._splash_photo: tk.PhotoImage | None = None
         self._benchmark_proc: subprocess.Popen | None = None
+        self._java_server_proc: subprocess.Popen | None = None
         self._benchmark_timer: threading.Timer | None = None
         self._record_var = tk.IntVar(value=0)
         self._record_name_var = tk.StringVar(value="")
@@ -4367,10 +4368,43 @@ class LauncherApp:
             return
         cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), str(port)]
         try:
-            subprocess.Popen(cmd)
-            self._status_var.set(f"Java Server started on port {port}")
+            self._java_server_proc = subprocess.Popen(cmd)
+            self._status_var.set(f"Java Server running on port {port}")
+            self._java_server_btn.configure(
+                text="[S]  Stop Server",
+                bg="#5a1a1a",
+                command=self._stop_java_server,
+            )
+            threading.Thread(
+                target=self._watch_java_server,
+                args=(self._java_server_proc,),
+                daemon=True,
+            ).start()
         except Exception as exc:
             messagebox.showerror("Launch Error", str(exc), parent=self.root)
+
+    def _stop_java_server(self) -> None:
+        proc = self._java_server_proc
+        if proc and proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+        self._on_java_server_stopped()
+
+    def _watch_java_server(self, proc: subprocess.Popen) -> None:
+        proc.wait()
+        self.root.after(0, self._on_java_server_stopped)
+
+    def _on_java_server_stopped(self) -> None:
+        self._java_server_proc = None
+        self._java_server_btn.configure(
+            text="[S]  Start Server",
+            bg=BTN_HOST_BG,
+            command=self._launch_java_server,
+        )
+        self._status_var.set("Server stopped.")
 
     # ── Game process watcher + crash detection (P1-F6) ───────────────────────
 
