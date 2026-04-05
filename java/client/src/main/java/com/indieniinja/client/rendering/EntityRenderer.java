@@ -71,15 +71,16 @@ public final class EntityRenderer {
         float stateTime = tickStateTime(p.playerId, animKey, dt);
         TextureRegion frame = anims.getFrame(animKey, stateTime, PLAYER_ANIM_FPS);
 
-        // Facing: flip region horizontally when facing left (-1)
-        boolean flipX = (p.facing == -1) == frame.isFlipX();
-        if ((p.facing == -1) != frame.isFlipX()) frame.flip(true, false);
+        // Sprites default to facing right.  Flip X when facing left.
+        // Preserve any pre-applied Y-flip (Y-DOWN correction set at load time).
+        boolean wantFlipX  = (p.facing == -1);
+        boolean needChange = wantFlipX != frame.isFlipX();
+        if (needChange) frame.flip(true, false);
 
-        // Origin at bottom-left of physics box
-        batch.draw(frame, p.posX - PW / 2f, p.posY, PW, PH);
+        // posX/posY are the AABB top-left corner (left edge, top edge in Y-DOWN).
+        batch.draw(frame, p.posX, p.posY, PW, PH);
 
-        // Restore flip state (TextureRegion is shared from atlas)
-        if (flipX) frame.flip(true, false);
+        if (needChange) frame.flip(true, false);  // restore shared region
     }
 
     // ── Enemies ───────────────────────────────────────────────────────────────
@@ -96,14 +97,14 @@ public final class EntityRenderer {
         float stateTime = tickStateTime(e.enemyId, animKey, dt);
         TextureRegion frame = anims.getFrame(animKey, stateTime, ENEMY_ANIM_FPS);
 
-        if (!e.facingRight && !frame.isFlipX()) frame.flip(true, false);
-        else if (e.facingRight &&  frame.isFlipX()) frame.flip(true, false);
+        boolean wantEnemyFlipX  = !e.facingRight;
+        boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();
+        if (needEnemyChange) frame.flip(true, false);
 
-        batch.draw(frame, e.x - ENEMY_W / 2f, e.y, ENEMY_W, ENEMY_H);
+        // e.x / e.y are the AABB top-left corner
+        batch.draw(frame, e.x, e.y, ENEMY_W, ENEMY_H);
 
-        // Restore
-        if (!e.facingRight && !frame.isFlipX()) frame.flip(true, false);
-        else if (e.facingRight &&  frame.isFlipX()) frame.flip(true, false);
+        if (needEnemyChange) frame.flip(true, false);
     }
 
     // ── Pickups ───────────────────────────────────────────────────────────────

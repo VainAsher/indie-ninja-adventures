@@ -163,13 +163,21 @@ public final class AnimationRegistry {
         frames.put("player_fall", new TextureRegion[]{ both[1] });
     }
 
-    /** Slice a texture into numFrames equal-width horizontal frames. */
+    /**
+     * Slice a texture into numFrames equal-width horizontal frames.
+     *
+     * Regions are flipped vertically (flip Y) because the game uses a Y-DOWN camera
+     * (setToOrtho(true)).  In Y-DOWN mode SpriteBatch maps V=0 (image top) to the
+     * world-bottom of the quad, which would render every sprite upside-down.
+     * Pre-flipping the UV here is the standard fix.
+     */
     private static TextureRegion[] sliceSheet(Texture tex, int numFrames) {
         int fw = tex.getWidth() / numFrames;
         int fh = tex.getHeight();
         TextureRegion[] regions = new TextureRegion[numFrames];
         for (int i = 0; i < numFrames; i++) {
             regions[i] = new TextureRegion(tex, i * fw, 0, fw, fh);
+            regions[i].flip(false, true);  // correct orientation for Y-DOWN camera
         }
         return regions;
     }
