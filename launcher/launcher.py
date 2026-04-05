@@ -475,6 +475,18 @@ def _find_jar_asset(assets: list[dict], prefix: str) -> dict | None:
     return None
 
 
+def _is_port_in_use(port: int) -> bool:
+    """Return True if something is already listening on the given TCP port."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s.bind(("127.0.0.1", port))
+            return False
+        except OSError:
+            return True
+
+
 def _parse_profiler_csv(csv_path: Path) -> dict | None:
     """
     Read the profiler CSV and return summary stats, or None if no data.
@@ -4343,6 +4355,15 @@ class LauncherApp:
                 raise ValueError
         except ValueError:
             messagebox.showerror("Invalid Port", "Port must be 1–65535.", parent=self.root)
+            return
+        if _is_port_in_use(port):
+            messagebox.showerror(
+                "Port In Use",
+                f"Port {port} is already in use.\n\n"
+                "A server may already be running. Check your system tray or\n"
+                "Task Manager for an existing ninja-server process.",
+                parent=self.root,
+            )
             return
         cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), str(port)]
         try:
