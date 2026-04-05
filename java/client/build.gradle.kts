@@ -28,9 +28,10 @@ application {
     mainClass.set("com.indieniinja.client.DesktopLauncher")
 }
 
-// Fat JAR: single deployable ninja-client-<version>-all.jar
+// Fat JAR: stable name ninja-client-all.jar (no version suffix — launcher uses fixed filename)
 tasks.shadowJar {
     archiveBaseName.set("ninja-client")
+    archiveVersion.set("")
     archiveClassifier.set("all")
     mergeServiceFiles()
 

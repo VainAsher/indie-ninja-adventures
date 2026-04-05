@@ -27,8 +27,10 @@ application {
     mainClass.set("com.indieniinja.server.NinjaGameServer")
 }
 
-// Fat JAR: single deployable ninja-server-<version>-all.jar
+// Fat JAR: stable name ninja-server-all.jar (no version suffix — launcher uses fixed filename)
 tasks.shadowJar {
+    archiveBaseName.set("ninja-server")
+    archiveVersion.set("")
     archiveClassifier.set("all")
     mergeServiceFiles()
 }

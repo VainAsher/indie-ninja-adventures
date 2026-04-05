@@ -1,9 +1,9 @@
-// Root build — shared config for all sub-modules (v0.10.2 — Phase C)
+// Root build — shared config for all sub-modules
 subprojects {
     apply(plugin = "java")
 
     group   = "com.indieniinja"
-    version = "0.10.2"
+    version = "0.10.4"
 
     repositories {
         mavenCentral()
