@@ -11,6 +11,7 @@ import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.physics.CollisionSystem;
 import com.indieniinja.physics.PhysicsConstants;
+import com.indieniinja.physics.PhysicsState;
 import com.indieniinja.physics.PhysicsSystem;
 
 import java.util.ArrayList;
@@ -132,13 +133,13 @@ public final class GameSimulator {
      * @param inputs Map from slot → InputCommand (slots absent hold last known)
      */
     public void step(Map<Integer, InputCommand> inputs) {
-        // 1. Apply inputs: update player physics state from client-reported pos/vel
+        // 1. Store latest inputs and apply movement to player physics
         for (Map.Entry<Integer, InputCommand> e : inputs.entrySet()) {
             SimPlayer p = players.get(e.getKey());
-            if (p != null) p.latestInput = e.getValue();
+            if (p == null) continue;
+            p.latestInput = e.getValue();
+            applyPlayerInput(p, e.getValue());
         }
-        // In Phase B player positions come from PlayerRecord (already written
-        // by ServerProtocolHandler.handleInput). Nothing to do here for physics.
 
         // Tick invincibility timers
         for (SimPlayer p : players.values()) p.tickInvincibility();
@@ -227,6 +228,50 @@ public final class GameSimulator {
     }
 
     // ── Step helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * Translate a player's InputCommand into velocity changes on their PhysicsState.
+     * Ports the core movement loop from Python mechanics/ (run, jump, gravity flags).
+     * Advanced mechanics (dash, double-jump, wall-jump, coyote time) are deferred to
+     * Phase C when the full MechanicsSystem is ported.
+     */
+    private static void applyPlayerInput(SimPlayer sp, InputCommand cmd) {
+        PhysicsState p = sp.physics;
+
+        // ── Horizontal movement ───────────────────────────────────────────────
+        float targetVx = 0f;
+        if (cmd.right) targetVx =  PhysicsConstants.MAX_RUN_SPEED;
+        if (cmd.left)  targetVx = -PhysicsConstants.MAX_RUN_SPEED;
+        if (cmd.crouch) targetVx *= PhysicsConstants.CROUCH_SPEED_MULT;
+
+        // Instant velocity (matches Python's direct vx assignment)
+        p.vx = targetVx;
+
+        // Update facing direction for broadcast
+        if (cmd.right) sp.facing =  1;
+        if (cmd.left)  sp.facing = -1;
+
+        // ── Jump ──────────────────────────────────────────────────────────────
+        if (cmd.jump && p.onGround) {
+            p.vy = -PhysicsConstants.JUMP_POWER;  // negative = upward in Y-DOWN
+            p.onGround = false;
+        }
+
+        // ── Jump-cut: release jump while still rising ──────────────────────
+        p.jumpCutActive  = !cmd.jump && p.vy < 0;
+
+        // ── Fast-fall: hold down while airborne ───────────────────────────
+        p.fastFallActive = cmd.down && !p.onGround;
+
+        // ── Animation state ───────────────────────────────────────────────
+        if (!p.onGround) {
+            sp.animState = p.vy < 0 ? "jump" : "fall";
+        } else if (targetVx != 0) {
+            sp.animState = "run";
+        } else {
+            sp.animState = "idle";
+        }
+    }
 
     private void stepPlatforms() {
         for (FallingPlatform fp : fallingPlatforms) {
