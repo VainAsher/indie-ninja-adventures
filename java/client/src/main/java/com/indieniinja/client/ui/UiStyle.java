@@ -8,11 +8,16 @@ import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 
 /**
  * Programmatic Scene2D skin — no external skin-file dependency.
  * Used by MainMenuScreen and PauseScreen so the client runs without assets.
+ *
+ * Note: skin.add(name, drawable) stores by the concrete class (NinePatchDrawable),
+ * but skin.getDrawable(name) searches for Drawable.class. To make getDrawable work,
+ * drawables must be registered with skin.add(name, drawable, Drawable.class).
  */
 public final class UiStyle {
 
@@ -38,30 +43,30 @@ public final class UiStyle {
         skin.add("default-font", font);
         skin.add("font-large",   fontLarge);
 
-        // ── Drawables ─────────────────────────────────────────────────────────
-        skin.add("btn-up",   solidDrawable(BTN_UP));
-        skin.add("btn-over", solidDrawable(BTN_OVER));
-        skin.add("btn-down", solidDrawable(BTN_DOWN));
-        skin.add("dim-bg",   solidDrawable(new Color(0f, 0f, 0f, 0.65f)));
+        // ── Drawables — must register as Drawable.class for getDrawable() ─────
+        NinePatchDrawable btnUp   = solidDrawable(BTN_UP);
+        NinePatchDrawable btnOver = solidDrawable(BTN_OVER);
+        NinePatchDrawable btnDown = solidDrawable(BTN_DOWN);
+        NinePatchDrawable dimBg   = solidDrawable(new Color(0f, 0f, 0f, 0.65f));
+        skin.add("btn-up",   btnUp,   Drawable.class);
+        skin.add("btn-over", btnOver, Drawable.class);
+        skin.add("btn-down", btnDown, Drawable.class);
+        skin.add("dim-bg",   dimBg,   Drawable.class);
 
         // ── Label styles ──────────────────────────────────────────────────────
-        Label.LabelStyle lblDefault = new Label.LabelStyle(font, TEXT);
-        Label.LabelStyle lblLarge   = new Label.LabelStyle(fontLarge, TEXT);
-        Label.LabelStyle lblDim     = new Label.LabelStyle(font, TEXT_DIM);
-        Label.LabelStyle lblAccent  = new Label.LabelStyle(font, ACCENT);
-        skin.add("default", lblDefault);
-        skin.add("large",   lblLarge);
-        skin.add("dim",     lblDim);
-        skin.add("accent",  lblAccent);
+        skin.add("default", new Label.LabelStyle(font,      TEXT),     Label.LabelStyle.class);
+        skin.add("large",   new Label.LabelStyle(fontLarge, TEXT),     Label.LabelStyle.class);
+        skin.add("dim",     new Label.LabelStyle(font,      TEXT_DIM), Label.LabelStyle.class);
+        skin.add("accent",  new Label.LabelStyle(font,      ACCENT),   Label.LabelStyle.class);
 
-        // ── TextButton style ──────────────────────────────────────────────────
+        // ── TextButton style — assign drawables directly (no getDrawable call) ─
         TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
         btnStyle.font      = font;
         btnStyle.fontColor = TEXT;
-        btnStyle.up        = skin.getDrawable("btn-up");
-        btnStyle.over      = skin.getDrawable("btn-over");
-        btnStyle.down      = skin.getDrawable("btn-down");
-        skin.add("default", btnStyle);
+        btnStyle.up        = btnUp;
+        btnStyle.over      = btnOver;
+        btnStyle.down      = btnDown;
+        skin.add("default", btnStyle, TextButton.TextButtonStyle.class);
 
         return skin;
     }
