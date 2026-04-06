@@ -28,6 +28,7 @@ public final class WorldSnapshot {
     public List<EnemyState>    enemies        = new ArrayList<>();
     public List<PickupState>   pickups        = new ArrayList<>();
     public List<PlatformState> platformStates = new ArrayList<>();
+    public List<ShurikenState> shurikens      = new ArrayList<>();
 
     // Delta fields (only populated when isDelta=true)
     public List<EnemyState>    enemiesChanged   = new ArrayList<>();
@@ -81,6 +82,9 @@ public final class WorldSnapshot {
             for (Object p : list(m, "platform_states"))
                 if (p instanceof java.util.Map<?,?> pm)
                     s.platformStates.add(PlatformState.fromMap((java.util.Map<String,Object>) pm));
+            for (Object sh : list(m, "shurikens"))
+                if (sh instanceof java.util.Map<?,?> shm)
+                    s.shurikens.add(ShurikenState.fromMap((java.util.Map<String,Object>) shm));
         }
         return s;
     }
@@ -116,6 +120,7 @@ public final class WorldSnapshot {
             m.put("enemies",         mapList(enemies));
             m.put("pickups",         mapList(pickups));
             m.put("platform_states", mapList(platformStates));
+            m.put("shurikens",       shurikenList());
         }
 
         m.put("metadata", metadata);
@@ -128,6 +133,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> playerList() {
         List<Map<String, Object>> out = new ArrayList<>(players.size());
         for (PlayerState p : players) out.add(p.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> shurikenList() {
+        List<Map<String, Object>> out = new ArrayList<>(shurikens.size());
+        for (ShurikenState s : shurikens) out.add(s.toMap());
         return out;
     }
 

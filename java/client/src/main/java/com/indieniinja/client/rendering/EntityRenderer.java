@@ -6,7 +6,9 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.PickupState;
 import com.indieniinja.network.PlayerState;
+import com.indieniinja.network.ShurikenState;
 import com.indieniinja.network.WorldSnapshot;
+import com.indieniinja.sim.SimShuriken;
 import com.indieniinja.physics.PhysicsConstants;
 
 /**
@@ -55,9 +57,23 @@ public final class EntityRenderer {
     public void render(SpriteBatch batch, WorldSnapshot snap, float deltaTime) {
         if (snap == null) return;
 
-        for (EnemyState  e : snap.enemies)  renderEnemy(batch, e, deltaTime);
-        for (PickupState p : snap.pickups)  renderPickup(batch, p, deltaTime);
-        for (PlayerState p : snap.players)  renderPlayer(batch, p, deltaTime);
+        for (ShurikenState sh : snap.shurikens) renderShuriken(batch, sh, deltaTime);
+        for (EnemyState    e  : snap.enemies)   renderEnemy(batch, e, deltaTime);
+        for (PickupState   p  : snap.pickups)   renderPickup(batch, p, deltaTime);
+        for (PlayerState   p  : snap.players)   renderPlayer(batch, p, deltaTime);
+    }
+
+    // ── Shurikens ─────────────────────────────────────────────────────────────
+
+    private void renderShuriken(SpriteBatch batch, ShurikenState sh, float dt) {
+        if (!sh.alive) return;
+        // Spin the sprite by cycling through a "shuriken" atlas key if available,
+        // otherwise falls back to the placeholder (small grey square).
+        float stateTime = tickStateTime(sh.shurikenId, "shuriken", dt);
+        TextureRegion frame = anims.getFrame("shuriken", stateTime, 12f);
+        batch.setColor(sh.stuck ? Color.GRAY : Color.WHITE);
+        batch.draw(frame, sh.x, sh.y, SimShuriken.W, SimShuriken.H);
+        batch.setColor(Color.WHITE);
     }
 
     // ── Players ───────────────────────────────────────────────────────────────
@@ -140,9 +156,10 @@ public final class EntityRenderer {
     public void pruneEntities(WorldSnapshot snap) {
         if (snap == null) return;
         java.util.Set<String> live = new java.util.HashSet<>();
-        snap.players.forEach(p -> live.add(p.playerId));
-        snap.enemies.forEach(e -> live.add(e.enemyId));
-        snap.pickups.forEach(p -> live.add(p.pickupId));
+        snap.players.forEach(p  -> live.add(p.playerId));
+        snap.enemies.forEach(e  -> live.add(e.enemyId));
+        snap.pickups.forEach(p  -> live.add(p.pickupId));
+        snap.shurikens.forEach(s -> live.add(s.shurikenId));
         stateTimes.keySet().retainAll(live);
         lastState.keySet().retainAll(live);
     }

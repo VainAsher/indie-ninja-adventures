@@ -57,14 +57,17 @@ public final class GameSimulator {
     // ── Sim entities ─────────────────────────────────────────────────────────
     /** Slot → SimPlayer (ordered by slot for deterministic snapshot). */
     private final Map<Integer, SimPlayer> players = new LinkedHashMap<>();
-    private final List<SimEnemy>    enemies  = new ArrayList<>();
-    private final List<SimPickup>   pickups  = new ArrayList<>();
+    private final List<SimEnemy>    enemies   = new ArrayList<>();
+    private final List<SimPickup>   pickups   = new ArrayList<>();
     private final List<FallingPlatform> fallingPlatforms = new ArrayList<>();
+    private final List<SimShuriken> shurikens = new ArrayList<>();
+    private int shurikenSeq = 0;
 
     // ── World ─────────────────────────────────────────────────────────────────
     public final long   seed;
     public final String hubId;
     private final float worldHeightPx;
+    private final com.indieniinja.physics.SpatialHash spatialHash;
 
     // ── Construction ─────────────────────────────────────────────────────────
 
@@ -72,6 +75,7 @@ public final class GameSimulator {
         this.seed          = seed;
         this.hubId         = hubId;
         this.worldHeightPx = layout.worldHeightPx;
+        this.spatialHash   = layout.spatialHash;
 
         // Build core systems
         bus           = new EventBus();
@@ -164,10 +168,16 @@ public final class GameSimulator {
         // 4. Enemy AI + physics
         stepEnemies();
 
-        // 5. Server-side player-enemy combat
+        // 5. Server-side player-enemy combat (melee + contact)
         stepCombat();
 
-        // 6. Pickups: lifetime + authoritative collection
+        // 6. Spawn any shurikens flagged by applyPlayerInput
+        spawnPendingShurikens();
+
+        // 7. Advance shurikens (movement + tile/enemy collision)
+        stepShurikens();
+
+        // 8. Pickups: lifetime + authoritative collection
         stepPickups();
     }
 
@@ -226,6 +236,20 @@ public final class GameSimulator {
             snap.pickups.add(ps);
         }
 
+        // Shurikens
+        for (SimShuriken sh : shurikens) {
+            if (!sh.alive) continue;
+            com.indieniinja.network.ShurikenState ss = new com.indieniinja.network.ShurikenState();
+            ss.shurikenId = sh.shurikenId;
+            ss.ownerSlot  = sh.ownerSlot;
+            ss.x          = sh.x;
+            ss.y          = sh.y;
+            ss.vx         = sh.vx;
+            ss.stuck      = sh.stuck;
+            ss.alive      = sh.alive;
+            snap.shurikens.add(ss);
+        }
+
         // Falling platforms
         for (FallingPlatform fp : fallingPlatforms) {
             PlatformState ps = new PlatformState();
@@ -270,6 +294,17 @@ public final class GameSimulator {
         }
         if (sp.coyoteTimer > 0f) sp.coyoteTimer -= DT;
 
+        // ── Attack / throw cooldowns ──────────────────────────────────────────
+        if (sp.attackActiveTicks > 0) {
+            sp.attackActiveTicks--;
+            if (sp.attackActiveTicks == 0) sp.isAttacking = false;
+        }
+        if (sp.attackCooldown  > 0f) sp.attackCooldown  -= DT;
+        if (sp.throwCooldown   > 0f) {
+            sp.throwCooldown -= DT;
+            if (sp.throwCooldown <= 0f) sp.isThrowing = false;
+        }
+
         // ── Dash timers ───────────────────────────────────────────────────────
         if (sp.isDashing) {
             sp.dashTimer -= DT;
@@ -282,8 +317,10 @@ public final class GameSimulator {
         if (sp.dashCooldown > 0f) sp.dashCooldown -= DT;
 
         // ── Rising-edge input detection ───────────────────────────────────────
-        boolean jumpJustPressed = cmd.jump && !sp.prevJump;
-        boolean dashJustPressed = cmd.dash && !sp.prevDash;
+        boolean jumpJustPressed   = cmd.jump          && !sp.prevJump;
+        boolean dashJustPressed   = cmd.dash          && !sp.prevDash;
+        boolean attackJustPressed = cmd.attack        && !sp.prevAttack;
+        boolean throwJustPressed  = cmd.throwShuriken && !sp.prevThrow;
 
         // ── Jump buffer: store a jump press for landing ───────────────────────
         if (jumpJustPressed) sp.jumpBuffer = PhysicsConstants.JUMP_BUFFER_TIME;
@@ -348,6 +385,24 @@ public final class GameSimulator {
         sp.wasOnGround = p.onGround;
         sp.prevJump    = cmd.jump;
         sp.prevDash    = cmd.dash;
+        sp.prevAttack  = cmd.attack;
+        sp.prevThrow   = cmd.throwShuriken;
+
+        // ── Melee attack ──────────────────────────────────────────────────────
+        if (attackJustPressed && sp.attackCooldown <= 0f && !sp.isAttacking) {
+            sp.isAttacking      = true;
+            sp.attackActiveTicks = SimPlayer.MELEE_ACTIVE_TICKS;
+            sp.attackCooldown   = SimPlayer.MELEE_COOLDOWN;
+        }
+
+        // ── Shuriken throw ────────────────────────────────────────────────────
+        if (throwJustPressed && sp.throwCooldown <= 0f && sp.shurikenAmmo > 0) {
+            sp.shurikenAmmo--;
+            sp.isThrowing    = true;
+            sp.throwCooldown = SimPlayer.SHURIKEN_COOLDOWN;
+            // Actual SimShuriken is spawned by the outer GameSimulator (needs list access)
+            sp.pendingShuriken = true;
+        }
 
         // ── Wall slide ────────────────────────────────────────────────────────
         applyWallSlide(sp, p);
@@ -355,6 +410,10 @@ public final class GameSimulator {
         // ── Animation state ───────────────────────────────────────────────────
         if (sp.isDashing) {
             sp.animState = "dash";
+        } else if (sp.isAttacking) {
+            sp.animState = "attack";
+        } else if (sp.isThrowing) {
+            sp.animState = "throw";
         } else if (sp.isWallSliding) {
             sp.animState = "wall_slide";
         } else if (!p.onGround) {
@@ -546,18 +605,86 @@ public final class GameSimulator {
     }
 
     private void stepCombat() {
+        // ── Enemy → player contact damage ────────────────────────────────────
         for (SimEnemy en : enemies) {
             if (!en.isAlive()) continue;
             if (en.aiState != EnemyAIState.ATTACK) continue;
-            // Only during the ACTIVE window
             if (en.attackActiveTimer <= 0) continue;
-
             for (SimPlayer p : players.values()) {
                 if (!p.isAlive()) continue;
-                // Simple AABB check
                 if (aabbOverlap(en.physics.x, en.physics.y, en.physics.width, en.physics.height,
                                 p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
                     p.takeDamage(en.baseDamage);
+                }
+            }
+        }
+
+        // ── Player melee → enemy damage ───────────────────────────────────────
+        for (SimPlayer sp : players.values()) {
+            if (!sp.isAlive() || !sp.isAttacking) continue;
+            // Melee hitbox: extends forward from player center in facing direction
+            float cx      = sp.physics.x + sp.physics.width * 0.5f;
+            float cy      = sp.physics.y + sp.physics.height * 0.5f;
+            float reach   = SimPlayer.MELEE_REACH;
+            float halfH   = SimPlayer.MELEE_HEIGHT * 0.5f;
+            float hbX     = sp.facing >= 0 ? cx : cx - reach;
+            float hbY     = cy - halfH;
+            for (SimEnemy en : enemies) {
+                if (!en.isAlive()) continue;
+                if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
+                                en.physics.x, en.physics.y, en.physics.width, en.physics.height)) {
+                    en.takeDamage(SimPlayer.MELEE_DAMAGE);
+                }
+            }
+        }
+    }
+
+    private void spawnPendingShurikens() {
+        for (SimPlayer sp : players.values()) {
+            if (!sp.pendingShuriken) continue;
+            sp.pendingShuriken = false;
+            float cx = sp.physics.x + sp.physics.width  * 0.5f;
+            float cy = sp.physics.y + sp.physics.height * 0.5f;
+            float vx = sp.facing * SimPlayer.SHURIKEN_SPEED;
+            shurikens.add(new SimShuriken(
+                hubId + "_shuriken_" + shurikenSeq++,
+                sp.slot, cx - SimShuriken.W * 0.5f, cy - SimShuriken.H * 0.5f, vx, 0f));
+        }
+    }
+
+    private void stepShurikens() {
+        shurikens.removeIf(s -> !s.alive);
+        for (SimShuriken s : shurikens) {
+            if (s.stuck) {
+                s.stuckTimer -= DT;
+                if (s.stuckTimer <= 0) s.alive = false;
+                continue;
+            }
+            s.x   += s.vx;
+            s.y   += s.vy;
+            s.ttl -= DT;
+            if (s.ttl <= 0) { s.alive = false; continue; }
+
+            // Tile collision via SpatialHash
+            var tiles = spatialHash.candidates(s.x, s.y, SimShuriken.W, SimShuriken.H);
+            for (var tile : tiles) {
+                if (tile.overlaps(s.x, s.y, SimShuriken.W, SimShuriken.H)) {
+                    s.stuck      = true;
+                    s.stuckTimer = 2.0f;
+                    break;
+                }
+            }
+            if (s.stuck) continue;
+
+            // Enemy collision
+            for (SimEnemy en : enemies) {
+                if (!en.isAlive()) continue;
+                if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
+                                en.physics.x, en.physics.y, en.physics.width, en.physics.height)) {
+                    en.takeDamage(SimPlayer.SHURIKEN_DAMAGE);
+                    s.stuck      = true;
+                    s.stuckTimer = 0.1f;
+                    break;
                 }
             }
         }

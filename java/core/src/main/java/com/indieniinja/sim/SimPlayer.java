@@ -51,6 +51,32 @@ public final class SimPlayer {
     // Ground state from previous tick (for coyote-time detection)
     public boolean wasOnGround  = false;
 
+    // ── Combat state ─────────────────────────────────────────────────────────
+    // Melee attack (J key / left mouse)
+    public boolean isAttacking      = false;
+    public int     attackActiveTicks = 0;    // ticks remaining in active hitbox window
+    public float   attackCooldown   = 0f;    // seconds until next attack allowed
+    public boolean prevAttack       = false; // rising-edge detection
+    public boolean pendingShuriken  = false; // set by applyPlayerInput; consumed by GameSimulator
+
+    // Shuriken (K key)
+    public int     shurikenAmmo     = 5;     // matches Python default ammo count
+    public float   throwCooldown    = 0f;    // seconds until next throw allowed
+    public boolean isThrowing       = false; // for "throw" anim state
+    public boolean prevThrow        = false; // rising-edge detection
+
+    // Combat constants (match Python combat_mechanic.py / shuriken.py)
+    public static final int   MELEE_DAMAGE         = 1;
+    public static final int   MELEE_ACTIVE_TICKS   = 8;    // frames hitbox is live
+    public static final float MELEE_COOLDOWN       = 0.4f; // seconds
+    public static final float MELEE_REACH          = 48f;  // px forward from player center
+    public static final float MELEE_HEIGHT         = 40f;  // hitbox height
+    public static final float SHURIKEN_SPEED       = 10f;  // px/tick (600px/s ÷ 60)
+    public static final float SHURIKEN_COOLDOWN    = 0.35f;
+    public static final int   SHURIKEN_DAMAGE      = 1;
+    public static final float SHURIKEN_STUN        = 0.4f;
+    public static final int   SHURIKEN_MAX_AMMO    = 5;
+
     // ── Wall slide mechanic state ────────────────────────────────────────────
     // Mirrors Python mechanics/wall_slide.py WallSlideMechanic
     public float   wallSlideStamina        = WALL_SLIDE_MAX_STAMINA;
