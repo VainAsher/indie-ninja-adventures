@@ -82,10 +82,11 @@ public final class WorldSnapshot {
             for (Object p : list(m, "platform_states"))
                 if (p instanceof java.util.Map<?,?> pm)
                     s.platformStates.add(PlatformState.fromMap((java.util.Map<String,Object>) pm));
-            for (Object sh : list(m, "shurikens"))
-                if (sh instanceof java.util.Map<?,?> shm)
-                    s.shurikens.add(ShurikenState.fromMap((java.util.Map<String,Object>) shm));
         }
+        // Shurikens always present on the wire (not delta-encoded — see toMap()).
+        for (Object sh : list(m, "shurikens"))
+            if (sh instanceof java.util.Map<?,?> shm)
+                s.shurikens.add(ShurikenState.fromMap((java.util.Map<String,Object>) shm));
         return s;
     }
 
@@ -120,8 +121,11 @@ public final class WorldSnapshot {
             m.put("enemies",         mapList(enemies));
             m.put("pickups",         mapList(pickups));
             m.put("platform_states", mapList(platformStates));
-            m.put("shurikens",       shurikenList());
         }
+        // Shurikens always included — they are short-lived (2s TTL) and not delta-encoded.
+        // Without this, clients only see shurikens on full snapshots every ~3s, which means
+        // they never appear (shuriken TTL < full-snapshot interval).
+        m.put("shurikens", shurikenList());
 
         m.put("metadata", metadata);
         m.put("hub_id",   hubId != null ? hubId : "");

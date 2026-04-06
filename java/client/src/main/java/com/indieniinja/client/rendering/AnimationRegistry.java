@@ -88,10 +88,12 @@ public final class AnimationRegistry {
         sliceAndRegister(baseDir, "player_idle",   "idle_spritesheet.png",         2);
         sliceAndRegister(baseDir, "player_crouch", "idle_spritesheet.png",         2);
 
-        // Walk and run
-        sliceAndRegister(baseDir, "player_walk",   "walk_spritesheet.png",         4);
-        sliceAndRegister(baseDir, "player_run",    "run_spritesheet.png",          6);
-        sliceAndRegister(baseDir, "player_dash",   "run_spritesheet.png",          6);
+        // Walk and run (slow_walk = default no-ALT movement; run = ALT held)
+        sliceAndRegister(baseDir, "player_slow_walk", "walk_spritesheet.png",      4);
+        sliceAndRegister(baseDir, "player_walk",      "walk_spritesheet.png",      4);
+        sliceAndRegister(baseDir, "player_run",       "run_spritesheet.png",       6);
+        sliceAndRegister(baseDir, "player_dash",      "run_spritesheet.png",       6);
+        sliceAndRegister(baseDir, "player_throw",     "run_spritesheet.png",       6); // no dedicated sheet yet
 
         // Jump and fall are frames 0 and 1 of the same sheet
         registerJumpFall(baseDir, "jumpfall_spritesheet.png");

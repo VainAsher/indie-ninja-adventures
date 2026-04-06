@@ -338,9 +338,13 @@ public final class GameSimulator {
             // Dash overrides normal velocity; direction locked to current facing
             p.vx = PhysicsConstants.DASH_SPEED * sp.facing;
         } else {
-            float targetVx = 0f;
-            if (cmd.right) targetVx =  PhysicsConstants.MAX_RUN_SPEED;
-            if (cmd.left)  targetVx = -PhysicsConstants.MAX_RUN_SPEED;
+            // Default: walk at 0.6× speed (no ALT).  ALT (cmd.slowWalk) = run at full speed.
+            // Mirrors Python entities/player.py: is_running = ALT key; else slow_walk 0.6×
+            float speedMult = cmd.slowWalk ? 1.0f : 0.6f;
+            float maxSpeed  = PhysicsConstants.MAX_RUN_SPEED * speedMult;
+            float targetVx  = 0f;
+            if (cmd.right) targetVx =  maxSpeed;
+            if (cmd.left)  targetVx = -maxSpeed;
             if (cmd.crouch) targetVx *= PhysicsConstants.CROUCH_SPEED_MULT;
             p.vx = targetVx;
             if (cmd.right) sp.facing =  1;
@@ -421,7 +425,8 @@ public final class GameSimulator {
         } else if (cmd.crouch) {
             sp.animState = "crouch";
         } else if (Math.abs(p.vx) > 0.1f) {
-            sp.animState = "run";
+            // ALT key (cmd.slowWalk) = run; default movement = slow_walk
+            sp.animState = cmd.slowWalk ? "run" : "slow_walk";
         } else {
             sp.animState = "idle";
         }

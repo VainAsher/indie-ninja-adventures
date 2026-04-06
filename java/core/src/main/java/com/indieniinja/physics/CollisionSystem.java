@@ -81,11 +81,15 @@ public final class CollisionSystem {
             if (tile.isPlatform()) continue;  // platforms: vertical only
             if (!tile.overlaps(p.x, p.y, p.width, p.height)) continue;
 
-            // Skip tiles the entity is only grazing from above — this happens every
-            // tick now that gravity is always applied (+0.4px before correction).
-            // A penetration < 2px from the top means it's a floor contact, not a wall.
-            float topPenetration = (p.y + p.height) - tile.y();
-            if (topPenetration >= 0 && topPenetration < 2f && p.y + p.height <= tile.y() + tile.h()) continue;
+            // Determine collision axis by comparing intersection depths on X and Y.
+            // If horizontal overlap < vertical overlap → wall hit; otherwise floor/ceiling.
+            // Mirrors Python collision_system.py _check_horizontal_collisions:
+            //   overlap_x = min(right,tile.right) - max(left,tile.left)
+            //   overlap_y = min(bottom,tile.bottom) - max(top,tile.top)
+            //   is_horizontal = overlap_x < overlap_y
+            float overlapX = Math.min(p.x + p.width,  tile.x() + tile.w()) - Math.max(p.x, tile.x());
+            float overlapY = Math.min(p.y + p.height, tile.y() + tile.h()) - Math.max(p.y, tile.y());
+            if (overlapY <= overlapX) continue;  // floor/ceiling contact — not a wall hit
 
             float overlapLeft  = (p.x + p.width) - tile.x();
             float overlapRight = (tile.x() + tile.w()) - p.x;
