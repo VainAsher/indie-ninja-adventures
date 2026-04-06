@@ -9,7 +9,7 @@ public record TileRect(float x, float y, float w, float h, boolean isPlatform) {
     /** Returns true if this rect overlaps the given AABB (non-inclusive edges). */
     public boolean overlaps(float ox, float oy, float ow, float oh) {
         return ox < x + w && ox + ow > x
-            && oy < y + h && oy + oh > y;
+            && oy < y + h && oy + oh >= y;
     }
 
     /** Right edge of this tile. */

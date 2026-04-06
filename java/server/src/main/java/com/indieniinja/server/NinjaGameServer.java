@@ -67,6 +67,9 @@ public final class NinjaGameServer {
             ServerBootstrap b = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
+                // Allow immediate port reuse after server stop — avoids TIME_WAIT
+                // blocking restart within ~60s on Windows/Linux.
+                .option(ChannelOption.SO_REUSEADDR, true)
                 // Disable Nagle's algorithm — send small packets immediately
                 // Matches Python: _sock.setsockopt(TCP, TCP_NODELAY, 1)
                 .childOption(ChannelOption.TCP_NODELAY, true)

@@ -81,6 +81,12 @@ public final class CollisionSystem {
             if (tile.isPlatform()) continue;  // platforms: vertical only
             if (!tile.overlaps(p.x, p.y, p.width, p.height)) continue;
 
+            // Skip tiles the entity is only grazing from above — this happens every
+            // tick now that gravity is always applied (+0.4px before correction).
+            // A penetration < 2px from the top means it's a floor contact, not a wall.
+            float topPenetration = (p.y + p.height) - tile.y();
+            if (topPenetration >= 0 && topPenetration < 2f && p.y + p.height <= tile.y() + tile.h()) continue;
+
             float overlapLeft  = (p.x + p.width) - tile.x();
             float overlapRight = (tile.x() + tile.w()) - p.x;
 
@@ -121,7 +127,7 @@ public final class CollisionSystem {
                     p.onGround = true;
                 }
             } else {
-                if (p.vy > 0 && overlapTop < overlapBottom) {
+                if (p.vy >= 0 && overlapTop > 0 && overlapTop < overlapBottom) {
                     // Landing on top of solid tile
                     p.y        = tile.y() - p.height;
                     p.vy       = 0;
