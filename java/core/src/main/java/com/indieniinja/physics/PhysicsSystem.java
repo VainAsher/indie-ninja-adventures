@@ -48,7 +48,10 @@ public final class PhysicsSystem {
      * Mirrors Python physics_system.py _apply_gravity() exactly.
      */
     private static void applyGravity(PhysicsState p) {
-        if (p.onGround) return;  // collision system zeroes vy on landing
+        // Always apply gravity — collision system will push the player back up and
+        // zero vy when on ground, keeping net position change at zero.  Skipping
+        // gravity when onGround would prevent the per-tick penetration that
+        // TileRect.overlaps (strict >) needs to fire, breaking onGround detection.
 
         // Base gravity
         p.vy += GRAVITY;

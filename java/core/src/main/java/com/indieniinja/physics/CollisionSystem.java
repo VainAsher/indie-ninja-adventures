@@ -121,8 +121,8 @@ public final class CollisionSystem {
                     p.onGround = true;
                 }
             } else {
-                if (p.vy >= 0 && overlapTop > 0 && overlapTop < overlapBottom) {
-                    // Landing on top of solid tile (>= 0 catches vy=0 when gravity was skipped)
+                if (p.vy > 0 && overlapTop < overlapBottom) {
+                    // Landing on top of solid tile
                     p.y        = tile.y() - p.height;
                     p.vy       = 0;
                     p.onGround = true;
