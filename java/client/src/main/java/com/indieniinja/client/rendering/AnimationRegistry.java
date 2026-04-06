@@ -77,12 +77,22 @@ public final class AnimationRegistry {
      *   walk_spritesheet.png         4 frames  → player_walk
      *   run_spritesheet.png          6 frames  → player_run, player_dash
      *   jumpfall_spritesheet.png     2 frames  → player_jump (f0), player_fall (f1)
-     *   attack-sword_spritesheet.png 6 frames  → player_attack
+     *   attack-sword_spritesheet.png 6 frames  → player_attack  (variable-width)
      *   death_spritesheet.png        5 frames  → player_death
      *   hurt_spritesheet.png         3 frames  → player_hurt
      *
+     * NOTE: attack-sword_spritesheet.png has NON-UNIFORM frame widths.
+     * Python sprite_manager.py defines:
+     *   _ATKSWORD_6 = [0, 68, 144, 303, 416, 575, 688]  (6 attack frames)
+     *   _ATKSWORD_4 = [0, 68, 144, 303, 416]            (4 throw/teleport frames)
+     *
      * Any missing files are silently skipped; the placeholder is used as fallback.
      */
+
+    // Attack sprite frame boundaries — must match Python sprite_manager.py exactly
+    private static final int[] ATKSWORD_6 = {0, 68, 144, 303, 416, 575, 688};
+    private static final int[] ATKSWORD_4 = {0, 68, 144, 303, 416};
+
     public void loadSpriteSheets(FileHandle baseDir) {
         // Idle sheet doubles as crouch animation
         sliceAndRegister(baseDir, "player_idle",   "idle_spritesheet.png",         2);
@@ -101,11 +111,13 @@ public final class AnimationRegistry {
         sliceAndRegister(baseDir, "player_wall_hang",  "jumpfall_spritesheet.png", 2);
         sliceAndRegister(baseDir, "player_air_spin",   "jumpfall_spritesheet.png", 2);
 
-        // Combat
-        sliceAndRegister(baseDir, "player_attack",    "attack-sword_spritesheet.png", 6);
-        sliceAndRegister(baseDir, "player_throw",     "attack-sword_spritesheet.png", 4);
-        sliceAndRegister(baseDir, "player_throw_ground", "attack-sword_spritesheet.png", 4);
-        sliceAndRegister(baseDir, "player_throw_air", "attack-sword_spritesheet.png", 4);
+        // Combat — attack-sword has VARIABLE-WIDTH frames (not uniform!)
+        // Python _ATKSWORD_6 = [0,68,144,303,416,575,688]
+        // Python _ATKSWORD_4 = [0,68,144,303,416]
+        sliceVariableAndRegister(baseDir, "player_attack",       "attack-sword_spritesheet.png", ATKSWORD_6);
+        sliceVariableAndRegister(baseDir, "player_throw",        "attack-sword_spritesheet.png", ATKSWORD_4);
+        sliceVariableAndRegister(baseDir, "player_throw_ground", "attack-sword_spritesheet.png", ATKSWORD_4);
+        sliceVariableAndRegister(baseDir, "player_throw_air",    "attack-sword_spritesheet.png", ATKSWORD_4);
         sliceAndRegister(baseDir, "player_death",     "death_spritesheet.png",        5);
         sliceAndRegister(baseDir, "player_hurt",      "hurt_spritesheet.png",         3);
         sliceAndRegister(baseDir, "player_hurt2",     "hurt_spritesheet.png",         3);
@@ -158,6 +170,32 @@ public final class AnimationRegistry {
         Texture tex = loadCached(baseDir, filename);
         if (tex == null) return;
         frames.put(animKey, sliceSheet(tex, numFrames));
+    }
+
+    /**
+     * Load (or reuse a cached) texture and slice it using variable-width frame
+     * boundaries defined by the frameBounds array.
+     *
+     * frameBounds is a list of x-offsets defining frame START positions, with the
+     * final entry being the total width.  Matches Python sprite_manager.py convention:
+     *   _ATKSWORD_6 = [0, 68, 144, 303, 416, 575, 688]
+     *
+     * The number of frames produced = frameBounds.length - 1.
+     */
+    private void sliceVariableAndRegister(FileHandle baseDir, String animKey,
+                                           String filename, int[] frameBounds) {
+        Texture tex = loadCached(baseDir, filename);
+        if (tex == null) return;
+        int fh = tex.getHeight();
+        int numFrames = frameBounds.length - 1;
+        TextureRegion[] regions = new TextureRegion[numFrames];
+        for (int i = 0; i < numFrames; i++) {
+            int fx = frameBounds[i];
+            int fw = frameBounds[i + 1] - frameBounds[i];
+            regions[i] = new TextureRegion(tex, fx, 0, fw, fh);
+            regions[i].flip(false, true);  // Y-DOWN camera correction
+        }
+        frames.put(animKey, regions);
     }
 
     /**

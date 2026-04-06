@@ -77,8 +77,9 @@ public final class SimEnemy {
         this.patrolMaxX       = patrolMaxX;
         this.patrolSpeedMult  = 0.5f;
 
-        // Start mid-patrol
-        this.physics.vx = moveSpeed * patrolSpeedMult / 60f;
+        // AI owns horizontal movement (stepEnemyAI adds directly to physics.x).
+        // PhysicsSystem still integrates vx, so leave it at zero — no double-movement.
+        this.physics.vx = 0f;
     }
 
     public boolean isAlive() { return hp > 0 && !removed; }

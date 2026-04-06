@@ -77,6 +77,9 @@ public final class GameStateBuffer {
         merged.enemies.addAll(enemyById.values());
         merged.pickups.addAll(pickupById.values());
         merged.platformStates.addAll(platformById.values());
+        // Shurikens are always sent on every wire packet (not delta-encoded).
+        // Copy them directly from the delta packet into the merged snapshot.
+        merged.shurikens.addAll(delta.shurikens);
         current.set(merged);
     }
 

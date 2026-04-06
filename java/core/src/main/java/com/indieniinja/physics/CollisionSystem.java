@@ -137,9 +137,12 @@ public final class CollisionSystem {
                     p.vy       = 0;
                     p.onGround = true;
 
-                    // Corner smoothing: if player clips a corner horizontally,
-                    // nudge them past the corner instead of stopping them.
-                    applyCornerSmoothing(p, tile);
+                    // Corner smoothing: only when there is actual vertical penetration
+                    // (overlapTop > 0.5) — i.e., player was falling and clipped a corner.
+                    // Skipped during flat walking (overlapTop=0) to prevent the player
+                    // being nudged backward every time they step onto the next tile.
+                    // Mirrors Python _check_vertical_collisions: "if feet_overlap > 0.5".
+                    if (overlapTop > 0.5f) applyCornerSmoothing(p, tile);
 
                 } else if (p.vy < 0 && overlapBottom < overlapTop) {
                     // Hitting ceiling
