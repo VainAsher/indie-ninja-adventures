@@ -82,10 +82,16 @@ public final class GameSimulator {
         physicsSystem    = new PhysicsSystem(bus, entityManager.activeEntities());
         collisionSystem  = new CollisionSystem(bus, entityManager.activeEntities(), layout.spatialHash);
 
-        // Spawn enemies
+        // Spawn enemies and register with EntityManager so CollisionSystem handles them
         int enemyIdx = 0;
         for (LevelLayout.EnemySpawn spec : layout.enemySpawns) {
-            enemies.add(buildEnemy(spec, enemyIdx++));
+            SimEnemy en = buildEnemy(spec, enemyIdx++);
+            enemies.add(en);
+            if (!en.canFly) {
+                // Ground enemies need physics + collision; flying enemies manage their own movement
+                var entity = entityManager.create(com.indieniinja.core.EntityType.ENEMY, en.physics);
+                entity.addTag("enemy");
+            }
         }
 
         // Spawn pickups
@@ -186,9 +192,11 @@ public final class GameSimulator {
             ps.velX      = p.physics.vx;
             ps.velY      = p.physics.vy;
             ps.health    = p.health;
-            ps.facing    = p.facing == 0 ? 1 : p.facing;
-            ps.isDead    = p.isDead;
-            ps.animState = p.animState;
+            ps.facing           = p.facing == 0 ? 1 : p.facing;
+            ps.isDead           = p.isDead;
+            ps.animState        = p.animState;
+            ps.wallSlideStamina = p.wallSlideStamina;
+            ps.isWallSliding    = p.isWallSliding;
             snap.players.add(ps);
         }
 
@@ -341,9 +349,14 @@ public final class GameSimulator {
         sp.prevJump    = cmd.jump;
         sp.prevDash    = cmd.dash;
 
+        // ── Wall slide ────────────────────────────────────────────────────────
+        applyWallSlide(sp, p);
+
         // ── Animation state ───────────────────────────────────────────────────
         if (sp.isDashing) {
             sp.animState = "dash";
+        } else if (sp.isWallSliding) {
+            sp.animState = "wall_slide";
         } else if (!p.onGround) {
             sp.animState = p.vy < 0f ? "jump" : "fall";
         } else if (cmd.crouch) {
@@ -352,6 +365,77 @@ public final class GameSimulator {
             sp.animState = "run";
         } else {
             sp.animState = "idle";
+        }
+    }
+
+    /**
+     * Wall slide stamina state machine.
+     * Mirrors Python mechanics/wall_slide.py WallSlideMechanic.on_tick() exactly.
+     * Called after horizontal/jump logic so p.onWall / p.onGround are already updated.
+     */
+    private static void applyWallSlide(SimPlayer sp, PhysicsState p) {
+        boolean touchingWall = p.onWall && !p.onGround;
+
+        // ── Exhaust detach: nudge off wall for a few ticks after stamina runs out ─
+        if (sp.exhaustDetachFrames > 0) {
+            if (p.wallDir != 0) p.x += -p.wallDir;  // 1px away from wall
+            p.onWall  = false;
+            p.wallDir = 0;
+            p.vy = Math.max(p.vy, 2.0f);
+            sp.exhaustDetachFrames--;
+            touchingWall = false;
+        }
+
+        // ── Currently sliding: check exit conditions first ────────────────────
+        if (sp.isWallSliding) {
+            touchingWall = p.onWall && !p.onGround;
+            if (!touchingWall || sp.wallSlideStamina <= SimPlayer.WALL_SLIDE_EXHAUST_THRESH) {
+                // Exhaust
+                sp.wallSlideStamina = Math.max(0f,
+                    sp.wallSlideStamina - SimPlayer.WALL_SLIDE_EXHAUST_PENALTY);
+                sp.isWallSliding           = false;
+                sp.awaitGroundAfterExhaust = true;
+                sp.exhaustDetachFrames     = 6;
+                p.onWall  = false;
+                p.wallDir = 0;
+                p.vy = Math.max(p.vy, 2.0f);
+            } else {
+                // Continue sliding: drain stamina, cap fall speed
+                sp.wallSlideStamina = Math.max(0f,
+                    sp.wallSlideStamina - DT * SimPlayer.WALL_SLIDE_DRAIN_MULT);
+                p.vy = Math.min(p.vy + 0.3f, SimPlayer.WALL_SLIDE_SPEED);
+            }
+            return;
+        }
+
+        // ── Consider starting a new slide ─────────────────────────────────────
+        boolean canSlide = touchingWall
+            && sp.wallSlideStamina >= SimPlayer.WALL_SLIDE_MIN_STAMINA
+            && !sp.awaitGroundAfterExhaust;
+
+        if (canSlide) {
+            sp.isWallSliding = true;
+            p.vy = Math.min(p.vy + 0.3f, SimPlayer.WALL_SLIDE_SPEED);
+            return;
+        }
+
+        // ── Not sliding: regen and friction ──────────────────────────────────
+        // Regen gating: require ground contact before regen restarts after exhaust
+        if (p.onGround) {
+            sp.awaitGroundAfterExhaust = false;
+            sp.exhaustDetachFrames     = 0;
+        }
+
+        boolean blockRegen = touchingWall || sp.awaitGroundAfterExhaust;
+        if (!blockRegen && sp.wallSlideStamina < SimPlayer.WALL_SLIDE_MAX_STAMINA) {
+            sp.wallSlideStamina = Math.min(
+                SimPlayer.WALL_SLIDE_MAX_STAMINA,
+                sp.wallSlideStamina + SimPlayer.WALL_SLIDE_REGEN_RATE * DT);
+        }
+
+        // Wall friction: touching wall but not sliding slows descent slightly
+        if (touchingWall && !sp.awaitGroundAfterExhaust) {
+            p.vy = Math.min(p.vy + 0.3f, SimPlayer.WALL_FRICTION_SPEED);
         }
     }
 
@@ -388,8 +472,9 @@ public final class GameSimulator {
         for (SimEnemy en : enemies) {
             if (!en.isAlive()) continue;
             stepEnemyAI(en, nearest, playerTuples);
-            // Apply gravity to ground enemies
-            if (!en.canFly) applyEnemyGravity(en);
+            // Flying enemies manage their own vertical movement (no CollisionSystem for them)
+            if (en.canFly) applyFlyingEnemyMovement(en);
+            // Ground enemies: gravity + collision handled by PhysicsSystem/CollisionSystem via EntityManager
         }
     }
 
@@ -452,20 +537,12 @@ public final class GameSimulator {
         }
     }
 
-    private static void applyEnemyGravity(SimEnemy en) {
-        if (!en.physics.onGround) {
-            en.physics.vy += PhysicsConstants.GRAVITY;
-            if (en.physics.vy > PhysicsConstants.MAX_FALL_SPEED)
-                en.physics.vy = PhysicsConstants.MAX_FALL_SPEED;
-        }
-        en.physics.y += en.physics.vy;
-        // Simple ground clamp (full collision handled by CollisionSystem when
-        // enemies are registered in entityManager — Phase C)
-        if (en.physics.vy > 0 && en.physics.y > 800) {
-            en.physics.y = 800;
-            en.physics.vy = 0;
-            en.physics.onGround = true;
-        }
+    /** Flying enemies do their own simple vertical sinusoidal hover — no gravity/collision. */
+    private static void applyFlyingEnemyMovement(SimEnemy en) {
+        // Bats hover in place vertically with a gentle sine wave
+        en.physics.y += (float)(Math.sin(System.nanoTime() * 1e-9 * 2.0) * 0.5);
+        // Clamp to reasonable world bounds
+        if (en.physics.y < 0) en.physics.y = 0;
     }
 
     private void stepCombat() {

@@ -51,6 +51,23 @@ public final class SimPlayer {
     // Ground state from previous tick (for coyote-time detection)
     public boolean wasOnGround  = false;
 
+    // ── Wall slide mechanic state ────────────────────────────────────────────
+    // Mirrors Python mechanics/wall_slide.py WallSlideMechanic
+    public float   wallSlideStamina        = WALL_SLIDE_MAX_STAMINA;
+    public boolean isWallSliding           = false;
+    public boolean awaitGroundAfterExhaust = false;
+    public int     exhaustDetachFrames     = 0;   // nudge off wall for N ticks after exhaust
+
+    // Wall slide constants (match Python WallSlideMechanic)
+    public static final float WALL_SLIDE_SPEED        = 3.0f;
+    public static final float WALL_SLIDE_MAX_STAMINA  = 3.0f;
+    public static final float WALL_SLIDE_REGEN_RATE   = 3.0f / 2.0f;  // full in 2s
+    public static final float WALL_SLIDE_MIN_STAMINA  = 0.3f;
+    public static final float WALL_SLIDE_EXHAUST_THRESH  = 0.5f;
+    public static final float WALL_SLIDE_EXHAUST_PENALTY = 0.25f;
+    public static final float WALL_SLIDE_DRAIN_MULT      = 1.6f;
+    public static final float WALL_FRICTION_SPEED        = 6.0f;
+
     // Input — written by Netty I/O thread, read by sim thread via AtomicRef in PlayerRecord
     public InputCommand latestInput = InputCommand.neutral(0);
 

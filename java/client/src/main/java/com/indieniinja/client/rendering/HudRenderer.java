@@ -28,10 +28,13 @@ import com.indieniinja.network.WorldSnapshot;
 public final class HudRenderer {
 
     // Health bar dimensions
-    private static final float BAR_W     = 100f;
-    private static final float BAR_H     = 12f;
-    private static final float BAR_GAP   = 20f;
-    private static final int   MAX_HP    = 5;
+    private static final float BAR_W       = 100f;
+    private static final float BAR_H       = 12f;
+    private static final float BAR_GAP     = 32f;   // space per player row
+    private static final int   MAX_HP      = 5;
+    private static final float STAMINA_W   = 80f;
+    private static final float STAMINA_H   = 6f;
+    private static final float MAX_STAMINA = 3.0f;
 
     private final ShapeRenderer shapes;
     private final SpriteBatch   hudBatch;
@@ -78,16 +81,31 @@ public final class HudRenderer {
                 shapes.setColor(0.2f, 0.2f, 0.2f, 0.8f);
                 shapes.rect(barX, barY, BAR_W, BAR_H);
 
-                // Filled portion
+                // Health filled portion
                 float ratio = Math.max(0f, Math.min(1f, (float) p.health / MAX_HP));
-                Color barColor = healthColor(ratio);
-                shapes.setColor(barColor);
+                shapes.setColor(healthColor(ratio));
                 shapes.rect(barX, barY, BAR_W * ratio, BAR_H);
 
                 // Highlight local player
                 if (p.slot == localSlot) {
                     shapes.setColor(1f, 1f, 0f, 0.5f);
                     shapes.rect(barX - 2, barY - 2, BAR_W + 4, BAR_H + 4);
+                }
+
+                // Wall slide stamina bar (below health bar)
+                float staminaY = barY - STAMINA_H - 3f;
+                float staminaRatio = Math.max(0f, Math.min(1f, p.wallSlideStamina / MAX_STAMINA));
+                shapes.setColor(0.15f, 0.15f, 0.25f, 0.8f);
+                shapes.rect(barX, staminaY, STAMINA_W, STAMINA_H);
+                // Stamina bar: cyan when full, orange when low
+                float sr = staminaRatio;
+                shapes.setColor(1f - sr * 0.5f, 0.5f + sr * 0.5f, sr, 1f);
+                if (staminaRatio > 0f)
+                    shapes.rect(barX, staminaY, STAMINA_W * staminaRatio, STAMINA_H);
+                // Pulse indicator when wall-sliding
+                if (p.isWallSliding) {
+                    shapes.setColor(0f, 1f, 1f, 0.4f);
+                    shapes.rect(barX - 1, staminaY - 1, STAMINA_W + 2, STAMINA_H + 2);
                 }
             }
         }
@@ -102,15 +120,22 @@ public final class HudRenderer {
         hudBatch.setProjectionMatrix(screenCam.combined);
         hudBatch.begin();
 
-        // Player health labels
+        // Player health + stamina labels
         if (snap != null) {
             for (int i = 0; i < snap.players.size(); i++) {
                 PlayerState p = snap.players.get(i);
                 float labelX = 10f + BAR_W + 5f;
                 float labelY = sh - 4f - i * BAR_GAP;
-                String label = (p.slot == localSlot ? "You" : "P" + (p.slot + 1))
+                String hpLabel = (p.slot == localSlot ? "You" : "P" + (p.slot + 1))
                     + "  " + p.health + "/" + MAX_HP;
-                font.draw(hudBatch, label, labelX, labelY);
+                font.draw(hudBatch, hpLabel, labelX, labelY);
+
+                // Stamina % only for local player to avoid clutter
+                if (p.slot == localSlot) {
+                    int stPct = (int)(p.wallSlideStamina / MAX_STAMINA * 100);
+                    String stLabel = p.isWallSliding ? "SLIDING" : stPct + "%";
+                    font.draw(hudBatch, stLabel, 10f + STAMINA_W + 5f, labelY - STAMINA_H - 3f + STAMINA_H);
+                }
             }
         }
 
