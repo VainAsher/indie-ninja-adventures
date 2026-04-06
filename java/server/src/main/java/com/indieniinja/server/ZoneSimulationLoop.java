@@ -161,8 +161,6 @@ public final class ZoneSimulationLoop implements Runnable {
                 sp = newSp;
             }
             // Do NOT overwrite sp.physics from pr — let the sim own positions.
-            // Only sync cosmetic state that the client reports.
-            sp.animState = pr.animState;
 
             InputCommand cmd = pr.latestInput.get();
             if (cmd != null) inputs.put(pr.slot, cmd);
@@ -180,9 +178,10 @@ public final class ZoneSimulationLoop implements Runnable {
             pr.posY     = sp.physics.y;
             pr.velX     = sp.physics.vx;
             pr.velY     = sp.physics.vy;
-            pr.facing   = sp.facing;
-            pr.isDead   = sp.isDead;
-            pr.health   = sp.health;
+            pr.facing    = sp.facing;
+            pr.isDead    = sp.isDead;
+            pr.health    = sp.health;
+            pr.animState = sp.animState;
         }
     }
 

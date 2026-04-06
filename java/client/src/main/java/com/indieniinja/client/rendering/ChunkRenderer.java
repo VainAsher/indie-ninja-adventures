@@ -102,10 +102,12 @@ public final class ChunkRenderer {
         if (terrainFh.exists()) {
             if (placeholderSolid != null) placeholderSolid.getTexture().dispose();
             placeholderSolid = new TextureRegion(new Texture(terrainFh));
+            placeholderSolid.flip(false, true);  // Y-DOWN camera correction
         }
         if (platformFh.exists()) {
             if (placeholderPlatform != null) placeholderPlatform.getTexture().dispose();
             placeholderPlatform = new TextureRegion(new Texture(platformFh));
+            placeholderPlatform.flip(false, true);  // Y-DOWN camera correction
         }
 
         rebuildTestLayout(cols, rows);
