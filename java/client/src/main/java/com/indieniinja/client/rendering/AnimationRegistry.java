@@ -93,15 +93,22 @@ public final class AnimationRegistry {
         sliceAndRegister(baseDir, "player_walk",      "walk_spritesheet.png",      4);
         sliceAndRegister(baseDir, "player_run",       "run_spritesheet.png",       6);
         sliceAndRegister(baseDir, "player_dash",      "run_spritesheet.png",       6);
-        sliceAndRegister(baseDir, "player_throw",     "run_spritesheet.png",       6); // no dedicated sheet yet
 
-        // Jump and fall are frames 0 and 1 of the same sheet
+        // Jump, fall, wall_slide, wall_hang — all from the 2-frame jump/fall sheet
+        // (Python sprite_manager: wall_slide + wall_hang reuse jumpfall_spritesheet)
         registerJumpFall(baseDir, "jumpfall_spritesheet.png");
+        sliceAndRegister(baseDir, "player_wall_slide", "jumpfall_spritesheet.png", 2);
+        sliceAndRegister(baseDir, "player_wall_hang",  "jumpfall_spritesheet.png", 2);
+        sliceAndRegister(baseDir, "player_air_spin",   "jumpfall_spritesheet.png", 2);
 
         // Combat
-        sliceAndRegister(baseDir, "player_attack", "attack-sword_spritesheet.png", 6);
-        sliceAndRegister(baseDir, "player_death",  "death_spritesheet.png",        5);
-        sliceAndRegister(baseDir, "player_hurt",   "hurt_spritesheet.png",         3);
+        sliceAndRegister(baseDir, "player_attack",    "attack-sword_spritesheet.png", 6);
+        sliceAndRegister(baseDir, "player_throw",     "attack-sword_spritesheet.png", 4);
+        sliceAndRegister(baseDir, "player_throw_ground", "attack-sword_spritesheet.png", 4);
+        sliceAndRegister(baseDir, "player_throw_air", "attack-sword_spritesheet.png", 4);
+        sliceAndRegister(baseDir, "player_death",     "death_spritesheet.png",        5);
+        sliceAndRegister(baseDir, "player_hurt",      "hurt_spritesheet.png",         3);
+        sliceAndRegister(baseDir, "player_hurt2",     "hurt_spritesheet.png",         3);
     }
 
     // ── Placeholder ───────────────────────────────────────────────────────────
