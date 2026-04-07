@@ -90,6 +90,8 @@ public final class GameScreen implements Screen {
     private MinimapRenderer  minimapRenderer;
     /** Latest shop states from full snapshot — keyed by npc_id. */
     private final java.util.Map<String, ShopState> latestShopStates = new java.util.LinkedHashMap<>();
+    /** Cached world room list from the most recent full snapshot (empty on delta frames). */
+    private java.util.List<WorldRoomDescriptor> cachedWorldRooms = java.util.List.of();
 
     // ── Audio ─────────────────────────────────────────────────────────────────
     private AudioManager audioManager;
@@ -216,7 +218,6 @@ public final class GameScreen implements Screen {
         shopOverlay      = new ShopOverlay();
         minimapRenderer  = new MinimapRenderer();
         shopOverlay.setOnTrade(req -> {
-            // Forward trade request to server
             java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
             payload.put("npc_id",   req.npcId());
             payload.put("item_id",  req.itemId());
@@ -224,6 +225,18 @@ public final class GameScreen implements Screen {
             payload.put("is_buy",   req.isBuy());
             networkClient.sendMessage(
                 com.indieniinja.network.MessageType.TRADE_REQUEST, payload);
+        });
+        inventoryOverlay.setOnUseItem(itemId -> {
+            java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+            payload.put("item_id", itemId);
+            networkClient.sendMessage(
+                com.indieniinja.network.MessageType.USE_ITEM, payload);
+        });
+        inventoryOverlay.setOnEquipItem(itemId -> {
+            java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+            payload.put("item_id", itemId);
+            networkClient.sendMessage(
+                com.indieniinja.network.MessageType.EQUIP_ITEM, payload);
         });
 
         // Audio
@@ -311,6 +324,11 @@ public final class GameScreen implements Screen {
             // ── Update shop states cache (full snapshots have non-empty shopStates) ─
             if (!snap.shopStates.isEmpty()) {
                 for (ShopState ss : snap.shopStates) latestShopStates.put(ss.npcId, ss);
+            }
+
+            // ── Cache world rooms from full snapshots (empty on delta frames) ──
+            if (!snap.worldRooms.isEmpty()) {
+                cachedWorldRooms = snap.worldRooms;
             }
 
             // ── Megamap: build stitched world tilemap when full room list arrives ─
@@ -420,22 +438,22 @@ public final class GameScreen implements Screen {
             batch.setProjectionMatrix(camera.cam.combined);
         }
 
-        // ── Minimap (screen-space, bottom-left corner) ────────────────────────
-        if (minimapRenderer.isVisible() && snap != null && !snap.worldRooms.isEmpty()) {
-            PlayerState localForMap = snap.players.stream()
-                .filter(p -> p.slot == localSlot).findFirst()
-                .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
-            float lpx = localForMap != null ? localForMap.posX : 0f;
-            float lpy = localForMap != null ? localForMap.posY : 0f;
-            float roomPx = PhysicsConstants.ROOM_WIDTH_TILES  * PhysicsConstants.TILE_SIZE;
-            float roomPy = PhysicsConstants.ROOM_HEIGHT_TILES * PhysicsConstants.TILE_SIZE;
+        // ── Minimap (large centred overlay) ──────────────────────────────────
+        if (minimapRenderer.isVisible() && !cachedWorldRooms.isEmpty()) {
+            WorldSnapshot snapForMap = snap != null ? snap : prevSnap;
+            PlayerState localForMap = snapForMap != null
+                ? snapForMap.players.stream().filter(p -> p.slot == localSlot).findFirst()
+                    .orElse(!snapForMap.players.isEmpty() ? snapForMap.players.get(0) : null)
+                : null;
+            float lpx     = localForMap != null ? localForMap.posX : 0f;
+            float lpy     = localForMap != null ? localForMap.posY : 0f;
+            int   gridX   = snapForMap != null ? snapForMap.roomGridX : 0;
+            int   gridY   = snapForMap != null ? snapForMap.roomGridY : 0;
+            float roomPx  = PhysicsConstants.ROOM_WIDTH_TILES  * PhysicsConstants.TILE_SIZE;
+            float roomPy  = PhysicsConstants.ROOM_HEIGHT_TILES * PhysicsConstants.TILE_SIZE;
             batch.setProjectionMatrix(hudRenderer.screenProjection());
-            // MinimapRenderer.render() calls batch.end() internally (switches to ShapeRenderer),
-            // so the batch must be open when we enter and will be re-opened when we leave.
-            batch.begin();
-            minimapRenderer.render(batch, snap.worldRooms,
-                snap.roomGridX, snap.roomGridY, lpx, lpy, roomPx, roomPy);
-            batch.end();
+            // MinimapRenderer manages its own batch.begin/end; do NOT open batch here.
+            minimapRenderer.render(batch, cachedWorldRooms, gridX, gridY, lpx, lpy, roomPx, roomPy);
             batch.setProjectionMatrix(camera.cam.combined);
         }
 

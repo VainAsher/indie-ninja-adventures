@@ -107,6 +107,8 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             case MessageType.ENTITY_EVENT  -> handleEntityEvent(ctx, wire);
             case MessageType.PORTAL_TRAVEL -> handlePortalTravel(ctx, wire);
             case MessageType.TRADE_REQUEST -> handleTradeRequest(ctx, wire);
+            case MessageType.USE_ITEM      -> handleUseItem(ctx, wire);
+            case MessageType.EQUIP_ITEM    -> handleEquipItem(ctx, wire);
             default -> log.debug("Unhandled message type '{}' from {}", wire.type(), ctx.channel().remoteAddress());
         }
     }
@@ -292,6 +294,34 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
         boolean ok = zone.simulator.handleTradeRequest(player.slot, npcId, itemId, qty, isBuy);
         log.debug("TRADE_REQUEST pid={} npc={} item={} qty={} buy={} → {}", pid, npcId, itemId, qty, isBuy, ok);
+    }
+
+    // ── Handler: USE_ITEM ─────────────────────────────────────────────────────
+
+    private void handleUseItem(ChannelHandlerContext ctx, WireMessage msg) {
+        String pid = channelToPlayer.get(ctx.channel().id().asShortText());
+        if (pid == null) return;
+        PlayerRecord player = session.players.get(pid);
+        if (player == null) return;
+        String itemId = msg.getString("item_id", "");
+        ZoneInstance zone = zones.get(player.hubId);
+        if (zone == null || zone.simulator == null) return;
+        boolean ok = zone.simulator.handleUseItem(player.slot, itemId);
+        log.debug("USE_ITEM pid={} item={} → {}", pid, itemId, ok);
+    }
+
+    // ── Handler: EQUIP_ITEM ───────────────────────────────────────────────────
+
+    private void handleEquipItem(ChannelHandlerContext ctx, WireMessage msg) {
+        String pid = channelToPlayer.get(ctx.channel().id().asShortText());
+        if (pid == null) return;
+        PlayerRecord player = session.players.get(pid);
+        if (player == null) return;
+        String itemId = msg.getString("item_id", "");
+        ZoneInstance zone = zones.get(player.hubId);
+        if (zone == null || zone.simulator == null) return;
+        boolean ok = zone.simulator.handleEquipItem(player.slot, itemId);
+        log.debug("EQUIP_ITEM pid={} item={} → {}", pid, itemId, ok);
     }
 
     // ── Disconnect ────────────────────────────────────────────────────────────
