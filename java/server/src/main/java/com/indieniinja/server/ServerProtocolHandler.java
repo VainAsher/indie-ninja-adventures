@@ -105,6 +105,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             case MessageType.INPUT         -> handleInput(ctx, wire);
             case MessageType.ENTITY_EVENT  -> handleEntityEvent(ctx, wire);
             case MessageType.PORTAL_TRAVEL -> handlePortalTravel(ctx, wire);
+            case MessageType.TRADE_REQUEST -> handleTradeRequest(ctx, wire);
             default -> log.debug("Unhandled message type '{}' from {}", wire.type(), ctx.channel().remoteAddress());
         }
     }
@@ -267,6 +268,26 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             "player_id", pid, "slot", player.slot,
             "hub_id", destHubId, "action", "arrived"
         ));
+    }
+
+    // ── Handler: TRADE_REQUEST ────────────────────────────────────────────────
+
+    private void handleTradeRequest(ChannelHandlerContext ctx, WireMessage msg) {
+        String pid = channelToPlayer.get(ctx.channel().id().asShortText());
+        if (pid == null) return;
+        PlayerRecord player = session.players.get(pid);
+        if (player == null) return;
+
+        String  npcId  = msg.getString("npc_id",  "");
+        String  itemId = msg.getString("item_id", "");
+        int     qty    = (int) msg.getLong("quantity", 1L);
+        boolean isBuy  = msg.getBool("is_buy", true);
+
+        ZoneInstance zone = zones.get(player.hubId);
+        if (zone == null || zone.simulator == null) return;
+
+        boolean ok = zone.simulator.handleTradeRequest(player.slot, npcId, itemId, qty, isBuy);
+        log.debug("TRADE_REQUEST pid={} npc={} item={} qty={} buy={} → {}", pid, npcId, itemId, qty, isBuy, ok);
     }
 
     // ── Disconnect ────────────────────────────────────────────────────────────

@@ -56,6 +56,12 @@ public final class WorldSnapshot {
      */
     public List<WorldRoomDescriptor> worldRooms = new ArrayList<>();
 
+    /**
+     * Shop states for all shop NPCs in the current room — full snapshots only.
+     * Client uses this to populate ShopOverlay when player interacts with a shop NPC.
+     */
+    public List<ShopState> shopStates = new ArrayList<>();
+
     // Delta fields (only populated when isDelta=true)
     public List<EnemyState>    enemiesChanged   = new ArrayList<>();
     public List<String>        enemiesRemoved   = new ArrayList<>();
@@ -125,6 +131,10 @@ public final class WorldSnapshot {
         for (Object r : list(m, "world_rooms"))
             if (r instanceof java.util.Map<?,?> rm)
                 s.worldRooms.add(WorldRoomDescriptor.fromMap((java.util.Map<String,Object>) rm));
+        // Shop states — present only on full snapshots.
+        for (Object r : list(m, "shop_states"))
+            if (r instanceof java.util.Map<?,?> rm)
+                s.shopStates.add(ShopState.fromMap(rm));
         return s;
     }
 
@@ -172,6 +182,8 @@ public final class WorldSnapshot {
         m.put("npcs",      npcList());
         // World room layout — full snapshots only; empty list on deltas (client keeps previous).
         m.put("world_rooms", isDelta ? java.util.List.of() : worldRoomList());
+        // Shop states — full snapshots only.
+        m.put("shop_states", isDelta ? java.util.List.of() : shopStateList());
 
         m.put("metadata", metadata);
         m.put("hub_id",   hubId != null ? hubId : "");
@@ -201,6 +213,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> worldRoomList() {
         List<Map<String, Object>> out = new ArrayList<>(worldRooms.size());
         for (WorldRoomDescriptor r : worldRooms) out.add(r.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> shopStateList() {
+        List<Map<String, Object>> out = new ArrayList<>(shopStates.size());
+        for (ShopState s : shopStates) out.add(s.toMap());
         return out;
     }
 

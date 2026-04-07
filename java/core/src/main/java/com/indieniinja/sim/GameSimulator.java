@@ -62,6 +62,8 @@ public final class GameSimulator {
     private final List<FallingPlatform> fallingPlatforms = new ArrayList<>();
     private final List<SimShuriken> shurikens = new ArrayList<>();
     private final List<SimNPC>      npcs      = new ArrayList<>();
+    /** NPC ID → shop (only for "shop" type NPCs). */
+    private final Map<String, SimShop> shops = new LinkedHashMap<>();
     private int shurikenSeq = 0;
     private int lootSeq     = 0;
 
@@ -115,12 +117,17 @@ public final class GameSimulator {
         // Spawn NPCs (no physics entity — NPCs use simple patrol, no collision sim)
         int npcIdx = 0;
         for (LevelLayout.NPCSpawn spec : layout.npcSpawns) {
+            String npcId = hubId + "_npc_" + npcIdx++;
             npcs.add(new SimNPC(
-                hubId + "_npc_" + npcIdx++,
-                spec.type(), spec.x(), spec.y(),
+                npcId, spec.type(), spec.x(), spec.y(),
                 32, 48,   // Python default: width=32, height=48
                 spec.patrolMinX(), spec.patrolMaxX()
             ));
+            // Create a shop for "shop" type NPCs
+            if ("shop".equals(spec.type())) {
+                int shopTier = 1 + (int)(Math.abs(seed ^ npcId.hashCode()) % 3); // tier 1-3
+                shops.put(npcId, new SimShop(npcId, shopTier, seed ^ npcId.hashCode()));
+            }
         }
     }
 
@@ -229,6 +236,8 @@ public final class GameSimulator {
             ps.stamina           = p.stamina;
             ps.mana              = p.mana;
             ps.ninjutsuCasting   = p.ninjutsuCasting;
+            // Inventory — build wire type from SimInventory
+            ps.inventory = buildInventoryState(p.inventory);
             snap.players.add(ps);
         }
 
@@ -297,7 +306,36 @@ public final class GameSimulator {
             snap.npcs.add(ns);
         }
 
+        // Shop states — always included so client can show shop UI
+        for (SimShop shop : shops.values()) {
+            com.indieniinja.network.ShopState ss = new com.indieniinja.network.ShopState();
+            ss.npcId = shop.npcId;
+            ss.tier  = shop.tier;
+            for (SimShop.Entry e : shop.getItems()) {
+                ss.items.add(new com.indieniinja.network.ShopState.ShopItemState(
+                    e.itemId(), e.stock(), e.buyPrice(), e.sellPrice()));
+            }
+            snap.shopStates.add(ss);
+        }
+
         return snap;
+    }
+
+    // ── Trade handler ─────────────────────────────────────────────────────────
+
+    /**
+     * Handle a buy or sell request from a player.
+     * Called from ZoneSimulationLoop when a TRADE_REQUEST message arrives.
+     * Returns true if the transaction succeeded.
+     */
+    public boolean handleTradeRequest(int playerSlot, String npcId,
+                                      String itemId, int qty, boolean isBuy) {
+        SimPlayer p = players.get(playerSlot);
+        if (p == null) return false;
+        SimShop shop = shops.get(npcId);
+        if (shop == null) return false;
+        return isBuy ? shop.buy(itemId, qty, p.inventory)
+                     : shop.sell(itemId, qty, p.inventory);
     }
 
     // ── Step helpers ──────────────────────────────────────────────────────────
@@ -919,12 +957,28 @@ public final class GameSimulator {
             for (SimPlayer p : players.values()) {
                 if (p.isAlive() && pu.overlaps(p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
                     pu.alive = false;
-                    // Apply pickup effect (health restore)
-                    if ("health_potion".equals(pu.pickupType)) {
-                        p.health = Math.min(p.maxHealth, p.health + 2);
-                    }
+                    applyPickup(p, pu.pickupType);
                     break;
                 }
+            }
+        }
+    }
+
+    /** Apply a collected pickup to a player — health, currency, or item to inventory. */
+    private static void applyPickup(SimPlayer p, String type) {
+        switch (type != null ? type : "") {
+            case "coin"         -> p.inventory.addCurrency(1);
+            case "health_potion"-> {
+                // Try to use immediately if health not full; else add to inventory
+                if (p.health < p.maxHealth) {
+                    p.health = Math.min(p.maxHealth, p.health + 2);
+                } else {
+                    p.inventory.addItem("health_potion", 1);
+                }
+            }
+            default -> {
+                // Generic item — try to add to inventory
+                if (ItemDatabase.get(type) != null) p.inventory.addItem(type, 1);
             }
         }
     }
@@ -949,6 +1003,24 @@ public final class GameSimulator {
         }
 
         for (SimNPC npc : npcs) npc.step(nearestX);
+    }
+
+    // ── Inventory wire helper ─────────────────────────────────────────────────
+
+    private static com.indieniinja.network.InventoryState buildInventoryState(SimInventory inv) {
+        com.indieniinja.network.InventoryState s = new com.indieniinja.network.InventoryState();
+        s.currency      = inv.currency;
+        s.equippedWeapon = inv.equippedWeapon;
+        s.equippedArmor  = inv.equippedArmor;
+        for (SimInventory.Slot slot : inv.slots) {
+            if (slot != null) {
+                s.slots.add(new com.indieniinja.network.InventoryState.SlotState(
+                    slot.itemId(), slot.quantity(), slot.equipped()));
+            } else {
+                s.slots.add(null);
+            }
+        }
+        return s;
     }
 
     // ── Utility ───────────────────────────────────────────────────────────────

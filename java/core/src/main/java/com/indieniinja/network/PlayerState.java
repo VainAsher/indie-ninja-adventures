@@ -26,6 +26,8 @@ public final class PlayerState {
     public float   stamina;            // 0–30; drains while running, regens otherwise
     public float   mana;               // 0–30; regens passively, spent on ninjutsu
     public boolean ninjutsuCasting;    // brief casting anim active
+    /** Player inventory — always sent (not delta-encoded). */
+    public InventoryState inventory = new InventoryState();
 
     public PlayerState() {}
 
@@ -47,6 +49,7 @@ public final class PlayerState {
         m.put("stamina",              stamina);
         m.put("mana",                 mana);
         m.put("ninjutsu_casting",     ninjutsuCasting);
+        m.put("inventory",            inventory != null ? inventory.toMap() : new InventoryState().toMap());
         return m;
     }
 
@@ -73,6 +76,10 @@ public final class PlayerState {
         s.stamina             = flt2(m, "stamina",   30f);
         s.mana                = flt2(m, "mana",      30f);
         s.ninjutsuCasting     = bool(m, "ninjutsu_casting");
+        Object inv = m.get("inventory");
+        s.inventory = (inv instanceof java.util.Map<?,?> im)
+            ? InventoryState.fromMap((java.util.Map<String,Object>) im)
+            : new InventoryState();
         return s;
     }
 

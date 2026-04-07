@@ -179,6 +179,23 @@ public final class HudRenderer {
             font.draw(hudBatch, "f:" + snap.frame, sw - 60f, 55f);
         }
 
+        // Currency (local player) — shown bottom-left above bars area
+        if (snap != null) {
+            for (PlayerState p : snap.players) {
+                if (p.slot == localSlot && p.inventory != null) {
+                    font.setColor(1f, 0.85f, 0.2f, 1f);
+                    font.draw(hudBatch, "\u25c6 " + p.inventory.currency + "g",
+                        10f, 75f);
+                    font.setColor(Color.WHITE);
+                    // Controls hint
+                    font.setColor(0.5f, 0.5f, 0.5f, 1f);
+                    font.draw(hudBatch, "[I]inv [M]map", 10f, 60f);
+                    font.setColor(Color.WHITE);
+                    break;
+                }
+            }
+        }
+
         hudBatch.end();
 
         // ── Death overlay ─────────────────────────────────────────────────────

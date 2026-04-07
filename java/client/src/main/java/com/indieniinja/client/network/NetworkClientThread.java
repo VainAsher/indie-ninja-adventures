@@ -76,6 +76,19 @@ public final class NetworkClientThread extends Thread {
         flushInput();
     }
 
+    /**
+     * Send an arbitrary message to the server (e.g. TRADE_REQUEST).
+     * Non-blocking best-effort — dropped silently if not connected.
+     */
+    public void sendMessage(String msgType, java.util.Map<String, Object> payload) {
+        java.io.DataOutputStream os;
+        synchronized (writeLock) { os = this.out; }
+        if (os == null) return;
+        try {
+            sendRaw(os, msgType, payload);
+        } catch (java.io.IOException ignored) {}
+    }
+
     public void shutdown() {
         running = false;
         interrupt();

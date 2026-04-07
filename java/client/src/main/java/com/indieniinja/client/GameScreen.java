@@ -19,7 +19,11 @@ import com.indieniinja.client.rendering.EntityRenderer;
 import com.indieniinja.client.rendering.HudRenderer;
 import com.indieniinja.client.rendering.ParticleSystem;
 import com.indieniinja.client.ui.DialogueOverlay;
+import com.indieniinja.client.ui.InventoryOverlay;
+import com.indieniinja.client.ui.MinimapRenderer;
 import com.indieniinja.client.ui.PauseScreen;
+import com.indieniinja.client.ui.ShopOverlay;
+import com.indieniinja.network.ShopState;
 import com.indieniinja.network.NPCState;
 import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.PlayerState;
@@ -79,12 +83,22 @@ public final class GameScreen implements Screen {
     private DialogueOverlay dialogueOverlay;
     private com.indieniinja.client.game.SaveManager saveManager;
 
+    // ── Inventory / shop / minimap overlays ──────────────────────────────────
+    private InventoryOverlay inventoryOverlay;
+    private ShopOverlay      shopOverlay;
+    private MinimapRenderer  minimapRenderer;
+    /** Latest shop states from full snapshot — keyed by npc_id. */
+    private final java.util.Map<String, ShopState> latestShopStates = new java.util.LinkedHashMap<>();
+
     // ── Audio ─────────────────────────────────────────────────────────────────
     private AudioManager audioManager;
     /** Previous animState per player slot — for state-transition SFX detection. */
     private final java.util.Map<Integer,String>  prevAnimState = new java.util.HashMap<>();
     /** Previous health per player slot — for hurt/death SFX detection. */
     private final java.util.Map<Integer,Integer> prevHealth    = new java.util.HashMap<>();
+
+    /** Most recently received snapshot — retained between frames for overlay input. */
+    private WorldSnapshot prevSnap = null;
 
     /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
     private static String npcDialogueId(String npcType) {
@@ -190,6 +204,21 @@ public final class GameScreen implements Screen {
         missionManager.setOnMissionComplete(() -> saveManager.markDirty());
         missionManager.setOnMissionFail(    () -> saveManager.markDirty());
 
+        // Inventory / shop / minimap overlays
+        inventoryOverlay = new InventoryOverlay();
+        shopOverlay      = new ShopOverlay();
+        minimapRenderer  = new MinimapRenderer();
+        shopOverlay.setOnTrade(req -> {
+            // Forward trade request to server
+            java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+            payload.put("npc_id",   req.npcId());
+            payload.put("item_id",  req.itemId());
+            payload.put("quantity", req.qty());
+            payload.put("is_buy",   req.isBuy());
+            networkClient.sendMessage(
+                com.indieniinja.network.MessageType.TRADE_REQUEST, payload);
+        });
+
         // Audio
         audioManager = new AudioManager(0.8f);
         audioManager.loadSounds(Gdx.files.internal("assets/audio/sfx"));
@@ -201,11 +230,32 @@ public final class GameScreen implements Screen {
     public void render(float delta) {
         delta = Math.min(delta, MAX_FRAME_TIME);
 
-        // ── Dialogue input (consumes keys when dialogue is open) ─────────────
-        boolean dialogueConsumed = dialogueOverlay.handleInput();
+        // ── Overlay input priority: shop > inventory > dialogue > game ────────
+        // Use prevSnap (last frame's snapshot) since this frame's snap hasn't been polled yet.
+        boolean shopConsumed = false;
+        if (prevSnap != null) {
+            PlayerState localSnap = prevSnap.players.stream()
+                .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+            shopConsumed = shopOverlay.handleInput(localSnap);
+        }
+        boolean invConsumed = !shopConsumed && inventoryOverlay.handleInput();
 
-        // ── ESC toggles pause (only when dialogue not active) ─────────────────
-        if (!dialogueConsumed && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        // ── Dialogue input (consumes keys when dialogue is open) ─────────────
+        boolean dialogueConsumed = !shopConsumed && !invConsumed && dialogueOverlay.handleInput();
+
+        // ── I key: toggle inventory (when no other overlay active) ────────────
+        if (!shopConsumed && !invConsumed && !dialogueConsumed && !paused
+                && Gdx.input.isKeyJustPressed(Input.Keys.I)) {
+            inventoryOverlay.toggle();
+        }
+        // ── M key: toggle minimap ─────────────────────────────────────────────
+        if (!shopConsumed && !invConsumed && !dialogueConsumed && !paused) {
+            minimapRenderer.handleInput();
+        }
+
+        // ── ESC toggles pause (only when no overlay active) ───────────────────
+        boolean anyOverlay = shopConsumed || invConsumed || dialogueConsumed;
+        if (!anyOverlay && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (paused) resume(); else pause();
         }
 
@@ -228,19 +278,34 @@ public final class GameScreen implements Screen {
         if (snap != null) tickAudio(snap);
 
         // ── E-key: interact with nearest interactable NPC ─────────────────────
-        if (!dialogueConsumed && !paused && snap != null
+        if (!anyOverlay && !paused && snap != null
                 && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            // Update shop states cache from latest full snapshot
+            for (ShopState ss : snap.shopStates) latestShopStates.put(ss.npcId, ss);
+
             for (NPCState npc : snap.npcs) {
                 if (npc.isInteractable) {
-                    String dialogueId = npcDialogueId(npc.npcType);
-                    dialogueManager.setStoryContext(storyManager.toConditionContext());
-                    dialogueManager.startNpcDialogue(dialogueId);
+                    if ("shop".equals(npc.npcType) && latestShopStates.containsKey(npc.npcId)) {
+                        // Open shop overlay
+                        inventoryOverlay.hide();
+                        shopOverlay.open(latestShopStates.get(npc.npcId));
+                    } else {
+                        // Open dialogue
+                        String dialogueId = npcDialogueId(npc.npcType);
+                        dialogueManager.setStoryContext(storyManager.toConditionContext());
+                        dialogueManager.startNpcDialogue(dialogueId);
+                    }
                     break;
                 }
             }
         }
 
         if (snap != null) {
+            // ── Update shop states cache (full snapshots have non-empty shopStates) ─
+            if (!snap.shopStates.isEmpty()) {
+                for (ShopState ss : snap.shopStates) latestShopStates.put(ss.npcId, ss);
+            }
+
             // ── Megamap: build stitched world tilemap when full room list arrives ─
             if (!snap.worldRooms.isEmpty() && snap.worldRooms.size() != megamapRoomCount) {
                 buildMegamap(snap.worldRooms);
@@ -341,12 +406,49 @@ public final class GameScreen implements Screen {
 
         // ── Dialogue overlay (rendered on top of HUD, below pause) ────────────
         if (dialogueManager.isActive()) {
-            // Switch to screen-space projection for the overlay
             batch.setProjectionMatrix(hudRenderer.screenProjection());
             batch.begin();
             dialogueOverlay.render(batch);
             batch.end();
-            // Restore camera projection
+            batch.setProjectionMatrix(camera.cam.combined);
+        }
+
+        // ── Minimap (screen-space, bottom-left corner) ────────────────────────
+        if (snap != null && !snap.worldRooms.isEmpty()) {
+            PlayerState localForMap = snap.players.stream()
+                .filter(p -> p.slot == localSlot).findFirst()
+                .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
+            float lpx = localForMap != null ? localForMap.posX : 0f;
+            float lpy = localForMap != null ? localForMap.posY : 0f;
+            float roomPx = PhysicsConstants.ROOM_WIDTH_TILES  * PhysicsConstants.TILE_SIZE;
+            float roomPy = PhysicsConstants.ROOM_HEIGHT_TILES * PhysicsConstants.TILE_SIZE;
+            batch.setProjectionMatrix(hudRenderer.screenProjection());
+            minimapRenderer.render(batch, snap.worldRooms,
+                snap.roomGridX, snap.roomGridY, lpx, lpy, roomPx, roomPy);
+            batch.setProjectionMatrix(camera.cam.combined);
+        }
+
+        // ── Inventory overlay (screen-space, centre) ──────────────────────────
+        if (inventoryOverlay.isVisible() && snap != null) {
+            PlayerState localInv = snap.players.stream()
+                .filter(p -> p.slot == localSlot).findFirst()
+                .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
+            batch.setProjectionMatrix(hudRenderer.screenProjection());
+            batch.begin();
+            inventoryOverlay.render(batch, localInv);
+            batch.end();
+            batch.setProjectionMatrix(camera.cam.combined);
+        }
+
+        // ── Shop overlay (screen-space, centre) ───────────────────────────────
+        if (shopOverlay.isVisible() && snap != null) {
+            PlayerState localShop = snap.players.stream()
+                .filter(p -> p.slot == localSlot).findFirst()
+                .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
+            batch.setProjectionMatrix(hudRenderer.screenProjection());
+            batch.begin();
+            shopOverlay.render(batch, localShop);
+            batch.end();
             batch.setProjectionMatrix(camera.cam.combined);
         }
 
@@ -354,6 +456,9 @@ public final class GameScreen implements Screen {
         if (paused) {
             pauseScreen.render(delta);
         }
+
+        // ── Persist snapshot for next frame's overlay input handling ──────────
+        if (snap != null) prevSnap = snap;
     }
 
     // ── Megamap construction ──────────────────────────────────────────────────
@@ -516,6 +621,9 @@ public final class GameScreen implements Screen {
         if (particleSystem != null) particleSystem.dispose();
         if (hudRenderer    != null) hudRenderer.dispose();
         if (pauseScreen    != null) pauseScreen.dispose();
-        if (dialogueOverlay != null) dialogueOverlay.dispose();
+        if (dialogueOverlay  != null) dialogueOverlay.dispose();
+        if (inventoryOverlay != null) inventoryOverlay.dispose();
+        if (shopOverlay      != null) shopOverlay.dispose();
+        if (minimapRenderer  != null) minimapRenderer.dispose();
     }
 }

@@ -10,10 +10,11 @@ public final class MessageType {
     private MessageType() {}
 
     // Client → Server
-    public static final String CLIENT_HELLO  = "client_hello";
-    public static final String INPUT         = "input";
-    public static final String ENTITY_EVENT  = "entity_event";
-    public static final String PORTAL_TRAVEL = "portal_travel";
+    public static final String CLIENT_HELLO   = "client_hello";
+    public static final String INPUT          = "input";
+    public static final String ENTITY_EVENT   = "entity_event";
+    public static final String PORTAL_TRAVEL  = "portal_travel";
+    public static final String TRADE_REQUEST  = "trade_request";   // buy/sell from NPC shop
 
     // Server → Client
     public static final String SERVER_HELLO     = "server_hello";

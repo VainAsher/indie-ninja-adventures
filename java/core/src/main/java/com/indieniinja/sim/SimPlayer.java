@@ -146,6 +146,9 @@ public final class SimPlayer {
     public static final float WALL_SLIDE_DRAIN_MULT      = 1.6f;
     public static final float WALL_FRICTION_SPEED        = 6.0f;
 
+    // ── Inventory ─────────────────────────────────────────────────────────────
+    public final SimInventory inventory = new SimInventory();
+
     // Input — written by Netty I/O thread, read by sim thread via AtomicRef in PlayerRecord
     public InputCommand latestInput = InputCommand.neutral(0);
 
