@@ -7,6 +7,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.indieniinja.client.audio.AudioManager;
 import com.indieniinja.client.game.DialogueManager;
 import com.indieniinja.client.game.MissionManager;
 import com.indieniinja.client.game.StoryManager;
@@ -69,6 +70,13 @@ public final class GameScreen implements Screen {
     private DialogueManager dialogueManager;
     private DialogueOverlay dialogueOverlay;
     private com.indieniinja.client.game.SaveManager saveManager;
+
+    // ── Audio ─────────────────────────────────────────────────────────────────
+    private AudioManager audioManager;
+    /** Previous animState per player slot — for state-transition SFX detection. */
+    private final java.util.Map<Integer,String>  prevAnimState = new java.util.HashMap<>();
+    /** Previous health per player slot — for hurt/death SFX detection. */
+    private final java.util.Map<Integer,Integer> prevHealth    = new java.util.HashMap<>();
 
     /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
     private static String npcDialogueId(String npcType) {
@@ -157,6 +165,10 @@ public final class GameScreen implements Screen {
         missionManager.setOnMissionComplete(() -> saveManager.markDirty());
         missionManager.setOnMissionFail(    () -> saveManager.markDirty());
 
+        // Audio
+        audioManager = new AudioManager(0.8f);
+        audioManager.loadSounds(Gdx.files.internal("assets/audio/sfx"));
+
         Gdx.input.setInputProcessor(null);  // InputPoller polls directly; ESC handled in render
     }
 
@@ -186,6 +198,9 @@ public final class GameScreen implements Screen {
         // ── Mission timer + auto-save ─────────────────────────────────────────
         missionManager.tick(delta);
         saveManager.tick(delta);
+
+        // ── Audio: state-transition SFX ──────────────────────────────────────
+        if (snap != null) tickAudio(snap);
 
         // ── E-key: interact with nearest interactable NPC ─────────────────────
         if (!dialogueConsumed && !paused && snap != null
@@ -270,6 +285,53 @@ public final class GameScreen implements Screen {
         }
     }
 
+    // ── Audio event detection ─────────────────────────────────────────────────
+
+    /**
+     * Detect player state transitions and play corresponding SFX.
+     * Python parity: AudioManager.play() call-sites in demo_game.py.
+     */
+    private void tickAudio(WorldSnapshot snap) {
+        for (PlayerState p : snap.players) {
+            String curAnim   = p.animState != null ? p.animState : "";
+            String prev      = prevAnimState.getOrDefault(p.slot, "");
+            int    prevHp    = prevHealth.getOrDefault(p.slot, p.health);
+
+            // Jump / double_jump onset
+            if (!prev.equals("jump") && !prev.equals("double_jump")
+                    && (curAnim.equals("jump") || curAnim.equals("double_jump"))) {
+                audioManager.play("jump");
+            }
+            // Land: was airborne (jump/fall), now grounded
+            if ((prev.equals("jump") || prev.equals("fall") || prev.equals("double_jump"))
+                    && !curAnim.equals("jump") && !curAnim.equals("fall")
+                    && !curAnim.equals("double_jump")) {
+                audioManager.play("land");
+            }
+            // Dash onset
+            if (!prev.equals("dash") && curAnim.equals("dash")) {
+                audioManager.play("dash");
+            }
+            // Melee attack onset
+            if (!prev.equals("attack") && curAnim.equals("attack")) {
+                audioManager.play("swing");
+            }
+            // Hurt (hp decreased, player not dead)
+            if (p.health < prevHp && !p.isDead) {
+                audioManager.play("player_hurt");
+            }
+            // Death onset
+            boolean wasDead = prevAnimState.containsKey(p.slot)
+                && prev.equals("dead");
+            if (p.isDead && !wasDead && !prev.equals("dead")) {
+                audioManager.play("player_death");
+            }
+
+            prevAnimState.put(p.slot, curAnim);
+            prevHealth.put(p.slot,    p.health);
+        }
+    }
+
     // ── Dialogue event handler ────────────────────────────────────────────────
 
     /**
@@ -304,6 +366,7 @@ public final class GameScreen implements Screen {
     @Override
     public void dispose() {
         if (saveManager    != null) saveManager.save();
+        if (audioManager   != null) audioManager.dispose();
         if (networkClient  != null) networkClient.shutdown();
         if (batch          != null) batch.dispose();
         if (anims          != null) anims.dispose();
