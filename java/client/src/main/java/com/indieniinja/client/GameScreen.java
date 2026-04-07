@@ -23,7 +23,9 @@ import com.indieniinja.client.ui.PauseScreen;
 import com.indieniinja.network.NPCState;
 import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.PlayerState;
+import com.indieniinja.network.WorldRoomDescriptor;
 import com.indieniinja.network.WorldSnapshot;
+import com.indieniinja.world.AutotileResolver;
 import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.world.WorldGenerator;
 import org.slf4j.Logger;
@@ -97,6 +99,16 @@ public final class GameScreen implements Screen {
     private int   localSlot       = 0;
     private long  loadedSeed      = Long.MIN_VALUE;   // tracks which seed we've generated tiles for
     private java.util.List<String> loadedNeighborDirs = java.util.List.of();
+
+    // ── Megamap state ─────────────────────────────────────────────────────────
+    /** Number of rooms in the built megamap (0 = not built yet). */
+    private int   megamapRoomCount = 0;
+    /** Grid coordinate of the top-left room in the megamap. */
+    private int   megamapMinGridX  = 0;
+    private int   megamapMinGridY  = 0;
+    /** Full megamap size in tiles (for camera clamping). */
+    private int   megamapW         = LEVEL_COLS;
+    private int   megamapH         = LEVEL_ROWS;
 
     public GameScreen(NinjaGameClient game, String host, int port) {
         this.game = game;
@@ -220,52 +232,58 @@ public final class GameScreen implements Screen {
         }
 
         if (snap != null) {
-            // Generate and load procedural tile layout on first snapshot (or seed/room change)
-            boolean seedChanged = snap.seed != 0 && snap.seed != loadedSeed;
-            boolean dirsChanged = !snap.neighborDirs.equals(loadedNeighborDirs);
-            if (seedChanged || dirsChanged) {
-                loadedSeed         = snap.seed;
-                loadedNeighborDirs = snap.neighborDirs;
-                String rType = snap.roomType != null ? snap.roomType : "combat";
-                byte[][] grid2d = WorldGenerator.generate(
-                    snap.seed, LEVEL_COLS, LEVEL_ROWS, snap.neighborDirs, rType);
+            // ── Megamap: build stitched world tilemap when full room list arrives ─
+            if (!snap.worldRooms.isEmpty() && snap.worldRooms.size() != megamapRoomCount) {
+                buildMegamap(snap.worldRooms);
+            }
 
-                // ── Diagnostic: grid fingerprint (client-side render grid) ─────
-                int solidC = 0, platC = 0;
-                for (int r = 0; r < LEVEL_ROWS; r++)
-                    for (int c = 0; c < LEVEL_COLS; c++) {
-                        if (grid2d[r][c] == WorldGenerator.SOLID)    solidC++;
-                        else if (grid2d[r][c] == WorldGenerator.PLATFORM) platC++;
+            // ── Single-room fallback: generate tiles for current room only ───────
+            // Used until the first full snapshot (with worldRooms) arrives, and as
+            // a safety net when worldRooms is missing.
+            if (megamapRoomCount == 0) {
+                boolean seedChanged = snap.seed != 0 && snap.seed != loadedSeed;
+                boolean dirsChanged = !snap.neighborDirs.equals(loadedNeighborDirs);
+                if (seedChanged || dirsChanged) {
+                    loadedSeed         = snap.seed;
+                    loadedNeighborDirs = snap.neighborDirs;
+                    String rType = snap.roomType != null ? snap.roomType : "combat";
+                    byte[][] grid2d = WorldGenerator.generate(
+                        snap.seed, LEVEL_COLS, LEVEL_ROWS, snap.neighborDirs, rType);
+                    log.info("[GameScreen] single-room grid seed={} type={} dirs={}",
+                        snap.seed, rType, snap.neighborDirs);
+                    if (blobTileSet != null) {
+                        int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);
+                        chunkRenderer.loadBlobTiles(blobTileSet, biomeIdx, grid2d, LEVEL_COLS, LEVEL_ROWS);
+                    } else {
+                        byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
+                        for (int r = 0; r < LEVEL_ROWS; r++)
+                            System.arraycopy(grid2d[r], 0, flat, r * LEVEL_COLS, LEVEL_COLS);
+                        chunkRenderer.loadProceduralTiles(flat, LEVEL_COLS, LEVEL_ROWS);
                     }
-                StringBuilder cs = new StringBuilder();
-                for (int r = 124; r <= 127; r++)
-                    cs.append('r').append(r).append('=').append(grid2d[r][64]).append(' ');
-                log.info("[GameScreen] CLIENT grid seed={} type={} dirs={} solid={} plat={} | centre-bottom: {} blobSet={}",
-                    snap.seed, rType, snap.neighborDirs, solidC, platC,
-                    cs.toString().trim(), blobTileSet != null ? "yes" : "no");
-
-                if (blobTileSet != null) {
-                    // Full autotiled rendering using the mk_nature spritesheet
-                    int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);
-                    chunkRenderer.loadBlobTiles(blobTileSet, biomeIdx, grid2d, LEVEL_COLS, LEVEL_ROWS);
-                } else {
-                    // Fallback: placeholder coloured tiles (grid2d already has door openings)
-                    byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
-                    for (int r = 0; r < LEVEL_ROWS; r++)
-                        System.arraycopy(grid2d[r], 0, flat, r * LEVEL_COLS, LEVEL_COLS);
-                    chunkRenderer.loadProceduralTiles(flat, LEVEL_COLS, LEVEL_ROWS);
                 }
             }
 
+            // ── Camera follow ─────────────────────────────────────────────────
             if (!snap.players.isEmpty()) {
                 PlayerState local = snap.players.stream()
                     .filter(p -> p.slot == localSlot)
                     .findFirst()
                     .orElse(snap.players.get(0));
-                camera.follow(local.posX, local.posY);
+
+                float worldX, worldY;
+                if (megamapRoomCount > 0) {
+                    // World-space position: room grid offset + room-local position
+                    int tile = PhysicsConstants.TILE_SIZE;
+                    worldX = (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile + local.posX;
+                    worldY = (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile + local.posY;
+                } else {
+                    worldX = local.posX;
+                    worldY = local.posY;
+                }
+                camera.follow(worldX, worldY);
                 camera.clampToBounds(
-                    LEVEL_COLS * PhysicsConstants.TILE_SIZE,
-                    LEVEL_ROWS * PhysicsConstants.TILE_SIZE
+                    megamapW * PhysicsConstants.TILE_SIZE,
+                    megamapH * PhysicsConstants.TILE_SIZE
                 );
             }
         }
@@ -303,6 +321,76 @@ public final class GameScreen implements Screen {
         if (paused) {
             pauseScreen.render(delta);
         }
+    }
+
+    // ── Megamap construction ──────────────────────────────────────────────────
+
+    /**
+     * Stitch all room tilemaps into a single unified TextureRegion array and
+     * load it into ChunkRenderer.
+     *
+     * Java port of Python systems/megamap.py build_megamap().
+     * Each room is at tile offset (gx - minGX) * ROOM_W, (gy - minGY) * ROOM_H.
+     */
+    private void buildMegamap(java.util.List<WorldRoomDescriptor> rooms) {
+        int minGX = rooms.stream().mapToInt(r -> r.gridX).min().getAsInt();
+        int minGY = rooms.stream().mapToInt(r -> r.gridY).min().getAsInt();
+        int maxGX = rooms.stream().mapToInt(r -> r.gridX).max().getAsInt();
+        int maxGY = rooms.stream().mapToInt(r -> r.gridY).max().getAsInt();
+
+        int spanW = maxGX - minGX + 1;
+        int spanH = maxGY - minGY + 1;
+        int megaW = spanW * LEVEL_COLS;
+        int megaH = spanH * LEVEL_ROWS;
+
+        log.info("[GameScreen] building megamap {}×{} rooms → {}×{} tiles",
+            spanW, spanH, megaW, megaH);
+
+        com.badlogic.gdx.graphics.g2d.TextureRegion[][] mega =
+            new com.badlogic.gdx.graphics.g2d.TextureRegion[megaH][megaW];
+
+        com.badlogic.gdx.graphics.g2d.TextureRegion solidTex    = chunkRenderer.placeholderSolid();
+        com.badlogic.gdx.graphics.g2d.TextureRegion platformTex = chunkRenderer.placeholderPlatform();
+
+        for (WorldRoomDescriptor room : rooms) {
+            byte[][] grid = WorldGenerator.generate(
+                room.seed, LEVEL_COLS, LEVEL_ROWS, room.neighborDirs, room.roomType);
+
+            int offX = (room.gridX - minGX) * LEVEL_COLS;
+            int offY = (room.gridY - minGY) * LEVEL_ROWS;
+
+            if (blobTileSet != null) {
+                for (int r = 0; r < LEVEL_ROWS; r++) {
+                    for (int c = 0; c < LEVEL_COLS; c++) {
+                        byte tile = grid[r][c];
+                        if (tile == WorldGenerator.SOLID) {
+                            int role = AutotileResolver.computeRole(grid, r, c, LEVEL_ROWS, LEVEL_COLS);
+                            mega[offY + r][offX + c] = blobTileSet.getFrame(room.biomeIndex, role);
+                        } else if (tile == WorldGenerator.PLATFORM) {
+                            mega[offY + r][offX + c] = blobTileSet.getPlatformFrame(room.biomeIndex);
+                        }
+                    }
+                }
+            } else {
+                for (int r = 0; r < LEVEL_ROWS; r++) {
+                    for (int c = 0; c < LEVEL_COLS; c++) {
+                        byte tile = grid[r][c];
+                        if      (tile == WorldGenerator.SOLID)    mega[offY + r][offX + c] = solidTex;
+                        else if (tile == WorldGenerator.PLATFORM) mega[offY + r][offX + c] = platformTex;
+                    }
+                }
+            }
+        }
+
+        chunkRenderer.loadTileMap(mega, megaW, megaH);
+
+        megamapMinGridX  = minGX;
+        megamapMinGridY  = minGY;
+        megamapW         = megaW;
+        megamapH         = megaH;
+        megamapRoomCount = rooms.size();
+        log.info("[GameScreen] megamap ready: {} rooms, origin grid=({},{})",
+            megamapRoomCount, minGX, minGY);
     }
 
     // ── Audio event detection ─────────────────────────────────────────────────

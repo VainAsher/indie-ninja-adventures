@@ -174,6 +174,10 @@ public final class ChunkRenderer {
         }
     }
 
+    /** Expose placeholder textures so callers can build stitched megamap arrays. */
+    public TextureRegion placeholderSolid()    { return placeholderSolid; }
+    public TextureRegion placeholderPlatform() { return placeholderPlatform; }
+
     /** Rebuild tileMap grid from the current solid/platform TextureRegions. */
     private void rebuildTestLayout(int cols, int rows) {
         this.mapCols = cols;

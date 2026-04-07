@@ -7,6 +7,7 @@ import com.indieniinja.network.PickupState;
 import com.indieniinja.network.PlatformState;
 import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WireCodec;
+import com.indieniinja.network.WorldRoomDescriptor;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
@@ -363,6 +364,20 @@ public final class ZoneSimulationLoop implements Runnable {
         snap.roomType     = zone.currentRoomType;
         snap.neighborDirs = zone.currentNeighborDirs;
         snap.isDelta = !full;
+
+        // Send full world room layout on full snapshots so the client can build the megamap.
+        if (full && zone.worldGraph != null) {
+            for (WorldGraph.RoomNode room : zone.worldGraph.allRooms()) {
+                WorldRoomDescriptor d = new WorldRoomDescriptor();
+                d.gridX       = room.gridX;
+                d.gridY       = room.gridY;
+                d.seed        = room.seed;
+                d.roomType    = room.type.wire();
+                d.neighborDirs.addAll(room.neighborDirs());
+                d.biomeIndex  = room.biomeIndex;
+                snap.worldRooms.add(d);
+            }
+        }
 
         if (!full) {
             // Swap full lists with delta lists computed by DeltaEncoder

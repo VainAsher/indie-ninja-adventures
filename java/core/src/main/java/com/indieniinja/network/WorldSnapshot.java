@@ -49,6 +49,13 @@ public final class WorldSnapshot {
     /** NPCs — always full list, not delta-encoded (few entities, slow-changing). */
     public List<NPCState>      npcs           = new ArrayList<>();
 
+    /**
+     * Full world room layout — sent on full snapshots only (not deltas).
+     * Client uses this to stitch all room tilemaps into a single megamap.
+     * Empty list means "no change" (use previous megamap).
+     */
+    public List<WorldRoomDescriptor> worldRooms = new ArrayList<>();
+
     // Delta fields (only populated when isDelta=true)
     public List<EnemyState>    enemiesChanged   = new ArrayList<>();
     public List<String>        enemiesRemoved   = new ArrayList<>();
@@ -114,6 +121,10 @@ public final class WorldSnapshot {
         for (Object n : list(m, "npcs"))
             if (n instanceof java.util.Map<?,?> nm)
                 s.npcs.add(NPCState.fromMap((java.util.Map<String,Object>) nm));
+        // World room layout — present only on full snapshots.
+        for (Object r : list(m, "world_rooms"))
+            if (r instanceof java.util.Map<?,?> rm)
+                s.worldRooms.add(WorldRoomDescriptor.fromMap((java.util.Map<String,Object>) rm));
         return s;
     }
 
@@ -159,6 +170,8 @@ public final class WorldSnapshot {
         m.put("shurikens", shurikenList());
         // NPCs always included — few entities, slow-changing, no delta encoding needed.
         m.put("npcs",      npcList());
+        // World room layout — full snapshots only; empty list on deltas (client keeps previous).
+        m.put("world_rooms", isDelta ? java.util.List.of() : worldRoomList());
 
         m.put("metadata", metadata);
         m.put("hub_id",   hubId != null ? hubId : "");
@@ -182,6 +195,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> npcList() {
         List<Map<String, Object>> out = new ArrayList<>(npcs.size());
         for (NPCState n : npcs) out.add(n.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> worldRoomList() {
+        List<Map<String, Object>> out = new ArrayList<>(worldRooms.size());
+        for (WorldRoomDescriptor r : worldRooms) out.add(r.toMap());
         return out;
     }
 
