@@ -32,9 +32,13 @@ public final class HudRenderer {
     private static final float BAR_H       = 12f;
     private static final float BAR_GAP     = 32f;   // space per player row
     private static final int   MAX_HP      = 5;
-    private static final float STAMINA_W   = 80f;
-    private static final float STAMINA_H   = 6f;
-    private static final float MAX_STAMINA = 3.0f;
+    private static final float STAMINA_W    = 80f;
+    private static final float STAMINA_H    = 6f;
+    private static final float MAX_STAMINA  = 3.0f;
+    private static final float MANA_W       = 80f;
+    private static final float MANA_H       = 6f;
+    private static final float MAX_MANA     = 30f;
+    private static final float MAX_STAM_GEN = 30f;  // general stamina pool
 
     private final ShapeRenderer shapes;
     private final SpriteBatch   hudBatch;
@@ -97,15 +101,36 @@ public final class HudRenderer {
                 float staminaRatio = Math.max(0f, Math.min(1f, p.wallSlideStamina / MAX_STAMINA));
                 shapes.setColor(0.15f, 0.15f, 0.25f, 0.8f);
                 shapes.rect(barX, staminaY, STAMINA_W, STAMINA_H);
-                // Stamina bar: cyan when full, orange when low
                 float sr = staminaRatio;
                 shapes.setColor(1f - sr * 0.5f, 0.5f + sr * 0.5f, sr, 1f);
                 if (staminaRatio > 0f)
                     shapes.rect(barX, staminaY, STAMINA_W * staminaRatio, STAMINA_H);
-                // Pulse indicator when wall-sliding
                 if (p.isWallSliding) {
                     shapes.setColor(0f, 1f, 1f, 0.4f);
                     shapes.rect(barX - 1, staminaY - 1, STAMINA_W + 2, STAMINA_H + 2);
+                }
+
+                // General stamina bar (green → yellow) — drains while running
+                float genStamY = staminaY - STAMINA_H - 2f;
+                float genRatio = Math.max(0f, Math.min(1f, p.stamina / MAX_STAM_GEN));
+                shapes.setColor(0.15f, 0.15f, 0.15f, 0.8f);
+                shapes.rect(barX, genStamY, STAMINA_W, STAMINA_H);
+                shapes.setColor(genRatio, 0.6f + genRatio * 0.4f, 0f, 1f);
+                if (genRatio > 0f)
+                    shapes.rect(barX, genStamY, STAMINA_W * genRatio, STAMINA_H);
+
+                // Mana bar (blue → dark blue)
+                float manaY   = genStamY - MANA_H - 2f;
+                float manaRatio = Math.max(0f, Math.min(1f, p.mana / MAX_MANA));
+                shapes.setColor(0.1f, 0.1f, 0.25f, 0.8f);
+                shapes.rect(barX, manaY, MANA_W, MANA_H);
+                shapes.setColor(0.2f + manaRatio * 0.3f, 0.4f + manaRatio * 0.4f, 1f, 1f);
+                if (manaRatio > 0f)
+                    shapes.rect(barX, manaY, MANA_W * manaRatio, MANA_H);
+                // Pulse when casting ninjutsu
+                if (p.ninjutsuCasting) {
+                    shapes.setColor(0.6f, 0.3f, 1f, 0.5f);
+                    shapes.rect(barX - 1, manaY - 1, MANA_W + 2, MANA_H + 2);
                 }
             }
         }
@@ -130,11 +155,14 @@ public final class HudRenderer {
                     + "  " + p.health + "/" + MAX_HP;
                 font.draw(hudBatch, hpLabel, labelX, labelY);
 
-                // Stamina % only for local player to avoid clutter
+                // Stamina / mana % labels for local player only
                 if (p.slot == localSlot) {
                     int stPct = (int)(p.wallSlideStamina / MAX_STAMINA * 100);
                     String stLabel = p.isWallSliding ? "SLIDING" : stPct + "%";
                     font.draw(hudBatch, stLabel, 10f + STAMINA_W + 5f, labelY - STAMINA_H - 3f + STAMINA_H);
+                    int manaPct = (int)(p.mana / MAX_MANA * 100);
+                    font.draw(hudBatch, "MP " + manaPct + "%", 10f + MANA_W + 5f,
+                              labelY - STAMINA_H * 3 - MANA_H * 2 - 4f + MANA_H);
                 }
             }
         }
@@ -152,6 +180,32 @@ public final class HudRenderer {
         }
 
         hudBatch.end();
+
+        // ── Death overlay ─────────────────────────────────────────────────────
+        if (snap != null) {
+            boolean localDead = snap.players.stream()
+                .anyMatch(p -> p.slot == localSlot && p.isDead);
+            if (localDead) {
+                // Dark translucent vignette
+                shapes.setProjectionMatrix(screenCam.combined);
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(0f, 0f, 0f, 0.55f);
+                shapes.rect(0, 0, sw, sh);
+                shapes.end();
+
+                hudBatch.setProjectionMatrix(screenCam.combined);
+                hudBatch.begin();
+                font.getData().setScale(3f);
+                font.setColor(0.9f, 0.15f, 0.15f, 1f);
+                font.draw(hudBatch, "YOU DIED", sw / 2f - 70f, sh / 2f + 20f);
+                font.getData().setScale(1.2f);
+                font.setColor(0.8f, 0.8f, 0.8f, 1f);
+                font.draw(hudBatch, "Waiting for respawn...", sw / 2f - 80f, sh / 2f - 15f);
+                font.getData().setScale(1f);
+                font.setColor(Color.WHITE);
+                hudBatch.end();
+            }
+        }
     }
 
     public void resize(int w, int h) {

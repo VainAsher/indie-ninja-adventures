@@ -62,6 +62,7 @@ public final class GameSimulator {
     private final List<FallingPlatform> fallingPlatforms = new ArrayList<>();
     private final List<SimShuriken> shurikens = new ArrayList<>();
     private int shurikenSeq = 0;
+    private int lootSeq     = 0;
 
     // ── World ─────────────────────────────────────────────────────────────────
     public final long   seed;
@@ -210,6 +211,9 @@ public final class GameSimulator {
             ps.teleportPhaseMode = p.teleportPhaseMode;
             ps.teleportCursorX   = p.teleportCursorX;
             ps.teleportCursorY   = p.teleportCursorY;
+            ps.stamina           = p.stamina;
+            ps.mana              = p.mana;
+            ps.ninjutsuCasting   = p.ninjutsuCasting;
             snap.players.add(ps);
         }
 
@@ -434,6 +438,37 @@ public final class GameSimulator {
         // Fast-fall: hold down while airborne
         p.fastFallActive = cmd.down && !p.onGround;
 
+        // ── Stamina + Mana resources ──────────────────────────────────────────
+        // Mirrors Python player._update_resources()
+        boolean isRunning = sp.animState.equals("run") || (cmd.slowWalk && false); // run=ALT held
+        // Actually: run = not slowWalk (ALT = slowWalk, no ALT = run in Python)
+        isRunning = !cmd.slowWalk && (cmd.left || cmd.right) && p.onGround;
+        if (isRunning) {
+            sp.stamina = Math.max(0f, sp.stamina - SimPlayer.STAMINA_RUN_DRAIN * DT);
+        } else {
+            float regenRate = p.onGround ? SimPlayer.STAMINA_REGEN_RATE : SimPlayer.STAMINA_REGEN_RATE * 0.5f;
+            sp.stamina = Math.min(SimPlayer.STAMINA_MAX, sp.stamina + regenRate * DT);
+        }
+        sp.mana = Math.min(SimPlayer.MANA_MAX, sp.mana + SimPlayer.MANA_REGEN_RATE * DT);
+
+        // ── Ninjutsu (L key) — hold to enter stance, release to cast Purify ───
+        // Mirrors Python: request_stance() on hold, request_cast("purify") on release
+        if (sp.ninjutsuCooldown > 0f) sp.ninjutsuCooldown -= DT;
+        if (sp.ninjutsuCasting) {
+            sp.ninjutsuCastTimer -= DT;
+            if (sp.ninjutsuCastTimer <= 0f) sp.ninjutsuCasting = false;
+        }
+        boolean ninjutsuHeld    = cmd.ninjutsu;
+        boolean ninjutsuRelease = sp.ninjutsuHeld && !ninjutsuHeld;
+        sp.ninjutsuHeld = ninjutsuHeld;
+        if (ninjutsuRelease && sp.ninjutsuCooldown <= 0f && sp.mana >= SimPlayer.NINJUTSU_MANA_COST) {
+            sp.mana             = Math.max(0f, sp.mana - SimPlayer.NINJUTSU_MANA_COST);
+            sp.ninjutsuCasting  = true;
+            sp.ninjutsuCastTimer = SimPlayer.NINJUTSU_CAST_TIME;
+            sp.ninjutsuCooldown = SimPlayer.NINJUTSU_COOLDOWN;
+            // (Purify hazard clearing will hook here once hazards are implemented)
+        }
+
         // ── Persist state for next tick ───────────────────────────────────────
         sp.wasOnGround = p.onGround;
         sp.prevJump    = cmd.jump;
@@ -538,7 +573,9 @@ public final class GameSimulator {
         applyWallSlide(sp, p);
 
         // ── Animation state ───────────────────────────────────────────────────
-        if (sp.teleportPhaseMode) {
+        if (sp.ninjutsuCasting) {
+            sp.animState = sp.ninjutsuHeld ? "ninjutsu_hand" : "ninjutsu_summon";
+        } else if (sp.teleportPhaseMode) {
             sp.animState = "idle";   // player frozen in place while cursor moves
         } else if (sp.isTeleporting) {
             sp.animState = "teleport";
@@ -768,9 +805,29 @@ public final class GameSimulator {
                 if (!en.isAlive()) continue;
                 if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
                                 en.physics.x, en.physics.y, en.physics.width, en.physics.height)) {
-                    en.takeDamage(SimPlayer.MELEE_DAMAGE);
+                    if (en.takeDamage(SimPlayer.MELEE_DAMAGE)) spawnLoot(en);
                 }
             }
+        }
+    }
+
+    /**
+     * Spawn 1–2 loot pickups at the dead enemy's position.
+     * 70% coin, 20% health_potion, 10% nothing — matches Python enemy loot tables.
+     */
+    private void spawnLoot(SimEnemy en) {
+        float cx = en.physics.x + en.physics.width  * 0.5f - 10f;
+        float cy = en.physics.y;
+        // Use lootSeq as a simple deterministic pseudo-random based on position
+        int roll = (int) Math.abs((en.physics.x * 7 + en.physics.y * 13 + lootSeq * 31) % 10);
+        lootSeq++;
+        String type = roll < 7 ? "coin" : roll < 9 ? "health_potion" : null;
+        if (type != null) {
+            pickups.add(new SimPickup(hubId + "_loot_" + lootSeq, type, cx, cy));
+        }
+        // 20% chance of a second coin
+        if (roll < 2) {
+            pickups.add(new SimPickup(hubId + "_loot_" + (lootSeq + 100), "coin", cx + 12f, cy));
         }
     }
 
@@ -816,7 +873,7 @@ public final class GameSimulator {
                 if (!en.isAlive()) continue;
                 if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
                                 en.physics.x, en.physics.y, en.physics.width, en.physics.height)) {
-                    en.takeDamage(SimPlayer.SHURIKEN_DAMAGE);
+                    if (en.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnLoot(en);
                     s.stuck      = true;
                     s.stuckTimer = 0.1f;
                     break;

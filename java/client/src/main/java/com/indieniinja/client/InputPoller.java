@@ -36,7 +36,7 @@ public final class InputPoller {
         // a wider window to catch the press even with slight render/tick desync.
         cmd.attack        = Gdx.input.isKeyPressed(Input.Keys.J) || Gdx.input.isButtonPressed(Input.Buttons.LEFT);
         cmd.throwShuriken = Gdx.input.isKeyPressed(Input.Keys.K);
-        cmd.ninjutsu      = Gdx.input.isKeyJustPressed(Input.Keys.L);
+        cmd.ninjutsu      = Gdx.input.isKeyPressed(Input.Keys.L);  // held; server detects release
         // Teleport — held so the server can detect the press edge and track phase steering
         cmd.teleport      = Gdx.input.isKeyPressed(Input.Keys.F) || Gdx.input.isKeyPressed(Input.Keys.T);
 

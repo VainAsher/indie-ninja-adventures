@@ -98,6 +98,29 @@ public final class SimPlayer {
     public static final float TELEPORT_INVULN       = 0.25f; // seconds of invuln after warp
     public static final float TELEPORT_CURSOR_SPEED = 420f;  // px/sec (Python: 420/60 * 60)
 
+    // ── Stamina + Mana resources ─────────────────────────────────────────────
+    // Mirrors Python PlayerState: stamina drains while running, regens on ground.
+    // Mana regens passively; consumed by ninjutsu casts.
+    public float stamina    = STAMINA_MAX;
+    public float mana       = MANA_MAX;
+
+    public static final float STAMINA_MAX        = 30f;
+    public static final float STAMINA_REGEN_RATE = 12f;   // per second on ground (6 in air)
+    public static final float STAMINA_RUN_DRAIN  = 4f;    // per second while running
+    public static final float MANA_MAX           = 30f;
+    public static final float MANA_REGEN_RATE    = 6f;    // per second always
+
+    // ── Ninjutsu state ────────────────────────────────────────────────────────
+    // hold L → ninjutsuHeld; release → cast Purify (mana cost 25, cooldown 12s)
+    public boolean ninjutsuHeld     = false;   // L was held last tick
+    public boolean ninjutsuCasting  = false;   // brief casting anim flag
+    public float   ninjutsuCooldown = 0f;      // seconds until next cast
+    public float   ninjutsuCastTimer = 0f;     // anim duration countdown
+
+    public static final float NINJUTSU_MANA_COST  = 25f;
+    public static final float NINJUTSU_COOLDOWN   = 12f;
+    public static final float NINJUTSU_CAST_TIME  = 0.4f;
+
     // ── Wall jump state ──────────────────────────────────────────────────────
     public float   wallCoyoteTimer    = 0f;  // brief window to wall-jump after leaving wall
     public int     lastWallDir        = 0;   // last wall direction (for wall-jump when onWall=false)
