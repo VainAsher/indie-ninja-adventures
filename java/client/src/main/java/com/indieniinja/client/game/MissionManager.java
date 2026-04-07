@@ -42,12 +42,15 @@ public final class MissionManager {
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
-    public MissionDefinition getDefinition(String id)    { return definitions.get(id); }
-    public MissionState      getState(String id)         { return states.getOrDefault(id, MissionState.NOT_STARTED); }
-    public boolean           isActive()                  { return activeMissionId != null; }
-    public String            getActiveMissionId()        { return activeMissionId; }
-    public boolean           isExitLocked()              { return exitLocked; }
-    public float             getMissionTimer()           { return missionTimer; }
+    public MissionDefinition     getDefinition(String id)  { return definitions.get(id); }
+    public MissionState          getState(String id)       { return states.getOrDefault(id, MissionState.NOT_STARTED); }
+    public boolean               isActive()               { return activeMissionId != null; }
+    public String                getActiveMissionId()     { return activeMissionId; }
+    public boolean               isExitLocked()           { return exitLocked; }
+    public float                 getMissionTimer()        { return missionTimer; }
+    public java.util.Set<String> getAllDefinitionIds()    { return definitions.keySet(); }
+    public Map<String, Float>    getBestTimes()           { return java.util.Collections.unmodifiableMap(bestTimes); }
+    public Map<String, Integer>  getAttempts()            { return java.util.Collections.unmodifiableMap(attempts); }
 
     /** All available mission definitions ordered by difficulty (for mission menu UI). */
     public List<MissionDefinition> availableMissions(int currentAct) {
@@ -134,6 +137,16 @@ public final class MissionManager {
             failMission();
         }
     }
+
+    // ── Save/restore ─────────────────────────────────────────────────────────
+
+    /** Mark a mission as completed without going through the full lifecycle. Used on load. */
+    public void markCompleted(String missionId) {
+        states.put(missionId, MissionState.COMPLETED);
+    }
+
+    public void restoreBestTimes(Map<String, Float> data)   { bestTimes.putAll(data); }
+    public void restoreAttempts(Map<String, Integer> data)  { attempts.putAll(data); }
 
     // ── Callbacks ─────────────────────────────────────────────────────────────
 

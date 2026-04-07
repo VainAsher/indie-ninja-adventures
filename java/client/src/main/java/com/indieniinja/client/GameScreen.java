@@ -63,11 +63,12 @@ public final class GameScreen implements Screen {
     private PauseScreen pauseScreen;
     private boolean     paused = false;
 
-    // ── Campaign / missions / dialogue ────────────────────────────────────────
+    // ── Campaign / missions / dialogue / save ─────────────────────────────────
     private StoryManager    storyManager;
     private MissionManager  missionManager;
     private DialogueManager dialogueManager;
     private DialogueOverlay dialogueOverlay;
+    private com.indieniinja.client.game.SaveManager saveManager;
 
     /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
     private static String npcDialogueId(String npcType) {
@@ -144,13 +145,17 @@ public final class GameScreen implements Screen {
         networkClient = new NetworkClientThread(host, port, stateBuffer);
         networkClient.start();
 
-        // Campaign / missions / dialogue systems
+        // Campaign / missions / dialogue / save systems
         storyManager    = new StoryManager();
         missionManager  = new MissionManager();
         dialogueManager = new DialogueManager();
         dialogueManager.setStoryContext(storyManager.toConditionContext());
         dialogueManager.setEventCallback(this::handleDialogueEvent);
         dialogueOverlay = new DialogueOverlay(dialogueManager);
+        saveManager     = new com.indieniinja.client.game.SaveManager(storyManager, missionManager);
+        saveManager.load();
+        missionManager.setOnMissionComplete(() -> saveManager.markDirty());
+        missionManager.setOnMissionFail(    () -> saveManager.markDirty());
 
         Gdx.input.setInputProcessor(null);  // InputPoller polls directly; ESC handled in render
     }
@@ -178,8 +183,9 @@ public final class GameScreen implements Screen {
 
         WorldSnapshot snap = stateBuffer.poll();
 
-        // ── Mission timer ─────────────────────────────────────────────────────
+        // ── Mission timer + auto-save ─────────────────────────────────────────
         missionManager.tick(delta);
+        saveManager.tick(delta);
 
         // ── E-key: interact with nearest interactable NPC ─────────────────────
         if (!dialogueConsumed && !paused && snap != null
@@ -297,6 +303,7 @@ public final class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        if (saveManager    != null) saveManager.save();
         if (networkClient  != null) networkClient.shutdown();
         if (batch          != null) batch.dispose();
         if (anims          != null) anims.dispose();
