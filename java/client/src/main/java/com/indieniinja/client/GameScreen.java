@@ -131,6 +131,9 @@ public final class GameScreen implements Screen {
     private int   localSlot       = 0;
     private long  loadedSeed      = Long.MIN_VALUE;   // tracks which seed we've generated tiles for
     private java.util.List<String> loadedNeighborDirs = java.util.List.of();
+    /** Previous room grid position — used to detect same-hub room crossings. */
+    private int   prevRoomGridX   = Integer.MIN_VALUE;
+    private int   prevRoomGridY   = Integer.MIN_VALUE;
 
     // ── Megamap state ─────────────────────────────────────────────────────────
     /** Number of rooms in the built megamap (0 = not built yet). */
@@ -318,21 +321,27 @@ public final class GameScreen implements Screen {
             }
         }
 
-        // ── Zone transition: mark megamap stale but keep it loaded so roomWorldOff
-        //    stays valid until the first full snapshot from the new zone arrives.
+        // ── Hub/world transition (portal or arcade depth advance): full reset ────
+        // Same-hub room crossings do NOT send WORLD_TRANSITION — they are handled
+        // smoothly via prevRoomGridX/Y detection in the snapshot path below.
         if (stateBuffer.pollZoneTransition()) {
-            megamapStale      = true;   // force rebuild on next full-snapshot
-            // Keep megamapRoomCount / megamapMinGridX/Y / megamapW/H intact so the
-            // old offsets remain correct during the brief transition gap.
-            loadedSeed        = Long.MIN_VALUE;
+            megamapStale       = true;
+            megamapRoomCount   = 0;  // world graph changed; must rebuild from scratch
+            megamapMinGridX    = 0;
+            megamapMinGridY    = 0;
+            megamapW           = LEVEL_COLS;
+            megamapH           = LEVEL_ROWS;
+            loadedSeed         = Long.MIN_VALUE;
             loadedNeighborDirs = java.util.List.of();
-            cachedWorldRooms  = java.util.List.of();
-            cachedPortals     = java.util.List.of();
+            cachedWorldRooms   = java.util.List.of();
+            cachedPortals      = java.util.List.of();
             latestShopStates.clear();
-            prevSnap          = null;
+            prevSnap           = null;
+            prevRoomGridX      = Integer.MIN_VALUE;
+            prevRoomGridY      = Integer.MIN_VALUE;
             prevEnemyIds.clear();
             prevBossAlive.clear();
-            prevLocalAbilities.clear();
+            chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
         }
 
         WorldSnapshot snap = stateBuffer.poll();
@@ -397,6 +406,23 @@ public final class GameScreen implements Screen {
         }
 
         if (snap != null) {
+            // ── Same-hub room crossing detection ─────────────────────────────────
+            // WORLD_TRANSITION is not sent for same-hub crossings; detect the change
+            // here so entity tracking state is cleared for the new room.
+            boolean roomChanged = (snap.roomGridX != prevRoomGridX || snap.roomGridY != prevRoomGridY)
+                                  && prevRoomGridX != Integer.MIN_VALUE;
+            if (roomChanged) {
+                megamapStale = true;          // force megamap rebuild on next full snap
+                prevEnemyIds.clear();         // avoid false kill counts across rooms
+                prevBossAlive.clear();
+                latestShopStates.clear();
+                cachedPortals = java.util.List.of();
+                log.debug("[GameScreen] room changed ({},{})→({},{})",
+                    prevRoomGridX, prevRoomGridY, snap.roomGridX, snap.roomGridY);
+            }
+            prevRoomGridX = snap.roomGridX;
+            prevRoomGridY = snap.roomGridY;
+
             // ── Update shop states cache (full snapshots have non-empty shopStates) ─
             if (!snap.shopStates.isEmpty()) {
                 for (ShopState ss : snap.shopStates) latestShopStates.put(ss.npcId, ss);

@@ -305,9 +305,25 @@ public final class ZoneSimulationLoop implements Runnable {
             WorldGraph.RoomNode newRoom = graph.roomAt(newGridX, newGridY);
             if (newRoom == null) continue;  // world boundary — clamp physics elsewhere
 
-            // Adjust physics position to be room-local in the new room before transition
+            // Adjust physics position to room-local coordinates in the new room.
+            // Use a SAFE_ENTRY buffer so the player doesn't immediately re-trigger
+            // a crossing back: gravity would pull them through the floor/ceiling if
+            // placed at y ≈ ROOM_PX (upward crossing) or y ≈ 0 (downward crossing).
+            final float TILE      = com.indieniinja.physics.PhysicsConstants.TILE_SIZE;
+            final float DOOR_THICK = 4 * TILE;   // "down"/"up" door rows = 4 tiles
+            final float SAFE_ENTRY = DOOR_THICK + com.indieniinja.physics.PhysicsConstants.PLAYER_HEIGHT + 8;
+
             sp.physics.x -= deltaX * ROOM_PX;
             sp.physics.y -= deltaY * ROOM_PX;
+
+            // Vertical: clamp entry so player lands safely above/below the door zone.
+            if (deltaY == -1) {
+                // Entered from below (jumped up): must not be at bottom of new room.
+                sp.physics.y = Math.min(sp.physics.y, ROOM_PX - SAFE_ENTRY);
+            } else if (deltaY == 1) {
+                // Entered from above (fell down): must not be at top of new room.
+                sp.physics.y = Math.max(sp.physics.y, SAFE_ENTRY - DOOR_THICK);
+            }
             pr.posX = sp.physics.x;
             pr.posY = sp.physics.y;
 
@@ -427,7 +443,10 @@ public final class ZoneSimulationLoop implements Runnable {
         pr.hubId            = newKey;
         newZone.playerIds.add(tr.playerId());
 
-        sendWorldTransition(pr, newZone);
+        // Same-hub room crossing: do NOT send WORLD_TRANSITION.
+        // The client detects the room change from snap.roomGridX/Y and updates
+        // the megamap offset smoothly — no entity-state reset, no visible teleport.
+        // WORLD_TRANSITION is reserved for actual hub/world changes (portals, arcade depth).
         log.info("[Zone {}→{}] player {} moved to room ({},{})",
             zone.hubId, newKey, tr.playerId(), tr.newGridX(), tr.newGridY());
     }

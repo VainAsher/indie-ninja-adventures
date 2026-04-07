@@ -152,13 +152,20 @@ public final class MinimapRenderer {
                     panelX + panelW, panelY + LEGEND_H + gridH + PANEL_PAD * 2f);
         shapes.end();
 
+        // ── Y-inversion helper ────────────────────────────────────────────────
+        // Minimap uses hudRenderer.screenProjection() which is Y-UP (y=0 at bottom).
+        // Game grid uses Y-DOWN (gridY=0 at top, increases downward).
+        // To correct: flip so high gridY (world-bottom) → low screen-Y (minimap bottom).
+        final int fMaxGY = maxGY;
+        final float fGridOriY = gridOriY;
+        final float fStep     = roomSize + ROOM_PAD;
+
         // ── Connection lines (behind rooms) ───────────────────────────────────
-        float step = roomSize + ROOM_PAD;
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(0.28f, 0.28f, 0.42f, 1f);
         for (WorldRoomDescriptor room : rooms) {
-            float cx1 = gridOriX + (room.gridX - minGX) * step + roomSize * 0.5f;
-            float cy1 = gridOriY + (room.gridY - minGY) * step + roomSize * 0.5f;
+            float cx1 = gridOriX + (room.gridX - minGX) * fStep + roomSize * 0.5f;
+            float cy1 = fGridOriY + (fMaxGY - room.gridY) * fStep + roomSize * 0.5f;
             for (String dir : room.neighborDirs) {
                 int nx = room.gridX, ny = room.gridY;
                 switch (dir) {
@@ -168,8 +175,8 @@ public final class MinimapRenderer {
                     case "right" -> nx++;
                 }
                 if (("right".equals(dir) && nx <= maxGX) || ("down".equals(dir) && ny <= maxGY)) {
-                    float cx2 = gridOriX + (nx - minGX) * step + roomSize * 0.5f;
-                    float cy2 = gridOriY + (ny - minGY) * step + roomSize * 0.5f;
+                    float cx2 = gridOriX + (nx - minGX) * fStep + roomSize * 0.5f;
+                    float cy2 = fGridOriY + (fMaxGY - ny) * fStep + roomSize * 0.5f;
                     shapes.line(cx1, cy1, cx2, cy2);
                 }
             }
@@ -179,8 +186,8 @@ public final class MinimapRenderer {
         // ── Room cells ────────────────────────────────────────────────────────
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (WorldRoomDescriptor room : rooms) {
-            float rx = gridOriX + (room.gridX - minGX) * step;
-            float ry = gridOriY + (room.gridY - minGY) * step;
+            float rx = gridOriX + (room.gridX - minGX) * fStep;
+            float ry = fGridOriY + (fMaxGY - room.gridY) * fStep;
             shapes.setColor(roomColor(room.roomType));
             shapes.rect(rx, ry, roomSize, roomSize);
         }
@@ -189,16 +196,17 @@ public final class MinimapRenderer {
         // ── Current room highlight ─────────────────────────────────────────────
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(1f, 1f, 1f, 1f);
-        float crx = gridOriX + (currentGridX - minGX) * step;
-        float cry = gridOriY + (currentGridY - minGY) * step;
+        float crx = gridOriX + (currentGridX - minGX) * fStep;
+        float cry = fGridOriY + (fMaxGY - currentGridY) * fStep;
         shapes.rect(crx - 1.5f, cry - 1.5f, roomSize + 3f, roomSize + 3f);
         shapes.end();
 
         // ── Player dot ────────────────────────────────────────────────────────
         float normX = roomWidthPx  > 0 ? Math.min(1f, Math.max(0f, playerLocalX / roomWidthPx))  : 0.5f;
+        // normY: Y-DOWN physics (0=top, 1=bottom) → Y-UP screen (flip for room cell)
         float normY = roomHeightPx > 0 ? Math.min(1f, Math.max(0f, playerLocalY / roomHeightPx)) : 0.5f;
         float dotX  = crx + normX * roomSize;
-        float dotY  = cry + normY * roomSize;
+        float dotY  = cry + (1f - normY) * roomSize;  // invert Y within room cell
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(1f, 1f, 1f, 1f);
         shapes.circle(dotX, dotY, Math.max(3f, roomSize * 0.15f), 10);
