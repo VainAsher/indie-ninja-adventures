@@ -494,10 +494,13 @@ public final class GameSimulator {
             if (sp.teleportPhaseTimer <= 0f) {
                 float cx = sp.teleportCursorX;
                 float cy = sp.teleportCursorY;
+                // Shrink check height by 1px so touching (not penetrating) the floor is not
+                // treated as blocked — matches Python's strict pygame.Rect.colliderect().
+                float checkH = p.height - 1f;
                 boolean blocked = false;
-                var tiles = spatialHash.candidates(cx, cy, p.width, p.height);
+                var tiles = spatialHash.candidates(cx, cy, p.width, checkH);
                 for (var tile : tiles) {
-                    if (!tile.isPlatform() && tile.overlaps(cx, cy, p.width, p.height)) {
+                    if (!tile.isPlatform() && tile.overlaps(cx, cy, p.width, checkH)) {
                         blocked = true; break;
                     }
                 }
