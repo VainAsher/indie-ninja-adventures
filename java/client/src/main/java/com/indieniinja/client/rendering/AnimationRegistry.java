@@ -118,6 +118,7 @@ public final class AnimationRegistry {
         sliceVariableAndRegister(baseDir, "player_throw",        "attack-sword_spritesheet.png", ATKSWORD_4);
         sliceVariableAndRegister(baseDir, "player_throw_ground", "attack-sword_spritesheet.png", ATKSWORD_4);
         sliceVariableAndRegister(baseDir, "player_throw_air",    "attack-sword_spritesheet.png", ATKSWORD_4);
+        sliceVariableAndRegister(baseDir, "player_teleport",     "attack-sword_spritesheet.png", ATKSWORD_4);
         sliceAndRegister(baseDir, "player_death",     "death_spritesheet.png",        5);
         sliceAndRegister(baseDir, "player_hurt",      "hurt_spritesheet.png",         3);
         sliceAndRegister(baseDir, "player_hurt2",     "hurt_spritesheet.png",         3);

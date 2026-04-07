@@ -29,13 +29,33 @@ public final class EntityRenderer {
     private static final int PW = PhysicsConstants.PLAYER_WIDTH;   // 28
     private static final int PH = PhysicsConstants.PLAYER_HEIGHT;  // 56
     private static final int PICKUP_SIZE = 20;
-    private static final int ENEMY_W     = 32;
-    private static final int ENEMY_H     = 48;
 
-    // Animation FPS constants matching Python's AnimationRegistry
-    private static final float PLAYER_ANIM_FPS = 8f;
-    private static final float ENEMY_ANIM_FPS  = 6f;
-    private static final float PICKUP_ANIM_FPS = 4f;
+    /** Returns [w, h] physics dimensions for an enemy type — matches GameSimulator.buildEnemy(). */
+    private static int[] enemySize(String enemyType) {
+        return switch (enemyType) {
+            case "bat"      -> new int[]{28, 28};
+            case "slime"    -> new int[]{32, 28};
+            case "wolf"     -> new int[]{40, 32};
+            case "goblin",
+                 "skeleton" -> new int[]{32, 48};
+            default         -> new int[]{32, 48};
+        };
+    }
+
+    // Per-state FPS constants matching Python sprite_manager.py ANIMATION_DEFS exactly
+    // idle=8, walk/slow_walk=8-10, run=12, dash=20, attack=15, throw=12, hurt=12, death=12
+    private static final float FPS_IDLE       = 8f;
+    private static final float FPS_WALK       = 10f;
+    private static final float FPS_RUN        = 12f;
+    private static final float FPS_DASH       = 20f;
+    private static final float FPS_JUMP       = 10f;
+    private static final float FPS_ATTACK     = 15f;
+    private static final float FPS_THROW      = 12f;
+    private static final float FPS_HURT       = 12f;
+    private static final float FPS_DEATH      = 12f;
+    private static final float FPS_WALL_SLIDE = 8f;
+    private static final float ENEMY_ANIM_FPS = 6f;
+    private static final float PICKUP_ANIM_FPS= 4f;
 
     private final AnimationRegistry anims;
 
@@ -78,14 +98,29 @@ public final class EntityRenderer {
 
     // ── Players ───────────────────────────────────────────────────────────────
 
+    /** Map an animState string to its correct FPS — matches Python ANIMATION_DEFS fps column. */
+    private static float playerFps(String animState) {
+        return switch (animState) {
+            case "attack", "slash1", "slash2", "slash3", "slash_air", "jump_slash" -> FPS_ATTACK;
+            case "throw", "throw_ground", "throw_air", "throw_crouch",
+                 "teleport", "ninjutsu_hand", "ninjutsu_summon"                    -> FPS_THROW;
+            case "hurt", "hurt2", "death"                                           -> FPS_DEATH;
+            case "dash"                                                             -> FPS_DASH;
+            case "run"                                                              -> FPS_RUN;
+            case "walk", "slow_walk"                                                -> FPS_WALK;
+            case "jump", "fall", "wall_slide", "wall_hang", "air_spin"             -> FPS_JUMP;
+            default                                                                 -> FPS_IDLE;
+        };
+    }
+
     private void renderPlayer(SpriteBatch batch, PlayerState p, float dt) {
         if (p.isDead) return;
 
-        String animKey = "player_" + (p.animState != null && !p.animState.isEmpty()
-            ? p.animState : "idle");
+        String state  = (p.animState != null && !p.animState.isEmpty()) ? p.animState : "idle";
+        String animKey = "player_" + state;
 
         float stateTime = tickStateTime(p.playerId, animKey, dt);
-        TextureRegion frame = anims.getFrame(animKey, stateTime, PLAYER_ANIM_FPS);
+        TextureRegion frame = anims.getFrame(animKey, stateTime, playerFps(state));
 
         // Sprites default to facing right.  Flip X when facing left.
         // Preserve any pre-applied Y-flip (Y-DOWN correction set at load time).
@@ -104,9 +139,11 @@ public final class EntityRenderer {
     private void renderEnemy(SpriteBatch batch, EnemyState e, float dt) {
         if ("dead".equals(e.aiState)) return;
 
-        // Derive entity type from enemyId prefix (e.g. "ninja_0" → "ninja")
-        String typePrefix = e.enemyId.contains("_")
-            ? e.enemyId.substring(0, e.enemyId.lastIndexOf('_'))
+        // Derive entity type from enemyId: "central_hub_goblin_0" → last non-numeric segment
+        // Format is "<hubId>_<type>_<index>" — type is second-to-last underscore token.
+        String[] parts = e.enemyId.split("_");
+        String typePrefix = (parts.length >= 2)
+            ? parts[parts.length - 2]
             : e.enemyId;
         String animKey = "enemy_" + typePrefix + "_" + (e.aiState != null ? e.aiState : "idle");
 
@@ -117,8 +154,9 @@ public final class EntityRenderer {
         boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();
         if (needEnemyChange) frame.flip(true, false);
 
-        // e.x / e.y are the AABB top-left corner
-        batch.draw(frame, e.x, e.y, ENEMY_W, ENEMY_H);
+        // Use correct physics dimensions per enemy type (matches GameSimulator.buildEnemy)
+        int[] sz = enemySize(typePrefix);
+        batch.draw(frame, e.x, e.y, sz[0], sz[1]);
 
         if (needEnemyChange) frame.flip(true, false);
     }

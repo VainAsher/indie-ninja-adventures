@@ -273,7 +273,7 @@ public final class GameSimulator {
      * Convention: p.physics.onGround reflects the result from the PREVIOUS tick's
      * collision pass — correct for coyote time and ground-jump detection.
      */
-    private static void applyPlayerInput(SimPlayer sp, InputCommand cmd) {
+    private void applyPlayerInput(SimPlayer sp, InputCommand cmd) {
         PhysicsState p = sp.physics;
 
         // ── Ground-state change detection ─────────────────────────────────────
@@ -351,6 +351,21 @@ public final class GameSimulator {
             if (cmd.left)  sp.facing = -1;
         }
 
+        // ── Crouch height ─────────────────────────────────────────────────────
+        // Python CrouchMechanic: height collapses to PLAYER_CROUCH_HEIGHT (28) while
+        // crouching on ground; the AABB bottom stays fixed (y shifts up by the difference).
+        // Uncrouch: restore full height, shift y back down.
+        boolean isCrouching = cmd.crouch && p.onGround;
+        if (isCrouching && p.height == PhysicsConstants.PLAYER_HEIGHT) {
+            int diff = PhysicsConstants.PLAYER_HEIGHT - PhysicsConstants.PLAYER_CROUCH_HEIGHT;
+            p.y      += diff;   // keep feet in same position
+            p.height  = PhysicsConstants.PLAYER_CROUCH_HEIGHT;
+        } else if (!isCrouching && p.height == PhysicsConstants.PLAYER_CROUCH_HEIGHT) {
+            int diff = PhysicsConstants.PLAYER_HEIGHT - PhysicsConstants.PLAYER_CROUCH_HEIGHT;
+            p.y      -= diff;   // restore feet position
+            p.height  = PhysicsConstants.PLAYER_HEIGHT;
+        }
+
         // ── Jump logic ────────────────────────────────────────────────────────
         boolean canGroundJump = p.onGround || sp.coyoteTimer > 0f;
         boolean jumpTriggered = jumpJustPressed || (sp.jumpBuffer > 0f && canGroundJump);
@@ -370,14 +385,38 @@ public final class GameSimulator {
         }
 
         // ── Wall jump ─────────────────────────────────────────────────────────
-        if (jumpJustPressed && p.onWall && !p.onGround && sp.jumpCount < 2) {
-            p.vx        = -p.wallDir * PhysicsConstants.WALL_JUMP_POWER_X;
-            p.vy        = -PhysicsConstants.WALL_JUMP_POWER_Y;
-            sp.facing   = -p.wallDir;
-            // Wall jump counts as the first (or second) jump
-            sp.jumpCount = Math.max(sp.jumpCount + 1, 1);
-            sp.jumpBuffer = 0f;
+        // Mirrors Python mechanics/jump.py _try_wall_jump():
+        //   - No jump-count gate (wall jump always available on wall/coyote)
+        //   - Boost vy by 1.6× when sliding down (vy > 0) — matches Python
+        //   - Horizontal power at 0.5× to preserve wall-arc feel
+        //   - Reset jumpCount (Python: jumps_left = MAX_JUMPS - 1)
+        //   - Clear isWallSliding so applyWallSlide can't cancel the jump
+        boolean canWallJump = p.onWall || sp.wallCoyoteTimer > 0f;
+        if (jumpJustPressed && canWallJump && !p.onGround) {
+            int wallDir = (p.wallDir != 0) ? p.wallDir
+                        : (sp.lastWallDir != 0) ? sp.lastWallDir
+                        : (sp.facing >= 0 ? -1 : 1);
+            float vy = (p.onWall && p.vy > 0)
+                ? -PhysicsConstants.WALL_JUMP_POWER_Y * 1.6f
+                : -PhysicsConstants.WALL_JUMP_POWER_Y * 1.6f;
+            p.vy         = vy;
+            p.vx         = -wallDir * (PhysicsConstants.WALL_JUMP_POWER_X * 0.5f);
+            sp.facing    = -wallDir;
+            sp.jumpCount = 0;      // reset double-jump — wall jump refreshes it
+            sp.jumpBuffer= 0f;
+            sp.isWallSliding       = false;  // detach before applyWallSlide runs
+            sp.wallCoyoteTimer     = 0f;
+            sp.awaitGroundAfterExhaust = false;
+            p.onWall     = false;
+            p.wallDir    = 0;
         }
+
+        // Track last wall direction for wall coyote and fallback wall-jump dir
+        if (p.onWall && p.wallDir != 0) sp.lastWallDir = p.wallDir;
+
+        // Wall coyote timer: brief window after leaving wall where wall-jump still works
+        if (p.onWall && !p.onGround) sp.wallCoyoteTimer = PhysicsConstants.COYOTE_TIME;
+        else if (sp.wallCoyoteTimer > 0f) sp.wallCoyoteTimer -= DT;
 
         // ── Gravity modifier flags ────────────────────────────────────────────
         // Jump-cut: release jump while still rising → extra gravity via PhysicsSystem
@@ -391,6 +430,45 @@ public final class GameSimulator {
         sp.prevDash    = cmd.dash;
         sp.prevAttack  = cmd.attack;
         sp.prevThrow   = cmd.throwShuriken;
+
+        // ── Teleport ──────────────────────────────────────────────────────────
+        // Mirrors Python TeleportMechanic: instant warp up to TELEPORT_RANGE px in
+        // facing direction (horizontal), stepping through tiles to find safe landing.
+        // Cooldown 3s, brief invulnerability after. No mana gate (system not yet ported).
+        if (sp.teleportCooldown > 0f) sp.teleportCooldown -= DT;
+        if (sp.isTeleporting) {
+            sp.teleportInvulnTimer -= DT;
+            if (sp.teleportInvulnTimer <= 0f) sp.isTeleporting = false;
+        }
+        boolean teleportJustPressed = cmd.teleport && !sp.prevTeleport;
+        sp.prevTeleport = cmd.teleport;
+        if (teleportJustPressed && sp.teleportCooldown <= 0f && !sp.isTeleporting) {
+            float dist    = SimPlayer.TELEPORT_RANGE;
+            float stepX   = sp.facing * (dist / 8f);
+            float bestX   = p.x;
+            float bestY   = p.y;
+            for (int step = 1; step <= 8; step++) {
+                float tx = p.x + stepX * step;
+                // Check this candidate position against spatial hash
+                boolean blocked = false;
+                var tiles = spatialHash.candidates(tx, p.y, p.width, p.height);
+                for (var tile : tiles) {
+                    if (!tile.isPlatform() && tile.overlaps(tx, p.y, p.width, p.height)) {
+                        blocked = true; break;
+                    }
+                }
+                if (!blocked) { bestX = tx; bestY = p.y; }
+                else break;
+            }
+            p.x                    = bestX;
+            p.y                    = bestY;
+            p.vx                   = 0f;
+            p.vy                   = 0f;
+            sp.isTeleporting       = true;
+            sp.teleportInvulnTimer = SimPlayer.TELEPORT_INVULN;
+            sp.teleportCooldown    = SimPlayer.TELEPORT_COOLDOWN;
+            sp.isDashing           = false;
+        }
 
         // ── Melee attack ──────────────────────────────────────────────────────
         if (attackJustPressed && sp.attackCooldown <= 0f && !sp.isAttacking) {
@@ -412,7 +490,9 @@ public final class GameSimulator {
         applyWallSlide(sp, p);
 
         // ── Animation state ───────────────────────────────────────────────────
-        if (sp.isDashing) {
+        if (sp.isTeleporting) {
+            sp.animState = "teleport";
+        } else if (sp.isDashing) {
             sp.animState = "dash";
         } else if (sp.isAttacking) {
             sp.animState = "attack";

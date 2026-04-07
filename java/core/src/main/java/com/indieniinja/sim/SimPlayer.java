@@ -47,6 +47,7 @@ public final class SimPlayer {
     // Previous-tick input state for rising-edge detection
     public boolean prevJump     = false;
     public boolean prevDash     = false;
+    public boolean prevTeleport = false;
 
     // Ground state from previous tick (for coyote-time detection)
     public boolean wasOnGround  = false;
@@ -76,6 +77,19 @@ public final class SimPlayer {
     public static final int   SHURIKEN_DAMAGE      = 1;
     public static final float SHURIKEN_STUN        = 0.4f;
     public static final int   SHURIKEN_MAX_AMMO    = 5;
+
+    // ── Teleport state ───────────────────────────────────────────────────────
+    public float   teleportCooldown  = 0f;    // seconds until next teleport
+    public boolean isTeleporting     = false; // brief invuln window after teleport
+    public float   teleportInvulnTimer = 0f;
+
+    public static final float TELEPORT_RANGE    = 256f; // px — 8 tiles, matches Python
+    public static final float TELEPORT_COOLDOWN = 3.0f; // seconds
+    public static final float TELEPORT_INVULN   = 0.25f;// seconds of invulnerability after
+
+    // ── Wall jump state ──────────────────────────────────────────────────────
+    public float   wallCoyoteTimer = 0f;  // brief window to wall-jump after leaving wall
+    public int     lastWallDir     = 0;   // last wall direction (for wall-jump when onWall=false)
 
     // ── Wall slide mechanic state ────────────────────────────────────────────
     // Mirrors Python mechanics/wall_slide.py WallSlideMechanic
