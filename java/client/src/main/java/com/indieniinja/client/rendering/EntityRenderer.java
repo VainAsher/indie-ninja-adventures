@@ -48,14 +48,17 @@ public final class EntityRenderer {
 
     private static final int PICKUP_SIZE = 20;
 
-    /** Returns [w, h] physics dimensions for an enemy type — matches GameSimulator.buildEnemy(). */
+    /**
+     * Returns [w, h] physics dimensions for an enemy type.
+     * Matches Python entities/*.py WIDTH/HEIGHT constants exactly.
+     */
     private static int[] enemySize(String enemyType) {
         return switch (enemyType) {
             case "bat"      -> new int[]{28, 28};
-            case "slime"    -> new int[]{32, 28};
-            case "wolf"     -> new int[]{40, 32};
-            case "goblin",
-                 "skeleton" -> new int[]{32, 48};
+            case "slime"    -> new int[]{40, 32};   // Python: WIDTH=40, HEIGHT=32
+            case "wolf"     -> new int[]{48, 32};   // Python: WIDTH=48, HEIGHT=32
+            case "skeleton" -> new int[]{32, 56};   // Python: WIDTH=32, HEIGHT=56
+            case "goblin"   -> new int[]{32, 48};   // Python: WIDTH=32, HEIGHT=48
             default         -> new int[]{32, 48};
         };
     }
@@ -72,8 +75,32 @@ public final class EntityRenderer {
     private static final float FPS_HURT       = 12f;
     private static final float FPS_DEATH      = 12f;
     private static final float FPS_WALL_SLIDE = 8f;
-    private static final float ENEMY_ANIM_FPS = 6f;
     private static final float PICKUP_ANIM_FPS= 4f;
+
+    /**
+     * Per-type, per-AI-state animation FPS — matches Python animation_system.py ANIMATION_DEFS.
+     * AI states: idle, patrol (walk), chase (run), attack, stunned (hurt), dead (death).
+     */
+    private static float enemyFps(String type, String aiState) {
+        return switch (type + "." + aiState) {
+            case "goblin.idle"              -> 8f;
+            case "goblin.patrol"            -> 10f;
+            case "goblin.chase"             -> 12f;
+            case "goblin.attack"            -> 12f;
+            case "goblin.stunned"           -> 10f;
+            case "goblin.dead"              -> 10f;
+            case "slime.idle"               -> 6f;
+            case "slime.patrol", "slime.chase" -> 8f;
+            case "slime.attack"             -> 10f;
+            case "skeleton.idle"            -> 8f;
+            case "skeleton.patrol", "skeleton.chase" -> 10f;
+            case "skeleton.attack"          -> 12f;
+            case "wolf.idle"                -> 8f;
+            case "wolf.patrol"              -> 10f;
+            case "wolf.chase", "wolf.attack"-> 14f;
+            default                         -> 8f;
+        };
+    }
 
     private final AnimationRegistry anims;
     private final ParticleSystem    particles;
@@ -231,7 +258,7 @@ public final class EntityRenderer {
         String animKey = "enemy_" + typePrefix + "_" + (e.aiState != null ? e.aiState : "idle");
 
         float stateTime = tickStateTime(e.enemyId, animKey, dt);
-        TextureRegion frame = anims.getFrame(animKey, stateTime, ENEMY_ANIM_FPS);
+        TextureRegion frame = anims.getFrame(animKey, stateTime, enemyFps(typePrefix, e.aiState != null ? e.aiState : "idle"));
 
         boolean wantEnemyFlipX  = !e.facingRight;
         boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();

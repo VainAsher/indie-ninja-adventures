@@ -86,8 +86,9 @@ public final class GameScreen implements Screen {
         inputPoller = new InputPoller();
 
         anims = new AnimationRegistry();
-        FileHandle atlasFile   = Gdx.files.internal("assets/characters.atlas");
-        FileHandle playerDir   = Gdx.files.internal("assets/sprites/player");
+        FileHandle atlasFile    = Gdx.files.internal("assets/characters.atlas");
+        FileHandle playerDir    = Gdx.files.internal("assets/sprites/player");
+        FileHandle enemyBaseDir = Gdx.files.internal("assets/sprites/characters");
         if (atlasFile.exists()) {
             anims.loadAtlas(new TextureAtlas(atlasFile));
         } else if (playerDir.exists()) {
@@ -95,6 +96,9 @@ public final class GameScreen implements Screen {
         } else {
             anims.loadPlaceholder();
         }
+        // Load per-enemy-type animations (falls back to colored placeholders if
+        // assets/sprites/characters/{type}/ does not exist).
+        anims.loadEnemySprites(enemyBaseDir);
 
         // Try to load the mk_nature blob autotile set.  Falls back to placeholder
         // if the asset files are not present (allows running without full assets).

@@ -925,9 +925,9 @@ public final class GameSimulator {
         return switch (spec.type()) {
             case "goblin"   -> new SimEnemy(hubId+"_goblin_"+idx,   "goblin",   spec.x(), spec.y(), 32, 48, 3, 1, 72f,  200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
             case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 2, 1, 90f,  180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
-            case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 32, 28, 4, 2, 60f,  160f, 28f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 48, 3, 1, 60f,  200f, 64f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "wolf"     -> new SimEnemy(hubId+"_wolf_"+idx,     "wolf",     spec.x(), spec.y(), 40, 32, 3, 2, 90f,  220f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 40, 32, 4, 2, 60f,  160f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 3, 1, 60f,  200f, 64f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "wolf"     -> new SimEnemy(hubId+"_wolf_"+idx,     "wolf",     spec.x(), spec.y(), 48, 32, 3, 2, 90f,  220f, 48f, spec.patrolMinX(), spec.patrolMaxX(), false);
             default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 3, 1, 72f,  200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
         };
     }

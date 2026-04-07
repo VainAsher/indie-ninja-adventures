@@ -140,6 +140,114 @@ public final class AnimationRegistry {
         sliceAndRegister(baseDir, "player_death", "death_spritesheet.png", 7);
     }
 
+    // ── Enemy sprite loading ──────────────────────────────────────────────────
+
+    /**
+     * Load per-enemy-type animations from assets/sprites/characters/{type}/.
+     *
+     * Expected sheets (all uniform horizontal strips, same 80×80 frame format):
+     *   idle_spritesheet.png, walk_spritesheet.png, run_spritesheet.png,
+     *   attack_spritesheet.png, hurt_spritesheet.png, death_spritesheet.png
+     *
+     * Registered keys: "enemy_{type}_{aiState}" where aiState ∈ {idle, patrol,
+     * chase, attack, stunned, dead} — maps patrol→walk, chase→run (or walk),
+     * stunned→hurt (or idle), dead→death (or hurt).
+     *
+     * Missing sheets fall back to a per-type solid-color placeholder so different
+     * enemy types are visually distinct before the full asset pack is available:
+     *   goblin=green, slime=blue, skeleton=gray, wolf=orange
+     */
+    public void loadEnemySprites(FileHandle charactersDir) {
+        // type, placeholder color (r,g,b), sprite-states[], frame-counts[]
+        loadEnemyType(charactersDir, "goblin",   0.2f, 0.8f, 0.2f,
+            new String[]{"idle","walk","run","attack","hurt","death"},
+            new int[]   {2,     4,     4,    4,       2,     4});
+        loadEnemyType(charactersDir, "slime",    0.2f, 0.4f, 1.0f,
+            new String[]{"idle","walk","attack"},
+            new int[]   {2,     4,     4});
+        loadEnemyType(charactersDir, "skeleton", 0.85f, 0.85f, 0.85f,
+            new String[]{"idle","walk","attack"},
+            new int[]   {2,     4,     4});
+        loadEnemyType(charactersDir, "wolf",     1.0f, 0.5f, 0.1f,
+            new String[]{"idle","walk","run","attack"},
+            new int[]   {2,     4,     6,    4});
+    }
+
+    /**
+     * Register all AI-state animations for one enemy type.
+     * For each AI state, tries the primary sprite, falls back to a secondary, then
+     * registers a solid-color placeholder if neither sheet exists.
+     *
+     * AI state → primary sprite → fallback sprite:
+     *   idle    → idle   → (none)
+     *   patrol  → walk   → idle
+     *   chase   → run    → walk
+     *   attack  → attack → idle
+     *   stunned → hurt   → idle
+     *   dead    → death  → hurt
+     */
+    private void loadEnemyType(FileHandle charactersDir, String type,
+            float r, float g, float b,
+            String[] spriteStates, int[] frameCounts) {
+        FileHandle typeDir = charactersDir.child(type);
+
+        // Build sprite-state → frame-count lookup
+        java.util.Map<String, Integer> fcMap = new java.util.HashMap<>();
+        for (int i = 0; i < spriteStates.length; i++) fcMap.put(spriteStates[i], frameCounts[i]);
+
+        // AI state mappings: {aiState, primarySprite, fallbackSprite (or null)}
+        String[][] mappings = {
+            {"idle",    "idle",   null   },
+            {"patrol",  "walk",   "idle" },
+            {"chase",   "run",    "walk" },
+            {"attack",  "attack", "idle" },
+            {"stunned", "hurt",   "idle" },
+            {"dead",    "death",  "hurt" },
+        };
+
+        for (String[] m : mappings) {
+            String aiState      = m[0];
+            String primary      = m[1];
+            String fallbackSprite = m[2];
+            String animKey      = "enemy_" + type + "_" + aiState;
+
+            boolean loaded = tryLoadEnemyAnim(typeDir, animKey, primary, fcMap);
+            if (!loaded && fallbackSprite != null)
+                loaded = tryLoadEnemyAnim(typeDir, animKey, fallbackSprite, fcMap);
+            if (!loaded)
+                registerColoredPlaceholder(animKey, r, g, b);
+        }
+    }
+
+    /**
+     * Attempt to load a specific sprite-state sheet and register it under animKey.
+     * Returns true if the sheet was found and registered.
+     */
+    private boolean tryLoadEnemyAnim(FileHandle typeDir, String animKey,
+            String spriteState, java.util.Map<String, Integer> fcMap) {
+        String filename = spriteState + "_spritesheet.png";
+        int fc = fcMap.getOrDefault(spriteState, 2);
+        Texture tex = loadCached(typeDir, filename);
+        if (tex == null) return false;
+        frames.put(animKey, sliceSheet(tex, fc));
+        return true;
+    }
+
+    /**
+     * Register a 1×1 solid-color placeholder for animKey (if not already registered).
+     * Used so different enemy types render with distinct colors before assets are loaded.
+     */
+    private void registerColoredPlaceholder(String animKey, float r, float g, float b) {
+        if (frames.containsKey(animKey)) return;
+        Pixmap pix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pix.setColor(r, g, b, 1f);
+        pix.fill();
+        Texture tex = new Texture(pix);
+        pix.dispose();
+        ownedTextures.add(tex);
+        frames.put(animKey, new TextureRegion[]{ new TextureRegion(tex) });
+    }
+
     // ── Placeholder ───────────────────────────────────────────────────────────
 
     /**
@@ -257,8 +365,11 @@ public final class AnimationRegistry {
      * (e.g. walk/slow_walk, hurt/hurt2) are only loaded once.
      */
     private Texture loadCached(FileHandle baseDir, String filename) {
-        if (textureCache.containsKey(filename)) {
-            return textureCache.get(filename);  // may be null if file absent
+        // Use full path as cache key so subdirectories (e.g. characters/goblin/ vs
+        // characters/skeleton/) with identically-named sheets don't collide.
+        String cacheKey = baseDir.path() + "/" + filename;
+        if (textureCache.containsKey(cacheKey)) {
+            return textureCache.get(cacheKey);  // may be null if file absent
         }
         FileHandle fh = baseDir.child(filename);
         Texture tex = null;
@@ -266,7 +377,7 @@ public final class AnimationRegistry {
             tex = new Texture(fh);
             ownedTextures.add(tex);
         }
-        textureCache.put(filename, tex);
+        textureCache.put(cacheKey, tex);
         return tex;
     }
 
