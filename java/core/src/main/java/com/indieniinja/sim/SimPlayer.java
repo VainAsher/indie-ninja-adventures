@@ -90,10 +90,13 @@ public final class SimPlayer {
     public boolean isTeleporting       = false; // brief invuln window after warp
     public float   teleportInvulnTimer = 0f;
 
+    public float   teleportPhaseTimer  = 0f;    // counts down from TELEPORT_PHASE_TIME
+
     public static final float TELEPORT_RANGE        = 256f;  // px max cursor range
+    public static final float TELEPORT_PHASE_TIME   = 0.6f;  // seconds of phase before auto-warp
     public static final float TELEPORT_COOLDOWN     = 3.0f;  // seconds
     public static final float TELEPORT_INVULN       = 0.25f; // seconds of invuln after warp
-    public static final float TELEPORT_CURSOR_SPEED = 240f;  // px/sec cursor movement speed
+    public static final float TELEPORT_CURSOR_SPEED = 420f;  // px/sec (Python: 420/60 * 60)
 
     // ── Wall jump state ──────────────────────────────────────────────────────
     public float   wallCoyoteTimer    = 0f;  // brief window to wall-jump after leaving wall

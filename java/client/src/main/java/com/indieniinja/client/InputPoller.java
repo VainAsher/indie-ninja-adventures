@@ -32,11 +32,13 @@ public final class InputPoller {
         cmd.dash   = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
         cmd.crouch = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
 
-        // Combat (edge-triggered to match Python's isKeyJustPressed behaviour)
-        cmd.attack        = Gdx.input.isKeyJustPressed(Input.Keys.J) || Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
-        cmd.throwShuriken = Gdx.input.isKeyJustPressed(Input.Keys.K);
+        // Combat — held state so the server's own edge-detection (prevAttack/prevThrow) has
+        // a wider window to catch the press even with slight render/tick desync.
+        cmd.attack        = Gdx.input.isKeyPressed(Input.Keys.J) || Gdx.input.isButtonPressed(Input.Buttons.LEFT);
+        cmd.throwShuriken = Gdx.input.isKeyPressed(Input.Keys.K);
         cmd.ninjutsu      = Gdx.input.isKeyJustPressed(Input.Keys.L);
-        cmd.teleport      = Gdx.input.isKeyJustPressed(Input.Keys.T);
+        // Teleport — held so the server can detect the press edge and track phase steering
+        cmd.teleport      = Gdx.input.isKeyPressed(Input.Keys.F) || Gdx.input.isKeyPressed(Input.Keys.T);
 
         // Interaction
         cmd.interact   = Gdx.input.isKeyJustPressed(Input.Keys.E) || Gdx.input.isKeyJustPressed(Input.Keys.F);

@@ -442,53 +442,56 @@ public final class GameSimulator {
         sp.prevThrow   = cmd.throwShuriken;
 
         // ── Teleport ──────────────────────────────────────────────────────────
-        // Hold-to-phase system:
-        //   Press T  → enter phase mode; ghost cursor appears at player position
-        //   Hold T   → directional input moves cursor (up to TELEPORT_RANGE px)
-        //   Release T → warp player to cursor if unblocked; start 3s cooldown
+        // Mirrors Python TeleportMechanic exactly:
+        //   Press F/T  → enter 0.6s phase; ghost cursor starts at player position
+        //   Hold phase → directional keys steer cursor at 420 px/s, capped to 256 px
+        //   After 0.6s → auto-warp to cursor (skip warp if blocked); 3s cooldown
         if (sp.teleportCooldown > 0f) sp.teleportCooldown -= DT;
         if (sp.isTeleporting) {
             sp.teleportInvulnTimer -= DT;
             if (sp.teleportInvulnTimer <= 0f) sp.isTeleporting = false;
         }
-        boolean teleportHeld       = cmd.teleport;
-        boolean teleportJustPressed  = teleportHeld && !sp.prevTeleport;
-        boolean teleportJustReleased = !teleportHeld && sp.prevTeleport;
+        boolean teleportHeld        = cmd.teleport;
+        boolean teleportJustPressed = teleportHeld && !sp.prevTeleport;
         sp.prevTeleport = teleportHeld;
 
-        // Enter phase mode on key press
-        if (teleportJustPressed && sp.teleportCooldown <= 0f && !sp.isTeleporting && !sp.teleportPhaseMode) {
-            sp.teleportPhaseMode = true;
-            sp.teleportOriginX   = p.x;
-            sp.teleportOriginY   = p.y;
-            sp.teleportCursorX   = p.x;
-            sp.teleportCursorY   = p.y;
+        // Enter phase on key press edge
+        if (teleportJustPressed && sp.teleportCooldown <= 0f
+                && !sp.isTeleporting && !sp.teleportPhaseMode) {
+            sp.teleportPhaseMode  = true;
+            sp.teleportPhaseTimer = SimPlayer.TELEPORT_PHASE_TIME;
+            sp.teleportOriginX    = p.x;
+            sp.teleportOriginY    = p.y;
+            sp.teleportCursorX    = p.x;
+            sp.teleportCursorY    = p.y;
             p.vx = 0f;
             p.vy = 0f;
         }
 
-        // While in phase mode: freeze player, move cursor with directional input
+        // During phase: freeze player, steer cursor, auto-warp when timer expires
         if (sp.teleportPhaseMode) {
             p.vx = 0f;
             p.vy = 0f;
 
-            float cursorStep = SimPlayer.TELEPORT_CURSOR_SPEED * DT;
-            if (cmd.right) sp.teleportCursorX += cursorStep;
-            if (cmd.left)  sp.teleportCursorX -= cursorStep;
-            if (cmd.up || cmd.jump) sp.teleportCursorY -= cursorStep;  // Y-DOWN: up = -Y
-            if (cmd.down)           sp.teleportCursorY += cursorStep;
-
-            // Clamp cursor within TELEPORT_RANGE of origin
-            float dx = sp.teleportCursorX - sp.teleportOriginX;
-            float dy = sp.teleportCursorY - sp.teleportOriginY;
-            float dist = (float) Math.sqrt(dx * dx + dy * dy);
-            if (dist > SimPlayer.TELEPORT_RANGE) {
-                sp.teleportCursorX = sp.teleportOriginX + dx / dist * SimPlayer.TELEPORT_RANGE;
-                sp.teleportCursorY = sp.teleportOriginY + dy / dist * SimPlayer.TELEPORT_RANGE;
+            // 8-directional cursor steering (Python: update_phase_direction(dx, dy))
+            int dirX = (cmd.right ? 1 : 0) - (cmd.left  ? 1 : 0);
+            int dirY = (cmd.down  ? 1 : 0) - ((cmd.up || cmd.jump) ? 1 : 0); // Y-DOWN: up=-Y
+            if (dirX != 0 || dirY != 0) {
+                float step = SimPlayer.TELEPORT_CURSOR_SPEED * DT;
+                sp.teleportCursorX += dirX * step;
+                sp.teleportCursorY += dirY * step;
+                float cdx  = sp.teleportCursorX - sp.teleportOriginX;
+                float cdy  = sp.teleportCursorY - sp.teleportOriginY;
+                float dist = (float) Math.sqrt(cdx * cdx + cdy * cdy);
+                if (dist > SimPlayer.TELEPORT_RANGE) {
+                    sp.teleportCursorX = sp.teleportOriginX + cdx / dist * SimPlayer.TELEPORT_RANGE;
+                    sp.teleportCursorY = sp.teleportOriginY + cdy / dist * SimPlayer.TELEPORT_RANGE;
+                }
             }
 
-            // Release T → attempt warp to cursor
-            if (teleportJustReleased) {
+            // Decrement phase timer; warp when it hits zero (Python: teleport_cast_time → 0)
+            sp.teleportPhaseTimer -= DT;
+            if (sp.teleportPhaseTimer <= 0f) {
                 float cx = sp.teleportCursorX;
                 float cy = sp.teleportCursorY;
                 boolean blocked = false;
