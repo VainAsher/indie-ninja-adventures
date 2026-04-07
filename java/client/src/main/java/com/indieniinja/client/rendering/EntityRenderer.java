@@ -76,13 +76,20 @@ public final class EntityRenderer {
     private static final float PICKUP_ANIM_FPS= 4f;
 
     private final AnimationRegistry anims;
+    private final ParticleSystem    particles;
 
     // Per-entity state time for smooth animation (render-thread managed)
-    private final java.util.HashMap<String, Float> stateTimes = new java.util.HashMap<>();
-    private final java.util.HashMap<String, String> lastState  = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Float>   stateTimes  = new java.util.HashMap<>();
+    private final java.util.HashMap<String, String>  lastState   = new java.util.HashMap<>();
+    // Particle event tracking
+    private final java.util.HashMap<String, Float>   prevVelY    = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Integer> prevHealth  = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Float>   dustTimers  = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Boolean> prevTeleport= new java.util.HashMap<>();
 
-    public EntityRenderer(AnimationRegistry anims) {
-        this.anims = anims;
+    public EntityRenderer(AnimationRegistry anims, ParticleSystem particles) {
+        this.anims     = anims;
+        this.particles = particles;
     }
 
     /**
@@ -137,7 +144,10 @@ public final class EntityRenderer {
         String state   = (p.animState != null && !p.animState.isEmpty()) ? p.animState : "idle";
         String animKey = "player_" + state;
 
+        // ── Animation state tracking ──────────────────────────────────────────
+        String prevAnim = lastState.get(p.playerId);
         float stateTime = tickStateTime(p.playerId, animKey, dt);
+        boolean stateChanged = !animKey.equals(prevAnim);
         TextureRegion frame = anims.getFrame(animKey, stateTime, playerFps(state));
 
         // Sprites default to facing right.  Flip X when facing left.
@@ -146,10 +156,8 @@ public final class EntityRenderer {
         if (needChange) frame.flip(true, false);
 
         // Y offset: align character feet (16 source-px from sprite bottom, scaled) with AABB bottom.
-        // Use the correct AABB height depending on crouch vs stand so the sprite stays in place.
         boolean crouching = "crouch".equals(state) || "crouch_walk".equals(state);
         int aabbH   = crouching ? PCH : PH;
-        // drawY + SDH - FEET_PAD = p.posY + aabbH  →  sprite feet at AABB bottom
         float sprOY = aabbH - SDH + FEET_PAD;
 
         float drawX = p.posX + SPRITE_OX;
@@ -158,15 +166,56 @@ public final class EntityRenderer {
 
         if (needChange) frame.flip(true, false);  // restore shared region
 
-        // Teleport ghost cursor: draw semi-transparent ghost at cursor world position
+        // Teleport ghost cursor
         if (p.teleportPhaseMode) {
             batch.setColor(0.4f, 0.8f, 1f, 0.55f);
             float gx = p.teleportCursorX + SPRITE_OX;
-            float gy = p.teleportCursorY + sprOY;  // same standing offset for ghost
+            float gy = p.teleportCursorY + sprOY;
             if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
             batch.draw(frame, gx, gy, SDW, SDH);
             if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
             batch.setColor(Color.WHITE);
+        }
+
+        // ── Particle emission ─────────────────────────────────────────────────
+        if (particles != null) {
+            float feetX = p.posX + PW * 0.5f;
+            float feetY = p.posY + aabbH;
+            float pvy0  = prevVelY.getOrDefault(p.playerId, 0f);
+
+            // Jump puff — on first frame of jump anim
+            if (stateChanged && "player_jump".equals(animKey)) {
+                particles.emitJumpPuff(feetX, feetY);
+            }
+
+            // Landing puff — was falling (velY > 2), now grounded (velY ≤ 0)
+            if (pvy0 > 2f && p.velY <= 0f && !"player_jump".equals(animKey)) {
+                particles.emitLandPuff(feetX, feetY);
+            }
+
+            // Run dust — periodic while in run state
+            if ("run".equals(state)) {
+                float dustT = dustTimers.getOrDefault(p.playerId, 0f) - dt;
+                if (dustT <= 0f) {
+                    particles.emitRunDust(feetX, feetY, p.facing);
+                    dustT = 0.08f;  // emit every 80ms
+                }
+                dustTimers.put(p.playerId, dustT);
+            } else {
+                dustTimers.remove(p.playerId);
+            }
+
+            // Teleport burst — on phase-mode start (was false, now true)
+            boolean wasTeleporting = prevTeleport.getOrDefault(p.playerId, false);
+            if (p.teleportPhaseMode && !wasTeleporting) {
+                particles.emitTeleportBurst(feetX, feetY - aabbH * 0.5f);
+            }
+            // Also burst at destination when phase ends
+            if (!p.teleportPhaseMode && wasTeleporting) {
+                particles.emitTeleportBurst(feetX, feetY - aabbH * 0.5f);
+            }
+            prevTeleport.put(p.playerId, p.teleportPhaseMode);
+            prevVelY.put(p.playerId, p.velY);
         }
     }
 
@@ -176,7 +225,6 @@ public final class EntityRenderer {
         if ("dead".equals(e.aiState)) return;
 
         // Derive entity type from enemyId: "central_hub_goblin_0" → last non-numeric segment
-        // Format is "<hubId>_<type>_<index>" — type is second-to-last underscore token.
         String[] parts = e.enemyId.split("_");
         String typePrefix = (parts.length >= 2)
             ? parts[parts.length - 2]
@@ -190,11 +238,21 @@ public final class EntityRenderer {
         boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();
         if (needEnemyChange) frame.flip(true, false);
 
-        // Use correct physics dimensions per enemy type (matches GameSimulator.buildEnemy)
         int[] sz = enemySize(typePrefix);
         batch.draw(frame, e.x, e.y, sz[0], sz[1]);
 
         if (needEnemyChange) frame.flip(true, false);
+
+        // Hit spark — emit when health has decreased since last frame
+        if (particles != null) {
+            int prev = prevHealth.getOrDefault(e.enemyId, e.hp);
+            if (e.hp < prev) {
+                float cx = e.x + sz[0] * 0.5f;
+                float cy = e.y + sz[1] * 0.5f;
+                particles.emitHitSpark(cx, cy);
+            }
+            prevHealth.put(e.enemyId, e.hp);
+        }
     }
 
     // ── Pickups ───────────────────────────────────────────────────────────────
@@ -236,5 +294,9 @@ public final class EntityRenderer {
         snap.shurikens.forEach(s -> live.add(s.shurikenId));
         stateTimes.keySet().retainAll(live);
         lastState.keySet().retainAll(live);
+        prevVelY.keySet().retainAll(live);
+        prevHealth.keySet().retainAll(live);
+        dustTimers.keySet().retainAll(live);
+        prevTeleport.keySet().retainAll(live);
     }
 }

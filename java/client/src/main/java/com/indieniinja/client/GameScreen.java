@@ -12,6 +12,7 @@ import com.indieniinja.client.rendering.AnimationRegistry;
 import com.indieniinja.client.rendering.ChunkRenderer;
 import com.indieniinja.client.rendering.EntityRenderer;
 import com.indieniinja.client.rendering.HudRenderer;
+import com.indieniinja.client.rendering.ParticleSystem;
 import com.indieniinja.client.ui.PauseScreen;
 import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.PlayerState;
@@ -49,6 +50,7 @@ public final class GameScreen implements Screen {
     private ChunkRenderer     chunkRenderer;
     private EntityRenderer    entityRenderer;
     private HudRenderer       hudRenderer;
+    private ParticleSystem    particleSystem;
 
     // ── Pause overlay ─────────────────────────────────────────────────────────
     private PauseScreen pauseScreen;
@@ -98,7 +100,8 @@ public final class GameScreen implements Screen {
             chunkRenderer.loadTileTextures(biomeDir, LEVEL_COLS, LEVEL_ROWS);
         }
 
-        entityRenderer = new EntityRenderer(anims);
+        particleSystem = new ParticleSystem();
+        entityRenderer = new EntityRenderer(anims, particleSystem);
         hudRenderer    = new HudRenderer();
 
         pauseScreen = new PauseScreen(game, this::resume);
@@ -158,10 +161,13 @@ public final class GameScreen implements Screen {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        particleSystem.update(delta);
+
         batch.setProjectionMatrix(camera.cam.combined);
         batch.begin();
             chunkRenderer.render(batch, camera);
             entityRenderer.render(batch, snap, delta);
+            particleSystem.render(batch);
         batch.end();
 
         entityRenderer.pruneEntities(snap);
@@ -189,10 +195,11 @@ public final class GameScreen implements Screen {
 
     @Override
     public void dispose() {
-        if (networkClient != null) networkClient.shutdown();
+        if (networkClient  != null) networkClient.shutdown();
         if (batch          != null) batch.dispose();
         if (anims          != null) anims.dispose();
         if (chunkRenderer  != null) chunkRenderer.dispose();
+        if (particleSystem != null) particleSystem.dispose();
         if (hudRenderer    != null) hudRenderer.dispose();
         if (pauseScreen    != null) pauseScreen.dispose();
     }
