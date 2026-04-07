@@ -67,18 +67,18 @@ public final class BlobTileSet {
         int sheetRows  = sheet.getHeight() / TILE_PX;
         int totalTiles = SHEET_COLS * sheetRows;
 
-        // Pre-slice all tiles.  PNG is Y-DOWN (origin top-left); libGDX loads
-        // textures with V=0 at bottom (OpenGL convention), so we flip vertically
-        // to match the Y-DOWN world camera (same correction used by ChunkRenderer
-        // for biome tile assets).
+        // Pre-slice all tiles.
+        // The mk_nature tileset is authored for Y-DOWN rendering without a V-flip:
+        // surface/cap pixels sit at the BOTTOM of each 16 px tile image so that
+        // SpriteBatch in Y-DOWN camera (setToOrtho(true)) naturally places them at
+        // the player-facing top.  Applying flip(false, true) would invert that,
+        // putting cap art at the screen-bottom and interior art at the screen-top.
         TextureRegion[] tiles = new TextureRegion[totalTiles];
         for (int id = 0; id < totalTiles; id++) {
             int col = id % SHEET_COLS;
             int row = id / SHEET_COLS;
-            TextureRegion r = new TextureRegion(
+            tiles[id] = new TextureRegion(
                 sheet, col * TILE_PX, row * TILE_PX, TILE_PX, TILE_PX);
-            r.flip(false, true);
-            tiles[id] = r;
         }
 
         // Parse blob sets from JSON
