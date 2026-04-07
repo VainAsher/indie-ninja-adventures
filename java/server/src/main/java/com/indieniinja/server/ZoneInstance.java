@@ -97,4 +97,18 @@ public final class ZoneInstance {
     public boolean isEmpty() {
         return playerIds.isEmpty();
     }
+
+    /**
+     * Room transition queued by ZoneSimulationLoop.checkRoomCrossings().
+     * Processed by ZoneSimulationLoop.processPendingTransitions() after each tick
+     * so the player is safely moved to the new room's ZoneInstance.
+     *
+     * newX/Y are already adjusted to room-local coordinates in the new room.
+     */
+    public record PendingRoomTransition(
+        String playerId, int newGridX, int newGridY, float newX, float newY) {}
+
+    /** Transitions queued by the sim thread; drained each tick before broadcast. */
+    public final java.util.concurrent.ConcurrentLinkedQueue<PendingRoomTransition>
+        pendingRoomTransitions = new java.util.concurrent.ConcurrentLinkedQueue<>();
 }

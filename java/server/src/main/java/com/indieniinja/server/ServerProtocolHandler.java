@@ -50,7 +50,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     private final GameSession session;
 
     /** Active zones keyed by hubId. */
-    private final Map<String, ZoneInstance> zones = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ZoneInstance> zones = new ConcurrentHashMap<>();
 
     /** Zone simulation executor — one thread per zone. */
     private final ExecutorService zoneExecutor =
@@ -467,7 +467,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     private void startZoneSimLoop(ZoneInstance zone) {
         AtomicBoolean shutdown = new AtomicBoolean(false);
-        ZoneSimulationLoop loop = new ZoneSimulationLoop(zone, session, shutdown);
+        ZoneSimulationLoop loop = new ZoneSimulationLoop(zone, session, shutdown, zones, zoneExecutor);
         Future<?> future = zoneExecutor.submit(loop);
         zone.simFuture = future;
     }

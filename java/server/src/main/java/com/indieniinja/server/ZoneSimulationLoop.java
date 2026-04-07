@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -52,14 +54,22 @@ public final class ZoneSimulationLoop implements Runnable {
     /** Idle zone reaper: tear down zone after this many ms without any player. */
     static final long IDLE_TTL_MS = 120_000L;  // 120 s — matches Python
 
-    private final ZoneInstance   zone;
-    private final GameSession    session;
-    private final AtomicBoolean  shutdown;
+    private final ZoneInstance                      zone;
+    private final GameSession                       session;
+    private final AtomicBoolean                     shutdown;
+    /** Shared zone registry — needed to get/create room zones during crossings. */
+    private final ConcurrentHashMap<String, ZoneInstance> allZones;
+    /** Executor that owns all sim loop threads — used to start new zone loops. */
+    private final ExecutorService                   executor;
 
-    public ZoneSimulationLoop(ZoneInstance zone, GameSession session, AtomicBoolean shutdown) {
+    public ZoneSimulationLoop(ZoneInstance zone, GameSession session, AtomicBoolean shutdown,
+                              ConcurrentHashMap<String, ZoneInstance> allZones,
+                              ExecutorService executor) {
         this.zone     = zone;
         this.session  = session;
         this.shutdown = shutdown;
+        this.allZones = allZones;
+        this.executor = executor;
     }
 
     // ── Simulator init ────────────────────────────────────────────────────────
@@ -146,6 +156,7 @@ public final class ZoneSimulationLoop implements Runnable {
             simulateTick();
             zone.frame.incrementAndGet();
             checkRoomCrossings();
+            processPendingTransitions();
 
             // ── Broadcast ─────────────────────────────────────────────────────
             if (++broadcastCtr >= BROADCAST_EVERY) {
@@ -267,19 +278,18 @@ public final class ZoneSimulationLoop implements Runnable {
         com.indieniinja.physics.PhysicsConstants.TILE_SIZE;   // 128 * 32 = 4096
 
     /**
-     * After each tick, check whether any player has crossed a room boundary in
-     * world-space.  When detected, adjust their room-local position and rebuild
-     * the SpatialHash for the new room + its neighbors.
+     * After each tick, check whether any player has crossed a room boundary.
+     * Player positions outside [0, ROOM_PX) indicate a crossing.
      *
-     * No explicit door trigger points — the player simply walks through the
-     * opening carved into the room's tile grid and their coordinates go outside
-     * [0, ROOM_PX).  Math.floor handles negative positions correctly.
+     * Rather than updating zone-level room state (which would corrupt every
+     * other player's world-space coordinates), we enqueue a PendingRoomTransition.
+     * processPendingTransitions() handles the actual zone move after this tick.
      */
     private void checkRoomCrossings() {
         WorldGraph graph = zone.worldGraph;
         if (graph == null || zone.simulator == null) return;
 
-        for (String pid : zone.playerIds) {
+        for (String pid : new ArrayList<>(zone.playerIds)) {
             PlayerRecord pr = session.players.get(pid);
             if (pr == null) continue;
             SimPlayer sp = zone.simulator.getPlayers().get(pr.slot);
@@ -292,35 +302,112 @@ public final class ZoneSimulationLoop implements Runnable {
             int newGridX = zone.currentRoomGridX + deltaX;
             int newGridY = zone.currentRoomGridY + deltaY;
             WorldGraph.RoomNode newRoom = graph.roomAt(newGridX, newGridY);
-            if (newRoom == null) continue;  // world edge — leave physics to handle it
+            if (newRoom == null) continue;  // world boundary — clamp physics elsewhere
 
-            // Adjust physics position to be room-local in the new room
+            // Adjust physics position to be room-local in the new room before transition
             sp.physics.x -= deltaX * ROOM_PX;
             sp.physics.y -= deltaY * ROOM_PX;
             pr.posX = sp.physics.x;
             pr.posY = sp.physics.y;
 
-            // Update zone current room
-            zone.currentRoomGridX    = newGridX;
-            zone.currentRoomGridY    = newGridY;
-            zone.currentRoomSeed     = newRoom.seed;
-            zone.currentRoomType     = newRoom.type.wire();
-            zone.currentNeighborDirs = new java.util.ArrayList<>(newRoom.neighborDirs());
+            // Queue the zone transition — do NOT update zone.currentRoomGridX/Y here
+            // because that would corrupt the room coordinates broadcast to other players.
+            zone.pendingRoomTransitions.add(new ZoneInstance.PendingRoomTransition(
+                pid, newGridX, newGridY, sp.physics.x, sp.physics.y));
 
-            // Rebuild SpatialHash: new room + all its neighbors
-            java.util.Map<String, WorldGraph.RoomNode> neighbors = new java.util.LinkedHashMap<>();
-            for (String dir : newRoom.neighborDirs()) {
-                WorldGraph.RoomNode nb = graph.neighborRoom(newGridX, newGridY, dir);
-                if (nb != null) neighbors.put(dir, nb);
-            }
-            com.indieniinja.sim.LevelLayout newLayout =
-                com.indieniinja.sim.LevelLayout.buildProceduralLayout(
-                    newRoom.seed, newRoom.neighborDirs(), newRoom.type.wire(), neighbors);
-            zone.simulator.updateSpatialHash(newLayout.spatialHash);
-
-            log.info("[Zone {}] player {} crossed → room ({},{}) seed={}",
-                zone.hubId, pid, newGridX, newGridY, newRoom.seed);
+            log.info("[Zone {}] player {} queued transition → room ({},{})",
+                zone.hubId, pid, newGridX, newGridY);
         }
+    }
+
+    /**
+     * Process room transitions queued by checkRoomCrossings().
+     * Moves each transitioning player into the correct per-room ZoneInstance,
+     * creating it if necessary, and sends WORLD_TRANSITION to that player.
+     *
+     * Safe to call from the sim thread: ConcurrentHashMap, Channel.writeAndFlush,
+     * and PlayerRecord fields are all thread-safe.
+     */
+    private void processPendingTransitions() {
+        ZoneInstance.PendingRoomTransition tr;
+        while ((tr = zone.pendingRoomTransitions.poll()) != null) {
+            final ZoneInstance.PendingRoomTransition transition = tr;
+            doRoomTransition(transition);
+        }
+    }
+
+    private void doRoomTransition(ZoneInstance.PendingRoomTransition tr) {
+        PlayerRecord pr = session.players.get(tr.playerId());
+        if (pr == null) return;
+
+        WorldGraph graph = zone.worldGraph;
+        if (graph == null) return;
+
+        WorldGraph.RoomNode newRoom = graph.roomAt(tr.newGridX(), tr.newGridY());
+        if (newRoom == null) return;
+
+        String masterHubId = zone.masterHubId;
+        String newKey = masterHubId + ":" + tr.newGridX() + ":" + tr.newGridY();
+
+        // ── Remove player from current zone ────────────────────────────────────
+        zone.playerIds.remove(tr.playerId());
+        zone.lastActivityMs = System.currentTimeMillis();
+        if (zone.simulator != null) zone.simulator.removePlayer(pr.slot);
+
+        // ── Get or create the destination room's ZoneInstance ──────────────────
+        ZoneInstance newZone = allZones.computeIfAbsent(newKey, k -> {
+            ZoneInstance z = new ZoneInstance(
+                newKey, masterHubId, zone.seed, zone.shape, zone.rooms,
+                zone.worldSeed, tr.newX(), tr.newY()
+            );
+            z.worldGraph          = graph;
+            z.currentRoomSeed     = newRoom.seed;
+            z.currentRoomGridX    = tr.newGridX();
+            z.currentRoomGridY    = tr.newGridY();
+            z.currentNeighborDirs = new java.util.ArrayList<>(newRoom.neighborDirs());
+            z.currentRoomType     = newRoom.type.wire();
+            z.gameMode            = zone.gameMode;
+            z.arcadeDepth         = zone.arcadeDepth;
+            z.arcadeRooms         = zone.arcadeRooms;
+            // Start a new sim loop for this room zone
+            AtomicBoolean sh = new AtomicBoolean(false);
+            ZoneSimulationLoop loop = new ZoneSimulationLoop(z, session, sh, allZones, executor);
+            executor.submit(loop);
+            log.info("[Zone] created room zone '{}' for crossing", newKey);
+            return z;
+        });
+
+        // ── Set spawn position and add player to new zone ──────────────────────
+        pr.posX             = tr.newX();
+        pr.posY             = tr.newY();
+        pr.explicitSpawnSet = true;
+        pr.hubId            = newKey;
+        newZone.playerIds.add(tr.playerId());
+
+        // ── Send WORLD_TRANSITION to this player's client ──────────────────────
+        try {
+            byte[] body = com.indieniinja.network.WireCodec.encodeBody(
+                com.indieniinja.network.MessageType.WORLD_TRANSITION,
+                Map.of(
+                    "hub_id",     newZone.hubId,
+                    "seed",       newZone.seed,
+                    "shape",      newZone.shape,
+                    "rooms",      newZone.rooms,
+                    "world_seed", newZone.worldSeed,
+                    "spawn_x",    newZone.spawnX,
+                    "spawn_y",    newZone.spawnY
+                )
+            );
+            if (pr.channel.isActive()) {
+                io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(body);
+                pr.channel.writeAndFlush(buf);
+            }
+        } catch (Exception ex) {
+            log.error("[Zone] WORLD_TRANSITION send error for {}: {}", tr.playerId(), ex.getMessage());
+        }
+
+        log.info("[Zone {}→{}] player {} moved to room ({},{})",
+            zone.hubId, newKey, tr.playerId(), tr.newGridX(), tr.newGridY());
     }
 
     // ── Broadcast ─────────────────────────────────────────────────────────────
