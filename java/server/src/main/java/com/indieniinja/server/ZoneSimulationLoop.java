@@ -228,6 +228,26 @@ public final class ZoneSimulationLoop implements Runnable {
             pr.health    = sp.health;
             pr.animState = sp.animState;
         }
+
+        // ── Diagnostic: log player ground state every 60 ticks (1s) ─────────
+        long frame = zone.frame.get();
+        if (frame % 60 == 0 && !zone.playerIds.isEmpty()) {
+            for (String pid : zone.playerIds) {
+                PlayerRecord pr = session.players.get(pid);
+                if (pr == null) continue;
+                SimPlayer sp = sim.getPlayers().get(pr.slot);
+                if (sp == null) continue;
+                int tileCol     = (int)(sp.physics.x / 32);
+                int tileFeetRow = (int)((sp.physics.y + sp.physics.height) / 32);
+                int tileHeadRow = (int)(sp.physics.y / 32);
+                log.debug("[Zone {}] player slot={} pos=({},{}) onGround={} " +
+                    "anim={} tileCol={} feetRow={} headRow={} seed={}",
+                    zone.hubId, pr.slot,
+                    (int)sp.physics.x, (int)sp.physics.y, sp.physics.onGround,
+                    sp.animState, tileCol, tileFeetRow, tileHeadRow,
+                    zone.currentRoomSeed);
+            }
+        }
     }
 
     // ── Door / room transition detection ─────────────────────────────────────

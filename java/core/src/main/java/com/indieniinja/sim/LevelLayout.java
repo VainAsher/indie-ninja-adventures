@@ -8,6 +8,8 @@ import com.indieniinja.world.WorldGenerator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Immutable description of a zone's tile and entity layout.
@@ -22,6 +24,8 @@ import java.util.List;
  * run full physics — full world gen porting is Phase C prep work.
  */
 public final class LevelLayout {
+
+    private static final Logger log = LoggerFactory.getLogger(LevelLayout.class);
 
     public final long    seed;
     public final int     widthTiles;
@@ -176,6 +180,20 @@ public final class LevelLayout {
         final int ROWS = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
 
         byte[][] grid = WorldGenerator.generate(seed, COLS, ROWS, neighborDirs, roomType);
+
+        // ── Diagnostic: grid fingerprint (server-side collision grid) ─────────
+        int solidCount = 0, platCount = 0;
+        for (int r = 0; r < ROWS; r++)
+            for (int c = 0; c < COLS; c++) {
+                if (grid[r][c] == WorldGenerator.SOLID)    solidCount++;
+                else if (grid[r][c] == WorldGenerator.PLATFORM) platCount++;
+            }
+        // Sample rows 124-127 at column 64 (centre-bottom) — base floor area
+        StringBuilder sample = new StringBuilder();
+        for (int r = 124; r <= 127; r++)
+            sample.append('r').append(r).append('=').append(grid[r][64]).append(' ');
+        log.info("[LevelLayout] SERVER grid seed={} type={} dirs={} solid={} plat={} | centre-bottom: {}",
+            seed, roomType, neighborDirs, solidCount, platCount, sample.toString().trim());
 
         // Build spatial hash from every non-air tile
         SpatialHash hash = new SpatialHash();

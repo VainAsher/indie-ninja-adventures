@@ -26,6 +26,8 @@ import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.world.WorldGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * In-game screen — contains the full render + simulation loop.
@@ -35,6 +37,8 @@ import com.indieniinja.world.WorldGenerator;
  * paused so the server stays in sync.
  */
 public final class GameScreen implements Screen {
+
+    private static final Logger log = LoggerFactory.getLogger(GameScreen.class);
 
     private static final float PHYSICS_DT     = PhysicsConstants.FIXED_DT;
     private static final float MAX_FRAME_TIME = PhysicsConstants.MAX_FRAME_TIME;
@@ -225,6 +229,21 @@ public final class GameScreen implements Screen {
                 String rType = snap.roomType != null ? snap.roomType : "combat";
                 byte[][] grid2d = WorldGenerator.generate(
                     snap.seed, LEVEL_COLS, LEVEL_ROWS, snap.neighborDirs, rType);
+
+                // ── Diagnostic: grid fingerprint (client-side render grid) ─────
+                int solidC = 0, platC = 0;
+                for (int r = 0; r < LEVEL_ROWS; r++)
+                    for (int c = 0; c < LEVEL_COLS; c++) {
+                        if (grid2d[r][c] == WorldGenerator.SOLID)    solidC++;
+                        else if (grid2d[r][c] == WorldGenerator.PLATFORM) platC++;
+                    }
+                StringBuilder cs = new StringBuilder();
+                for (int r = 124; r <= 127; r++)
+                    cs.append('r').append(r).append('=').append(grid2d[r][64]).append(' ');
+                log.info("[GameScreen] CLIENT grid seed={} type={} dirs={} solid={} plat={} | centre-bottom: {} blobSet={}",
+                    snap.seed, rType, snap.neighborDirs, solidC, platC,
+                    cs.toString().trim(), blobTileSet != null ? "yes" : "no");
+
                 if (blobTileSet != null) {
                     // Full autotiled rendering using the mk_nature spritesheet
                     int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);
