@@ -235,6 +235,19 @@ public final class GameScreen implements Screen {
             // ── Megamap: build stitched world tilemap when full room list arrives ─
             if (!snap.worldRooms.isEmpty() && snap.worldRooms.size() != megamapRoomCount) {
                 buildMegamap(snap.worldRooms);
+                // Snap camera to player's world-space position immediately —
+                // without this the spring-lerp slowly pans from single-room coords
+                // (e.g. x=2048) to the actual megamap position (e.g. x=10240).
+                if (!snap.players.isEmpty()) {
+                    PlayerState snapLocal = snap.players.stream()
+                        .filter(p -> p.slot == localSlot).findFirst()
+                        .orElse(snap.players.get(0));
+                    int tile = PhysicsConstants.TILE_SIZE;
+                    camera.snapTo(
+                        (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile + snapLocal.posX,
+                        (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile + snapLocal.posY
+                    );
+                }
             }
 
             // ── Single-room fallback: generate tiles for current room only ───────
