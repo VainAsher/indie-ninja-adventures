@@ -7,6 +7,9 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.indieniinja.client.game.DialogueManager;
+import com.indieniinja.client.game.MissionManager;
+import com.indieniinja.client.game.StoryManager;
 import com.indieniinja.client.network.NetworkClientThread;
 import com.indieniinja.client.rendering.AnimationRegistry;
 import com.indieniinja.client.rendering.BlobTileSet;
@@ -14,7 +17,9 @@ import com.indieniinja.client.rendering.ChunkRenderer;
 import com.indieniinja.client.rendering.EntityRenderer;
 import com.indieniinja.client.rendering.HudRenderer;
 import com.indieniinja.client.rendering.ParticleSystem;
+import com.indieniinja.client.ui.DialogueOverlay;
 import com.indieniinja.client.ui.PauseScreen;
+import com.indieniinja.network.NPCState;
 import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WorldSnapshot;
@@ -57,6 +62,22 @@ public final class GameScreen implements Screen {
     // ── Pause overlay ─────────────────────────────────────────────────────────
     private PauseScreen pauseScreen;
     private boolean     paused = false;
+
+    // ── Campaign / missions / dialogue ────────────────────────────────────────
+    private StoryManager    storyManager;
+    private MissionManager  missionManager;
+    private DialogueManager dialogueManager;
+    private DialogueOverlay dialogueOverlay;
+
+    /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
+    private static String npcDialogueId(String npcType) {
+        return switch (npcType != null ? npcType : "lore") {
+            case "shop"          -> "shop_keeper";
+            case "mission_giver" -> "mission_elder";
+            case "tutorial"      -> "tutorial_elder";
+            default              -> "tutorial_elder";   // "lore" and unknown
+        };
+    }
 
     // ── Fixed-timestep state ──────────────────────────────────────────────────
     private float accumulator     = 0f;
@@ -123,6 +144,14 @@ public final class GameScreen implements Screen {
         networkClient = new NetworkClientThread(host, port, stateBuffer);
         networkClient.start();
 
+        // Campaign / missions / dialogue systems
+        storyManager    = new StoryManager();
+        missionManager  = new MissionManager();
+        dialogueManager = new DialogueManager();
+        dialogueManager.setStoryContext(storyManager.toConditionContext());
+        dialogueManager.setEventCallback(this::handleDialogueEvent);
+        dialogueOverlay = new DialogueOverlay(dialogueManager);
+
         Gdx.input.setInputProcessor(null);  // InputPoller polls directly; ESC handled in render
     }
 
@@ -130,12 +159,15 @@ public final class GameScreen implements Screen {
     public void render(float delta) {
         delta = Math.min(delta, MAX_FRAME_TIME);
 
-        // ── ESC toggles pause ─────────────────────────────────────────────────
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        // ── Dialogue input (consumes keys when dialogue is open) ─────────────
+        boolean dialogueConsumed = dialogueOverlay.handleInput();
+
+        // ── ESC toggles pause (only when dialogue not active) ─────────────────
+        if (!dialogueConsumed && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (paused) resume(); else pause();
         }
 
-        if (!paused) {
+        if (!paused && !dialogueConsumed) {
             accumulator += delta;
             while (accumulator >= PHYSICS_DT) {
                 InputCommand cmd = inputPoller.poll();
@@ -145,6 +177,22 @@ public final class GameScreen implements Screen {
         }
 
         WorldSnapshot snap = stateBuffer.poll();
+
+        // ── Mission timer ─────────────────────────────────────────────────────
+        missionManager.tick(delta);
+
+        // ── E-key: interact with nearest interactable NPC ─────────────────────
+        if (!dialogueConsumed && !paused && snap != null
+                && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            for (NPCState npc : snap.npcs) {
+                if (npc.isInteractable) {
+                    String dialogueId = npcDialogueId(npc.npcType);
+                    dialogueManager.setStoryContext(storyManager.toConditionContext());
+                    dialogueManager.startNpcDialogue(dialogueId);
+                    break;
+                }
+            }
+        }
 
         if (snap != null) {
             // Generate and load procedural tile layout on first snapshot (or seed/room change)
@@ -199,9 +247,39 @@ public final class GameScreen implements Screen {
         hudRenderer.render(snap, stateBuffer.isConnected(),
             Gdx.graphics.getFramesPerSecond(), localSlot);
 
+        // ── Dialogue overlay (rendered on top of HUD, below pause) ────────────
+        if (dialogueManager.isActive()) {
+            // Switch to screen-space projection for the overlay
+            batch.setProjectionMatrix(hudRenderer.screenProjection());
+            batch.begin();
+            dialogueOverlay.render(batch);
+            batch.end();
+            // Restore camera projection
+            batch.setProjectionMatrix(camera.cam.combined);
+        }
+
         // ── Pause overlay (rendered on top) ───────────────────────────────────
         if (paused) {
             pauseScreen.render(delta);
+        }
+    }
+
+    // ── Dialogue event handler ────────────────────────────────────────────────
+
+    /**
+     * Receives events emitted by dialogue choices and node exits.
+     * Format: "event_key" or "event_key:arg".
+     */
+    private void handleDialogueEvent(String event) {
+        if (event == null) return;
+        String[] parts = event.split(":", 2);
+        switch (parts[0]) {
+            case "start_mission" -> {
+                if (parts.length > 1) missionManager.startMission(parts[1]);
+            }
+            case "open_shop"     -> { /* stub — shop UI not yet implemented */ }
+            case "advance_act"   -> storyManager.advanceAct();
+            default              -> { /* unknown event — no-op */ }
         }
     }
 
@@ -227,5 +305,6 @@ public final class GameScreen implements Screen {
         if (particleSystem != null) particleSystem.dispose();
         if (hudRenderer    != null) hudRenderer.dispose();
         if (pauseScreen    != null) pauseScreen.dispose();
+        if (dialogueOverlay != null) dialogueOverlay.dispose();
     }
 }

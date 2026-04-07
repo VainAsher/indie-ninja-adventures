@@ -213,6 +213,11 @@ public final class HudRenderer {
         screenCam.update();
     }
 
+    /** Screen-space projection matrix — use for overlays rendered over the HUD. */
+    public com.badlogic.gdx.math.Matrix4 screenProjection() {
+        return screenCam.combined;
+    }
+
     public void dispose() {
         shapes.dispose();
         hudBatch.dispose();
