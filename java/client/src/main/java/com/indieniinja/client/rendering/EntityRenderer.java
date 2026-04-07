@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.indieniinja.network.EnemyState;
+import com.indieniinja.network.NPCState;
 import com.indieniinja.network.PickupState;
 import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.ShurikenState;
@@ -47,6 +48,17 @@ public final class EntityRenderer {
     private static final int SPRITE_OX = PW / 2 - SDW / 2;  // 14 - 80 = -66
 
     private static final int PICKUP_SIZE = 20;
+
+    // NPC display size — Python default: width=32, height=48
+    private static final int NPC_W = 32;
+    private static final int NPC_H = 48;
+    // "!" interaction indicator: small square above NPC head
+    private static final int INDICATOR_SIZE = 8;
+
+    // Companion orb constants — Python entities/companions.py
+    private static final float COMPANION_RADIUS    = 35f;   // orbit radius in px
+    private static final float COMPANION_SPEED     = 0.8f;  // rad/s
+    private static final float COMPANION_ORB_SIZE  = 10f;   // rendered size in px
 
     /**
      * Returns [w, h] physics dimensions for an enemy type.
@@ -106,13 +118,15 @@ public final class EntityRenderer {
     private final ParticleSystem    particles;
 
     // Per-entity state time for smooth animation (render-thread managed)
-    private final java.util.HashMap<String, Float>   stateTimes  = new java.util.HashMap<>();
-    private final java.util.HashMap<String, String>  lastState   = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Float>   stateTimes   = new java.util.HashMap<>();
+    private final java.util.HashMap<String, String>  lastState    = new java.util.HashMap<>();
     // Particle event tracking
-    private final java.util.HashMap<String, Float>   prevVelY    = new java.util.HashMap<>();
-    private final java.util.HashMap<String, Integer> prevHealth  = new java.util.HashMap<>();
-    private final java.util.HashMap<String, Float>   dustTimers  = new java.util.HashMap<>();
-    private final java.util.HashMap<String, Boolean> prevTeleport= new java.util.HashMap<>();
+    private final java.util.HashMap<String, Float>   prevVelY     = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Integer> prevHealth   = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Float>   dustTimers   = new java.util.HashMap<>();
+    private final java.util.HashMap<String, Boolean> prevTeleport = new java.util.HashMap<>();
+    // Companion orb orbit angle per player (radians, advances each frame)
+    private final java.util.HashMap<String, Float>   companionAngle = new java.util.HashMap<>();
 
     public EntityRenderer(AnimationRegistry anims, ParticleSystem particles) {
         this.anims     = anims;
@@ -131,8 +145,10 @@ public final class EntityRenderer {
 
         for (ShurikenState sh : snap.shurikens) renderShuriken(batch, sh, deltaTime);
         for (EnemyState    e  : snap.enemies)   renderEnemy(batch, e, deltaTime);
+        for (NPCState      n  : snap.npcs)      renderNpc(batch, n, deltaTime);
         for (PickupState   p  : snap.pickups)   renderPickup(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderPlayer(batch, p, deltaTime);
+        for (PlayerState   p  : snap.players)   renderCompanions(batch, p, deltaTime);
     }
 
     // ── Shurikens ─────────────────────────────────────────────────────────────
@@ -293,6 +309,78 @@ public final class EntityRenderer {
         batch.draw(frame, p.x - PICKUP_SIZE / 2f, p.y, PICKUP_SIZE, PICKUP_SIZE);
     }
 
+    // ── NPCs ──────────────────────────────────────────────────────────────────
+
+    /**
+     * Render a single NPC using the "npc_{type}_{animState}" atlas key.
+     * Falls back to a violet placeholder (same for all NPC types) when no
+     * sprite is loaded.  When isInteractable, draws a small yellow "!" above.
+     *
+     * Python parity: entities/npc.py NPC drawing + interaction indicator.
+     */
+    private void renderNpc(SpriteBatch batch, NPCState n, float dt) {
+        String typeKey = (n.npcType != null && !n.npcType.isEmpty()) ? n.npcType : "lore";
+        String state   = (n.animState != null && !n.animState.isEmpty()) ? n.animState : "idle";
+        String animKey = "npc_" + typeKey + "_" + state;
+
+        float stateTime = tickStateTime(n.npcId, animKey, dt);
+        float fps       = "walk".equals(state) ? 8f : 6f;
+        TextureRegion frame = anims.getFrame(animKey, stateTime, fps);
+
+        boolean wantFlipX = (n.facing == -1);
+        if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
+        batch.draw(frame, n.x, n.y, NPC_W, NPC_H);
+        if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
+
+        // Interaction "!" indicator — yellow square above the NPC head
+        if (n.isInteractable) {
+            batch.setColor(1f, 0.9f, 0.1f, 1f);
+            TextureRegion dot = anims.getFrame("__dot__", 0f, 1f);
+            float ix = n.x + NPC_W * 0.5f - INDICATOR_SIZE * 0.5f;
+            float iy = n.y - INDICATOR_SIZE - 4f;
+            batch.draw(dot, ix, iy, INDICATOR_SIZE, INDICATOR_SIZE);
+            batch.setColor(Color.WHITE);
+        }
+    }
+
+    // ── Companion orbs ────────────────────────────────────────────────────────
+
+    /**
+     * Render Yin (white) and Yang (gold) companion orbs orbiting the player.
+     *
+     * Python parity: entities/companions.py — radius=35px, speed=0.8 rad/s.
+     * Yin leads at angle θ, Yang trails at θ+π.  Both always shown (story
+     * state that hides them is not yet ported; they serve as a visual indicator
+     * that the companion system is wired up).
+     */
+    private void renderCompanions(SpriteBatch batch, PlayerState p, float dt) {
+        if (p.isDead) return;
+
+        float angle = companionAngle.getOrDefault(p.playerId, 0f);
+        angle += COMPANION_SPEED * dt;
+        if (angle > (float)(2 * Math.PI)) angle -= (float)(2 * Math.PI);
+        companionAngle.put(p.playerId, angle);
+
+        float cx = p.posX + PW * 0.5f;
+        float cy = p.posY + PH * 0.5f;
+        TextureRegion dot = anims.getFrame("__dot__", 0f, 1f);
+        float half = COMPANION_ORB_SIZE * 0.5f;
+
+        // Yin — white, leads
+        float yinX = cx + (float) Math.cos(angle)       * COMPANION_RADIUS - half;
+        float yinY = cy + (float) Math.sin(angle)       * COMPANION_RADIUS - half;
+        batch.setColor(0.95f, 0.95f, 1f, 0.85f);
+        batch.draw(dot, yinX, yinY, COMPANION_ORB_SIZE, COMPANION_ORB_SIZE);
+
+        // Yang — gold, trails at θ+π
+        float yangX = cx + (float) Math.cos(angle + Math.PI) * COMPANION_RADIUS - half;
+        float yangY = cy + (float) Math.sin(angle + Math.PI) * COMPANION_RADIUS - half;
+        batch.setColor(1f, 0.78f, 0.1f, 0.85f);
+        batch.draw(dot, yangX, yangY, COMPANION_ORB_SIZE, COMPANION_ORB_SIZE);
+
+        batch.setColor(Color.WHITE);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /** Fallback: derive type string from enemy ID convention "hub_type_idx". */
@@ -326,11 +414,14 @@ public final class EntityRenderer {
         snap.enemies.forEach(e  -> live.add(e.enemyId));
         snap.pickups.forEach(p  -> live.add(p.pickupId));
         snap.shurikens.forEach(s -> live.add(s.shurikenId));
+        snap.npcs.forEach(n     -> live.add(n.npcId));
         stateTimes.keySet().retainAll(live);
         lastState.keySet().retainAll(live);
         prevVelY.keySet().retainAll(live);
         prevHealth.keySet().retainAll(live);
         dustTimers.keySet().retainAll(live);
         prevTeleport.keySet().retainAll(live);
+        companionAngle.keySet().retainAll(snap.players.stream()
+            .map(p -> p.playerId).collect(java.util.stream.Collectors.toSet()));
     }
 }

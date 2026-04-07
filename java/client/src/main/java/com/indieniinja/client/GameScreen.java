@@ -99,6 +99,9 @@ public final class GameScreen implements Screen {
         // Load per-enemy-type animations (falls back to colored placeholders if
         // assets/sprites/characters/{type}/ does not exist).
         anims.loadEnemySprites(enemyBaseDir);
+        // Load per-NPC-type animations + dot texture for indicators/companions.
+        FileHandle npcBaseDir = Gdx.files.internal("assets/sprites/npc");
+        anims.loadNpcSprites(npcBaseDir);
 
         // Try to load the mk_nature blob autotile set.  Falls back to placeholder
         // if the asset files are not present (allows running without full assets).

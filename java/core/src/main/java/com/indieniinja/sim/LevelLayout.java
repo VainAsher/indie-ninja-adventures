@@ -32,6 +32,8 @@ public final class LevelLayout {
     public final List<EnemySpawn> enemySpawns;
     // Pickup spawn descriptors
     public final List<PickupSpawn> pickupSpawns;
+    // NPC spawn descriptors
+    public final List<NPCSpawn> npcSpawns;
     // Falling platforms
     public final List<FallingPlatform> fallingPlatforms;
     // World height in pixels (used for enemy AI fall detection)
@@ -42,6 +44,7 @@ public final class LevelLayout {
             SpatialHash spatialHash,
             List<EnemySpawn> enemySpawns,
             List<PickupSpawn> pickupSpawns,
+            List<NPCSpawn> npcSpawns,
             List<FallingPlatform> fallingPlatforms) {
         this.seed             = seed;
         this.widthTiles       = widthTiles;
@@ -49,6 +52,7 @@ public final class LevelLayout {
         this.spatialHash      = spatialHash;
         this.enemySpawns      = enemySpawns;
         this.pickupSpawns     = pickupSpawns;
+        this.npcSpawns        = npcSpawns;
         this.fallingPlatforms = fallingPlatforms;
         this.worldHeightPx    = heightTiles * 32f;
     }
@@ -59,6 +63,12 @@ public final class LevelLayout {
 
     /** Spawn descriptor for a pickup. */
     public record PickupSpawn(String type, float x, float y) {}
+
+    /**
+     * Spawn descriptor for an NPC.
+     * Python: entities/npc.py NPCDefinition — type ∈ {lore, shop, mission_giver, tutorial}.
+     */
+    public record NPCSpawn(String type, float x, float y, float patrolMinX, float patrolMaxX) {}
 
     // ── Factory ───────────────────────────────────────────────────────────────
 
@@ -119,7 +129,7 @@ public final class LevelLayout {
                 fx, fy, 3 * TILE, TILE));
         }
 
-        return new LevelLayout(seed, W, H, hash, enemies, pickups, falling);
+        return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), falling);
     }
 
     /**
@@ -204,6 +214,20 @@ public final class LevelLayout {
                 "plat_" + (int) fx + "_" + (int) fy, fx, fy, 3 * TILE, TILE));
         }
 
-        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, falling);
+        // NPCs — 1-2 lore NPCs per room at ground positions after enemies+pickups.
+        // Python: npc_manager.py spawns NPCs per story state; we spawn lore NPCs
+        // procedurally here as a content placeholder until the story system is ported.
+        List<NPCSpawn> npcs = new ArrayList<>();
+        String[] npcTypes = {"lore", "shop"};
+        int numNpcs     = 1 + rng.nextInt(2);   // 1-2 NPCs
+        int npcStart    = numEnemies + numPickups;
+        for (int i = 0; i < numNpcs && (npcStart + i) < groundPos.size(); i++) {
+            float[] pos = groundPos.get(npcStart + i);
+            String t    = npcTypes[i % npcTypes.length];
+            float patrol = 2 * TILE;
+            npcs.add(new NPCSpawn(t, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
+        }
+
+        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, falling);
     }
 }

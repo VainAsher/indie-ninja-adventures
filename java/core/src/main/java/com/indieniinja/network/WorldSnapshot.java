@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+// NPCState is in the same package — no explicit import needed.
 
 /**
  * Full authoritative world state broadcast by the server each tick (Phase 3).
@@ -39,6 +40,8 @@ public final class WorldSnapshot {
     public List<PickupState>   pickups        = new ArrayList<>();
     public List<PlatformState> platformStates = new ArrayList<>();
     public List<ShurikenState> shurikens      = new ArrayList<>();
+    /** NPCs — always full list, not delta-encoded (few entities, slow-changing). */
+    public List<NPCState>      npcs           = new ArrayList<>();
 
     // Delta fields (only populated when isDelta=true)
     public List<EnemyState>    enemiesChanged   = new ArrayList<>();
@@ -100,6 +103,10 @@ public final class WorldSnapshot {
         for (Object sh : list(m, "shurikens"))
             if (sh instanceof java.util.Map<?,?> shm)
                 s.shurikens.add(ShurikenState.fromMap((java.util.Map<String,Object>) shm));
+        // NPCs always present on the wire (not delta-encoded).
+        for (Object n : list(m, "npcs"))
+            if (n instanceof java.util.Map<?,?> nm)
+                s.npcs.add(NPCState.fromMap((java.util.Map<String,Object>) nm));
         return s;
     }
 
@@ -142,6 +149,8 @@ public final class WorldSnapshot {
         // Without this, clients only see shurikens on full snapshots every ~3s, which means
         // they never appear (shuriken TTL < full-snapshot interval).
         m.put("shurikens", shurikenList());
+        // NPCs always included — few entities, slow-changing, no delta encoding needed.
+        m.put("npcs",      npcList());
 
         m.put("metadata", metadata);
         m.put("hub_id",   hubId != null ? hubId : "");
@@ -159,6 +168,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> shurikenList() {
         List<Map<String, Object>> out = new ArrayList<>(shurikens.size());
         for (ShurikenState s : shurikens) out.add(s.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> npcList() {
+        List<Map<String, Object>> out = new ArrayList<>(npcs.size());
+        for (NPCState n : npcs) out.add(n.toMap());
         return out;
     }
 

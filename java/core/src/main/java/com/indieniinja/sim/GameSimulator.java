@@ -61,6 +61,7 @@ public final class GameSimulator {
     private final List<SimPickup>   pickups   = new ArrayList<>();
     private final List<FallingPlatform> fallingPlatforms = new ArrayList<>();
     private final List<SimShuriken> shurikens = new ArrayList<>();
+    private final List<SimNPC>      npcs      = new ArrayList<>();
     private int shurikenSeq = 0;
     private int lootSeq     = 0;
 
@@ -110,6 +111,17 @@ public final class GameSimulator {
 
         // Register falling platforms
         fallingPlatforms.addAll(layout.fallingPlatforms);
+
+        // Spawn NPCs (no physics entity — NPCs use simple patrol, no collision sim)
+        int npcIdx = 0;
+        for (LevelLayout.NPCSpawn spec : layout.npcSpawns) {
+            npcs.add(new SimNPC(
+                hubId + "_npc_" + npcIdx++,
+                spec.type(), spec.x(), spec.y(),
+                32, 48,   // Python default: width=32, height=48
+                spec.patrolMinX(), spec.patrolMaxX()
+            ));
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -180,6 +192,9 @@ public final class GameSimulator {
 
         // 8. Pickups: lifetime + authoritative collection
         stepPickups();
+
+        // 9. NPC patrol + player-facing
+        stepNpcs();
     }
 
     /**
@@ -267,6 +282,19 @@ public final class GameSimulator {
             ps.timer      = fp.timer;
             ps.vy         = fp.vy;
             snap.platformStates.add(ps);
+        }
+
+        // NPCs
+        for (SimNPC npc : npcs) {
+            com.indieniinja.network.NPCState ns = new com.indieniinja.network.NPCState();
+            ns.npcId          = npc.id;
+            ns.npcType        = npc.type;
+            ns.x              = npc.x;
+            ns.y              = npc.y;
+            ns.facing         = npc.facing;
+            ns.animState      = npc.animState;
+            ns.isInteractable = npc.isInteractable;
+            snap.npcs.add(ns);
         }
 
         return snap;
@@ -899,6 +927,28 @@ public final class GameSimulator {
                 }
             }
         }
+    }
+
+    /**
+     * Step all NPC patrol + face-player logic (Python: NPC.update).
+     * Finds the nearest alive player's centre-X and passes it to each NPC.
+     */
+    private void stepNpcs() {
+        if (npcs.isEmpty()) return;
+
+        // Find centre-X of the nearest alive player (Float.NaN if none)
+        float nearestX = Float.NaN;
+        float nearestDist = Float.MAX_VALUE;
+        for (SimPlayer p : players.values()) {
+            if (!p.isAlive()) continue;
+            float cx = p.physics.x + p.physics.width * 0.5f;
+            for (SimNPC npc : npcs) {
+                float d = Math.abs(cx - (npc.x + npc.width * 0.5f));
+                if (d < nearestDist) { nearestDist = d; nearestX = cx; }
+            }
+        }
+
+        for (SimNPC npc : npcs) npc.step(nearestX);
     }
 
     // ── Utility ───────────────────────────────────────────────────────────────

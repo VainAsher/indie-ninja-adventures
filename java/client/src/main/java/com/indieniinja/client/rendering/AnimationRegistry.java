@@ -250,6 +250,54 @@ public final class AnimationRegistry {
 
     // ── Placeholder ───────────────────────────────────────────────────────────
 
+    // ── NPC sprite loading ────────────────────────────────────────────────────
+
+    /**
+     * Load per-NPC-type animations from assets/sprites/npc/{type}/.
+     *
+     * Expected sheets (uniform horizontal strips, 80×80 px per frame):
+     *   idle_spritesheet.png (2 frames), walk_spritesheet.png (4 frames)
+     *
+     * Registered keys: "npc_{type}_{aiState}" where aiState ∈ {idle, walk}.
+     * Falls back to a violet solid-color placeholder for all NPC types when
+     * sheets are absent, so NPCs render visibly before assets are available.
+     *
+     * Also registers the "__dot__" key used for interaction indicators and
+     * companion orbs (1×1 white pixel, tinted at draw time via batch.setColor).
+     */
+    public void loadNpcSprites(FileHandle npcBaseDir) {
+        registerDotTexture();
+
+        String[] npcTypes = {"lore", "shop", "mission_giver", "tutorial"};
+        for (String type : npcTypes) {
+            FileHandle typeDir = npcBaseDir.child(type);
+            boolean loadedIdle = tryLoadEnemyAnim(typeDir, "npc_" + type + "_idle", "idle",
+                java.util.Map.of("idle", 2, "walk", 4));
+            boolean loadedWalk = tryLoadEnemyAnim(typeDir, "npc_" + type + "_walk", "walk",
+                java.util.Map.of("idle", 2, "walk", 4));
+            // Violet placeholder for any missing state
+            if (!loadedIdle) registerColoredPlaceholder("npc_" + type + "_idle", 0.6f, 0.2f, 0.9f);
+            if (!loadedWalk) registerColoredPlaceholder("npc_" + type + "_walk", 0.6f, 0.2f, 0.9f);
+        }
+    }
+
+    /**
+     * Register a 1×1 white texture under "__dot__" for use as a tintable rect.
+     * Used by: interaction indicator "!", companion orbs (Yin/Yang).
+     */
+    private void registerDotTexture() {
+        if (frames.containsKey("__dot__")) return;
+        Pixmap pix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pix.setColor(1f, 1f, 1f, 1f);
+        pix.fill();
+        Texture tex = new Texture(pix);
+        pix.dispose();
+        ownedTextures.add(tex);
+        frames.put("__dot__", new TextureRegion[]{ new TextureRegion(tex) });
+    }
+
+    // ── Placeholder ───────────────────────────────────────────────────────────
+
     /**
      * Create a 1×1 magenta placeholder.  Called automatically when a key is
      * missing, so explicit calls are only needed for pre-warming.
