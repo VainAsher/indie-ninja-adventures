@@ -421,7 +421,7 @@ public final class GameScreen implements Screen {
         }
 
         // ── Minimap (screen-space, bottom-left corner) ────────────────────────
-        if (snap != null && !snap.worldRooms.isEmpty()) {
+        if (minimapRenderer.isVisible() && snap != null && !snap.worldRooms.isEmpty()) {
             PlayerState localForMap = snap.players.stream()
                 .filter(p -> p.slot == localSlot).findFirst()
                 .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
@@ -430,8 +430,12 @@ public final class GameScreen implements Screen {
             float roomPx = PhysicsConstants.ROOM_WIDTH_TILES  * PhysicsConstants.TILE_SIZE;
             float roomPy = PhysicsConstants.ROOM_HEIGHT_TILES * PhysicsConstants.TILE_SIZE;
             batch.setProjectionMatrix(hudRenderer.screenProjection());
+            // MinimapRenderer.render() calls batch.end() internally (switches to ShapeRenderer),
+            // so the batch must be open when we enter and will be re-opened when we leave.
+            batch.begin();
             minimapRenderer.render(batch, snap.worldRooms,
                 snap.roomGridX, snap.roomGridY, lpx, lpy, roomPx, roomPy);
+            batch.end();
             batch.setProjectionMatrix(camera.cam.combined);
         }
 

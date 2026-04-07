@@ -40,8 +40,10 @@ public final class ZoneInstance {
     /** Delta encoder — one per zone, only touched by the sim thread. */
     public final DeltaEncoder deltaEncoder = new DeltaEncoder();
 
-    /** Broadcast counter — reset every FULL_SNAPSHOT_INTERVAL broadcasts. */
-    public int fullSnapCountdown = 0;
+    /** Broadcast counter — reset every FULL_SNAPSHOT_INTERVAL broadcasts.
+     *  Pre-set to FULL_SNAPSHOT_EVERY so the very first broadcast is always a full snapshot,
+     *  ensuring the client gets shop states, world rooms, and all full-snap fields immediately. */
+    public int fullSnapCountdown = ZoneSimulationLoop.FULL_SNAPSHOT_EVERY;
 
     /** Handle to the running sim loop task (for cancellation on zone teardown). */
     public volatile Future<?> simFuture;
