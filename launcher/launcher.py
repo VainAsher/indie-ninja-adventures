@@ -3875,31 +3875,46 @@ class LauncherApp:
         ver = tag.lstrip("v")
         assets = self._selected_release.get("assets", [])
         has_exe = any(a.get("name") == GAME_EXE_NAME for a in assets)
+        has_jars = bool(
+            _find_jar_asset(assets, "ninja-server") and _find_jar_asset(assets, "ninja-client")
+        )
 
-        if not has_exe:
-            self._download_btn.configure(state="disabled", text="v  No exe asset")
+        # Nothing downloadable in this release
+        if not has_exe and not has_jars:
+            self._download_btn.configure(state="disabled", text="v  No downloadable assets")
             return
 
         installed = self._game_exe_installed()
-        has_jars = _find_jar_asset(assets, "ninja-server") and _find_jar_asset(
-            assets, "ninja-client"
-        )
         jars_installed = _get_server_jar().exists() and _get_client_jar().exists()
 
-        if not installed:
-            label = f"v  Install {tag}"
-        elif ver == self._local_version and (not has_jars or jars_installed):
-            label = f"v  Reinstall {tag}"
-        elif has_jars and not jars_installed:
-            label = f"v  Install JARs for {tag}"
-        elif _is_newer(ver, self._local_version):
-            label = f"^  Update to {tag}"
+        if has_exe:
+            # Exe-based release (may also include JARs)
+            if not installed:
+                label = f"v  Install {tag}"
+            elif ver == self._local_version and (not has_jars or jars_installed):
+                label = f"v  Reinstall {tag}"
+            elif has_jars and not jars_installed:
+                label = f"v  Install JARs for {tag}"
+            elif _is_newer(ver, self._local_version):
+                label = f"^  Update to {tag}"
+            else:
+                label = f"v  Downgrade to {tag}"
         else:
-            label = f"v  Downgrade to {tag}"
+            # JAR-only release
+            if not jars_installed:
+                label = f"v  Install JARs {tag}"
+            elif _is_newer(ver, self._local_version):
+                label = f"^  Update JARs to {tag}"
+            elif ver == self._local_version:
+                label = f"v  Reinstall JARs {tag}"
+            else:
+                label = f"v  Downgrade JARs to {tag}"
 
         self._download_btn.configure(state="normal", text=label)
-        play_state = "normal" if installed else "disabled"
-        play_fg = ACCENT if installed else TEXT_DIM
+        # Play button enabled if exe installed OR client JAR available (Java launch path)
+        play_ready = installed or _get_client_jar().exists()
+        play_state = "normal" if play_ready else "disabled"
+        play_fg = ACCENT if play_ready else TEXT_DIM
         self._play_btn.configure(state=play_state, fg=play_fg)
 
     # ── Download ──────────────────────────────────────────────────────────────
@@ -3910,13 +3925,30 @@ class LauncherApp:
 
         assets = self._selected_release.get("assets", [])
         exe_asset = next((a for a in assets if a.get("name") == GAME_EXE_NAME), None)
-        if not exe_asset:
+        server_jar_asset = _find_jar_asset(assets, "ninja-server")
+        client_jar_asset = _find_jar_asset(assets, "ninja-client")
+
+        if not exe_asset and not server_jar_asset and not client_jar_asset:
             messagebox.showwarning(
                 "No Asset",
-                f"The selected release has no {GAME_EXE_NAME} asset.\n"
+                "The selected release has no downloadable assets (exe or JARs).\n"
                 "Check the GitHub releases page manually.",
                 parent=self.root,
             )
+            return
+
+        # JAR-only release: skip exe download, go straight to JAR download
+        if not exe_asset:
+            self._downloading = True
+            self._download_cancel.clear()
+            self._download_btn.configure(state="disabled", text="Downloading…")
+            self._cancel_btn.pack(side="left", padx=(8, 0))
+            self._status_var.set("Connecting…")
+            threading.Thread(
+                target=self._download_jars_only_worker,
+                args=(self._selected_release, server_jar_asset, client_jar_asset),
+                daemon=True,
+            ).start()
             return
 
         sha_asset = next((a for a in assets if a.get("name") == f"{GAME_EXE_NAME}.sha256"), None)
@@ -3927,9 +3959,6 @@ class LauncherApp:
                     expected_sha = r.read().decode().strip().split()[0]
             except Exception:
                 pass
-
-        server_jar_asset = _find_jar_asset(assets, "ninja-server")
-        client_jar_asset = _find_jar_asset(assets, "ninja-client")
 
         self._downloading = True
         self._download_cancel.clear()
@@ -4089,6 +4118,74 @@ class LauncherApp:
 
         except Exception as exc:
             dest.unlink(missing_ok=True)
+            self.root.after(0, self._on_download_error, str(exc))
+
+    def _download_jars_only_worker(
+        self,
+        release: dict,
+        server_jar_asset: dict | None,
+        client_jar_asset: dict | None,
+    ) -> None:
+        """Download ninja-server-all.jar and ninja-client-all.jar with no exe involved."""
+        tag = release.get("tag_name", "")
+        try:
+            for jar_asset, jar_dest_name, label in [
+                (server_jar_asset, SERVER_JAR_NAME, "server JAR"),
+                (client_jar_asset, CLIENT_JAR_NAME, "client JAR"),
+            ]:
+                if not jar_asset or self._download_cancel.is_set():
+                    continue
+                jar_url  = jar_asset["browser_download_url"]
+                jar_size = jar_asset.get("size", 0)
+                jar_dest = _get_base_dir() / f"{jar_dest_name}.new"
+                self.root.after(0, self._status_var.set, f"Downloading {label}…")
+                self.root.after(0, self._progress_var.set, 0.0)
+                try:
+                    req = urllib.request.Request(
+                        jar_url,
+                        headers={"User-Agent": f"indie-ninja-launcher/{LAUNCHER_VERSION}"},
+                    )
+                    with urllib.request.urlopen(req, timeout=60) as resp:
+                        if jar_size <= 0:
+                            jar_size = int(resp.headers.get("Content-Length", 0))
+                        downloaded = 0
+                        with open(jar_dest, "wb") as f:
+                            while True:
+                                if self._download_cancel.is_set():
+                                    raise OSError("Download cancelled.")
+                                chunk = resp.read(65536)
+                                if not chunk:
+                                    break
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                if jar_size > 0:
+                                    pct = min(100.0, downloaded / jar_size * 100)
+                                    self.root.after(0, self._progress_var.set, pct)
+                    final_jar = _get_base_dir() / jar_dest_name
+                    final_jar.unlink(missing_ok=True)
+                    jar_dest.rename(final_jar)
+                except Exception as exc:
+                    jar_dest.unlink(missing_ok=True)
+                    self.root.after(0, self._on_download_error, f"{label} failed: {exc}")
+                    return
+
+            # Update local version from release tag
+            ver = tag.lstrip("v")
+            if ver:
+                vpath = _get_version_path()
+                try:
+                    try:
+                        data = json.loads(vpath.read_text(encoding="utf-8"))
+                    except Exception:
+                        data = {}
+                    data["version"] = ver
+                    vpath.write_text(json.dumps(data, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
+
+            self.root.after(0, self._on_download_done, tag)
+
+        except Exception as exc:
             self.root.after(0, self._on_download_error, str(exc))
 
     def _on_download_done(self, tag: str) -> None:
