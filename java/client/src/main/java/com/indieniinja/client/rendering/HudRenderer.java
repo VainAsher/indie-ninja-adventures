@@ -39,6 +39,8 @@ public final class HudRenderer {
     private static final float MANA_H       = 6f;
     private static final float MAX_MANA     = 30f;
     private static final float MAX_STAM_GEN = 30f;  // general stamina pool
+    private static final float XP_W         = 80f;
+    private static final float XP_H         = 5f;
 
     private final ShapeRenderer shapes;
     private final SpriteBatch   hudBatch;
@@ -132,6 +134,20 @@ public final class HudRenderer {
                     shapes.setColor(0.6f, 0.3f, 1f, 0.5f);
                     shapes.rect(barX - 1, manaY - 1, MANA_W + 2, MANA_H + 2);
                 }
+
+                // XP bar (local player only — dark gold → bright gold)
+                if (p.slot == localSlot) {
+                    float xpY = manaY - XP_H - 3f;
+                    int xpNeeded = p.level * 50;  // mirrors SimPlayer.xpToNextLevel()
+                    float xpRatio = xpNeeded > 0
+                        ? Math.max(0f, Math.min(1f, (float) p.experience / xpNeeded)) : 0f;
+                    shapes.setColor(0.15f, 0.12f, 0.05f, 0.8f);
+                    shapes.rect(barX, xpY, XP_W, XP_H);
+                    if (xpRatio > 0f) {
+                        shapes.setColor(0.9f + xpRatio * 0.1f, 0.75f * xpRatio, 0.1f, 1f);
+                        shapes.rect(barX, xpY, XP_W * xpRatio, XP_H);
+                    }
+                }
             }
         }
 
@@ -183,8 +199,8 @@ public final class HudRenderer {
                 PlayerState p = snap.players.get(i);
                 float labelX = 10f + BAR_W + 5f;
                 float labelY = sh - 4f - i * BAR_GAP;
-                String hpLabel = (p.slot == localSlot ? "You" : "P" + (p.slot + 1))
-                    + "  " + p.health + "/" + MAX_HP;
+                String name = p.slot == localSlot ? "You" : "P" + (p.slot + 1);
+                String hpLabel = name + " Lv" + p.level + "  " + p.health + "/" + MAX_HP;
                 font.draw(hudBatch, hpLabel, labelX, labelY);
 
                 // Stamina / mana % labels for local player only
@@ -195,6 +211,13 @@ public final class HudRenderer {
                     int manaPct = (int)(p.mana / MAX_MANA * 100);
                     font.draw(hudBatch, "MP " + manaPct + "%", 10f + MANA_W + 5f,
                               labelY - STAMINA_H * 3 - MANA_H * 2 - 4f + MANA_H);
+                    // XP label
+                    int xpNeeded = p.level * 50;
+                    font.setColor(0.9f, 0.75f, 0.2f, 1f);
+                    font.draw(hudBatch, "XP " + p.experience + "/" + xpNeeded,
+                        10f + XP_W + 5f,
+                        labelY - STAMINA_H * 3 - MANA_H * 2 - XP_H * 2 - 7f + XP_H);
+                    font.setColor(Color.WHITE);
                 }
             }
         }

@@ -105,6 +105,12 @@ public final class GameScreen implements Screen {
     /** Most recently received snapshot — retained between frames for overlay input. */
     private WorldSnapshot prevSnap = null;
 
+    // ── Mission progress tracking (Loop 18) ──────────────────────────────────
+    /** Enemy IDs seen last frame — diff used to detect kills for mission objectives. */
+    private final java.util.Set<String>           prevEnemyIds  = new java.util.HashSet<>();
+    /** Boss alive state last frame — transition true→false signals defeat. */
+    private final java.util.Map<String, Boolean>  prevBossAlive = new java.util.HashMap<>();
+
     /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
     private static String npcDialogueId(String npcType) {
         return switch (npcType != null ? npcType : "lore") {
@@ -310,6 +316,8 @@ public final class GameScreen implements Screen {
             cachedPortals     = java.util.List.of();
             latestShopStates.clear();
             prevSnap          = null;
+            prevEnemyIds.clear();
+            prevBossAlive.clear();
             chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
         }
 
@@ -321,6 +329,9 @@ public final class GameScreen implements Screen {
 
         // ── Audio: state-transition SFX ──────────────────────────────────────
         if (snap != null) tickAudio(snap);
+
+        // ── Mission objective progress (enemy kills, boss defeat) ────────────
+        if (snap != null) tickMissionProgress(snap);
 
         // ── E-key: interact with nearest interactable NPC or portal ─────────────
         if (!anyOverlay && !paused && snap != null
@@ -677,6 +688,47 @@ public final class GameScreen implements Screen {
             case "open_shop"     -> { /* stub — shop UI not yet implemented */ }
             case "advance_act"   -> storyManager.advanceAct();
             default              -> { /* unknown event — no-op */ }
+        }
+    }
+
+    // ── Mission objective progress ────────────────────────────────────────────
+
+    /**
+     * Detects enemy kills and boss defeats from snapshot diffs, then forwards
+     * progress to MissionManager so KILL_ALL_ENEMIES / DEFEAT_BOSS objectives advance.
+     *
+     * Uses prevEnemyIds (populated each frame) so zone transitions (which clear it)
+     * won't spuriously count the old room's enemies as kills.
+     */
+    private void tickMissionProgress(WorldSnapshot snap) {
+        // ── Enemy kills ───────────────────────────────────────────────────────
+        java.util.Set<String> currentIds = new java.util.HashSet<>();
+        for (com.indieniinja.network.EnemyState e : snap.enemies) currentIds.add(e.enemyId);
+
+        if (!prevEnemyIds.isEmpty()) {
+            // Any ID in prev but not in current = killed this frame
+            int kills = 0;
+            for (String id : prevEnemyIds) if (!currentIds.contains(id)) kills++;
+            if (kills > 0) {
+                missionManager.progressObjective("kill_all_enemies_", kills);
+                log.debug("[Mission] {} enemy kill(s) detected", kills);
+            }
+        }
+        prevEnemyIds.clear();
+        prevEnemyIds.addAll(currentIds);
+
+        // ── Boss defeats ──────────────────────────────────────────────────────
+        for (com.indieniinja.network.BossState boss : snap.bosses) {
+            boolean wasAlive = prevBossAlive.getOrDefault(boss.bossId, true);
+            if (wasAlive && !boss.alive) {
+                missionManager.progressObjective("defeat_boss_", 1);
+                // Also try keyed by boss type in case mission specifies one
+                if (boss.bossType != null && !boss.bossType.isEmpty()) {
+                    missionManager.progressObjective("defeat_boss_" + boss.bossType, 1);
+                }
+                log.debug("[Mission] boss {} defeated", boss.bossId);
+            }
+            prevBossAlive.put(boss.bossId, boss.alive);
         }
     }
 
