@@ -334,9 +334,18 @@ public final class GameSimulator {
         }
 
         // ── Horizontal movement ───────────────────────────────────────────────
+        if (sp.wallJumpLockTimer > 0f) sp.wallJumpLockTimer -= DT;
+
         if (sp.isDashing) {
             // Dash overrides normal velocity; direction locked to current facing
             p.vx = PhysicsConstants.DASH_SPEED * sp.facing;
+        } else if (sp.wallJumpLockTimer > 0f) {
+            // Wall-jump input lock — preserve the launch vx so momentum carries the
+            // player away from the wall.  Mirrors Python entities/player.py line 260:
+            //   if self.state.is_dashing or self.state.wall_jump_lock > 0: (skip horiz input)
+            // Only update facing from input during the lock so the sprite flips immediately.
+            if (cmd.right) sp.facing =  1;
+            if (cmd.left)  sp.facing = -1;
         } else {
             // Default: walk at 0.6× speed (no ALT).  ALT (cmd.slowWalk) = run at full speed.
             // Mirrors Python entities/player.py: is_running = ALT key; else slow_walk 0.6×
@@ -387,25 +396,23 @@ public final class GameSimulator {
         // ── Wall jump ─────────────────────────────────────────────────────────
         // Mirrors Python mechanics/jump.py _try_wall_jump():
         //   - No jump-count gate (wall jump always available on wall/coyote)
-        //   - Boost vy by 1.6× when sliding down (vy > 0) — matches Python
-        //   - Horizontal power at 0.5× to preserve wall-arc feel
-        //   - Reset jumpCount (Python: jumps_left = MAX_JUMPS - 1)
-        //   - Clear isWallSliding so applyWallSlide can't cancel the jump
+        //   - 1.6× vy boost whether sliding or not (strong upward pop)
+        //   - Full WALL_JUMP_POWER_X horizontal (away from wall) + input lock so
+        //     the player can't immediately cancel the momentum — enables two-wall climbing
+        //   - Reset jumpCount so double-jump is refreshed after wall jump
         boolean canWallJump = p.onWall || sp.wallCoyoteTimer > 0f;
         if (jumpJustPressed && canWallJump && !p.onGround) {
             int wallDir = (p.wallDir != 0) ? p.wallDir
                         : (sp.lastWallDir != 0) ? sp.lastWallDir
                         : (sp.facing >= 0 ? -1 : 1);
-            float vy = (p.onWall && p.vy > 0)
-                ? -PhysicsConstants.WALL_JUMP_POWER_Y * 1.6f
-                : -PhysicsConstants.WALL_JUMP_POWER_Y * 1.6f;
-            p.vy         = vy;
-            p.vx         = -wallDir * (PhysicsConstants.WALL_JUMP_POWER_X * 0.5f);
+            p.vy         = -PhysicsConstants.WALL_JUMP_POWER_Y * 1.6f;
+            p.vx         = -wallDir * PhysicsConstants.WALL_JUMP_POWER_X;  // full power away from wall
             sp.facing    = -wallDir;
-            sp.jumpCount = 0;      // reset double-jump — wall jump refreshes it
+            sp.jumpCount = 0;
             sp.jumpBuffer= 0f;
-            sp.isWallSliding       = false;  // detach before applyWallSlide runs
-            sp.wallCoyoteTimer     = 0f;
+            sp.isWallSliding          = false;
+            sp.wallCoyoteTimer        = 0f;
+            sp.wallJumpLockTimer      = SimPlayer.WALL_JUMP_INPUT_LOCK;
             sp.awaitGroundAfterExhaust = false;
             p.onWall     = false;
             p.wallDir    = 0;

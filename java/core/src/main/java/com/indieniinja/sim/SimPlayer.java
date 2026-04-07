@@ -88,8 +88,12 @@ public final class SimPlayer {
     public static final float TELEPORT_INVULN   = 0.25f;// seconds of invulnerability after
 
     // ── Wall jump state ──────────────────────────────────────────────────────
-    public float   wallCoyoteTimer = 0f;  // brief window to wall-jump after leaving wall
-    public int     lastWallDir     = 0;   // last wall direction (for wall-jump when onWall=false)
+    public float   wallCoyoteTimer    = 0f;  // brief window to wall-jump after leaving wall
+    public int     lastWallDir        = 0;   // last wall direction (for wall-jump when onWall=false)
+    public float   wallJumpLockTimer  = 0f;  // input lock after wall jump — matches Python wall_jump_lock
+
+    public static final float WALL_JUMP_INPUT_LOCK = 0.2f;  // seconds (Python uses 0.12 — slightly
+                                                             // longer here since no air friction)
 
     // ── Wall slide mechanic state ────────────────────────────────────────────
     // Mirrors Python mechanics/wall_slide.py WallSlideMechanic
