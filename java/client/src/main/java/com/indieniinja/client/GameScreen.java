@@ -252,6 +252,13 @@ public final class GameScreen implements Screen {
     public void render(float delta) {
         delta = Math.min(delta, MAX_FRAME_TIME);
 
+        // ── Consume slot assignment from SERVER_HELLO ─────────────────────────
+        int pendingSlot = stateBuffer.pollPendingLocalSlot();
+        if (pendingSlot >= 0) {
+            log.info("[GameScreen] Local slot assigned: {}", pendingSlot);
+            localSlot = pendingSlot;
+        }
+
         // ── Overlay input priority: shop > inventory > dialogue > game ────────
         // Use prevSnap (last frame's snapshot) since this frame's snap hasn't been polled yet.
         boolean shopConsumed = false;

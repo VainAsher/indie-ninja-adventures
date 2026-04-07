@@ -151,8 +151,10 @@ public final class NetworkClientThread extends Thread {
                 buffer.update(snap);
             }
             case MessageType.SERVER_HELLO -> {
-                String ver = msg.getString("version", "?");
-                log.info("[Net] SERVER_HELLO version={}", ver);
+                String ver  = msg.getString("version", "?");
+                int    slot = (int) msg.getLong("slot", 0L);
+                log.info("[Net] SERVER_HELLO version={} slot={}", ver, slot);
+                buffer.setPendingLocalSlot(slot);
                 buffer.markConnected();  // HUD goes Online as soon as handshake completes
             }
             case MessageType.WORLD_TRANSITION -> {

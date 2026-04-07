@@ -4,16 +4,16 @@ import com.indieniinja.sim.GameMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Server-wide session state — players, lobby, game-started flag.
- * Java equivalent of Python's network/server.py GameSession.
  *
- * All mutable fields that cross thread boundaries use ConcurrentHashMap
- * or AtomicInteger/AtomicBoolean for thread safety without explicit locking.
+ * Slot management uses a recyclable TreeSet so disconnected slots are returned
+ * to the pool and reused by reconnecting players (or new joiners).
+ * Player IDs are remembered so a reconnecting client reclaims their exact slot.
  */
 public final class GameSession {
 
@@ -31,23 +31,49 @@ public final class GameSession {
     /** True once GAME_START has been broadcast. */
     public final AtomicBoolean gameStarted = new AtomicBoolean(false);
 
-    private final AtomicInteger nextSlot = new AtomicInteger(0);
-
     /** Reconnect grace period in seconds. */
     public static final int RECONNECT_GRACE_SECONDS = 30;
+
+    /** Available slot numbers (0–MAX_PLAYERS-1). Guarded by itself. */
+    private final TreeSet<Integer> freeSlots = new TreeSet<>();
+
+    /**
+     * Slot reserved for a disconnected player's playerId.
+     * Allows the same client to reconnect and reclaim their slot within the grace period.
+     */
+    private final Map<String, Integer> reservedSlots = new ConcurrentHashMap<>();
 
     public GameSession(long worldSeed) {
         this.worldSeed   = worldSeed;
         this.globalFrame = 0;
+        for (int i = 0; i < MAX_PLAYERS; i++) freeSlots.add(i);
     }
 
     /**
-     * Assign the next available slot number.
-     * Returns -1 if the session is full (MAX_PLAYERS reached).
+     * Claim a slot for the given playerId.
+     * If the player previously held a slot (reserved), return that slot.
+     * Otherwise return the lowest free slot, or -1 if full.
      */
-    public int claimSlot() {
-        int slot = nextSlot.getAndIncrement();
-        return slot < MAX_PLAYERS ? slot : -1;
+    public synchronized int claimSlot(String playerId) {
+        // Reconnecting player? Give them back their old slot.
+        Integer reserved = reservedSlots.remove(playerId);
+        if (reserved != null) {
+            freeSlots.remove(reserved);
+            return reserved;
+        }
+        if (freeSlots.isEmpty()) return -1;
+        int slot = freeSlots.first();
+        freeSlots.remove(slot);
+        return slot;
+    }
+
+    /**
+     * Release a slot back to the pool.
+     * Remembers the association so the same player can reclaim it on reconnect.
+     */
+    public synchronized void releaseSlot(String playerId, int slot) {
+        reservedSlots.put(playerId, slot);
+        freeSlots.add(slot);
     }
 
     /** Snapshot of currently connected players for broadcast. */

@@ -125,7 +125,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
                 version, MessageType.PROTOCOL_VERSION);
         }
 
-        int slot = session.claimSlot();
+        int slot = session.claimSlot(playerId);
         if (slot < 0) {
             sendMessage(ctx.channel(), MessageType.ERROR,
                 Map.of("code", "LOBBY_FULL", "message", "Server is full"));
@@ -332,11 +332,17 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
         log.info("Player {} (slot {}) disconnected", pid, player.slot);
 
-        // Remove from zone
+        // Release slot back to pool (player can reclaim it on reconnect)
+        session.releaseSlot(pid, player.slot);
+
+        // Remove SimPlayer from zone simulator so entity disappears from snapshots
         ZoneInstance zone = zones.get(player.hubId);
         if (zone != null) {
             zone.playerIds.remove(pid);
             zone.lastActivityMs = System.currentTimeMillis();
+            if (zone.simulator != null) {
+                zone.simulator.removePlayer(player.slot);
+            }
         }
 
         // Broadcast leave to all remaining players
