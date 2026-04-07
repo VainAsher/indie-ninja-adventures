@@ -40,6 +40,7 @@ public final class WorldGenerator {
      * Door half-width in tiles — matches Python TILES_PER_ZONE = 8.
      * Carves a 9-tile-wide opening (centre ± DOOR_HALF) at each neighboured edge.
      */
+    /** Half-span of door opening in tiles (total width = DOOR_HALF*2+1 = 9 tiles). */
     private static final int DOOR_HALF = 4;
 
     /**
@@ -188,10 +189,15 @@ public final class WorldGenerator {
      * Each door is centred on the room edge (cols/2 or rows/2) and is
      * (DOOR_HALF * 2 + 1) tiles wide, matching Python's DoorPort span_tiles.
      *
-     * "up"    → rows 0-1 carved at horizontal centre
-     * "down"  → rows (rows-4)..(rows-1) carved at horizontal centre
-     * "left"  → cols 0-1 carved at vertical centre
-     * "right" → cols (cols-2)..(cols-1) carved at vertical centre
+     * "up"    → rows 0-1 carved at horizontal centre (2 rows = ceiling thickness)
+     * "down"  → rows (rows-4)..(rows-1) carved at horizontal centre (4 rows = floor thickness)
+     * "left"  → cols 0-3 carved at vertical centre (4 tiles: 2 wall + 2 interior buffer)
+     * "right" → cols (cols-4)..(cols-1) carved at vertical centre (4 tiles: 2 interior + 2 wall)
+     *
+     * The "left"/"right" openings extend 2 tiles into the interior so that any
+     * one-way platform tiles placed by addPlatformLayers in the door approach
+     * zone are cleared.  Those platforms only block vertical movement, which
+     * would make the door visually appear filled without blocking the player.
      */
     static void carveDoors(byte[][] grid, int cols, int rows,
                             Collection<String> neighborDirs) {
@@ -211,13 +217,15 @@ public final class WorldGenerator {
                             if (c >= 0 && c < cols) grid[r][c] = AIR;
                 }
                 case "left" -> {
+                    // 4 tiles deep (2 wall + 2 interior) to clear approach-zone platforms
                     for (int r = midR - DOOR_HALF; r <= midR + DOOR_HALF; r++)
-                        for (int c = 0; c < 2; c++)
+                        for (int c = 0; c < 4; c++)
                             if (r >= 0 && r < rows) grid[r][c] = AIR;
                 }
                 case "right" -> {
+                    // 4 tiles deep (2 interior + 2 wall) to clear approach-zone platforms
                     for (int r = midR - DOOR_HALF; r <= midR + DOOR_HALF; r++)
-                        for (int c = cols - 2; c < cols; c++)
+                        for (int c = cols - 4; c < cols; c++)
                             if (r >= 0 && r < rows) grid[r][c] = AIR;
                 }
             }
