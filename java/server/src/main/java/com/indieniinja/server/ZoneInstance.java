@@ -18,7 +18,10 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class ZoneInstance {
 
+    /** Zone lookup key — includes grid coords: "hubId:gridX:gridY". */
     public final String hubId;
+    /** Original hub name without grid suffix (e.g. "central_hub"). */
+    public final String masterHubId;
     public final long   seed;
     public final String shape;
     public final int    rooms;
@@ -66,15 +69,16 @@ public final class ZoneInstance {
     public volatile java.util.List<String> currentNeighborDirs = java.util.List.of();
 
     public ZoneInstance(
-            String hubId, long seed, String shape, int rooms,
+            String hubId, String masterHubId, long seed, String shape, int rooms,
             long worldSeed, float spawnX, float spawnY) {
-        this.hubId     = hubId;
-        this.seed      = seed;
-        this.shape     = shape;
-        this.rooms     = rooms;
-        this.worldSeed = worldSeed;
-        this.spawnX    = spawnX;
-        this.spawnY    = spawnY;
+        this.hubId        = hubId;
+        this.masterHubId  = masterHubId;
+        this.seed         = seed;
+        this.shape        = shape;
+        this.rooms        = rooms;
+        this.worldSeed    = worldSeed;
+        this.spawnX       = spawnX;
+        this.spawnY       = spawnY;
     }
 
     public boolean isEmpty() {

@@ -112,6 +112,19 @@ public final class WorldGraph {
     public RoomNode           roomAt(int gx, int gy){ return rooms.get(key(gx, gy)); }
     public int                size()                { return rooms.size(); }
 
+    /**
+     * Return the room adjacent to (gx, gy) in the given cardinal direction,
+     * or null if no room exists there.
+     */
+    public RoomNode neighborRoom(int gx, int gy, String direction) {
+        for (int i = 0; i < DIR_NAMES.length; i++) {
+            if (DIR_NAMES[i].equals(direction)) {
+                return rooms.get(key(gx + DIR_DX[i], gy + DIR_DY[i]));
+            }
+        }
+        return null;
+    }
+
     // ── Generation ────────────────────────────────────────────────────────────
 
     /**

@@ -4,6 +4,7 @@ import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.MessageType;
 import com.indieniinja.network.WireCodec;
 import com.indieniinja.network.WireMessage;
+import com.indieniinja.world.WorldGraph;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -41,6 +42,9 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     /** Zone idle TTL before sim thread is stopped (120 s). */
     private static final long ZONE_IDLE_TTL_MS = 120_000L;
+
+    /** Rooms per hub world — matches ZoneSimulationLoop.DEFAULT_ROOMS. */
+    private static final int DEFAULT_ROOMS = 12;
 
     private final GameSession session;
 
@@ -239,9 +243,9 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             ));
         }
 
-        // Get or create destination zone
-        ZoneInstance newZone = getOrCreateZone(destHubId);
-        player.hubId = destHubId;
+        // Get or create destination zone (start room of that hub)
+        ZoneInstance newZone = getOrCreateStartZone(destHubId);
+        player.hubId = newZone.hubId;
         newZone.playerIds.add(pid);
 
         // Send WORLD_TRANSITION to this player
@@ -295,7 +299,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         if (!session.gameStarted.compareAndSet(false, true)) return; // already started
 
         log.info("Game starting — seed={}", session.worldSeed);
-        ZoneInstance hub = getOrCreateZone("central_hub");
+        ZoneInstance hub = getOrCreateStartZone("central_hub");
 
         Map<String, Object> startPayload = Map.of(
             "seed",       session.worldSeed,
@@ -306,7 +310,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         );
 
         for (PlayerRecord pr : session.connectedPlayers()) {
-            pr.hubId = "central_hub";
+            pr.hubId = hub.hubId;   // zone key, not just "central_hub"
             hub.playerIds.add(pr.playerId);
             try {
                 sendMessage(pr.channel, MessageType.GAME_START, startPayload);
@@ -317,7 +321,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     }
 
     private void bootstrapLateJoiner(Channel channel, PlayerRecord player) {
-        ZoneInstance hub = getOrCreateZone("central_hub");
+        ZoneInstance hub = getOrCreateStartZone("central_hub");
         player.hubId = hub.hubId;
         hub.playerIds.add(player.playerId);
 
@@ -337,23 +341,137 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     // ── Zone management ───────────────────────────────────────────────────────
 
-    private ZoneInstance getOrCreateZone(String hubId) {
-        return zones.computeIfAbsent(hubId, id -> {
+    /** Zone key format: "masterHubId:gridX:gridY" */
+    private static String zoneKey(String masterHubId, int gx, int gy) {
+        return masterHubId + ":" + gx + ":" + gy;
+    }
+
+    /**
+     * Get or create the start-room zone for a hub.  Pre-generates the
+     * WorldGraph so we know the start room's grid coordinates before the
+     * sim thread starts, enabling per-room zone keying.
+     */
+    private ZoneInstance getOrCreateStartZone(String masterHubId) {
+        long zoneSeed = session.worldSeed ^ masterHubId.hashCode();
+        WorldGraph graph = WorldGraph.generate(zoneSeed, DEFAULT_ROOMS, WorldGraph.WorldShape.BLOB);
+        WorldGraph.RoomNode startRoom = graph.startRoom();
+        String key = zoneKey(masterHubId, startRoom.gridX, startRoom.gridY);
+
+        return zones.computeIfAbsent(key, k -> {
             ZoneInstance zone = new ZoneInstance(
-                id,
-                session.worldSeed ^ id.hashCode(),
-                "standard",
-                4,
-                session.worldSeed,
-                100f, 100f
+                key, masterHubId, zoneSeed, "standard", DEFAULT_ROOMS,
+                session.worldSeed, startRoom.gridX * 32f, startRoom.gridY * 32f
             );
-            AtomicBoolean shutdown = new AtomicBoolean(false);
-            ZoneSimulationLoop loop = new ZoneSimulationLoop(zone, session, shutdown);
-            Future<?> future = zoneExecutor.submit(loop);
-            zone.simFuture = future;
-            log.info("Zone '{}' created", id);
+            // Pre-set room state so initSimulator uses this room
+            zone.worldGraph          = graph;
+            zone.currentRoomSeed     = startRoom.seed;
+            zone.currentRoomGridX    = startRoom.gridX;
+            zone.currentRoomGridY    = startRoom.gridY;
+            zone.currentNeighborDirs = new ArrayList<>(startRoom.neighborDirs());
+            startZoneSimLoop(zone);
+            log.info("Hub zone '{}' created — start room ({},{}) seed={}",
+                key, startRoom.gridX, startRoom.gridY, startRoom.seed);
             return zone;
         });
+    }
+
+    /**
+     * Get or create a zone for a specific room within a hub's WorldGraph.
+     * Called when a player transitions through a door.
+     */
+    private ZoneInstance getOrCreateRoomZone(String masterHubId, WorldGraph graph,
+            WorldGraph.RoomNode room) {
+        long zoneSeed = session.worldSeed ^ masterHubId.hashCode();
+        String key = zoneKey(masterHubId, room.gridX, room.gridY);
+
+        return zones.computeIfAbsent(key, k -> {
+            ZoneInstance zone = new ZoneInstance(
+                key, masterHubId, zoneSeed, "standard", DEFAULT_ROOMS,
+                session.worldSeed, room.gridX * 32f, room.gridY * 32f
+            );
+            zone.worldGraph          = graph;
+            zone.currentRoomSeed     = room.seed;
+            zone.currentRoomGridX    = room.gridX;
+            zone.currentRoomGridY    = room.gridY;
+            zone.currentNeighborDirs = new ArrayList<>(room.neighborDirs());
+            startZoneSimLoop(zone);
+            log.info("Room zone '{}' created — ({},{}) seed={}",
+                key, room.gridX, room.gridY, room.seed);
+            return zone;
+        });
+    }
+
+    private void startZoneSimLoop(ZoneInstance zone) {
+        AtomicBoolean shutdown = new AtomicBoolean(false);
+        ZoneSimulationLoop loop = new ZoneSimulationLoop(
+            zone, session, shutdown,
+            (pid, dir) -> transitionPlayerToRoom(pid, dir)
+        );
+        Future<?> future = zoneExecutor.submit(loop);
+        zone.simFuture = future;
+    }
+
+    /**
+     * Move a player from their current zone to the adjacent room zone in
+     * the given direction.  Called from the sim thread via the transition
+     * callback — zone.playerIds has already had the player removed.
+     */
+    private void transitionPlayerToRoom(String pid, String direction) {
+        PlayerRecord pr = session.players.get(pid);
+        if (pr == null) return;
+
+        ZoneInstance fromZone = zones.get(pr.hubId);
+        if (fromZone == null || fromZone.worldGraph == null) {
+            log.warn("Transition: no zone or worldGraph for player {}", pid);
+            return;
+        }
+
+        WorldGraph.RoomNode nextRoom = fromZone.worldGraph.neighborRoom(
+            fromZone.currentRoomGridX, fromZone.currentRoomGridY, direction);
+        if (nextRoom == null) {
+            log.warn("Transition: no neighbor in '{}' from ({},{})",
+                direction, fromZone.currentRoomGridX, fromZone.currentRoomGridY);
+            return;
+        }
+
+        ZoneInstance toZone = getOrCreateRoomZone(fromZone.masterHubId,
+            fromZone.worldGraph, nextRoom);
+
+        // Set spawn position at the entry door of the new room (opposite side)
+        float[] spawn = entrySpawn(direction);
+        pr.posX  = spawn[0];
+        pr.posY  = spawn[1];
+        pr.velX  = 0;
+        pr.velY  = 0;
+        pr.hubId = toZone.hubId;
+        toZone.playerIds.add(pid);
+        toZone.lastActivityMs = System.currentTimeMillis();
+
+        log.info("Player {} transitioned {} → room ({},{}) zone '{}'",
+            pid, direction, nextRoom.gridX, nextRoom.gridY, toZone.hubId);
+    }
+
+    /**
+     * Spawn position when entering a room through the opposite door.
+     * direction = the direction the player exited the previous room.
+     */
+    private static float[] entrySpawn(String direction) {
+        final float TILE   = com.indieniinja.physics.PhysicsConstants.TILE_SIZE;
+        final float COLS   = com.indieniinja.physics.PhysicsConstants.ROOM_WIDTH_TILES;
+        final float ROWS   = com.indieniinja.physics.PhysicsConstants.ROOM_HEIGHT_TILES;
+        final float midX   = (COLS / 2f) * TILE;
+        final float midY   = (ROWS / 2f) * TILE;
+        return switch (direction) {
+            // exited up → enter new room near its bottom door
+            case "up"    -> new float[]{midX, (ROWS - 6) * TILE};
+            // exited down → enter new room near its top door
+            case "down"  -> new float[]{midX, 4 * TILE};
+            // exited left → enter new room near its right door
+            case "left"  -> new float[]{(COLS - 4) * TILE, midY};
+            // exited right → enter new room near its left door
+            case "right" -> new float[]{4 * TILE, midY};
+            default      -> new float[]{midX, (ROWS - 6) * TILE};
+        };
     }
 
     // ── Wire helpers ──────────────────────────────────────────────────────────
