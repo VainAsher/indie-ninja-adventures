@@ -114,6 +114,7 @@ jobs:
           gh release create "${{ github.ref_name }}" \
             --title "Indie Ninja Adventures ${{ github.ref_name }}" \
             --generate-notes \
+            --clobber \
             "build/dist/ninja_dash.exe" \
             "build/dist/ninja_dash.exe.sha256" \
             "build/dist/ninja_dash_launcher.exe" \
