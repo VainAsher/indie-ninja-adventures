@@ -71,7 +71,9 @@
         "basic_movement",
         "jump"
       ],
-      "unlock_abilities": [],
+      "unlock_abilities": [
+        "double_jump"
+      ],
       "rewards": {
         "currency": 40,
         "items": [

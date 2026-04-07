@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.indieniinja.client.network.NetworkClientThread;
 import com.indieniinja.client.rendering.AnimationRegistry;
+import com.indieniinja.client.rendering.BlobTileSet;
 import com.indieniinja.client.rendering.ChunkRenderer;
 import com.indieniinja.client.rendering.EntityRenderer;
 import com.indieniinja.client.rendering.HudRenderer;
@@ -47,6 +48,7 @@ public final class GameScreen implements Screen {
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
+    private BlobTileSet       blobTileSet;
     private ChunkRenderer     chunkRenderer;
     private EntityRenderer    entityRenderer;
     private HudRenderer       hudRenderer;
@@ -93,12 +95,16 @@ public final class GameScreen implements Screen {
             anims.loadPlaceholder();
         }
 
+        // Try to load the mk_nature blob autotile set.  Falls back to placeholder
+        // if the asset files are not present (allows running without full assets).
+        FileHandle blobPng  = Gdx.files.internal("assets/tileset/mk_nature.png");
+        FileHandle blobJson = Gdx.files.internal("assets/tileset/mk_nature_blob_sets.json");
+        if (blobPng.exists() && blobJson.exists()) {
+            blobTileSet = new BlobTileSet(blobPng, blobJson);
+        }
+
         chunkRenderer = new ChunkRenderer();
         chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
-        FileHandle biomeDir = Gdx.files.internal("assets/biomes/dungeon");
-        if (biomeDir.exists()) {
-            chunkRenderer.loadTileTextures(biomeDir, LEVEL_COLS, LEVEL_ROWS);
-        }
 
         particleSystem = new ParticleSystem();
         entityRenderer = new EntityRenderer(anims, particleSystem);
@@ -137,11 +143,17 @@ public final class GameScreen implements Screen {
             if (snap.seed != 0 && snap.seed != loadedSeed) {
                 loadedSeed = snap.seed;
                 byte[][] grid2d = WorldGenerator.generate(snap.seed, LEVEL_COLS, LEVEL_ROWS);
-                // Flatten to 1-D for ChunkRenderer
-                byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
-                for (int r = 0; r < LEVEL_ROWS; r++)
-                    System.arraycopy(grid2d[r], 0, flat, r * LEVEL_COLS, LEVEL_COLS);
-                chunkRenderer.loadProceduralTiles(flat, LEVEL_COLS, LEVEL_ROWS);
+                if (blobTileSet != null) {
+                    // Full autotiled rendering using the mk_nature spritesheet
+                    int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);
+                    chunkRenderer.loadBlobTiles(blobTileSet, biomeIdx, grid2d, LEVEL_COLS, LEVEL_ROWS);
+                } else {
+                    // Fallback: placeholder coloured tiles
+                    byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
+                    for (int r = 0; r < LEVEL_ROWS; r++)
+                        System.arraycopy(grid2d[r], 0, flat, r * LEVEL_COLS, LEVEL_COLS);
+                    chunkRenderer.loadProceduralTiles(flat, LEVEL_COLS, LEVEL_ROWS);
+                }
             }
 
             if (!snap.players.isEmpty()) {
@@ -198,6 +210,7 @@ public final class GameScreen implements Screen {
         if (networkClient  != null) networkClient.shutdown();
         if (batch          != null) batch.dispose();
         if (anims          != null) anims.dispose();
+        if (blobTileSet    != null) blobTileSet.dispose();
         if (chunkRenderer  != null) chunkRenderer.dispose();
         if (particleSystem != null) particleSystem.dispose();
         if (hudRenderer    != null) hudRenderer.dispose();

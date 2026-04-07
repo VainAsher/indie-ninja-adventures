@@ -8,6 +8,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.indieniinja.client.GameCamera;
 import com.indieniinja.physics.PhysicsConstants;
+import com.indieniinja.world.AutotileResolver;
+import com.indieniinja.world.WorldGenerator;
 
 /**
  * Renders the tile world with camera frustum culling.
@@ -117,10 +119,10 @@ public final class ChunkRenderer {
      * Load a procedurally generated tile grid produced by WorldGenerator.
      *
      * Tile values: 0=air (null), 1=solid, 2=one-way platform.
-     * Call this after ensure placeholderSolid/placeholderPlatform are initialised
+     * Call this after placeholderSolid/placeholderPlatform are initialised
      * (i.e. after loadPlaceholderLayout or loadTileTextures).
      *
-     * @param grid byte[rows][cols] from WorldGenerator.generate()
+     * @param grid flat byte[rows*cols] from WorldGenerator.generate() (row-major)
      * @param cols grid width in tiles
      * @param rows grid height in tiles
      */
@@ -131,9 +133,43 @@ public final class ChunkRenderer {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 byte tile = grid[r * cols + c];
-                if      (tile == 1) tileMap[r][c] = placeholderSolid;
-                else if (tile == 2) tileMap[r][c] = placeholderPlatform;
-                // 0 = air → null (already null from array init)
+                if      (tile == WorldGenerator.SOLID)    tileMap[r][c] = placeholderSolid;
+                else if (tile == WorldGenerator.PLATFORM) tileMap[r][c] = placeholderPlatform;
+            }
+        }
+    }
+
+    /**
+     * Load a procedurally generated tile grid using the mk_nature blob autotile set.
+     *
+     * For each solid tile the neighbour bitmask is computed via {@link AutotileResolver}
+     * and the correct textured variant is looked up from the blob set.  Platform tiles
+     * use a fixed isolated-tile variant (role=0) from the same biome.
+     *
+     * Falls back to the placeholder textures for any role not found in the set.
+     *
+     * @param blobTiles  loaded BlobTileSet (PNG + JSON)
+     * @param biomeIndex biome constant from BlobTileSet (0–4)
+     * @param grid2d     byte[rows][cols] from WorldGenerator.generate()
+     * @param cols       grid width in tiles
+     * @param rows       grid height in tiles
+     */
+    public void loadBlobTiles(BlobTileSet blobTiles, int biomeIndex,
+                              byte[][] grid2d, int cols, int rows) {
+        this.mapCols = cols;
+        this.mapRows = rows;
+        this.tileMap = new TextureRegion[rows][cols];
+
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                byte tile = grid2d[r][c];
+                if (tile == WorldGenerator.SOLID) {
+                    int role = AutotileResolver.computeRole(grid2d, r, c, rows, cols);
+                    tileMap[r][c] = blobTiles.getFrame(biomeIndex, role);
+                } else if (tile == WorldGenerator.PLATFORM) {
+                    tileMap[r][c] = blobTiles.getPlatformFrame(biomeIndex);
+                }
+                // AIR → null, already null from array init
             }
         }
     }
