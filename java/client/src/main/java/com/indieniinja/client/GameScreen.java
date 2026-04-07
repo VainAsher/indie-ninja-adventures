@@ -419,6 +419,17 @@ public final class GameScreen implements Screen {
                 cachedPortals = java.util.List.of();
                 log.debug("[GameScreen] room changed ({},{})→({},{})",
                     prevRoomGridX, prevRoomGridY, snap.roomGridX, snap.roomGridY);
+                // Snap camera instantly to new world-space position so the spring-lerp
+                // doesn't visibly pan across the room boundary over several frames.
+                if (megamapRoomCount > 0 && !snap.players.isEmpty()) {
+                    PlayerState snapLocal = snap.players.stream()
+                        .filter(p -> p.slot == localSlot).findFirst()
+                        .orElse(snap.players.get(0));
+                    int tile = PhysicsConstants.TILE_SIZE;
+                    float newOffX = (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile;
+                    float newOffY = (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile;
+                    camera.snapTo(newOffX + snapLocal.posX, newOffY + snapLocal.posY);
+                }
             }
             prevRoomGridX = snap.roomGridX;
             prevRoomGridY = snap.roomGridY;
