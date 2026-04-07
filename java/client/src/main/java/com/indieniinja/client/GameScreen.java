@@ -95,6 +95,14 @@ public final class GameScreen implements Screen {
     private java.util.List<WorldRoomDescriptor> cachedWorldRooms = java.util.List.of();
     /** Cached portal list from the most recent full snapshot. */
     private java.util.List<com.indieniinja.network.PortalState> cachedPortals = java.util.List.of();
+    /** Stable enemy list — updated on full snapshots, delta-merged otherwise; used by minimap. */
+    private java.util.List<com.indieniinja.network.EnemyState>  cachedEnemies  = java.util.List.of();
+    /** Stable pickup list — same lifecycle as cachedEnemies. */
+    private java.util.List<com.indieniinja.network.PickupState> cachedPickups  = java.util.List.of();
+    /** Tile grids keyed "gx,gy" — generated in buildMegamap; consumed by minimap tile-detail. */
+    private final java.util.Map<String, byte[][]> cachedTileGrids = new java.util.HashMap<>();
+    /** Rooms the local player has visited (entered at least once). */
+    private final java.util.Set<String> visitedRooms = new java.util.HashSet<>();
 
     // ── Audio ─────────────────────────────────────────────────────────────────
     private AudioManager audioManager;
@@ -341,6 +349,11 @@ public final class GameScreen implements Screen {
             prevRoomGridY      = Integer.MIN_VALUE;
             prevEnemyIds.clear();
             prevBossAlive.clear();
+            cachedEnemies  = java.util.List.of();
+            cachedPickups  = java.util.List.of();
+            cachedTileGrids.clear();
+            visitedRooms.clear();
+            minimapRenderer.clearState();
             chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
         }
 
@@ -417,6 +430,8 @@ public final class GameScreen implements Screen {
                 prevBossAlive.clear();
                 latestShopStates.clear();
                 cachedPortals = java.util.List.of();
+                cachedEnemies = java.util.List.of();
+                cachedPickups = java.util.List.of();
                 log.debug("[GameScreen] room changed ({},{})→({},{})",
                     prevRoomGridX, prevRoomGridY, snap.roomGridX, snap.roomGridY);
                 // Snap camera instantly to new world-space position so the spring-lerp
@@ -433,6 +448,15 @@ public final class GameScreen implements Screen {
             }
             prevRoomGridX = snap.roomGridX;
             prevRoomGridY = snap.roomGridY;
+
+            // ── Mark current room as visited (fog of war) ─────────────────────
+            visitedRooms.add(snap.roomGridX + "," + snap.roomGridY);
+
+            // ── Keep stable entity caches for minimap (full snapshots only) ───
+            if (!snap.isDelta) {
+                cachedEnemies = snap.enemies;
+                cachedPickups = snap.pickups;
+            }
 
             // ── Update shop states cache (full snapshots have non-empty shopStates) ─
             if (!snap.shopStates.isEmpty()) {
@@ -576,7 +600,9 @@ public final class GameScreen implements Screen {
             float roomPy  = PhysicsConstants.ROOM_HEIGHT_TILES * PhysicsConstants.TILE_SIZE;
             batch.setProjectionMatrix(hudRenderer.screenProjection());
             // MinimapRenderer manages its own batch.begin/end; do NOT open batch here.
-            minimapRenderer.render(batch, cachedWorldRooms, gridX, gridY, lpx, lpy, roomPx, roomPy);
+            minimapRenderer.render(batch, cachedWorldRooms, gridX, gridY, lpx, lpy, roomPx, roomPy,
+                cachedTileGrids, visitedRooms, snapForMap,
+                cachedEnemies, cachedPickups, cachedPortals, localSlot);
             batch.setProjectionMatrix(camera.cam.combined);
         }
 
@@ -642,9 +668,16 @@ public final class GameScreen implements Screen {
         com.badlogic.gdx.graphics.g2d.TextureRegion solidTex    = chunkRenderer.placeholderSolid();
         com.badlogic.gdx.graphics.g2d.TextureRegion platformTex = chunkRenderer.placeholderPlatform();
 
+        // Discard old tile-detail textures; minimap will rebuild lazily.
+        minimapRenderer.clearState();
+        cachedTileGrids.clear();
+
         for (WorldRoomDescriptor room : rooms) {
             byte[][] grid = WorldGenerator.generate(
                 room.seed, LEVEL_COLS, LEVEL_ROWS, room.neighborDirs, room.roomType);
+
+            // Cache for minimap tile-detail feature.
+            cachedTileGrids.put(room.gridX + "," + room.gridY, grid);
 
             int offX = (room.gridX - minGX) * LEVEL_COLS;
             int offY = (room.gridY - minGY) * LEVEL_ROWS;
