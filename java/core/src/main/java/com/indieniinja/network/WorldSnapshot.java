@@ -21,6 +21,10 @@ public final class WorldSnapshot {
     public long   seed;
     public boolean isDelta;
 
+    /** Grid coordinates of the room this snapshot describes (multi-room world). */
+    public int    roomGridX = 0;
+    public int    roomGridY = 0;
+
     // Always sent (not delta'd)
     public List<PlayerState>   players        = new ArrayList<>();
 
@@ -47,10 +51,12 @@ public final class WorldSnapshot {
     @SuppressWarnings("unchecked")
     public static WorldSnapshot fromMap(java.util.Map<String, Object> m) {
         WorldSnapshot s = new WorldSnapshot();
-        s.frame   = num(m, "frame",    0L);
-        s.seed    = num(m, "seed",     0L);
-        s.isDelta = bool(m, "is_delta");
-        s.hubId   = str(m, "hub_id",   "");
+        s.frame      = num(m, "frame",      0L);
+        s.seed       = num(m, "seed",       0L);
+        s.isDelta    = bool(m, "is_delta");
+        s.hubId      = str(m, "hub_id",     "");
+        s.roomGridX  = (int) num(m, "room_grid_x", 0L);
+        s.roomGridY  = (int) num(m, "room_grid_y", 0L);
 
         for (Object p : list(m, "players"))
             if (p instanceof java.util.Map<?,?> pm)
@@ -104,11 +110,13 @@ public final class WorldSnapshot {
      * Key order matches Python's WorldSnapshot.to_dict().
      */
     public Map<String, Object> toMap() {
-        Map<String, Object> m = new LinkedHashMap<>(16);
-        m.put("frame",    frame);
-        m.put("seed",     seed);
-        m.put("is_delta", isDelta);
-        m.put("players",  playerList());
+        Map<String, Object> m = new LinkedHashMap<>(18);
+        m.put("frame",       frame);
+        m.put("seed",        seed);
+        m.put("is_delta",    isDelta);
+        m.put("room_grid_x", roomGridX);
+        m.put("room_grid_y", roomGridY);
+        m.put("players",     playerList());
 
         if (isDelta) {
             m.put("enemies_changed",   mapList(enemiesChanged));

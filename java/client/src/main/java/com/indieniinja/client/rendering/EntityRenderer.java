@@ -224,11 +224,10 @@ public final class EntityRenderer {
     private void renderEnemy(SpriteBatch batch, EnemyState e, float dt) {
         if ("dead".equals(e.aiState)) return;
 
-        // Derive entity type from enemyId: "central_hub_goblin_0" → last non-numeric segment
-        String[] parts = e.enemyId.split("_");
-        String typePrefix = (parts.length >= 2)
-            ? parts[parts.length - 2]
-            : e.enemyId;
+        // Use explicit enemyType from wire; fall back to ID-parsing for old snapshots
+        String typePrefix = (e.enemyType != null && !e.enemyType.isEmpty())
+            ? e.enemyType
+            : derivePrefixFromId(e.enemyId);
         String animKey = "enemy_" + typePrefix + "_" + (e.aiState != null ? e.aiState : "idle");
 
         float stateTime = tickStateTime(e.enemyId, animKey, dt);
@@ -265,6 +264,14 @@ public final class EntityRenderer {
         TextureRegion frame = anims.getFrame(animKey, stateTime, PICKUP_ANIM_FPS);
 
         batch.draw(frame, p.x - PICKUP_SIZE / 2f, p.y, PICKUP_SIZE, PICKUP_SIZE);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Fallback: derive type string from enemy ID convention "hub_type_idx". */
+    private static String derivePrefixFromId(String enemyId) {
+        String[] parts = enemyId.split("_");
+        return (parts.length >= 2) ? parts[parts.length - 2] : enemyId;
     }
 
     // ── Animation clock helpers ───────────────────────────────────────────────

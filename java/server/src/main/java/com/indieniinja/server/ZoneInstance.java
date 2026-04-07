@@ -2,6 +2,7 @@ package com.indieniinja.server;
 
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.world.WorldGraph;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -49,6 +50,18 @@ public final class ZoneInstance {
      * Phase B: fully populated with enemies, pickups, platforms from LevelLayout.
      */
     public volatile GameSimulator simulator;
+
+    /**
+     * Multi-room world graph generated from this zone's master seed.
+     * Assigned in ZoneSimulationLoop.initSimulator once at startup.
+     */
+    public volatile WorldGraph worldGraph;
+
+    /** Seed for the current room (start room at boot; changes on room transition). */
+    public volatile long  currentRoomSeed = 0;
+    /** Grid coordinates of the current room in the WorldGraph. */
+    public volatile int   currentRoomGridX = 0;
+    public volatile int   currentRoomGridY = 0;
 
     public ZoneInstance(
             String hubId, long seed, String shape, int rooms,

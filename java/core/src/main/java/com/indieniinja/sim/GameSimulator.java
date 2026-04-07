@@ -222,6 +222,7 @@ public final class GameSimulator {
             if (en.removed) continue;
             EnemyState es = new EnemyState();
             es.enemyId     = en.enemyId;
+            es.enemyType   = en.enemyType;
             es.x           = en.physics.x;
             es.y           = en.physics.y;
             es.vx          = en.physics.vx;

@@ -10,6 +10,7 @@ import com.indieniinja.network.WireCodec;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.world.WorldGraph;
 import com.indieniinja.sim.SimPlayer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -66,10 +67,30 @@ public final class ZoneSimulationLoop implements Runnable {
      * Build and attach a GameSimulator to this zone using the LevelLayout.
      * Called once before the loop starts (from ServerProtocolHandler.getOrCreateZone).
      */
+    /**
+     * Default rooms per hub world — mirrors Python hub_manager.py room_count defaults.
+     * Small enough that generation is fast but large enough for meaningful exploration.
+     */
+    private static final int DEFAULT_ROOMS = 12;
+
     public static void initSimulator(ZoneInstance zone) {
-        LevelLayout layout = LevelLayout.buildProceduralLayout(zone.seed);
-        zone.simulator = new GameSimulator(zone.seed, zone.hubId, layout);
-        log.info("[Zone {}] GameSimulator initialised (seed={}, proc 128x128)", zone.hubId, zone.seed);
+        // Generate multi-room world graph from the hub's master seed.
+        // Each room gets its own derived seed; we simulate the start room first.
+        WorldGraph graph = WorldGraph.generate(zone.seed, DEFAULT_ROOMS, WorldGraph.WorldShape.BLOB);
+        zone.worldGraph       = graph;
+
+        WorldGraph.RoomNode startRoom = graph.startRoom();
+        zone.currentRoomSeed  = startRoom.seed;
+        zone.currentRoomGridX = startRoom.gridX;
+        zone.currentRoomGridY = startRoom.gridY;
+
+        // Build the procedural tile layout using the start room's derived seed.
+        LevelLayout layout = LevelLayout.buildProceduralLayout(startRoom.seed);
+        zone.simulator = new GameSimulator(startRoom.seed, zone.hubId, layout);
+
+        log.info("[Zone {}] WorldGraph: {} rooms (start={},{} seed={})",
+            zone.hubId, graph.size(),
+            startRoom.gridX, startRoom.gridY, startRoom.seed);
     }
 
     @Override
@@ -230,6 +251,12 @@ public final class ZoneSimulationLoop implements Runnable {
             ? sim.getSnapshot(zone.frame.get())
             : buildFallbackSnapshot(zonePlayers);
 
+        // Override seed with the current room's derived seed so the client
+        // generates the correct tile grid for this specific room.
+        long roomSeed = zone.currentRoomSeed;
+        if (roomSeed != 0) snap.seed = roomSeed;
+        snap.roomGridX = zone.currentRoomGridX;
+        snap.roomGridY = zone.currentRoomGridY;
         snap.isDelta = !full;
 
         if (!full) {

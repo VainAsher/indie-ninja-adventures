@@ -6,6 +6,7 @@ import java.util.Map;
 public final class EnemyState {
 
     public String  enemyId;
+    public String  enemyType;     // "goblin"|"bat"|"slime"|"skeleton"|"wolf"
     public float   x, y, vx, vy;
     public int     hp;
     public String  aiState;       // "idle"|"patrol"|"chase"|"attack"|"dead"
@@ -14,21 +15,23 @@ public final class EnemyState {
     public EnemyState() {}
 
     public Map<String, Object> toMap() {
-        return Map.of(
-            "enemy_id",    enemyId,
-            "x",           x,
-            "y",           y,
-            "vx",          vx,
-            "vy",          vy,
-            "hp",          hp,
-            "ai_state",    aiState,
-            "facing_right",facingRight
-        );
+        java.util.LinkedHashMap<String,Object> m = new java.util.LinkedHashMap<>();
+        m.put("enemy_id",     enemyId);
+        m.put("enemy_type",   enemyType != null ? enemyType : "goblin");
+        m.put("x",            x);
+        m.put("y",            y);
+        m.put("vx",           vx);
+        m.put("vy",           vy);
+        m.put("hp",           hp);
+        m.put("ai_state",     aiState);
+        m.put("facing_right", facingRight);
+        return m;
     }
 
     public static EnemyState fromMap(Map<String, Object> m) {
         EnemyState e = new EnemyState();
         e.enemyId    = str(m, "enemy_id", "");
+        e.enemyType  = str(m, "enemy_type", "goblin");
         e.x          = flt(m, "x");
         e.y          = flt(m, "y");
         e.vx         = flt(m, "vx");
