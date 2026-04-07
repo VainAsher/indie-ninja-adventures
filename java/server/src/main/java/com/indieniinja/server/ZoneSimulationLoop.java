@@ -105,6 +105,10 @@ public final class ZoneSimulationLoop implements Runnable {
             startRoom.seed, startRoom.neighborDirs(), startRoom.type.wire());
         zone.simulator = new GameSimulator(startRoom.seed, zone.hubId, layout);
 
+        // Propagate layout spawn to zone so simulateTick uses the correct spawn position
+        zone.spawnX = layout.spawnX;
+        zone.spawnY = layout.spawnY;
+
         log.info("[Zone {}] WorldGraph: {} rooms (start={},{} seed={})",
             zone.hubId, graph.size(),
             startRoom.gridX, startRoom.gridY, startRoom.seed);
@@ -191,8 +195,10 @@ public final class ZoneSimulationLoop implements Runnable {
 
             SimPlayer sp = sim.getPlayers().get(pr.slot);
             if (sp == null) {
-                // First appearance — seed from PlayerRecord spawn position
-                SimPlayer newSp = new SimPlayer(pid, pr.slot, pr.posX, pr.posY);
+                // First appearance — use layout-derived spawn (safe, non-solid position)
+                float sx = zone.spawnX != 0 ? zone.spawnX : pr.posX;
+                float sy = zone.spawnY != 0 ? zone.spawnY : pr.posY;
+                SimPlayer newSp = new SimPlayer(pid, pr.slot, sx, sy);
                 newSp.health    = pr.health;
                 newSp.facing    = pr.facing;
                 newSp.animState = pr.animState;

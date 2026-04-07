@@ -38,6 +38,9 @@ public final class LevelLayout {
     public final List<FallingPlatform> fallingPlatforms;
     // World height in pixels (used for enemy AI fall detection)
     public final float worldHeightPx;
+    /** Recommended player spawn position derived from the generated layout. */
+    public final float spawnX;
+    public final float spawnY;
 
     private LevelLayout(
             long seed, int widthTiles, int heightTiles,
@@ -45,7 +48,8 @@ public final class LevelLayout {
             List<EnemySpawn> enemySpawns,
             List<PickupSpawn> pickupSpawns,
             List<NPCSpawn> npcSpawns,
-            List<FallingPlatform> fallingPlatforms) {
+            List<FallingPlatform> fallingPlatforms,
+            float spawnX, float spawnY) {
         this.seed             = seed;
         this.widthTiles       = widthTiles;
         this.heightTiles      = heightTiles;
@@ -55,6 +59,8 @@ public final class LevelLayout {
         this.npcSpawns        = npcSpawns;
         this.fallingPlatforms = fallingPlatforms;
         this.worldHeightPx    = heightTiles * 32f;
+        this.spawnX           = spawnX;
+        this.spawnY           = spawnY;
     }
 
     /** Spawn descriptor for an enemy. */
@@ -129,7 +135,11 @@ public final class LevelLayout {
                 fx, fy, 3 * TILE, TILE));
         }
 
-        return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), falling);
+        // Spawn at centre of floor in the test layout
+        float testSpawnX = (W / 2) * TILE;
+        float testSpawnY = (H - 2) * TILE - 56f;   // player height = 56
+        return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), falling,
+                testSpawnX, testSpawnY);
     }
 
     /**
@@ -180,6 +190,24 @@ public final class LevelLayout {
 
         // Collect valid ground positions (solid/platform tile with air directly above)
         List<float[]> groundPos = WorldGenerator.collectGroundPositions(grid, COLS, ROWS, TILE);
+
+        // Compute spawn: ground position nearest to room centre-bottom.
+        // Search within ±3 zone widths of centre-x (centre ± 3*8*32 = ±768 px).
+        float centreX   = COLS * TILE * 0.5f;  // 2048
+        float spawnX    = centreX;
+        float spawnY    = (ROWS - 2) * TILE - 56f;   // fallback: base floor − player height
+        float bestScore = Float.MAX_VALUE;
+        for (float[] pos : groundPos) {
+            float dx = Math.abs(pos[0] - centreX);
+            if (dx > 3 * 8 * TILE) continue;            // outside centre band
+            float dy = (ROWS * TILE) - pos[1];           // distance from bottom (lower = better)
+            float score = dy * 0.3f + dx;                // favour bottom-centre
+            if (score < bestScore) {
+                bestScore = score;
+                spawnX = pos[0];
+                spawnY = pos[1] - 56f;                   // entity top = floor top − height
+            }
+        }
 
         // Shuffle deterministically so enemy/pickup placement varies per seed
         java.util.Random rng = new java.util.Random(seed ^ 0xBEEF_CAFEL);
@@ -234,6 +262,7 @@ public final class LevelLayout {
             npcs.add(new NPCSpawn(t, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
         }
 
-        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, falling);
+        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, falling,
+                spawnX, spawnY);
     }
 }

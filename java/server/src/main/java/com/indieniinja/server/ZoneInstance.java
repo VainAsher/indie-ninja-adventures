@@ -26,8 +26,9 @@ public final class ZoneInstance {
     public final String shape;
     public final int    rooms;
     public final long   worldSeed;
-    public final float  spawnX;
-    public final float  spawnY;
+    /** Authoritative player spawn position, set from LevelLayout after room generation. */
+    public volatile float  spawnX;
+    public volatile float  spawnY;
 
     /** Monotonically increasing frame counter for this zone. */
     public final AtomicLong frame = new AtomicLong(0);
