@@ -131,12 +131,14 @@ public final class RoomGenerator {
             }
             case ZonePlanner.WALK, ZonePlanner.DOOR, ZonePlanner.SAVE,
                  ZonePlanner.SHOP, ZonePlanner.LOOT, ZonePlanner.DECOR -> {
-                // Floor at bottom of zone — UNLESS this edge connects to another room
+                // One-way platform at bottom of zone — lets player land from above but
+                // jump through from below, preventing sealed vertical chambers.
+                // UNLESS this zone is on a connected edge (door traversal must stay clear).
                 if (!isBottomEdge && !isTopEdge) {
                     int floorY = tyEnd - 1;
                     for (int tx = txStart; tx < txEnd; tx++)
                         if (inBounds(tx, floorY) && g[floorY][tx] == WorldGenerator.AIR)
-                            g[floorY][tx] = WorldGenerator.SOLID;
+                            g[floorY][tx] = WorldGenerator.PLATFORM;
                 }
             }
             case ZonePlanner.CHUTE -> {
