@@ -196,9 +196,17 @@ public final class ZoneSimulationLoop implements Runnable {
 
             SimPlayer sp = sim.getPlayers().get(pr.slot);
             if (sp == null) {
-                // First appearance — use layout-derived spawn (safe, non-solid position)
-                float sx = zone.spawnX != 0 ? zone.spawnX : pr.posX;
-                float sy = zone.spawnY != 0 ? zone.spawnY : pr.posY;
+                float sx, sy;
+                if (pr.explicitSpawnSet) {
+                    // Transitioning player: use door-entry coords set by transitionPlayerToRoom()
+                    sx = pr.posX;
+                    sy = pr.posY;
+                    pr.explicitSpawnSet = false;
+                } else {
+                    // Fresh join: use layout-detected safe spawn, fall back to PlayerRecord default
+                    sx = zone.spawnX != 0 ? zone.spawnX : pr.posX;
+                    sy = zone.spawnY != 0 ? zone.spawnY : pr.posY;
+                }
                 SimPlayer newSp = new SimPlayer(pid, pr.slot, sx, sy);
                 newSp.health    = pr.health;
                 newSp.facing    = pr.facing;

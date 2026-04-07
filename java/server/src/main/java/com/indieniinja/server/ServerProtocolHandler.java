@@ -439,10 +439,13 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         ZoneInstance toZone = getOrCreateRoomZone(fromZone.masterHubId,
             fromZone.worldGraph, nextRoom);
 
-        // Set spawn position at the entry door of the new room (opposite side)
-        float[] spawn = entrySpawn(direction);
-        pr.posX  = spawn[0];
-        pr.posY  = spawn[1];
+        // Set spawn position at the entry door of the new room (opposite side),
+        // preserving the player's coordinate along the door axis so the world-space
+        // position is continuous (no visible jump in the megamap view).
+        float[] spawn = entrySpawn(direction, pr.posX, pr.posY);
+        pr.posX           = spawn[0];
+        pr.posY           = spawn[1];
+        pr.explicitSpawnSet = true;  // tell sim to use this instead of zone.spawnX/Y
         pr.velX  = 0;
         pr.velY  = 0;
         pr.hubId = toZone.hubId;
@@ -455,24 +458,29 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     /**
      * Spawn position when entering a room through the opposite door.
-     * direction = the direction the player exited the previous room.
+     *
+     * Preserves the coordinate along the door axis so the transition is seamless
+     * in world-space (no visible Y-jump when moving left/right, no X-jump up/down).
+     * The perpendicular axis is placed just inside the entry door opening.
+     *
+     * @param direction the direction the player exited the previous room
+     * @param fromX     player X in the previous room (room-local pixels)
+     * @param fromY     player Y in the previous room (room-local pixels)
      */
-    private static float[] entrySpawn(String direction) {
+    private static float[] entrySpawn(String direction, float fromX, float fromY) {
         final float TILE   = com.indieniinja.physics.PhysicsConstants.TILE_SIZE;
         final float COLS   = com.indieniinja.physics.PhysicsConstants.ROOM_WIDTH_TILES;
         final float ROWS   = com.indieniinja.physics.PhysicsConstants.ROOM_HEIGHT_TILES;
-        final float midX   = (COLS / 2f) * TILE;
-        final float midY   = (ROWS / 2f) * TILE;
         return switch (direction) {
-            // exited up → enter new room near its bottom door
-            case "up"    -> new float[]{midX, (ROWS - 6) * TILE};
-            // exited down → enter new room near its top door
-            case "down"  -> new float[]{midX, 4 * TILE};
-            // exited left → enter new room near its right door
-            case "left"  -> new float[]{(COLS - 4) * TILE, midY};
-            // exited right → enter new room near its left door
-            case "right" -> new float[]{4 * TILE, midY};
-            default      -> new float[]{midX, (ROWS - 6) * TILE};
+            // exited up   → enter near bottom door, preserve X
+            case "up"    -> new float[]{ fromX, (ROWS - 6) * TILE };
+            // exited down → enter near top door, preserve X
+            case "down"  -> new float[]{ fromX, 4 * TILE };
+            // exited left → enter near right door, preserve Y
+            case "left"  -> new float[]{ (COLS - 4) * TILE, fromY };
+            // exited right → enter near left door, preserve Y
+            case "right" -> new float[]{ 4 * TILE, fromY };
+            default      -> new float[]{ fromX, (ROWS - 6) * TILE };
         };
     }
 

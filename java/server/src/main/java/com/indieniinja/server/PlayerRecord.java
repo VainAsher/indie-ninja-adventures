@@ -38,6 +38,13 @@ public final class PlayerRecord {
     // Reconnect grace: slot reservation deadline (epoch ms); 0 = no reservation
     public volatile long reservedUntilMs = 0;
 
+    /**
+     * Set to true by transitionPlayerToRoom() after writing an explicit door-entry
+     * spawn position into posX/Y.  ZoneSimulationLoop clears it after consuming it,
+     * ensuring the sim uses the door-entry coords instead of zone.spawnX/Y.
+     */
+    public volatile boolean explicitSpawnSet = false;
+
     public PlayerRecord(String playerId, int slot, Channel channel) {
         this.playerId = playerId;
         this.slot     = slot;
