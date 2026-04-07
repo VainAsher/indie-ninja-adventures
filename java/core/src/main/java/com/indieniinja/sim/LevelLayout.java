@@ -1,9 +1,12 @@
 package com.indieniinja.sim;
 
+import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.physics.SpatialHash;
 import com.indieniinja.physics.TileRect;
+import com.indieniinja.world.WorldGenerator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -117,5 +120,77 @@ public final class LevelLayout {
         }
 
         return new LevelLayout(seed, W, H, hash, enemies, pickups, falling);
+    }
+
+    /**
+     * Build a procedurally generated layout from a seed.
+     *
+     * Uses WorldGenerator to create a 128×128 tile grid with layered platforms
+     * and mid structures, then derives enemy and pickup spawn positions from
+     * valid ground positions in the generated grid.
+     *
+     * Replaces buildTestLayout for Loop 3+.
+     */
+    public static LevelLayout buildProceduralLayout(long seed) {
+        final int TILE = 32;
+        final int COLS = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
+        final int ROWS = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
+
+        byte[][] grid = WorldGenerator.generate(seed, COLS, ROWS);
+
+        // Build spatial hash from every non-air tile
+        SpatialHash hash = new SpatialHash();
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                byte tile = grid[r][c];
+                if (tile == WorldGenerator.AIR) continue;
+                boolean oneWay = (tile == WorldGenerator.PLATFORM);
+                hash.insert(new TileRect(c * TILE, r * TILE, TILE, TILE, oneWay));
+            }
+        }
+
+        // Collect valid ground positions (solid/platform tile with air directly above)
+        List<float[]> groundPos = WorldGenerator.collectGroundPositions(grid, COLS, ROWS, TILE);
+
+        // Shuffle deterministically so enemy/pickup placement varies per seed
+        java.util.Random rng = new java.util.Random(seed ^ 0xBEEF_CAFEL);
+        Collections.shuffle(groundPos, rng);
+
+        // Enemies — 3-5 at first available ground positions
+        List<EnemySpawn> enemies = new ArrayList<>();
+        String[] enemyTypes = {"goblin", "slime", "skeleton"};
+        int numEnemies = 3 + rng.nextInt(3);   // 3-5
+        for (int i = 0; i < numEnemies && i < groundPos.size(); i++) {
+            float[] pos = groundPos.get(i);
+            String t    = enemyTypes[i % enemyTypes.length];
+            float patrol = 3 * TILE;
+            // posY is top of tile; enemy bottom = posY, so entity posY = posY - entityHeight
+            // GameSimulator spawns using posY directly — pass the tile-top so SimEnemy.y == floor
+            enemies.add(new EnemySpawn(t, pos[0], pos[1],
+                pos[0] - patrol, pos[0] + patrol));
+        }
+
+        // Pickups — 2-4 at next available positions
+        List<PickupSpawn> pickups = new ArrayList<>();
+        String[] pickupTypes = {"coin", "health_potion", "coin"};
+        int numPickups  = 2 + rng.nextInt(3);   // 2-4
+        int pickupStart = numEnemies;
+        for (int i = 0; i < numPickups && (pickupStart + i) < groundPos.size(); i++) {
+            float[] pos = groundPos.get(pickupStart + i);
+            pickups.add(new PickupSpawn(
+                pickupTypes[i % pickupTypes.length], pos[0], pos[1]));
+        }
+
+        // Falling platforms — 2, placed in the mid-zone
+        List<FallingPlatform> falling = new ArrayList<>();
+        int mid = ROWS / 2;
+        for (int i = 0; i < 2; i++) {
+            float fx = (20 + i * 30) * TILE;
+            float fy = (mid - 10 + i * 8) * TILE;
+            falling.add(new FallingPlatform(
+                "plat_" + (int) fx + "_" + (int) fy, fx, fy, 3 * TILE, TILE));
+        }
+
+        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, falling);
     }
 }

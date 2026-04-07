@@ -17,6 +17,7 @@ import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.physics.PhysicsConstants;
+import com.indieniinja.world.WorldGenerator;
 
 /**
  * In-game screen — contains the full render + simulation loop.
@@ -29,8 +30,8 @@ public final class GameScreen implements Screen {
 
     private static final float PHYSICS_DT     = PhysicsConstants.FIXED_DT;
     private static final float MAX_FRAME_TIME = PhysicsConstants.MAX_FRAME_TIME;
-    private static final int   LEVEL_COLS     = 64;  // matches LevelLayout.buildTestLayout W
-    private static final int   LEVEL_ROWS     = 32;  // matches LevelLayout.buildTestLayout H
+    private static final int   LEVEL_COLS     = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
+    private static final int   LEVEL_ROWS     = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
 
     private final NinjaGameClient game;
     private final String          host;
@@ -54,8 +55,9 @@ public final class GameScreen implements Screen {
     private boolean     paused = false;
 
     // ── Fixed-timestep state ──────────────────────────────────────────────────
-    private float accumulator = 0f;
-    private int   localSlot   = 0;
+    private float accumulator     = 0f;
+    private int   localSlot       = 0;
+    private long  loadedSeed      = Long.MIN_VALUE;   // tracks which seed we've generated tiles for
 
     public GameScreen(NinjaGameClient game, String host, int port) {
         this.game = game;
@@ -69,11 +71,11 @@ public final class GameScreen implements Screen {
     public void show() {
         batch       = new SpriteBatch();
         camera      = new GameCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        // Snap to spawn area immediately so the floor is visible before the first
-        // server snapshot arrives (default camera position is world-top, floor is at y=960).
+        // Snap to spawn area. Floor top = row (LEVEL_ROWS-4) = row 124 → y=3968.
+        // Camera Y just above the floor so the player is visible before the first snapshot.
         camera.snapTo(
-            LEVEL_COLS * PhysicsConstants.TILE_SIZE / 2f,  // centre of level horizontally
-            29 * PhysicsConstants.TILE_SIZE                 // just above the floor (Y-DOWN)
+            LEVEL_COLS * PhysicsConstants.TILE_SIZE / 2f,   // centre horizontally
+            (LEVEL_ROWS - 6) * PhysicsConstants.TILE_SIZE   // just above the floor (Y-DOWN)
         );
         stateBuffer = new GameStateBuffer();
         inputPoller = new InputPoller();
@@ -127,16 +129,29 @@ public final class GameScreen implements Screen {
 
         WorldSnapshot snap = stateBuffer.poll();
 
-        if (snap != null && !snap.players.isEmpty()) {
-            PlayerState local = snap.players.stream()
-                .filter(p -> p.slot == localSlot)
-                .findFirst()
-                .orElse(snap.players.get(0));
-            camera.follow(local.posX, local.posY);
-            camera.clampToBounds(
-                LEVEL_COLS * PhysicsConstants.TILE_SIZE,
-                LEVEL_ROWS * PhysicsConstants.TILE_SIZE
-            );
+        if (snap != null) {
+            // Generate and load procedural tile layout on first snapshot (or seed change)
+            if (snap.seed != 0 && snap.seed != loadedSeed) {
+                loadedSeed = snap.seed;
+                byte[][] grid2d = WorldGenerator.generate(snap.seed, LEVEL_COLS, LEVEL_ROWS);
+                // Flatten to 1-D for ChunkRenderer
+                byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
+                for (int r = 0; r < LEVEL_ROWS; r++)
+                    System.arraycopy(grid2d[r], 0, flat, r * LEVEL_COLS, LEVEL_COLS);
+                chunkRenderer.loadProceduralTiles(flat, LEVEL_COLS, LEVEL_ROWS);
+            }
+
+            if (!snap.players.isEmpty()) {
+                PlayerState local = snap.players.stream()
+                    .filter(p -> p.slot == localSlot)
+                    .findFirst()
+                    .orElse(snap.players.get(0));
+                camera.follow(local.posX, local.posY);
+                camera.clampToBounds(
+                    LEVEL_COLS * PhysicsConstants.TILE_SIZE,
+                    LEVEL_ROWS * PhysicsConstants.TILE_SIZE
+                );
+            }
         }
 
         // ── Render world ──────────────────────────────────────────────────────

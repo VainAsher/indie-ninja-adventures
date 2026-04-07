@@ -21,11 +21,10 @@ public final class PlayerRecord {
     /** Written by Netty I/O thread; read by ZoneSimulationLoop. */
     public final AtomicReference<InputCommand> latestInput = new AtomicReference<>();
 
-    // Last known player state — updated on each INPUT message, used in WORLD_STATE
-    // Default spawn: 5 tiles from left wall (x=160), above the floor (floor top y=960,
-    // player height=56, so posY=904 puts player bottom exactly on the floor).
-    // In Y-DOWN coords (matching LevelLayout.buildTestLayout 64×32 grid).
-    public volatile float  posX = 160f, posY = 904f;
+    // Default spawn: 5 tiles from left wall (x=160), above the procedural floor.
+    // Procedural 128×128 grid: floor top = row 124 → y = 124 × 32 = 3968.
+    // Player height = 56 → posY = 3968 − 56 = 3912.
+    public volatile float  posX = 160f, posY = 3912f;
     public volatile float  velX = 0f, velY = 0f;
     public volatile int    health = 5;
     public volatile int    facing = 1;     // 1=right, -1=left

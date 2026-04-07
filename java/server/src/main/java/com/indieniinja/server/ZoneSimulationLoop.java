@@ -67,9 +67,9 @@ public final class ZoneSimulationLoop implements Runnable {
      * Called once before the loop starts (from ServerProtocolHandler.getOrCreateZone).
      */
     public static void initSimulator(ZoneInstance zone) {
-        LevelLayout layout = LevelLayout.buildTestLayout(zone.seed);
+        LevelLayout layout = LevelLayout.buildProceduralLayout(zone.seed);
         zone.simulator = new GameSimulator(zone.seed, zone.hubId, layout);
-        log.info("[Zone {}] GameSimulator initialised (seed={})", zone.hubId, zone.seed);
+        log.info("[Zone {}] GameSimulator initialised (seed={}, proc 128x128)", zone.hubId, zone.seed);
     }
 
     @Override

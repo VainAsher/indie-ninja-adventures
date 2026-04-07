@@ -113,26 +113,48 @@ public final class ChunkRenderer {
         rebuildTestLayout(cols, rows);
     }
 
+    /**
+     * Load a procedurally generated tile grid produced by WorldGenerator.
+     *
+     * Tile values: 0=air (null), 1=solid, 2=one-way platform.
+     * Call this after ensure placeholderSolid/placeholderPlatform are initialised
+     * (i.e. after loadPlaceholderLayout or loadTileTextures).
+     *
+     * @param grid byte[rows][cols] from WorldGenerator.generate()
+     * @param cols grid width in tiles
+     * @param rows grid height in tiles
+     */
+    public void loadProceduralTiles(byte[] grid, int cols, int rows) {
+        this.mapCols = cols;
+        this.mapRows = rows;
+        this.tileMap = new TextureRegion[rows][cols];
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                byte tile = grid[r * cols + c];
+                if      (tile == 1) tileMap[r][c] = placeholderSolid;
+                else if (tile == 2) tileMap[r][c] = placeholderPlatform;
+                // 0 = air → null (already null from array init)
+            }
+        }
+    }
+
     /** Rebuild tileMap grid from the current solid/platform TextureRegions. */
     private void rebuildTestLayout(int cols, int rows) {
         this.mapCols = cols;
         this.mapRows = rows;
 
         // Coordinate system is Y-DOWN: row 0 = top of world (y=0), row rows-1 = bottom.
-        //  - rows rows-2 and rows-1: floor across full width
-        //  - col 0 and cols-1      : solid walls top-to-bottom
-        //  - row 16, cols 8..19    : one-way mid platform (matches LevelLayout)
+        //  - rows rows-4 .. rows-1 : floor across full width  (matches buildProceduralLayout)
+        //  - col 0-1 and cols-2..cols-1: solid walls
         this.tileMap = new TextureRegion[rows][cols];
         for (int c = 0; c < cols; c++) {
-            tileMap[rows - 2][c] = placeholderSolid;
-            tileMap[rows - 1][c] = placeholderSolid;
+            for (int r = rows - 4; r < rows; r++) tileMap[r][c] = placeholderSolid;
         }
         for (int r = 0; r < rows; r++) {
             tileMap[r][0]        = placeholderSolid;
+            tileMap[r][1]        = placeholderSolid;
+            tileMap[r][cols - 2] = placeholderSolid;
             tileMap[r][cols - 1] = placeholderSolid;
-        }
-        for (int c = 8; c <= 19 && c < cols; c++) {
-            tileMap[16][c] = placeholderPlatform;
         }
     }
 
