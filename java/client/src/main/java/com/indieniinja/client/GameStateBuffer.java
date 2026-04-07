@@ -69,17 +69,21 @@ public final class GameStateBuffer {
 
         // Build a merged full snapshot for the render thread
         WorldSnapshot merged = new WorldSnapshot();
-        merged.frame  = delta.frame;
-        merged.seed   = delta.seed;
-        merged.hubId  = delta.hubId;
+        merged.frame        = delta.frame;
+        merged.seed         = delta.seed;
+        merged.hubId        = delta.hubId;
+        merged.roomType     = delta.roomType;       // carry room metadata from delta
+        merged.neighborDirs = delta.neighborDirs;   // ← was defaulting to [] causing tile flicker
+        merged.roomGridX    = delta.roomGridX;
+        merged.roomGridY    = delta.roomGridY;
         merged.isDelta = false;  // render thread always sees a full view
         merged.players.addAll(delta.players);
         merged.enemies.addAll(enemyById.values());
         merged.pickups.addAll(pickupById.values());
         merged.platformStates.addAll(platformById.values());
-        // Shurikens are always sent on every wire packet (not delta-encoded).
-        // Copy them directly from the delta packet into the merged snapshot.
+        // Shurikens and NPCs are always sent on every wire packet (not delta-encoded).
         merged.shurikens.addAll(delta.shurikens);
+        merged.npcs.addAll(delta.npcs);
         current.set(merged);
     }
 
