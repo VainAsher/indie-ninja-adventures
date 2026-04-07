@@ -131,12 +131,25 @@ public final class LevelLayout {
      *
      * Replaces buildTestLayout for Loop 3+.
      */
+    /** Build layout with no door openings (solid walls on all sides). */
     public static LevelLayout buildProceduralLayout(long seed) {
+        return buildProceduralLayout(seed, java.util.Collections.emptySet());
+    }
+
+    /**
+     * Build a procedurally generated layout from a seed, carving door openings
+     * in the boundary walls for each direction in {@code neighborDirs}.
+     *
+     * @param seed         room seed
+     * @param neighborDirs directions where adjacent rooms exist ("up","down","left","right")
+     */
+    public static LevelLayout buildProceduralLayout(
+            long seed, java.util.Collection<String> neighborDirs) {
         final int TILE = 32;
         final int COLS = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
         final int ROWS = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
 
-        byte[][] grid = WorldGenerator.generate(seed, COLS, ROWS);
+        byte[][] grid = WorldGenerator.generate(seed, COLS, ROWS, neighborDirs);
 
         // Build spatial hash from every non-air tile
         SpatialHash hash = new SpatialHash();

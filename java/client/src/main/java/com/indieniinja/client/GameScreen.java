@@ -62,6 +62,7 @@ public final class GameScreen implements Screen {
     private float accumulator     = 0f;
     private int   localSlot       = 0;
     private long  loadedSeed      = Long.MIN_VALUE;   // tracks which seed we've generated tiles for
+    private java.util.List<String> loadedNeighborDirs = java.util.List.of();
 
     public GameScreen(NinjaGameClient game, String host, int port) {
         this.game = game;
@@ -139,16 +140,20 @@ public final class GameScreen implements Screen {
         WorldSnapshot snap = stateBuffer.poll();
 
         if (snap != null) {
-            // Generate and load procedural tile layout on first snapshot (or seed change)
-            if (snap.seed != 0 && snap.seed != loadedSeed) {
-                loadedSeed = snap.seed;
-                byte[][] grid2d = WorldGenerator.generate(snap.seed, LEVEL_COLS, LEVEL_ROWS);
+            // Generate and load procedural tile layout on first snapshot (or seed/room change)
+            boolean seedChanged = snap.seed != 0 && snap.seed != loadedSeed;
+            boolean dirsChanged = !snap.neighborDirs.equals(loadedNeighborDirs);
+            if (seedChanged || dirsChanged) {
+                loadedSeed         = snap.seed;
+                loadedNeighborDirs = snap.neighborDirs;
+                byte[][] grid2d = WorldGenerator.generate(
+                    snap.seed, LEVEL_COLS, LEVEL_ROWS, snap.neighborDirs);
                 if (blobTileSet != null) {
                     // Full autotiled rendering using the mk_nature spritesheet
                     int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);
                     chunkRenderer.loadBlobTiles(blobTileSet, biomeIdx, grid2d, LEVEL_COLS, LEVEL_ROWS);
                 } else {
-                    // Fallback: placeholder coloured tiles
+                    // Fallback: placeholder coloured tiles (grid2d already has door openings)
                     byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
                     for (int r = 0; r < LEVEL_ROWS; r++)
                         System.arraycopy(grid2d[r], 0, flat, r * LEVEL_COLS, LEVEL_COLS);

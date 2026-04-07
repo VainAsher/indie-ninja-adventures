@@ -25,6 +25,12 @@ public final class WorldSnapshot {
     public int    roomGridX = 0;
     public int    roomGridY = 0;
 
+    /**
+     * Directions in which this room has door openings ("up","down","left","right").
+     * Client uses this to carve matching openings in the room's tile grid.
+     */
+    public List<String> neighborDirs = new ArrayList<>();
+
     // Always sent (not delta'd)
     public List<PlayerState>   players        = new ArrayList<>();
 
@@ -57,6 +63,7 @@ public final class WorldSnapshot {
         s.hubId      = str(m, "hub_id",     "");
         s.roomGridX  = (int) num(m, "room_grid_x", 0L);
         s.roomGridY  = (int) num(m, "room_grid_y", 0L);
+        for (Object d : list(m, "neighbor_dirs")) s.neighborDirs.add(d.toString());
 
         for (Object p : list(m, "players"))
             if (p instanceof java.util.Map<?,?> pm)
@@ -114,9 +121,10 @@ public final class WorldSnapshot {
         m.put("frame",       frame);
         m.put("seed",        seed);
         m.put("is_delta",    isDelta);
-        m.put("room_grid_x", roomGridX);
-        m.put("room_grid_y", roomGridY);
-        m.put("players",     playerList());
+        m.put("room_grid_x",  roomGridX);
+        m.put("room_grid_y",  roomGridY);
+        m.put("neighbor_dirs", neighborDirs);
+        m.put("players",      playerList());
 
         if (isDelta) {
             m.put("enemies_changed",   mapList(enemiesChanged));

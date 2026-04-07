@@ -80,12 +80,15 @@ public final class ZoneSimulationLoop implements Runnable {
         zone.worldGraph       = graph;
 
         WorldGraph.RoomNode startRoom = graph.startRoom();
-        zone.currentRoomSeed  = startRoom.seed;
-        zone.currentRoomGridX = startRoom.gridX;
-        zone.currentRoomGridY = startRoom.gridY;
+        zone.currentRoomSeed     = startRoom.seed;
+        zone.currentRoomGridX    = startRoom.gridX;
+        zone.currentRoomGridY    = startRoom.gridY;
+        zone.currentNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
 
-        // Build the procedural tile layout using the start room's derived seed.
-        LevelLayout layout = LevelLayout.buildProceduralLayout(startRoom.seed);
+        // Build the procedural tile layout using the start room's derived seed
+        // and carve door openings for each direction where a neighbour room exists.
+        LevelLayout layout = LevelLayout.buildProceduralLayout(
+            startRoom.seed, startRoom.neighborDirs());
         zone.simulator = new GameSimulator(startRoom.seed, zone.hubId, layout);
 
         log.info("[Zone {}] WorldGraph: {} rooms (start={},{} seed={})",
@@ -255,8 +258,9 @@ public final class ZoneSimulationLoop implements Runnable {
         // generates the correct tile grid for this specific room.
         long roomSeed = zone.currentRoomSeed;
         if (roomSeed != 0) snap.seed = roomSeed;
-        snap.roomGridX = zone.currentRoomGridX;
-        snap.roomGridY = zone.currentRoomGridY;
+        snap.roomGridX    = zone.currentRoomGridX;
+        snap.roomGridY    = zone.currentRoomGridY;
+        snap.neighborDirs = zone.currentNeighborDirs;
         snap.isDelta = !full;
 
         if (!full) {

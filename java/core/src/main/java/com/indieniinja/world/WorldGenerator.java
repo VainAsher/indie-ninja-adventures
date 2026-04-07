@@ -1,5 +1,6 @@
 package com.indieniinja.world;
 
+import java.util.Collection;
 import java.util.Random;
 
 /**
@@ -35,7 +36,34 @@ public final class WorldGenerator {
      * @param rows  grid height in tiles
      * @return byte[rows][cols] tile grid
      */
+    /**
+     * Door half-width in tiles — matches Python TILES_PER_ZONE = 8.
+     * Carves a 9-tile-wide opening (centre ± DOOR_HALF) at each neighboured edge.
+     */
+    private static final int DOOR_HALF = 4;
+
+    /**
+     * Generate a tile grid with no door openings (solid boundary walls).
+     */
     public static byte[][] generate(long seed, int cols, int rows) {
+        return generate(seed, cols, rows, java.util.Collections.emptySet());
+    }
+
+    /**
+     * Generate a tile grid and carve door openings for each direction in
+     * {@code neighborDirs} ("up","down","left","right").
+     *
+     * Door position: centred on the room edge, DOOR_HALF tiles either side.
+     * Matches Python's DoorPort.center_tile + span_tiles logic.
+     *
+     * @param seed         zone room seed
+     * @param cols         grid width in tiles
+     * @param rows         grid height in tiles
+     * @param neighborDirs set of directions where adjacent rooms exist
+     * @return byte[rows][cols] tile grid with door openings carved
+     */
+    public static byte[][] generate(long seed, int cols, int rows,
+                                    Collection<String> neighborDirs) {
         byte[][] grid = new byte[rows][cols];
 
         addBoundaries(grid, cols, rows);
@@ -47,6 +75,8 @@ public final class WorldGenerator {
         long structSeed = SeedHierarchy.deriveFeature(
             SeedHierarchy.deriveSubroom((int) seed, 0), "structures");
         addMidStructures(grid, cols, rows, structSeed);
+
+        carveDoors(grid, cols, rows, neighborDirs);
 
         return grid;
     }
@@ -145,6 +175,50 @@ public final class WorldGenerator {
                 for (int c = c0; c <= c1; c++) {
                     if (c < 2 || c >= cols - 2) continue;
                     if (grid[r][c] == AIR) grid[r][c] = SOLID;
+                }
+            }
+        }
+    }
+
+    // ── Door carving ──────────────────────────────────────────────────────────
+
+    /**
+     * Carve door openings into the boundary walls.
+     *
+     * Each door is centred on the room edge (cols/2 or rows/2) and is
+     * (DOOR_HALF * 2 + 1) tiles wide, matching Python's DoorPort span_tiles.
+     *
+     * "up"    → rows 0-1 carved at horizontal centre
+     * "down"  → rows (rows-4)..(rows-1) carved at horizontal centre
+     * "left"  → cols 0-1 carved at vertical centre
+     * "right" → cols (cols-2)..(cols-1) carved at vertical centre
+     */
+    static void carveDoors(byte[][] grid, int cols, int rows,
+                            Collection<String> neighborDirs) {
+        int midC = cols / 2;
+        int midR = rows / 2;
+
+        for (String dir : neighborDirs) {
+            switch (dir) {
+                case "up" -> {
+                    for (int r = 0; r < 2; r++)
+                        for (int c = midC - DOOR_HALF; c <= midC + DOOR_HALF; c++)
+                            if (c >= 0 && c < cols) grid[r][c] = AIR;
+                }
+                case "down" -> {
+                    for (int r = rows - 4; r < rows; r++)
+                        for (int c = midC - DOOR_HALF; c <= midC + DOOR_HALF; c++)
+                            if (c >= 0 && c < cols) grid[r][c] = AIR;
+                }
+                case "left" -> {
+                    for (int r = midR - DOOR_HALF; r <= midR + DOOR_HALF; r++)
+                        for (int c = 0; c < 2; c++)
+                            if (r >= 0 && r < rows) grid[r][c] = AIR;
+                }
+                case "right" -> {
+                    for (int r = midR - DOOR_HALF; r <= midR + DOOR_HALF; r++)
+                        for (int c = cols - 2; c < cols; c++)
+                            if (r >= 0 && r < rows) grid[r][c] = AIR;
                 }
             }
         }

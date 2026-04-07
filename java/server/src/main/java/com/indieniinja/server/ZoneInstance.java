@@ -62,6 +62,8 @@ public final class ZoneInstance {
     /** Grid coordinates of the current room in the WorldGraph. */
     public volatile int   currentRoomGridX = 0;
     public volatile int   currentRoomGridY = 0;
+    /** Neighbor directions for the current room (doors that exist). */
+    public volatile java.util.List<String> currentNeighborDirs = java.util.List.of();
 
     public ZoneInstance(
             String hubId, long seed, String shape, int rooms,
