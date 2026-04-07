@@ -405,84 +405,15 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     private void startZoneSimLoop(ZoneInstance zone) {
         AtomicBoolean shutdown = new AtomicBoolean(false);
-        ZoneSimulationLoop loop = new ZoneSimulationLoop(
-            zone, session, shutdown,
-            (pid, dir) -> transitionPlayerToRoom(pid, dir)
-        );
+        ZoneSimulationLoop loop = new ZoneSimulationLoop(zone, session, shutdown);
         Future<?> future = zoneExecutor.submit(loop);
         zone.simFuture = future;
     }
 
     /**
-     * Move a player from their current zone to the adjacent room zone in
-     * the given direction.  Called from the sim thread via the transition
-     * callback — zone.playerIds has already had the player removed.
+     * (Door transitions replaced by ZoneSimulationLoop.checkRoomCrossings()
+     *  which detects room boundary crossings automatically from player physics.)
      */
-    private void transitionPlayerToRoom(String pid, String direction) {
-        PlayerRecord pr = session.players.get(pid);
-        if (pr == null) return;
-
-        ZoneInstance fromZone = zones.get(pr.hubId);
-        if (fromZone == null || fromZone.worldGraph == null) {
-            log.warn("Transition: no zone or worldGraph for player {}", pid);
-            return;
-        }
-
-        WorldGraph.RoomNode nextRoom = fromZone.worldGraph.neighborRoom(
-            fromZone.currentRoomGridX, fromZone.currentRoomGridY, direction);
-        if (nextRoom == null) {
-            log.warn("Transition: no neighbor in '{}' from ({},{})",
-                direction, fromZone.currentRoomGridX, fromZone.currentRoomGridY);
-            return;
-        }
-
-        ZoneInstance toZone = getOrCreateRoomZone(fromZone.masterHubId,
-            fromZone.worldGraph, nextRoom);
-
-        // Set spawn position at the entry door of the new room (opposite side),
-        // preserving the player's coordinate along the door axis so the world-space
-        // position is continuous (no visible jump in the megamap view).
-        float[] spawn = entrySpawn(direction, pr.posX, pr.posY);
-        pr.posX           = spawn[0];
-        pr.posY           = spawn[1];
-        pr.explicitSpawnSet = true;  // tell sim to use this instead of zone.spawnX/Y
-        pr.velX  = 0;
-        pr.velY  = 0;
-        pr.hubId = toZone.hubId;
-        toZone.playerIds.add(pid);
-        toZone.lastActivityMs = System.currentTimeMillis();
-
-        log.info("Player {} transitioned {} → room ({},{}) zone '{}'",
-            pid, direction, nextRoom.gridX, nextRoom.gridY, toZone.hubId);
-    }
-
-    /**
-     * Spawn position when entering a room through the opposite door.
-     *
-     * Preserves the coordinate along the door axis so the transition is seamless
-     * in world-space (no visible Y-jump when moving left/right, no X-jump up/down).
-     * The perpendicular axis is placed just inside the entry door opening.
-     *
-     * @param direction the direction the player exited the previous room
-     * @param fromX     player X in the previous room (room-local pixels)
-     * @param fromY     player Y in the previous room (room-local pixels)
-     */
-    private static float[] entrySpawn(String direction, float fromX, float fromY) {
-        final float TILE   = com.indieniinja.physics.PhysicsConstants.TILE_SIZE;
-        final float COLS   = com.indieniinja.physics.PhysicsConstants.ROOM_WIDTH_TILES;
-        final float ROWS   = com.indieniinja.physics.PhysicsConstants.ROOM_HEIGHT_TILES;
-        return switch (direction) {
-            // exited up   → enter near bottom door, preserve X
-            case "up"    -> new float[]{ fromX, (ROWS - 6) * TILE };
-            // exited down → enter near top door, preserve X
-            case "down"  -> new float[]{ fromX, 4 * TILE };
-            // exited left → enter near right door, preserve Y
-            case "left"  -> new float[]{ (COLS - 4) * TILE, fromY };
-            // exited right → enter near left door, preserve Y
-            case "right" -> new float[]{ 4 * TILE, fromY };
-            default      -> new float[]{ fromX, (ROWS - 6) * TILE };
-        };
-    }
 
     // ── Wire helpers ──────────────────────────────────────────────────────────
 

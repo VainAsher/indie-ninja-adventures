@@ -26,7 +26,7 @@ import static com.indieniinja.physics.PhysicsConstants.*;
 public final class CollisionSystem {
 
     private final List<Entity> entities;
-    private final SpatialHash  spatialHash;
+    private SpatialHash spatialHash;
 
     public CollisionSystem(EventBus bus, List<Entity> entities, SpatialHash spatialHash) {
         this.entities    = entities;
@@ -34,6 +34,9 @@ public final class CollisionSystem {
         // Priority 45 — after physics (60), before mechanics (40)
         bus.subscribe(TickEvent.class, this::onTick, 45);
     }
+
+    /** Hot-swap the spatial hash when the player crosses a room boundary. */
+    public void setSpatialHash(SpatialHash hash) { this.spatialHash = hash; }
 
     // ── Tick handler ─────────────────────────────────────────────────────────
 

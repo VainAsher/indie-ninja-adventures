@@ -69,7 +69,7 @@ public final class GameSimulator {
     public final long   seed;
     public final String hubId;
     private final float worldHeightPx;
-    private final com.indieniinja.physics.SpatialHash spatialHash;
+    private com.indieniinja.physics.SpatialHash spatialHash;
 
     // ── Construction ─────────────────────────────────────────────────────────
 
@@ -987,4 +987,14 @@ public final class GameSimulator {
     public Map<Integer, SimPlayer> getPlayers()  { return java.util.Collections.unmodifiableMap(players); }
     public List<SimEnemy>          getEnemies()  { return java.util.Collections.unmodifiableList(enemies); }
     public List<SimPickup>         getPickups()  { return java.util.Collections.unmodifiableList(pickups); }
+
+    /**
+     * Hot-swap the spatial hash used for collision resolution.
+     * Called when the player crosses a room boundary so the new room's
+     * tiles (plus its neighbors) become collidable.
+     */
+    public void updateSpatialHash(com.indieniinja.physics.SpatialHash hash) {
+        this.spatialHash = hash;
+        collisionSystem.setSpatialHash(hash);
+    }
 }

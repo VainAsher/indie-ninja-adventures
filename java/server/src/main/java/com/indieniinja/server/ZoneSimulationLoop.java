@@ -56,15 +56,10 @@ public final class ZoneSimulationLoop implements Runnable {
     private final GameSession    session;
     private final AtomicBoolean  shutdown;
 
-    /** Called when a player crosses a door boundary: (playerId, direction) */
-    private final java.util.function.BiConsumer<String, String> transitionCallback;
-
-    public ZoneSimulationLoop(ZoneInstance zone, GameSession session, AtomicBoolean shutdown,
-            java.util.function.BiConsumer<String, String> transitionCallback) {
-        this.zone               = zone;
-        this.session            = session;
-        this.shutdown           = shutdown;
-        this.transitionCallback = transitionCallback;
+    public ZoneSimulationLoop(ZoneInstance zone, GameSession session, AtomicBoolean shutdown) {
+        this.zone     = zone;
+        this.session  = session;
+        this.shutdown = shutdown;
     }
 
     // ── Simulator init ────────────────────────────────────────────────────────
@@ -149,7 +144,7 @@ public final class ZoneSimulationLoop implements Runnable {
             // ── Simulate one tick ─────────────────────────────────────────────
             simulateTick();
             zone.frame.incrementAndGet();
-            checkDoorTransitions();
+            checkRoomCrossings();
 
             // ── Broadcast ─────────────────────────────────────────────────────
             if (++broadcastCtr >= BROADCAST_EVERY) {
@@ -264,63 +259,67 @@ public final class ZoneSimulationLoop implements Runnable {
         }
     }
 
-    // ── Door / room transition detection ─────────────────────────────────────
+    // ── Room boundary crossing detection ─────────────────────────────────────
 
-    private static final int   ROOM_COLS    = com.indieniinja.physics.PhysicsConstants.ROOM_WIDTH_TILES;
-    private static final int   ROOM_ROWS    = com.indieniinja.physics.PhysicsConstants.ROOM_HEIGHT_TILES;
-    private static final float ROOM_TILE_PX = com.indieniinja.physics.PhysicsConstants.TILE_SIZE;
-    private static final float DOOR_HALF_PX = 4 * ROOM_TILE_PX;  // 4 tiles either side of centre
+    private static final int ROOM_PX =
+        com.indieniinja.physics.PhysicsConstants.ROOM_WIDTH_TILES *
+        com.indieniinja.physics.PhysicsConstants.TILE_SIZE;   // 128 * 32 = 4096
 
     /**
-     * After each tick, check whether any player has crossed a door boundary.
-     * When detected the transitionCallback fires with (playerId, direction)
-     * so ServerProtocolHandler can move the player to the adjacent room's zone.
-     * Players in transition are removed from the zone playerIds immediately to
-     * prevent double-firing on subsequent ticks.
+     * After each tick, check whether any player has crossed a room boundary in
+     * world-space.  When detected, adjust their room-local position and rebuild
+     * the SpatialHash for the new room + its neighbors.
+     *
+     * No explicit door trigger points — the player simply walks through the
+     * opening carved into the room's tile grid and their coordinates go outside
+     * [0, ROOM_PX).  Math.floor handles negative positions correctly.
      */
-    private void checkDoorTransitions() {
-        if (transitionCallback == null || zone.worldGraph == null) return;
-        float midX = (ROOM_COLS / 2f) * ROOM_TILE_PX;
-        float midY = (ROOM_ROWS / 2f) * ROOM_TILE_PX;
+    private void checkRoomCrossings() {
+        WorldGraph graph = zone.worldGraph;
+        if (graph == null || zone.simulator == null) return;
 
-        // Iterate over a snapshot to allow removal inside the loop
-        for (String pid : new ArrayList<>(zone.playerIds)) {
+        for (String pid : zone.playerIds) {
             PlayerRecord pr = session.players.get(pid);
             if (pr == null) continue;
+            SimPlayer sp = zone.simulator.getPlayers().get(pr.slot);
+            if (sp == null) continue;
 
-            String dir = detectDoorCrossing(pr.posX, pr.posY,
-                    zone.currentNeighborDirs, midX, midY);
-            if (dir != null) {
-                // Remove from this zone immediately so we don't fire again next tick
-                zone.playerIds.remove(pid);
-                zone.lastActivityMs = System.currentTimeMillis();
-                // Remove from this sim so the new room's sim spawns them fresh
-                if (zone.simulator != null) zone.simulator.removePlayer(pr.slot);
-                transitionCallback.accept(pid, dir);
+            int deltaX = (int) Math.floor((double) sp.physics.x / ROOM_PX);
+            int deltaY = (int) Math.floor((double) sp.physics.y / ROOM_PX);
+            if (deltaX == 0 && deltaY == 0) continue;
+
+            int newGridX = zone.currentRoomGridX + deltaX;
+            int newGridY = zone.currentRoomGridY + deltaY;
+            WorldGraph.RoomNode newRoom = graph.roomAt(newGridX, newGridY);
+            if (newRoom == null) continue;  // world edge — leave physics to handle it
+
+            // Adjust physics position to be room-local in the new room
+            sp.physics.x -= deltaX * ROOM_PX;
+            sp.physics.y -= deltaY * ROOM_PX;
+            pr.posX = sp.physics.x;
+            pr.posY = sp.physics.y;
+
+            // Update zone current room
+            zone.currentRoomGridX    = newGridX;
+            zone.currentRoomGridY    = newGridY;
+            zone.currentRoomSeed     = newRoom.seed;
+            zone.currentRoomType     = newRoom.type.wire();
+            zone.currentNeighborDirs = new java.util.ArrayList<>(newRoom.neighborDirs());
+
+            // Rebuild SpatialHash: new room + all its neighbors
+            java.util.Map<String, WorldGraph.RoomNode> neighbors = new java.util.LinkedHashMap<>();
+            for (String dir : newRoom.neighborDirs()) {
+                WorldGraph.RoomNode nb = graph.neighborRoom(newGridX, newGridY, dir);
+                if (nb != null) neighbors.put(dir, nb);
             }
-        }
-    }
+            com.indieniinja.sim.LevelLayout newLayout =
+                com.indieniinja.sim.LevelLayout.buildProceduralLayout(
+                    newRoom.seed, newRoom.neighborDirs(), newRoom.type.wire(), neighbors);
+            zone.simulator.updateSpatialHash(newLayout.spatialHash);
 
-    private static String detectDoorCrossing(float px, float py,
-            java.util.List<String> neighborDirs, float midX, float midY) {
-        float edgeTile = ROOM_TILE_PX;  // 32px — player must be within first tile
-        if (neighborDirs.contains("up")
-                && py < edgeTile
-                && px > midX - DOOR_HALF_PX && px < midX + DOOR_HALF_PX)
-            return "up";
-        if (neighborDirs.contains("down")
-                && py > (ROOM_ROWS - 2) * ROOM_TILE_PX
-                && px > midX - DOOR_HALF_PX && px < midX + DOOR_HALF_PX)
-            return "down";
-        if (neighborDirs.contains("left")
-                && px < edgeTile
-                && py > midY - DOOR_HALF_PX && py < midY + DOOR_HALF_PX)
-            return "left";
-        if (neighborDirs.contains("right")
-                && px > (ROOM_COLS - 2) * ROOM_TILE_PX
-                && py > midY - DOOR_HALF_PX && py < midY + DOOR_HALF_PX)
-            return "right";
-        return null;
+            log.info("[Zone {}] player {} crossed → room ({},{}) seed={}",
+                zone.hubId, pid, newGridX, newGridY, newRoom.seed);
+        }
     }
 
     // ── Broadcast ─────────────────────────────────────────────────────────────
