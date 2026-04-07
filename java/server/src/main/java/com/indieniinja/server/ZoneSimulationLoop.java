@@ -100,10 +100,15 @@ public final class ZoneSimulationLoop implements Runnable {
         zone.currentNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
         zone.currentRoomType     = startRoom.type.wire();
 
-        // Build the procedural tile layout using the start room's derived seed
-        // and carve door openings for each direction where a neighbour room exists.
+        // Build the procedural tile layout. Include adjacent room tile grids in
+        // the SpatialHash so tiles visible at room boundaries have collision.
+        java.util.Map<String, WorldGraph.RoomNode> adjacentRooms = new java.util.LinkedHashMap<>();
+        for (String dir : startRoom.neighborDirs()) {
+            WorldGraph.RoomNode nb = graph.neighborRoom(startRoom.gridX, startRoom.gridY, dir);
+            if (nb != null) adjacentRooms.put(dir, nb);
+        }
         LevelLayout layout = LevelLayout.buildProceduralLayout(
-            startRoom.seed, startRoom.neighborDirs(), startRoom.type.wire());
+            startRoom.seed, startRoom.neighborDirs(), startRoom.type.wire(), adjacentRooms);
         zone.simulator = new GameSimulator(startRoom.seed, zone.hubId, layout);
 
         // Propagate layout spawn to zone so simulateTick uses the correct spawn position

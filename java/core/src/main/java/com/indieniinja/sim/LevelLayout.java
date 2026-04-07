@@ -4,6 +4,7 @@ import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.physics.SpatialHash;
 import com.indieniinja.physics.TileRect;
 import com.indieniinja.world.WorldGenerator;
+import com.indieniinja.world.WorldGraph;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -164,6 +165,75 @@ public final class LevelLayout {
     public static LevelLayout buildProceduralLayout(
             long seed, java.util.Collection<String> neighborDirs) {
         return buildProceduralLayout(seed, neighborDirs, "combat");
+    }
+
+    /**
+     * Build a procedurally generated layout using the zone-planning pipeline.
+     * Overload that also stitches adjacent room tiles into the SpatialHash so
+     * tiles visible at room boundaries have collision backing.
+     *
+     * @param seed          room seed
+     * @param neighborDirs  directions where adjacent rooms exist
+     * @param roomType      wire string
+     * @param adjacentRooms map of direction → RoomNode for each existing neighbor
+     */
+    public static LevelLayout buildProceduralLayout(
+            long seed, java.util.Collection<String> neighborDirs, String roomType,
+            java.util.Map<String, WorldGraph.RoomNode> adjacentRooms) {
+        // Build the current room layout first
+        LevelLayout base = buildProceduralLayout(seed, neighborDirs, roomType);
+
+        if (adjacentRooms == null || adjacentRooms.isEmpty()) return base;
+
+        final int TILE    = 32;
+        final int COLS    = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
+        final int ROWS    = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
+        final int ROOM_PX = COLS * TILE;                         // 4096
+
+        // Clone the SpatialHash by re-inserting all existing tiles, then add neighbors.
+        // (LevelLayout.spatialHash is immutable after build, so we need a fresh one.)
+        SpatialHash extended = new SpatialHash();
+
+        // Re-insert all current-room tiles from the existing hash by regenerating —
+        // faster than exposing an iterator on SpatialHash.
+        byte[][] grid = WorldGenerator.generate(seed, COLS, ROWS, neighborDirs, roomType);
+        for (int r = 0; r < ROWS; r++)
+            for (int c = 0; c < COLS; c++) {
+                byte tile = grid[r][c];
+                if (tile == WorldGenerator.AIR) continue;
+                extended.insert(new TileRect(c * TILE, r * TILE, TILE, TILE,
+                    tile == WorldGenerator.PLATFORM));
+            }
+
+        // Add each adjacent room's tiles at its relative offset
+        for (java.util.Map.Entry<String, WorldGraph.RoomNode> e : adjacentRooms.entrySet()) {
+            String dir      = e.getKey();
+            WorldGraph.RoomNode nb = e.getValue();
+            int offX = 0, offY = 0;
+            switch (dir) {
+                case "up"    -> offY = -ROOM_PX;
+                case "down"  -> offY = +ROOM_PX;
+                case "left"  -> offX = -ROOM_PX;
+                case "right" -> offX = +ROOM_PX;
+            }
+            byte[][] adjGrid = WorldGenerator.generate(
+                nb.seed, COLS, ROWS,
+                new java.util.ArrayList<>(nb.neighborDirs()), nb.type.wire());
+            for (int r = 0; r < ROWS; r++)
+                for (int c = 0; c < COLS; c++) {
+                    byte tile = adjGrid[r][c];
+                    if (tile == WorldGenerator.AIR) continue;
+                    extended.insert(new TileRect(
+                        offX + c * TILE, offY + r * TILE, TILE, TILE,
+                        tile == WorldGenerator.PLATFORM));
+                }
+            log.info("[LevelLayout] added neighbor '{}' seed={} to SpatialHash (offset {},{})px",
+                dir, nb.seed, offX, offY);
+        }
+
+        return new LevelLayout(seed, COLS, ROWS, extended,
+            base.enemySpawns, base.pickupSpawns, base.npcSpawns,
+            base.fallingPlatforms, base.spawnX, base.spawnY);
     }
 
     /**
