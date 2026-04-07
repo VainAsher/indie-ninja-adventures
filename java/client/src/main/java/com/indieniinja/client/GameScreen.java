@@ -404,7 +404,7 @@ public final class GameScreen implements Screen {
             entityRenderer.render(batch, snap, delta);
             particleSystem.render(batch);
         batch.end();
-        entityTransform.idt();  // reset so HUD pass uses identity
+        batch.setTransformMatrix(entityTransform.idt());  // push identity into batch so overlays/text render at screen coords
 
         entityRenderer.pruneEntities(snap);
 
