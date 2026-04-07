@@ -53,6 +53,8 @@ public final class GameScreen implements Screen {
 
     // ── Core subsystems ───────────────────────────────────────────────────────
     private SpriteBatch         batch;
+    /** Reusable matrix for translating entity draws by the current room world-space offset. */
+    private final com.badlogic.gdx.math.Matrix4 entityTransform = new com.badlogic.gdx.math.Matrix4();
     private GameCamera          camera;
     private GameStateBuffer     stateBuffer;
     private InputPoller         inputPoller;
@@ -109,6 +111,13 @@ public final class GameScreen implements Screen {
     /** Full megamap size in tiles (for camera clamping). */
     private int   megamapW         = LEVEL_COLS;
     private int   megamapH         = LEVEL_ROWS;
+    /**
+     * World-space pixel offset of the current room's origin within the megamap.
+     * Entity positions are room-local; adding this offset converts to world-space
+     * for the camera projection.  0,0 when megamap is not yet built.
+     */
+    private float roomWorldOffX    = 0f;
+    private float roomWorldOffY    = 0f;
 
     public GameScreen(NinjaGameClient game, String host, int port) {
         this.game = game;
@@ -276,24 +285,23 @@ public final class GameScreen implements Screen {
                 }
             }
 
+            // ── Room world-space offset (entity rendering needs this) ─────────
+            if (megamapRoomCount > 0) {
+                int tile = PhysicsConstants.TILE_SIZE;
+                roomWorldOffX = (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile;
+                roomWorldOffY = (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile;
+            } else {
+                roomWorldOffX = 0f;
+                roomWorldOffY = 0f;
+            }
+
             // ── Camera follow ─────────────────────────────────────────────────
             if (!snap.players.isEmpty()) {
                 PlayerState local = snap.players.stream()
                     .filter(p -> p.slot == localSlot)
                     .findFirst()
                     .orElse(snap.players.get(0));
-
-                float worldX, worldY;
-                if (megamapRoomCount > 0) {
-                    // World-space position: room grid offset + room-local position
-                    int tile = PhysicsConstants.TILE_SIZE;
-                    worldX = (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile + local.posX;
-                    worldY = (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile + local.posY;
-                } else {
-                    worldX = local.posX;
-                    worldY = local.posY;
-                }
-                camera.follow(worldX, worldY);
+                camera.follow(roomWorldOffX + local.posX, roomWorldOffY + local.posY);
                 camera.clampToBounds(
                     megamapW * PhysicsConstants.TILE_SIZE,
                     megamapH * PhysicsConstants.TILE_SIZE
@@ -308,11 +316,23 @@ public final class GameScreen implements Screen {
         particleSystem.update(delta);
 
         batch.setProjectionMatrix(camera.cam.combined);
+
+        // Pass 1 — tiles: megamap tiles are already in world-space coords, identity transform.
+        batch.setTransformMatrix(entityTransform.idt());
         batch.begin();
             chunkRenderer.render(batch, camera);
+        batch.end();
+
+        // Pass 2 — entities: room-local coords → translate by current room world offset.
+        // Without this, entities render at room-local (0–4096) while the camera is at
+        // world-space (e.g. 4096 + 2048), putting them thousands of pixels off-screen.
+        entityTransform.setToTranslation(roomWorldOffX, roomWorldOffY, 0);
+        batch.setTransformMatrix(entityTransform);
+        batch.begin();
             entityRenderer.render(batch, snap, delta);
             particleSystem.render(batch);
         batch.end();
+        entityTransform.idt();  // reset so HUD pass uses identity
 
         entityRenderer.pruneEntities(snap);
 
