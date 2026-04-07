@@ -155,6 +155,13 @@ public final class NetworkClientThread extends Thread {
                 log.info("[Net] SERVER_HELLO version={}", ver);
                 buffer.markConnected();  // HUD goes Online as soon as handshake completes
             }
+            case MessageType.WORLD_TRANSITION -> {
+                // Player has been moved to a new zone/hub. Reset all client world state so
+                // the next WORLD_STATE full snapshot re-initialises tiles and megamap.
+                String newHubId = msg.getString("hub_id", "?");
+                log.info("[Net] WORLD_TRANSITION → hub={}", newHubId);
+                buffer.resetForZoneTransition();
+            }
             default -> log.debug("[Net] Ignored message type: {}", msg.type());
         }
     }

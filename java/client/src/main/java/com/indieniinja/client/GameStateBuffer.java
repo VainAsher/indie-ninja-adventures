@@ -7,6 +7,7 @@ import com.indieniinja.network.WorldSnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -31,6 +32,8 @@ public final class GameStateBuffer {
 
     private volatile long lastFrameReceived = -1;
     private volatile boolean connected      = false;
+    /** Set by NetworkClientThread on WORLD_TRANSITION; consumed once by GameScreen. */
+    private final AtomicBoolean pendingZoneTransition = new AtomicBoolean(false);
 
     // ── Network thread writes ─────────────────────────────────────────────────
 
@@ -84,7 +87,42 @@ public final class GameStateBuffer {
         // Shurikens and NPCs are always sent on every wire packet (not delta-encoded).
         merged.shurikens.addAll(delta.shurikens);
         merged.npcs.addAll(delta.npcs);
+        // Bosses, portals, worldRooms, shopStates are full-snapshot-only; carry forward
+        // from the previous merged state so they don't vanish on delta frames.
+        WorldSnapshot prev = current.get();
+        if (prev != null) {
+            if (delta.bosses.isEmpty())      merged.bosses.addAll(prev.bosses);
+            else                             merged.bosses.addAll(delta.bosses);
+            if (delta.portals.isEmpty())     merged.portals.addAll(prev.portals);
+            else                             merged.portals.addAll(delta.portals);
+            if (delta.shopStates.isEmpty())  merged.shopStates.addAll(prev.shopStates);
+            else                             merged.shopStates.addAll(delta.shopStates);
+            if (delta.worldRooms.isEmpty())  merged.worldRooms.addAll(prev.worldRooms);
+            else                             merged.worldRooms.addAll(delta.worldRooms);
+        }
+        merged.gameMode    = delta.gameMode;
+        merged.arcadeScore = delta.arcadeScore;
+        merged.arcadeDepth = delta.arcadeDepth;
+        merged.arcadeRooms = delta.arcadeRooms;
         current.set(merged);
+    }
+
+    /**
+     * Called by NetworkClientThread when a WORLD_TRANSITION message arrives.
+     * Clears all delta state so the next full snapshot is treated as a fresh zone.
+     * GameScreen calls pollZoneTransition() to detect this and reset its tile/megamap state.
+     */
+    public void resetForZoneTransition() {
+        enemyById.clear();
+        pickupById.clear();
+        platformById.clear();
+        current.set(new WorldSnapshot());   // blank state — no stale entities from old zone
+        pendingZoneTransition.set(true);
+    }
+
+    /** Returns true (and clears the flag) if a zone transition arrived since last check. */
+    public boolean pollZoneTransition() {
+        return pendingZoneTransition.getAndSet(false);
     }
 
     public void markConnected()    { connected = true; }

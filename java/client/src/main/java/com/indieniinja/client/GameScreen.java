@@ -290,6 +290,22 @@ public final class GameScreen implements Screen {
             }
         }
 
+        // ── Zone transition: reset world state so next full snapshot re-inits tiles ──
+        if (stateBuffer.pollZoneTransition()) {
+            megamapRoomCount  = 0;
+            megamapMinGridX   = 0;
+            megamapMinGridY   = 0;
+            megamapW          = LEVEL_COLS;
+            megamapH          = LEVEL_ROWS;
+            loadedSeed        = Long.MIN_VALUE;
+            loadedNeighborDirs = java.util.List.of();
+            cachedWorldRooms  = java.util.List.of();
+            cachedPortals     = java.util.List.of();
+            latestShopStates.clear();
+            prevSnap          = null;
+            chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
+        }
+
         WorldSnapshot snap = stateBuffer.poll();
 
         // ── Mission timer + auto-save ─────────────────────────────────────────
