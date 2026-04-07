@@ -26,15 +26,26 @@ import com.indieniinja.physics.PhysicsConstants;
  */
 public final class EntityRenderer {
 
-    private static final int PW = PhysicsConstants.PLAYER_WIDTH;   // 28 (physics AABB)
-    private static final int PH = PhysicsConstants.PLAYER_HEIGHT;  // 56 (physics AABB)
-    private static final int SW = AnimationRegistry.SPRITE_W;      // 80 (visual sprite)
-    private static final int SH = AnimationRegistry.SPRITE_H;      // 80 (visual sprite)
-    // Offset to center 80×80 sprite over the 28×56 AABB, feet-aligned at AABB bottom
-    // drawX = posX + PW/2 - SW/2  →  posX - 26
-    // drawY = posY + PH   - SH     →  posY - 24
-    private static final int SPRITE_OX = PW / 2 - SW / 2;   // -26
-    private static final int SPRITE_OY = PH     - SH;        // -24
+    private static final int PW  = PhysicsConstants.PLAYER_WIDTH;        // 28 (physics AABB)
+    private static final int PH  = PhysicsConstants.PLAYER_HEIGHT;       // 56 (physics AABB)
+    private static final int PCH = PhysicsConstants.PLAYER_CROUCH_HEIGHT;// 28
+    private static final int SW  = AnimationRegistry.SPRITE_W;           // 80 (source frame)
+    private static final int SH  = AnimationRegistry.SPRITE_H;           // 80 (source frame)
+
+    // Render at 2× scale so the character fills ~2 tiles vertically (good visual size)
+    private static final float SCALE   = 2f;
+    private static final int   SDW     = (int)(SW * SCALE);  // 160 — display width
+    private static final int   SDH     = (int)(SH * SCALE);  // 160 — display height
+
+    // The template sprite has 16 empty rows below the character's feet inside the 80px frame.
+    // (Inspected: feet at row 63, bottom of frame row 79 → 16 empty rows.)
+    // Scaled by SCALE to match the display quad size.
+    private static final int FEET_PAD = (int)(16 * SCALE); // 32 px at 2×
+
+    // Horizontal offset to center SDW display quad over the PW AABB
+    // posX + PW/2  = AABB centre.  drawX = AABB centre - SDW/2
+    private static final int SPRITE_OX = PW / 2 - SDW / 2;  // 14 - 80 = -66
+
     private static final int PICKUP_SIZE = 20;
 
     /** Returns [w, h] physics dimensions for an enemy type — matches GameSimulator.buildEnemy(). */
@@ -123,32 +134,37 @@ public final class EntityRenderer {
     private void renderPlayer(SpriteBatch batch, PlayerState p, float dt) {
         if (p.isDead) return;
 
-        String state  = (p.animState != null && !p.animState.isEmpty()) ? p.animState : "idle";
+        String state   = (p.animState != null && !p.animState.isEmpty()) ? p.animState : "idle";
         String animKey = "player_" + state;
 
         float stateTime = tickStateTime(p.playerId, animKey, dt);
         TextureRegion frame = anims.getFrame(animKey, stateTime, playerFps(state));
 
         // Sprites default to facing right.  Flip X when facing left.
-        // Preserve any pre-applied Y-flip (Y-DOWN correction set at load time).
         boolean wantFlipX  = (p.facing == -1);
         boolean needChange = wantFlipX != frame.isFlipX();
         if (needChange) frame.flip(true, false);
 
-        // posX/posY are the AABB top-left corner.  Draw sprite centered horizontally
-        // with feet aligned to the bottom of the AABB (sprite extends above it).
-        batch.draw(frame, p.posX + SPRITE_OX, p.posY + SPRITE_OY, SW, SH);
+        // Y offset: align character feet (16 source-px from sprite bottom, scaled) with AABB bottom.
+        // Use the correct AABB height depending on crouch vs stand so the sprite stays in place.
+        boolean crouching = "crouch".equals(state) || "crouch_walk".equals(state);
+        int aabbH   = crouching ? PCH : PH;
+        // drawY + SDH - FEET_PAD = p.posY + aabbH  →  sprite feet at AABB bottom
+        float sprOY = aabbH - SDH + FEET_PAD;
+
+        float drawX = p.posX + SPRITE_OX;
+        float drawY = p.posY + sprOY;
+        batch.draw(frame, drawX, drawY, SDW, SDH);
 
         if (needChange) frame.flip(true, false);  // restore shared region
 
-        // Teleport ghost cursor: draw a semi-transparent tinted copy at cursor position
+        // Teleport ghost cursor: draw semi-transparent ghost at cursor world position
         if (p.teleportPhaseMode) {
-            batch.setColor(0.4f, 0.8f, 1f, 0.55f);  // cyan-blue ghost tint
-            // Render cursor-positioned ghost (same frame, facing same direction)
+            batch.setColor(0.4f, 0.8f, 1f, 0.55f);
             float gx = p.teleportCursorX + SPRITE_OX;
-            float gy = p.teleportCursorY + SPRITE_OY;
+            float gy = p.teleportCursorY + sprOY;  // same standing offset for ghost
             if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
-            batch.draw(frame, gx, gy, SW, SH);
+            batch.draw(frame, gx, gy, SDW, SDH);
             if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
             batch.setColor(Color.WHITE);
         }
