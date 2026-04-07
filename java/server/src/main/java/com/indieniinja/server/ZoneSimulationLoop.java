@@ -9,6 +9,7 @@ import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WireCodec;
 import com.indieniinja.network.WorldRoomDescriptor;
 import com.indieniinja.network.WorldSnapshot;
+import com.indieniinja.sim.GameMode;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
@@ -354,6 +355,48 @@ public final class ZoneSimulationLoop implements Runnable {
         zone.lastActivityMs = System.currentTimeMillis();
         if (zone.simulator != null) zone.simulator.removePlayer(pr.slot);
 
+        // ── Arcade EXIT: advance depth, generate fresh world ──────────────────
+        if (zone.gameMode == GameMode.ARCADE && newRoom.type == WorldGraph.RoomType.EXIT) {
+            int newDepth = zone.arcadeDepth + 1;
+            int newRooms = zone.arcadeRooms + 2;   // scale up per depth
+            long newWorldSeed = zone.worldSeed ^ (long)("depth" + newDepth).hashCode();
+            WorldGraph newGraph = WorldGraph.generate(newWorldSeed, newRooms, WorldGraph.WorldShape.BLOB);
+            WorldGraph.RoomNode startRoom = newGraph.startRoom();
+            String arcadeKey = masterHubId + ":arcade:" + newDepth + ":" + startRoom.gridX + ":" + startRoom.gridY;
+
+            ZoneInstance arcadeZone = allZones.computeIfAbsent(arcadeKey, k -> {
+                ZoneInstance z = new ZoneInstance(
+                    arcadeKey, masterHubId, newWorldSeed, zone.shape, newRooms,
+                    newWorldSeed, startRoom.gridX * 32f, startRoom.gridY * 32f
+                );
+                z.worldGraph          = newGraph;
+                z.currentRoomSeed     = startRoom.seed;
+                z.currentRoomGridX    = startRoom.gridX;
+                z.currentRoomGridY    = startRoom.gridY;
+                z.currentNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
+                z.currentRoomType     = startRoom.type.wire();
+                z.gameMode            = GameMode.ARCADE;
+                z.arcadeDepth         = newDepth;
+                z.arcadeRooms         = newRooms;
+                AtomicBoolean sh = new AtomicBoolean(false);
+                ZoneSimulationLoop loop = new ZoneSimulationLoop(z, session, sh, allZones, executor);
+                executor.submit(loop);
+                log.info("[Arcade] depth {} — new world seed={} rooms={} start=({},{})",
+                    newDepth, newWorldSeed, newRooms, startRoom.gridX, startRoom.gridY);
+                return z;
+            });
+
+            // Redirect player to the arcade depth+1 start zone
+            pr.posX             = arcadeZone.spawnX;
+            pr.posY             = arcadeZone.spawnY;
+            pr.explicitSpawnSet = true;
+            pr.hubId            = arcadeKey;
+            arcadeZone.playerIds.add(tr.playerId());
+            sendWorldTransition(pr, arcadeZone);
+            log.info("[Arcade] {} advanced to depth {} → zone '{}'", tr.playerId(), newDepth, arcadeKey);
+            return;
+        }
+
         // ── Get or create the destination room's ZoneInstance ──────────────────
         ZoneInstance newZone = allZones.computeIfAbsent(newKey, k -> {
             ZoneInstance z = new ZoneInstance(
@@ -384,30 +427,32 @@ public final class ZoneSimulationLoop implements Runnable {
         pr.hubId            = newKey;
         newZone.playerIds.add(tr.playerId());
 
-        // ── Send WORLD_TRANSITION to this player's client ──────────────────────
+        sendWorldTransition(pr, newZone);
+        log.info("[Zone {}→{}] player {} moved to room ({},{})",
+            zone.hubId, newKey, tr.playerId(), tr.newGridX(), tr.newGridY());
+    }
+
+    private void sendWorldTransition(PlayerRecord pr, ZoneInstance dest) {
         try {
-            byte[] body = com.indieniinja.network.WireCodec.encodeBody(
-                com.indieniinja.network.MessageType.WORLD_TRANSITION,
+            byte[] body = WireCodec.encodeBody(
+                MessageType.WORLD_TRANSITION,
                 Map.of(
-                    "hub_id",     newZone.hubId,
-                    "seed",       newZone.seed,
-                    "shape",      newZone.shape,
-                    "rooms",      newZone.rooms,
-                    "world_seed", newZone.worldSeed,
-                    "spawn_x",    newZone.spawnX,
-                    "spawn_y",    newZone.spawnY
+                    "hub_id",     dest.hubId,
+                    "seed",       dest.seed,
+                    "shape",      dest.shape,
+                    "rooms",      dest.rooms,
+                    "world_seed", dest.worldSeed,
+                    "spawn_x",    dest.spawnX,
+                    "spawn_y",    dest.spawnY
                 )
             );
             if (pr.channel.isActive()) {
-                io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(body);
+                ByteBuf buf = Unpooled.wrappedBuffer(body);
                 pr.channel.writeAndFlush(buf);
             }
         } catch (Exception ex) {
-            log.error("[Zone] WORLD_TRANSITION send error for {}: {}", tr.playerId(), ex.getMessage());
+            log.error("[Zone] WORLD_TRANSITION send error: {}", ex.getMessage());
         }
-
-        log.info("[Zone {}→{}] player {} moved to room ({},{})",
-            zone.hubId, newKey, tr.playerId(), tr.newGridX(), tr.newGridY());
     }
 
     // ── Broadcast ─────────────────────────────────────────────────────────────

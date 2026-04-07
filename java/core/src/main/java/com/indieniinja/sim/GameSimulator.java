@@ -167,9 +167,12 @@ public final class GameSimulator {
      */
     public void addPlayer(SimPlayer player) {
         players.put(player.slot, player);
-        // Sandbox mode: start with generous currency + unlock abilities
+        // Sandbox mode: start with generous currency + all abilities unlocked
         if (gameMode == GameMode.SANDBOX) {
             player.inventory.addCurrency(500);
+            player.unlockedAbilities.addAll(java.util.List.of(
+                "double_jump", "dash", "wall_jump", "shuriken", "teleport", "ninjutsu"
+            ));
         }
         // Register physics state so PhysicsSystem and CollisionSystem process it
         var entity = entityManager.create(com.indieniinja.core.EntityType.PLAYER, player.physics);
