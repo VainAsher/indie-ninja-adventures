@@ -146,6 +146,47 @@ public final class SimPlayer {
     public static final float WALL_SLIDE_DRAIN_MULT      = 1.6f;
     public static final float WALL_FRICTION_SPEED        = 6.0f;
 
+    // ── Progression (Loop 14 / Loop 20) ──────────────────────────────────────
+    public int experience = 0;
+    public int level      = 1;
+    /** Ability strings unlocked so far (wire values from Python AbilityRequirement). */
+    public final java.util.Set<String> unlockedAbilities = new java.util.LinkedHashSet<>();
+
+    /** XP needed to advance from current level to the next. */
+    public int xpToNextLevel() { return level * 50; }
+
+    /**
+     * Add XP and handle level-ups.
+     * Each level-up: +1 maxHealth, ability unlock at certain levels.
+     * Returns the number of levels gained.
+     */
+    public int addXp(int xp) {
+        experience += xp;
+        int levelsGained = 0;
+        while (experience >= xpToNextLevel()) {
+            experience -= xpToNextLevel();
+            level++;
+            levelsGained++;
+            maxHealth++;
+            health = Math.min(health + 1, maxHealth);  // partial heal on level-up
+            grantAbilitiesForLevel(level);
+        }
+        return levelsGained;
+    }
+
+    private void grantAbilitiesForLevel(int lvl) {
+        // Mirrors Python CampaignManager ability unlock progression
+        switch (lvl) {
+            case 2  -> unlockedAbilities.add("double_jump");
+            case 3  -> unlockedAbilities.add("dash");
+            case 5  -> unlockedAbilities.add("wall_jump");
+            case 7  -> unlockedAbilities.add("shuriken");
+            case 10 -> unlockedAbilities.add("teleport");
+            case 12 -> unlockedAbilities.add("ninjutsu");
+            default -> {}
+        }
+    }
+
     // ── Inventory ─────────────────────────────────────────────────────────────
     public final SimInventory inventory = new SimInventory();
 

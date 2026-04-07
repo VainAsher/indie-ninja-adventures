@@ -48,6 +48,8 @@ public final class WorldSnapshot {
     public List<ShurikenState> shurikens      = new ArrayList<>();
     /** NPCs — always full list, not delta-encoded (few entities, slow-changing). */
     public List<NPCState>      npcs           = new ArrayList<>();
+    /** Bosses — always full list (at most 1 per room). */
+    public List<BossState>     bosses         = new ArrayList<>();
 
     /**
      * Full world room layout — sent on full snapshots only (not deltas).
@@ -141,6 +143,10 @@ public final class WorldSnapshot {
         for (Object n : list(m, "npcs"))
             if (n instanceof java.util.Map<?,?> nm)
                 s.npcs.add(NPCState.fromMap((java.util.Map<String,Object>) nm));
+        // Bosses always present.
+        for (Object b : list(m, "bosses"))
+            if (b instanceof java.util.Map<?,?> bm)
+                s.bosses.add(BossState.fromMap(bm));
         // World room layout — present only on full snapshots.
         for (Object r : list(m, "world_rooms"))
             if (r instanceof java.util.Map<?,?> rm)
@@ -194,6 +200,8 @@ public final class WorldSnapshot {
         m.put("shurikens", shurikenList());
         // NPCs always included — few entities, slow-changing, no delta encoding needed.
         m.put("npcs",      npcList());
+        // Bosses always included (at most 1 per boss room).
+        m.put("bosses",    bossList());
         // World room layout — full snapshots only; empty list on deltas (client keeps previous).
         m.put("world_rooms", isDelta ? java.util.List.of() : worldRoomList());
         // Shop states — full snapshots only.
@@ -225,6 +233,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> npcList() {
         List<Map<String, Object>> out = new ArrayList<>(npcs.size());
         for (NPCState n : npcs) out.add(n.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> bossList() {
+        List<Map<String, Object>> out = new ArrayList<>(bosses.size());
+        for (BossState b : bosses) out.add(b.toMap());
         return out;
     }
 

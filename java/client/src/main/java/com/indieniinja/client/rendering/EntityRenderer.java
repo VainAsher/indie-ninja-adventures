@@ -3,6 +3,7 @@ package com.indieniinja.client.rendering;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.indieniinja.network.BossState;
 import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.NPCState;
 import com.indieniinja.network.PickupState;
@@ -145,6 +146,7 @@ public final class EntityRenderer {
 
         for (ShurikenState sh : snap.shurikens) renderShuriken(batch, sh, deltaTime);
         for (EnemyState    e  : snap.enemies)   renderEnemy(batch, e, deltaTime);
+        for (BossState     b  : snap.bosses)    renderBoss(batch, b, deltaTime);
         for (NPCState      n  : snap.npcs)      renderNpc(batch, n, deltaTime);
         for (PickupState   p  : snap.pickups)   renderPickup(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderPlayer(batch, p, deltaTime);
@@ -343,6 +345,55 @@ public final class EntityRenderer {
         }
     }
 
+    // ── Bosses ────────────────────────────────────────────────────────────────
+
+    /**
+     * Render a boss entity with a large placeholder body (coloured by phase)
+     * and a phase indicator label.  Falls back to a coloured quad when no boss
+     * atlas key is registered — same pattern as enemy rendering.
+     *
+     * Bosses are 64×96 px physics; we render at 2× scale (128×192 display).
+     */
+    private void renderBoss(SpriteBatch batch, BossState boss, float dt) {
+        if (!boss.alive) return;
+
+        int bw = 64, bh = 96;      // physics dims (BossType.width/height)
+        int dw = bw * 2, dh = bh * 2; // display at 2×
+
+        // Map AI state → animation key fragment
+        String aiKey = switch (boss.aiState) {
+            case "attack_melee", "attack_ranged", "attack_special" -> "attack";
+            case "phase_transition", "vulnerable"                  -> "stunned";
+            case "dead"                                            -> "dead";
+            default                                                -> "idle";
+        };
+        String atlasKey = boss.bossType + "_" + aiKey;
+        float stateTime = tickStateTime(boss.bossId, atlasKey, dt);
+        TextureRegion frame = anims.getFrame(atlasKey, stateTime, 8f);
+
+        // Phase-tinted colour: phase1=white, phase2=yellow, phase3=orange, phase4=red
+        Color tint = switch (boss.phase) {
+            case 2  -> new Color(1f, 0.9f, 0.3f, 1f);
+            case 3  -> new Color(1f, 0.55f, 0.1f, 1f);
+            case 4  -> new Color(1f, 0.2f, 0.2f, 1f);
+            default -> Color.WHITE;
+        };
+        batch.setColor(tint);
+
+        float drawX = boss.x + bw * 0.5f - dw * 0.5f;
+        float drawY = boss.y - (dh - bh);          // align feet to physics bottom
+        if (!boss.facingRight) {
+            // Flip horizontally
+            batch.draw(frame, drawX + dw, drawY, -dw, dh);
+        } else {
+            batch.draw(frame, drawX, drawY, dw, dh);
+        }
+        batch.setColor(Color.WHITE);
+
+        // Phase label above boss
+        // (BitmapFont not available here — HudRenderer renders the HP bar separately)
+    }
+
     // ── Companion orbs ────────────────────────────────────────────────────────
 
     /**
@@ -415,6 +466,7 @@ public final class EntityRenderer {
         snap.pickups.forEach(p  -> live.add(p.pickupId));
         snap.shurikens.forEach(s -> live.add(s.shurikenId));
         snap.npcs.forEach(n     -> live.add(n.npcId));
+        snap.bosses.forEach(b   -> live.add(b.bossId));
         stateTimes.keySet().retainAll(live);
         lastState.keySet().retainAll(live);
         prevVelY.keySet().retainAll(live);

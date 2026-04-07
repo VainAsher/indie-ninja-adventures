@@ -14,6 +14,8 @@ import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.physics.PhysicsState;
 import com.indieniinja.physics.PhysicsSystem;
 
+import com.indieniinja.network.BossState;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,6 +64,7 @@ public final class GameSimulator {
     private final List<FallingPlatform> fallingPlatforms = new ArrayList<>();
     private final List<SimShuriken> shurikens = new ArrayList<>();
     private final List<SimNPC>      npcs      = new ArrayList<>();
+    private final List<SimBoss>     bosses    = new ArrayList<>();
     /** NPC ID → shop (only for "shop" type NPCs). */
     private final Map<String, SimShop> shops = new LinkedHashMap<>();
     private int shurikenSeq = 0;
@@ -119,6 +122,13 @@ public final class GameSimulator {
 
         // Register falling platforms
         fallingPlatforms.addAll(layout.fallingPlatforms);
+
+        // Spawn boss (boss rooms only)
+        if (layout.bossSpawn != null) {
+            LevelLayout.BossSpawn bs = layout.bossSpawn;
+            BossType bt = BossType.fromWire(bs.bossTypeWire());
+            bosses.add(new SimBoss(hubId + "_boss_0", bt, bs.x(), bs.y()));
+        }
 
         // Spawn NPCs (no physics entity — NPCs use simple patrol, no collision sim)
         int npcIdx = 0;
@@ -225,6 +235,9 @@ public final class GameSimulator {
 
         // 9. NPC patrol + player-facing
         stepNpcs();
+
+        // 10. Boss AI + combat
+        stepBosses();
     }
 
     /**
@@ -265,6 +278,10 @@ public final class GameSimulator {
             ps.ninjutsuCasting   = p.ninjutsuCasting;
             // Inventory — build wire type from SimInventory
             ps.inventory = buildInventoryState(p.inventory);
+            // Progression
+            ps.experience = p.experience;
+            ps.level      = p.level;
+            ps.abilities  = new java.util.ArrayList<>(p.unlockedAbilities);
             snap.players.add(ps);
         }
 
@@ -333,6 +350,22 @@ public final class GameSimulator {
             snap.npcs.add(ns);
         }
 
+        // Bosses
+        for (SimBoss boss : bosses) {
+            BossState bs = new BossState();
+            bs.bossId     = boss.bossId;
+            bs.bossType   = boss.type.wire;
+            bs.x          = boss.physics.x;
+            bs.y          = boss.physics.y;
+            bs.hp         = boss.hp;
+            bs.maxHp      = boss.maxHp;
+            bs.aiState    = boss.aiState.wire;
+            bs.phase      = boss.phaseNumber;
+            bs.facingRight = boss.facingRight;
+            bs.alive       = boss.isAlive();
+            snap.bosses.add(bs);
+        }
+
         // Shop states — always included so client can show shop UI
         for (SimShop shop : shops.values()) {
             com.indieniinja.network.ShopState ss = new com.indieniinja.network.ShopState();
@@ -363,6 +396,55 @@ public final class GameSimulator {
         if (shop == null) return false;
         return isBuy ? shop.buy(itemId, qty, p.inventory)
                      : shop.sell(itemId, qty, p.inventory);
+    }
+
+    /**
+     * Use a consumable item from the player's inventory.
+     * Health potions restore HP; max_hp_upgrade increases maxHealth.
+     * Returns true if the item was used successfully.
+     */
+    public boolean handleUseItem(int playerSlot, String itemId) {
+        SimPlayer p = players.get(playerSlot);
+        if (p == null) return false;
+        ItemDatabase.ItemDef def = ItemDatabase.get(itemId);
+        if (def == null || !def.consumable()) return false;
+        if (!p.inventory.hasItem(itemId, 1)) return false;
+        // Apply effect
+        if (def.healthRestore() > 0) {
+            if (p.health >= p.maxHealth) return false;  // already full HP
+            p.health = Math.min(p.maxHealth, p.health + def.healthRestore());
+        }
+        if (def.healthBonus() > 0) {
+            p.maxHealth += def.healthBonus();
+            p.health = Math.min(p.maxHealth, p.health + def.healthBonus());
+        }
+        p.inventory.removeItem(itemId, 1);
+        return true;
+    }
+
+    /**
+     * Equip or unequip an item (weapon / armor).
+     * Toggling the already-equipped item unequips it.
+     * Returns true if the inventory changed.
+     */
+    public boolean handleEquipItem(int playerSlot, String itemId) {
+        SimPlayer p = players.get(playerSlot);
+        if (p == null) return false;
+        ItemDatabase.ItemDef def = ItemDatabase.get(itemId);
+        if (def == null) return false;
+        if (!p.inventory.hasItem(itemId, 1)) return false;
+        switch (def.type()) {
+            case "weapon" -> {
+                if (itemId.equals(p.inventory.equippedWeapon)) p.inventory.unequipItem(itemId);
+                else p.inventory.equipItem(itemId);
+            }
+            case "armor"  -> {
+                if (itemId.equals(p.inventory.equippedArmor)) p.inventory.unequipItem(itemId);
+                else p.inventory.equipItem(itemId);
+            }
+            default -> { return false; }
+        }
+        return true;
     }
 
     // ── Step helpers ──────────────────────────────────────────────────────────
@@ -906,27 +988,65 @@ public final class GameSimulator {
     }
 
     /**
-     * Spawn 1–2 loot pickups at the dead enemy's position.
+     * Spawn 1–2 loot pickups at the dead enemy's position and grant XP to the nearest player.
      * 70% coin, 20% health_potion, 10% nothing — matches Python enemy loot tables.
      */
     private void spawnLoot(SimEnemy en) {
-        // Arcade score: +1 per kill (boss = +5)
-        if (gameMode == GameMode.ARCADE) {
-            arcadeScore += "boss".equals(en.enemyType) ? 5 : 1;
-        }
+        // Arcade score: +1 per kill
+        if (gameMode == GameMode.ARCADE) arcadeScore++;
+
+        // XP reward
+        int xp = enemyXp(en.enemyType);
+        grantXpToNearest(en.physics.x + en.physics.width * 0.5f,
+                         en.physics.y + en.physics.height * 0.5f, xp);
+
         float cx = en.physics.x + en.physics.width  * 0.5f - 10f;
         float cy = en.physics.y;
-        // Use lootSeq as a simple deterministic pseudo-random based on position
         int roll = (int) Math.abs((en.physics.x * 7 + en.physics.y * 13 + lootSeq * 31) % 10);
         lootSeq++;
         String type = roll < 7 ? "coin" : roll < 9 ? "health_potion" : null;
-        if (type != null) {
-            pickups.add(new SimPickup(hubId + "_loot_" + lootSeq, type, cx, cy));
+        if (type != null) pickups.add(new SimPickup(hubId + "_loot_" + lootSeq, type, cx, cy));
+        if (roll < 2)     pickups.add(new SimPickup(hubId + "_loot_" + (lootSeq + 100), "coin", cx + 12f, cy));
+    }
+
+    /** Spawn loot and XP from a dead boss. Drops 3–5 items plus guaranteed currency. */
+    private void spawnBossLoot(SimBoss boss) {
+        if (gameMode == GameMode.ARCADE) arcadeScore += 10;
+
+        grantXpToNearest(boss.physics.x + boss.physics.width  * 0.5f,
+                         boss.physics.y + boss.physics.height * 0.5f,
+                         boss.type.xpReward());
+
+        float cx = boss.physics.x + boss.physics.width * 0.5f;
+        float cy = boss.physics.y;
+        // Guaranteed: 3 coins + 1 health potion
+        for (int i = 0; i < 3; i++)
+            pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "coin", cx - 20f + i * 20f, cy));
+        pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "health_potion", cx, cy - 32f));
+    }
+
+    private static int enemyXp(String type) {
+        return switch (type) {
+            case "goblin"   -> 10;
+            case "slime"    ->  8;
+            case "skeleton" -> 12;
+            case "wolf"     -> 15;
+            case "bat"      ->  6;
+            default         -> 10;
+        };
+    }
+
+    /** Grant XP to the player closest to the kill position. */
+    private void grantXpToNearest(float kx, float ky, int xp) {
+        SimPlayer nearest = null;
+        float bestDist = Float.MAX_VALUE;
+        for (SimPlayer p : players.values()) {
+            if (!p.isAlive()) continue;
+            float dx = p.physics.x - kx, dy = p.physics.y - ky;
+            float d = dx*dx + dy*dy;
+            if (d < bestDist) { bestDist = d; nearest = p; }
         }
-        // 20% chance of a second coin
-        if (roll < 2) {
-            pickups.add(new SimPickup(hubId + "_loot_" + (lootSeq + 100), "coin", cx + 12f, cy));
-        }
+        if (nearest != null) nearest.addXp(xp);
     }
 
     private void spawnPendingShurikens() {
@@ -1010,6 +1130,99 @@ public final class GameSimulator {
             default -> {
                 // Generic item — try to add to inventory
                 if (ItemDatabase.get(type) != null) p.inventory.addItem(type, 1);
+            }
+        }
+    }
+
+    /**
+     * Step all boss AI, boss→player damage, and player→boss combat.
+     * Mirrors Python entities/boss.py Boss.update().
+     */
+    private void stepBosses() {
+        if (bosses.isEmpty()) return;
+
+        // Nearest alive player
+        float nearestX = 0, nearestY = 0, nearestDist = Float.MAX_VALUE;
+        SimPlayer nearestPlayer = null;
+        for (SimPlayer p : players.values()) {
+            if (!p.isAlive()) continue;
+            float cx = p.physics.x + p.physics.width  * 0.5f;
+            float cy = p.physics.y + p.physics.height * 0.5f;
+            // Boss starts in intro at room centre — use first alive player as anchor
+            if (nearestPlayer == null) { nearestX = cx; nearestY = cy; nearestPlayer = p; nearestDist = 0; }
+            for (SimBoss boss : bosses) {
+                float bx = boss.physics.x + boss.physics.width  * 0.5f;
+                float by = boss.physics.y + boss.physics.height * 0.5f;
+                float dx = cx - bx, dy = cy - by;
+                float d  = (float) Math.sqrt(dx*dx + dy*dy);
+                if (d < nearestDist) { nearestDist = d; nearestX = cx; nearestY = cy; nearestPlayer = p; }
+            }
+        }
+
+        for (SimBoss boss : bosses) {
+            if (!boss.isAlive()) continue;
+
+            float bx = boss.physics.x + boss.physics.width  * 0.5f;
+            float by = boss.physics.y + boss.physics.height * 0.5f;
+            float dx = nearestPlayer != null ? (nearestX - bx) : 0;
+            float dy = nearestPlayer != null ? (nearestY - by) : 0;
+            float dist = (float) Math.sqrt(dx*dx + dy*dy);
+
+            boss.step(DT, nearestX, nearestY, dist);
+
+            // Gravity (bosses fall like enemies — no flying)
+            boss.physics.vy = Math.min(boss.physics.vy + 0.4f, 12f);
+            boss.physics.y += boss.physics.vy;
+            boss.physics.x += boss.physics.vx;
+
+            // Simple floor clamp — full collision would be expensive for a solo boss;
+            // the spatial hash check ensures they don't fall through solid floors.
+            var tiles = spatialHash.candidates(boss.physics.x, boss.physics.y,
+                                               boss.physics.width, boss.physics.height);
+            for (var tile : tiles) {
+                if (!tile.isPlatform() && tile.overlaps(boss.physics.x, boss.physics.y,
+                                                        boss.physics.width, boss.physics.height)) {
+                    // Push up until not overlapping
+                    boss.physics.y = tile.y() - boss.physics.height;
+                    boss.physics.vy = 0;
+                    break;
+                }
+            }
+
+            // ── Boss → player damage (melee active window) ────────────────────
+            if (boss.isMeleeActive() && nearestPlayer != null) {
+                float px = nearestPlayer.physics.x, py = nearestPlayer.physics.y;
+                float pw = nearestPlayer.physics.width, ph = nearestPlayer.physics.height;
+                if (aabbOverlap(boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height,
+                                px, py, pw, ph)) {
+                    nearestPlayer.takeDamage(boss.type.baseDamage);
+                }
+            }
+
+            // ── Player melee → boss ───────────────────────────────────────────
+            for (SimPlayer sp : players.values()) {
+                if (!sp.isAlive() || !sp.isAttacking) continue;
+                float cx2   = sp.physics.x + sp.physics.width  * 0.5f;
+                float cy2   = sp.physics.y + sp.physics.height * 0.5f;
+                float reach = SimPlayer.MELEE_REACH;
+                float halfH = SimPlayer.MELEE_HEIGHT * 0.5f;
+                float hbX   = sp.facing >= 0 ? cx2 : cx2 - reach;
+                float hbY   = cy2 - halfH;
+                if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
+                                boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height)) {
+                    if (boss.takeDamage(SimPlayer.MELEE_DAMAGE)) spawnBossLoot(boss);
+                }
+            }
+
+            // ── Shuriken → boss ───────────────────────────────────────────────
+            for (SimShuriken s : shurikens) {
+                if (!s.alive || s.stuck) continue;
+                if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
+                                boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height)) {
+                    if (boss.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnBossLoot(boss);
+                    s.stuck      = true;
+                    s.stuckTimer = 0.1f;
+                }
             }
         }
     }

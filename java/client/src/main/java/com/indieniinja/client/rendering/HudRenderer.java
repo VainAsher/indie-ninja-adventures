@@ -135,6 +135,38 @@ public final class HudRenderer {
             }
         }
 
+        // ── Boss HP bar (top-centre, prominent) ──────────────────────────────
+        if (snap != null && !snap.bosses.isEmpty()) {
+            com.indieniinja.network.BossState boss = snap.bosses.get(0);
+            if (boss.alive) {
+                float bBarW  = Math.min(sw * 0.5f, 400f);
+                float bBarH  = 16f;
+                float bBarX  = (sw - bBarW) * 0.5f;
+                float bBarY  = sh - 40f;
+                float bRatio = boss.maxHp > 0 ? (float) boss.hp / boss.maxHp : 0f;
+
+                // Background
+                shapes.setColor(0.1f, 0.05f, 0.05f, 0.9f);
+                shapes.rect(bBarX - 2, bBarY - 2, bBarW + 4, bBarH + 4);
+
+                // Filled — colour by phase
+                Color bCol = switch (boss.phase) {
+                    case 2  -> new Color(0.9f, 0.8f, 0.1f, 1f);
+                    case 3  -> new Color(0.9f, 0.45f, 0.1f, 1f);
+                    case 4  -> new Color(0.85f, 0.1f, 0.1f, 1f);
+                    default -> new Color(0.6f, 0.2f, 0.7f, 1f);
+                };
+                shapes.setColor(bCol);
+                shapes.rect(bBarX, bBarY, bBarW * Math.max(0, bRatio), bBarH);
+
+                // Phase divider lines at 75/50/25%
+                shapes.setColor(0f, 0f, 0f, 0.6f);
+                for (float pct : new float[]{0.75f, 0.50f, 0.25f}) {
+                    shapes.rect(bBarX + bBarW * pct - 1f, bBarY, 2f, bBarH);
+                }
+            }
+        }
+
         // Connection indicator dot
         shapes.setColor(connected ? Color.GREEN : Color.RED);
         shapes.circle(sw - 12f, 12f, 6f);

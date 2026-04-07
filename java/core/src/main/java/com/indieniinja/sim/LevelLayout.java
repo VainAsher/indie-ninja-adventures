@@ -1,6 +1,7 @@
 package com.indieniinja.sim;
 
 import com.indieniinja.physics.PhysicsConstants;
+import com.indieniinja.sim.BossType;
 import com.indieniinja.physics.SpatialHash;
 import com.indieniinja.physics.TileRect;
 import com.indieniinja.world.WorldGenerator;
@@ -39,6 +40,8 @@ public final class LevelLayout {
     public final List<PickupSpawn> pickupSpawns;
     // NPC spawn descriptors
     public final List<NPCSpawn> npcSpawns;
+    // Boss spawn (null if room is not a boss room)
+    public final BossSpawn bossSpawn;
     // Falling platforms
     public final List<FallingPlatform> fallingPlatforms;
     // World height in pixels (used for enemy AI fall detection)
@@ -53,6 +56,7 @@ public final class LevelLayout {
             List<EnemySpawn> enemySpawns,
             List<PickupSpawn> pickupSpawns,
             List<NPCSpawn> npcSpawns,
+            BossSpawn bossSpawn,
             List<FallingPlatform> fallingPlatforms,
             float spawnX, float spawnY) {
         this.seed             = seed;
@@ -62,6 +66,7 @@ public final class LevelLayout {
         this.enemySpawns      = enemySpawns;
         this.pickupSpawns     = pickupSpawns;
         this.npcSpawns        = npcSpawns;
+        this.bossSpawn        = bossSpawn;
         this.fallingPlatforms = fallingPlatforms;
         this.worldHeightPx    = heightTiles * 32f;
         this.spawnX           = spawnX;
@@ -80,6 +85,12 @@ public final class LevelLayout {
      * Python: entities/npc.py NPCDefinition — type ∈ {lore, shop, mission_giver, tutorial}.
      */
     public record NPCSpawn(String type, float x, float y, float patrolMinX, float patrolMaxX) {}
+
+    /**
+     * Spawn descriptor for a boss.
+     * One per "boss" room, positioned at the centre-bottom of the arena.
+     */
+    public record BossSpawn(String bossTypeWire, float x, float y) {}
 
     // ── Factory ───────────────────────────────────────────────────────────────
 
@@ -143,7 +154,7 @@ public final class LevelLayout {
         // Spawn at centre of floor in the test layout
         float testSpawnX = (W / 2) * TILE;
         float testSpawnY = (H - 2) * TILE - 56f;   // player height = 56
-        return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), falling,
+        return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), null, falling,
                 testSpawnX, testSpawnY);
     }
 
@@ -232,7 +243,7 @@ public final class LevelLayout {
         }
 
         return new LevelLayout(seed, COLS, ROWS, extended,
-            base.enemySpawns, base.pickupSpawns, base.npcSpawns,
+            base.enemySpawns, base.pickupSpawns, base.npcSpawns, base.bossSpawn,
             base.fallingPlatforms, base.spawnX, base.spawnY);
     }
 
@@ -301,16 +312,22 @@ public final class LevelLayout {
         java.util.Random rng = new java.util.Random(seed ^ 0xBEEF_CAFEL);
         Collections.shuffle(groundPos, rng);
 
-        // Enemies — 3-5 at first available ground positions
+        // Boss room: spawn one boss at centre-bottom; no regular enemies
+        boolean isBossRoom = "boss".equals(roomType);
+        BossSpawn bossSpawn = null;
+        if (isBossRoom) {
+            BossType bt = BossType.fromSeed(seed);
+            bossSpawn = new BossSpawn(bt.wire, spawnX, spawnY);
+        }
+
+        // Enemies — 3-5 at first available ground positions (skip for boss rooms)
         List<EnemySpawn> enemies = new ArrayList<>();
         String[] enemyTypes = {"goblin", "slime", "skeleton"};
-        int numEnemies = 3 + rng.nextInt(3);   // 3-5
+        int numEnemies = isBossRoom ? 0 : (3 + rng.nextInt(3));   // 3-5, or 0 in boss rooms
         for (int i = 0; i < numEnemies && i < groundPos.size(); i++) {
             float[] pos = groundPos.get(i);
             String t    = enemyTypes[i % enemyTypes.length];
             float patrol = 3 * TILE;
-            // posY is top of tile; enemy bottom = posY, so entity posY = posY - entityHeight
-            // GameSimulator spawns using posY directly — pass the tile-top so SimEnemy.y == floor
             enemies.add(new EnemySpawn(t, pos[0], pos[1],
                 pos[0] - patrol, pos[0] + patrol));
         }
@@ -350,7 +367,7 @@ public final class LevelLayout {
             npcs.add(new NPCSpawn(t, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
         }
 
-        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, falling,
+        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, bossSpawn, falling,
                 spawnX, spawnY);
     }
 }

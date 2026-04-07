@@ -28,6 +28,17 @@ application {
     mainClass.set("com.indieniinja.client.DesktopLauncher")
 }
 
+// Bundle game assets into the JAR so it works standalone when downloaded.
+// Assets live in the repo root assets/ directory; Gdx.files.internal("assets/...")
+// resolves from the classpath root, so we include them with their "assets/" prefix intact.
+val repoRoot = projectDir.parentFile.parentFile  // java/client/ -> java/ -> repo root
+sourceSets.main {
+    resources {
+        srcDir(repoRoot)
+        include("assets/**")
+    }
+}
+
 // Fat JAR: stable name ninja-client-all.jar (no version suffix — launcher uses fixed filename)
 tasks.shadowJar {
     archiveBaseName.set("ninja-client")

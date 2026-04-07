@@ -29,6 +29,12 @@ public final class PlayerState {
     /** Player inventory — always sent (not delta-encoded). */
     public InventoryState inventory = new InventoryState();
 
+    // ── Progression ───────────────────────────────────────────────────────────
+    public int experience = 0;
+    public int level      = 1;
+    /** Unlocked ability wire strings (e.g. "double_jump", "dash"). */
+    public java.util.List<String> abilities = new java.util.ArrayList<>();
+
     public PlayerState() {}
 
     public Map<String, Object> toMap() {
@@ -50,6 +56,9 @@ public final class PlayerState {
         m.put("mana",                 mana);
         m.put("ninjutsu_casting",     ninjutsuCasting);
         m.put("inventory",            inventory != null ? inventory.toMap() : new InventoryState().toMap());
+        m.put("experience",           experience);
+        m.put("level",                level);
+        m.put("abilities",            abilities != null ? abilities : java.util.List.of());
         return m;
     }
 
@@ -80,6 +89,11 @@ public final class PlayerState {
         s.inventory = (inv instanceof java.util.Map<?,?> im)
             ? InventoryState.fromMap((java.util.Map<String,Object>) im)
             : new InventoryState();
+        s.experience = num(m, "experience", 0);
+        s.level      = num(m, "level",      1);
+        Object abilRaw = m.get("abilities");
+        if (abilRaw instanceof java.util.List<?> al)
+            for (Object a : al) s.abilities.add(a.toString());
         return s;
     }
 
