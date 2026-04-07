@@ -419,6 +419,18 @@ public final class GameSimulator {
     }
 
     /**
+     * Craft an item using the named recipe, consuming ingredients from inventory.
+     * Returns true if the craft succeeded; false if recipe unknown or ingredients missing.
+     */
+    public boolean handleCraftRequest(int playerSlot, String recipeId) {
+        SimPlayer p = players.get(playerSlot);
+        if (p == null) return false;
+        CraftingRecipe recipe = RecipeBook.get(recipeId);
+        if (recipe == null) return false;
+        return recipe.craft(p.inventory);
+    }
+
+    /**
      * Use a consumable item from the player's inventory.
      * Health potions restore HP; max_hp_upgrade increases maxHealth.
      * Returns true if the item was used successfully.

@@ -48,6 +48,12 @@ public final class HudRenderer {
 
     private final OrthographicCamera screenCam;
 
+    // ── Ability unlock toasts ─────────────────────────────────────────────────
+    private static final float TOAST_TTL  = 3.0f;
+    private static final float TOAST_FADE = 0.8f;   // start fading in final 0.8s
+    private final java.util.List<String> toastTexts = new java.util.ArrayList<>();
+    private final java.util.List<Float>  toastTtls  = new java.util.ArrayList<>();
+
     public HudRenderer() {
         shapes    = new ShapeRenderer();
         hudBatch  = new SpriteBatch();
@@ -297,6 +303,57 @@ public final class HudRenderer {
                 hudBatch.end();
             }
         }
+    }
+
+    /**
+     * Queue an ability-unlock toast.  Called from GameScreen when a new ability
+     * appears on the local player's state.
+     */
+    public void notifyAbilityUnlock(String abilityName) {
+        String display = switch (abilityName) {
+            case "double_jump" -> "Double Jump";
+            case "dash"        -> "Dash";
+            case "wall_jump"   -> "Wall Jump";
+            case "shuriken"    -> "Shuriken Throw";
+            case "teleport"    -> "Teleport";
+            case "ninjutsu"    -> "Ninjutsu";
+            default            -> abilityName.replace('_', ' ');
+        };
+        toastTexts.add("ABILITY UNLOCKED: " + display.toUpperCase());
+        toastTtls .add(TOAST_TTL);
+    }
+
+    /**
+     * Tick and render all active toasts.
+     * Must be called inside a hudBatch.begin() / end() block on the screen projection.
+     */
+    public void renderToasts(float delta) {
+        if (toastTexts.isEmpty()) return;
+
+        int sw = Gdx.graphics.getWidth();
+        int sh = Gdx.graphics.getHeight();
+
+        hudBatch.setProjectionMatrix(screenCam.combined);
+        hudBatch.begin();
+
+        for (int i = toastTtls.size() - 1; i >= 0; i--) {
+            float ttl = toastTtls.get(i) - delta;
+            if (ttl <= 0f) { toastTexts.remove(i); toastTtls.remove(i); continue; }
+            toastTtls.set(i, ttl);
+
+            float alpha = ttl < TOAST_FADE ? ttl / TOAST_FADE : 1f;
+            font.getData().setScale(1.4f);
+            font.setColor(0.3f, 1f, 0.5f, alpha);
+            String text = toastTexts.get(i);
+            // Approximate centre — default font is about 8px per char at scale 1
+            float textW = text.length() * 8.4f * 1.4f;
+            float y = sh * 0.65f - i * 22f;
+            font.draw(hudBatch, text, (sw - textW) * 0.5f, y);
+        }
+
+        font.getData().setScale(1f);
+        font.setColor(Color.WHITE);
+        hudBatch.end();
     }
 
     public void resize(int w, int h) {

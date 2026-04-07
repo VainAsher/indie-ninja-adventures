@@ -87,6 +87,7 @@ public final class GameScreen implements Screen {
     // ── Inventory / shop / minimap overlays ──────────────────────────────────
     private InventoryOverlay inventoryOverlay;
     private ShopOverlay      shopOverlay;
+    private com.indieniinja.client.ui.CraftingOverlay craftingOverlay;
     private MinimapRenderer  minimapRenderer;
     /** Latest shop states from full snapshot — keyed by npc_id. */
     private final java.util.Map<String, ShopState> latestShopStates = new java.util.LinkedHashMap<>();
@@ -110,6 +111,10 @@ public final class GameScreen implements Screen {
     private final java.util.Set<String>           prevEnemyIds  = new java.util.HashSet<>();
     /** Boss alive state last frame — transition true→false signals defeat. */
     private final java.util.Map<String, Boolean>  prevBossAlive = new java.util.HashMap<>();
+
+    // ── Ability unlock toasts (Loop 20) ──────────────────────────────────────
+    /** Abilities seen last frame for local player — new entries trigger toast notification. */
+    private final java.util.Set<String> prevLocalAbilities = new java.util.HashSet<>();
 
     /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
     private static String npcDialogueId(String npcType) {
@@ -224,6 +229,11 @@ public final class GameScreen implements Screen {
         // Inventory / shop / minimap overlays
         inventoryOverlay = new InventoryOverlay();
         shopOverlay      = new ShopOverlay();
+        craftingOverlay  = new com.indieniinja.client.ui.CraftingOverlay();
+        craftingOverlay.setOnCraft(recipeId ->
+            networkClient.sendMessage(
+                com.indieniinja.network.MessageType.CRAFT_REQUEST,
+                java.util.Map.of("recipe_id", recipeId)));
         minimapRenderer  = new MinimapRenderer();
         shopOverlay.setOnTrade(req -> {
             java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
@@ -265,15 +275,13 @@ public final class GameScreen implements Screen {
             localSlot = pendingSlot;
         }
 
-        // ── Overlay input priority: shop > inventory > dialogue > game ────────
+        // ── Overlay input priority: crafting > shop > inventory > dialogue > game
         // Use prevSnap (last frame's snapshot) since this frame's snap hasn't been polled yet.
-        boolean shopConsumed = false;
-        if (prevSnap != null) {
-            PlayerState localSnap = prevSnap.players.stream()
-                .filter(p -> p.slot == localSlot).findFirst().orElse(null);
-            shopConsumed = shopOverlay.handleInput(localSnap);
-        }
-        boolean invConsumed = !shopConsumed && inventoryOverlay.handleInput();
+        PlayerState prevLocal = prevSnap == null ? null : prevSnap.players.stream()
+            .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+        boolean craftConsumed = craftingOverlay.handleInputAndRender(batch, prevLocal, delta);
+        boolean shopConsumed  = !craftConsumed && shopOverlay.handleInput(prevLocal);
+        boolean invConsumed   = !craftConsumed && !shopConsumed && inventoryOverlay.handleInput();
 
         // ── Dialogue input (consumes keys when dialogue is open) ─────────────
         boolean dialogueConsumed = !shopConsumed && !invConsumed && dialogueOverlay.handleInput();
@@ -289,7 +297,7 @@ public final class GameScreen implements Screen {
         }
 
         // ── ESC toggles pause (only when no overlay active) ───────────────────
-        boolean anyOverlay = shopConsumed || invConsumed || dialogueConsumed;
+        boolean anyOverlay = craftConsumed || shopConsumed || invConsumed || dialogueConsumed;
         if (!anyOverlay && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (paused) resume(); else pause();
         }
@@ -318,6 +326,7 @@ public final class GameScreen implements Screen {
             prevSnap          = null;
             prevEnemyIds.clear();
             prevBossAlive.clear();
+            prevLocalAbilities.clear();
             chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
         }
 
@@ -365,11 +374,13 @@ public final class GameScreen implements Screen {
                 for (NPCState npc : snap.npcs) {
                     if (npc.isInteractable) {
                         if ("shop".equals(npc.npcType) && latestShopStates.containsKey(npc.npcId)) {
-                            // Open shop overlay
                             inventoryOverlay.hide();
                             shopOverlay.open(latestShopStates.get(npc.npcId));
+                        } else if ("crafter".equals(npc.npcType)) {
+                            inventoryOverlay.hide();
+                            shopOverlay.hide();
+                            craftingOverlay.open();
                         } else {
-                            // Open dialogue
                             String dialogueId = npcDialogueId(npc.npcType);
                             dialogueManager.setStoryContext(storyManager.toConditionContext());
                             dialogueManager.startNpcDialogue(dialogueId);
@@ -493,6 +504,9 @@ public final class GameScreen implements Screen {
 
         hudRenderer.render(snap, stateBuffer.isConnected(),
             Gdx.graphics.getFramesPerSecond(), localSlot);
+
+        // ── Ability unlock toasts ─────────────────────────────────────────────
+        hudRenderer.renderToasts(delta);
 
         // ── Dialogue overlay (rendered on top of HUD, below pause) ────────────
         if (dialogueManager.isActive()) {
@@ -730,6 +744,20 @@ public final class GameScreen implements Screen {
             }
             prevBossAlive.put(boss.bossId, boss.alive);
         }
+
+        // ── Ability unlocks (Loop 20) ─────────────────────────────────────────
+        com.indieniinja.network.PlayerState localP = snap.players.stream()
+            .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+        if (localP != null) {
+            for (String ab : localP.abilities) {
+                if (!prevLocalAbilities.contains(ab)) {
+                    hudRenderer.notifyAbilityUnlock(ab);
+                    log.info("[Ability] unlocked: {}", ab);
+                }
+            }
+            prevLocalAbilities.clear();
+            prevLocalAbilities.addAll(localP.abilities);
+        }
     }
 
     @Override
@@ -759,6 +787,7 @@ public final class GameScreen implements Screen {
         if (dialogueOverlay  != null) dialogueOverlay.dispose();
         if (inventoryOverlay != null) inventoryOverlay.dispose();
         if (shopOverlay      != null) shopOverlay.dispose();
+        if (craftingOverlay  != null) craftingOverlay.dispose();
         if (minimapRenderer  != null) minimapRenderer.dispose();
     }
 }

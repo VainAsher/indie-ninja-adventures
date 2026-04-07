@@ -107,6 +107,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             case MessageType.ENTITY_EVENT  -> handleEntityEvent(ctx, wire);
             case MessageType.PORTAL_TRAVEL -> handlePortalTravel(ctx, wire);
             case MessageType.TRADE_REQUEST -> handleTradeRequest(ctx, wire);
+            case MessageType.CRAFT_REQUEST -> handleCraftRequest(ctx, wire);
             case MessageType.USE_ITEM      -> handleUseItem(ctx, wire);
             case MessageType.EQUIP_ITEM    -> handleEquipItem(ctx, wire);
             default -> log.debug("Unhandled message type '{}' from {}", wire.type(), ctx.channel().remoteAddress());
@@ -294,6 +295,20 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
         boolean ok = zone.simulator.handleTradeRequest(player.slot, npcId, itemId, qty, isBuy);
         log.debug("TRADE_REQUEST pid={} npc={} item={} qty={} buy={} → {}", pid, npcId, itemId, qty, isBuy, ok);
+    }
+
+    // ── Handler: CRAFT_REQUEST ───────────────────────────────────────────────
+
+    private void handleCraftRequest(ChannelHandlerContext ctx, WireMessage msg) {
+        String pid = channelToPlayer.get(ctx.channel().id().asShortText());
+        if (pid == null) return;
+        PlayerRecord player = session.players.get(pid);
+        if (player == null) return;
+        String recipeId = msg.getString("recipe_id", "");
+        ZoneInstance zone = zones.get(player.hubId);
+        if (zone == null || zone.simulator == null) return;
+        boolean ok = zone.simulator.handleCraftRequest(player.slot, recipeId);
+        log.debug("CRAFT_REQUEST pid={} recipe={} → {}", pid, recipeId, ok);
     }
 
     // ── Handler: USE_ITEM ─────────────────────────────────────────────────────

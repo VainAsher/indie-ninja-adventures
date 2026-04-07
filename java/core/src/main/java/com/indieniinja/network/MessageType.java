@@ -15,6 +15,7 @@ public final class MessageType {
     public static final String ENTITY_EVENT   = "entity_event";
     public static final String PORTAL_TRAVEL  = "portal_travel";
     public static final String TRADE_REQUEST  = "trade_request";   // buy/sell from NPC shop
+    public static final String CRAFT_REQUEST = "craft_request";   // craft item from materials
     public static final String USE_ITEM      = "use_item";         // use consumable from inventory
     public static final String EQUIP_ITEM    = "equip_item";       // equip weapon or armor
 

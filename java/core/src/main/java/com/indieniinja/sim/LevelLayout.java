@@ -366,18 +366,27 @@ public final class LevelLayout {
                 "plat_" + (int) fx + "_" + (int) fy, fx, fy, 3 * TILE, TILE));
         }
 
-        // NPCs — 1-2 lore NPCs per room at ground positions after enemies+pickups.
-        // Python: npc_manager.py spawns NPCs per story state; we spawn lore NPCs
-        // procedurally here as a content placeholder until the story system is ported.
+        // NPCs — 1-3 per room: base types plus a crafter in crafting/shop rooms.
+        // Python: npc_manager.py spawns NPCs per story state; we spawn procedurally here.
         List<NPCSpawn> npcs = new ArrayList<>();
-        String[] npcTypes = {"lore", "shop"};
-        int numNpcs     = 1 + rng.nextInt(2);   // 1-2 NPCs
-        int npcStart    = numEnemies + numPickups;
+        // Base NPC rotation: lore, shop, mission_giver
+        String[] baseNpcTypes = {"lore", "shop", "mission_giver"};
+        int numNpcs  = 1 + rng.nextInt(2);   // 1-2 base NPCs
+        int npcStart = numEnemies + numPickups;
         for (int i = 0; i < numNpcs && (npcStart + i) < groundPos.size(); i++) {
             float[] pos = groundPos.get(npcStart + i);
-            String t    = npcTypes[i % npcTypes.length];
+            String t    = baseNpcTypes[i % baseNpcTypes.length];
             float patrol = 2 * TILE;
             npcs.add(new NPCSpawn(t, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
+        }
+        // Crafting NPC: always spawned in shop/start rooms; 25% chance in other rooms.
+        boolean isShopOrStart = "shop".equals(roomType) || "start".equals(roomType);
+        boolean addCrafter    = isShopOrStart || (rng.nextInt(4) == 0);
+        int crafterIdx = npcStart + numNpcs;
+        if (addCrafter && crafterIdx < groundPos.size()) {
+            float[] pos = groundPos.get(crafterIdx);
+            float patrol = 2 * TILE;
+            npcs.add(new NPCSpawn("crafter", pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
         }
 
         // Portals — placed in exit/start rooms near the far-right edge at spawn elevation.
