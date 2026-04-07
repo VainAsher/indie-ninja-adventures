@@ -17,22 +17,26 @@ import java.util.Map;
  *
  * Direct equivalent of Python's rendering/animation_system.py AnimationRegistry.
  *
- * Spritesheet convention: uniform horizontal frames, top-left origin.
- * Atlas convention: regions named "<entity>_<state>" with an index suffix.
+ * Spritesheet convention: uniform 80×80 px frames, top-left origin.
+ * All sheets in assets/sprites/player/ use this uniform format.
  *
  * Fallback: if no assets are present, a 1×1 magenta placeholder is used so the
  * client can run during development without the full asset pack.
  */
 public final class AnimationRegistry {
 
+    /** Sprite display size — all new template sheets are 80×80 px per frame. */
+    public static final int SPRITE_W = 80;
+    public static final int SPRITE_H = 80;
+
     /** Frames keyed by "<entity>_<state>" → TextureRegion[frameIndex] */
     private final Map<String, TextureRegion[]> frames = new HashMap<>();
 
     /** Textures owned by this registry (loaded from spritesheets). */
-    private final List<Texture>    ownedTextures = new ArrayList<>();
+    private final List<Texture> ownedTextures = new ArrayList<>();
 
-    /** Cache: filename → Texture, so shared sheets (idle/dash) are loaded once. */
-    private final Map<String, Texture> textureCache  = new HashMap<>();
+    /** Cache: filename → Texture, so shared sheets are loaded once. */
+    private final Map<String, Texture> textureCache = new HashMap<>();
 
     /** Fallback region used when an animation key is not found. */
     private TextureRegion fallback;
@@ -70,58 +74,70 @@ public final class AnimationRegistry {
     // ── Spritesheet loading ───────────────────────────────────────────────────
 
     /**
-     * Load player animations from individual spritesheet PNGs in baseDir.
+     * Load all player animations from uniform 80×80 px spritesheets in baseDir.
      *
-     * Expected files (matches assets/sprites/player/):
-     *   idle_spritesheet.png         2 frames  → player_idle, player_crouch
-     *   walk_spritesheet.png         4 frames  → player_walk
-     *   run_spritesheet.png          6 frames  → player_run, player_dash
-     *   jumpfall_spritesheet.png     2 frames  → player_jump (f0), player_fall (f1)
-     *   attack-sword_spritesheet.png 6 frames  → player_attack  (variable-width)
-     *   death_spritesheet.png        5 frames  → player_death
-     *   hurt_spritesheet.png         3 frames  → player_hurt
+     * Sheet → frame counts (all 80×80 uniform):
+     *   idle_spritesheet.png            8f  → player_idle, player_crouch (fallback)
+     *   walk_spritesheet.png            8f  → player_walk, player_slow_walk
+     *   run_spritesheet.png             8f  → player_run
+     *   dash_spritesheet.png            7f  → player_dash
+     *   jumpfall_spritesheet.png       10f  → player_jump (f0-4), player_fall (f5-9)
+     *                                        player_air_spin (f0-4), player_wall_hang (f0-4)
+     *   crouch_idle_spritesheet.png     9f  → player_crouch
+     *   crouch_walk_spritesheet.png     8f  → player_crouch_walk
+     *   wall_slide_spritesheet.png      4f  → player_wall_slide, player_wall_hang
+     *   attack1_spritesheet.png         4f  → player_slash1, player_jump_slash,
+     *                                        player_throw, player_throw_ground,
+     *                                        player_throw_air, player_throw_crouch
+     *   attack2_spritesheet.png         7f  → player_slash2, player_slash_air,
+     *                                        player_teleport
+     *   attack3_spritesheet.png        12f  → player_attack, player_slash3
+     *   death_spritesheet.png           7f  → player_death
+     *   hurt_spritesheet.png            4f  → player_hurt, player_hurt2
      *
-     * NOTE: attack-sword_spritesheet.png has NON-UNIFORM frame widths.
-     * Python sprite_manager.py defines:
-     *   _ATKSWORD_6 = [0, 68, 144, 303, 416, 575, 688]  (6 attack frames)
-     *   _ATKSWORD_4 = [0, 68, 144, 303, 416]            (4 throw/teleport frames)
-     *
-     * Any missing files are silently skipped; the placeholder is used as fallback.
+     * Missing files are silently skipped; the placeholder is used as fallback.
      */
-
-    // Attack sprite frame boundaries — must match Python sprite_manager.py exactly
-    private static final int[] ATKSWORD_6 = {0, 68, 144, 303, 416, 575, 688};
-    private static final int[] ATKSWORD_4 = {0, 68, 144, 303, 416};
-
     public void loadSpriteSheets(FileHandle baseDir) {
-        // Idle sheet doubles as crouch animation
-        sliceAndRegister(baseDir, "player_idle",   "idle_spritesheet.png",         2);
-        sliceAndRegister(baseDir, "player_crouch", "idle_spritesheet.png",         2);
+        // Idle
+        sliceAndRegister(baseDir, "player_idle",   "idle_spritesheet.png", 8);
 
-        // Walk and run (slow_walk = default no-ALT movement; run = ALT held)
-        sliceAndRegister(baseDir, "player_slow_walk", "walk_spritesheet.png",      4);
-        sliceAndRegister(baseDir, "player_walk",      "walk_spritesheet.png",      4);
-        sliceAndRegister(baseDir, "player_run",       "run_spritesheet.png",       6);
-        sliceAndRegister(baseDir, "player_dash",      "run_spritesheet.png",       6);
+        // Walk / run / dash
+        sliceAndRegister(baseDir, "player_walk",       "walk_spritesheet.png", 8);
+        sliceAndRegister(baseDir, "player_slow_walk",  "walk_spritesheet.png", 8);
+        sliceAndRegister(baseDir, "player_run",        "run_spritesheet.png",  8);
+        sliceAndRegister(baseDir, "player_dash",       "dash_spritesheet.png", 7);
 
-        // Jump, fall, wall_slide, wall_hang — all from the 2-frame jump/fall sheet
-        // (Python sprite_manager: wall_slide + wall_hang reuse jumpfall_spritesheet)
+        // Jump / fall — split 10-frame sheet: f0-4 = jump, f5-9 = fall
         registerJumpFall(baseDir, "jumpfall_spritesheet.png");
-        sliceAndRegister(baseDir, "player_wall_slide", "jumpfall_spritesheet.png", 2);
-        sliceAndRegister(baseDir, "player_wall_hang",  "jumpfall_spritesheet.png", 2);
-        sliceAndRegister(baseDir, "player_air_spin",   "jumpfall_spritesheet.png", 2);
+        sliceSubsetAndRegister(baseDir, "player_air_spin",  "jumpfall_spritesheet.png", 10, 0, 5);
+        sliceSubsetAndRegister(baseDir, "player_wall_hang", "jumpfall_spritesheet.png", 10, 0, 5);
 
-        // Combat — attack-sword has VARIABLE-WIDTH frames (not uniform!)
-        // Python _ATKSWORD_6 = [0,68,144,303,416,575,688]
-        // Python _ATKSWORD_4 = [0,68,144,303,416]
-        sliceVariableAndRegister(baseDir, "player_attack",       "attack-sword_spritesheet.png", ATKSWORD_6);
-        sliceVariableAndRegister(baseDir, "player_throw",        "attack-sword_spritesheet.png", ATKSWORD_4);
-        sliceVariableAndRegister(baseDir, "player_throw_ground", "attack-sword_spritesheet.png", ATKSWORD_4);
-        sliceVariableAndRegister(baseDir, "player_throw_air",    "attack-sword_spritesheet.png", ATKSWORD_4);
-        sliceVariableAndRegister(baseDir, "player_teleport",     "attack-sword_spritesheet.png", ATKSWORD_4);
-        sliceAndRegister(baseDir, "player_death",     "death_spritesheet.png",        5);
-        sliceAndRegister(baseDir, "player_hurt",      "hurt_spritesheet.png",         3);
-        sliceAndRegister(baseDir, "player_hurt2",     "hurt_spritesheet.png",         3);
+        // Crouch
+        sliceAndRegister(baseDir, "player_crouch",      "crouch_idle_spritesheet.png", 9);
+        sliceAndRegister(baseDir, "player_crouch_walk", "crouch_walk_spritesheet.png", 8);
+
+        // Wall slide
+        sliceAndRegister(baseDir, "player_wall_slide", "wall_slide_spritesheet.png", 4);
+
+        // Attack — 3 combos of increasing length
+        sliceAndRegister(baseDir, "player_attack",      "attack3_spritesheet.png", 12);
+        sliceAndRegister(baseDir, "player_slash3",      "attack3_spritesheet.png", 12);
+        sliceAndRegister(baseDir, "player_slash2",      "attack2_spritesheet.png",  7);
+        sliceAndRegister(baseDir, "player_slash_air",   "attack2_spritesheet.png",  7);
+        sliceAndRegister(baseDir, "player_slash1",      "attack1_spritesheet.png",  4);
+        sliceAndRegister(baseDir, "player_jump_slash",  "attack1_spritesheet.png",  4);
+
+        // Throw / teleport reuse attack sheets
+        sliceAndRegister(baseDir, "player_throw",        "attack1_spritesheet.png", 4);
+        sliceAndRegister(baseDir, "player_throw_ground", "attack1_spritesheet.png", 4);
+        sliceAndRegister(baseDir, "player_throw_air",    "attack1_spritesheet.png", 4);
+        sliceAndRegister(baseDir, "player_throw_crouch", "attack1_spritesheet.png", 4);
+        sliceAndRegister(baseDir, "player_teleport",     "attack2_spritesheet.png", 7);
+
+        // Hurt / death
+        sliceAndRegister(baseDir, "player_hurt",  "hurt_spritesheet.png",  4);
+        sliceAndRegister(baseDir, "player_hurt2", "hurt_spritesheet.png",  4);
+        sliceAndRegister(baseDir, "player_death", "death_spritesheet.png", 7);
     }
 
     // ── Placeholder ───────────────────────────────────────────────────────────
@@ -174,41 +190,47 @@ public final class AnimationRegistry {
     }
 
     /**
-     * Load (or reuse a cached) texture and slice it using variable-width frame
-     * boundaries defined by the frameBounds array.
+     * Register a contiguous subset of frames from a uniformly-sliced sheet.
      *
-     * frameBounds is a list of x-offsets defining frame START positions, with the
-     * final entry being the total width.  Matches Python sprite_manager.py convention:
-     *   _ATKSWORD_6 = [0, 68, 144, 303, 416, 575, 688]
-     *
-     * The number of frames produced = frameBounds.length - 1.
+     * @param totalFrames  total frame count in the sheet (for computing frame width)
+     * @param startFrame   first frame index to include (inclusive)
+     * @param count        number of frames to include
      */
-    private void sliceVariableAndRegister(FileHandle baseDir, String animKey,
-                                           String filename, int[] frameBounds) {
+    private void sliceSubsetAndRegister(FileHandle baseDir, String animKey,
+                                         String filename, int totalFrames,
+                                         int startFrame, int count) {
         Texture tex = loadCached(baseDir, filename);
         if (tex == null) return;
+        int fw = tex.getWidth() / totalFrames;
         int fh = tex.getHeight();
-        int numFrames = frameBounds.length - 1;
-        TextureRegion[] regions = new TextureRegion[numFrames];
-        for (int i = 0; i < numFrames; i++) {
-            int fx = frameBounds[i];
-            int fw = frameBounds[i + 1] - frameBounds[i];
-            regions[i] = new TextureRegion(tex, fx, 0, fw, fh);
-            regions[i].flip(false, true);  // Y-DOWN camera correction
+        TextureRegion[] regions = new TextureRegion[count];
+        for (int i = 0; i < count; i++) {
+            regions[i] = new TextureRegion(tex, (startFrame + i) * fw, 0, fw, fh);
+            regions[i].flip(false, true);
         }
         frames.put(animKey, regions);
     }
 
     /**
-     * Load the jump/fall sheet (2 frames); register each frame as its own 1-frame
-     * animation so the state time loops correctly.
+     * Split a 10-frame jumpfall sheet into player_jump (f0-4) and player_fall (f5-9).
      */
     private void registerJumpFall(FileHandle baseDir, String filename) {
         Texture tex = loadCached(baseDir, filename);
         if (tex == null) return;
-        TextureRegion[] both = sliceSheet(tex, 2);
-        frames.put("player_jump", new TextureRegion[]{ both[0] });
-        frames.put("player_fall", new TextureRegion[]{ both[1] });
+        int fw = tex.getWidth() / 10;
+        int fh = tex.getHeight();
+        TextureRegion[] jump = new TextureRegion[5];
+        TextureRegion[] fall = new TextureRegion[5];
+        for (int i = 0; i < 5; i++) {
+            jump[i] = new TextureRegion(tex, i * fw, 0, fw, fh);
+            jump[i].flip(false, true);
+        }
+        for (int i = 0; i < 5; i++) {
+            fall[i] = new TextureRegion(tex, (i + 5) * fw, 0, fw, fh);
+            fall[i].flip(false, true);
+        }
+        frames.put("player_jump", jump);
+        frames.put("player_fall", fall);
     }
 
     /**
@@ -232,7 +254,7 @@ public final class AnimationRegistry {
 
     /**
      * Load a texture from baseDir/filename, caching it so shared sheets
-     * (e.g. run/dash, idle/crouch) are only loaded once.
+     * (e.g. walk/slow_walk, hurt/hurt2) are only loaded once.
      */
     private Texture loadCached(FileHandle baseDir, String filename) {
         if (textureCache.containsKey(filename)) {

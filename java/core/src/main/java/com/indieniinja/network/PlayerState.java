@@ -20,6 +20,9 @@ public final class PlayerState {
     public String  animState;          // "" = use inference
     public float   wallSlideStamina;   // 0.0–3.0; for HUD stamina bar
     public boolean isWallSliding;
+    public boolean teleportPhaseMode;  // cursor is active (hold-to-phase mode)
+    public float   teleportCursorX;    // ghost cursor world X (only valid when phaseMode)
+    public float   teleportCursorY;    // ghost cursor world Y
 
     public PlayerState() {}
 
@@ -33,8 +36,11 @@ public final class PlayerState {
         m.put("facing",             facing);
         m.put("is_dead",            isDead);
         m.put("anim_state",         animState != null ? animState : "");
-        m.put("wall_slide_stamina", wallSlideStamina);
-        m.put("is_wall_sliding",    isWallSliding);
+        m.put("wall_slide_stamina",   wallSlideStamina);
+        m.put("is_wall_sliding",      isWallSliding);
+        m.put("teleport_phase_mode",  teleportPhaseMode);
+        m.put("teleport_cursor_x",    teleportCursorX);
+        m.put("teleport_cursor_y",    teleportCursorY);
         return m;
     }
 
@@ -53,8 +59,11 @@ public final class PlayerState {
         s.facing            = num(m, "facing", 1);
         s.isDead            = bool(m, "is_dead");
         s.animState         = str(m, "anim_state", "");
-        s.wallSlideStamina  = flt2(m, "wall_slide_stamina", 3.0f);
-        s.isWallSliding     = bool(m, "is_wall_sliding");
+        s.wallSlideStamina    = flt2(m, "wall_slide_stamina", 3.0f);
+        s.isWallSliding       = bool(m, "is_wall_sliding");
+        s.teleportPhaseMode   = bool(m, "teleport_phase_mode");
+        s.teleportCursorX     = flt2(m, "teleport_cursor_x", 0f);
+        s.teleportCursorY     = flt2(m, "teleport_cursor_y", 0f);
         return s;
     }
 

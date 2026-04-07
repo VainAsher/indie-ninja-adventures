@@ -26,8 +26,15 @@ import com.indieniinja.physics.PhysicsConstants;
  */
 public final class EntityRenderer {
 
-    private static final int PW = PhysicsConstants.PLAYER_WIDTH;   // 28
-    private static final int PH = PhysicsConstants.PLAYER_HEIGHT;  // 56
+    private static final int PW = PhysicsConstants.PLAYER_WIDTH;   // 28 (physics AABB)
+    private static final int PH = PhysicsConstants.PLAYER_HEIGHT;  // 56 (physics AABB)
+    private static final int SW = AnimationRegistry.SPRITE_W;      // 80 (visual sprite)
+    private static final int SH = AnimationRegistry.SPRITE_H;      // 80 (visual sprite)
+    // Offset to center 80×80 sprite over the 28×56 AABB, feet-aligned at AABB bottom
+    // drawX = posX + PW/2 - SW/2  →  posX - 26
+    // drawY = posY + PH   - SH     →  posY - 24
+    private static final int SPRITE_OX = PW / 2 - SW / 2;   // -26
+    private static final int SPRITE_OY = PH     - SH;        // -24
     private static final int PICKUP_SIZE = 20;
 
     /** Returns [w, h] physics dimensions for an enemy type — matches GameSimulator.buildEnemy(). */
@@ -128,10 +135,23 @@ public final class EntityRenderer {
         boolean needChange = wantFlipX != frame.isFlipX();
         if (needChange) frame.flip(true, false);
 
-        // posX/posY are the AABB top-left corner (left edge, top edge in Y-DOWN).
-        batch.draw(frame, p.posX, p.posY, PW, PH);
+        // posX/posY are the AABB top-left corner.  Draw sprite centered horizontally
+        // with feet aligned to the bottom of the AABB (sprite extends above it).
+        batch.draw(frame, p.posX + SPRITE_OX, p.posY + SPRITE_OY, SW, SH);
 
         if (needChange) frame.flip(true, false);  // restore shared region
+
+        // Teleport ghost cursor: draw a semi-transparent tinted copy at cursor position
+        if (p.teleportPhaseMode) {
+            batch.setColor(0.4f, 0.8f, 1f, 0.55f);  // cyan-blue ghost tint
+            // Render cursor-positioned ghost (same frame, facing same direction)
+            float gx = p.teleportCursorX + SPRITE_OX;
+            float gy = p.teleportCursorY + SPRITE_OY;
+            if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
+            batch.draw(frame, gx, gy, SW, SH);
+            if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
+            batch.setColor(Color.WHITE);
+        }
     }
 
     // ── Enemies ───────────────────────────────────────────────────────────────

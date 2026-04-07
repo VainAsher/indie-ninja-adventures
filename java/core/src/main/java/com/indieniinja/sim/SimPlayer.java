@@ -79,13 +79,21 @@ public final class SimPlayer {
     public static final int   SHURIKEN_MAX_AMMO    = 5;
 
     // ── Teleport state ───────────────────────────────────────────────────────
-    public float   teleportCooldown  = 0f;    // seconds until next teleport
-    public boolean isTeleporting     = false; // brief invuln window after teleport
+    // Hold-to-phase system: hold T → ghost cursor moves with directional input,
+    // release T → warp to cursor position.
+    public float   teleportCooldown    = 0f;    // seconds until next teleport
+    public boolean teleportPhaseMode   = false; // currently holding T, cursor active
+    public float   teleportCursorX     = 0f;    // ghost cursor world X
+    public float   teleportCursorY     = 0f;    // ghost cursor world Y
+    public float   teleportOriginX     = 0f;    // position where phase started
+    public float   teleportOriginY     = 0f;
+    public boolean isTeleporting       = false; // brief invuln window after warp
     public float   teleportInvulnTimer = 0f;
 
-    public static final float TELEPORT_RANGE    = 256f; // px — 8 tiles, matches Python
-    public static final float TELEPORT_COOLDOWN = 3.0f; // seconds
-    public static final float TELEPORT_INVULN   = 0.25f;// seconds of invulnerability after
+    public static final float TELEPORT_RANGE        = 256f;  // px max cursor range
+    public static final float TELEPORT_COOLDOWN     = 3.0f;  // seconds
+    public static final float TELEPORT_INVULN       = 0.25f; // seconds of invuln after warp
+    public static final float TELEPORT_CURSOR_SPEED = 240f;  // px/sec cursor movement speed
 
     // ── Wall jump state ──────────────────────────────────────────────────────
     public float   wallCoyoteTimer    = 0f;  // brief window to wall-jump after leaving wall

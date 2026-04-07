@@ -205,8 +205,11 @@ public final class GameSimulator {
             ps.facing           = p.facing == 0 ? 1 : p.facing;
             ps.isDead           = p.isDead;
             ps.animState        = p.animState;
-            ps.wallSlideStamina = p.wallSlideStamina;
-            ps.isWallSliding    = p.isWallSliding;
+            ps.wallSlideStamina  = p.wallSlideStamina;
+            ps.isWallSliding     = p.isWallSliding;
+            ps.teleportPhaseMode = p.teleportPhaseMode;
+            ps.teleportCursorX   = p.teleportCursorX;
+            ps.teleportCursorY   = p.teleportCursorY;
             snap.players.add(ps);
         }
 
@@ -439,42 +442,74 @@ public final class GameSimulator {
         sp.prevThrow   = cmd.throwShuriken;
 
         // ── Teleport ──────────────────────────────────────────────────────────
-        // Mirrors Python TeleportMechanic: instant warp up to TELEPORT_RANGE px in
-        // facing direction (horizontal), stepping through tiles to find safe landing.
-        // Cooldown 3s, brief invulnerability after. No mana gate (system not yet ported).
+        // Hold-to-phase system:
+        //   Press T  → enter phase mode; ghost cursor appears at player position
+        //   Hold T   → directional input moves cursor (up to TELEPORT_RANGE px)
+        //   Release T → warp player to cursor if unblocked; start 3s cooldown
         if (sp.teleportCooldown > 0f) sp.teleportCooldown -= DT;
         if (sp.isTeleporting) {
             sp.teleportInvulnTimer -= DT;
             if (sp.teleportInvulnTimer <= 0f) sp.isTeleporting = false;
         }
-        boolean teleportJustPressed = cmd.teleport && !sp.prevTeleport;
-        sp.prevTeleport = cmd.teleport;
-        if (teleportJustPressed && sp.teleportCooldown <= 0f && !sp.isTeleporting) {
-            float dist    = SimPlayer.TELEPORT_RANGE;
-            float stepX   = sp.facing * (dist / 8f);
-            float bestX   = p.x;
-            float bestY   = p.y;
-            for (int step = 1; step <= 8; step++) {
-                float tx = p.x + stepX * step;
-                // Check this candidate position against spatial hash
+        boolean teleportHeld       = cmd.teleport;
+        boolean teleportJustPressed  = teleportHeld && !sp.prevTeleport;
+        boolean teleportJustReleased = !teleportHeld && sp.prevTeleport;
+        sp.prevTeleport = teleportHeld;
+
+        // Enter phase mode on key press
+        if (teleportJustPressed && sp.teleportCooldown <= 0f && !sp.isTeleporting && !sp.teleportPhaseMode) {
+            sp.teleportPhaseMode = true;
+            sp.teleportOriginX   = p.x;
+            sp.teleportOriginY   = p.y;
+            sp.teleportCursorX   = p.x;
+            sp.teleportCursorY   = p.y;
+            p.vx = 0f;
+            p.vy = 0f;
+        }
+
+        // While in phase mode: freeze player, move cursor with directional input
+        if (sp.teleportPhaseMode) {
+            p.vx = 0f;
+            p.vy = 0f;
+
+            float cursorStep = SimPlayer.TELEPORT_CURSOR_SPEED * DT;
+            if (cmd.right) sp.teleportCursorX += cursorStep;
+            if (cmd.left)  sp.teleportCursorX -= cursorStep;
+            if (cmd.up || cmd.jump) sp.teleportCursorY -= cursorStep;  // Y-DOWN: up = -Y
+            if (cmd.down)           sp.teleportCursorY += cursorStep;
+
+            // Clamp cursor within TELEPORT_RANGE of origin
+            float dx = sp.teleportCursorX - sp.teleportOriginX;
+            float dy = sp.teleportCursorY - sp.teleportOriginY;
+            float dist = (float) Math.sqrt(dx * dx + dy * dy);
+            if (dist > SimPlayer.TELEPORT_RANGE) {
+                sp.teleportCursorX = sp.teleportOriginX + dx / dist * SimPlayer.TELEPORT_RANGE;
+                sp.teleportCursorY = sp.teleportOriginY + dy / dist * SimPlayer.TELEPORT_RANGE;
+            }
+
+            // Release T → attempt warp to cursor
+            if (teleportJustReleased) {
+                float cx = sp.teleportCursorX;
+                float cy = sp.teleportCursorY;
                 boolean blocked = false;
-                var tiles = spatialHash.candidates(tx, p.y, p.width, p.height);
+                var tiles = spatialHash.candidates(cx, cy, p.width, p.height);
                 for (var tile : tiles) {
-                    if (!tile.isPlatform() && tile.overlaps(tx, p.y, p.width, p.height)) {
+                    if (!tile.isPlatform() && tile.overlaps(cx, cy, p.width, p.height)) {
                         blocked = true; break;
                     }
                 }
-                if (!blocked) { bestX = tx; bestY = p.y; }
-                else break;
+                if (!blocked) {
+                    p.x  = cx;
+                    p.y  = cy;
+                    p.vx = 0f;
+                    p.vy = 0f;
+                }
+                sp.teleportPhaseMode   = false;
+                sp.isTeleporting       = true;
+                sp.teleportInvulnTimer = SimPlayer.TELEPORT_INVULN;
+                sp.teleportCooldown    = SimPlayer.TELEPORT_COOLDOWN;
+                sp.isDashing           = false;
             }
-            p.x                    = bestX;
-            p.y                    = bestY;
-            p.vx                   = 0f;
-            p.vy                   = 0f;
-            sp.isTeleporting       = true;
-            sp.teleportInvulnTimer = SimPlayer.TELEPORT_INVULN;
-            sp.teleportCooldown    = SimPlayer.TELEPORT_COOLDOWN;
-            sp.isDashing           = false;
         }
 
         // ── Melee attack ──────────────────────────────────────────────────────
@@ -497,7 +532,9 @@ public final class GameSimulator {
         applyWallSlide(sp, p);
 
         // ── Animation state ───────────────────────────────────────────────────
-        if (sp.isTeleporting) {
+        if (sp.teleportPhaseMode) {
+            sp.animState = "idle";   // player frozen in place while cursor moves
+        } else if (sp.isTeleporting) {
             sp.animState = "teleport";
         } else if (sp.isDashing) {
             sp.animState = "dash";
