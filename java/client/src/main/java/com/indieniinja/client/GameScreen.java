@@ -134,13 +134,20 @@ public final class GameScreen implements Screen {
 
     // ── Megamap state ─────────────────────────────────────────────────────────
     /** Number of rooms in the built megamap (0 = not built yet). */
-    private int   megamapRoomCount = 0;
+    private int     megamapRoomCount = 0;
     /** Grid coordinate of the top-left room in the megamap. */
-    private int   megamapMinGridX  = 0;
-    private int   megamapMinGridY  = 0;
+    private int     megamapMinGridX  = 0;
+    private int     megamapMinGridY  = 0;
     /** Full megamap size in tiles (for camera clamping). */
-    private int   megamapW         = LEVEL_COLS;
-    private int   megamapH         = LEVEL_ROWS;
+    private int     megamapW         = LEVEL_COLS;
+    private int     megamapH         = LEVEL_ROWS;
+    /**
+     * Set true on zone transition so the next full-snapshot megamap rebuild is
+     * forced regardless of room count.  The old megamap stays loaded during the
+     * window between WORLD_TRANSITION and the next full snapshot so that
+     * roomWorldOffX/Y remain valid and the camera does not jump.
+     */
+    private boolean megamapStale     = false;
     /**
      * World-space pixel offset of the current room's origin within the megamap.
      * Entity positions are room-local; adding this offset converts to world-space
@@ -311,13 +318,12 @@ public final class GameScreen implements Screen {
             }
         }
 
-        // ── Zone transition: reset world state so next full snapshot re-inits tiles ──
+        // ── Zone transition: mark megamap stale but keep it loaded so roomWorldOff
+        //    stays valid until the first full snapshot from the new zone arrives.
         if (stateBuffer.pollZoneTransition()) {
-            megamapRoomCount  = 0;
-            megamapMinGridX   = 0;
-            megamapMinGridY   = 0;
-            megamapW          = LEVEL_COLS;
-            megamapH          = LEVEL_ROWS;
+            megamapStale      = true;   // force rebuild on next full-snapshot
+            // Keep megamapRoomCount / megamapMinGridX/Y / megamapW/H intact so the
+            // old offsets remain correct during the brief transition gap.
             loadedSeed        = Long.MIN_VALUE;
             loadedNeighborDirs = java.util.List.of();
             cachedWorldRooms  = java.util.List.of();
@@ -327,7 +333,6 @@ public final class GameScreen implements Screen {
             prevEnemyIds.clear();
             prevBossAlive.clear();
             prevLocalAbilities.clear();
-            chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
         }
 
         WorldSnapshot snap = stateBuffer.poll();
@@ -408,7 +413,9 @@ public final class GameScreen implements Screen {
             }
 
             // ── Megamap: build stitched world tilemap when full room list arrives ─
-            if (!snap.worldRooms.isEmpty() && snap.worldRooms.size() != megamapRoomCount) {
+            // Rebuild if: room count changed (new hub) OR stale flag set (zone transition).
+            if (!snap.worldRooms.isEmpty() && (megamapStale || snap.worldRooms.size() != megamapRoomCount)) {
+                megamapStale = false;
                 buildMegamap(snap.worldRooms);
                 // Snap camera to player's world-space position immediately —
                 // without this the spring-lerp slowly pans from single-room coords
