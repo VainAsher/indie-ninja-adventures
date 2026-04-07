@@ -222,8 +222,9 @@ public final class GameScreen implements Screen {
             if (seedChanged || dirsChanged) {
                 loadedSeed         = snap.seed;
                 loadedNeighborDirs = snap.neighborDirs;
+                String rType = snap.roomType != null ? snap.roomType : "combat";
                 byte[][] grid2d = WorldGenerator.generate(
-                    snap.seed, LEVEL_COLS, LEVEL_ROWS, snap.neighborDirs);
+                    snap.seed, LEVEL_COLS, LEVEL_ROWS, snap.neighborDirs, rType);
                 if (blobTileSet != null) {
                     // Full autotiled rendering using the mk_nature spritesheet
                     int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);

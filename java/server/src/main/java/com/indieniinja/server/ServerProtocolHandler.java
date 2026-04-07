@@ -368,6 +368,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             zone.currentRoomGridX    = startRoom.gridX;
             zone.currentRoomGridY    = startRoom.gridY;
             zone.currentNeighborDirs = new ArrayList<>(startRoom.neighborDirs());
+            zone.currentRoomType     = startRoom.type.wire();
             startZoneSimLoop(zone);
             log.info("Hub zone '{}' created — start room ({},{}) seed={}",
                 key, startRoom.gridX, startRoom.gridY, startRoom.seed);
@@ -394,6 +395,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             zone.currentRoomGridX    = room.gridX;
             zone.currentRoomGridY    = room.gridY;
             zone.currentNeighborDirs = new ArrayList<>(room.neighborDirs());
+            zone.currentRoomType     = room.type.wire();
             startZoneSimLoop(zone);
             log.info("Room zone '{}' created — ({},{}) seed={}",
                 key, room.gridX, room.gridY, room.seed);

@@ -44,42 +44,41 @@ public final class WorldGenerator {
     private static final int DOOR_HALF = 4;
 
     /**
-     * Generate a tile grid with no door openings (solid boundary walls).
+     * Generate a tile grid with no door openings.
+     * Defaults to "combat" room type.
      */
     public static byte[][] generate(long seed, int cols, int rows) {
-        return generate(seed, cols, rows, java.util.Collections.emptySet());
+        return generate(seed, cols, rows, java.util.Collections.emptySet(), "combat");
     }
 
     /**
-     * Generate a tile grid and carve door openings for each direction in
-     * {@code neighborDirs} ("up","down","left","right").
-     *
-     * Door position: centred on the room edge, DOOR_HALF tiles either side.
-     * Matches Python's DoorPort.center_tile + span_tiles logic.
-     *
-     * @param seed         zone room seed
-     * @param cols         grid width in tiles
-     * @param rows         grid height in tiles
-     * @param neighborDirs set of directions where adjacent rooms exist
-     * @return byte[rows][cols] tile grid with door openings carved
+     * Generate a tile grid for the given neighborDirs.
+     * Defaults to "combat" room type.
      */
     public static byte[][] generate(long seed, int cols, int rows,
                                     Collection<String> neighborDirs) {
-        byte[][] grid = new byte[rows][cols];
+        return generate(seed, cols, rows, neighborDirs, "combat");
+    }
 
-        addBoundaries(grid, cols, rows);
-
-        long platSeed = SeedHierarchy.deriveFeature(
-            SeedHierarchy.deriveSubroom((int) seed, 0), "platforms");
-        addPlatformLayers(grid, cols, rows, platSeed);
-
-        long structSeed = SeedHierarchy.deriveFeature(
-            SeedHierarchy.deriveSubroom((int) seed, 0), "structures");
-        addMidStructures(grid, cols, rows, structSeed);
-
-        carveDoors(grid, cols, rows, neighborDirs);
-
-        return grid;
+    /**
+     * Full zone-planned generation: ZonePlanner → RoomGenerator pipeline.
+     *
+     * Matches Python's ZonePlanner.plan_room() + RoomGenerator.generate_tilemap()
+     * pipeline for the given room type.
+     *
+     * @param seed         room seed
+     * @param cols         must equal ROOM_WIDTH_TILES (128) — kept for API compat
+     * @param rows         must equal ROOM_HEIGHT_TILES (128)
+     * @param neighborDirs connected directions ("up","down","left","right")
+     * @param roomType     wire string: "start","exit","shop","combat","platform","treasure","boss"
+     * @return byte[rows][cols] tile grid
+     */
+    public static byte[][] generate(long seed, int cols, int rows,
+                                    Collection<String> neighborDirs, String roomType) {
+        // ZonePlanner → 16×16 zone grid
+        byte[][] zones = ZonePlanner.plan(seed, roomType, neighborDirs);
+        // RoomGenerator → 128×128 tile grid
+        return RoomGenerator.generate(zones, neighborDirs, seed);
     }
 
     // ── Generation passes ─────────────────────────────────────────────────────

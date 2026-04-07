@@ -67,6 +67,8 @@ public final class ZoneInstance {
     public volatile int   currentRoomGridY = 0;
     /** Neighbor directions for the current room (doors that exist). */
     public volatile java.util.List<String> currentNeighborDirs = java.util.List.of();
+    /** Room type for the current room (wire string: combat/start/exit/shop/etc.). */
+    public volatile String currentRoomType = "combat";
 
     public ZoneInstance(
             String hubId, String masterHubId, long seed, String shape, int rooms,
