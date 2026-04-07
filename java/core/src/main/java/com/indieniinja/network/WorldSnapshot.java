@@ -50,6 +50,8 @@ public final class WorldSnapshot {
     public List<NPCState>      npcs           = new ArrayList<>();
     /** Bosses — always full list (at most 1 per room). */
     public List<BossState>     bosses         = new ArrayList<>();
+    /** Portals — always full list on full snapshots; empty on deltas (client keeps previous). */
+    public List<PortalState>   portals        = new ArrayList<>();
 
     /**
      * Full world room layout — sent on full snapshots only (not deltas).
@@ -155,6 +157,11 @@ public final class WorldSnapshot {
         for (Object r : list(m, "shop_states"))
             if (r instanceof java.util.Map<?,?> rm)
                 s.shopStates.add(ShopState.fromMap(rm));
+        // Portals — present only on full snapshots.
+        for (Object r : list(m, "portals")) {
+            PortalState ps = PortalState.fromMap(r);
+            if (ps != null) s.portals.add(ps);
+        }
         return s;
     }
 
@@ -206,6 +213,8 @@ public final class WorldSnapshot {
         m.put("world_rooms", isDelta ? java.util.List.of() : worldRoomList());
         // Shop states — full snapshots only.
         m.put("shop_states", isDelta ? java.util.List.of() : shopStateList());
+        // Portals — full snapshots only; client keeps previous on deltas.
+        m.put("portals", isDelta ? java.util.List.of() : portalList());
 
         m.put("game_mode",    gameMode);
         m.put("arcade_score", arcadeScore);
@@ -251,6 +260,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> shopStateList() {
         List<Map<String, Object>> out = new ArrayList<>(shopStates.size());
         for (ShopState s : shopStates) out.add(s.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> portalList() {
+        List<Map<String, Object>> out = new ArrayList<>(portals.size());
+        for (PortalState p : portals) out.add(p.toMap());
         return out;
     }
 

@@ -42,6 +42,8 @@ public final class LevelLayout {
     public final List<NPCSpawn> npcSpawns;
     // Boss spawn (null if room is not a boss room)
     public final BossSpawn bossSpawn;
+    // Portal spawns (empty list if no portals in this room)
+    public final List<PortalSpawn> portalSpawns;
     // Falling platforms
     public final List<FallingPlatform> fallingPlatforms;
     // World height in pixels (used for enemy AI fall detection)
@@ -57,6 +59,7 @@ public final class LevelLayout {
             List<PickupSpawn> pickupSpawns,
             List<NPCSpawn> npcSpawns,
             BossSpawn bossSpawn,
+            List<PortalSpawn> portalSpawns,
             List<FallingPlatform> fallingPlatforms,
             float spawnX, float spawnY) {
         this.seed             = seed;
@@ -67,6 +70,7 @@ public final class LevelLayout {
         this.pickupSpawns     = pickupSpawns;
         this.npcSpawns        = npcSpawns;
         this.bossSpawn        = bossSpawn;
+        this.portalSpawns     = portalSpawns != null ? portalSpawns : new ArrayList<>();
         this.fallingPlatforms = fallingPlatforms;
         this.worldHeightPx    = heightTiles * 32f;
         this.spawnX           = spawnX;
@@ -91,6 +95,15 @@ public final class LevelLayout {
      * One per "boss" room, positioned at the centre-bottom of the arena.
      */
     public record BossSpawn(String bossTypeWire, float x, float y) {}
+
+    /**
+     * Spawn descriptor for a portal.
+     * portalType: "hub" for hub-to-hub travel, "mission" for dungeon entry.
+     * requiredAbility: empty = always open; otherwise player must have unlocked that ability.
+     */
+    public record PortalSpawn(
+        String portalType, String destinationId,
+        float x, float y, String requiredAbility) {}
 
     // ── Factory ───────────────────────────────────────────────────────────────
 
@@ -154,8 +167,8 @@ public final class LevelLayout {
         // Spawn at centre of floor in the test layout
         float testSpawnX = (W / 2) * TILE;
         float testSpawnY = (H - 2) * TILE - 56f;   // player height = 56
-        return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), null, falling,
-                testSpawnX, testSpawnY);
+        return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), null,
+                new ArrayList<>(), falling, testSpawnX, testSpawnY);
     }
 
     /**
@@ -244,7 +257,7 @@ public final class LevelLayout {
 
         return new LevelLayout(seed, COLS, ROWS, extended,
             base.enemySpawns, base.pickupSpawns, base.npcSpawns, base.bossSpawn,
-            base.fallingPlatforms, base.spawnX, base.spawnY);
+            base.portalSpawns, base.fallingPlatforms, base.spawnX, base.spawnY);
     }
 
     /**
@@ -367,7 +380,16 @@ public final class LevelLayout {
             npcs.add(new NPCSpawn(t, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
         }
 
-        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, bossSpawn, falling,
+        // Portals — placed in exit/start rooms near the far-right edge at spawn elevation.
+        List<PortalSpawn> portals = new ArrayList<>();
+        if ("exit".equals(roomType) || "start".equals(roomType)) {
+            float px = COLS * TILE - 4 * TILE;
+            // 30% chance the portal requires dash to enter (depth-scaling gate placeholder)
+            String gate = (rng.nextInt(100) < 30) ? "dash" : "";
+            portals.add(new PortalSpawn("hub", "hub_" + Long.toHexString(seed ^ 0xEEEEL), px, spawnY, gate));
+        }
+
+        return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, bossSpawn, portals, falling,
                 spawnX, spawnY);
     }
 }

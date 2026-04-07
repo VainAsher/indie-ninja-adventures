@@ -15,6 +15,7 @@ import com.indieniinja.physics.PhysicsState;
 import com.indieniinja.physics.PhysicsSystem;
 
 import com.indieniinja.network.BossState;
+import com.indieniinja.network.PortalState;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -65,6 +66,7 @@ public final class GameSimulator {
     private final List<SimShuriken> shurikens = new ArrayList<>();
     private final List<SimNPC>      npcs      = new ArrayList<>();
     private final List<SimBoss>     bosses    = new ArrayList<>();
+    private final List<SimPortal>   portals   = new ArrayList<>();
     /** NPC ID → shop (only for "shop" type NPCs). */
     private final Map<String, SimShop> shops = new LinkedHashMap<>();
     private int shurikenSeq = 0;
@@ -128,6 +130,16 @@ public final class GameSimulator {
             LevelLayout.BossSpawn bs = layout.bossSpawn;
             BossType bt = BossType.fromWire(bs.bossTypeWire());
             bosses.add(new SimBoss(hubId + "_boss_0", bt, bs.x(), bs.y()));
+        }
+
+        // Spawn portals
+        int portalIdx = 0;
+        for (LevelLayout.PortalSpawn spec : layout.portalSpawns) {
+            portals.add(new SimPortal(
+                hubId + "_portal_" + portalIdx++,
+                spec.portalType(), spec.destinationId(),
+                spec.x(), spec.y(), spec.requiredAbility()
+            ));
         }
 
         // Spawn NPCs (no physics entity — NPCs use simple patrol, no collision sim)
@@ -238,6 +250,9 @@ public final class GameSimulator {
 
         // 10. Boss AI + combat
         stepBosses();
+
+        // 11. Portal animation timers
+        for (SimPortal portal : portals) portal.step(DT);
     }
 
     /**
@@ -364,6 +379,11 @@ public final class GameSimulator {
             bs.facingRight = boss.facingRight;
             bs.alive       = boss.isAlive();
             snap.bosses.add(bs);
+        }
+
+        // Portals — always included on full snapshots (WorldSnapshot.toMap() skips on deltas)
+        for (SimPortal portal : portals) {
+            snap.portals.add(portal.toState());
         }
 
         // Shop states — always included so client can show shop UI
@@ -1287,14 +1307,17 @@ public final class GameSimulator {
     }
 
     private SimEnemy buildEnemy(LevelLayout.EnemySpawn spec, int idx) {
+        // Arcade difficulty: +1 HP and +5% speed per 3 depth levels
+        int   hpBonus   = (gameMode == GameMode.ARCADE && arcadeDepth > 0) ? arcadeDepth / 3 : 0;
+        float speedMult = (gameMode == GameMode.ARCADE && arcadeDepth > 0) ? 1f + (arcadeDepth / 3) * 0.05f : 1f;
         // Stats from Python ENEMY_DEFINITIONS (entities/enemy.py)
         return switch (spec.type()) {
-            case "goblin"   -> new SimEnemy(hubId+"_goblin_"+idx,   "goblin",   spec.x(), spec.y(), 32, 48, 3, 1, 72f,  200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 2, 1, 90f,  180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
-            case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 40, 32, 4, 2, 60f,  160f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 3, 1, 60f,  200f, 64f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "wolf"     -> new SimEnemy(hubId+"_wolf_"+idx,     "wolf",     spec.x(), spec.y(), 48, 32, 3, 2, 90f,  220f, 48f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 3, 1, 72f,  200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "goblin"   -> new SimEnemy(hubId+"_goblin_"+idx,   "goblin",   spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 2+hpBonus, 1, 90f *speedMult, 180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
+            case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 40, 32, 4+hpBonus, 2, 60f *speedMult, 160f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 3+hpBonus, 1, 60f *speedMult, 200f, 64f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "wolf"     -> new SimEnemy(hubId+"_wolf_"+idx,     "wolf",     spec.x(), spec.y(), 48, 32, 3+hpBonus, 2, 90f *speedMult, 220f, 48f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
         };
     }
 

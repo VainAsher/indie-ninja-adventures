@@ -92,6 +92,8 @@ public final class GameScreen implements Screen {
     private final java.util.Map<String, ShopState> latestShopStates = new java.util.LinkedHashMap<>();
     /** Cached world room list from the most recent full snapshot (empty on delta frames). */
     private java.util.List<WorldRoomDescriptor> cachedWorldRooms = java.util.List.of();
+    /** Cached portal list from the most recent full snapshot. */
+    private java.util.List<com.indieniinja.network.PortalState> cachedPortals = java.util.List.of();
 
     // ── Audio ─────────────────────────────────────────────────────────────────
     private AudioManager audioManager;
@@ -297,25 +299,49 @@ public final class GameScreen implements Screen {
         // ── Audio: state-transition SFX ──────────────────────────────────────
         if (snap != null) tickAudio(snap);
 
-        // ── E-key: interact with nearest interactable NPC ─────────────────────
+        // ── E-key: interact with nearest interactable NPC or portal ─────────────
         if (!anyOverlay && !paused && snap != null
                 && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             // Update shop states cache from latest full snapshot
             for (ShopState ss : snap.shopStates) latestShopStates.put(ss.npcId, ss);
 
-            for (NPCState npc : snap.npcs) {
-                if (npc.isInteractable) {
-                    if ("shop".equals(npc.npcType) && latestShopStates.containsKey(npc.npcId)) {
-                        // Open shop overlay
-                        inventoryOverlay.hide();
-                        shopOverlay.open(latestShopStates.get(npc.npcId));
-                    } else {
-                        // Open dialogue
-                        String dialogueId = npcDialogueId(npc.npcType);
-                        dialogueManager.setStoryContext(storyManager.toConditionContext());
-                        dialogueManager.startNpcDialogue(dialogueId);
+            // Check portal interaction first (portals are closer to the player than NPCs typically)
+            boolean portalTriggered = false;
+            PlayerState localPlayer = snap.players.stream()
+                .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+            if (localPlayer != null) {
+                for (com.indieniinja.network.PortalState portal : cachedPortals) {
+                    if (!portal.isActive) continue;
+                    float pcx = localPlayer.posX + 14f;  // player centre (width=28/2)
+                    float pcy = localPlayer.posY + 28f;  // player centre (height=56/2)
+                    float poCx = portal.x + portal.width  * 0.5f;
+                    float poCy = portal.y + portal.height * 0.5f;
+                    float dx = pcx - poCx, dy = pcy - poCy;
+                    if (dx * dx + dy * dy <= 56f * 56f) {
+                        // Send PORTAL_TRAVEL to server
+                        networkClient.sendMessage(com.indieniinja.network.MessageType.PORTAL_TRAVEL,
+                            java.util.Map.of("destination_id", portal.destinationId));
+                        portalTriggered = true;
+                        break;
                     }
-                    break;
+                }
+            }
+
+            if (!portalTriggered) {
+                for (NPCState npc : snap.npcs) {
+                    if (npc.isInteractable) {
+                        if ("shop".equals(npc.npcType) && latestShopStates.containsKey(npc.npcId)) {
+                            // Open shop overlay
+                            inventoryOverlay.hide();
+                            shopOverlay.open(latestShopStates.get(npc.npcId));
+                        } else {
+                            // Open dialogue
+                            String dialogueId = npcDialogueId(npc.npcType);
+                            dialogueManager.setStoryContext(storyManager.toConditionContext());
+                            dialogueManager.startNpcDialogue(dialogueId);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -329,6 +355,11 @@ public final class GameScreen implements Screen {
             // ── Cache world rooms from full snapshots (empty on delta frames) ──
             if (!snap.worldRooms.isEmpty()) {
                 cachedWorldRooms = snap.worldRooms;
+            }
+
+            // ── Cache portal list from full snapshots ─────────────────────────
+            if (!snap.portals.isEmpty()) {
+                cachedPortals = snap.portals;
             }
 
             // ── Megamap: build stitched world tilemap when full room list arrives ─

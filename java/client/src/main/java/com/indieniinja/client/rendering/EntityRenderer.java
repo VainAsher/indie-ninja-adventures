@@ -8,6 +8,7 @@ import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.NPCState;
 import com.indieniinja.network.PickupState;
 import com.indieniinja.network.PlayerState;
+import com.indieniinja.network.PortalState;
 import com.indieniinja.network.ShurikenState;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.SimShuriken;
@@ -144,6 +145,7 @@ public final class EntityRenderer {
     public void render(SpriteBatch batch, WorldSnapshot snap, float deltaTime) {
         if (snap == null) return;
 
+        for (PortalState   p  : snap.portals)   renderPortal(batch, p, deltaTime);
         for (ShurikenState sh : snap.shurikens) renderShuriken(batch, sh, deltaTime);
         for (EnemyState    e  : snap.enemies)   renderEnemy(batch, e, deltaTime);
         for (BossState     b  : snap.bosses)    renderBoss(batch, b, deltaTime);
@@ -394,6 +396,43 @@ public final class EntityRenderer {
         // (BitmapFont not available here — HudRenderer renders the HP bar separately)
     }
 
+    // ── Portals ───────────────────────────────────────────────────────────────
+
+    /**
+     * Render a pulsing portal column.
+     * Physics size: 64×96 px. Display: same.
+     * Locked portals render in dark red; open portals pulse blue→cyan.
+     * Python parity: game/portal_system.py Portal.get_color_with_pulse().
+     */
+    private void renderPortal(SpriteBatch batch, PortalState p, float dt) {
+        if (!p.isActive) return;
+
+        // Advance local pulse timer
+        float t = tickStateTime(p.portalId, "portal_pulse", dt);
+        float pulse = 0.5f + 0.5f * (float) Math.sin(t * 2 * Math.PI * 2f); // 2 Hz
+
+        // Colour: locked=dark red, hub=blue→cyan, mission=gold
+        if (p.isLocked || (p.requiredAbility != null && !p.requiredAbility.isEmpty())) {
+            batch.setColor(0.6f, 0.1f, 0.1f, 0.5f + pulse * 0.3f);
+        } else if ("mission".equals(p.portalType)) {
+            batch.setColor(0.9f, 0.8f * pulse, 0.1f, 0.6f + pulse * 0.3f);
+        } else {
+            batch.setColor(0.2f + pulse * 0.2f, 0.5f + pulse * 0.4f, 1f, 0.6f + pulse * 0.3f);
+        }
+
+        TextureRegion frame = anims.getFrame("portal", t, 8f);
+        batch.draw(frame, p.x, p.y, p.width, p.height);
+        batch.setColor(Color.WHITE);
+
+        // "E" interaction indicator (always show for active portals)
+        batch.setColor(1f, 1f, 0.3f, 0.8f);
+        TextureRegion dot = anims.getFrame("__dot__", 0f, 1f);
+        float ix = p.x + p.width * 0.5f - INDICATOR_SIZE * 0.5f;
+        float iy = p.y - INDICATOR_SIZE - 4f;
+        batch.draw(dot, ix, iy, INDICATOR_SIZE, INDICATOR_SIZE);
+        batch.setColor(Color.WHITE);
+    }
+
     // ── Companion orbs ────────────────────────────────────────────────────────
 
     /**
@@ -467,6 +506,7 @@ public final class EntityRenderer {
         snap.shurikens.forEach(s -> live.add(s.shurikenId));
         snap.npcs.forEach(n     -> live.add(n.npcId));
         snap.bosses.forEach(b   -> live.add(b.bossId));
+        snap.portals.forEach(p  -> live.add(p.portalId));
         stateTimes.keySet().retainAll(live);
         lastState.keySet().retainAll(live);
         prevVelY.keySet().retainAll(live);
