@@ -73,6 +73,16 @@ public final class WorldSnapshot {
     public Map<String, Object> metadata = new LinkedHashMap<>();
     public String hubId = "";
 
+    // ── Game mode fields ──────────────────────────────────────────────────────
+    /** Active play mode wire string: "arcade", "campaign", "sandbox". */
+    public String gameMode    = "arcade";
+    /** Arcade mode: cumulative kill score across this session. */
+    public int    arcadeScore = 0;
+    /** Arcade mode: current dungeon depth (rooms cleared). */
+    public int    arcadeDepth = 0;
+    /** Arcade mode: number of rooms in this depth level. */
+    public int    arcadeRooms = 10;
+
     public WorldSnapshot() {}
 
     /** Deserialize from a decoded payload map (client-side receive path). */
@@ -82,7 +92,11 @@ public final class WorldSnapshot {
         s.frame      = num(m, "frame",      0L);
         s.seed       = num(m, "seed",       0L);
         s.isDelta    = bool(m, "is_delta");
-        s.hubId      = str(m, "hub_id",     "");
+        s.hubId       = str(m, "hub_id",     "");
+        s.gameMode    = str(m, "game_mode",  "arcade");
+        s.arcadeScore = (int) num(m, "arcade_score", 0L);
+        s.arcadeDepth = (int) num(m, "arcade_depth", 0L);
+        s.arcadeRooms = (int) num(m, "arcade_rooms", 10L);
         s.roomGridX  = (int) num(m, "room_grid_x", 0L);
         s.roomGridY  = (int) num(m, "room_grid_y", 0L);
         s.roomType   = str(m, "room_type", "combat");
@@ -185,6 +199,10 @@ public final class WorldSnapshot {
         // Shop states — full snapshots only.
         m.put("shop_states", isDelta ? java.util.List.of() : shopStateList());
 
+        m.put("game_mode",    gameMode);
+        m.put("arcade_score", arcadeScore);
+        m.put("arcade_depth", arcadeDepth);
+        m.put("arcade_rooms", arcadeRooms);
         m.put("metadata", metadata);
         m.put("hub_id",   hubId != null ? hubId : "");
         return m;

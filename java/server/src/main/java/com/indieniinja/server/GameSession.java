@@ -1,5 +1,6 @@
 package com.indieniinja.server;
 
+import com.indieniinja.sim.GameMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,9 @@ public final class GameSession {
 
     public final long   worldSeed;
     public final long   globalFrame;
+
+    /** Game mode for this session — set from the first CLIENT_HELLO. */
+    public volatile GameMode gameMode = GameMode.ARCADE;
 
     /** Connected players, keyed by playerId. Thread-safe map. */
     public final Map<String, PlayerRecord> players = new ConcurrentHashMap<>();

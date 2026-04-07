@@ -45,6 +45,7 @@ public final class NetworkClientThread extends Thread {
     private final int             port;
     private final String          playerId;
     private final GameStateBuffer buffer;
+    private volatile String       gameMode = "arcade";
 
     /** Latest input command for the next send cycle — written by render thread. */
     private final AtomicReference<InputCommand> pendingInput = new AtomicReference<>();
@@ -165,8 +166,12 @@ public final class NetworkClientThread extends Thread {
         payload.put("player_id", playerId);
         payload.put("version",   MessageType.PROTOCOL_VERSION);  // "2" — matches server
         payload.put("protocol",  MessageType.PROTOCOL_VERSION);
+        payload.put("game_mode", gameMode);
         sendRaw(os, MessageType.CLIENT_HELLO, payload);
     }
+
+    /** Set game mode before connecting — must be called before the thread is started. */
+    public void setGameMode(String mode) { this.gameMode = mode; }
 
     /** Drain the pending input reference and send it if non-null. */
     private void flushInput() {

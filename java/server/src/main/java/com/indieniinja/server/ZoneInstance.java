@@ -1,5 +1,6 @@
 package com.indieniinja.server;
 
+import com.indieniinja.sim.GameMode;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
@@ -70,6 +71,13 @@ public final class ZoneInstance {
     public volatile java.util.List<String> currentNeighborDirs = java.util.List.of();
     /** Room type for the current room (wire string: combat/start/exit/shop/etc.). */
     public volatile String currentRoomType = "combat";
+
+    /** Game mode for this zone — set when the zone is first created. */
+    public volatile GameMode gameMode = GameMode.ARCADE;
+    /** Arcade: current depth (increments when players clear the exit room). */
+    public volatile int arcadeDepth = 0;
+    /** Arcade: room count for current depth level. */
+    public volatile int arcadeRooms = 10;
 
     public ZoneInstance(
             String hubId, String masterHubId, long seed, String shape, int rooms,

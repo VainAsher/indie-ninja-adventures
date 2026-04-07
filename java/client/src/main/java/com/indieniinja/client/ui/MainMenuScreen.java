@@ -11,7 +11,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.indieniinja.client.GameScreen;
 import com.indieniinja.client.NinjaGameClient;
 
 /**
@@ -56,7 +55,7 @@ public final class MainMenuScreen implements Screen {
         TextButton connectBtn = new TextButton("  CONNECT  ", skin);
         connectBtn.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent event, Actor actor) {
-                game.setScreen(new GameScreen(game, host, port));
+                game.setScreen(new ModeSelectScreen(game, host, port));
             }
         });
         root.add(connectBtn).width(220).height(48).padBottom(12).row();

@@ -174,6 +174,25 @@ public final class HudRenderer {
         // FPS counter
         font.draw(hudBatch, fps + " fps", sw - 60f, 40f);
 
+        // Mode overlay (top-centre)
+        if (snap != null) {
+            switch (snap.gameMode != null ? snap.gameMode : "arcade") {
+                case "arcade" -> {
+                    font.setColor(0.20f, 0.85f, 0.45f, 1f);
+                    font.draw(hudBatch, "SCORE  " + snap.arcadeScore
+                        + "     DEPTH  " + snap.arcadeDepth,
+                        sw * 0.5f - 90f, sh - 6f);
+                    font.setColor(Color.WHITE);
+                }
+                case "sandbox" -> {
+                    font.setColor(0.95f, 0.70f, 0.20f, 1f);
+                    font.draw(hudBatch, "SANDBOX  MODE", sw * 0.5f - 60f, sh - 6f);
+                    font.setColor(Color.WHITE);
+                }
+                case "campaign" -> { /* mission HUD handled by DialogueOverlay */ }
+            }
+        }
+
         // Frame number (debug)
         if (snap != null) {
             font.draw(hudBatch, "f:" + snap.frame, sw - 60f, 55f);

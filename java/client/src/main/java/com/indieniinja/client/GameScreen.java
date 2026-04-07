@@ -54,6 +54,7 @@ public final class GameScreen implements Screen {
     private final NinjaGameClient game;
     private final String          host;
     private final int             port;
+    private final String          gameMode;
 
     // ── Core subsystems ───────────────────────────────────────────────────────
     private SpriteBatch         batch;
@@ -134,9 +135,14 @@ public final class GameScreen implements Screen {
     private float roomWorldOffY    = 0f;
 
     public GameScreen(NinjaGameClient game, String host, int port) {
-        this.game = game;
-        this.host = host;
-        this.port = port;
+        this(game, host, port, "arcade");
+    }
+
+    public GameScreen(NinjaGameClient game, String host, int port, String gameMode) {
+        this.game     = game;
+        this.host     = host;
+        this.port     = port;
+        this.gameMode = gameMode;
     }
 
     // ── Screen lifecycle ──────────────────────────────────────────────────────
@@ -190,6 +196,7 @@ public final class GameScreen implements Screen {
         pauseScreen = new PauseScreen(game, this::resume);
 
         networkClient = new NetworkClientThread(host, port, stateBuffer);
+        networkClient.setGameMode(gameMode);
         networkClient.start();
 
         // Campaign / missions / dialogue / save systems

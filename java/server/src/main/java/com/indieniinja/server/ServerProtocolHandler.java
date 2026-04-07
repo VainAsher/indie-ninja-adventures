@@ -4,6 +4,7 @@ import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.MessageType;
 import com.indieniinja.network.WireCodec;
 import com.indieniinja.network.WireMessage;
+import com.indieniinja.sim.GameMode;
 import com.indieniinja.world.WorldGraph;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -113,8 +114,9 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     // ── Handler: CLIENT_HELLO ─────────────────────────────────────────────────
 
     private void handleClientHello(ChannelHandlerContext ctx, WireMessage msg) throws Exception {
-        String playerId = msg.getString("player_id", UUID.randomUUID().toString());
-        String version  = msg.getString("version", "");
+        String playerId  = msg.getString("player_id", UUID.randomUUID().toString());
+        String version   = msg.getString("version", "");
+        GameMode reqMode = GameMode.fromWire(msg.getString("game_mode", "arcade"));
 
         if (!MessageType.PROTOCOL_VERSION.equals(version)) {
             log.warn("Protocol version mismatch — client='{}' server='{}'",
@@ -132,8 +134,10 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         PlayerRecord player = new PlayerRecord(playerId, slot, ctx.channel());
         session.players.put(playerId, player);
         channelToPlayer.put(ctx.channel().id().asShortText(), playerId);
+        // First player's requested mode wins for the whole session
+        if (slot == 0) session.gameMode = reqMode;
 
-        log.info("Player {} joined as slot {}", playerId, slot);
+        log.info("Player {} joined as slot {} mode={}", playerId, slot, session.gameMode.wire);
 
         // SERVER_HELLO
         sendMessage(ctx.channel(), MessageType.SERVER_HELLO, Map.of(
@@ -390,6 +394,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             zone.currentRoomGridY    = startRoom.gridY;
             zone.currentNeighborDirs = new ArrayList<>(startRoom.neighborDirs());
             zone.currentRoomType     = startRoom.type.wire();
+            zone.gameMode            = session.gameMode;
             startZoneSimLoop(zone);
             log.info("Hub zone '{}' created — start room ({},{}) seed={}",
                 key, startRoom.gridX, startRoom.gridY, startRoom.seed);

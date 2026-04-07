@@ -105,6 +105,7 @@ public final class ZoneSimulationLoop implements Runnable {
         LevelLayout layout = LevelLayout.buildProceduralLayout(
             startRoom.seed, startRoom.neighborDirs(), startRoom.type.wire(), adjacentRooms);
         zone.simulator = new GameSimulator(startRoom.seed, zone.hubId, layout);
+        zone.simulator.setMode(zone.gameMode, zone.arcadeDepth, zone.arcadeRooms);
 
         // Propagate layout spawn to zone so simulateTick uses the correct spawn position
         zone.spawnX = layout.spawnX;

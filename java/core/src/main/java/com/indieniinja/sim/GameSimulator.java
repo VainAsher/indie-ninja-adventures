@@ -67,6 +67,12 @@ public final class GameSimulator {
     private int shurikenSeq = 0;
     private int lootSeq     = 0;
 
+    // ── Game mode state ───────────────────────────────────────────────────────
+    private GameMode gameMode    = GameMode.ARCADE;
+    private int      arcadeScore = 0;
+    private int      arcadeDepth = 0;
+    private int      arcadeRooms = 10;
+
     // ── World ─────────────────────────────────────────────────────────────────
     public final long   seed;
     public final String hubId;
@@ -139,9 +145,11 @@ public final class GameSimulator {
      */
     public void addPlayer(SimPlayer player) {
         players.put(player.slot, player);
+        // Sandbox mode: start with generous currency + unlock abilities
+        if (gameMode == GameMode.SANDBOX) {
+            player.inventory.addCurrency(500);
+        }
         // Register physics state so PhysicsSystem and CollisionSystem process it
-        // In Phase B, player position is client-authoritative — we still register
-        // so the physics list is coherent; pos is overwritten from INPUT each tick.
         var entity = entityManager.create(com.indieniinja.core.EntityType.PLAYER, player.physics);
         entity.addTag("player");
     }
@@ -155,6 +163,21 @@ public final class GameSimulator {
         // Simple: clear all player entities and re-add remaining (small N)
         rebuildPlayerEntities();
     }
+
+    /**
+     * Set game mode and arcade depth/rooms.  Called by ZoneSimulationLoop
+     * after the simulator is built but before any players join.
+     */
+    public void setMode(GameMode mode, int depth, int rooms) {
+        this.gameMode    = mode;
+        this.arcadeDepth = depth;
+        this.arcadeRooms = rooms;
+    }
+
+    /** Accessor used by ZoneSimulationLoop to read arcade progression state. */
+    public int getArcadeScore() { return arcadeScore; }
+    public int getArcadeDepth() { return arcadeDepth; }
+    public int getArcadeRooms() { return arcadeRooms; }
 
     /**
      * Advance simulation by exactly one fixed tick.
@@ -210,9 +233,13 @@ public final class GameSimulator {
      */
     public WorldSnapshot getSnapshot(long frame) {
         WorldSnapshot snap = new WorldSnapshot();
-        snap.frame = frame;
-        snap.seed  = seed;
-        snap.hubId = hubId;
+        snap.frame        = frame;
+        snap.seed         = seed;
+        snap.hubId        = hubId;
+        snap.gameMode     = gameMode.wire;
+        snap.arcadeScore  = arcadeScore;
+        snap.arcadeDepth  = arcadeDepth;
+        snap.arcadeRooms  = arcadeRooms;
 
         // Players — ordered by slot
         for (Map.Entry<Integer, SimPlayer> e : players.entrySet()) {
@@ -883,6 +910,10 @@ public final class GameSimulator {
      * 70% coin, 20% health_potion, 10% nothing — matches Python enemy loot tables.
      */
     private void spawnLoot(SimEnemy en) {
+        // Arcade score: +1 per kill (boss = +5)
+        if (gameMode == GameMode.ARCADE) {
+            arcadeScore += "boss".equals(en.enemyType) ? 5 : 1;
+        }
         float cx = en.physics.x + en.physics.width  * 0.5f - 10f;
         float cy = en.physics.y;
         // Use lootSeq as a simple deterministic pseudo-random based on position
