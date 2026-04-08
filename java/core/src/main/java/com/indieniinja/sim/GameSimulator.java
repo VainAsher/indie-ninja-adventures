@@ -1323,16 +1323,26 @@ public final class GameSimulator {
                 float dx = px - nx, dy = py - ny;
                 if (dx*dx + dy*dy > 80f*80f) continue;
                 // lever NPC type = "lever_ld_0" → doorPuzzleId = "ld_0"
-                // button NPC type = "btn_0_bs_0" → linkedPuzzleId stored in type; derive reward door id
-                String doorId;
+                // button NPC type = "btn_<i>_<puzzleId>" — all 3 unique buttons must be pressed
                 if (t.startsWith("lever_")) {
-                    doorId = t.substring(6);   // "lever_ld_0" → "ld_0"
+                    unlockDoor(t.substring(6));   // "lever_ld_0" → "ld_0"
                 } else {
-                    // btn type = "btn_<i>_<puzzleId>" — reward door puzzleId = "reward_<puzzleId>"
-                    int last = t.lastIndexOf('_');
-                    doorId = last >= 0 ? "reward_" + t.substring(last + 1) : null;
+                    // Prevent re-pressing an already-activated button
+                    if (solvedPuzzles.contains(t)) break;
+                    solvedPuzzles.add(t);
+                    // Extract base puzzleId after the 2nd underscore: "btn_0_bs_0" → "bs_0"
+                    int first  = t.indexOf('_');
+                    int second = t.indexOf('_', first + 1);
+                    String basePid = second >= 0 ? t.substring(second + 1) : null;
+                    if (basePid != null) {
+                        // Count how many distinct buttons for this puzzle are solved
+                        String suffix = "_" + basePid;
+                        int pressed = 0;
+                        for (String s : solvedPuzzles)
+                            if (s.startsWith("btn_") && s.endsWith(suffix)) pressed++;
+                        if (pressed >= 3) unlockDoor("reward_" + basePid);
+                    }
                 }
-                if (doorId != null) unlockDoor(doorId);
                 break;
             }
         }
