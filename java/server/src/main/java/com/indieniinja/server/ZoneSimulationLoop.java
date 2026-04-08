@@ -67,7 +67,7 @@ public final class ZoneSimulationLoop implements Runnable {
      * is used unchanged.  Flip to true once EntityPlanner + RoomPostProcessor are
      * wired (Phase 2) to activate the extended pipeline.
      */
-    static boolean NEW_PIPELINE_ENABLED = false;
+    static boolean NEW_PIPELINE_ENABLED = true;
 
     private final ZoneInstance                      zone;
     private final GameSession                       session;
