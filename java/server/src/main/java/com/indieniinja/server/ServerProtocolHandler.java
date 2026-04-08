@@ -5,6 +5,7 @@ import com.indieniinja.network.MessageType;
 import com.indieniinja.network.WireCodec;
 import com.indieniinja.network.WireMessage;
 import com.indieniinja.sim.GameMode;
+import com.indieniinja.world.HubRegistry;
 import com.indieniinja.world.WorldGraph;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -227,6 +228,28 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
         String destHubId = msg.getString("destination_id", "central_hub");
 
+        // ── Loop 16: ability-gate check ───────────────────────────────────────
+        // Look up the destination hub's required ability and verify the player has it.
+        HubRegistry.HubDef destHub = HubRegistry.get(destHubId);
+        if (!destHub.requiredAbility().isEmpty()) {
+            ZoneInstance curZone = zones.get(player.hubId);
+            if (curZone != null && curZone.simulator != null) {
+                com.indieniinja.sim.SimPlayer sp = curZone.simulator.getPlayer(player.slot);
+                if (sp != null && !sp.unlockedAbilities.contains(destHub.requiredAbility())) {
+                    // Player lacks the required ability — send a denial notification
+                    try {
+                        sendMessage(ctx.channel(), MessageType.ERROR, Map.of(
+                            "text", "Requires ability: " + destHub.requiredAbility(),
+                            "category", "portal_denied"
+                        ));
+                    } catch (Exception ignored) {}
+                    log.info("PORTAL_TRAVEL denied: pid={} lacks '{}' for hub '{}'",
+                        pid, destHub.requiredAbility(), destHubId);
+                    return;
+                }
+            }
+        }
+
         // Remove from current zone
         ZoneInstance oldZone = zones.get(player.hubId);
         if (oldZone != null) {
@@ -415,14 +438,18 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
      * sim thread starts, enabling per-room zone keying.
      */
     private ZoneInstance getOrCreateStartZone(String masterHubId) {
-        long zoneSeed = session.worldSeed ^ masterHubId.hashCode();
-        WorldGraph graph = WorldGraph.generate(zoneSeed, DEFAULT_ROOMS, WorldGraph.WorldShape.BLOB);
+        // Use HubRegistry to pick the correct seed offset, room count, and graph shape
+        HubRegistry.HubDef hubDef  = HubRegistry.get(masterHubId);
+        long zoneSeed = HubRegistry.hubSeed(session.worldSeed, masterHubId);
+        int  roomCount = hubDef.roomCount();
+        WorldGraph.WorldShape shape = WorldGraph.WorldShape.valueOf(hubDef.graphShape());
+        WorldGraph graph = WorldGraph.generate(zoneSeed, roomCount, shape);
         WorldGraph.RoomNode startRoom = graph.startRoom();
         String key = zoneKey(masterHubId, startRoom.gridX, startRoom.gridY);
 
         return zones.computeIfAbsent(key, k -> {
             ZoneInstance zone = new ZoneInstance(
-                key, masterHubId, zoneSeed, "standard", DEFAULT_ROOMS,
+                key, masterHubId, zoneSeed, hubDef.graphShape(), roomCount,
                 session.worldSeed, startRoom.gridX * 32f, startRoom.gridY * 32f
             );
             // Pre-set room state so initSimulator uses this room
@@ -446,12 +473,13 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
      */
     private ZoneInstance getOrCreateRoomZone(String masterHubId, WorldGraph graph,
             WorldGraph.RoomNode room) {
-        long zoneSeed = session.worldSeed ^ masterHubId.hashCode();
+        HubRegistry.HubDef hubDef = HubRegistry.get(masterHubId);
+        long zoneSeed = HubRegistry.hubSeed(session.worldSeed, masterHubId);
         String key = zoneKey(masterHubId, room.gridX, room.gridY);
 
         return zones.computeIfAbsent(key, k -> {
             ZoneInstance zone = new ZoneInstance(
-                key, masterHubId, zoneSeed, "standard", DEFAULT_ROOMS,
+                key, masterHubId, zoneSeed, hubDef.graphShape(), hubDef.roomCount(),
                 session.worldSeed, room.gridX * 32f, room.gridY * 32f
             );
             zone.worldGraph          = graph;

@@ -186,6 +186,11 @@ public final class GameSimulator {
         entity.addTag("player");
     }
 
+    /** Return the SimPlayer for the given slot, or null if not present. */
+    public SimPlayer getPlayer(int slot) {
+        return players.get(slot);
+    }
+
     /**
      * Remove a player from the simulation (on disconnect / zone leave).
      */

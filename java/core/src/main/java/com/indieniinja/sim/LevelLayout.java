@@ -4,6 +4,7 @@ import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.sim.BossType;
 import com.indieniinja.physics.SpatialHash;
 import com.indieniinja.physics.TileRect;
+import com.indieniinja.world.HubRegistry;
 import com.indieniinja.world.WorldGenerator;
 import com.indieniinja.world.WorldGraph;
 
@@ -186,13 +187,19 @@ public final class LevelLayout {
      */
     /** Build layout with no door openings (solid walls on all sides). */
     public static LevelLayout buildProceduralLayout(long seed) {
-        return buildProceduralLayout(seed, java.util.Collections.emptySet(), "combat");
+        return buildProceduralLayout(seed, java.util.Collections.emptySet(), "combat", "central_hub");
     }
 
     /** Build layout with door openings but default room type. */
     public static LevelLayout buildProceduralLayout(
             long seed, java.util.Collection<String> neighborDirs) {
-        return buildProceduralLayout(seed, neighborDirs, "combat");
+        return buildProceduralLayout(seed, neighborDirs, "combat", "central_hub");
+    }
+
+    /** Build layout with room type but no hub context (defaults to central_hub for portals). */
+    public static LevelLayout buildProceduralLayout(
+            long seed, java.util.Collection<String> neighborDirs, String roomType) {
+        return buildProceduralLayout(seed, neighborDirs, roomType, "central_hub");
     }
 
     /**
@@ -208,8 +215,18 @@ public final class LevelLayout {
     public static LevelLayout buildProceduralLayout(
             long seed, java.util.Collection<String> neighborDirs, String roomType,
             java.util.Map<String, WorldGraph.RoomNode> adjacentRooms) {
+        return buildProceduralLayout(seed, neighborDirs, roomType, adjacentRooms, "central_hub");
+    }
+
+    /**
+     * Full overload: stitches adjacent room tiles into the SpatialHash AND uses
+     * masterHubId for HubRegistry portal destination lookup (Loop 15).
+     */
+    public static LevelLayout buildProceduralLayout(
+            long seed, java.util.Collection<String> neighborDirs, String roomType,
+            java.util.Map<String, WorldGraph.RoomNode> adjacentRooms, String masterHubId) {
         // Build the current room layout first
-        LevelLayout base = buildProceduralLayout(seed, neighborDirs, roomType);
+        LevelLayout base = buildProceduralLayout(seed, neighborDirs, roomType, masterHubId);
 
         if (adjacentRooms == null || adjacentRooms.isEmpty()) return base;
 
@@ -270,9 +287,11 @@ public final class LevelLayout {
      * @param seed         room seed
      * @param neighborDirs directions where adjacent rooms exist ("up","down","left","right")
      * @param roomType     wire string: "start","exit","shop","combat","platform","treasure","boss"
+     * @param masterHubId  hub this room belongs to — used for HubRegistry portal destinations
      */
     public static LevelLayout buildProceduralLayout(
-            long seed, java.util.Collection<String> neighborDirs, String roomType) {
+            long seed, java.util.Collection<String> neighborDirs, String roomType,
+            String masterHubId) {
         final int TILE = 32;
         final int COLS = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
         final int ROWS = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
@@ -492,9 +511,13 @@ public final class LevelLayout {
                 }
             }
 
-            String gate = (rng.nextInt(100) < 30) ? "dash" : "";
-            portals.add(new PortalSpawn("hub", "hub_" + Long.toHexString(seed ^ 0xEEEEL),
-                portalX, portalY, gate));
+            // Destination: next hub in the HubRegistry chain (Loop 15).
+            // Exit rooms link forward; start rooms link back to previous hub.
+            HubRegistry.HubDef dest = "exit".equals(roomType)
+                ? HubRegistry.nextHub(masterHubId)
+                : HubRegistry.get(masterHubId);  // start room portal re-enters this hub
+            String gate = dest.requiredAbility();
+            portals.add(new PortalSpawn("hub", dest.id(), portalX, portalY, gate));
         }
 
         // Moving platforms — room-type-aware count:
