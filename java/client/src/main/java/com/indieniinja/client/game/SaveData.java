@@ -17,7 +17,7 @@ import java.util.Map;
 public final class SaveData {
 
     // ── Constants ─────────────────────────────────────────────────────────────
-    public static final String CURRENT_VERSION = "0.10.27";
+    public static final String CURRENT_VERSION = "0.10.63";
 
     // ── Fields ────────────────────────────────────────────────────────────────
     public String version  = CURRENT_VERSION;
@@ -74,6 +74,12 @@ public final class SaveData {
     public String            equippedArmor       = null;
     public int               currency            = 0;
     public List<String>      defeatedBosses      = new ArrayList<>();
+    /** Set of "gridX,gridY" room keys the player has visited (per world seed). */
+    public List<String>      visitedRoomKeys     = new ArrayList<>();
+    /** Total enemies killed across all sessions. */
+    public int               totalEnemiesKilled  = 0;
+    /** Unlocked achievements by id. */
+    public List<String>      achievements        = new ArrayList<>();
 
     // ── Story state ───────────────────────────────────────────────────────────
     /** Serialized StoryManager flags — matches Python story_manager.to_dict(). */

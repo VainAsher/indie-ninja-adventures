@@ -11,6 +11,7 @@ import com.indieniinja.network.WorldRoomDescriptor;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.GameMode;
 import com.indieniinja.sim.GameSimulator;
+import com.indieniinja.sim.InputRecorder;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
 import com.indieniinja.sim.SimPlayer;
@@ -62,6 +63,10 @@ public final class ZoneSimulationLoop implements Runnable {
     private final ConcurrentHashMap<String, ZoneInstance> allZones;
     /** Executor that owns all sim loop threads — used to start new zone loops. */
     private final ExecutorService                   executor;
+    /** Input recorder — active when recording flag is set in session. */
+    private final InputRecorder recorder = new InputRecorder();
+    /** Monotonically increasing tick counter for this zone loop. */
+    private long tickCount = 0L;
 
     public ZoneSimulationLoop(ZoneInstance zone, GameSession session, AtomicBoolean shutdown,
                               ConcurrentHashMap<String, ZoneInstance> allZones,
@@ -132,6 +137,10 @@ public final class ZoneSimulationLoop implements Runnable {
         // Phase B: initialise the server-side GameSimulator for this zone
         initSimulator(zone);
         log.info("[Zone {}] simulation loop started", zone.hubId);
+
+        // Start recording if enabled via system property -Dninja.record=true
+        boolean doRecord = Boolean.getBoolean("ninja.record");
+        if (doRecord) recorder.startRecording(zone.seed);
         long nextTickNs   = System.nanoTime();
         int  broadcastCtr = 0;
 
@@ -181,6 +190,19 @@ public final class ZoneSimulationLoop implements Runnable {
         }
 
         log.info("[Zone {}] simulation loop stopped", zone.hubId);
+
+        // Save recording if active
+        if (recorder.isRecording()) {
+            try {
+                java.nio.file.Path replayDir = java.nio.file.Paths.get("user_data", "replays");
+                java.nio.file.Files.createDirectories(replayDir);
+                String fname = "replay_" + zone.hubId + "_" + System.currentTimeMillis() + ".ndjson";
+                recorder.stopRecording(replayDir.resolve(fname));
+                log.info("[Zone {}] replay saved to {}", zone.hubId, fname);
+            } catch (java.io.IOException e) {
+                log.warn("[Zone {}] failed to save replay: {}", zone.hubId, e.getMessage());
+            }
+        }
     }
 
     // ── Simulation tick ───────────────────────────────────────────────────────
@@ -230,9 +252,13 @@ public final class ZoneSimulationLoop implements Runnable {
             // Do NOT overwrite sp.physics from pr — let the sim own positions.
 
             InputCommand cmd = pr.latestInput.get();
-            if (cmd != null) inputs.put(pr.slot, cmd);
+            if (cmd != null) {
+                inputs.put(pr.slot, cmd);
+                recorder.record(tickCount, pr.slot, cmd);
+            }
         }
 
+        tickCount++;
         sim.step(inputs);
 
         // Write authoritative physics results back to PlayerRecords for broadcast

@@ -802,6 +802,13 @@ public final class GameScreen implements Screen {
             if (kills > 0) {
                 missionManager.progressObjective("kill_all_enemies_", kills);
                 log.debug("[Mission] {} enemy kill(s) detected", kills);
+                // Persist to save stats
+                var sd = saveManager.getSaveData();
+                if (sd != null) {
+                    sd.totalEnemiesKilled += kills;
+                    sd.totalDeathsStat   += kills;  // legacy compat field
+                    saveManager.markDirty();
+                }
             }
         }
         prevEnemyIds.clear();

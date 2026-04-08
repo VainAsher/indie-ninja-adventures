@@ -38,9 +38,11 @@ public final class SaveManager {
     private final MissionManager missions;
     private final Json           json;
 
-    private boolean needsSave  = false;
-    private float   saveTimer  = 0f;
-    private boolean saveExists = false;
+    private boolean  needsSave  = false;
+    private float    saveTimer  = 0f;
+    private boolean  saveExists = false;
+    /** Live in-memory save data — updated each session; merged into capture() on write. */
+    private SaveData liveData   = new SaveData();
 
     public SaveManager(StoryManager story, MissionManager missions) {
         this.story    = story;
@@ -69,6 +71,10 @@ public final class SaveManager {
             if (data == null) { log.warn("[Save] Empty save file"); return false; }
             data = migrate(data);
             data.restore(story, missions);
+            // Sync runtime-tracked fields into liveData
+            liveData.totalEnemiesKilled = data.totalEnemiesKilled;
+            liveData.visitedRoomKeys    = data.visitedRoomKeys   != null ? data.visitedRoomKeys    : new java.util.ArrayList<>();
+            liveData.achievements       = data.achievements       != null ? data.achievements       : new java.util.ArrayList<>();
             saveExists = true;
             log.info("[Save] Loaded v{} from {}", data.version, SAVE_PATH);
             return true;
@@ -85,6 +91,10 @@ public final class SaveManager {
     public boolean save() {
         try {
             SaveData data = SaveData.capture(story, missions);
+            // Merge runtime-tracked stats from liveData
+            data.totalEnemiesKilled = liveData.totalEnemiesKilled;
+            data.visitedRoomKeys    = new java.util.ArrayList<>(liveData.visitedRoomKeys);
+            data.achievements       = new java.util.ArrayList<>(liveData.achievements);
 
             // Rotate backups before overwriting
             FileHandle existing = Gdx.files.local(SAVE_PATH);
@@ -109,6 +119,13 @@ public final class SaveManager {
 
     /** True if a save file was loaded or written this session. */
     public boolean hasSave() { return saveExists; }
+
+    /**
+     * Returns the live in-memory SaveData for runtime stat tracking
+     * (totalEnemiesKilled, visitedRoomKeys, achievements, etc.).
+     * Changes are merged into the captured data on the next save.
+     */
+    public SaveData getSaveData() { return liveData; }
 
     /**
      * Advance the auto-save timer.  Call each game frame with delta seconds.
@@ -156,6 +173,8 @@ public final class SaveManager {
         if (d.completedMissions == null) d.completedMissions = new java.util.ArrayList<>();
         if (d.unlockedAbilities == null) d.unlockedAbilities = new java.util.ArrayList<>();
         if (d.defeatedBosses    == null) d.defeatedBosses    = new java.util.ArrayList<>();
+        if (d.visitedRoomKeys   == null) d.visitedRoomKeys   = new java.util.ArrayList<>();
+        if (d.achievements      == null) d.achievements      = new java.util.ArrayList<>();
         if (d.bestTimes         == null) d.bestTimes         = new java.util.HashMap<>();
         if (d.missionBestTimes  == null) d.missionBestTimes  = new java.util.HashMap<>();
         if (d.missionAttempts   == null) d.missionAttempts   = new java.util.HashMap<>();
