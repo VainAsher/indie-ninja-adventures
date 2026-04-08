@@ -80,6 +80,14 @@ public final class ZoneInstance {
     /** Room type for the current room (wire string: combat/start/exit/shop/etc.). */
     public volatile String currentRoomType = "combat";
 
+    /**
+     * Top-left grid coordinates of the unified megamap world.
+     * Player room = (posX / ROOM_PX + megamapMinGridX, posY / ROOM_PX + megamapMinGridY).
+     * Set by ZoneSimulationLoop.initSimulator() after buildUnifiedWorldLayout().
+     */
+    public volatile int megamapMinGridX = 0;
+    public volatile int megamapMinGridY = 0;
+
     /** Game mode for this zone — set when the zone is first created. */
     public volatile GameMode gameMode = GameMode.ARCADE;
     /** Arcade: current depth (increments when players clear the exit room). */

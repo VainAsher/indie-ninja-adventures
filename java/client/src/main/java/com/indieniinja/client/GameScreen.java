@@ -154,18 +154,9 @@ public final class GameScreen implements Screen {
     private int     megamapH         = LEVEL_ROWS;
     /**
      * Set true on zone transition so the next full-snapshot megamap rebuild is
-     * forced regardless of room count.  The old megamap stays loaded during the
-     * window between WORLD_TRANSITION and the next full snapshot so that
-     * roomWorldOffX/Y remain valid and the camera does not jump.
+     * forced regardless of room count.
      */
     private boolean megamapStale     = false;
-    /**
-     * World-space pixel offset of the current room's origin within the megamap.
-     * Entity positions are room-local; adding this offset converts to world-space
-     * for the camera projection.  0,0 when megamap is not yet built.
-     */
-    private float roomWorldOffX    = 0f;
-    private float roomWorldOffY    = 0f;
 
     public GameScreen(NinjaGameClient game, String host, int port) {
         this(game, host, port, "arcade");
@@ -419,9 +410,10 @@ public final class GameScreen implements Screen {
         }
 
         if (snap != null) {
-            // ── Same-hub room crossing detection ─────────────────────────────────
-            // WORLD_TRANSITION is not sent for same-hub crossings; detect the change
-            // here so entity tracking state is cleared for the new room.
+            // ── Room change detection (for cache clearing and minimap fog) ────────
+            // With unified world-space the player simply walks across room boundaries
+            // without any zone transition — detect room change from roomGridX/Y
+            // to keep entity caches and fog-of-war consistent.
             boolean roomChanged = (snap.roomGridX != prevRoomGridX || snap.roomGridY != prevRoomGridY)
                                   && prevRoomGridX != Integer.MIN_VALUE;
             if (roomChanged) {
@@ -434,17 +426,8 @@ public final class GameScreen implements Screen {
                 cachedPickups = java.util.List.of();
                 log.debug("[GameScreen] room changed ({},{})→({},{})",
                     prevRoomGridX, prevRoomGridY, snap.roomGridX, snap.roomGridY);
-                // Snap camera instantly to new world-space position so the spring-lerp
-                // doesn't visibly pan across the room boundary over several frames.
-                if (megamapRoomCount > 0 && !snap.players.isEmpty()) {
-                    PlayerState snapLocal = snap.players.stream()
-                        .filter(p -> p.slot == localSlot).findFirst()
-                        .orElse(snap.players.get(0));
-                    int tile = PhysicsConstants.TILE_SIZE;
-                    float newOffX = (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile;
-                    float newOffY = (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile;
-                    camera.snapTo(newOffX + snapLocal.posX, newOffY + snapLocal.posY);
-                }
+                // No camera snap needed — entities are already in world-space so the
+                // camera spring-lerp follows the player's continuous position naturally.
             }
             prevRoomGridX = snap.roomGridX;
             prevRoomGridY = snap.roomGridY;
@@ -478,18 +461,13 @@ public final class GameScreen implements Screen {
             if (!snap.worldRooms.isEmpty() && (megamapStale || snap.worldRooms.size() != megamapRoomCount)) {
                 megamapStale = false;
                 buildMegamap(snap.worldRooms);
-                // Snap camera to player's world-space position immediately —
-                // without this the spring-lerp slowly pans from single-room coords
-                // (e.g. x=2048) to the actual megamap position (e.g. x=10240).
+                // Snap camera to player's world-space position directly —
+                // entities are in world-space so posX/Y are already the correct target.
                 if (!snap.players.isEmpty()) {
                     PlayerState snapLocal = snap.players.stream()
                         .filter(p -> p.slot == localSlot).findFirst()
                         .orElse(snap.players.get(0));
-                    int tile = PhysicsConstants.TILE_SIZE;
-                    camera.snapTo(
-                        (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile + snapLocal.posX,
-                        (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile + snapLocal.posY
-                    );
+                    camera.snapTo(snapLocal.posX, snapLocal.posY);
                 }
             }
 
@@ -519,23 +497,14 @@ public final class GameScreen implements Screen {
                 }
             }
 
-            // ── Room world-space offset (entity rendering needs this) ─────────
-            if (megamapRoomCount > 0) {
-                int tile = PhysicsConstants.TILE_SIZE;
-                roomWorldOffX = (snap.roomGridX - megamapMinGridX) * LEVEL_COLS * tile;
-                roomWorldOffY = (snap.roomGridY - megamapMinGridY) * LEVEL_ROWS * tile;
-            } else {
-                roomWorldOffX = 0f;
-                roomWorldOffY = 0f;
-            }
-
             // ── Camera follow ─────────────────────────────────────────────────
+            // Entities and player are in world-space — follow posX/Y directly.
             if (!snap.players.isEmpty()) {
                 PlayerState local = snap.players.stream()
                     .filter(p -> p.slot == localSlot)
                     .findFirst()
                     .orElse(snap.players.get(0));
-                camera.follow(roomWorldOffX + local.posX, roomWorldOffY + local.posY);
+                camera.follow(local.posX, local.posY);
                 camera.clampToBounds(
                     megamapW * PhysicsConstants.TILE_SIZE,
                     megamapH * PhysicsConstants.TILE_SIZE
@@ -557,16 +526,12 @@ public final class GameScreen implements Screen {
             chunkRenderer.render(batch, camera);
         batch.end();
 
-        // Pass 2 — entities: room-local coords → translate by current room world offset.
-        // Without this, entities render at room-local (0–4096) while the camera is at
-        // world-space (e.g. 4096 + 2048), putting them thousands of pixels off-screen.
-        entityTransform.setToTranslation(roomWorldOffX, roomWorldOffY, 0);
-        batch.setTransformMatrix(entityTransform);
+        // Pass 2 — entities: already in world-space, identity transform.
+        batch.setTransformMatrix(entityTransform.idt());
         batch.begin();
             entityRenderer.render(batch, snap, delta);
             particleSystem.render(batch);
         batch.end();
-        batch.setTransformMatrix(entityTransform.idt());  // push identity into batch so overlays/text render at screen coords
 
         entityRenderer.pruneEntities(snap);
 
@@ -592,12 +557,15 @@ public final class GameScreen implements Screen {
                 ? snapForMap.players.stream().filter(p -> p.slot == localSlot).findFirst()
                     .orElse(!snapForMap.players.isEmpty() ? snapForMap.players.get(0) : null)
                 : null;
-            float lpx     = localForMap != null ? localForMap.posX : 0f;
-            float lpy     = localForMap != null ? localForMap.posY : 0f;
             int   gridX   = snapForMap != null ? snapForMap.roomGridX : 0;
             int   gridY   = snapForMap != null ? snapForMap.roomGridY : 0;
             float roomPx  = PhysicsConstants.ROOM_WIDTH_TILES  * PhysicsConstants.TILE_SIZE;
             float roomPy  = PhysicsConstants.ROOM_HEIGHT_TILES * PhysicsConstants.TILE_SIZE;
+            // Player position is world-space; convert to room-local for the minimap dot.
+            float worldPx = localForMap != null ? localForMap.posX : 0f;
+            float worldPy = localForMap != null ? localForMap.posY : 0f;
+            float lpx = worldPx - (gridX - megamapMinGridX) * roomPx;
+            float lpy = worldPy - (gridY - megamapMinGridY) * roomPy;
             batch.setProjectionMatrix(hudRenderer.screenProjection());
             // MinimapRenderer manages its own batch.begin/end; do NOT open batch here.
             minimapRenderer.render(batch, cachedWorldRooms, gridX, gridY, lpx, lpy, roomPx, roomPy,
