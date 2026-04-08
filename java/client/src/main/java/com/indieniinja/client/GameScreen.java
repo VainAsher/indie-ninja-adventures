@@ -417,7 +417,9 @@ public final class GameScreen implements Screen {
             boolean roomChanged = (snap.roomGridX != prevRoomGridX || snap.roomGridY != prevRoomGridY)
                                   && prevRoomGridX != Integer.MIN_VALUE;
             if (roomChanged) {
-                megamapStale = true;          // force megamap rebuild on next full snap
+                // megamapStale intentionally NOT set here — the unified world tiles don't
+                // change when the player crosses a room boundary; only hub transitions
+                // (WORLD_TRANSITION) need a megamap rebuild.
                 prevEnemyIds.clear();         // avoid false kill counts across rooms
                 prevBossAlive.clear();
                 latestShopStates.clear();

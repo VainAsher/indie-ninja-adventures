@@ -311,53 +311,50 @@ public final class ZoneSimulationLoop implements Runnable {
      * walk anywhere — no zone transitions for intra-hub movement.
      *
      * Updates zone.currentRoomGridX/Y for the minimap and snapshot broadcast.
+     *
+     * Hysteresis: the player must be at least HYSTERESIS_PX past the entry edge
+     * before the room flip is committed, preventing rapid oscillation when
+     * standing near a boundary.
      */
+    private static final float ROOM_HYSTERESIS_PX = 64f;   // 2 tiles past boundary
+
     private void updateCurrentRoom() {
         if (zone.simulator == null || zone.worldGraph == null) return;
 
-        // Use the first live player to determine which room the zone is "in".
-        // For single-player this is exact; for co-op it tracks player 0's room.
         for (String pid : zone.playerIds) {
             PlayerRecord pr = session.players.get(pid);
             if (pr == null) continue;
             SimPlayer sp = zone.simulator.getPlayers().get(pr.slot);
             if (sp == null) continue;
 
-            int gridX = (int) Math.floor(sp.physics.x / ROOM_PX) + zone.megamapMinGridX;
-            int gridY = (int) Math.floor(sp.physics.y / ROOM_PX) + zone.megamapMinGridY;
+            int newGX = (int) Math.floor(sp.physics.x / ROOM_PX) + zone.megamapMinGridX;
+            int newGY = (int) Math.floor(sp.physics.y / ROOM_PX) + zone.megamapMinGridY;
 
-            WorldGraph.RoomNode room = zone.worldGraph.roomAt(gridX, gridY);
+            // No change — fast path
+            if (newGX == zone.currentRoomGridX && newGY == zone.currentRoomGridY) break;
+
+            // Hysteresis: player must be HYSTERESIS_PX past the entry edge.
+            // For a rightward crossing into newGX: local x from room origin ≥ HYSTERESIS.
+            // For a leftward crossing into newGX:  local x from room origin ≤ ROOM_PX − HYSTERESIS.
+            float localX = sp.physics.x - (newGX - zone.megamapMinGridX) * (float) ROOM_PX;
+            float localY = sp.physics.y - (newGY - zone.megamapMinGridY) * (float) ROOM_PX;
+            boolean xOk = newGX == zone.currentRoomGridX
+                || (newGX > zone.currentRoomGridX && localX >= ROOM_HYSTERESIS_PX)
+                || (newGX < zone.currentRoomGridX && localX <= ROOM_PX - ROOM_HYSTERESIS_PX);
+            boolean yOk = newGY == zone.currentRoomGridY
+                || (newGY > zone.currentRoomGridY && localY >= ROOM_HYSTERESIS_PX)
+                || (newGY < zone.currentRoomGridY && localY <= ROOM_PX - ROOM_HYSTERESIS_PX);
+            if (!xOk || !yOk) break;  // not far enough past boundary yet
+
+            WorldGraph.RoomNode room = zone.worldGraph.roomAt(newGX, newGY);
             if (room != null) {
-                zone.currentRoomGridX    = gridX;
-                zone.currentRoomGridY    = gridY;
+                zone.currentRoomGridX    = newGX;
+                zone.currentRoomGridY    = newGY;
                 zone.currentRoomSeed     = room.seed;
                 zone.currentRoomType     = room.type.wire();
                 zone.currentNeighborDirs = new java.util.ArrayList<>(room.neighborDirs());
             }
             break;  // one player is enough
-        }
-    }
-
-    private void sendWorldTransition(PlayerRecord pr, ZoneInstance dest) {
-        try {
-            byte[] body = WireCodec.encodeBody(
-                MessageType.WORLD_TRANSITION,
-                Map.of(
-                    "hub_id",     dest.hubId,
-                    "seed",       dest.seed,
-                    "shape",      dest.shape,
-                    "rooms",      dest.rooms,
-                    "world_seed", dest.worldSeed,
-                    "spawn_x",    dest.spawnX,
-                    "spawn_y",    dest.spawnY
-                )
-            );
-            if (pr.channel.isActive()) {
-                ByteBuf buf = Unpooled.wrappedBuffer(body);
-                pr.channel.writeAndFlush(buf);
-            }
-        } catch (Exception ex) {
-            log.error("[Zone] WORLD_TRANSITION send error: {}", ex.getMessage());
         }
     }
 
