@@ -795,6 +795,20 @@ public final class LevelLayout {
             for (PickupSpawn p : content.pickups)
                 allPickups.add(new PickupSpawn(p.type(), offX + p.x(), offY + p.y()));
 
+            // Puzzle spawns: keys → pickups, levers/buttons → interactable NPCs
+            for (RoomContent.PuzzleSpawn z : content.puzzles) {
+                switch (z.puzzleType()) {
+                    case "key" ->
+                        allPickups.add(new PickupSpawn(z.puzzleId(), offX + z.x(), offY + z.y()));
+                    case "lever", "button" -> {
+                        float px = offX + z.x();
+                        allNpcs.add(new NPCSpawn(z.puzzleType() + "_" + z.puzzleId(),
+                            px, offY + z.y(), px - 16f, px + 16f));
+                    }
+                    // "door" tiles are already solid via DOOR_LOCKED in SpatialHash
+                }
+            }
+
             for (NPCSpawn n : content.npcs)
                 allNpcs.add(new NPCSpawn(n.type(),
                     offX + n.x(), offY + n.y(),
