@@ -142,15 +142,19 @@ public final class GameSimulator {
             ));
         }
 
-        // Spawn NPCs (no physics entity — NPCs use simple patrol, no collision sim)
+        // Spawn NPCs — registered in EntityManager so PhysicsSystem/CollisionSystem
+        // apply gravity and tile collision each tick (same as ground enemies).
         int npcIdx = 0;
         for (LevelLayout.NPCSpawn spec : layout.npcSpawns) {
             String npcId = hubId + "_npc_" + npcIdx++;
-            npcs.add(new SimNPC(
+            SimNPC npc = new SimNPC(
                 npcId, spec.type(), spec.x(), spec.y(),
                 32, 48,   // Python default: width=32, height=48
                 spec.patrolMinX(), spec.patrolMaxX()
-            ));
+            );
+            npcs.add(npc);
+            var npcEntity = entityManager.create(com.indieniinja.core.EntityType.NPC, npc.physics);
+            npcEntity.addTag("npc");
             // Create a shop for "shop" type NPCs
             if ("shop".equals(spec.type())) {
                 int shopTier = 1 + (int)(Math.abs(seed ^ npcId.hashCode()) % 3); // tier 1-3
@@ -256,6 +260,13 @@ public final class GameSimulator {
 
         // 11. Portal animation timers
         for (SimPortal portal : portals) portal.step(DT);
+
+        // 12. Lava damage — 1 HP per tick for any player touching lava
+        for (SimPlayer sp : players.values()) {
+            if (sp.physics.onLava && sp.isAlive()) {
+                sp.takeDamage(1);  // takeDamage() is no-op while invincibilityTicks > 0
+            }
+        }
     }
 
     /**
@@ -360,8 +371,8 @@ public final class GameSimulator {
             com.indieniinja.network.NPCState ns = new com.indieniinja.network.NPCState();
             ns.npcId          = npc.id;
             ns.npcType        = npc.type;
-            ns.x              = npc.x;
-            ns.y              = npc.y;
+            ns.x              = npc.physics.x;
+            ns.y              = npc.physics.y;
             ns.facing         = npc.facing;
             ns.animState      = npc.animState;
             ns.isInteractable = npc.isInteractable;
@@ -782,6 +793,22 @@ public final class GameSimulator {
 
         // ── Wall slide ────────────────────────────────────────────────────────
         applyWallSlide(sp, p);
+
+        // ── Hazard tile effects ───────────────────────────────────────────────
+        // CollisionSystem already set p.onIce / p.inWater / p.onLava flags this tick.
+        if (p.onIce && p.onGround) {
+            // ICE: near-zero friction — player glides; only 10% of normal deceleration
+            // Let vx carry; don't clamp to input targetVx on next tick (done via mult).
+            // Approximation: re-multiply current vx to resist stopping.
+            if (!cmd.left && !cmd.right) p.vx *= 0.97f;  // very slow deceleration on ice
+        }
+        if (p.inWater && !sp.isDashing) {
+            // WATER: 55% speed cap, no dash (dash blocked via isDashing guard above)
+            float cap = PhysicsConstants.MAX_RUN_SPEED * 0.55f;
+            if (p.vx >  cap) p.vx =  cap;
+            if (p.vx < -cap) p.vx = -cap;
+        }
+        // LAVA: GameSimulator applies 1 HP damage below (after applyPlayerInput returns).
 
         // ── Animation state ───────────────────────────────────────────────────
         if (sp.ninjutsuCasting) {
@@ -1276,12 +1303,30 @@ public final class GameSimulator {
             if (!p.isAlive()) continue;
             float cx = p.physics.x + p.physics.width * 0.5f;
             for (SimNPC npc : npcs) {
-                float d = Math.abs(cx - (npc.x + npc.width * 0.5f));
+                float d = Math.abs(cx - (npc.physics.x + npc.physics.width * 0.5f));
                 if (d < nearestDist) { nearestDist = d; nearestX = cx; }
             }
         }
 
-        for (SimNPC npc : npcs) npc.step(nearestX);
+        for (SimNPC npc : npcs) {
+            // Edge detection: probe one step ahead at foot level.
+            // If there's no solid tile beneath the NPC's leading foot, it's a ledge.
+            float stepX   = SimNPC.PATROL_SPEED + 2f;   // probe slightly beyond one tick's movement
+            float probeX  = npc.facing == 1
+                ? npc.physics.x + npc.physics.width + stepX   // right foot probe
+                : npc.physics.x - stepX;                      // left foot probe
+            float footY   = npc.physics.y + npc.physics.height + 1f; // one pixel below feet
+            var   floorCandidates = spatialHash.candidates(probeX, footY, 2f, 2f);
+            boolean floorAhead = false;
+            for (var tile : floorCandidates) {
+                if (!tile.isPlatform() && tile.overlaps(probeX, footY, 2f, 2f)) {
+                    floorAhead = true;
+                    break;
+                }
+            }
+            boolean edgeAhead = npc.physics.onGround && !floorAhead;
+            npc.step(nearestX, edgeAhead);
+        }
     }
 
     // ── Inventory wire helper ─────────────────────────────────────────────────

@@ -289,14 +289,16 @@ public final class LevelLayout {
         log.info("[LevelLayout] SERVER grid seed={} type={} dirs={} solid={} plat={} | centre-bottom: {}",
             seed, roomType, neighborDirs, solidCount, platCount, sample.toString().trim());
 
-        // Build spatial hash from every non-air tile
+        // Build spatial hash from every non-air tile.
+        // WATER tiles are passable (isPlatform=false, but collision system treats them
+        // as fluid zones rather than solid blockers — checked via tileType).
         SpatialHash hash = new SpatialHash();
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
                 byte tile = grid[r][c];
                 if (tile == WorldGenerator.AIR) continue;
                 boolean oneWay = (tile == WorldGenerator.PLATFORM);
-                hash.insert(new TileRect(c * TILE, r * TILE, TILE, TILE, oneWay));
+                hash.insert(new TileRect(c * TILE, r * TILE, TILE, TILE, oneWay, tile));
             }
         }
 
@@ -389,13 +391,39 @@ public final class LevelLayout {
             npcs.add(new NPCSpawn("crafter", pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
         }
 
-        // Portals — placed in exit/start rooms near the far-right edge at spawn elevation.
+        // Portals — placed in exit/start rooms on a valid floor tile near the right edge.
+        // Scan groundPos (already shuffled) for the rightmost solid-floor position that:
+        //   - is not inside a wall (x > 4*TILE from edges)
+        //   - has air above (guaranteed by collectGroundPositions)
+        //   - prefers x >= COLS*TILE*0.6f (right 40% of room)
         List<PortalSpawn> portals = new ArrayList<>();
         if ("exit".equals(roomType) || "start".equals(roomType)) {
-            float px = COLS * TILE - 4 * TILE;
-            // 30% chance the portal requires dash to enter (depth-scaling gate placeholder)
+            float portalW   = 64f;
+            float portalH   = 96f;
+            float minX      = 4 * TILE;
+            float maxX      = COLS * TILE - 4 * TILE - portalW;
+            float prefX     = COLS * TILE * 0.6f;  // prefer right portion
+            float bestPortalScore = Float.MAX_VALUE;
+            float portalX   = maxX;   // fallback to far-right edge
+            float portalY   = spawnY;
+
+            for (float[] pos : groundPos) {
+                float gx = pos[0];
+                float gy = pos[1] - portalH;   // portal top = floor − portalH
+                if (gx < minX || gx > maxX) continue;
+                // Prefer positions to the right; penalise left positions
+                float distFromPref = Math.abs(gx - prefX);
+                if (gx < prefX) distFromPref *= 2f;
+                if (distFromPref < bestPortalScore) {
+                    bestPortalScore = distFromPref;
+                    portalX = gx;
+                    portalY = gy;
+                }
+            }
+
             String gate = (rng.nextInt(100) < 30) ? "dash" : "";
-            portals.add(new PortalSpawn("hub", "hub_" + Long.toHexString(seed ^ 0xEEEEL), px, spawnY, gate));
+            portals.add(new PortalSpawn("hub", "hub_" + Long.toHexString(seed ^ 0xEEEEL),
+                portalX, portalY, gate));
         }
 
         return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, bossSpawn, portals, falling,

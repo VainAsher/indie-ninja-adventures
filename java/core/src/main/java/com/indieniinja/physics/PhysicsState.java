@@ -23,6 +23,11 @@ public final class PhysicsState {
     public boolean jumpCutActive;   // jump released mid-air → extra gravity
     public boolean fastFallActive;  // down held while airborne
 
+    // Hazard tile contact flags — reset each tick by CollisionSystem before resolution
+    public boolean inWater;         // inside a WATER tile — reduced speed, no dash
+    public boolean onIce;           // standing on an ICE tile — near-zero friction
+    public boolean onLava;          // contact with LAVA tile — 1 HP/tick damage event
+
     // Entity dimensions (set once at spawn)
     public int width;
     public int height;
@@ -39,5 +44,8 @@ public final class PhysicsState {
         onGround = false;
         onWall   = false;
         wallDir  = 0;
+        inWater  = false;
+        onIce    = false;
+        onLava   = false;
     }
 }

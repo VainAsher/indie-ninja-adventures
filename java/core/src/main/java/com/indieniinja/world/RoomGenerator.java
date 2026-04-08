@@ -156,6 +156,25 @@ public final class RoomGenerator {
             case ZonePlanner.VOID -> {
                 // Empty space — already AIR
             }
+            case ZonePlanner.LAVA -> {
+                // Lava floor at zone bottom — solid tile with LAVA type
+                int floorY = tyEnd - 1;
+                for (int tx = txStart; tx < txEnd; tx++)
+                    if (inBounds(tx, floorY)) g[floorY][tx] = WorldGenerator.LAVA;
+            }
+            case ZonePlanner.ICE -> {
+                // Ice platform at zone middle — solid with ICE type (low friction)
+                int platY = tyStart + TPZ / 2;
+                for (int tx = txStart; tx < txEnd; tx++)
+                    if (inBounds(tx, platY)) g[platY][tx] = WorldGenerator.ICE;
+            }
+            case ZonePlanner.WATER -> {
+                // Water fills the zone vertically — passable, slows movement
+                for (int ty = tyStart; ty < tyEnd; ty++)
+                    for (int tx = txStart; tx < txEnd; tx++)
+                        if (inBounds(tx, ty) && g[ty][tx] == WorldGenerator.AIR)
+                            g[ty][tx] = WorldGenerator.WATER;
+            }
         }
     }
 

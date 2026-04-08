@@ -14,6 +14,9 @@ import java.util.Random;
  *   AIR (0)      — empty cell, no collision
  *   SOLID (1)    — full solid tile, blocks all movement
  *   PLATFORM (2) — one-way platform, blocks only downward movement
+ *   ICE (3)      — solid tile with near-zero friction (sliding surface)
+ *   WATER (4)    — passable liquid zone: reduces speed, disables dash, slows fall
+ *   LAVA (5)     — solid tile that deals 1 HP damage per tick on contact
  *
  * Coordinate system: Y-DOWN, row 0 = top of world (y = 0).
  * grid[row][col] — row-major.
@@ -23,6 +26,9 @@ public final class WorldGenerator {
     public static final byte AIR      = 0;
     public static final byte SOLID    = 1;
     public static final byte PLATFORM = 2;
+    public static final byte ICE      = 3;
+    public static final byte WATER    = 4;
+    public static final byte LAVA     = 5;
 
     private WorldGenerator() {}
 
@@ -250,7 +256,8 @@ public final class WorldGenerator {
             for (int c = 3; c < cols - 3; c++) {
                 byte below = grid[r][c];
                 byte above = grid[r - 1][c];
-                if (below != AIR && above == AIR) {
+                // Exclude hazard tiles (lava/water) as valid spawn/patrol surfaces
+                if (below != AIR && below != WATER && below != LAVA && above == AIR) {
                     // place entity so its bottom aligns with the top of this tile
                     float wx = c * tile + tile * 0.5f;
                     float wy = r * tile;   // top of the solid tile = entity bottom

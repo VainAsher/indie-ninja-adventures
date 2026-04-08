@@ -37,6 +37,9 @@ public final class ZonePlanner {
     public static final byte CHUTE = 9;   // vertical drop chute (no floor)
     public static final byte CLIMB = 10;  // stepped platform ascent path
     public static final byte CONN  = 11;  // connector platform for hub rooms
+    public static final byte LAVA  = 12;  // lava hazard zone (solid, damages on contact)
+    public static final byte ICE   = 13;  // ice hazard zone (solid, near-zero friction)
+    public static final byte WATER = 14;  // water hazard zone (passable, slows movement)
 
     // ── Grid dimensions ───────────────────────────────────────────────────────
 
@@ -272,10 +275,27 @@ public final class ZonePlanner {
 
         Collections.shuffle(candidates, rng);
 
+        // Hazard zone probabilities by room type
+        // Each placed zone has a chance to become a hazard instead of a plain FILL.
+        float lavaChance, iceChance, waterChance;
+        switch (roomType != null ? roomType : "combat") {
+            case "combat"   -> { lavaChance = 0.20f; iceChance = 0.10f; waterChance = 0.10f; }
+            case "platform" -> { lavaChance = 0.10f; iceChance = 0.25f; waterChance = 0.15f; }
+            case "boss"     -> { lavaChance = 0.35f; iceChance = 0.10f; waterChance = 0.05f; }
+            case "treasure" -> { lavaChance = 0.05f; iceChance = 0.15f; waterChance = 0.20f; }
+            default         -> { lavaChance = 0.10f; iceChance = 0.10f; waterChance = 0.10f; }
+        }
+
         int placed = 0;
         for (int[] c : candidates) {
             if (placed >= fillCount) break;
-            z[c[1]][c[0]] = FILL;
+            float roll = rng.nextFloat();
+            byte chosen;
+            if      (roll < lavaChance)               chosen = LAVA;
+            else if (roll < lavaChance + iceChance)   chosen = ICE;
+            else if (roll < lavaChance + iceChance + waterChance) chosen = WATER;
+            else                                      chosen = FILL;
+            z[c[1]][c[0]] = chosen;
             if (!checkConnectivity(z, mustConnect)) {
                 z[c[1]][c[0]] = DECOR;  // revert
             } else {

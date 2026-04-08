@@ -665,9 +665,6 @@ public final class GameScreen implements Screen {
         com.badlogic.gdx.graphics.g2d.TextureRegion[][] mega =
             new com.badlogic.gdx.graphics.g2d.TextureRegion[megaH][megaW];
 
-        com.badlogic.gdx.graphics.g2d.TextureRegion solidTex    = chunkRenderer.placeholderSolid();
-        com.badlogic.gdx.graphics.g2d.TextureRegion platformTex = chunkRenderer.placeholderPlatform();
-
         // Discard old tile-detail textures; minimap will rebuild lazily.
         minimapRenderer.clearState();
         cachedTileGrids.clear();
@@ -691,6 +688,9 @@ public final class GameScreen implements Screen {
                             mega[offY + r][offX + c] = blobTileSet.getFrame(room.biomeIndex, role);
                         } else if (tile == WorldGenerator.PLATFORM) {
                             mega[offY + r][offX + c] = blobTileSet.getPlatformFrame(room.biomeIndex);
+                        } else {
+                            // Hazard tiles (ICE, WATER, LAVA) use colour-coded placeholders
+                            mega[offY + r][offX + c] = chunkRenderer.tileTexture(tile);
                         }
                     }
                 }
@@ -698,8 +698,7 @@ public final class GameScreen implements Screen {
                 for (int r = 0; r < LEVEL_ROWS; r++) {
                     for (int c = 0; c < LEVEL_COLS; c++) {
                         byte tile = grid[r][c];
-                        if      (tile == WorldGenerator.SOLID)    mega[offY + r][offX + c] = solidTex;
-                        else if (tile == WorldGenerator.PLATFORM) mega[offY + r][offX + c] = platformTex;
+                        mega[offY + r][offX + c] = chunkRenderer.tileTexture(tile);
                     }
                 }
             }

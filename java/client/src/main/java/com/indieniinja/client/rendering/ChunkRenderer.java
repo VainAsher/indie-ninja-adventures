@@ -34,6 +34,9 @@ public final class ChunkRenderer {
 
     private TextureRegion placeholderSolid;
     private TextureRegion placeholderPlatform;
+    private TextureRegion placeholderLava;
+    private TextureRegion placeholderIce;
+    private TextureRegion placeholderWater;
 
     // Scratch rectangle for frustum test
     private final Rectangle frustum = new Rectangle();
@@ -82,6 +85,34 @@ public final class ChunkRenderer {
             plat.fill();
             placeholderPlatform = new TextureRegion(new Texture(plat));
             plat.dispose();
+        }
+
+        if (placeholderLava == null) {
+            Pixmap lava = new Pixmap(TILE, TILE, Pixmap.Format.RGBA8888);
+            lava.setColor(0.90f, 0.25f, 0.05f, 1f);
+            lava.fill();
+            lava.setColor(1.00f, 0.55f, 0.10f, 1f);
+            lava.drawRectangle(2, 2, TILE - 5, TILE - 5);
+            placeholderLava = new TextureRegion(new Texture(lava));
+            lava.dispose();
+        }
+
+        if (placeholderIce == null) {
+            Pixmap ice = new Pixmap(TILE, TILE, Pixmap.Format.RGBA8888);
+            ice.setColor(0.55f, 0.80f, 1.00f, 1f);
+            ice.fill();
+            ice.setColor(0.75f, 0.92f, 1.00f, 1f);
+            ice.drawRectangle(1, 1, TILE - 3, TILE - 3);
+            placeholderIce = new TextureRegion(new Texture(ice));
+            ice.dispose();
+        }
+
+        if (placeholderWater == null) {
+            Pixmap water = new Pixmap(TILE, TILE, Pixmap.Format.RGBA8888);
+            water.setColor(0.10f, 0.35f, 0.80f, 0.75f);
+            water.fill();
+            placeholderWater = new TextureRegion(new Texture(water));
+            water.dispose();
         }
 
         rebuildTestLayout(cols, rows);
@@ -133,8 +164,7 @@ public final class ChunkRenderer {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 byte tile = grid[r * cols + c];
-                if      (tile == WorldGenerator.SOLID)    tileMap[r][c] = placeholderSolid;
-                else if (tile == WorldGenerator.PLATFORM) tileMap[r][c] = placeholderPlatform;
+                tileMap[r][c] = tileTexture(tile);
             }
         }
     }
@@ -168,8 +198,10 @@ public final class ChunkRenderer {
                     tileMap[r][c] = blobTiles.getFrame(biomeIndex, role);
                 } else if (tile == WorldGenerator.PLATFORM) {
                     tileMap[r][c] = blobTiles.getPlatformFrame(biomeIndex);
+                } else {
+                    // Hazard tiles fall back to colour-coded placeholders
+                    tileMap[r][c] = tileTexture(tile);
                 }
-                // AIR → null, already null from array init
             }
         }
     }
@@ -177,6 +209,21 @@ public final class ChunkRenderer {
     /** Expose placeholder textures so callers can build stitched megamap arrays. */
     public TextureRegion placeholderSolid()    { return placeholderSolid; }
     public TextureRegion placeholderPlatform() { return placeholderPlatform; }
+    public TextureRegion placeholderLava()     { return placeholderLava; }
+    public TextureRegion placeholderIce()      { return placeholderIce; }
+    public TextureRegion placeholderWater()    { return placeholderWater; }
+
+    /** Map a WorldGenerator tile byte to its placeholder TextureRegion (null = air). */
+    public TextureRegion tileTexture(byte tile) {
+        return switch (tile) {
+            case com.indieniinja.world.WorldGenerator.SOLID    -> placeholderSolid;
+            case com.indieniinja.world.WorldGenerator.PLATFORM -> placeholderPlatform;
+            case com.indieniinja.world.WorldGenerator.LAVA     -> placeholderLava;
+            case com.indieniinja.world.WorldGenerator.ICE      -> placeholderIce;
+            case com.indieniinja.world.WorldGenerator.WATER    -> placeholderWater;
+            default -> null;  // AIR and unknowns
+        };
+    }
 
     /** Rebuild tileMap grid from the current solid/platform TextureRegions. */
     private void rebuildTestLayout(int cols, int rows) {

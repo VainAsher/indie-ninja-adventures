@@ -1,14 +1,16 @@
 package com.indieniinja.sim;
 
+import com.indieniinja.physics.PhysicsState;
+
 /**
  * Server-side NPC entity.
  *
  * Simulates the patrol movement and player-facing logic from Python's
  * entities/npc.py NPC._update_patrol() and NPC.update().
  *
- * NPCs walk between patrolMinX and patrolMaxX at PATROL_SPEED, wait
- * PATROL_WAIT seconds at each end, and face the nearest player when one
- * is within 2× INTERACTION_RADIUS.
+ * NPCs now carry a full PhysicsState so they are processed by PhysicsSystem
+ * and CollisionSystem (gravity, tile collision) just like ground enemies.
+ * Edge detection prevents them from walking off ledges.
  */
 public final class SimNPC {
 
@@ -24,12 +26,21 @@ public final class SimNPC {
     // ── Fixed identity ────────────────────────────────────────────────────────
     public final String id;
     public final String type;   // "lore", "shop", "mission_giver", "tutorial"
-    public final int    width;  // Python default: 32
-    public final int    height; // Python default: 48
+
+    /**
+     * Physics state — position, velocity, collision flags.
+     * Gravity and tile collision are applied by PhysicsSystem/CollisionSystem
+     * each tick via EntityManager, exactly like ground enemies.
+     */
+    public final PhysicsState physics;
+
+    // ── Convenience aliases (read physics.x/y; kept for existing callers) ─────
+    /** @deprecated Use {@link #physics}.x directly. */
+    public float x() { return physics.x; }
+    /** @deprecated Use {@link #physics}.y directly. */
+    public float y() { return physics.y; }
 
     // ── Mutable state ─────────────────────────────────────────────────────────
-    public float   x;
-    public float   y;
     public int     facing        = 1;   // 1 = right, -1 = left
     public String  animState     = "idle";
     public boolean isInteractable;
@@ -42,24 +53,26 @@ public final class SimNPC {
     public SimNPC(String id, String type, float x, float y,
                   int width, int height,
                   float patrolMinX, float patrolMaxX) {
-        this.id          = id;
-        this.type        = type;
-        this.x           = x;
-        this.y           = y;
-        this.width       = width;
-        this.height      = height;
-        this.patrolMinX  = patrolMinX;
-        this.patrolMaxX  = patrolMaxX;
+        this.id         = id;
+        this.type       = type;
+        this.physics    = new PhysicsState(x, y, width, height);
+        this.patrolMinX = patrolMinX;
+        this.patrolMaxX = patrolMaxX;
     }
 
     /**
-     * Advance one 60 Hz tick.
+     * Advance patrol/facing logic one 60 Hz tick.
+     * Physics (gravity + collision) are handled externally by EntityManager
+     * before this is called; {@link #physics}.onGround is already updated.
      *
-     * @param nearestPlayerX world-X of the nearest player's centre,
-     *                       or {@code Float.NaN} if no players are present
+     * @param nearestPlayerX world-X of the nearest player centre,
+     *                       or {@code Float.NaN} if no players present
+     * @param edgeAhead      true if there is no solid floor tile one step
+     *                       ahead in the current facing direction — caller
+     *                       computes this from the SpatialHash
      */
-    public void step(float nearestPlayerX) {
-        float npcCx = x + width * 0.5f;
+    public void step(float nearestPlayerX, boolean edgeAhead) {
+        float npcCx = physics.x + physics.width * 0.5f;
 
         // Face the nearest player when they're close (Python: NPC.update)
         isInteractable = false;
@@ -82,20 +95,22 @@ public final class SimNPC {
             return;
         }
 
-        if (facing == 1) {
-            x += PATROL_SPEED;
-            animState = "walk";
-            if (npcCx >= patrolMaxX) {
-                facing = -1;
-                patrolWaitTimer = PATROL_WAIT;
-            }
-        } else {
-            x -= PATROL_SPEED;
-            animState = "walk";
-            if (npcCx <= patrolMinX) {
-                facing = 1;
-                patrolWaitTimer = PATROL_WAIT;
-            }
+        // Turn around at patrol bounds, walls, or ledge edges
+        boolean atRightBound = npcCx >= patrolMaxX;
+        boolean atLeftBound  = npcCx <= patrolMinX;
+        boolean wallBlocked  = physics.onWall && physics.wallDir == facing;
+
+        if (facing == 1 && (atRightBound || edgeAhead || wallBlocked)) {
+            facing = -1;
+            patrolWaitTimer = PATROL_WAIT;
+        } else if (facing == -1 && (atLeftBound || edgeAhead || wallBlocked)) {
+            facing = 1;
+            patrolWaitTimer = PATROL_WAIT;
         }
+
+        // Apply horizontal velocity (CollisionSystem will handle wall resolution)
+        physics.vx = facing * PATROL_SPEED;
+        physics.x += physics.vx;
+        animState = "walk";
     }
 }

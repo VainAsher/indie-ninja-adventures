@@ -3,6 +3,7 @@ package com.indieniinja.physics;
 import com.indieniinja.core.Entity;
 import com.indieniinja.core.EventBus;
 import com.indieniinja.core.TickEvent;
+import com.indieniinja.world.WorldGenerator;
 
 import java.util.List;
 
@@ -82,6 +83,7 @@ public final class CollisionSystem {
         List<TileRect> candidates = spatialHash.candidates(p.x, p.y, p.width, p.height);
         for (TileRect tile : candidates) {
             if (tile.isPlatform()) continue;  // platforms: vertical only
+            if (tile.tileType() == WorldGenerator.WATER) continue;  // water: passable
             if (!tile.overlaps(p.x, p.y, p.width, p.height)) continue;
 
             // Determine collision axis by comparing intersection depths on X and Y.
@@ -120,17 +122,25 @@ public final class CollisionSystem {
         for (TileRect tile : candidates) {
             if (!tile.overlaps(p.x, p.y, p.width, p.height)) continue;
 
+            // ── Hazard zone detection (WATER is passable; mark flag and skip solid resolve) ──
+            if (tile.tileType() == WorldGenerator.WATER) {
+                p.inWater = true;
+                // Water: dampen velocity and slow fall, but do not block movement
+                p.vx *= 0.82f;
+                p.vy  = Math.min(p.vy, 2.0f);  // cap fall speed in water
+                continue;
+            }
+
             float entityBottom = p.y + p.height;
             float entityTop    = p.y;
-
             float overlapTop    = entityBottom - tile.y();
             float overlapBottom = (tile.y() + tile.h()) - entityTop;
 
             if (tile.isPlatform()) {
                 // One-way: only collide from above, only when moving downward
                 if (p.vy >= 0 && overlapTop >= 0 && overlapTop <= PLATFORM_GRACE_PIXELS + p.vy + 1) {
-                    p.y      = tile.y() - p.height;
-                    p.vy     = 0;
+                    p.y        = tile.y() - p.height;
+                    p.vy       = 0;
                     p.onGround = true;
                 }
             } else {
@@ -140,17 +150,17 @@ public final class CollisionSystem {
                     p.vy       = 0;
                     p.onGround = true;
 
-                    // Corner smoothing: only when there is actual vertical penetration
-                    // (overlapTop > 0.5) — i.e., player was falling and clipped a corner.
-                    // Skipped during flat walking (overlapTop=0) to prevent the player
-                    // being nudged backward every time they step onto the next tile.
-                    // Mirrors Python _check_vertical_collisions: "if feet_overlap > 0.5".
+                    // Hazard surface flags
+                    if (tile.tileType() == WorldGenerator.ICE)  p.onIce  = true;
+                    if (tile.tileType() == WorldGenerator.LAVA) p.onLava = true;
+
                     if (overlapTop > 0.5f) applyCornerSmoothing(p, tile);
 
                 } else if (p.vy < 0 && overlapBottom < overlapTop) {
-                    // Hitting ceiling
+                    // Hitting ceiling (including lava ceiling = damage)
                     p.y  = tile.y() + tile.h();
                     p.vy = 0;
+                    if (tile.tileType() == WorldGenerator.LAVA) p.onLava = true;
                 }
             }
         }
