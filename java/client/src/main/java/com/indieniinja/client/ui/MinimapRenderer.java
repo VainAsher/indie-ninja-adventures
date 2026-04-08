@@ -272,8 +272,9 @@ public final class MinimapRenderer {
         }
 
         // ═════════════════════════════════════════════════════════════════════
-        // Pass 4 — entity markers (current room only — server sends entities
-        //          only for the room the player is in)
+        // Pass 4 — entity markers
+        // Entity positions are world-space; convert to minimap-space using the
+        // room grid derived from the entity's own position.
         // ═════════════════════════════════════════════════════════════════════
         float crx = gridOriX + (currentGridX - minGX) * fStep;
         float cry = fGridOriY + (fMaxGY - currentGridY) * fStep;
@@ -287,9 +288,9 @@ public final class MinimapRenderer {
                 shapes.setColor(COL_ENEMY);
                 for (EnemyState e : cachedEnemies) {
                     if ("dead".equals(e.aiState)) continue;
-                    shapes.circle(crx + (e.x / roomWidthPx) * roomSize,
-                                  cry + (1f - e.y / roomHeightPx) * roomSize,
-                                  dotR, 8);
+                    float[] sc = worldToMinimap(e.x, e.y, roomWidthPx, roomHeightPx,
+                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                    if (sc != null) shapes.circle(sc[0], sc[1], dotR, 8);
                 }
             }
 
@@ -298,54 +299,57 @@ public final class MinimapRenderer {
                 shapes.setColor(COL_PICKUP);
                 for (PickupState p : cachedPickups) {
                     if (!p.alive) continue;
-                    shapes.circle(crx + (p.x / roomWidthPx) * roomSize,
-                                  cry + (1f - p.y / roomHeightPx) * roomSize,
-                                  dotR * 0.85f, 8);
+                    float[] sc = worldToMinimap(p.x, p.y, roomWidthPx, roomHeightPx,
+                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                    if (sc != null) shapes.circle(sc[0], sc[1], dotR * 0.85f, 8);
                 }
             }
 
-            // Portals (cyan hollow-ish circle — drawn as larger filled then covered)
+            // Portals
             if (cachedPortals != null) {
                 shapes.setColor(COL_PORTAL);
                 for (PortalState p : cachedPortals) {
                     if (!p.isActive) continue;
-                    float pcx = (p.x + p.width  * 0.5f) / roomWidthPx;
-                    float pcy = (p.y + p.height * 0.5f) / roomHeightPx;
-                    shapes.circle(crx + pcx * roomSize,
-                                  cry + (1f - pcy) * roomSize,
-                                  dotR * 1.4f, 10);
+                    float[] sc = worldToMinimap(p.x + p.width * 0.5f, p.y + p.height * 0.5f,
+                        roomWidthPx, roomHeightPx,
+                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                    if (sc != null) shapes.circle(sc[0], sc[1], dotR * 1.4f, 10);
                 }
             }
 
-            // NPCs / POIs (square marker to distinguish from circular dots)
+            // NPCs / POIs
             if (snap != null) {
                 shapes.setColor(COL_NPC);
                 for (NPCState n : snap.npcs) {
-                    float nx = crx + (n.x / roomWidthPx) * roomSize;
-                    float ny = cry + (1f - n.y / roomHeightPx) * roomSize;
-                    float half = dotR * 0.85f;
-                    shapes.rect(nx - half, ny - half, half * 2f, half * 2f);
+                    float[] sc = worldToMinimap(n.x, n.y, roomWidthPx, roomHeightPx,
+                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                    if (sc != null) {
+                        float half = dotR * 0.85f;
+                        shapes.rect(sc[0] - half, sc[1] - half, half * 2f, half * 2f);
+                    }
                 }
 
-                // Boss (larger purple)
+                // Boss
                 shapes.setColor(COL_BOSS);
                 for (BossState b : snap.bosses) {
                     if (!b.alive) continue;
-                    shapes.circle(crx + (b.x / roomWidthPx) * roomSize,
-                                  cry + (1f - b.y / roomHeightPx) * roomSize,
-                                  dotR * 2f, 12);
+                    float[] sc = worldToMinimap(b.x, b.y, roomWidthPx, roomHeightPx,
+                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                    if (sc != null) shapes.circle(sc[0], sc[1], dotR * 2f, 12);
                 }
 
                 // Players — self = white, others = blue
                 for (PlayerState p : snap.players) {
-                    float nx = crx + (p.posX / roomWidthPx) * roomSize;
-                    float ny = cry + (1f - p.posY / roomHeightPx) * roomSize;
-                    shapes.setColor(p.slot == localSlot ? COL_SELF : COL_OTHER);
-                    shapes.circle(nx, ny, dotR * (p.slot == localSlot ? 1.6f : 1.3f), 10);
+                    float[] sc = worldToMinimap(p.posX, p.posY, roomWidthPx, roomHeightPx,
+                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                    if (sc != null) {
+                        shapes.setColor(p.slot == localSlot ? COL_SELF : COL_OTHER);
+                        shapes.circle(sc[0], sc[1], dotR * (p.slot == localSlot ? 1.6f : 1.3f), 10);
+                    }
                 }
             }
         } else {
-            // Entities off — still draw the local player dot
+            // Entities off — still draw the local player dot using pre-computed room-local coords
             float normX = roomWidthPx  > 0 ? clamp01(playerLocalX / roomWidthPx)  : 0.5f;
             float normY = roomHeightPx > 0 ? clamp01(playerLocalY / roomHeightPx) : 0.5f;
             shapes.setColor(COL_SELF);
@@ -398,6 +402,29 @@ public final class MinimapRenderer {
     private static String roomKey(int gx, int gy) { return gx + "," + gy; }
 
     private static float clamp01(float v) { return v < 0f ? 0f : (v > 1f ? 1f : v); }
+
+    /**
+     * Convert a world-space entity position to minimap screen coordinates.
+     * Returns {screenX, screenY} or null if outside the known room grid.
+     */
+    private static float[] worldToMinimap(
+            float worldX, float worldY,
+            float roomWidthPx, float roomHeightPx,
+            int minGX, int minGY, int maxGX, int maxGY,
+            float gridOriX, float gridOriY, int maxGY2,
+            float step, float roomSize) {
+        int gx = (int) Math.floor(worldX / roomWidthPx);
+        int gy = (int) Math.floor(worldY / roomHeightPx);
+        if (gx < minGX || gx > maxGX || gy < minGY || gy > maxGY) return null;
+        float localX = worldX - gx * roomWidthPx;
+        float localY = worldY - gy * roomHeightPx;
+        float rx = gridOriX + (gx - minGX) * step;
+        float ry = gridOriY + (maxGY2 - gy) * step;
+        return new float[]{
+            rx + (localX / roomWidthPx)  * roomSize,
+            ry + (1f - localY / roomHeightPx) * roomSize
+        };
+    }
 
     /**
      * Build or retrieve a cached tile-detail Texture for the given room.

@@ -373,6 +373,10 @@ public final class GameSimulator {
             ps.posY       = fp.posY;
             ps.timer      = fp.timer;
             ps.vy         = fp.vy;
+            ps.originX    = fp.originX;
+            ps.width      = fp.width;
+            ps.height     = fp.height;
+            ps.visible    = fp.visible;
             snap.platformStates.add(ps);
         }
 

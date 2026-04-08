@@ -87,9 +87,10 @@ public final class GameStateBuffer {
         merged.enemies.addAll(enemyById.values());
         merged.pickups.addAll(pickupById.values());
         merged.platformStates.addAll(platformById.values());
-        // Shurikens and NPCs are always sent on every wire packet (not delta-encoded).
+        // Shurikens, NPCs, and moving platforms are always sent on every wire packet.
         merged.shurikens.addAll(delta.shurikens);
         merged.npcs.addAll(delta.npcs);
+        merged.movingPlatforms.addAll(delta.movingPlatforms);
         // Bosses, portals, worldRooms, shopStates are full-snapshot-only; carry forward
         // from the previous merged state so they don't vanish on delta frames.
         WorldSnapshot prev = current.get();

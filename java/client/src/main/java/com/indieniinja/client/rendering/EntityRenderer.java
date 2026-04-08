@@ -7,6 +7,7 @@ import com.indieniinja.network.BossState;
 import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.NPCState;
 import com.indieniinja.network.PickupState;
+import com.indieniinja.network.PlatformState;
 import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.PortalState;
 import com.indieniinja.network.ShurikenState;
@@ -147,6 +148,7 @@ public final class EntityRenderer {
 
         for (com.indieniinja.network.MovingPlatformState mp : snap.movingPlatforms)
             renderMovingPlatform(batch, mp);
+        for (PlatformState fp : snap.platformStates) renderFallingPlatform(batch, fp);
         for (PortalState   p  : snap.portals)   renderPortal(batch, p, deltaTime);
         for (ShurikenState sh : snap.shurikens) renderShuriken(batch, sh, deltaTime);
         for (EnemyState    e  : snap.enemies)         renderEnemy(batch, e, deltaTime);
@@ -168,6 +170,15 @@ public final class EntityRenderer {
         TextureRegion dot = anims.getFrame("__dot__", 0f, 1f);
         batch.setColor(0.55f, 0.38f, 0.20f, 1f);
         batch.draw(dot, mp.x, mp.y, mp.width, mp.height);
+        batch.setColor(Color.WHITE);
+    }
+
+    private void renderFallingPlatform(SpriteBatch batch, PlatformState fp) {
+        if (!fp.visible) return;
+        TextureRegion dot = anims.getFrame("__dot__", 0f, 1f);
+        // Slightly lighter brown to distinguish from moving platforms.
+        batch.setColor(0.65f, 0.48f, 0.28f, 1f);
+        batch.draw(dot, fp.originX, fp.posY, fp.width, fp.height);
         batch.setColor(Color.WHITE);
     }
 
