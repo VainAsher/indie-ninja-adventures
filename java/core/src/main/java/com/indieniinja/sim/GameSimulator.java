@@ -239,10 +239,13 @@ public final class GameSimulator {
         // Tick invincibility timers
         for (SimPlayer p : players.values()) p.tickInvincibility();
 
-        // 2. Physics tick: gravity + integration + collision (via EventBus)
+        // 2. Rebuild dynamic tile list so CollisionSystem sees current platform positions.
+        rebuildDynamicTiles();
+
+        // 3a. Physics tick: gravity + integration + collision (via EventBus)
         clock.stepOne();  // emits TickEvent → PhysicsSystem(60) → CollisionSystem(45)
 
-        // 3. Platform state machines
+        // 3b. Platform state machines (step AFTER physics so triggers are current-frame)
         stepPlatforms();
 
         // 4. Enemy AI + physics
@@ -931,6 +934,30 @@ public final class GameSimulator {
         if (touchingWall && !sp.awaitGroundAfterExhaust) {
             p.vy = Math.min(p.vy + 0.3f, SimPlayer.WALL_FRICTION_SPEED);
         }
+    }
+
+    /**
+     * Build the list of dynamic TileRects for the current tick:
+     * - Moving platforms at their current x/y position (one-way = true)
+     * - Falling platforms only when active (idle/triggered states)
+     * Pushed to CollisionSystem before the physics tick fires.
+     */
+    private final java.util.ArrayList<com.indieniinja.physics.TileRect> dynamicTilesBuf
+        = new java.util.ArrayList<>(64);
+
+    private void rebuildDynamicTiles() {
+        dynamicTilesBuf.clear();
+        for (SimMovingPlatform mp : movingPlatforms) {
+            dynamicTilesBuf.add(new com.indieniinja.physics.TileRect(
+                mp.x, mp.y, mp.width, mp.height, true));
+        }
+        for (FallingPlatform fp : fallingPlatforms) {
+            if (fp.active) {  // not active while falling/respawning
+                dynamicTilesBuf.add(new com.indieniinja.physics.TileRect(
+                    fp.originX, fp.posY, fp.width, fp.height, true));
+            }
+        }
+        collisionSystem.setDynamicTiles(dynamicTilesBuf);
     }
 
     private void stepPlatforms() {

@@ -29,6 +29,13 @@ public final class CollisionSystem {
     private final List<Entity> entities;
     private SpatialHash spatialHash;
 
+    /**
+     * Dynamic tile rects for moving/falling platforms.
+     * GameSimulator repopulates this list before each tick.
+     * Kept as a simple ArrayList — platforms are few (~5-20 per room).
+     */
+    private final java.util.ArrayList<TileRect> dynamicTiles = new java.util.ArrayList<>(32);
+
     public CollisionSystem(EventBus bus, List<Entity> entities, SpatialHash spatialHash) {
         this.entities    = entities;
         this.spatialHash = spatialHash;
@@ -38,6 +45,15 @@ public final class CollisionSystem {
 
     /** Hot-swap the spatial hash when the player crosses a room boundary. */
     public void setSpatialHash(SpatialHash hash) { this.spatialHash = hash; }
+
+    /**
+     * Replace the dynamic tile list with current platform positions.
+     * Called by GameSimulator.stepPlatforms() before clock.stepOne() fires.
+     */
+    public void setDynamicTiles(java.util.List<TileRect> tiles) {
+        dynamicTiles.clear();
+        dynamicTiles.addAll(tiles);
+    }
 
     // ── Tick handler ─────────────────────────────────────────────────────────
 
@@ -81,6 +97,11 @@ public final class CollisionSystem {
 
     private void resolveHorizontal(PhysicsState p) {
         List<TileRect> candidates = spatialHash.candidates(p.x, p.y, p.width, p.height);
+        resolveHorizontalList(p, candidates);
+        resolveHorizontalList(p, dynamicTiles);
+    }
+
+    private void resolveHorizontalList(PhysicsState p, List<TileRect> candidates) {
         for (TileRect tile : candidates) {
             if (tile.isPlatform()) continue;  // platforms: vertical only
             if (tile.tileType() == WorldGenerator.WATER) continue;  // water: passable
@@ -119,6 +140,11 @@ public final class CollisionSystem {
 
     private void resolveVertical(PhysicsState p) {
         List<TileRect> candidates = spatialHash.candidates(p.x, p.y, p.width, p.height);
+        resolveVerticalList(p, candidates);
+        resolveVerticalList(p, dynamicTiles);
+    }
+
+    private void resolveVerticalList(PhysicsState p, List<TileRect> candidates) {
         for (TileRect tile : candidates) {
             if (!tile.overlaps(p.x, p.y, p.width, p.height)) continue;
 
