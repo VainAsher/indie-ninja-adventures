@@ -4,6 +4,7 @@ import com.indieniinja.sim.GameMode;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
+import com.indieniinja.world.puzzle.PuzzlePlan;
 
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -87,6 +88,22 @@ public final class ZoneInstance {
      */
     public volatile int megamapMinGridX = 0;
     public volatile int megamapMinGridY = 0;
+
+    /**
+     * Puzzle plan for this hub's WorldGraph — generated once by PuzzlePlanner
+     * and cached here for the lifetime of the zone.
+     * Null until the new pipeline is enabled (NEW_PIPELINE_ENABLED = true).
+     */
+    public volatile PuzzlePlan puzzlePlan;
+
+    /**
+     * Returns the cached PuzzlePlan, or PuzzlePlan.empty() if not yet generated.
+     * The new pipeline sets this before calling RoomPostProcessor.
+     */
+    public PuzzlePlan getOrCreatePuzzlePlan() {
+        PuzzlePlan p = puzzlePlan;
+        return p != null ? p : PuzzlePlan.empty();
+    }
 
     /** Game mode for this zone — set when the zone is first created. */
     public volatile GameMode gameMode = GameMode.ARCADE;

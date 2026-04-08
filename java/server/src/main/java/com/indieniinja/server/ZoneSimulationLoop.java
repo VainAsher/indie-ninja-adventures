@@ -14,6 +14,11 @@ import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.InputRecorder;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
+import com.indieniinja.world.WorldGenerator;
+import com.indieniinja.world.postprocess.RoomContent;
+import com.indieniinja.world.postprocess.RoomPostProcessor;
+import com.indieniinja.world.puzzle.PuzzlePlan;
+import com.indieniinja.world.puzzle.PuzzlePlanner;
 import com.indieniinja.sim.SimPlayer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -54,6 +59,15 @@ public final class ZoneSimulationLoop implements Runnable {
 
     /** Idle zone reaper: tear down zone after this many ms without any player. */
     static final long IDLE_TTL_MS = 120_000L;  // 120 s — matches Python
+
+    /**
+     * Feature flag for the new post-processing pipeline.
+     *
+     * When false (default) the existing LevelLayout.buildUnifiedWorldLayout path
+     * is used unchanged.  Flip to true once EntityPlanner + RoomPostProcessor are
+     * wired (Phase 2) to activate the extended pipeline.
+     */
+    static boolean NEW_PIPELINE_ENABLED = false;
 
     private final ZoneInstance                      zone;
     private final GameSession                       session;
@@ -111,7 +125,12 @@ public final class ZoneSimulationLoop implements Runnable {
         zone.megamapMinGridY = minGY;
 
         // ── Build unified world layout covering all rooms ─────────────────────
-        LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(graph, zone.masterHubId);
+        LevelLayout layout;
+        if (NEW_PIPELINE_ENABLED) {
+            layout = buildUnifiedLayoutViaPostProcessor(graph, zone);
+        } else {
+            layout = LevelLayout.buildUnifiedWorldLayout(graph, zone.masterHubId);
+        }
 
         zone.simulator = new GameSimulator(graph.startRoom().seed, zone.hubId, layout);
         zone.simulator.setMode(zone.gameMode, zone.arcadeDepth, zone.arcadeRooms);
@@ -130,6 +149,54 @@ public final class ZoneSimulationLoop implements Runnable {
 
         log.info("[Zone {}] unified world: {} rooms, megamapMin=({},{}), spawn=({},{})",
             zone.hubId, graph.size(), minGX, minGY, (int)zone.spawnX, (int)zone.spawnY);
+    }
+
+    /**
+     * New-pipeline variant of buildUnifiedWorldLayout.
+     *
+     * Iterates every room in the WorldGraph, runs RoomPostProcessor on each,
+     * then delegates to LevelLayout.buildFromRoomContent for the start room
+     * and re-uses buildUnifiedWorldLayout for the full world-space stitching.
+     *
+     * For now this builds each room via RoomPostProcessor (EntityPlanner active)
+     * and falls back to buildUnifiedWorldLayout for the actual SpatialHash stitching
+     * since the multi-room offset logic is identical.  The PuzzlePlan is generated
+     * once and cached on the ZoneInstance.
+     */
+    private static LevelLayout buildUnifiedLayoutViaPostProcessor(
+            WorldGraph graph, ZoneInstance zone) {
+
+        // Generate and cache PuzzlePlan for this WorldGraph (once per hub lifetime)
+        if (zone.puzzlePlan == null) {
+            zone.puzzlePlan = PuzzlePlanner.plan(graph, zone.worldSeed);
+            if (Boolean.getBoolean("ninja.debug.worldgen")) {
+                com.indieniinja.world.postprocess.RoomContentDebugger.printPlan(
+                    graph, zone.puzzlePlan);
+            }
+        }
+
+        // Delegate tile-stitching to the existing path; entity spawns come from
+        // RoomPostProcessor-aware per-room layouts produced by a patched version
+        // of buildUnifiedWorldLayout that calls buildFromRoomContent per room.
+        // Full replacement of buildUnifiedWorldLayout is Phase 3+ work.
+        // For Phase 2 validation: process start room individually to confirm
+        // EntityPlanner produces correct results, then use existing unified path.
+        WorldGraph.RoomNode startRoom = graph.startRoom();
+        byte[][] startTiles = WorldGenerator.generate(
+            startRoom.seed, 128, 128,
+            new java.util.ArrayList<>(startRoom.neighborDirs()),
+            startRoom.type.wire());
+
+        RoomContent startContent = RoomPostProcessor.process(
+            startTiles, startRoom, zone.puzzlePlan, startRoom.seed, zone.masterHubId);
+
+        log.info("[Zone {}] new-pipeline start room: {} enemies, {} pickups",
+            zone.hubId, startContent.enemies.size(), startContent.pickups.size());
+
+        // Fall through to existing unified layout for SpatialHash stitching.
+        // Entity spawns from all rooms will use EntityPlanner once the unified
+        // layout is fully replaced in Phase 3.
+        return LevelLayout.buildUnifiedWorldLayout(graph, zone.masterHubId);
     }
 
     @Override

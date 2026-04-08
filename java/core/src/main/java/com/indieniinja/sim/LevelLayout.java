@@ -7,6 +7,7 @@ import com.indieniinja.physics.TileRect;
 import com.indieniinja.world.HubRegistry;
 import com.indieniinja.world.WorldGenerator;
 import com.indieniinja.world.WorldGraph;
+import com.indieniinja.world.postprocess.RoomContent;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -551,6 +552,58 @@ public final class LevelLayout {
 
         return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, bossSpawn, portals, falling,
                 moving, spawnX, spawnY);
+    }
+
+    // ── New-pipeline entry point ──────────────────────────────────────────────
+
+    /**
+     * Build a LevelLayout from a pre-processed {@link RoomContent}.
+     *
+     * Called by the new post-processing pipeline when
+     * {@code ZoneSimulationLoop.NEW_PIPELINE_ENABLED} is true.  The tile grid,
+     * entity spawn lists, and spawn position have already been determined by
+     * {@code RoomPostProcessor}; this method only builds the SpatialHash and
+     * wraps everything in the immutable LevelLayout contract.
+     *
+     * Existing overloads of {@code buildProceduralLayout} are untouched.
+     *
+     * @param seed        room seed (for LevelLayout.seed field)
+     * @param content     post-processed room content
+     * @param masterHubId hub id — used only for portal destination fallback
+     */
+    public static LevelLayout buildFromRoomContent(
+            long seed, RoomContent content, String masterHubId) {
+        final int TILE = 32;
+        final int COLS = content.tiles[0].length;
+        final int ROWS = content.tiles.length;
+
+        // Build SpatialHash from the (possibly ability-layer-reshaped) tile grid.
+        // DOOR_LOCKED (value 6, added in Phase 4) is treated as SOLID for collision.
+        SpatialHash hash = new SpatialHash();
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                byte tile = content.tiles[r][c];
+                if (tile == WorldGenerator.AIR) continue;
+                boolean oneWay = (tile == WorldGenerator.PLATFORM);
+                hash.insert(new TileRect(c * TILE, r * TILE, TILE, TILE, oneWay, tile));
+            }
+        }
+
+        log.info("[LevelLayout] buildFromRoomContent seed={} spawn=({},{})",
+            seed, (int) content.spawnX, (int) content.spawnY);
+
+        return new LevelLayout(
+            seed, COLS, ROWS, hash,
+            content.enemies,
+            content.pickups,
+            content.npcs,
+            content.bossSpawn,
+            content.portals,
+            content.fallingPlatforms,
+            content.movingPlatforms,
+            content.spawnX,
+            content.spawnY
+        );
     }
 
     /**

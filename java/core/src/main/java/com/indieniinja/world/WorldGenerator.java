@@ -11,24 +11,27 @@ import java.util.Random;
  * + mid structures (pillars/ledges).
  *
  * Tile values:
- *   AIR (0)      — empty cell, no collision
- *   SOLID (1)    — full solid tile, blocks all movement
- *   PLATFORM (2) — one-way platform, blocks only downward movement
- *   ICE (3)      — solid tile with near-zero friction (sliding surface)
- *   WATER (4)    — passable liquid zone: reduces speed, disables dash, slows fall
- *   LAVA (5)     — solid tile that deals 1 HP damage per tick on contact
+ *   AIR (0)        — empty cell, no collision
+ *   SOLID (1)      — full solid tile, blocks all movement
+ *   PLATFORM (2)   — one-way platform, blocks only downward movement
+ *   ICE (3)        — solid tile with near-zero friction (sliding surface)
+ *   WATER (4)      — passable liquid zone: reduces speed, disables dash, slows fall
+ *   LAVA (5)       — solid tile that deals 1 HP damage per tick on contact
+ *   DOOR_LOCKED (6)— solid tile stamped by PuzzleLayer; unlocked at runtime by puzzle solve
  *
  * Coordinate system: Y-DOWN, row 0 = top of world (y = 0).
  * grid[row][col] — row-major.
  */
 public final class WorldGenerator {
 
-    public static final byte AIR      = 0;
-    public static final byte SOLID    = 1;
-    public static final byte PLATFORM = 2;
-    public static final byte ICE      = 3;
-    public static final byte WATER    = 4;
-    public static final byte LAVA     = 5;
+    public static final byte AIR         = 0;
+    public static final byte SOLID       = 1;
+    public static final byte PLATFORM    = 2;
+    public static final byte ICE         = 3;
+    public static final byte WATER       = 4;
+    public static final byte LAVA        = 5;
+    /** Locked door tile — stamped by PuzzleLayer, treated as SOLID for collision. */
+    public static final byte DOOR_LOCKED = 6;
 
     private WorldGenerator() {}
 
