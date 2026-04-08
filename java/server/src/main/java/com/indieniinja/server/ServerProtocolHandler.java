@@ -184,25 +184,12 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
         Map<String, Object> payload = msg.payload();
 
-        // Update client-reported position/velocity (client-authoritative in Phase A)
-        Object posObj = payload.get("pos");
-        Object velObj = payload.get("vel");
-        if (posObj instanceof List<?> pos && pos.size() == 2) {
-            player.posX = ((Number) pos.get(0)).floatValue();
-            player.posY = ((Number) pos.get(1)).floatValue();
-        }
-        if (velObj instanceof List<?> vel && vel.size() == 2) {
-            player.velX = ((Number) vel.get(0)).floatValue();
-            player.velY = ((Number) vel.get(1)).floatValue();
-        }
-        Object healthObj = payload.get("health");
-        if (healthObj instanceof Number n) player.health = n.intValue();
-        Object facingObj = payload.get("facing");
-        if (facingObj instanceof Number n) player.facing = n.intValue();
-        Object animObj = payload.get("anim_state");
-        if (animObj instanceof String s) player.animState = s;
-
-        // Store latest input for simulation
+        // Phase B: server-authoritative physics — the sim thread owns posX/Y/vel/health.
+        // ONLY update latestInput; the sim reads it next tick and drives all state.
+        // Removed Phase A client-pos writes (they caused a race where the Netty thread
+        // could overwrite the door-entry spawn position set by doRoomTransition() before
+        // the new zone's sim thread consumed it, causing players to spawn at the wrong
+        // room-local coordinates after a room crossing.)
         player.latestInput.set(InputCommand.fromMap(payload));
     }
 

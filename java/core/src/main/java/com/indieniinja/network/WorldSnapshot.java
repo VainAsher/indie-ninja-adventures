@@ -56,6 +56,17 @@ public final class WorldSnapshot {
     public List<MovingPlatformState> movingPlatforms = new ArrayList<>();
 
     /**
+     * Overflow entities from adjacent zones that are within camera-view distance
+     * of the current room's boundaries (visible through door openings).
+     * Positions are translated so that room-local coords + ROOM_PX offset place them
+     * correctly in the megamap — the same roomWorldOffX transform the client applies
+     * will render them at the right world-space position.
+     * Never delta-encoded; always a fresh full list every frame.
+     */
+    public List<EnemyState> overflowEnemies = new ArrayList<>();
+    public List<NPCState>   overflowNpcs    = new ArrayList<>();
+
+    /**
      * Full world room layout — sent on full snapshots only (not deltas).
      * Client uses this to stitch all room tilemaps into a single megamap.
      * Empty list means "no change" (use previous megamap).
@@ -168,6 +179,13 @@ public final class WorldSnapshot {
         for (Object r : list(m, "moving_platforms"))
             if (r instanceof java.util.Map<?,?> rm)
                 s.movingPlatforms.add(MovingPlatformState.fromMap((java.util.Map<String,Object>) rm));
+        // Overflow entities from adjacent zones.
+        for (Object e : list(m, "overflow_enemies"))
+            if (e instanceof java.util.Map<?,?> em)
+                s.overflowEnemies.add(EnemyState.fromMap((java.util.Map<String,Object>) em));
+        for (Object n : list(m, "overflow_npcs"))
+            if (n instanceof java.util.Map<?,?> nm)
+                s.overflowNpcs.add(NPCState.fromMap((java.util.Map<String,Object>) nm));
         return s;
     }
 
@@ -223,6 +241,9 @@ public final class WorldSnapshot {
         m.put("portals", isDelta ? java.util.List.of() : portalList());
         // Moving platforms — always included (position changes every tick).
         m.put("moving_platforms", movingPlatformList());
+        // Overflow entities from adjacent zones (visible through door openings).
+        m.put("overflow_enemies", overflowEnemyList());
+        m.put("overflow_npcs",    overflowNpcList());
 
         m.put("game_mode",    gameMode);
         m.put("arcade_score", arcadeScore);
@@ -280,6 +301,18 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> movingPlatformList() {
         List<Map<String, Object>> out = new ArrayList<>(movingPlatforms.size());
         for (MovingPlatformState p : movingPlatforms) out.add(p.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> overflowEnemyList() {
+        List<Map<String, Object>> out = new ArrayList<>(overflowEnemies.size());
+        for (EnemyState e : overflowEnemies) out.add(e.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> overflowNpcList() {
+        List<Map<String, Object>> out = new ArrayList<>(overflowNpcs.size());
+        for (NPCState n : overflowNpcs) out.add(n.toMap());
         return out;
     }
 

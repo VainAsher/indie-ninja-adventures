@@ -83,8 +83,8 @@ public final class WorldGenerator {
                                     Collection<String> neighborDirs, String roomType) {
         // ZonePlanner → 16×16 zone grid
         byte[][] zones = ZonePlanner.plan(seed, roomType, neighborDirs);
-        // RoomGenerator → 128×128 tile grid
-        return RoomGenerator.generate(zones, neighborDirs, seed);
+        // RoomGenerator → 128×128 tile grid (pass roomType for blob-variation scaling)
+        return RoomGenerator.generate(zones, neighborDirs, seed, roomType);
     }
 
     // ── Generation passes ─────────────────────────────────────────────────────

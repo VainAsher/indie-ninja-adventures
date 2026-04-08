@@ -256,11 +256,16 @@ public final class ZonePlanner {
 
     private static void addFillZones(byte[][] z, String roomType,
                                       List<int[]> mustConnect, Random rng) {
+        // Fill count by room type — combat and platform rooms are denser with more obstacles.
+        // Treasure rooms are maze-like (more fills); boss rooms have an arena-feel (moderate).
         int fillCount;
         switch (roomType != null ? roomType : "combat") {
-            case "combat", "platform" -> fillCount = 2 + rng.nextInt(3);  // 2-4
-            case "treasure", "shop"   -> fillCount = 1 + rng.nextInt(2);  // 1-2
-            default                   -> fillCount = rng.nextInt(3);       // 0-2
+            case "combat"   -> fillCount = 4 + rng.nextInt(5);  // 4-8 (dense terrain)
+            case "platform" -> fillCount = 3 + rng.nextInt(4);  // 3-6 (multi-level obstacles)
+            case "treasure" -> fillCount = 4 + rng.nextInt(4);  // 4-7 (maze-like)
+            case "boss"     -> fillCount = 2 + rng.nextInt(3);  // 2-4 (arena, not too cluttered)
+            case "shop", "start", "exit" -> fillCount = 1 + rng.nextInt(2);  // 1-2 (open)
+            default         -> fillCount = 2 + rng.nextInt(3);  // 2-4
         }
 
         // Candidate DECOR zones not in mustConnect
@@ -307,13 +312,21 @@ public final class ZonePlanner {
     // ── Step 6 — Finalize DECOR zones ────────────────────────────────────────
 
     private static void finalizeDecor(byte[][] z, String roomType, Random rng) {
+        // DECOR zone final resolution probabilities by room type.
+        // Higher fillProb = more solid terrain; higher platProb = more one-way platforms.
+        // combat:   dense solid terrain + many platforms (obstacle-rich arena)
+        // platform: moderate solid + very high platforms (vertical puzzle room)
+        // treasure: high solid (maze walls) + moderate platforms + some void pits
+        // boss:     open arena with scattered platforms
+        // shop/start: open and navigable
         float fillProb, platProb, walkProb;
         switch (roomType != null ? roomType : "combat") {
-            case "platform" -> { fillProb = 0.22f; platProb = 0.55f; walkProb = 0.22f; }
-            case "combat"   -> { fillProb = 0.14f; platProb = 0.45f; walkProb = 0.22f; }
-            case "treasure" -> { fillProb = 0.10f; platProb = 0.35f; walkProb = 0.22f; }
-            case "boss"     -> { fillProb = 0.12f; platProb = 0.30f; walkProb = 0.22f; }
-            default         -> { fillProb = 0.08f; platProb = 0.25f; walkProb = 0.22f; }
+            case "platform" -> { fillProb = 0.18f; platProb = 0.62f; walkProb = 0.15f; }
+            case "combat"   -> { fillProb = 0.22f; platProb = 0.50f; walkProb = 0.18f; }
+            case "treasure" -> { fillProb = 0.28f; platProb = 0.30f; walkProb = 0.20f; }
+            case "boss"     -> { fillProb = 0.10f; platProb = 0.35f; walkProb = 0.28f; }
+            case "shop", "start", "exit" -> { fillProb = 0.06f; platProb = 0.22f; walkProb = 0.35f; }
+            default         -> { fillProb = 0.10f; platProb = 0.30f; walkProb = 0.25f; }
         }
 
         for (int y = 0; y < H; y++) {

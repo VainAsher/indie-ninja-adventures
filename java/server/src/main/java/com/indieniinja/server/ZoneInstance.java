@@ -5,7 +5,6 @@ import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,8 +33,15 @@ public final class ZoneInstance {
     /** Monotonically increasing frame counter for this zone. */
     public final AtomicLong frame = new AtomicLong(0);
 
-    /** Players currently in this zone (player IDs). */
-    public final Set<String> playerIds = new HashSet<>();
+    /**
+     * Players currently in this zone (player IDs).
+     * ConcurrentHashMap.newKeySet() is a thread-safe Set — required because
+     * the old zone's sim thread adds a transitioning player while the new zone's
+     * sim thread may be iterating the same set in simulateTick().
+     * Using HashSet caused silent data-corruption (ghost player IDs) under
+     * concurrent modification.
+     */
+    public final Set<String> playerIds = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /** Delta encoder — one per zone, only touched by the sim thread. */
     public final DeltaEncoder deltaEncoder = new DeltaEncoder();

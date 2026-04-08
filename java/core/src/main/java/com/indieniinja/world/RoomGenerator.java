@@ -46,6 +46,11 @@ public final class RoomGenerator {
      */
     public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
                                      long roomSeed) {
+        return generate(zones, neighborDirs, roomSeed, "combat");
+    }
+
+    public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
+                                     long roomSeed, String roomType) {
         byte[][] grid = new byte[ROWS][COLS];
 
         boolean hasUp    = neighborDirs.contains("up");
@@ -75,7 +80,7 @@ public final class RoomGenerator {
         carveDoors(grid, neighborDirs);
 
         // Step 5 — blob variation for visual richness
-        addBlobVariation(grid, zones, roomSeed);
+        addBlobVariation(grid, zones, roomSeed, roomType);
 
         return grid;
     }
@@ -221,11 +226,20 @@ public final class RoomGenerator {
      * Add elliptical solid/carved blobs inside FILL/VOID zones for visual richness.
      * Python parity: RoomGenerator._apply_tile_variation().
      */
-    private static void addBlobVariation(byte[][] g, byte[][] zones, long roomSeed) {
+    private static void addBlobVariation(byte[][] g, byte[][] zones, long roomSeed,
+                                          String roomType) {
         Random rng = new Random(roomSeed + 1337L);
 
-        // Blob count varies with room type (average ~11)
-        int blobCount = 8 + rng.nextInt(10);  // 8-17
+        // Blob count by room type — combat/treasure: dense variation;
+        // platform: moderate (platforms already handle structure); boss: open arena
+        int blobCount = switch (roomType != null ? roomType : "combat") {
+            case "combat"   -> 14 + rng.nextInt(10);  // 14-23
+            case "treasure" -> 18 + rng.nextInt(10);  // 18-27 (maze-like)
+            case "platform" -> 10 + rng.nextInt(8);   // 10-17
+            case "boss"     ->  6 + rng.nextInt(6);   //  6-11 (open arena)
+            case "shop", "start", "exit" -> 4 + rng.nextInt(4); // 4-7 (clean)
+            default         ->  8 + rng.nextInt(10);  //  8-17
+        };
 
         for (int b = 0; b < blobCount; b++) {
             int blobW = 2 + rng.nextInt(31);   // 2-32

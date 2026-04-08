@@ -331,35 +331,102 @@ public final class LevelLayout {
         java.util.Random rng = new java.util.Random(seed ^ 0xBEEF_CAFEL);
         Collections.shuffle(groundPos, rng);
 
-        // Boss room: spawn one boss at centre-bottom; no regular enemies
-        boolean isBossRoom = "boss".equals(roomType);
+        // ── Room-type-specific spawn rules ───────────────────────────────────────
+        boolean isBossRoom     = "boss".equals(roomType);
+        boolean isCombatRoom   = "combat".equals(roomType);
+        boolean isPlatformRoom = "platform".equals(roomType);
+        boolean isTreasureRoom = "treasure".equals(roomType);
+        boolean isShopRoom     = "shop".equals(roomType);
+        boolean isStartRoom    = "start".equals(roomType);
+
+        // ── Boss room: one boss + 2-4 minion enemies; no regular pickups ─────
         BossSpawn bossSpawn = null;
         if (isBossRoom) {
             BossType bt = BossType.fromSeed(seed);
             bossSpawn = new BossSpawn(bt.wire, spawnX, spawnY);
         }
 
-        // Enemies — 3-5 at first available ground positions (skip for boss rooms)
+        // ── Enemy count/type by room type ─────────────────────────────────────
+        // Combat: 5-8 enemies (dense); Boss: 2-4 minions; Platform: 1-3 (sparse, higher level);
+        // Treasure: 0-1 guards; Shop/Start/Exit: 0
         List<EnemySpawn> enemies = new ArrayList<>();
-        String[] enemyTypes = {"goblin", "slime", "skeleton"};
-        int numEnemies = isBossRoom ? 0 : (3 + rng.nextInt(3));   // 3-5, or 0 in boss rooms
+        String[] heavyTypes  = {"skeleton", "wolf", "skeleton"};
+        String[] standardTypes = {"goblin", "slime", "skeleton"};
+        String[] lightTypes  = {"goblin", "slime", "goblin"};
+
+        int numEnemies;
+        String[] chosenTypes;
+        float patrolMult = 1f;
+        if (isBossRoom) {
+            numEnemies = 2 + rng.nextInt(3);   // 2-4 minions around boss
+            chosenTypes = heavyTypes;
+        } else if (isCombatRoom) {
+            numEnemies = 5 + rng.nextInt(4);   // 5-8 enemies
+            chosenTypes = standardTypes;
+            patrolMult = 1.5f;
+        } else if (isPlatformRoom) {
+            numEnemies = 1 + rng.nextInt(3);   // 1-3 enemies
+            chosenTypes = heavyTypes;           // harder enemies, fewer of them
+            patrolMult = 0.5f;                 // shorter patrol (height-constrained)
+        } else if (isTreasureRoom) {
+            numEnemies = rng.nextInt(2);        // 0-1 guards
+            chosenTypes = heavyTypes;
+        } else if (isShopRoom || isStartRoom || "exit".equals(roomType)) {
+            numEnemies = 0;
+            chosenTypes = standardTypes;
+        } else {
+            numEnemies = 3 + rng.nextInt(3);   // 3-5 for other types
+            chosenTypes = standardTypes;
+        }
+
         for (int i = 0; i < numEnemies && i < groundPos.size(); i++) {
             float[] pos = groundPos.get(i);
-            String t    = enemyTypes[i % enemyTypes.length];
-            float patrol = 3 * TILE;
+            String t    = chosenTypes[i % chosenTypes.length];
+            float patrol = (3 + rng.nextInt(3)) * TILE * patrolMult;
             enemies.add(new EnemySpawn(t, pos[0], pos[1],
                 pos[0] - patrol, pos[0] + patrol));
         }
 
-        // Pickups — 2-4 at next available positions
+        // ── Pickups by room type ───────────────────────────────────────────────
+        // Combat: 2-4 coins + 1-2 health; Platform: 1-2 items in corners;
+        // Treasure: 2-4 high-value items (gem, rare_potion, equip);
+        // Boss: 4-6 high-value drops after kill; Shop/Start: minimal
         List<PickupSpawn> pickups = new ArrayList<>();
-        String[] pickupTypes = {"coin", "health_potion", "coin"};
-        int numPickups  = 2 + rng.nextInt(3);   // 2-4
+        int numPickups;
+        String[] pickupTypes;
+        if (isBossRoom) {
+            numPickups  = 4 + rng.nextInt(3);   // 4-6 post-boss drops
+            pickupTypes = new String[]{"gem", "rare_potion", "coin", "gem", "coin", "health_potion"};
+        } else if (isTreasureRoom) {
+            numPickups  = 2 + rng.nextInt(3);   // 2-4 high-value
+            pickupTypes = new String[]{"gem", "rare_potion", "gem", "coin"};
+        } else if (isCombatRoom) {
+            numPickups  = 2 + rng.nextInt(3);   // 2-4 standard
+            pickupTypes = new String[]{"coin", "health_potion", "coin", "coin"};
+        } else if (isPlatformRoom) {
+            numPickups  = 1 + rng.nextInt(3);   // 1-3
+            pickupTypes = new String[]{"coin", "health_potion", "coin"};
+        } else if (isShopRoom || isStartRoom) {
+            numPickups  = 1 + rng.nextInt(2);   // 1-2 starter items
+            pickupTypes = new String[]{"health_potion", "coin"};
+        } else {
+            numPickups  = 2 + rng.nextInt(3);
+            pickupTypes = new String[]{"coin", "health_potion", "coin"};
+        }
         int pickupStart = numEnemies;
         for (int i = 0; i < numPickups && (pickupStart + i) < groundPos.size(); i++) {
             float[] pos = groundPos.get(pickupStart + i);
             pickups.add(new PickupSpawn(
                 pickupTypes[i % pickupTypes.length], pos[0], pos[1]));
+        }
+
+        // ── Adjacent-room health cache: if THIS room is adjacent to a combat
+        //    room (caller passes type info), add 1-2 health pickups. ─────────
+        // For now, combat and boss rooms always add a guaranteed health potion
+        // at the spawn point for respawn safety.
+        if ((isCombatRoom || isBossRoom) && !groundPos.isEmpty()) {
+            float[] safePos = groundPos.get(Math.min(numEnemies + numPickups, groundPos.size()-1));
+            pickups.add(new PickupSpawn("health_potion", safePos[0], safePos[1]));
         }
 
         // Falling platforms — 2, placed in the mid-zone
@@ -430,10 +497,19 @@ public final class LevelLayout {
                 portalX, portalY, gate));
         }
 
-        // Moving platforms — 1-2 horizontal oscillating platforms in mid-air zones.
-        // Placed on platform rows (not on the floor) so players must jump to reach them.
+        // Moving platforms — room-type-aware count:
+        // Platform rooms: 2-4 (central to the puzzle design)
+        // Combat rooms: 1-2
+        // Treasure rooms: 2-3 (to make loot harder to reach)
+        // Boss rooms: 1 (arena feel)
+        // Other: 0-1
         List<SimMovingPlatform> moving = new ArrayList<>();
-        int numMoving = 1 + rng.nextInt(2);   // 1-2
+        int numMoving;
+        if (isPlatformRoom)     numMoving = 2 + rng.nextInt(3);  // 2-4
+        else if (isTreasureRoom) numMoving = 2 + rng.nextInt(2); // 2-3
+        else if (isCombatRoom)   numMoving = 1 + rng.nextInt(2); // 1-2
+        else if (isBossRoom)     numMoving = 1;
+        else                     numMoving = rng.nextInt(2);      // 0-1
         int platW = 4 * TILE;   // 4-tile wide platform (128 px)
         int platH = TILE / 2;   // half-tile tall (16 px)
         for (int i = 0; i < numMoving; i++) {

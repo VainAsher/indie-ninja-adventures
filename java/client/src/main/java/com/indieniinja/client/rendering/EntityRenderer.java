@@ -149,9 +149,12 @@ public final class EntityRenderer {
             renderMovingPlatform(batch, mp);
         for (PortalState   p  : snap.portals)   renderPortal(batch, p, deltaTime);
         for (ShurikenState sh : snap.shurikens) renderShuriken(batch, sh, deltaTime);
-        for (EnemyState    e  : snap.enemies)   renderEnemy(batch, e, deltaTime);
-        for (BossState     b  : snap.bosses)    renderBoss(batch, b, deltaTime);
-        for (NPCState      n  : snap.npcs)      renderNpc(batch, n, deltaTime);
+        for (EnemyState    e  : snap.enemies)         renderEnemy(batch, e, deltaTime);
+        // Overflow enemies from adjacent zones visible through door openings
+        for (EnemyState    e  : snap.overflowEnemies) renderEnemy(batch, e, deltaTime);
+        for (BossState     b  : snap.bosses)          renderBoss(batch, b, deltaTime);
+        for (NPCState      n  : snap.npcs)            renderNpc(batch, n, deltaTime);
+        for (NPCState      n  : snap.overflowNpcs)    renderNpc(batch, n, deltaTime);
         for (PickupState   p  : snap.pickups)   renderPickup(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderPlayer(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderCompanions(batch, p, deltaTime);
