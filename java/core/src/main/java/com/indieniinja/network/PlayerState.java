@@ -23,8 +23,10 @@ public final class PlayerState {
     public boolean teleportPhaseMode;  // cursor is active (hold-to-phase mode)
     public float   teleportCursorX;    // ghost cursor world X (only valid when phaseMode)
     public float   teleportCursorY;    // ghost cursor world Y
-    public float   stamina;            // 0–30; drains while running, regens otherwise
-    public float   mana;               // 0–30; regens passively, spent on ninjutsu
+    public float   stamina;            // 0–maxStamina; drains while running, regens otherwise
+    public float   mana;               // 0–maxMana; regens passively, spent on ninjutsu
+    public int     maxMana     = 30;   // scales up with level (Loop 28)
+    public int     maxStamina  = 30;   // scales up with level (Loop 28)
     public boolean ninjutsuCasting;    // brief casting anim active
     /** Player inventory — always sent (not delta-encoded). */
     public InventoryState inventory = new InventoryState();
@@ -54,6 +56,8 @@ public final class PlayerState {
         m.put("teleport_cursor_y",    teleportCursorY);
         m.put("stamina",              stamina);
         m.put("mana",                 mana);
+        m.put("max_mana",             maxMana);
+        m.put("max_stamina",          maxStamina);
         m.put("ninjutsu_casting",     ninjutsuCasting);
         m.put("inventory",            inventory != null ? inventory.toMap() : new InventoryState().toMap());
         m.put("experience",           experience);
@@ -82,8 +86,10 @@ public final class PlayerState {
         s.teleportPhaseMode   = bool(m, "teleport_phase_mode");
         s.teleportCursorX     = flt2(m, "teleport_cursor_x", 0f);
         s.teleportCursorY     = flt2(m, "teleport_cursor_y", 0f);
-        s.stamina             = flt2(m, "stamina",   30f);
-        s.mana                = flt2(m, "mana",      30f);
+        s.stamina             = flt2(m, "stamina",      30f);
+        s.mana                = flt2(m, "mana",         30f);
+        s.maxMana             = num(m,  "max_mana",      30);
+        s.maxStamina          = num(m,  "max_stamina",   30);
         s.ninjutsuCasting     = bool(m, "ninjutsu_casting");
         Object inv = m.get("inventory");
         s.inventory = (inv instanceof java.util.Map<?,?> im)

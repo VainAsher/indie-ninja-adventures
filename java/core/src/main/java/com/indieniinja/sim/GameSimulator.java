@@ -307,6 +307,8 @@ public final class GameSimulator {
             ps.teleportCursorY   = p.teleportCursorY;
             ps.stamina           = p.stamina;
             ps.mana              = p.mana;
+            ps.maxMana           = p.maxMana;
+            ps.maxStamina        = p.maxStamina;
             ps.ninjutsuCasting   = p.ninjutsuCasting;
             // Inventory — build wire type from SimInventory
             ps.inventory = buildInventoryState(p.inventory);
@@ -683,9 +685,9 @@ public final class GameSimulator {
             sp.stamina = Math.max(0f, sp.stamina - SimPlayer.STAMINA_RUN_DRAIN * DT);
         } else {
             float regenRate = p.onGround ? SimPlayer.STAMINA_REGEN_RATE : SimPlayer.STAMINA_REGEN_RATE * 0.5f;
-            sp.stamina = Math.min(SimPlayer.STAMINA_MAX, sp.stamina + regenRate * DT);
+            sp.stamina = Math.min(sp.maxStamina, sp.stamina + regenRate * DT);
         }
-        sp.mana = Math.min(SimPlayer.MANA_MAX, sp.mana + SimPlayer.MANA_REGEN_RATE * DT);
+        sp.mana = Math.min(sp.maxMana, sp.mana + SimPlayer.MANA_REGEN_RATE * DT);
 
         // ── Ninjutsu (L key) — hold to enter stance, release to cast Purify ───
         // Mirrors Python: request_stance() on hold, request_cast("purify") on release

@@ -146,18 +146,24 @@ public final class SimPlayer {
     public static final float WALL_SLIDE_DRAIN_MULT      = 1.6f;
     public static final float WALL_FRICTION_SPEED        = 6.0f;
 
-    // ── Progression (Loop 14 / Loop 20) ──────────────────────────────────────
+    // ── Progression (Loop 14 / Loop 20 / Loop 28) ────────────────────────────
     public int experience = 0;
     public int level      = 1;
     /** Ability strings unlocked so far (wire values from Python AbilityRequirement). */
     public final java.util.Set<String> unlockedAbilities = new java.util.LinkedHashSet<>();
+
+    /** Per-player effective mana cap — starts at MANA_MAX, scales with level. */
+    public int maxMana    = (int) MANA_MAX;
+    /** Per-player effective stamina cap — starts at STAMINA_MAX, scales with level. */
+    public int maxStamina = (int) STAMINA_MAX;
 
     /** XP needed to advance from current level to the next. */
     public int xpToNextLevel() { return level * 50; }
 
     /**
      * Add XP and handle level-ups.
-     * Each level-up: +1 maxHealth, ability unlock at certain levels.
+     * Each level-up: +1 maxHealth, ability unlock at certain levels,
+     * and stat bonuses every few levels (Loop 28).
      * Returns the number of levels gained.
      */
     public int addXp(int xp) {
@@ -167,8 +173,15 @@ public final class SimPlayer {
             experience -= xpToNextLevel();
             level++;
             levelsGained++;
+            // HP +1 every level
             maxHealth++;
             health = Math.min(health + 1, maxHealth);  // partial heal on level-up
+            // Mana +5 every 3 levels
+            if (level % 3 == 0) maxMana += 5;
+            // Stamina +3 every 4 levels
+            if (level % 4 == 0) maxStamina += 3;
+            // Shuriken ammo +1 every 5 levels (cap at base+3=8)
+            if (level % 5 == 0 && shurikenAmmo < SHURIKEN_MAX_AMMO + 3) shurikenAmmo++;
             grantAbilitiesForLevel(level);
         }
         return levelsGained;
