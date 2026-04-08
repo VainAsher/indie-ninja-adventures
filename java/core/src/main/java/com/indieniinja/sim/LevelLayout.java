@@ -8,6 +8,8 @@ import com.indieniinja.world.HubRegistry;
 import com.indieniinja.world.WorldGenerator;
 import com.indieniinja.world.WorldGraph;
 import com.indieniinja.world.postprocess.RoomContent;
+import com.indieniinja.world.postprocess.RoomPostProcessor;
+import com.indieniinja.world.puzzle.PuzzlePlan;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -710,6 +712,123 @@ public final class LevelLayout {
         }
 
         log.info("[LevelLayout] unified world: {}×{} tiles ({} rooms), spawn=({},{})",
+            totalCols, totalRows, graph.size(), (int)spawnX, (int)spawnY);
+
+        return new LevelLayout(startRoom.seed, totalCols, totalRows, combinedHash,
+            allEnemies, allPickups, allNpcs, firstBoss,
+            allPortals, allFalling, allMoving, spawnX, spawnY);
+    }
+
+    /**
+     * Build a unified world-space layout using the extended post-processing pipeline.
+     *
+     * Replaces the inner {@code buildProceduralLayout} call in
+     * {@link #buildUnifiedWorldLayout} with {@link RoomPostProcessor#process}, so
+     * that AbilityLayer, PuzzleLayer, and EntityPlanner run on every room.
+     *
+     * Tile geometry inserted into the SpatialHash comes from the post-processed
+     * grid (i.e. ability gates are already physically shaped into the tiles).
+     *
+     * @param graph       world graph for this hub
+     * @param plan        pre-built PuzzlePlan (call PuzzlePlanner.plan() once per hub)
+     * @param masterHubId hub id for portal destination lookup
+     */
+    public static LevelLayout buildUnifiedWorldLayoutFromPlan(
+            WorldGraph graph, PuzzlePlan plan, String masterHubId) {
+        final int TILE    = 32;
+        final int COLS    = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
+        final int ROWS    = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
+        final int ROOM_PX = COLS * TILE;                         // 4096
+
+        // ── Compute grid bounds ───────────────────────────────────────────────
+        int minGX = Integer.MAX_VALUE, minGY = Integer.MAX_VALUE;
+        int maxGX = Integer.MIN_VALUE, maxGY = Integer.MIN_VALUE;
+        for (WorldGraph.RoomNode room : graph.allRooms()) {
+            if (room.gridX < minGX) minGX = room.gridX;
+            if (room.gridY < minGY) minGY = room.gridY;
+            if (room.gridX > maxGX) maxGX = room.gridX;
+            if (room.gridY > maxGY) maxGY = room.gridY;
+        }
+        int totalCols = (maxGX - minGX + 1) * COLS;
+        int totalRows = (maxGY - minGY + 1) * ROWS;
+
+        SpatialHash           combinedHash = new SpatialHash();
+        List<EnemySpawn>      allEnemies   = new ArrayList<>();
+        List<PickupSpawn>     allPickups   = new ArrayList<>();
+        List<NPCSpawn>        allNpcs      = new ArrayList<>();
+        List<PortalSpawn>     allPortals   = new ArrayList<>();
+        List<FallingPlatform> allFalling   = new ArrayList<>();
+        List<SimMovingPlatform> allMoving  = new ArrayList<>();
+        BossSpawn             firstBoss    = null;
+        float spawnX = 0f, spawnY = 0f;
+        WorldGraph.RoomNode startRoom = graph.startRoom();
+
+        for (WorldGraph.RoomNode room : graph.allRooms()) {
+            int offX = (room.gridX - minGX) * ROOM_PX;
+            int offY = (room.gridY - minGY) * ROOM_PX;
+
+            // ── Generate raw tile geometry ────────────────────────────────────
+            byte[][] rawGrid = WorldGenerator.generate(
+                room.seed, COLS, ROWS, room.neighborDirs(), room.type.wire());
+
+            // ── Run post-processing pipeline (ability gates, puzzles, entities) ─
+            RoomContent content = RoomPostProcessor.process(
+                rawGrid, room, plan, room.seed, masterHubId);
+
+            // ── Insert post-processed tiles into world-space SpatialHash ──────
+            for (int r = 0; r < ROWS; r++) {
+                for (int c = 0; c < COLS; c++) {
+                    byte tile = content.tiles[r][c];
+                    if (tile == WorldGenerator.AIR) continue;
+                    boolean oneWay = (tile == WorldGenerator.PLATFORM);
+                    combinedHash.insert(new TileRect(
+                        offX + c * TILE, offY + r * TILE, TILE, TILE, oneWay, tile));
+                }
+            }
+
+            // ── Offset entity spawns into world-space ─────────────────────────
+            for (EnemySpawn e : content.enemies)
+                allEnemies.add(new EnemySpawn(e.type(),
+                    offX + e.x(), offY + e.y(),
+                    offX + e.patrolMinX(), offX + e.patrolMaxX()));
+
+            for (PickupSpawn p : content.pickups)
+                allPickups.add(new PickupSpawn(p.type(), offX + p.x(), offY + p.y()));
+
+            for (NPCSpawn n : content.npcs)
+                allNpcs.add(new NPCSpawn(n.type(),
+                    offX + n.x(), offY + n.y(),
+                    offX + n.patrolMinX(), offX + n.patrolMaxX()));
+
+            for (PortalSpawn p : content.portals)
+                allPortals.add(new PortalSpawn(
+                    p.portalType(), p.destinationId(),
+                    offX + p.x(), offY + p.y(),
+                    p.requiredAbility()));
+
+            for (FallingPlatform f : content.fallingPlatforms)
+                allFalling.add(new FallingPlatform(
+                    f.platformId, offX + f.originX, offY + f.originY, f.width, f.height));
+
+            for (SimMovingPlatform m : content.movingPlatforms)
+                allMoving.add(new SimMovingPlatform(
+                    m.id, offX + m.x, offY + m.y, m.width, m.height,
+                    offX + m.leftBound, offX + m.rightBound, m.vx));
+
+            if (firstBoss == null && content.bossSpawn != null)
+                firstBoss = new BossSpawn(
+                    content.bossSpawn.bossTypeWire(),
+                    offX + content.bossSpawn.x(),
+                    offY + content.bossSpawn.y());
+
+            // Spawn point from start room
+            if (room.gridX == startRoom.gridX && room.gridY == startRoom.gridY) {
+                spawnX = offX + content.spawnX;
+                spawnY = offY + content.spawnY;
+            }
+        }
+
+        log.info("[LevelLayout] unified world (post-proc): {}×{} tiles ({} rooms), spawn=({},{})",
             totalCols, totalRows, graph.size(), (int)spawnX, (int)spawnY);
 
         return new LevelLayout(startRoom.seed, totalCols, totalRows, combinedHash,
