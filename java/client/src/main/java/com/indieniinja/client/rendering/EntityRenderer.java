@@ -145,6 +145,8 @@ public final class EntityRenderer {
     public void render(SpriteBatch batch, WorldSnapshot snap, float deltaTime) {
         if (snap == null) return;
 
+        for (com.indieniinja.network.MovingPlatformState mp : snap.movingPlatforms)
+            renderMovingPlatform(batch, mp);
         for (PortalState   p  : snap.portals)   renderPortal(batch, p, deltaTime);
         for (ShurikenState sh : snap.shurikens) renderShuriken(batch, sh, deltaTime);
         for (EnemyState    e  : snap.enemies)   renderEnemy(batch, e, deltaTime);
@@ -153,6 +155,17 @@ public final class EntityRenderer {
         for (PickupState   p  : snap.pickups)   renderPickup(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderPlayer(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderCompanions(batch, p, deltaTime);
+    }
+
+    // ── Moving platforms ──────────────────────────────────────────────────────
+
+    private void renderMovingPlatform(SpriteBatch batch,
+                                       com.indieniinja.network.MovingPlatformState mp) {
+        // Rendered as a dark brown bar — same visual language as one-way platforms.
+        TextureRegion dot = anims.getFrame("__dot__", 0f, 1f);
+        batch.setColor(0.55f, 0.38f, 0.20f, 1f);
+        batch.draw(dot, mp.x, mp.y, mp.width, mp.height);
+        batch.setColor(Color.WHITE);
     }
 
     // ── Shurikens ─────────────────────────────────────────────────────────────

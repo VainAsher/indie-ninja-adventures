@@ -52,6 +52,8 @@ public final class WorldSnapshot {
     public List<BossState>     bosses         = new ArrayList<>();
     /** Portals — always full list on full snapshots; empty on deltas (client keeps previous). */
     public List<PortalState>   portals        = new ArrayList<>();
+    /** Moving platforms — always sent every frame (position changes every tick). */
+    public List<MovingPlatformState> movingPlatforms = new ArrayList<>();
 
     /**
      * Full world room layout — sent on full snapshots only (not deltas).
@@ -162,6 +164,10 @@ public final class WorldSnapshot {
             PortalState ps = PortalState.fromMap(r);
             if (ps != null) s.portals.add(ps);
         }
+        // Moving platforms — always present (position changes every tick).
+        for (Object r : list(m, "moving_platforms"))
+            if (r instanceof java.util.Map<?,?> rm)
+                s.movingPlatforms.add(MovingPlatformState.fromMap((java.util.Map<String,Object>) rm));
         return s;
     }
 
@@ -215,6 +221,8 @@ public final class WorldSnapshot {
         m.put("shop_states", isDelta ? java.util.List.of() : shopStateList());
         // Portals — full snapshots only; client keeps previous on deltas.
         m.put("portals", isDelta ? java.util.List.of() : portalList());
+        // Moving platforms — always included (position changes every tick).
+        m.put("moving_platforms", movingPlatformList());
 
         m.put("game_mode",    gameMode);
         m.put("arcade_score", arcadeScore);
@@ -266,6 +274,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> portalList() {
         List<Map<String, Object>> out = new ArrayList<>(portals.size());
         for (PortalState p : portals) out.add(p.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> movingPlatformList() {
+        List<Map<String, Object>> out = new ArrayList<>(movingPlatforms.size());
+        for (MovingPlatformState p : movingPlatforms) out.add(p.toMap());
         return out;
     }
 

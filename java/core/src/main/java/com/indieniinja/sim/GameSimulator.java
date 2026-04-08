@@ -62,7 +62,8 @@ public final class GameSimulator {
     private final Map<Integer, SimPlayer> players = new LinkedHashMap<>();
     private final List<SimEnemy>    enemies   = new ArrayList<>();
     private final List<SimPickup>   pickups   = new ArrayList<>();
-    private final List<FallingPlatform> fallingPlatforms = new ArrayList<>();
+    private final List<FallingPlatform>    fallingPlatforms = new ArrayList<>();
+    private final List<SimMovingPlatform>  movingPlatforms  = new ArrayList<>();
     private final List<SimShuriken> shurikens = new ArrayList<>();
     private final List<SimNPC>      npcs      = new ArrayList<>();
     private final List<SimBoss>     bosses    = new ArrayList<>();
@@ -124,6 +125,8 @@ public final class GameSimulator {
 
         // Register falling platforms
         fallingPlatforms.addAll(layout.fallingPlatforms);
+        // Register moving platforms
+        movingPlatforms.addAll(layout.movingPlatforms);
 
         // Spawn boss (boss rooms only)
         if (layout.bossSpawn != null) {
@@ -364,6 +367,17 @@ public final class GameSimulator {
             ps.timer      = fp.timer;
             ps.vy         = fp.vy;
             snap.platformStates.add(ps);
+        }
+
+        // Moving platforms — always sent every frame
+        for (SimMovingPlatform mp : movingPlatforms) {
+            com.indieniinja.network.MovingPlatformState ms = new com.indieniinja.network.MovingPlatformState();
+            ms.platformId = mp.id;
+            ms.x          = mp.x;
+            ms.y          = mp.y;
+            ms.width      = mp.width;
+            ms.height     = mp.height;
+            snap.movingPlatforms.add(ms);
         }
 
         // NPCs
@@ -921,6 +935,19 @@ public final class GameSimulator {
                 }
             }
             fp.step(DT, supported);
+        }
+
+        // Step moving platforms and apply riding velocity to players on top.
+        for (SimMovingPlatform mp : movingPlatforms) {
+            mp.step();
+            for (SimPlayer sp : players.values()) {
+                if (!sp.isAlive()) continue;
+                com.indieniinja.physics.PhysicsState p = sp.physics;
+                if (mp.isStandingOn(p.x, p.y, p.width, p.height)) {
+                    // Nudge player horizontally with the platform — prevents sliding off.
+                    p.x += mp.vx;
+                }
+            }
         }
     }
 

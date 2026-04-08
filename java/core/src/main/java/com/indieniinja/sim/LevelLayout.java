@@ -46,6 +46,8 @@ public final class LevelLayout {
     public final List<PortalSpawn> portalSpawns;
     // Falling platforms
     public final List<FallingPlatform> fallingPlatforms;
+    // Moving (oscillating) platforms
+    public final List<SimMovingPlatform> movingPlatforms;
     // World height in pixels (used for enemy AI fall detection)
     public final float worldHeightPx;
     /** Recommended player spawn position derived from the generated layout. */
@@ -61,6 +63,7 @@ public final class LevelLayout {
             BossSpawn bossSpawn,
             List<PortalSpawn> portalSpawns,
             List<FallingPlatform> fallingPlatforms,
+            List<SimMovingPlatform> movingPlatforms,
             float spawnX, float spawnY) {
         this.seed             = seed;
         this.widthTiles       = widthTiles;
@@ -72,6 +75,7 @@ public final class LevelLayout {
         this.bossSpawn        = bossSpawn;
         this.portalSpawns     = portalSpawns != null ? portalSpawns : new ArrayList<>();
         this.fallingPlatforms = fallingPlatforms;
+        this.movingPlatforms  = movingPlatforms != null ? movingPlatforms : new ArrayList<>();
         this.worldHeightPx    = heightTiles * 32f;
         this.spawnX           = spawnX;
         this.spawnY           = spawnY;
@@ -168,7 +172,7 @@ public final class LevelLayout {
         float testSpawnX = (W / 2) * TILE;
         float testSpawnY = (H - 2) * TILE - 56f;   // player height = 56
         return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), null,
-                new ArrayList<>(), falling, testSpawnX, testSpawnY);
+                new ArrayList<>(), falling, new ArrayList<>(), testSpawnX, testSpawnY);
     }
 
     /**
@@ -257,7 +261,7 @@ public final class LevelLayout {
 
         return new LevelLayout(seed, COLS, ROWS, extended,
             base.enemySpawns, base.pickupSpawns, base.npcSpawns, base.bossSpawn,
-            base.portalSpawns, base.fallingPlatforms, base.spawnX, base.spawnY);
+            base.portalSpawns, base.fallingPlatforms, base.movingPlatforms, base.spawnX, base.spawnY);
     }
 
     /**
@@ -426,7 +430,27 @@ public final class LevelLayout {
                 portalX, portalY, gate));
         }
 
+        // Moving platforms — 1-2 horizontal oscillating platforms in mid-air zones.
+        // Placed on platform rows (not on the floor) so players must jump to reach them.
+        List<SimMovingPlatform> moving = new ArrayList<>();
+        int numMoving = 1 + rng.nextInt(2);   // 1-2
+        int platW = 4 * TILE;   // 4-tile wide platform (128 px)
+        int platH = TILE / 2;   // half-tile tall (16 px)
+        for (int i = 0; i < numMoving; i++) {
+            // Place at a mid-height row: between 30% and 65% of room height
+            int platRow  = (int)(ROWS * 0.30f) + rng.nextInt((int)(ROWS * 0.35f));
+            float originX  = (4 + rng.nextInt(COLS - 16)) * TILE;
+            int   rangeTiles = 12 + rng.nextInt(10);  // 12-21 tile travel range
+            float leftBound  = originX;
+            float rightBound = Math.min(originX + rangeTiles * TILE, (COLS - 4) * TILE);
+            float platY      = platRow * TILE;
+            float speed      = (1.5f + rng.nextFloat() * 1.5f) * (rng.nextBoolean() ? 1 : -1);
+            String pid = "mplat_" + (int)originX + "_" + (int)platY;
+            moving.add(new SimMovingPlatform(pid, originX, platY, platW, platH,
+                leftBound, rightBound, speed));
+        }
+
         return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, bossSpawn, portals, falling,
-                spawnX, spawnY);
+                moving, spawnX, spawnY);
     }
 }
