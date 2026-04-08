@@ -13,7 +13,9 @@ import com.indieniinja.world.puzzle.PuzzlePlan;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +59,12 @@ public final class LevelLayout {
     /** Recommended player spawn position derived from the generated layout. */
     public final float spawnX;
     public final float spawnY;
+    /**
+     * Puzzle door tiles keyed by puzzleId (e.g. "kd_0", "ld_0").
+     * GameSimulator removes these from the SpatialHash when the door is unlocked.
+     * Empty map for layouts built without the post-processing pipeline.
+     */
+    public final Map<String, List<TileRect>> doorTiles;
 
     private LevelLayout(
             long seed, int widthTiles, int heightTiles,
@@ -68,7 +76,8 @@ public final class LevelLayout {
             List<PortalSpawn> portalSpawns,
             List<FallingPlatform> fallingPlatforms,
             List<SimMovingPlatform> movingPlatforms,
-            float spawnX, float spawnY) {
+            float spawnX, float spawnY,
+            Map<String, List<TileRect>> doorTiles) {
         this.seed             = seed;
         this.widthTiles       = widthTiles;
         this.heightTiles      = heightTiles;
@@ -83,6 +92,7 @@ public final class LevelLayout {
         this.worldHeightPx    = heightTiles * 32f;
         this.spawnX           = spawnX;
         this.spawnY           = spawnY;
+        this.doorTiles        = doorTiles != null ? doorTiles : Collections.emptyMap();
     }
 
     /** Spawn descriptor for an enemy. */
@@ -176,7 +186,7 @@ public final class LevelLayout {
         float testSpawnX = (W / 2) * TILE;
         float testSpawnY = (H - 2) * TILE - 56f;   // player height = 56
         return new LevelLayout(seed, W, H, hash, enemies, pickups, new ArrayList<>(), null,
-                new ArrayList<>(), falling, new ArrayList<>(), testSpawnX, testSpawnY);
+                new ArrayList<>(), falling, new ArrayList<>(), testSpawnX, testSpawnY, null);
     }
 
     /**
@@ -281,7 +291,7 @@ public final class LevelLayout {
 
         return new LevelLayout(seed, COLS, ROWS, extended,
             base.enemySpawns, base.pickupSpawns, base.npcSpawns, base.bossSpawn,
-            base.portalSpawns, base.fallingPlatforms, base.movingPlatforms, base.spawnX, base.spawnY);
+            base.portalSpawns, base.fallingPlatforms, base.movingPlatforms, base.spawnX, base.spawnY, null);
     }
 
     /**
@@ -553,7 +563,7 @@ public final class LevelLayout {
         }
 
         return new LevelLayout(seed, COLS, ROWS, hash, enemies, pickups, npcs, bossSpawn, portals, falling,
-                moving, spawnX, spawnY);
+                moving, spawnX, spawnY, null);
     }
 
     // ── New-pipeline entry point ──────────────────────────────────────────────
@@ -604,7 +614,8 @@ public final class LevelLayout {
             content.fallingPlatforms,
             content.movingPlatforms,
             content.spawnX,
-            content.spawnY
+            content.spawnY,
+            null
         );
     }
 
@@ -716,7 +727,7 @@ public final class LevelLayout {
 
         return new LevelLayout(startRoom.seed, totalCols, totalRows, combinedHash,
             allEnemies, allPickups, allNpcs, firstBoss,
-            allPortals, allFalling, allMoving, spawnX, spawnY);
+            allPortals, allFalling, allMoving, spawnX, spawnY, null);
     }
 
     /**
@@ -752,14 +763,15 @@ public final class LevelLayout {
         int totalCols = (maxGX - minGX + 1) * COLS;
         int totalRows = (maxGY - minGY + 1) * ROWS;
 
-        SpatialHash           combinedHash = new SpatialHash();
-        List<EnemySpawn>      allEnemies   = new ArrayList<>();
-        List<PickupSpawn>     allPickups   = new ArrayList<>();
-        List<NPCSpawn>        allNpcs      = new ArrayList<>();
-        List<PortalSpawn>     allPortals   = new ArrayList<>();
-        List<FallingPlatform> allFalling   = new ArrayList<>();
-        List<SimMovingPlatform> allMoving  = new ArrayList<>();
-        BossSpawn             firstBoss    = null;
+        SpatialHash             combinedHash = new SpatialHash();
+        Map<String, List<TileRect>> allDoorTiles = new HashMap<>();
+        List<EnemySpawn>        allEnemies   = new ArrayList<>();
+        List<PickupSpawn>       allPickups   = new ArrayList<>();
+        List<NPCSpawn>          allNpcs      = new ArrayList<>();
+        List<PortalSpawn>       allPortals   = new ArrayList<>();
+        List<FallingPlatform>   allFalling   = new ArrayList<>();
+        List<SimMovingPlatform> allMoving    = new ArrayList<>();
+        BossSpawn               firstBoss    = null;
         float spawnX = 0f, spawnY = 0f;
         WorldGraph.RoomNode startRoom = graph.startRoom();
 
@@ -775,14 +787,32 @@ public final class LevelLayout {
             RoomContent content = RoomPostProcessor.process(
                 rawGrid, room, plan, room.seed, masterHubId);
 
+            // ── Build room-local door tile key set (row<<32|col → puzzleId) ──
+            // Used below to tag DOOR_LOCKED TileRects with their puzzleId so
+            // GameSimulator can remove them when the door is unlocked at runtime.
+            Map<Long, String> doorTileKeys = new HashMap<>();
+            for (RoomContent.PuzzleSpawn z : content.puzzles) {
+                if ("door".equals(z.puzzleType())) {
+                    int doorRow = (int)(z.y() / TILE);
+                    int doorCol = (int)(z.x() / TILE);
+                    for (int dc = doorCol - 1; dc <= doorCol + 1; dc++) {
+                        doorTileKeys.put(((long) doorRow << 32) | (dc & 0xFFFFFFFFL), z.puzzleId());
+                    }
+                }
+            }
+
             // ── Insert post-processed tiles into world-space SpatialHash ──────
             for (int r = 0; r < ROWS; r++) {
                 for (int c = 0; c < COLS; c++) {
                     byte tile = content.tiles[r][c];
                     if (tile == WorldGenerator.AIR) continue;
                     boolean oneWay = (tile == WorldGenerator.PLATFORM);
-                    combinedHash.insert(new TileRect(
-                        offX + c * TILE, offY + r * TILE, TILE, TILE, oneWay, tile));
+                    TileRect tr = new TileRect(
+                        offX + c * TILE, offY + r * TILE, TILE, TILE, oneWay, tile);
+                    combinedHash.insert(tr);
+                    String pid = doorTileKeys.get(((long) r << 32) | (c & 0xFFFFFFFFL));
+                    if (pid != null)
+                        allDoorTiles.computeIfAbsent(pid, k -> new ArrayList<>()).add(tr);
                 }
             }
 
@@ -802,7 +832,8 @@ public final class LevelLayout {
                         allPickups.add(new PickupSpawn(z.puzzleId(), offX + z.x(), offY + z.y()));
                     case "lever", "button" -> {
                         float px = offX + z.x();
-                        allNpcs.add(new NPCSpawn(z.puzzleType() + "_" + z.puzzleId(),
+                        // NPC type = puzzleId (already carries the "lever_" / "btn_" prefix)
+                        allNpcs.add(new NPCSpawn(z.puzzleId(),
                             px, offY + z.y(), px - 16f, px + 16f));
                     }
                     // "door" tiles are already solid via DOOR_LOCKED in SpatialHash
@@ -847,6 +878,6 @@ public final class LevelLayout {
 
         return new LevelLayout(startRoom.seed, totalCols, totalRows, combinedHash,
             allEnemies, allPickups, allNpcs, firstBoss,
-            allPortals, allFalling, allMoving, spawnX, spawnY);
+            allPortals, allFalling, allMoving, spawnX, spawnY, allDoorTiles);
     }
 }

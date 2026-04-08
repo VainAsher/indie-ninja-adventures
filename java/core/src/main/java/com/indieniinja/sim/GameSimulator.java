@@ -17,10 +17,16 @@ import com.indieniinja.physics.PhysicsSystem;
 import com.indieniinja.network.BossState;
 import com.indieniinja.network.PortalState;
 
+import com.indieniinja.physics.TileRect;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Java authoritative game simulator — pure simulation, no rendering.
@@ -45,6 +51,8 @@ import java.util.Map;
  *   - Platforms: server-authoritative falling platform state machine
  */
 public final class GameSimulator {
+
+    private static final Logger log = LoggerFactory.getLogger(GameSimulator.class);
 
     // ── Constants ─────────────────────────────────────────────────────────────
     private static final float DT           = PhysicsConstants.FIXED_DT;
@@ -85,6 +93,14 @@ public final class GameSimulator {
     private final float worldHeightPx;
     private com.indieniinja.physics.SpatialHash spatialHash;
 
+    // ── Puzzle state ──────────────────────────────────────────────────────────
+    /** puzzleId → TileRects to remove from spatialHash when the door is unlocked. */
+    private final Map<String, List<TileRect>> doorTiles;
+    /** Puzzle IDs that have already been solved (door opened). */
+    private final Set<String> solvedPuzzles = new HashSet<>();
+    /** Player slots that had interact=true in the previous tick (edge-detect). */
+    private final Set<Integer> prevInteract = new HashSet<>();
+
     // ── Construction ─────────────────────────────────────────────────────────
 
     public GameSimulator(long seed, String hubId, LevelLayout layout) {
@@ -92,6 +108,7 @@ public final class GameSimulator {
         this.hubId         = hubId;
         this.worldHeightPx = layout.worldHeightPx;
         this.spatialHash   = layout.spatialHash;
+        this.doorTiles     = layout.doorTiles;
 
         // Build core systems
         bus           = new EventBus();
@@ -265,6 +282,9 @@ public final class GameSimulator {
 
         // 9. NPC patrol + player-facing
         stepNpcs();
+
+        // 9b. Puzzle lever/button interaction (interact key edge-triggered)
+        stepLeverInteraction();
 
         // 10. Boss AI + combat
         stepBosses();
@@ -1243,11 +1263,10 @@ public final class GameSimulator {
     }
 
     /** Apply a collected pickup to a player — health, currency, or item to inventory. */
-    private static void applyPickup(SimPlayer p, String type) {
+    private void applyPickup(SimPlayer p, String type) {
         switch (type != null ? type : "") {
             case "coin"         -> p.inventory.addCurrency(1);
             case "health_potion"-> {
-                // Try to use immediately if health not full; else add to inventory
                 if (p.health < p.maxHealth) {
                     p.health = Math.min(p.maxHealth, p.health + 2);
                 } else {
@@ -1255,8 +1274,66 @@ public final class GameSimulator {
                 }
             }
             default -> {
-                // Generic item — try to add to inventory
-                if (ItemDatabase.get(type) != null) p.inventory.addItem(type, 1);
+                // Puzzle key: type = "key_<doorPuzzleId>" (e.g. "key_kd_0")
+                if (type != null && type.startsWith("key_")) {
+                    unlockDoor(type.substring(4));  // strip "key_" → doorPuzzleId
+                } else if (ItemDatabase.get(type) != null) {
+                    p.inventory.addItem(type, 1);
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove all DOOR_LOCKED tiles for the given puzzleId from the SpatialHash,
+     * allowing players to walk through the opened door.
+     */
+    private void unlockDoor(String doorPuzzleId) {
+        if (solvedPuzzles.contains(doorPuzzleId)) return;
+        List<TileRect> tiles = doorTiles.get(doorPuzzleId);
+        if (tiles == null || tiles.isEmpty()) return;
+        solvedPuzzles.add(doorPuzzleId);
+        for (TileRect tr : tiles) spatialHash.remove(tr);
+        collisionSystem.setSpatialHash(spatialHash);  // ensure CollisionSystem sees the update
+        log.info("[puzzle] door unlocked: {}", doorPuzzleId);
+    }
+
+    /**
+     * Check for player lever/button interaction.
+     * Activates when a player presses interact (edge-triggered) within 80 px of a
+     * lever or button NPC whose linked door has not yet been unlocked.
+     */
+    private void stepLeverInteraction() {
+        for (Map.Entry<Integer, SimPlayer> entry : players.entrySet()) {
+            SimPlayer p = entry.getValue();
+            if (!p.isAlive()) continue;
+            boolean nowInteract  = p.latestInput != null && p.latestInput.interact;
+            boolean wasInteract  = prevInteract.contains(entry.getKey());
+            boolean freshPress   = nowInteract && !wasInteract;
+            if (nowInteract) prevInteract.add(entry.getKey()); else prevInteract.remove(entry.getKey());
+            if (!freshPress) continue;
+
+            float px = p.physics.x + p.physics.width  * 0.5f;
+            float py = p.physics.y + p.physics.height * 0.5f;
+            for (SimNPC npc : npcs) {
+                String t = npc.type;
+                if (!t.startsWith("lever_") && !t.startsWith("btn_")) continue;
+                float nx = npc.physics.x + npc.physics.width  * 0.5f;
+                float ny = npc.physics.y + npc.physics.height * 0.5f;
+                float dx = px - nx, dy = py - ny;
+                if (dx*dx + dy*dy > 80f*80f) continue;
+                // lever NPC type = "lever_ld_0" → doorPuzzleId = "ld_0"
+                // button NPC type = "btn_0_bs_0" → linkedPuzzleId stored in type; derive reward door id
+                String doorId;
+                if (t.startsWith("lever_")) {
+                    doorId = t.substring(6);   // "lever_ld_0" → "ld_0"
+                } else {
+                    // btn type = "btn_<i>_<puzzleId>" — reward door puzzleId = "reward_<puzzleId>"
+                    int last = t.lastIndexOf('_');
+                    doorId = last >= 0 ? "reward_" + t.substring(last + 1) : null;
+                }
+                if (doorId != null) unlockDoor(doorId);
+                break;
             }
         }
     }

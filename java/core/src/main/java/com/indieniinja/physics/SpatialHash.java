@@ -73,6 +73,24 @@ public final class SpatialHash {
         return result;
     }
 
+    /**
+     * Remove a tile rect from all chunks it was inserted into.
+     * Used at runtime when a puzzle door is unlocked.
+     * Value-based equality (TileRect is a record) — removes the first matching entry per chunk.
+     */
+    public void remove(TileRect rect) {
+        int x0 = (int) Math.floor(rect.x() / CHUNK_SIZE);
+        int x1 = (int) Math.floor((rect.x() + rect.w() - 1) / CHUNK_SIZE);
+        int y0 = (int) Math.floor(rect.y() / CHUNK_SIZE);
+        int y1 = (int) Math.floor((rect.y() + rect.h() - 1) / CHUNK_SIZE);
+        for (int cx = x0; cx <= x1; cx++) {
+            for (int cy = y0; cy <= y1; cy++) {
+                List<TileRect> chunk = chunks.get(key(cx, cy));
+                if (chunk != null) chunk.remove(rect);
+            }
+        }
+    }
+
     /** Number of tiles stored across all chunks. */
     public int size() {
         return chunks.values().stream().mapToInt(List::size).sum();
