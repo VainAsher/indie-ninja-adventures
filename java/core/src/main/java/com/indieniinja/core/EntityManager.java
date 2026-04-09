@@ -64,6 +64,7 @@ public final class EntityManager {
         e.physics = physics;
         entities.put(id, e);
         byType.computeIfAbsent(type, k -> new HashSet<>()).add(id);
+        e.manager = this;
         activeListDirty = true;
         for (EntityLifecycleListener l : lifecycleListeners) l.onCreate(e);
         return e;
@@ -140,8 +141,14 @@ public final class EntityManager {
         return entities.size();
     }
 
-    /** Called when a tag is added/removed externally — invalidates query index. */
+    /** Called by Entity.addTag() — adds entity to the tag index. */
     public void indexTag(Entity e, String tag) {
         byTag.computeIfAbsent(tag, k -> new HashSet<>()).add(e.entityId);
+    }
+
+    /** Called by Entity.removeTag() — removes entity from the tag index. */
+    public void deindexTag(Entity e, String tag) {
+        Set<Integer> tagSet = byTag.get(tag);
+        if (tagSet != null) tagSet.remove(e.entityId);
     }
 }

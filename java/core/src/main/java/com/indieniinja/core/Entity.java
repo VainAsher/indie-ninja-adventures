@@ -21,6 +21,9 @@ public final class Entity {
     public       PhysicsState physics;      // null for entities with no physics
     public       boolean    active = true;
 
+    /** Set by EntityManager on creation so addTag/removeTag auto-update the index. */
+    EntityManager manager;
+
     private final Map<Class<? extends Component>, Component> components = new HashMap<>();
     private final Set<String> tags = new HashSet<>();
 
@@ -55,8 +58,13 @@ public final class Entity {
 
     // ── Tags ──────────────────────────────────────────────────────────────────
 
-    public void addTag(String tag)    { tags.add(tag); }
-    public void removeTag(String tag) { tags.remove(tag); }
+    public void addTag(String tag) {
+        if (tags.add(tag) && manager != null) manager.indexTag(this, tag);
+    }
+
+    public void removeTag(String tag) {
+        if (tags.remove(tag) && manager != null) manager.deindexTag(this, tag);
+    }
     public boolean hasTag(String tag) { return tags.contains(tag); }
     public Set<String> getTags()      { return Collections.unmodifiableSet(tags); }
 }
