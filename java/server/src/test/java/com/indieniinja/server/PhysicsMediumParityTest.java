@@ -76,13 +76,14 @@ class PhysicsMediumParityTest {
     @Test
     void waterDragSkippedWithWaterWalkAbility() {
         TileRect water = new TileRect(0, 0, 200, 200, false, TileType.WATER.id);
-        // With WATER_WALK ability, drag must NOT be applied
-        PhysicsState p = collide(10, 10, 6f, 0f, water, 1, PhysicsConstants.ABILITY_WATER_WALK);
+        // Start with vy=4.0 so that without WATER_WALK the 2.0 fall-cap would kick in;
+        // with WATER_WALK the cap is bypassed and vy remains above 2.0.
+        PhysicsState p = collide(10, 10, 6f, 4f, water, 1, PhysicsConstants.ABILITY_WATER_WALK);
 
         assertThat(p.inWater).isTrue();   // flag still set (entity is in water)
         // vx should be ≈ 6.0 (no drag applied in this tick; gravity integration only)
         assertThat(Math.abs(p.vx)).isCloseTo(6f, within(TOL));
-        // vy must exceed 2.0 (no fall cap applied)
+        // vy = 4.0 + gravity ≈ 4.6; fall cap NOT applied → exceeds 2.0
         assertThat(p.vy).isGreaterThan(2.0f);
     }
 
@@ -90,9 +91,10 @@ class PhysicsMediumParityTest {
 
     @Test
     void iceSetsFlagWhenNoAbility() {
-        // ICE tile acting as floor; entity descends onto it
+        // ICE tile as floor at y=200; entity starts at y=100, bottom=156.
+        // Needs ~7 ticks to fall 44 px onto the tile — use 10 for margin.
         TileRect ice = new TileRect(0, 200, 200, 32, false, TileType.ICE.id);
-        PhysicsState p = collide(10, 100, 0f, 5f, ice, 5);
+        PhysicsState p = collide(10, 100, 0f, 5f, ice, 10);
 
         assertThat(p.onGround).isTrue();
         assertThat(p.onIce).isTrue();
@@ -101,7 +103,7 @@ class PhysicsMediumParityTest {
     @Test
     void iceFlagSuppressedWithIceGripAbility() {
         TileRect ice = new TileRect(0, 200, 200, 32, false, TileType.ICE.id);
-        PhysicsState p = collide(10, 100, 0f, 5f, ice, 5, PhysicsConstants.ABILITY_ICE_GRIP);
+        PhysicsState p = collide(10, 100, 0f, 5f, ice, 10, PhysicsConstants.ABILITY_ICE_GRIP);
 
         assertThat(p.onGround).isTrue();
         assertThat(p.onIce).isFalse();   // ability suppresses the flag

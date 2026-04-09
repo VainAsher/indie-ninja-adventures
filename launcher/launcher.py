@@ -478,6 +478,7 @@ def _find_jar_asset(assets: list[dict], prefix: str) -> dict | None:
 def _is_port_in_use(port: int) -> bool:
     """Return True if something is already listening on the given TCP port."""
     import socket
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
@@ -491,17 +492,15 @@ def _kill_process_on_port(port: int) -> bool:
     """Terminate whatever process is listening on the given port.
     Returns True if the port is free afterwards, False on failure."""
     import platform, time
+
     try:
         if platform.system() == "Windows":
-            result = subprocess.run(
-                ["netstat", "-ano"], capture_output=True, text=True)
+            result = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
             for line in result.stdout.splitlines():
                 if f":{port}" in line and "LISTENING" in line:
                     parts = line.split()
                     if parts:
-                        subprocess.run(
-                            ["taskkill", "/F", "/PID", parts[-1]],
-                            capture_output=True)
+                        subprocess.run(["taskkill", "/F", "/PID", parts[-1]], capture_output=True)
                         break
         else:
             subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
@@ -4135,7 +4134,7 @@ class LauncherApp:
             ]:
                 if not jar_asset or self._download_cancel.is_set():
                     continue
-                jar_url  = jar_asset["browser_download_url"]
+                jar_url = jar_asset["browser_download_url"]
                 jar_size = jar_asset.get("size", 0)
                 jar_dest = _get_base_dir() / f"{jar_dest_name}.new"
                 self.root.after(0, self._status_var.set, f"Downloading {label}…")

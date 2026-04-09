@@ -244,7 +244,7 @@ def main():
         "--legacy-client",
         action="store_true",
         help="Explicitly run the Python/Pygame client (deprecated; Java client is now primary). "
-             "Accepted for backwards-compatibility — has no effect on behaviour.",
+        "Accepted for backwards-compatibility — has no effect on behaviour.",
     )
     parser.add_argument(
         "--headless", action="store_true", help="Run without opening a window (SDL dummy driver)"
