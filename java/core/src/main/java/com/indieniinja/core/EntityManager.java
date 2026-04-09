@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Entity manager — create, destroy, and query entities.
@@ -29,12 +30,26 @@ public final class EntityManager {
     private final Map<EntityType, Set<Integer>> byType = new HashMap<>();
     private final Map<String,     Set<Integer>> byTag  = new HashMap<>();
 
+    // Lifecycle observers — CopyOnWriteArrayList so listeners can safely
+    // add/remove themselves from within a callback without CME.
+    private final List<EntityLifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
+
     // Pre-built list for hot-path iteration (physics, collision)
     private final List<Entity> activeList = new ArrayList<>();
     private boolean activeListDirty = false;
 
     public EntityManager(EventBus bus) {
         this.bus = bus;
+    }
+
+    // ── Lifecycle listeners ───────────────────────────────────────────────────
+
+    public void addLifecycleListener(EntityLifecycleListener listener) {
+        lifecycleListeners.add(listener);
+    }
+
+    public void removeLifecycleListener(EntityLifecycleListener listener) {
+        lifecycleListeners.remove(listener);
     }
 
     // ── Create / destroy ─────────────────────────────────────────────────────
@@ -50,12 +65,14 @@ public final class EntityManager {
         entities.put(id, e);
         byType.computeIfAbsent(type, k -> new HashSet<>()).add(id);
         activeListDirty = true;
+        for (EntityLifecycleListener l : lifecycleListeners) l.onCreate(e);
         return e;
     }
 
     public void destroy(int entityId) {
         Entity e = entities.remove(entityId);
         if (e == null) return;
+        for (EntityLifecycleListener l : lifecycleListeners) l.onDestroy(e);
         // Cleanup all components
         for (Component c : e.components()) c.cleanup();
         // Remove from indices
