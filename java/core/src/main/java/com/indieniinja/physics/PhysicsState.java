@@ -27,6 +27,7 @@ public final class PhysicsState {
     public boolean inWater;         // inside a WATER tile — reduced speed, no dash
     public boolean onIce;           // standing on an ICE tile — near-zero friction
     public boolean onLava;          // contact with LAVA tile — 1 HP/tick damage event
+    public boolean inGas;           // inside a GAS tile — mild drag, no solid block
 
     // Entity dimensions (set once at spawn)
     public int width;
@@ -47,5 +48,6 @@ public final class PhysicsState {
         inWater  = false;
         onIce    = false;
         onLava   = false;
+        inGas    = false;
     }
 }

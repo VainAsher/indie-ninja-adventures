@@ -20,6 +20,9 @@ public record TileRect(float x, float y, float w, float h, boolean isPlatform, b
             && oy < y + h && oy + oh >= y;
     }
 
+    /** Typed tile classification — avoids WorldGenerator dependency in callers. */
+    public TileType tileTypeEnum() { return TileType.of(tileType); }
+
     /** Right edge of this tile. */
     public float right()  { return x + w; }
     /** Bottom edge of this tile. */

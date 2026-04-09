@@ -53,6 +53,18 @@ public final class PhysicsConstants {
     public static final float EXHAUST_THRESHOLD   = 0.1f;
     public static final float EXHAUST_PENALTY     = 0.5f;
 
+    // ── Medium effects ────────────────────────────────────────────────────────
+    /** Per-axis velocity multiplier applied every tick inside a GAS tile. */
+    public static final float GAS_DRAG              = 0.97f;
+
+    // ── Ability flags (bitmask stored in PhysicsState.abilityFlags) ───────────
+    /** Entity is immune to WATER drag / fall-cap effects (e.g., WaterWalk ability). */
+    public static final int ABILITY_WATER_WALK = 1 << 0;
+    /** Entity is immune to ICE friction reduction (e.g., IceGrip ability). */
+    public static final int ABILITY_ICE_GRIP   = 1 << 1;
+    /** Entity is immune to GAS drag (e.g., GasResist ability). */
+    public static final int ABILITY_GAS_RESIST = 1 << 2;
+
     // ── Collision ─────────────────────────────────────────────────────────────
     /** Activate swept (sub-step) collision when speed exceeds this threshold. */
     public static final float SWEPT_COLLISION_THRESHOLD = 8.0f;

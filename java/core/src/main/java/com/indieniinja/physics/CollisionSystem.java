@@ -3,7 +3,6 @@ package com.indieniinja.physics;
 import com.indieniinja.core.Entity;
 import com.indieniinja.core.EventBus;
 import com.indieniinja.core.TickEvent;
-import com.indieniinja.world.WorldGenerator;
 
 import java.util.List;
 
@@ -104,7 +103,8 @@ public final class CollisionSystem {
     private void resolveHorizontalList(PhysicsState p, List<TileRect> candidates) {
         for (TileRect tile : candidates) {
             if (tile.isPlatform()) continue;  // platforms: vertical only
-            if (tile.tileType() == WorldGenerator.WATER) continue;  // water: passable
+            TileType type = tile.tileTypeEnum();
+            if (type == TileType.WATER || type == TileType.GAS) continue;  // passable fluids
             if (!tile.overlaps(p.x, p.y, p.width, p.height)) continue;
 
             // Determine collision axis by comparing intersection depths on X and Y.
@@ -148,12 +148,19 @@ public final class CollisionSystem {
         for (TileRect tile : candidates) {
             if (!tile.overlaps(p.x, p.y, p.width, p.height)) continue;
 
-            // ── Hazard zone detection (WATER is passable; mark flag and skip solid resolve) ──
-            if (tile.tileType() == WorldGenerator.WATER) {
+            TileType type = tile.tileTypeEnum();
+
+            // ── Passable fluid zones ───────────────────────────────────────────
+            if (type == TileType.WATER) {
                 p.inWater = true;
-                // Water: dampen velocity and slow fall, but do not block movement
                 p.vx *= 0.82f;
                 p.vy  = Math.min(p.vy, 2.0f);  // cap fall speed in water
+                continue;
+            }
+            if (type == TileType.GAS) {
+                p.inGas = true;
+                p.vx *= GAS_DRAG;
+                p.vy *= GAS_DRAG;               // mild drag — no fall cap
                 continue;
             }
 
@@ -177,8 +184,8 @@ public final class CollisionSystem {
                     p.onGround = true;
 
                     // Hazard surface flags
-                    if (tile.tileType() == WorldGenerator.ICE)  p.onIce  = true;
-                    if (tile.tileType() == WorldGenerator.LAVA) p.onLava = true;
+                    if (type == TileType.ICE)  p.onIce  = true;
+                    if (type == TileType.LAVA) p.onLava = true;
 
                     if (overlapTop > 0.5f) applyCornerSmoothing(p, tile);
 
@@ -186,7 +193,7 @@ public final class CollisionSystem {
                     // Hitting ceiling (including lava ceiling = damage)
                     p.y  = tile.y() + tile.h();
                     p.vy = 0;
-                    if (tile.tileType() == WorldGenerator.LAVA) p.onLava = true;
+                    if (type == TileType.LAVA) p.onLava = true;
                 }
             }
         }
