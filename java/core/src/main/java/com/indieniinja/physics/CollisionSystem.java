@@ -153,14 +153,18 @@ public final class CollisionSystem {
             // ── Passable fluid zones ───────────────────────────────────────────
             if (type == TileType.WATER) {
                 p.inWater = true;
-                p.vx *= 0.82f;
-                p.vy  = Math.min(p.vy, 2.0f);  // cap fall speed in water
+                if ((p.abilityFlags & ABILITY_WATER_WALK) == 0) {
+                    p.vx *= 0.82f;
+                    p.vy  = Math.min(p.vy, 2.0f);  // cap fall speed in water
+                }
                 continue;
             }
             if (type == TileType.GAS) {
                 p.inGas = true;
-                p.vx *= GAS_DRAG;
-                p.vy *= GAS_DRAG;               // mild drag — no fall cap
+                if ((p.abilityFlags & ABILITY_GAS_RESIST) == 0) {
+                    p.vx *= GAS_DRAG;
+                    p.vy *= GAS_DRAG;               // mild drag — no fall cap
+                }
                 continue;
             }
 
@@ -183,8 +187,9 @@ public final class CollisionSystem {
                     p.vy       = 0;
                     p.onGround = true;
 
-                    // Hazard surface flags
-                    if (type == TileType.ICE)  p.onIce  = true;
+                    // Hazard surface flags (ability-gated)
+                    if (type == TileType.ICE && (p.abilityFlags & ABILITY_ICE_GRIP) == 0)
+                        p.onIce = true;
                     if (type == TileType.LAVA) p.onLava = true;
 
                     if (overlapTop > 0.5f) applyCornerSmoothing(p, tile);

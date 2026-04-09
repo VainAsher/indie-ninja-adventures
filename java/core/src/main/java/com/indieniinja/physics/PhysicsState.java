@@ -29,6 +29,14 @@ public final class PhysicsState {
     public boolean onLava;          // contact with LAVA tile — 1 HP/tick damage event
     public boolean inGas;           // inside a GAS tile — mild drag, no solid block
 
+    /**
+     * Ability bitmask — gates medium effects in CollisionSystem.
+     * Bit constants are defined in {@link PhysicsConstants}: ABILITY_WATER_WALK,
+     * ABILITY_ICE_GRIP, ABILITY_GAS_RESIST.
+     * Set once at spawn (or when abilities are granted/revoked).
+     */
+    public int abilityFlags;
+
     // Entity dimensions (set once at spawn)
     public int width;
     public int height;
