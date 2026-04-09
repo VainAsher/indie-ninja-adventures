@@ -32,6 +32,13 @@ public final class WorldGenerator {
     public static final byte LAVA        = 5;
     /** Locked door tile — stamped by PuzzleLayer, treated as SOLID for collision. */
     public static final byte DOOR_LOCKED = 6;
+    /**
+     * Gas tile (mist/smoke/wind zones) — passable like WATER but with lighter drag.
+     * Entities inside a GAS tile receive GAS_DRAG per-axis velocity reduction each tick
+     * unless ABILITY_GAS_RESIST is set on their PhysicsState.abilityFlags.
+     * Excluded from collectGroundPositions() spawn-point scanning.
+     */
+    public static final byte GAS = 7;
 
     private WorldGenerator() {}
 
@@ -259,8 +266,8 @@ public final class WorldGenerator {
             for (int c = 3; c < cols - 3; c++) {
                 byte below = grid[r][c];
                 byte above = grid[r - 1][c];
-                // Exclude hazard tiles (lava/water) as valid spawn/patrol surfaces
-                if (below != AIR && below != WATER && below != LAVA && above == AIR) {
+                // Exclude hazard/passable tiles as valid spawn/patrol surfaces
+                if (below != AIR && below != WATER && below != LAVA && below != GAS && above == AIR) {
                     // place entity so its bottom aligns with the top of this tile
                     float wx = c * tile + tile * 0.5f;
                     float wy = r * tile;   // top of the solid tile = entity bottom
