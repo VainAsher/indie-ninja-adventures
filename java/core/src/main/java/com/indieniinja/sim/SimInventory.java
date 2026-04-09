@@ -197,10 +197,36 @@ public final class SimInventory {
         return m;
     }
 
+    @SuppressWarnings("unchecked")
+    public static SimInventory fromMap(Map<String, Object> m) {
+        SimInventory inv = new SimInventory();
+        Object raw = m.get("slots");
+        if (raw instanceof List<?> list) {
+            for (int i = 0; i < Math.min(list.size(), MAX_SLOTS); i++) {
+                Object s = list.get(i);
+                if (s instanceof Map<?,?> sm) {
+                    Map<String, Object> sm2 = (Map<String, Object>) sm;
+                    String itemId  = str(sm2, "item_id");
+                    int    qty     = num(sm2, "quantity", 1);
+                    boolean eq     = bool(sm2, "equipped");
+                    if (itemId != null) inv.slots[i] = new Slot(itemId, qty, eq);
+                }
+            }
+        }
+        inv.currency       = num(m, "currency", 0);
+        inv.equippedWeapon = str(m, "equipped_weapon");
+        inv.equippedArmor  = str(m, "equipped_armor");
+        return inv;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private int findEmpty() {
         for (int i = 0; i < MAX_SLOTS; i++) if (slots[i] == null) return i;
         return -1;
     }
+
+    private static String  str(Map<String,Object> m, String k)         { Object v = m.get(k); return v instanceof String s ? s : null; }
+    private static int     num(Map<String,Object> m, String k, int d)  { Object v = m.get(k); return v instanceof Number n ? n.intValue() : d; }
+    private static boolean bool(Map<String,Object> m, String k)        { Object v = m.get(k); return v instanceof Boolean b && b; }
 }
