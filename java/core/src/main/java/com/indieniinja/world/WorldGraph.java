@@ -65,6 +65,13 @@ public final class WorldGraph {
             this.biomeIndex = biomeIndex;
         }
 
+        /** Deserialization constructor — restores neighborDirs from a persisted list. */
+        public RoomNode(int gx, int gy, RoomType type, long seed, int biomeIndex,
+                        Collection<String> dirs) {
+            this(gx, gy, type, seed, biomeIndex);
+            neighborDirs.addAll(dirs);
+        }
+
         public Set<String> neighborDirs() { return Collections.unmodifiableSet(neighborDirs); }
 
         /** World-space tile offset of this room. Each room is ROOM_W × ROOM_H tiles. */
@@ -102,6 +109,15 @@ public final class WorldGraph {
         this.rooms     = rooms;
         this.startRoom = startRoom;
         this.exitRoom  = exitRoom;
+    }
+
+    /**
+     * Reconstruct a {@link WorldGraph} from a pre-built room map (e.g. deserialized
+     * from PostgreSQL). The caller is responsible for ensuring the map is consistent.
+     */
+    public static WorldGraph fromRooms(Map<Long, RoomNode> rooms,
+                                        RoomNode startRoom, RoomNode exitRoom) {
+        return new WorldGraph(rooms, startRoom, exitRoom);
     }
 
     // ── Public API ────────────────────────────────────────────────────────────

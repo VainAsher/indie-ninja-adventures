@@ -11,6 +11,16 @@ dependencies {
     // Netty NIO server
     implementation("io.netty:netty-all:4.1.111.Final")
 
+    // Redis client
+    implementation("redis.clients:jedis:5.1.4")
+
+    // PostgreSQL JDBC + connection pool
+    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("com.zaxxer:HikariCP:5.1.0")
+
+    // JSON for PostgreSQL JSONB world graph persistence
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
+
     // Logging implementation for the server binary
     implementation("org.slf4j:slf4j-api:2.0.13")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.6")
