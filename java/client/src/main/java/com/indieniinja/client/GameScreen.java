@@ -12,6 +12,9 @@ import com.indieniinja.client.game.DialogueManager;
 import com.indieniinja.client.game.MissionManager;
 import com.indieniinja.client.game.StoryManager;
 import com.indieniinja.client.network.NetworkClientThread;
+import com.indieniinja.sim.GameSimulator;
+import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.sim.SimPlayer;
 import com.indieniinja.client.rendering.AnimationRegistry;
 import com.indieniinja.client.rendering.BlobTileSet;
 import com.indieniinja.client.rendering.ChunkRenderer;
@@ -55,6 +58,8 @@ public final class GameScreen implements Screen {
     private final String          host;
     private final int             port;
     private final String          gameMode;
+    /** True when running offline — no NetworkClientThread, local GameSimulator only. */
+    private final boolean         soloMode;
 
     // ── Core subsystems ───────────────────────────────────────────────────────
     private SpriteBatch         batch;
@@ -64,6 +69,15 @@ public final class GameScreen implements Screen {
     private GameStateBuffer     stateBuffer;
     private InputPoller         inputPoller;
     private NetworkClientThread networkClient;
+
+    // ── Solo mode (offline) ───────────────────────────────────────────────────
+    /** Local authoritative simulator — non-null only in solo mode. */
+    private GameSimulator       localSim;
+    /** Monotonically increasing frame counter for the local sim. */
+    private long                localFrame = 0;
+    /** Room type and neighbor dirs for solo mode snapshots (GameSimulator doesn't track these). */
+    private java.util.List<String> soloNeighborDirs = java.util.List.of();
+    private String                 soloRoomType     = "combat";
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
@@ -167,6 +181,7 @@ public final class GameScreen implements Screen {
         this.host     = host;
         this.port     = port;
         this.gameMode = gameMode;
+        this.soloMode = "solo".equals(gameMode);
     }
 
     // ── Screen lifecycle ──────────────────────────────────────────────────────
@@ -219,9 +234,25 @@ public final class GameScreen implements Screen {
 
         pauseScreen = new PauseScreen(game, this::resume);
 
-        networkClient = new NetworkClientThread(host, port, stateBuffer);
-        networkClient.setGameMode(gameMode);
-        networkClient.start();
+        if (soloMode) {
+            // Offline path — build a local GameSimulator; no network thread needed.
+            long seed = System.currentTimeMillis();
+            soloRoomType     = "combat";
+            soloNeighborDirs = java.util.List.of();
+            LevelLayout layout = LevelLayout.buildProceduralLayout(seed);
+            localSim = new GameSimulator(seed, "solo_hub", layout);
+            SimPlayer player = new SimPlayer("solo_player", 0, layout.spawnX, layout.spawnY);
+            localSim.addPlayer(player);
+            // Push an initial full snapshot so GameScreen has something to render immediately.
+            com.indieniinja.network.WorldSnapshot initSnap = localSim.getSnapshot(localFrame++);
+            stampSoloFields(initSnap);
+            stateBuffer.update(initSnap);
+            stateBuffer.markConnected();
+        } else {
+            networkClient = new NetworkClientThread(host, port, stateBuffer);
+            networkClient.setGameMode(gameMode);
+            networkClient.start();
+        }
 
         // Campaign / missions / dialogue / save systems
         storyManager    = new StoryManager();
@@ -315,7 +346,15 @@ public final class GameScreen implements Screen {
             accumulator += delta;
             while (accumulator >= PHYSICS_DT) {
                 InputCommand cmd = inputPoller.poll();
-                networkClient.sendInput(cmd);
+                if (soloMode) {
+                    // Offline: step local sim directly and push snapshot to stateBuffer.
+                    localSim.step(java.util.Map.of(0, cmd));
+                    com.indieniinja.network.WorldSnapshot soloSnap = localSim.getSnapshot(localFrame++);
+                    stampSoloFields(soloSnap);
+                    stateBuffer.update(soloSnap);
+                } else {
+                    networkClient.sendInput(cmd);
+                }
                 accumulator -= PHYSICS_DT;
             }
         }
@@ -537,7 +576,7 @@ public final class GameScreen implements Screen {
 
         entityRenderer.pruneEntities(snap);
 
-        hudRenderer.render(snap, stateBuffer.isConnected(),
+        hudRenderer.render(snap, soloMode || stateBuffer.isConnected(),
             Gdx.graphics.getFramesPerSecond(), localSlot);
 
         // ── Ability unlock toasts ─────────────────────────────────────────────
@@ -607,6 +646,18 @@ public final class GameScreen implements Screen {
 
         // ── Persist snapshot for next frame's overlay input handling ──────────
         if (snap != null) prevSnap = snap;
+    }
+
+    // ── Solo-mode helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Stamps room-context fields that GameSimulator doesn't track onto a solo snapshot.
+     * The single-room tile fallback in render() reads these to generate the tile grid.
+     */
+    private void stampSoloFields(WorldSnapshot snap) {
+        snap.roomType     = soloRoomType;
+        snap.neighborDirs = soloNeighborDirs;
+        // roomGridX/Y default to 0,0 — correct for a single-room solo layout
     }
 
     // ── Megamap construction ──────────────────────────────────────────────────

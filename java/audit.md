@@ -294,15 +294,148 @@ This document is a regression-proof foundation audit of the Java 2D procedural m
 
 ## 8. Regression-Proof Expansion Checklist
 
-Use this checklist whenever adding a new traversal ability, combat system, procedural room type, or UI system:
+Use this checklist whenever adding a new traversal ability, combat system, procedural room type, or UI system. Each section lists every file that must change, the minimum test required, and any persistence/cache action. **A feature is not merged until every checked box is green.**
 
-- [ ] **New Component**: implements `toMap()` (for DB persistence) and registers with `EntityLifecycleListener` (for cache invalidation).
-- [ ] **New tile type**: constant added to `WorldGenerator`, handled in `CollisionSystem.resolveVertical/Horizontal`, handled in `ChunkRenderer`, parity test added.
-- [ ] **New room archetype**: added to `WorldGraph.RoomType`, handled in `assignTypes()`, handled in `ZonePlanner`, handled in `RoomGenerator`, test coverage for generation + entity spawn.
-- [ ] **New item/recipe**: added to DB (`item_defs` / `recipe_defs`) and Redis cache invalidated, NOT hardcoded in `ItemDatabase`/`RecipeBook` static initializers.
-- [ ] **New network field**: `WorldSnapshot.schemaVersion` incremented, Python `to_dict()` updated simultaneously.
-- [ ] **New physics constant**: added to `PhysicsConstants.java`, Python `physics_constants.py` updated, `PhysicsParityTest.constantsMatchPython()` updated.
-- [ ] **New sim entity type**: `EntityType` enum extended, `GameSimulator` snapshot methods updated, `DeltaEncoder` coverage considered.
+---
+
+### 8.1 New Component
+
+A Component is any class that attaches state/behaviour to an `Entity` (e.g. `HealthComponent`, `WallClimbComponent`, `StatusEffectComponent`).
+
+**Files to modify:**
+- [ ] Create `core/src/main/java/com/indieniinja/core/<Name>Component.java` — implement `Component` (and `toMap()` / `fromMap()` once ECS-2 is resolved)
+- [ ] `core/src/main/java/com/indieniinja/core/EntityManager.java` — register the component in any future `EntityLifecycleListener` hook (ECS-1)
+- [ ] `server/src/main/java/com/indieniinja/server/ZoneSimulationLoop.java` — if the component drives networked state, update snapshot assembly
+
+**Test required:**
+- [ ] One `@Test` in `server/src/test/java/com/indieniinja/server/GameSimulatorTest.java` (or a new `<Name>ComponentTest`) that: (a) attaches the component to an entity, (b) ticks, (c) asserts the expected state change
+
+**Persistence / cache:**
+- [ ] If the component holds player-persistent data (health cap, ability unlocks): add a column or JSONB key in `player_progress` and implement `save(playerId, conn)` / `load(playerId, conn)`
+- [ ] Redis: if the component state must survive server restart, include it in `session:{playerId}` (TTL 5 min)
+
+---
+
+### 8.2 New TileType
+
+A TileType is a new collision/physics medium (e.g. `GAS`, `CONVEYOR`, `VOID`).
+
+**Files to modify:**
+- [ ] `core/src/main/java/com/indieniinja/physics/TileType.java` — add enum constant with `id` integer matching Python
+- [ ] `core/src/main/java/com/indieniinja/physics/CollisionSystem.java` — handle in `resolveVertical()` **and** `resolveHorizontal()` (at minimum: no-op if passable, or add drag/damage logic)
+- [ ] `core/src/main/java/com/indieniinja/physics/SpatialHash.java` — update `isPassable()` if the tile is non-blocking for raycasts
+- [ ] `client/src/main/java/com/indieniinja/client/render/ChunkRenderer.java` — add render case (color or sprite)
+- [ ] Python parity: `core/collision_system.py` — update `PASSABLE_TILES` / medium-effect constants to match Java
+- [ ] Python parity: `core/tile_type.py` — add matching constant with the same integer `id`
+
+**Test required:**
+- [ ] `CollisionEdgeCaseTest.java` — one test per distinct behavior: passthrough, drag, damage-on-enter, etc. Name: `<tileName>_<behavior>` (e.g. `gas_appliesDragNotDamage`)
+- [ ] `PhysicsParityTest.java` — extend `constantsMatchPython()` if a new drag/damage constant is added
+
+**Persistence / cache:**
+- [ ] None (tile data lives in the procedurally generated tile grid, cached at `room_tile:{seed}:{type}:{dirs}`)
+
+---
+
+### 8.3 New RoomType
+
+A RoomType is a new procedural room archetype (e.g. `ARENA`, `LIBRARY`, `FORGE`).
+
+**Files to modify:**
+- [ ] `core/src/main/java/com/indieniinja/world/WorldGraph.java` — add `RoomType` enum value; update `assignTypes()` count allocation
+- [ ] `core/src/main/java/com/indieniinja/world/ZonePlanner.java` — add zone-plan logic (zone name, enemy density, loot tier)
+- [ ] `core/src/main/java/com/indieniinja/world/RoomGenerator.java` — add tile-generation branch for the new archetype
+- [ ] `core/src/main/java/com/indieniinja/world/postprocess/RoomPostProcessor.java` — add post-process passes if needed (ability layer, puzzle layer, entity placement)
+- [ ] Python parity: `systems/megamap.py` — add `room_type` string constant matching the Java enum name (snake_case)
+
+**Test required:**
+- [ ] `WorldGraphGenerationTest.java` — one test: generate a graph with enough rooms to include at least one instance of the new type, assert it appears in the graph with valid `roomType`
+- [ ] One smoke test: `RoomGenerator.generate(seed, RoomType.<NEW>, ...)` returns a non-null tile grid with the expected landmark tile(s)
+
+**Persistence / cache:**
+- [ ] `world_graph` PostgreSQL row is already keyed by `(hub_id, world_seed)` — new room types serialise through the existing JSONB column, no schema migration needed
+- [ ] Redis `room_tile:{seed}:{type}:{dirs}` cache key automatically covers the new type
+
+---
+
+### 8.4 New Item or Recipe
+
+An Item is a new `ItemDef` row; a Recipe is a new `CraftingRecipe` row.
+
+**Files to modify:**
+- [ ] **Do NOT touch `ItemDatabase.java` or `RecipeBook.java` static initializers** (INV-1/2 hardcoding policy)
+- [ ] Write a SQL migration: `INSERT INTO item_defs ...` / `INSERT INTO recipe_defs ...`
+- [ ] If `ItemDatabase` is still static (pre-DB integration): add to `ItemDatabase.java` with a `// TEMP: move to DB` comment; add to `RecipeBook.java` similarly
+- [ ] If recipe involves `currency` field (not slot items): update `SimInventory.craft()` to check `currency` balance, not slot contents (INV-5 fix pattern)
+
+**Test required:**
+- [ ] `InventoryPersistenceTest.java` (or `CraftingTest.java`) — one `@Test` per recipe: call `simInventory.craft(recipeId)`, assert result item added and ingredient consumed
+- [ ] If recipe involves `coin`/currency: assert `currency` field decremented, not a ghost slot
+
+**Persistence / cache:**
+- [ ] Redis: invalidate `items:all` and `recipes:all` keys after any admin item update
+- [ ] PostgreSQL: item/recipe live in `item_defs` / `recipe_defs` tables — the `ItemDatabase` HashMap is a read-through cache populated at server start
+
+---
+
+### 8.5 New Network Field
+
+A Network Field is any new key added to `WorldSnapshot`, `PlayerState`, `EnemyState`, `PickupState`, or `InventoryState`.
+
+**Files to modify:**
+- [ ] Add the field to the relevant `*State.java` class in `core/src/main/java/com/indieniinja/network/`
+- [ ] Update `toMap()` — add the new key
+- [ ] Update `fromMap()` — read with a safe default so old snapshots don't crash
+- [ ] `core/src/main/java/com/indieniinja/network/WorldSnapshot.java` — **increment `SCHEMA_VERSION`** (integer constant)
+- [ ] Python parity: update `to_dict()` / `from_dict()` in the matching Python dataclass (e.g. `network/world_snapshot.py`)
+- [ ] Python parity: if the field is a new physics/game constant, update `physics_constants.py` / `game_constants.py`
+
+**Test required:**
+- [ ] `SnapshotBroadcastScheduleTest.java` or a new `<FieldName>RoundTripTest` — `toMap()` → `fromMap()` round-trip asserts the new field survives; assert the default value when the key is absent (old-client compat)
+
+**Persistence / cache:**
+- [ ] `ZoneStateCache` writes full snapshots to Redis — new fields are included automatically via `toMap()`; no additional cache action needed
+- [ ] If the field is player-persistent (not transient per-frame): add it to `player_progress` PostgreSQL table
+
+---
+
+### 8.6 New Physics Constant
+
+A Physics Constant is any new value in `PhysicsConstants.java` that drives simulation behavior (gravity, drag coefficients, speed caps, etc.).
+
+**Files to modify:**
+- [ ] `core/src/main/java/com/indieniinja/physics/PhysicsConstants.java` — add `public static final float <NAME> = <VALUE>;`
+- [ ] `PhysicsSystem.java` or `CollisionSystem.java` — use the constant (never inline magic numbers)
+- [ ] Python parity: `core/physics_constants.py` — add matching constant with identical value
+
+**Test required:**
+- [ ] `PhysicsParityTest.java` → `constantsMatchPython()` — add an `assertThat(<NAME>).isEqualTo(<python_value>)` line
+- [ ] At least one behavioral test in `PhysicsParityTest.java` or `CollisionEdgeCaseTest.java` that exercises the constant's effect (e.g. terminal velocity cap, drag over N ticks)
+
+**Persistence / cache:**
+- [ ] None (constants are compile-time, no runtime cache needed)
+
+---
+
+### 8.7 New Sim Entity Type
+
+A Sim Entity Type is a new `EntityType` value (e.g. `BOSS`, `NPC_VENDOR`, `PROJECTILE`).
+
+**Files to modify:**
+- [ ] `core/src/main/java/com/indieniinja/core/EntityType.java` — add enum value
+- [ ] `server/src/main/java/com/indieniinja/server/GameSimulator.java` — update `buildSnapshot()` / `populateEnemies()` (or equivalent) to include the new entity type in snapshots
+- [ ] `core/src/main/java/com/indieniinja/network/EnemyState.java` (or new `*State` class) — add wire type if the entity has distinct network representation
+- [ ] `server/src/main/java/com/indieniinja/server/DeltaEncoder.java` — decide: delta-encoded (add checksum map) or always-sent (add to `alwaysSent` list)
+- [ ] `core/src/main/java/com/indieniinja/world/WorldGraph.java` — update `collectGroundPositions()` exclusion list if entity cannot spawn on certain tile types
+- [ ] Python parity: `entities/` — add matching Python entity class
+
+**Test required:**
+- [ ] `GameSimulatorTest.java` — one smoke test: zone with one entity of the new type, tick 10 frames, assert it appears in the snapshot
+- [ ] `DeltaEncoderTest.java` — if delta-encoded: assert changed/removed lists populate correctly; if always-sent: assert it is present in every snapshot regardless of delta flag
+
+**Persistence / cache:**
+- [ ] If entity has persistent state (boss HP, NPC dialogue progress): add a column to `player_progress` or a new `entity_state` table
+- [ ] Redis: include in `zone:{hubId}:state` snapshot automatically via `toMap()` — confirm the new state class implements `toMap()`
 
 ---
 
@@ -326,4 +459,223 @@ Use this checklist whenever adding a new traversal ability, combat system, proce
 
 ---
 
-*Generated by Phase 0 audit pass — next step: create task backlog from Priority Issue Summary and begin Phase 0 hardening loop.*
+*Phase 0 hardening loop complete as of v0.10.83 (2026-04-10). All Priority Issues resolved. Next: Shadow Ascent milestones — see `docs/PLAN_SHADOW_ASCENT.md`.*
+
+---
+
+## 10. New Content Integration — Prompt Templates
+
+Copy the template for the feature type you are adding, fill in the `<ANGLE_BRACKETS>`, and paste into a Claude session. The agent will follow the checklist in Section 8 automatically.
+
+---
+
+### Template A — New Component
+
+```text
+Agent: Implementation-Agent
+Context: Module: :core / :server
+Feature type: Component
+Name: <ComponentName>  (e.g. WallClimbComponent)
+Description: <one sentence — what state/behaviour this component adds to an entity>
+Ability-gated: <yes|no>  (if yes: which PhysicsState flag or ItemDatabase ability ID gates it)
+Persistent: <yes|no>  (if yes: which DB table column stores it)
+
+Tasks:
+1. Create core/src/main/java/com/indieniinja/core/<ComponentName>.java
+   — implement Component; add toMap() / fromMap() returning a Map<String,Object>
+2. Register with EntityLifecycleListener in EntityManager (ECS-1) if the listener exists
+3. If ability-gated: check PhysicsState.abilityFlags in CollisionSystem before applying effect
+4. If persistent: implement save(playerId, conn) / load(playerId, conn) targeting player_progress
+5. Add @Test in GameSimulatorTest (or new <ComponentName>Test):
+   attach component → tick → assert expected state
+6. Commit: "feat(ecs): add <ComponentName>"
+
+Constraints:
+- Do not add magic numbers; use PhysicsConstants for any numeric values
+- toMap() keys must be snake_case to match Python parity
+- All existing tests must stay green before committing
+```
+
+---
+
+### Template B — New TileType
+
+```text
+Agent: Implementation-Agent
+Context: Module: :core / :client
+Feature type: TileType
+Name: <TILE_NAME>  (e.g. GAS, CONVEYOR, VOID)
+Python id: <integer>  (must match Python tile_type.py)
+Collision behaviour: <SOLID|PASSABLE|ONE_WAY>
+Medium effect: <none | drag vx=<val> vy=<val> | damage per tick | push velocity>
+Raycast passable: <yes|no>
+
+Tasks:
+1. Add TileType.<TILE_NAME> with id=<integer> in TileType.java
+2. Handle in CollisionSystem.resolveVertical() and resolveHorizontal()
+   — apply medium effect or damage; mirror Python collision_system.py logic exactly
+3. Update SpatialHash.isPassable() if raycast-transparent
+4. Add render case in ChunkRenderer.java (color constant or sprite key)
+5. Python parity: add <TILE_NAME> = <integer> to core/tile_type.py; update PASSABLE_TILES list
+6. Add @Test in CollisionEdgeCaseTest: entity in <TILE_NAME> tile → assert medium effect after 1 tick
+7. Extend PhysicsParityTest.constantsMatchPython() if a new constant is introduced
+8. Commit: "feat(physics): add TileType.<TILE_NAME>"
+
+Constraints:
+- The integer id must be unique and never reuse a retired id
+- Python and Java constants must be numerically identical — the parity test enforces this
+```
+
+---
+
+### Template C — New RoomType
+
+```text
+Agent: Implementation-Agent
+Context: Module: :core
+Feature type: RoomType
+Name: <ROOM_TYPE>  (e.g. ARENA, FORGE, LIBRARY)
+Count per world: <integer or range>  (how many rooms of this type per 20-room world)
+Tile signature: <key tile(s) that distinguish this room, e.g. "lava floor + SOLID platforms">
+Entities spawned: <entity types placed by RoomPostProcessor, or "none">
+Python megamap key: <snake_case string matching RoomType.name().toLowerCase()>
+
+Tasks:
+1. Add WorldGraph.RoomType.<ROOM_TYPE>; update assignTypes() count allocation
+2. Add zone-plan branch in ZonePlanner (zone name, enemy density, loot tier)
+3. Add tile-generation branch in RoomGenerator.generate() for RoomType.<ROOM_TYPE>
+4. Add RoomPostProcessor pass if entities or ability-layer items are placed
+5. Python parity: add "<python_megamap_key>" string constant to systems/megamap.py
+6. Add @Test in WorldGraphGenerationTest:
+   generate graph → find at least one room with roomType==<ROOM_TYPE> → assert non-null tile grid
+7. Smoke test: RoomGenerator.generate(seed, RoomType.<ROOM_TYPE>, ...) returns non-null grid
+8. Commit: "feat(world): add RoomType.<ROOM_TYPE>"
+
+Constraints:
+- assignTypes() count changes must not break allRoomsReachableAfterBackEdges tests
+- New room type must be reachable from start (BFS test must still pass)
+```
+
+---
+
+### Template D — New Item or Recipe
+
+```text
+Agent: Implementation-Agent
+Context: Module: :core / :server
+Feature type: <Item | Recipe | Both>
+Item id: <snake_case_id>  (e.g. ability_wall_climb)
+Item type: <weapon|armor|consumable|material|currency|quest_item|key_item|ability>
+Recipe id: <snake_case_id or "none">
+Recipe inputs: <item_id:qty, ...>  (use "currency:N" for coin cost — NOT a slot item)
+Recipe output: <item_id:qty>
+
+Tasks:
+1. If DB-backed (post INV-1 fix): write SQL migration INSERT INTO item_defs / recipe_defs
+   If still static: add ItemDef to ItemDatabase.java and CraftingRecipe to RecipeBook.java
+   with comment "// TEMP: move to DB — see INV-1"
+2. If recipe uses coin cost: verify SimInventory.craft() checks currency field, not slots (INV-5)
+3. Add @Test in InventoryPersistenceTest or CraftingTest:
+   — add ingredients → craft → assert output item added and ingredients/currency consumed
+4. Invalidate Redis keys "items:all" and "recipes:all" in the server startup load path
+5. Commit: "feat(inv): add item <item_id> [+ recipe <recipe_id>]"
+
+Constraints:
+- item type "ability" must include abilityId field for PhysicsState gate lookup
+- Do NOT duplicate coin/currency as both a slot item and the currency field
+```
+
+---
+
+### Template E — New Network Field
+
+```text
+Agent: Implementation-Agent
+Context: Module: :core / :server
+Feature type: NetworkField
+Target class: <WorldSnapshot|PlayerState|EnemyState|PickupState|InventoryState>
+Field name: <camelCase Java name>
+Wire key: <snake_case key in toMap()>
+Type: <int|long|float|boolean|String|List<...>>
+Default (for old snapshots): <value>
+Persistent across sessions: <yes|no>
+
+Tasks:
+1. Add field to <TargetClass>.java
+2. Add wire_key to toMap() map
+3. Add fromMap() read with safe default: <default_value>
+4. Increment WorldSnapshot.SCHEMA_VERSION (always, even for non-snapshot classes)
+5. Python parity: update to_dict() and from_dict() in the matching Python class
+6. Add @Test in SnapshotBroadcastScheduleTest or new <FieldName>RoundTripTest:
+   — toMap() → fromMap() round-trip; assert field survives
+   — fromMap() with key absent returns default (old-client compat)
+7. If persistent: add column to player_progress PostgreSQL table
+8. Commit: "feat(net): add <FieldName> to <TargetClass> (schema v<N>)"
+
+Constraints:
+- SCHEMA_VERSION must be incremented before the commit that adds the field
+- Python and Java defaults must be identical
+- fromMap() must never throw on a missing key — use getOrDefault / null-safe helpers
+```
+
+---
+
+### Template F — New Physics Constant
+
+```text
+Agent: Implementation-Agent
+Context: Module: :core / :server
+Feature type: PhysicsConstant
+Constant name: <SCREAMING_SNAKE_CASE>  (e.g. CONVEYOR_PUSH_SPEED)
+Java value: <numeric literal with f suffix if float>
+Python value: <same numeric value>
+Used in: <PhysicsSystem|CollisionSystem|both>
+Behavioral effect: <one sentence>
+
+Tasks:
+1. Add public static final float <NAME> = <value>; to PhysicsConstants.java
+2. Replace any inline magic number in PhysicsSystem/CollisionSystem with the constant
+3. Add <NAME> = <value> to core/physics_constants.py
+4. Extend PhysicsParityTest.constantsMatchPython():
+   assertThat(PhysicsConstants.<NAME>).isEqualTo(<python_value>f);
+5. Add behavioral @Test in PhysicsParityTest or CollisionEdgeCaseTest
+   exercising the constant's effect (e.g. assert vy capped after N ticks)
+6. Commit: "feat(physics): add PhysicsConstants.<NAME>"
+
+Constraints:
+- Java float and Python float must be bit-for-bit equal within assertj within(0.001f)
+- Never inline the number after this commit — grep for the raw value to confirm
+```
+
+---
+
+### Template G — New Sim Entity Type
+
+```text
+Agent: Implementation-Agent
+Context: Module: :core / :server
+Feature type: SimEntityType
+EntityType name: <SCREAMING_SNAKE_CASE>  (e.g. BOSS, NPC_VENDOR)
+Network representation: <reuse EnemyState | new <Name>State class>
+Delta strategy: <delta-encoded | always-sent>
+Persistent state: <none | field list for player_progress or entity_state table>
+Python entity class: <entities/<name>.py>
+
+Tasks:
+1. Add EntityType.<NAME> to EntityType.java
+2. If new State class: create network/<Name>State.java with toMap()/fromMap()
+3. Update GameSimulator.buildSnapshot() to include entities of the new type
+4. DeltaEncoder:
+   — delta-encoded: add checksum Map<String,Long> and changed/removed lists
+   — always-sent: add to the always-serialized block (alongside shurikens/platforms)
+5. Update WorldGraph.collectGroundPositions() exclusion list if needed
+6. Python parity: create entities/<name>.py with matching field names
+7. Add @Test in GameSimulatorTest: zone with one <NAME> entity → tick 10 → assert in snapshot
+8. Add @Test in DeltaEncoderTest: delta/always-sent contract verified
+9. If persistent: write SQL migration for entity_state table or player_progress column
+10. Commit: "feat(ecs): add EntityType.<NAME>"
+
+Constraints:
+- State class toMap() keys must be snake_case for Python parity
+- If delta-encoded: reset() must include the new checksum map (verify in DeltaEncoderTest)
+```

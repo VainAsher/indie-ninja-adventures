@@ -395,10 +395,10 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 ### Milestone 2 — In-Process Solo Mode (v0.11.0, same release)
 *The entire game must be playable without a running server.*
 
-- [ ] `ModeSelectScreen`: add "Solo" option
-- [ ] `GameScreen`: offline path — local `GameSimulator`, no `NetworkClientThread`
-- [ ] Input fed directly to local sim; `WorldSnapshot` assembled locally
-- [ ] Solo and multiplayer share the same rendering pipeline
+- [x] `ModeSelectScreen`: add "Solo" option (4th card, purple, passes `"solo"` gameMode)
+- [x] `GameScreen`: offline path — local `GameSimulator`, no `NetworkClientThread`
+- [x] Input fed directly to local sim via `sim.step(Map.of(0, cmd))`; `WorldSnapshot` pushed to `GameStateBuffer`
+- [x] Solo and multiplayer share the same rendering pipeline (single-room tile fallback + `stampSoloFields`)
 
 **Deliverable:** Can start a game with no server. Multiplayer remains unchanged.
 

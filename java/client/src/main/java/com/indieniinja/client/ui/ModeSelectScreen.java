@@ -26,17 +26,19 @@ import com.indieniinja.client.NinjaGameClient;
  */
 public final class ModeSelectScreen implements Screen {
 
-    private static final String[] MODE_IDS    = {"arcade", "campaign", "sandbox"};
-    private static final String[] MODE_NAMES  = {"ARCADE", "CAMPAIGN", "SANDBOX"};
+    private static final String[] MODE_IDS    = {"arcade", "campaign", "solo", "sandbox"};
+    private static final String[] MODE_NAMES  = {"ARCADE", "CAMPAIGN", "SOLO", "SANDBOX"};
     private static final String[] MODE_DESC   = {
         "Endless procedural dungeons.\nScore points, go deeper.\nNo story — pure action.",
         "Story-driven progression.\nMissions, hub worlds,\nability gates & lore.",
+        "Play offline — no server.\nLocal simulation, full game.\nPerfect for development.",
         "Freeform play.\nAll abilities unlocked.\n500g starter currency."
     };
     private static final Color[] MODE_COLORS = {
-        new Color(0.20f, 0.75f, 0.45f, 1f),  // arcade = green
-        new Color(0.35f, 0.55f, 1.00f, 1f),  // campaign = blue
-        new Color(0.95f, 0.70f, 0.20f, 1f),  // sandbox = gold
+        new Color(0.20f, 0.75f, 0.45f, 1f),  // arcade    = green
+        new Color(0.35f, 0.55f, 1.00f, 1f),  // campaign  = blue
+        new Color(0.80f, 0.35f, 0.90f, 1f),  // solo      = purple
+        new Color(0.95f, 0.70f, 0.20f, 1f),  // sandbox   = gold
     };
 
     // Card layout
@@ -85,8 +87,8 @@ public final class ModeSelectScreen implements Screen {
         Gdx.gl.glClearColor(UiStyle.BG.r, UiStyle.BG.g, UiStyle.BG.b, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Total width for 3 cards
-        float totalW = CARD_W * 3 + CARD_GAP * 2;
+        // Total width for 4 cards
+        float totalW = CARD_W * 4 + CARD_GAP * 3;
         float startX = (sw - totalW) * 0.5f;
         float cardY  = sh * 0.5f - CARD_H * 0.5f - 20f;
 
@@ -94,7 +96,7 @@ public final class ModeSelectScreen implements Screen {
         shapes.getProjectionMatrix().setToOrtho2D(0, 0, sw, sh);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             float x = startX + i * (CARD_W + CARD_GAP);
             boolean sel = (i == selectedIndex);
 
@@ -114,7 +116,7 @@ public final class ModeSelectScreen implements Screen {
         shapes.end();
 
         shapes.begin(ShapeRenderer.ShapeType.Line);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             float x = startX + i * (CARD_W + CARD_GAP);
             boolean sel = (i == selectedIndex);
             shapes.setColor(sel ? MODE_COLORS[i] : new Color(0.3f, 0.3f, 0.4f, 1f));
@@ -131,7 +133,7 @@ public final class ModeSelectScreen implements Screen {
         fontLarge.draw(batch, "SELECT  GAME  MODE",
             sw * 0.5f - 140f, sh * 0.5f + CARD_H * 0.5f + 60f);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             float x = startX + i * (CARD_W + CARD_GAP);
             boolean sel = (i == selectedIndex);
 
@@ -166,7 +168,7 @@ public final class ModeSelectScreen implements Screen {
         // ── Mouse hover detection ─────────────────────────────────────────────
         float mx = Gdx.input.getX();
         float my = sh - Gdx.input.getY();  // flip Y (libGDX Y-up)
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             float cx = startX + i * (CARD_W + CARD_GAP);
             if (mx >= cx && mx <= cx + CARD_W && my >= cardY && my <= cardY + CARD_H) {
                 if (Gdx.input.justTouched()) {
@@ -197,9 +199,9 @@ public final class ModeSelectScreen implements Screen {
 
     private void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)  || Gdx.input.isKeyJustPressed(Input.Keys.A))
-            selectedIndex = (selectedIndex + 2) % 3;
+            selectedIndex = (selectedIndex + 3) % 4;
         if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D))
-            selectedIndex = (selectedIndex + 1) % 3;
+            selectedIndex = (selectedIndex + 1) % 4;
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE))
             confirmMode();
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
