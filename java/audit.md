@@ -157,13 +157,13 @@ This document is a regression-proof foundation audit of the Java 2D procedural m
 | # | Issue | Risk |
 |---|-------|------|
 | NET-1 | **Phase B player positions are server-authoritative but `PlayerRecord.posX/Y` is still read at spawn.** Comment says "explicitSpawnSet" for room-crossing players. If `explicitSpawnSet` is not set before first tick, new players spawn at `pr.posX/pr.posY` (default 0,0). | Medium |
-| NET-2 | **`DeltaEncoder` checksums are in-memory only.** Server restart loses all checksums → forced full snapshot on reconnect (acceptable), but a Redis-backed checksum store would allow zero-gap reconnects. | Low |
-| NET-3 | **`Long.valueOf(cs).equals(enemyChecksums.get(id))` boxes a primitive Long every enemy per tick.** Should be `enemyChecksums.getOrDefault(id, -1L) != cs` — avoids autoboxing on the hot path. | Low |
+| ~~NET-2~~ | ~~**`DeltaEncoder` checksums are in-memory only.**~~ **FIXED v0.10.79** — `ZoneStateCache` persists full snapshots to Redis (`zone:{hubId}:state`, 5-min TTL); reconnecting clients receive cached state via `bootstrapLateJoiner`. | ~~Low~~ |
+| ~~NET-3~~ | ~~**`Long.valueOf(cs).equals(...)` boxes a primitive Long every enemy per tick.**~~ **FIXED v0.10.79** — replaced with `getOrDefault(id, Long.MIN_VALUE) != cs` in all 3 `DeltaEncoder` hot paths. | ~~Low~~ |
 | NET-4 | **No delta encoding for NPCs or bosses.** Both are always serialized in full. If NPC count is large (shops + puzzle NPCs + overflow), this adds unnecessary bandwidth every broadcast tick. | Medium |
 | NET-5 | **`InventoryState` not delta-encoded.** Full 20-slot array serialized on every player state update regardless of whether inventory changed. | Low |
-| NET-6 | **`WorldSnapshot.toMap()` key ordering is critical for Python byte-parity.** Comment explicitly notes this. If a Python-side field is added and Java isn't updated, byte-identical encoding breaks silently — no schema version guard exists. | High |
-| NET-7 | **No desync detection.** There's no frame-hash or authoritative-state checksum that clients can compare to detect divergence. Replay (`InputRecorder`) captures inputs but not divergence events. | High |
-| NET-8 | **No Redis integration for authoritative world state.** The `ZoneInstance` sim state (entity positions, health, puzzle state) exists only in JVM memory. Crash = full state loss. | High |
+| ~~NET-6~~ | ~~**No schema version guard.**~~ **FIXED v0.10.79** — `WorldSnapshot.schemaVersion` (= `SCHEMA_VERSION = 1`) stamped on every snapshot; `fromMap`/`toMap` round-trips it. | ~~High~~ |
+| ~~NET-7~~ | ~~**No desync detection.**~~ **FIXED v0.10.79** — `WorldSnapshot.frameHash` (CRC32 over enemies/pickups/players) computed by `ZoneSimulationLoop.computeFrameHash()` and stamped each frame. 15 regression tests in `NetworkingDesyncTest`. | ~~High~~ |
+| ~~NET-8~~ | ~~**No Redis integration for authoritative world state.**~~ **FIXED v0.10.79** — `ZoneStateCache` writes full snapshots to Redis on every `FULL_SNAPSHOT_EVERY` broadcast. Enable with `-Dredis.host=<host>`. | ~~High~~ |
 
 ### Recommendations
 - Add a `WorldSnapshot.schemaVersion` field (integer, default 1) and validate on both sides. Increment when fields are added.
@@ -313,14 +313,14 @@ Use this checklist whenever adding a new traversal ability, combat system, proce
 | **Critical** | INV-5 | `craft_iron_from_coin` coin/currency split — recipe silently fails | `RecipeBook.java`, `SimInventory.java` |
 | **Critical** | WORLD-3 | No PostgreSQL persistence — world graph regenerates on restart | `WorldGraph.java`, `ZoneSimulationLoop.java` |
 | **Critical** | INV-3 | No inventory persistence — player progress lost on restart | `SimInventory.java` |
-| **High** | NET-7 | No desync detection — diverged client state invisible to server | `WorldSnapshot.java`, `ZoneSimulationLoop.java` |
-| **High** | NET-6 | No schema version guard — Python/Java wire format can silently diverge | `WorldSnapshot.java` |
+| ~~**High**~~ | ~~NET-7~~ | ~~No desync detection~~ — **DONE v0.10.79** `frameHash` + `NetworkingDesyncTest` | |
+| ~~**High**~~ | ~~NET-6~~ | ~~No schema version guard~~ — **DONE v0.10.79** `WorldSnapshot.schemaVersion` | |
 | **High** | WORLD-1 | No looping rooms — Metroidvania backtrack loops impossible | `WorldGraph.java` |
 | **High** | INV-1/2 | `ItemDatabase`/`RecipeBook` hardcoded — can't add items without recompile | `ItemDatabase.java`, `RecipeBook.java` |
 | **Medium** | PHYS-1 | `CollisionSystem` imports `WorldGenerator` — physics/world coupling | `CollisionSystem.java` |
 | **Medium** | PHYS-3 | No ability-gated medium traversal — all entities get water/ice effects | `CollisionSystem.java`, `PhysicsState.java` |
 | **Medium** | ECS-1 | No cache hook on entity spawn/destroy | `EntityManager.java` |
-| **Medium** | NET-3 | `Long.valueOf` boxing in `DeltaEncoder` hot path | `DeltaEncoder.java` |
+| ~~**Medium**~~ | ~~NET-3~~ | ~~`Long.valueOf` boxing in `DeltaEncoder` hot path~~ — **DONE v0.10.79** | |
 | **Low** | PHYS-4 | Multi-chunk `candidates()` allocates `ArrayList` | `SpatialHash.java` |
 | **Low** | ECS-3 | Tag index drift (`addTag` doesn't auto-index) | `Entity.java`, `EntityManager.java` |
 
