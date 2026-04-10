@@ -112,6 +112,11 @@ public final class SimInventory {
         return countItem(itemId) >= qty;
     }
 
+    /** Convenience: returns true if at least 1 of the item is present. */
+    public boolean hasItem(String itemId) {
+        return hasItem(itemId, 1);
+    }
+
     public int countItem(String itemId) {
         int total = 0;
         for (Slot s : slots) if (s != null && s.itemId().equals(itemId)) total += s.quantity();

@@ -79,6 +79,19 @@ public final class RecipeBook {
     /** All recipes in definition order. */
     public static List<CraftingRecipe> all() { return Collections.unmodifiableList(ALL); }
 
+    /**
+     * Replace the entire recipe registry at runtime (e.g. after loading from DB).
+     * Rebuilds both the ordered list and the by-id map atomically.
+     */
+    public static void reload(List<CraftingRecipe> recipes) {
+        BY_ID.clear();
+        ALL.clear();
+        for (CraftingRecipe r : recipes) {
+            BY_ID.put(r.recipeId, r);
+            ALL.add(r);
+        }
+    }
+
     /** Look up a recipe by ID, or null if unknown. */
     public static CraftingRecipe get(String recipeId) { return BY_ID.get(recipeId); }
 

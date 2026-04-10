@@ -32,7 +32,7 @@ public final class CraftingRecipe {
     /** Check whether the given inventory contains all ingredients. */
     public boolean canCraft(SimInventory inv) {
         for (Ingredient ing : ingredients) {
-            if (inv.countItem(ing.itemId()) < ing.count()) return false;
+            if (!hasEnough(inv, ing)) return false;
         }
         return true;
     }
@@ -43,8 +43,33 @@ public final class CraftingRecipe {
      */
     public boolean craft(SimInventory inv) {
         if (!canCraft(inv)) return false;
-        for (Ingredient ing : ingredients) inv.removeItem(ing.itemId(), ing.count());
+        for (Ingredient ing : ingredients) consume(inv, ing);
         inv.addItem(outputItemId, outputCount);
         return true;
+    }
+
+    // ── Currency-aware ingredient helpers ────────────────────────────────────
+
+    /**
+     * Returns true when the inventory holds enough of this ingredient.
+     * Coins are tracked in {@code SimInventory.currency}, not in slots.
+     */
+    private static boolean hasEnough(SimInventory inv, Ingredient ing) {
+        if ("coin".equals(ing.itemId())) {
+            return inv.currency >= ing.count();
+        }
+        return inv.countItem(ing.itemId()) >= ing.count();
+    }
+
+    /**
+     * Deduct one ingredient from the inventory.
+     * Coins are removed via {@link SimInventory#removeCurrency}.
+     */
+    private static void consume(SimInventory inv, Ingredient ing) {
+        if ("coin".equals(ing.itemId())) {
+            inv.removeCurrency(ing.count());
+        } else {
+            inv.removeItem(ing.itemId(), ing.count());
+        }
     }
 }

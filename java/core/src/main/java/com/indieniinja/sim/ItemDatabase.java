@@ -13,7 +13,7 @@ public final class ItemDatabase {
 
     public record ItemDef(
         String id,
-        String type,       // weapon, armor, consumable, material, currency, quest_item, key_item
+        String type,       // weapon, armor, consumable, material, currency, quest_item, key_item, ability
         String rarity,     // common, uncommon, rare, epic, legendary
         String name,
         String desc,
@@ -24,8 +24,17 @@ public final class ItemDatabase {
         int    defenseBonus,
         float  speedBonus,
         int    healthBonus,
-        int    healthRestore
-    ) {}
+        int    healthRestore,
+        String abilityId   // non-null only when type == "ability"
+    ) {
+        /** Backwards-compat factory: no abilityId (non-ability items). */
+        public static ItemDef of(String id, String type, String rarity, String name, String desc,
+                                 int maxStack, int value, boolean consumable,
+                                 int atk, int def, float spd, int hp, int restore) {
+            return new ItemDef(id, type, rarity, name, desc,
+                               maxStack, value, consumable, atk, def, spd, hp, restore, null);
+        }
+    }
 
     private static final Map<String, ItemDef> ITEMS = new HashMap<>();
 
@@ -62,13 +71,38 @@ public final class ItemDatabase {
         reg("material_iron",        "material",   "common",    "Iron Ingot",       "Raw iron for crafting.",                  99,  5, false, 0, 0, 0f, 0, 0);
         reg("material_crystal",     "material",   "rare",      "Crystal Shard",    "Magical crystal fragment.",               99, 20, false, 0, 0, 0f, 0, 0);
         reg("material_dark_essence","material",   "epic",      "Dark Essence",     "Essence from the shadow realm.",          99, 60, false, 0, 0, 0f, 0, 0);
+
+        // ── Ability items (traversal unlocks) ─────────────────────────────────────
+        regAbility("ability_double_jump", "uncommon", "Double Jump Scroll",  "Grants the power of double jump.",       "double_jump");
+        regAbility("ability_dash",        "uncommon", "Dash Talisman",       "Grants the power of dash.",              "dash");
+        regAbility("ability_wall_jump",   "rare",     "Wall Jump Charm",     "Grants the power of wall jump.",         "wall_jump");
+        regAbility("ability_shuriken",    "rare",     "Shuriken Scroll",     "Grants the power to throw shurikens.",   "shuriken");
+        regAbility("ability_teleport",    "epic",     "Teleport Crystal",    "Grants the power of teleportation.",     "teleport");
+        regAbility("ability_ninjutsu",    "legendary","Ninjutsu Tome",       "Grants mastery of ninjutsu.",            "ninjutsu");
     }
 
     private static void reg(String id, String type, String rarity, String name, String desc,
                              int stack, int value, boolean consumable,
                              int atk, int def, float spd, int hp, int restore) {
-        ITEMS.put(id, new ItemDef(id, type, rarity, name, desc,
-                                  stack, value, consumable, atk, def, spd, hp, restore));
+        ITEMS.put(id, ItemDef.of(id, type, rarity, name, desc,
+                                 stack, value, consumable, atk, def, spd, hp, restore));
+    }
+
+    /** Register an ability item. abilityId must match the string used in SimPlayer.unlockedAbilities. */
+    private static void regAbility(String id, String rarity, String name, String desc, String abilityId) {
+        ITEMS.put(id, new ItemDef(id, "ability", rarity, name, desc,
+                                  1, 0, false, 0, 0, 0f, 0, 0, abilityId));
+    }
+
+    /**
+     * Replace the entire item map at runtime (e.g. after loading from DB).
+     * Thread-safe: builds a new map then swaps the reference.
+     */
+    public static void reload(java.util.Collection<ItemDef> defs) {
+        Map<String, ItemDef> fresh = new HashMap<>(defs.size() * 2);
+        for (ItemDef d : defs) fresh.put(d.id(), d);
+        ITEMS.clear();
+        ITEMS.putAll(fresh);
     }
 
     public static ItemDef get(String id) {
@@ -77,6 +111,10 @@ public final class ItemDatabase {
 
     public static Collection<String> allIds() {
         return ITEMS.keySet();
+    }
+
+    public static java.util.Collection<ItemDef> allDefs() {
+        return ITEMS.values();
     }
 
     /** Price multiplier by rarity (mirrors Python RARITY_PRICE_MULTIPLIERS). */
