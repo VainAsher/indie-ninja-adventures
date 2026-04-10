@@ -25,6 +25,14 @@ public final class GameSession {
     /** Game mode for this session — set from the first CLIENT_HELLO. */
     public volatile GameMode gameMode = GameMode.ARCADE;
 
+    /**
+     * Zone state cache — stores the most recent full snapshot for each hub so
+     * reconnecting clients receive authoritative world state immediately.
+     * Initialized to a disabled (null-pool) instance; replaced by NinjaGameServer
+     * if Redis is configured via -Dredis.host / -Dredis.port.
+     */
+    public ZoneStateCache zoneStateCache = new ZoneStateCache(null);
+
     /** Connected players, keyed by playerId. Thread-safe map. */
     public final Map<String, PlayerRecord> players = new ConcurrentHashMap<>();
 

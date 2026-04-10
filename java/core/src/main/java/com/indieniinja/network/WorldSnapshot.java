@@ -18,9 +18,25 @@ import java.util.Map;
  */
 public final class WorldSnapshot {
 
+    /** Wire-format schema version — bump when the snapshot map layout changes. */
+    public static final int SCHEMA_VERSION = 1;
+
     public long   frame;
     public long   seed;
     public boolean isDelta;
+
+    /**
+     * Schema version stamped on every snapshot so clients can reject frames
+     * encoded against an incompatible layout.
+     */
+    public int  schemaVersion = SCHEMA_VERSION;
+
+    /**
+     * CRC32 hash of the authoritative world state (enemies, pickups, players)
+     * at this frame.  Clients compute their own hash and compare; a mismatch
+     * signals a desync that should trigger a full-snapshot request.
+     */
+    public long frameHash = 0L;
 
     /** Grid coordinates of the room this snapshot describes (multi-room world). */
     public int    roomGridX = 0;
@@ -106,9 +122,11 @@ public final class WorldSnapshot {
     @SuppressWarnings("unchecked")
     public static WorldSnapshot fromMap(java.util.Map<String, Object> m) {
         WorldSnapshot s = new WorldSnapshot();
-        s.frame      = num(m, "frame",      0L);
-        s.seed       = num(m, "seed",       0L);
-        s.isDelta    = bool(m, "is_delta");
+        s.frame        = num(m, "frame",         0L);
+        s.seed         = num(m, "seed",          0L);
+        s.isDelta      = bool(m, "is_delta");
+        s.schemaVersion = (int) num(m, "schema_version", SCHEMA_VERSION);
+        s.frameHash    = num(m, "frame_hash",    0L);
         s.hubId       = str(m, "hub_id",     "");
         s.gameMode    = str(m, "game_mode",  "arcade");
         s.arcadeScore = (int) num(m, "arcade_score", 0L);
@@ -203,7 +221,9 @@ public final class WorldSnapshot {
      * Key order matches Python's WorldSnapshot.to_dict().
      */
     public Map<String, Object> toMap() {
-        Map<String, Object> m = new LinkedHashMap<>(18);
+        Map<String, Object> m = new LinkedHashMap<>(20);
+        m.put("schema_version", schemaVersion);
+        m.put("frame_hash",     frameHash);
         m.put("frame",       frame);
         m.put("seed",        seed);
         m.put("is_delta",    isDelta);

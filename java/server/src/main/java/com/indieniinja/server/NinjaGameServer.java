@@ -1,6 +1,8 @@
 package com.indieniinja.server;
 
 import com.indieniinja.network.WireCodec;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -57,7 +59,20 @@ public final class NinjaGameServer {
     }
 
     public static void run(int port, long seed) throws Exception {
-        GameSession            session = new GameSession(seed);
+        GameSession session = new GameSession(seed);
+
+        // Optional Redis — enable with -Dredis.host=<host> (default port 6379)
+        String redisHost = System.getProperty("redis.host");
+        if (redisHost != null && !redisHost.isBlank()) {
+            int redisPort = Integer.getInteger("redis.port", 6379);
+            JedisPoolConfig cfg = new JedisPoolConfig();
+            cfg.setMaxTotal(8);
+            cfg.setMaxIdle(4);
+            JedisPool pool = new JedisPool(cfg, redisHost, redisPort);
+            session.zoneStateCache = new ZoneStateCache(pool);
+            log.info("Redis zone-state cache enabled — {}:{}", redisHost, redisPort);
+        }
+
         ServerProtocolHandler  handler = new ServerProtocolHandler(session);
 
         EventLoopGroup bossGroup   = new NioEventLoopGroup(1);

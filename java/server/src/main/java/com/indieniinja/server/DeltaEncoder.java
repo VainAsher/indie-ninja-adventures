@@ -35,7 +35,7 @@ final class DeltaEncoder {
         List<EnemyState> changed = new ArrayList<>();
         for (EnemyState e : current) {
             long cs = checksumEnemy(e);
-            if (!Long.valueOf(cs).equals(enemyChecksums.get(e.enemyId))) {
+            if (enemyChecksums.getOrDefault(e.enemyId, Long.MIN_VALUE) != cs) {
                 enemyChecksums.put(e.enemyId, cs);
                 changed.add(e);
             }
@@ -60,7 +60,7 @@ final class DeltaEncoder {
         List<PickupState> changed = new ArrayList<>();
         for (PickupState p : current) {
             long cs = checksumPickup(p);
-            if (!Long.valueOf(cs).equals(pickupChecksums.get(p.pickupId))) {
+            if (pickupChecksums.getOrDefault(p.pickupId, Long.MIN_VALUE) != cs) {
                 pickupChecksums.put(p.pickupId, cs);
                 changed.add(p);
             }
@@ -85,7 +85,7 @@ final class DeltaEncoder {
         List<PlatformState> changed = new ArrayList<>();
         for (PlatformState p : current) {
             long cs = checksumPlatform(p);
-            if (!Long.valueOf(cs).equals(platformChecksums.get(p.platformId))) {
+            if (platformChecksums.getOrDefault(p.platformId, Long.MIN_VALUE) != cs) {
                 platformChecksums.put(p.platformId, cs);
                 changed.add(p);
             }

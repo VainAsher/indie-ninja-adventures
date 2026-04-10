@@ -70,7 +70,7 @@ public final class WireCodec {
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")
-    static void packMap(MessageBufferPacker p, Map<String, Object> map) throws IOException {
+    public static void packMap(MessageBufferPacker p, Map<String, Object> map) throws IOException {
         p.packMapHeader(map.size());
         for (Map.Entry<String, Object> e : map.entrySet()) {
             p.packString(e.getKey());
@@ -97,7 +97,7 @@ public final class WireCodec {
         }
     }
 
-    static Map<String, Object> unpackMap(MessageUnpacker u) throws IOException {
+    public static Map<String, Object> unpackMap(MessageUnpacker u) throws IOException {
         int size = u.unpackMapHeader();
         Map<String, Object> map = new LinkedHashMap<>(size * 2);
         for (int i = 0; i < size; i++) {

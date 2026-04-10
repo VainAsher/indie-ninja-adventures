@@ -423,6 +423,20 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         } catch (Exception ex) {
             log.error("Late-join GAME_START error: {}", ex.getMessage());
         }
+
+        // Send cached full snapshot if available — client gets immediate world state
+        // instead of waiting up to ~3 s for the next full-snapshot interval.
+        Map<String, Object> cachedState = session.zoneStateCache.get(hub.hubId);
+        if (cachedState != null) {
+            try {
+                byte[] encoded = WireCodec.encodeBody(MessageType.WORLD_STATE, cachedState);
+                sendEncoded(channel, encoded);
+                log.debug("Late-join {} received cached zone state for hub '{}'",
+                    player.playerId, hub.hubId);
+            } catch (Exception ex) {
+                log.warn("Late-join cached state send error for {}: {}", player.playerId, ex.getMessage());
+            }
+        }
     }
 
     // ── Zone management ───────────────────────────────────────────────────────

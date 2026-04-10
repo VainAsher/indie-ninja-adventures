@@ -21,6 +21,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import java.util.concurrent.locks.LockSupport;
+import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -411,6 +412,11 @@ public final class ZoneSimulationLoop implements Runnable {
         WorldSnapshot snap = buildSnapshot(fullSnapshot, zonePlayers);
         Map<String, Object> payload = snap.toMap();
 
+        // Persist full snapshot to Redis so reconnecting clients get immediate state
+        if (fullSnapshot) {
+            session.zoneStateCache.put(zone.hubId, payload);
+        }
+
         byte[] encoded;
         try {
             encoded = WireCodec.encodeBody(MessageType.WORLD_STATE, payload);
@@ -469,6 +475,10 @@ public final class ZoneSimulationLoop implements Runnable {
             }
         }
 
+        // Compute frameHash over the full authoritative state (before delta encoding)
+        // so clients can detect desync by comparing with their local simulation hash.
+        snap.frameHash = computeFrameHash(snap);
+
         if (!full) {
             // Swap full lists with delta lists computed by DeltaEncoder
             List<EnemyState>    allEnemies   = snap.enemies;
@@ -513,6 +523,40 @@ public final class ZoneSimulationLoop implements Runnable {
             snap.players.add(ps);
         }
         return snap;
+    }
+
+    /**
+     * CRC32 hash of the authoritative world state at this frame.
+     * Covers enemy positions/hp, pickup liveness, and player positions —
+     * enough for clients to detect a simulation desync without hashing every field.
+     * Package-private so NetworkingDesyncTest can call it directly.
+     */
+    static long computeFrameHash(WorldSnapshot snap) {
+        CRC32 crc = new CRC32();
+        for (EnemyState e : snap.enemies) {
+            updateCrcFloat(crc, e.x);
+            updateCrcFloat(crc, e.y);
+            crc.update(e.hp);
+        }
+        for (PickupState p : snap.pickups) {
+            updateCrcFloat(crc, p.x);
+            updateCrcFloat(crc, p.y);
+            crc.update(p.alive ? 1 : 0);
+        }
+        for (PlayerState p : snap.players) {
+            updateCrcFloat(crc, p.posX);
+            updateCrcFloat(crc, p.posY);
+            crc.update(p.health);
+        }
+        return crc.getValue();
+    }
+
+    private static void updateCrcFloat(CRC32 crc, float v) {
+        int bits = Float.floatToRawIntBits(v);
+        crc.update((bits >>> 24) & 0xFF);
+        crc.update((bits >>> 16) & 0xFF);
+        crc.update((bits >>>  8) & 0xFF);
+        crc.update(bits          & 0xFF);
     }
 
     private List<PlayerRecord> playersInZone() {
