@@ -77,9 +77,11 @@ public final class RoomTileCache {
     /**
      * Build the Redis key as UTF-8 bytes.
      * Neighbor dirs are sorted so key is direction-order-independent.
+     *
+     * Package-private to allow direct testing of key normalization.
      */
-    private static byte[] buildKey(long seed, String roomType,
-                                    Collection<String> neighborDirs) {
+    static byte[] buildKey(long seed, String roomType,
+                            Collection<String> neighborDirs) {
         String dirs = new TreeSet<>(neighborDirs).stream()
                 .collect(Collectors.joining(","));
         String key = KEY_PREFIX + seed + ":" + roomType + ":" + dirs;
