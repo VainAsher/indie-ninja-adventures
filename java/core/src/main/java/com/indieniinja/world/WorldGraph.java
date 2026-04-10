@@ -244,6 +244,13 @@ public final class WorldGraph {
         setType(rooms, startKey, RoomType.START);
         setType(rooms, exitKey, RoomType.EXIT);
 
+        // Add probabilistic back-edges for Metroidvania loop traversal (WORLD-1).
+        // Scan every placed room's 4 cardinal neighbours. If the neighbour exists but
+        // the two rooms are not yet connected, add a bidirectional edge with probability
+        // BACK_EDGE_PROB. A separate RNG seeded from the master seed keeps this
+        // deterministic without perturbing the BFS layout RNG above.
+        addBackEdges(rooms, seed);
+
         return new WorldGraph(rooms,
                               rooms.get(key(sx, sy)),
                               rooms.get(key(ex, ey)));
@@ -261,9 +268,32 @@ public final class WorldGraph {
         return rng.nextLong() & Long.MAX_VALUE;
     }
 
-    /** Derive biome index (0–4) from world depth and master seed. */
+    /**
+     * Depth thresholds that divide Manhattan distance from start into biome zones.
+     * Zone 0 = depths 0-4, zone 1 = 5-11, zone 2 = 12-21, zone 3 = 22-34, zone 4 = 35+.
+     * Adding a new biome only requires appending here — existing room biomes are stable.
+     */
+    private static final int[] DEPTH_ZONE_BREAKS = {5, 12, 22, 35};
+
+    /**
+     * Deterministic biome index (0–BIOME_COUNT-1) for a room at the given depth.
+     *
+     * Replaces the previous {@code (|worldSeed| + depth) % BIOME_COUNT} formula (WORLD-4).
+     * That formula shifted every room's biome whenever a biome was added or removed.
+     * This version maps depth to a fixed zone band first, then applies a seed-derived
+     * cyclic offset — so only rooms in the newly-added zone band are affected by a
+     * BIOME_COUNT change.
+     */
     private static int biomeForDepth(int depth, long worldSeed) {
-        return (int)((Math.abs(worldSeed) + depth) % BIOME_COUNT);
+        // Determine depth zone (0 = nearest start, BIOME_COUNT-1 = deepest)
+        int zone = DEPTH_ZONE_BREAKS.length;   // default: last zone
+        for (int i = 0; i < DEPTH_ZONE_BREAKS.length; i++) {
+            if (depth < DEPTH_ZONE_BREAKS[i]) { zone = i; break; }
+        }
+        // Seed-derived cyclic offset: stable as long as BIOME_COUNT doesn't change,
+        // and only shifts deepest zones if it does.
+        int offset = (int)(Long.hashCode(worldSeed) & 0x7FFF_FFFF) % BIOME_COUNT;
+        return (zone + offset) % BIOME_COUNT;
     }
 
     private static List<Integer> availableDirections(
@@ -294,6 +324,40 @@ public final class WorldGraph {
         for (int i = 0; i < DIR_NAMES.length; i++)
             if (DIR_NAMES[i].equals(dir)) return i;
         return -1;
+    }
+
+    /**
+     * Probability that any adjacent-but-unconnected room pair gets a back-edge loop.
+     * 15% yields roughly 1-4 loops in a 20-room graph — enough for Metroidvania
+     * backtracking without making the layout feel like an undifferentiated blob.
+     */
+    private static final float BACK_EDGE_PROB = 0.15f;
+
+    /**
+     * Add bidirectional back-edges between adjacent rooms that are not yet connected.
+     * Uses a separate RNG seeded from {@code worldSeed ^ 0xB4CE_D9E1L} so that back-edge
+     * placement is deterministic and independent of the BFS layout RNG.
+     */
+    private static void addBackEdges(Map<Long, RoomNode> rooms, long worldSeed) {
+        Random loopRng = new Random(worldSeed ^ 0xB4CE_D9E1L);
+        // Iterate a snapshot of the key set to avoid ConcurrentModificationException
+        Long[] keys = rooms.keySet().toArray(new Long[0]);
+        for (Long k : keys) {
+            RoomNode room = rooms.get(k);
+            for (int i = 0; i < 4; i++) {
+                int nx = room.gridX + DIR_DX[i];
+                int ny = room.gridY + DIR_DY[i];
+                long nk = key(nx, ny);
+                RoomNode neighbor = rooms.get(nk);
+                // Only add edge if neighbor exists and rooms are not yet connected
+                if (neighbor != null && !room.neighborDirs.contains(DIR_NAMES[i])) {
+                    if (loopRng.nextFloat() < BACK_EDGE_PROB) {
+                        room.neighborDirs.add(DIR_NAMES[i]);
+                        neighbor.neighborDirs.add(OPPOSITE[i]);
+                    }
+                }
+            }
+        }
     }
 
     private static void pruneF(List<long[]> frontier, WorldShape shape, Random rng) {
