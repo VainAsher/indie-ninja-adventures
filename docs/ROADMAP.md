@@ -1,214 +1,140 @@
 # Development Roadmap
 
-Vain Asher Gaming's: Indie Ninja Adventures
+Vain Asher Gaming's: **Shadow Ascent: The Hollowed Ninja**
 
-Last Updated: 2026-03-30 | Version: 0.8.0 | Status: Milestones 0–2 complete; M3 partial; Phase 3a complete
+Last Updated: 2026-04-10 | Version: v0.10.84 | Platform: Java 21 + libGDX + Netty
 
 ---
 
 ## Vision
 
-A fast-paced, skill-based 2D ninja platformer with:
-
-- Tight, responsive controls and deep movement mechanics
-- Story-driven campaign with progression, NPCs, and ability unlocks
-- Procedural world generation across 7 biome themes
-- Deterministic physics supporting replay and — ultimately — networking
-- Online multiplayer distributed via a custom launcher
-
-The launcher end goal: players download and verify client, server, and mod bundles from GitHub, with version parity enforced so mismatched builds cannot connect.
+A narrative-driven single-player Metroidvania where a hollowed ninja climbs a fractured spirit world.  
+Seven acts. Four bosses. Yin/Yang emotional mechanics. A hub that breathes, corrupts, and recovers.  
+Optional co-op overlay once single-player is complete.
 
 ---
 
-## Current State (v0.7.x)
+## Technology (as of v0.10.84)
 
-The codebase has grown from ~50 files (Dec 2025) to 120+ files. Most systems described as "next steps" in the original Dec 2025 handover are now implemented and wired.
+The project completed a full Java rewrite in 6 days (Apr 4–10 2026). The Python prototype (v0.7–v0.9) proved the game loop and is archived. All active development is on the Java stack.
 
-### What works
+| Component | Choice |
+| --------- | ------ |
+| Language | Java 21 |
+| Client | libGDX (desktop, OpenGL) |
+| Server | Netty (authoritative, 60 Hz) |
+| ECS | Custom (`EntityManager`, `EventBus`) |
+| Physics | Custom AABB swept, `SpatialHash` |
+| Protocol | msgpack + `WireCodec` + delta encoding |
+| Persistence | PostgreSQL (HikariCP + Jackson JSONB) |
+| Cache | Redis (zone state, room tiles, items) |
+| Build | Gradle multi-module (`:core`/`:server`/`:client`) |
+| Tests | JUnit 5 + AssertJ (13 test files) |
 
-| System | Status |
-| --- | --- |
-| Core infrastructure (event bus, clock, state, entity system, mod system) | Done |
-| Collision + physics (AABB, swept, platforms, corners) | Done |
-| Player mechanics (movement, jump, dash, crouch, wall slide, combat, shuriken, teleport, ninjutsu) | Done |
-| Procedural world generation — 7 biomes (dungeon, cave, building, forest, town, sewer, hollow) | Done |
-| Enemies (goblin, bat, slime, skeleton, wolf) + enemy AI | Done |
-| Hazards (spikes, lava, poison, void) | Done |
-| Campaign system (6 regions, 30 missions, ability gates, NPC dialogue) | Done |
-| Mission objectives + objective tracker + exit unlock | Done |
-| Inventory, trading, loot systems | Done |
-| Story manager + dialogue system + cutscene manager | Done |
-| Save system (JSON persistence) | Done |
-| Animation state machine (sprite sheets, autotiling) | Done |
-| HUD (health, objectives, minimap, full map overlay) | Done |
-| Victory screen, pause menu, settings menu | Done |
-| Input pipeline (command pattern, record/replay) | Done |
-| Camera (world clamp, room clamp, free; letterboxing) | Done |
-| Particle system (dust, dash, impact) | Done |
-
-### Recently completed (2026-03-28)
-
-| System | Status |
-| --- | --- |
-| Boss encounters | ✅ BossManager wired; 6 boss missions in campaign; gate enforcement active |
-| Audio SFX | ✅ AudioManager + pygame.mixer wired; 12 SFX events hooked throughout game loop |
-| Key binding settings | ✅ Settings strings → pygame constants → Player.set_key_bindings() live |
-| Ability gate enforcement | ✅ sync_player_abilities() + _rebuild_hub_gates() wired |
-| Fullscreen toggle | ✅ camera.handle_resize() called post-toggle (crash fixed) |
-| Portal height gating | ✅ Forest portal at floor level (basic jump); Town portal elevated (double_jump) |
-
-### Still not implemented
-
-| System | Status |
-| --- | --- |
-| Boss AI behaviour | Framework + 6 types exist; no AI patterns, no phase transitions |
-| Music / BGM | AudioManager supports it; not implemented |
-| Gamepad support | Not started |
+Architecture reference: [docs/dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md)
 
 ---
 
-## Milestone 0: Stabilization ✅ COMPLETE
+## Milestone 1 — Foundation Close (v0.10.84) ✅ COMPLETE
 
-All six Phase 0 bugs fixed. Docs aligned to v0.7.x reality.
+*Physics regression-proof. Version numbers honest. No known correctness bugs.*
 
-| Bug | Fix |
-| --- | --- |
-| Sprite flip during attack combos | Wall inversion guarded behind attack-state check |
-| Hurt animation freezes on last frame | `loop=True` (matches i-frame duration) |
-| Jump/fall frame indices swapped | Corrected in animation system |
-| Victory screen never triggers | `level_complete = True` on mission completion |
-| Respawn without full health | `player.damage.respawn()` inside `regenerate_hub_for_respawn()` |
-| Completing missions doesn't unlock further missions | `mission_def.unlock_abilities` written on completion |
-
-**Outstanding M0 item**: UAT result columns in `UAT_SUITE.md` still blank. Run a manual playtest pass to fill them in.
+- [x] `CollisionEdgeCaseTest`: lava ceiling contact + swept tunnel prevention
+- [x] `version.json` and `build.gradle.kts` in sync at v0.10.83 / v0.10.84
+- [x] NET-1: removed `zone.spawnX != 0` fallback (grid-0,0 rooms no longer spawn at wrong position)
 
 ---
 
-## Milestone 1: Progression and Encounters ✅ COMPLETE
+## Milestone 2 — In-Process Solo Mode (v0.11.0) 🔶 NEXT
 
-BossManager wired into game loop. 6 boss missions added to `data/missions.json`. `_rebuild_hub_gates()` enforces ability gates in hub portals. `sync_player_abilities()` restricts mechanics to earned abilities on campaign start and each unlock.
+*Entire game playable without a running server.*
 
-**Outstanding M1 item**: Boss AI behaviour not implemented. Boss spawns in boss missions but has no attack patterns or phase transitions. The `entities/boss_ai.py` framework exists and needs implementation.
+- [ ] `ModeSelectScreen`: add "Solo" option
+- [ ] `GameScreen`: offline path — local `GameSimulator`, no `NetworkClientThread`
+- [ ] Input feeds directly to local `sim.step()` each render frame
+- [ ] `WorldSnapshot` assembled locally; same rendering pipeline as multiplayer
 
----
-
-## Milestone 2: Audio and Presentation ✅ COMPLETE (SFX)
-
-`audio/audio_manager.py` wraps `pygame.mixer`. 12 SFX events wired throughout game loop (combat, movement, pickups, UI). SFX Volume cycling in SettingsMenu persists via `GameSettings.save()`. 12 placeholder WAV files in `assets/audio/sfx/` (replace with real audio).
-
-**Outstanding M2 item**: Music / BGM not implemented. The AudioManager has capacity for it; needs BGM files and loop wiring.
+**Deliverable:** Can start a game with no server. Multiplayer untouched.
 
 ---
 
-## Milestone 3: Controls and Accessibility 🔶 PARTIAL
+## Milestone 3 — Hub Evolution (v0.11.1)
 
-Key bindings, fullscreen, sfx_volume, and show_hitboxes all wired via `apply_runtime_settings()`. Settings persist.
+*The hub breathes. NPCs appear and disappear. Acts I–II playable.*
 
-**Outstanding M3 items**:
-
-- Gamepad support (pygame.joystick not integrated)
-- Accessibility toggles (text size, high contrast, reduce motion)
-
----
-
-## Infrastructure (v0.8.0) ✅ COMPLETE
-
-4-repo pipeline architecture and structured feedback workloop. See [docs/workflow/](workflow/) for
-sprint, branching, and release processes.
-
-| Repo | Status |
-|------|--------|
-| `VainAsher/indie-ninja-launcher` (public) | Scaffold ready — create repo |
-| `VainAsher/indie-ninja-adventures` (private) | Active — this repo |
-| `VainAsher/indie-ninja-feedback` (public) | Scaffold ready — create repo |
-| `VainAsher/indie-ninja-pipeline` (private) | Scaffold ready — create repo |
-
-One-time setup: see "One-Time Setup Actions" section in `docs/repo-scaffolds/pipeline-repo/README.md`.
+- [ ] `HubState.java` + `HubStateMachine.java`
+- [ ] `HubRegistry` stores `HubStateMachine` per hub; NPC presence driven by `activeNpcIds()`
+- [ ] `WorldSnapshot.hubState` field; `Act.java` FSM (Acts I–II)
+- [ ] Hub 1 (Bamboo Courtyard): FULL / CORRUPTED / EMPTY with NPC rosters
+- [ ] `player_progress` table with `hub_state JSONB`
 
 ---
 
-## Long-Horizon Goals
+## Milestone 4 — Yin/Yang & Lantern (v0.11.2)
 
-### Multiplayer (Phase 3b+)
+*Core emotional mechanics functional and visible.*
 
-- Phase 3b: Client-side prediction + server reconciliation
-- Phase 3c: Lag compensation, rollback netcode
-- Co-op and versus modes
-- Version parity enforcement (mismatched builds cannot connect)
-
-### Custom Launcher (v1.x)
-
-- Mod browser, installation, and activation
-- Platform targets: Windows primary; macOS/Linux stretch
-- Launcher repo: `VainAsher/indie-ninja-launcher`
-
-### Advanced Features (Backlog)
-
-- In-game level editor
-- Procedural daily challenges with seeds and leaderboards
-- Ghost replay recording/playback for speedrunning
-- Advanced world variety and boss patterns
+- [ ] `YinYangComponent` + `LanternComponent` (server effects + client rendering)
+- [ ] `HudRenderer` Yin/Yang bar + Lantern meter
+- [ ] `ChunkRenderer` vignette; `EntityRenderer` hidden-platform reveal pass
+- [ ] Fragment items placed by `EntityPlanner`; Siren scripted-loss wired
 
 ---
 
-## Testing and QA
+## Milestone 5 — Boss AI (v0.11.3)
 
-See `tests/` for the current test suite.
+*Four bosses with distinct psychological patterns.*
 
-### Running Tests
-
-```bash
-python -m pytest tests/ -q          # all tests
-python -m pytest tests/unit/ -q     # unit tests only
-python -m pytest tests/ -x -q       # stop on first failure
-```
-
-### UAT Coverage (to be written in Milestone 0 Phase 1)
-
-- Campaign loop: mission start → complete → victory screen → hub return
-- Mission unlock chain: complete `forest_1` → `double_jump` unlocked → `forest_2` available
-- Respawn: die in mission → return to hub with full health
-- Animation: hurt loops during i-frames, jump/fall frames correct, no flip during attack
-- Boss encounter: XFAIL (pending Milestone 1)
-- Ability gate: XFAIL (pending Milestone 1)
-- SFX on hit/death/pickup: XFAIL (pending Milestone 2)
+- [ ] Siren of the Veiled Vale: `SCRIPTED_LOSS` → Yin/Yang → 0 → hub EMPTY
+- [ ] Echo Warden: mirror movement 0.5 s delay
+- [ ] Time Leech Lord: Lantern drain + speed burst
+- [ ] Memory Eater: platform reset + door unlock erasure
 
 ---
 
-## Technical Notes
+## Milestone 6 — Echo System & Puzzles (v0.11.4)
 
-### Build
+*Solo play feels co-op through echoes.*
 
-```bash
-# Windows production build (from build/ directory)
-python build.py
-```
-
-**Preflight**: Close OneDrive sync and pause antivirus before building. Both can lock the output EXE and cause PyInstaller to fail with a permissions error.
-
-### Key Entry Points
-
-| File | Purpose |
-| --- | --- |
-| [demo_game.py](../demo_game.py) | Main executable |
-| [game/game_initialization.py](../game/game_initialization.py) | All managers wired here |
-| [data/missions.json](../data/missions.json) | Mission definitions |
-| [assets/biomes/](../assets/biomes/) | Tile assets per biome |
+- [ ] `EchoRecorder` (600-tick ring buffer) + `SimEcho` (`ReplayPlayer`-driven)
+- [ ] Puzzle archetypes: Asymmetric Ability Lock, Simultaneous Timing
+- [ ] Proof token mechanic (`RoomType.LABYRINTH`, `TOKEN_GATE`)
 
 ---
 
-## Risk Register
+## Milestone 7 — Full Narrative Arc (v0.11.5)
 
-| Risk | Severity | Status |
-| --- | --- | --- |
-| Boss AI not implemented | HIGH | Active — framework exists; needs AI patterns |
-| Music / BGM absent | MEDIUM | Active — AudioManager ready; needs BGM files |
-| Gamepad not supported | MEDIUM | Active — no joystick integration |
-| UAT results blank | MEDIUM | Active — needs manual playtest pass |
-| Build lock (OneDrive/antivirus) | MEDIUM | Mitigated — preflight note in `build/` |
-| Shuriken collision box always visible | LOW | Backlog |
-| Raycast test known failure | LOW | Pre-existing; low impact |
+*7-act emotional arc playable end-to-end.*
+
+- [ ] Full `Act.java` FSM — all 7 acts with `hudAlpha` and `lanternDefault`
+- [ ] Act IV: near-invisible HUD, 0.7× gravity, restricted movement
+- [ ] Act V: gradual mechanical restoration
+- [ ] Hub 2 (Chasm of Still Shadows): FRACTURED → RECOVERING → WHOLE
 
 ---
 
-Dependencies: pygame 2.6.1, Pillow, PyInstaller, Python 3.11+
+## Milestone 8 — Polish (v0.11.6+)
+
+- [ ] Music / BGM (Lantern-dynamic)
+- [ ] Gamepad support (`InputPoller` extension)
+- [ ] Act-based palette shifts and fog density
+- [ ] New game+ (remixed hub progression)
+- [ ] Alternate endings based on Yin/Yang balance at Act VII
+
+---
+
+## Success Criteria
+
+A player can, in a single session:
+
+1. Start solo mode with no server
+2. Play Act I in the Bamboo Courtyard (full NPC roster)
+3. Collect a Yin fragment — hidden platforms materialise
+4. Encounter the Siren — scripted loss, hub collapses
+5. Solve a puzzle room using an echo of their past movement
+6. Reach Act VII with full abilities and a populated final hub
+7. Receive a narrative resolution that was felt, not told
+
+---
+
+Full GDD alignment plan: [docs/PLAN_SHADOW_ASCENT.md](PLAN_SHADOW_ASCENT.md)

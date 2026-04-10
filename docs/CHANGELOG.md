@@ -1,10 +1,72 @@
-# Changelog
-**Vain Asher Gaming's: Indie Ninja Adventures**
+# Changelog — Shadow Ascent: The Hollowed Ninja
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.10.84] - 2026-04-10 (Milestone 1: Foundation Close)
+
+### Fixed
+
+- **`ZoneSimulationLoop`** — Removed `zone.spawnX != 0` fallback guard for fresh-join spawn position. Rooms at world-grid (0,0) previously spawned players at the `PlayerRecord` default (0,0 px) instead of the layout-detected safe spawn. `initSimulator()` always sets `zone.spawnX/Y` before the tick loop starts, so the fallback was both incorrect and unnecessary. (NET-1)
+- **`version.json`** — Updated to `0.10.83`; `build_date` corrected to `2026-04-10`.
+- **`build.gradle.kts`** — Updated `version` from stale `0.10.7` to `0.10.83`.
+
+### Tests
+
+- `CollisionEdgeCaseTest.lavaCeilingSetsOnLavaFlag` — Entity jumping into a lava ceiling now sets `onLava = true`. (PHYS-5 gap closed)
+- `CollisionEdgeCaseTest.wallStopsEntityAtDashSpeed` — Swept sub-step prevents tunnelling at full dash velocity (16 px/tick). (PHYS-1 gap confirmed)
+
+---
+
+## [0.10.83] - 2026-04-10 (Post-audit hardening pass — v0.10.76–v0.10.83)
+
+### Added
+
+- **`EntityLifecycleListener`** — Observer extension point on `EntityManager.create()`/`destroy()` for Redis invalidation without touching ECS core. (ECS-1)
+- **`SerializableComponent`** interface — `toMap()`/`fromMap()` contract on components enabling generic DB serialization. (ECS-2)
+- **Auto-tag index** — `Entity.addTag()` now calls back to `EntityManager.indexTag()` automatically. (ECS-3)
+- **`TileType` decoupling** — `CollisionSystem` no longer imports `WorldGenerator` directly; tile-type constants moved to a shared enum. (PHYS-1)
+- **GAS tile type** — New `TileType.GAS` for mist/smoke/wind zones. (PHYS-2)
+- **`abilityFlags` bitmask** on `PhysicsState` — Per-entity medium-effect gating. (PHYS-3)
+- **`SpatialHash.raycast()`** API — Line-of-sight for boss AI and projectile traces. (PHYS-7)
+- **`dynamicTiles` in `SpatialHash.candidates()`** — Moving/falling platforms now included in the single source of truth for collision candidates. (PHYS-5)
+- **WorldGraph back-edges** — Metroidvania loops ready; graph is no longer a strict DAG. (WORLD-1)
+- **Deterministic biomes** — Biome assignment seeded from `(worldSeed, gridX, gridY)`. (WORLD-4)
+- **Redis tile cache** (`RoomTileCache`) — Room spatial hashes cached by `(roomSeed, neighborDirs)`. (WORLD-2)
+- **PostgreSQL WorldGraph persistence** (`WorldGraphRepository`) — JDBC-backed save/load. (WORLD-3)
+- **Schema versioning** on `WorldSnapshot` — `SCHEMA_VERSION` field; mismatched clients log a warning. (NET-2)
+- **`frameHash` desync detection** — Server and client both hash physics state; mismatch triggers resync. (NET-4)
+- **Redis zone state cache** (`ZoneStateCache`) — Late joiners receive immediate world state. (NET-6/7)
+- **No boxing on hot path** — Replaced `Map<Integer, Object>` slots with primitive arrays in `ZoneSimulationLoop`. (NET-8)
+- **`InventoryRepository`** — PostgreSQL-backed inventory persistence (`player_inventory` table, HikariCP). (INV-1..4)
+- **`ItemCache`** — Redis-backed item definition cache. (INV-5)
+- **Ability item type** + coin recipe fix in `ItemDatabase`. (INV-6)
+- **SpatialHash multi-chunk contract test** + snapshot broadcast schedule test. (PHYS-4/6, NET-6/7)
+
+---
+
+## [0.10.0–0.10.75] - 2026-04-04 to 2026-04-09 (Java rewrite sprint)
+
+### Added
+
+Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 commits on Apr 7 alone).
+
+- Gradle multi-module build (`:core`, `:server`, `:client`)
+- ECS: `EntityManager`, `EventBus` (priority-ordered), `GameClock`
+- Physics: `PhysicsSystem`, `CollisionSystem`, `SpatialHash`, swept sub-step, all tile types
+- World generation: `WorldGenerator`, `WorldGraph`, `RoomGenerator`, `ZonePlanner`, `RoomPostProcessor` pipeline (AbilityLayer, PuzzleLayer, EntityPlanner)
+- Authoritative server: Netty pipeline, `ZoneSimulationLoop` (60 Hz), `GameSimulator`, delta encoding, `WireCodec` (msgpack)
+- `GameSession`, `PlayerRecord`, `ZoneInstance`, `ServerProtocolHandler`
+- `InputRecorder` / `ReplayPlayer` (foundation for Echo system)
+- `DialogueManager` / `DialogueTree`; `MissionManager`; `StoryManager` stub
+- `HubRegistry` (static hub definitions); `AbilityGate` system
+- `InventoryRepository` stub; `ItemDatabase` / `RecipeBook`; `LevelLayout`
+- libGDX client: `GameScreen`, `ModeSelectScreen`, `ChunkRenderer`, `EntityRenderer`, `HudRenderer`
+- 3 initial test files: `PhysicsParityTest`, `GameSimulatorTest`, `ProtocolParityTest`
 
 ---
 

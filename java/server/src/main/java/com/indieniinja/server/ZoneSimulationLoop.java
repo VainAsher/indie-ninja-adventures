@@ -282,9 +282,10 @@ public final class ZoneSimulationLoop implements Runnable {
                     sy = pr.posY;
                     pr.explicitSpawnSet = false;
                 } else {
-                    // Fresh join: use layout-detected safe spawn, fall back to PlayerRecord default
-                    sx = zone.spawnX != 0 ? zone.spawnX : pr.posX;
-                    sy = zone.spawnY != 0 ? zone.spawnY : pr.posY;
+                    // Fresh join: use layout-detected safe spawn (always set by initSimulator before
+                    // the tick loop starts — no fallback to pr.posX/Y which defaults to 0,0). NET-1
+                    sx = zone.spawnX;
+                    sy = zone.spawnY;
                 }
                 SimPlayer newSp = new SimPlayer(pid, pr.slot, sx, sy);
                 newSp.health    = pr.health;
