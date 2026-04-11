@@ -328,8 +328,9 @@ public final class ZoneSimulationLoop implements Runnable {
         }
 
         // ── Hub evolution: sync NPC roster once per second (every 60 ticks) ────
+        // Skip frame 0 — layout NPCs are still being seeded; first sync at 1 s.
         long frame = zone.frame.get();
-        if (frame % 60 == 0 && zone.hubStateMachine != null) {
+        if (frame > 0 && frame % 60 == 0 && zone.hubStateMachine != null) {
             tickHubEvolution(sim);
         }
 
@@ -386,12 +387,14 @@ public final class ZoneSimulationLoop implements Runnable {
         // ── NPC roster sync ───────────────────────────────────────────────────
         java.util.List<String> desiredTypes = zone.hubStateMachine.activeNpcTypes();
 
-        // Despawn NPCs whose type is no longer active
+        // Collect NPCs to remove first — never modify the list while iterating it
+        java.util.List<com.indieniinja.sim.SimNPC> toRemove = new java.util.ArrayList<>();
         for (com.indieniinja.sim.SimNPC npc : sim.getNpcs()) {
-            if (!desiredTypes.contains(npc.type)) {
-                sim.removeNpc(npc.id);
-                log.info("[Zone {}] despawned NPC {} (type={})", zone.hubId, npc.id, npc.type);
-            }
+            if (!desiredTypes.contains(npc.type)) toRemove.add(npc);
+        }
+        for (com.indieniinja.sim.SimNPC npc : toRemove) {
+            sim.removeNpc(npc.id);
+            log.info("[Zone {}] despawned NPC {} (type={})", zone.hubId, npc.id, npc.type);
         }
 
         // Spawn NPCs whose type should be active but aren't present
