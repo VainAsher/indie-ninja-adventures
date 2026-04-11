@@ -78,6 +78,7 @@ public final class GameScreen implements Screen {
     /** Room type and neighbor dirs for solo mode snapshots (GameSimulator doesn't track these). */
     private java.util.List<String> soloNeighborDirs = java.util.List.of();
     private String                 soloRoomType     = "combat";
+    private long                   soloSeed         = 0;
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
@@ -237,6 +238,7 @@ public final class GameScreen implements Screen {
         if (soloMode) {
             // Offline path — build a local GameSimulator; no network thread needed.
             long seed = System.currentTimeMillis();
+            soloSeed         = seed;
             soloRoomType     = "combat";
             soloNeighborDirs = java.util.List.of();
             LevelLayout layout = LevelLayout.buildProceduralLayout(seed);
@@ -275,6 +277,20 @@ public final class GameScreen implements Screen {
                 com.indieniinja.network.MessageType.CRAFT_REQUEST,
                 java.util.Map.of("recipe_id", recipeId)));
         minimapRenderer  = new MinimapRenderer();
+        // Solo mode: GameSimulator.getSnapshot() never populates worldRooms, so
+        // cachedWorldRooms stays empty and the minimap guard blocks rendering.
+        // Build the single-room descriptor now so M-key works immediately.
+        if (soloMode) {
+            WorldRoomDescriptor soloRoom = new WorldRoomDescriptor();
+            soloRoom.gridX        = 0;
+            soloRoom.gridY        = 0;
+            soloRoom.seed         = soloSeed;
+            soloRoom.roomType     = soloRoomType;
+            soloRoom.neighborDirs = new java.util.ArrayList<>(soloNeighborDirs);
+            buildMegamap(java.util.List.of(soloRoom));
+            cachedWorldRooms = java.util.List.of(soloRoom);
+            visitedRooms.add("0,0");
+        }
         shopOverlay.setOnTrade(req -> {
             java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
             payload.put("npc_id",   req.npcId());

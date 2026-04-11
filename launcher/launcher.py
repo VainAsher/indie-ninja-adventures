@@ -15,16 +15,13 @@ Tab 3 — Dev Tools: profiler benchmark, log viewer, replay launcher
 Stdlib only: tkinter for UI, urllib.request for HTTP, hashlib for SHA256.
 """
 
-import csv
 import hashlib
-import hmac
 import json
 import os
 import platform
 import re
 import shutil
 import socket
-import statistics
 import subprocess
 import sys
 import threading
@@ -85,9 +82,6 @@ _REPORT_TYPES = [
     ("Performance Issue", "performance", "performance,beta-testing"),
     ("Crash Report", "crash", "crash,bug"),
 ]
-
-# Benchmark: run for this many seconds then terminate
-_BENCHMARK_SECONDS = 10
 
 # Max log lines to embed in a GitHub report body
 _LOG_TAIL_LINES = 50
@@ -204,58 +198,9 @@ def _format_bytes(n: int) -> str:
     return f"{n} B"
 
 
-def _get_profiler_csv() -> Path:
-    return _get_user_data_dir() / "perf_baseline.csv"
-
 
 def _get_saves_dir() -> Path:
     return _get_user_data_dir() / "saves"
-
-
-def _get_settings_path() -> Path:
-    return _get_user_data_dir() / "settings" / "settings.json"
-
-
-# Default settings — duplicated from config/settings.py (launcher cannot import game modules)
-_DEFAULT_SETTINGS: dict = {
-    "volume_master": 1.0,
-    "volume_music": 0.7,
-    "volume_sfx": 0.8,
-    "fullscreen": False,
-    "vsync": True,
-    "show_fps": False,
-    "window_width": 1280,
-    "window_height": 720,
-    "screenshake": True,
-    "particles": True,
-    "camera_smoothing": 0.1,
-    "key_left": "left",
-    "key_right": "right",
-    "key_jump": "space",
-    "key_dash": "shift",
-    "key_crouch": "down",
-    "show_hitboxes": False,
-    "log_level": "INFO",
-}
-
-# HMAC key — duplicated from systems/save_system.py; must stay in sync
-_SAVE_HMAC_KEY = b"ninja_dash_v0_3_save_integrity_key_2025"
-
-
-def _read_settings() -> dict:
-    try:
-        loaded = json.loads(_get_settings_path().read_text(encoding="utf-8"))
-        return {**_DEFAULT_SETTINGS, **loaded}
-    except Exception:
-        return _DEFAULT_SETTINGS.copy()
-
-
-def _write_settings_safe(data: dict) -> None:
-    path = _get_settings_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    tmp.replace(path)
 
 
 def _format_playtime(seconds: float) -> str:
@@ -268,65 +213,6 @@ def _format_playtime(seconds: float) -> str:
     h, m = divmod(m, 60)
     return f"{h}h {m:02d}m"
 
-
-def _verify_save_hmac(data_dict: dict, signature: str) -> bool:
-    """Verify a save file's HMAC-SHA256 integrity signature."""
-    data_str = json.dumps(data_dict, sort_keys=True)
-    expected = hmac.new(_SAVE_HMAC_KEY, data_str.encode("utf-8"), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, signature)
-
-
-def _get_mods_dir() -> Path:
-    return _get_user_data_dir() / "mods"
-
-
-def _get_enabled_mods_path() -> Path:
-    return _get_mods_dir() / "enabled_mods.json"
-
-
-def _read_mod_manifests() -> list[dict]:
-    """Return list of mod manifest dicts (each has an extra '_path' key)."""
-    mods_dir = _get_mods_dir()
-    results = []
-    if not mods_dir.exists():
-        return results
-    for subdir in sorted(mods_dir.iterdir()):
-        if not subdir.is_dir():
-            continue
-        manifest_path = subdir / "mod.json"
-        if not manifest_path.exists():
-            continue
-        try:
-            data = json.loads(manifest_path.read_text(encoding="utf-8"))
-            data["_path"] = str(subdir)
-            results.append(data)
-        except Exception:
-            pass
-    return results
-
-
-def _read_enabled_mods() -> "set | None":
-    """Return set of enabled mod IDs, or None if no config exists (treat all as enabled)."""
-    path = _get_enabled_mods_path()
-    if not path.exists():
-        return None
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return set(data.get("enabled", []))
-    except Exception:
-        return None
-
-
-def _write_enabled_mods(enabled: set) -> None:
-    """Write enabled_mods.json listing enabled and disabled mod IDs."""
-    all_ids = {m["mod_id"] for m in _read_mod_manifests()}
-    disabled = sorted(all_ids - enabled)
-    data = {"enabled": sorted(enabled), "disabled": disabled}
-    path = _get_enabled_mods_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    tmp.replace(path)
 
 
 def _read_local_version() -> str:
@@ -510,36 +396,6 @@ def _kill_process_on_port(port: int) -> bool:
     return not _is_port_in_use(port)
 
 
-def _parse_profiler_csv(csv_path: Path) -> dict | None:
-    """
-    Read the profiler CSV and return summary stats, or None if no data.
-    Returns: {section: {avg, p95, max}, ..., fps_avg, fps_p5, fps_min, frame_count}
-    """
-    if not csv_path.exists():
-        return None
-    try:
-        with open(csv_path, newline="", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
-        if not rows:
-            return None
-        result: dict = {"frame_count": len(rows)}
-        sections = [c for c in rows[0] if c not in ("frame", "fps_instantaneous")]
-        for sec in sections:
-            vals = [float(r[sec]) for r in rows if float(r[sec]) > 0]
-            if vals:
-                result[sec] = {
-                    "avg": statistics.mean(vals),
-                    "p95": sorted(vals)[int(len(vals) * 0.95)],
-                    "max": max(vals),
-                }
-        fps_vals = [float(r["fps_instantaneous"]) for r in rows]
-        result["fps_avg"] = statistics.mean(fps_vals)
-        result["fps_p5"] = sorted(fps_vals)[int(len(fps_vals) * 0.05)]
-        result["fps_min"] = min(fps_vals)
-        return result
-    except Exception:
-        return None
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # LauncherApp
@@ -560,13 +416,10 @@ class LauncherApp:
         self._downloading = False
         self._download_cancel = threading.Event()
         self._splash_photo: tk.PhotoImage | None = None
-        self._benchmark_proc: subprocess.Popen | None = None
         self._java_server_proc: subprocess.Popen | None = None
-        self._benchmark_timer: threading.Timer | None = None
         self._record_var = tk.IntVar(value=0)
         self._record_name_var = tk.StringVar(value="")
         self._settings_vars: dict[str, tk.Variable] = {}
-        self._ctrl_key_labels: dict[str, tk.Label] = {}
         self._save_fields: dict[str, tk.StringVar] = {}
         self._java_ok, self._java_version_str = _detect_java()
         # Initialise _GAME_DIR before UI is built so the first call to _get_base_dir()
@@ -723,7 +576,6 @@ class LauncherApp:
         replays_frame = tk.Frame(self._notebook, bg=BG_DARK)
         saves_frame = tk.Frame(self._notebook, bg=BG_DARK)
         settings_frame = tk.Frame(self._notebook, bg=BG_DARK)
-        mods_frame = tk.Frame(self._notebook, bg=BG_DARK)
 
         self._notebook.add(play_frame, text="  Play  ")
         self._notebook.add(report_frame, text="  Report  ")
@@ -731,7 +583,6 @@ class LauncherApp:
         self._notebook.add(replays_frame, text="  Replays  ")
         self._notebook.add(saves_frame, text="  Saves  ")
         self._notebook.add(settings_frame, text="  Settings  ")
-        self._notebook.add(mods_frame, text="  Mods  ")
 
         self._build_play_tab(play_frame)
         self._build_report_tab(report_frame)
@@ -739,7 +590,6 @@ class LauncherApp:
         self._build_replays_tab(replays_frame)
         self._build_saves_tab(saves_frame)
         self._build_settings_tab(settings_frame)
-        self._build_mods_tab(mods_frame)
 
     # ── Tab 1: Play ───────────────────────────────────────────────────────────
 
@@ -851,13 +701,13 @@ class LauncherApp:
         # Thin separator
         tk.Frame(ctrl, height=1, bg=BG_MID).pack(fill="x", pady=(8, 0))
 
-        # ── Primary button row (Solo + Download + Exit) ───────────────────────
+        # ── Play / Install / Exit button row ──────────────────────────────────
         btn_row = tk.Frame(ctrl, bg=BG_DARK)
         btn_row.pack(fill="x", pady=(8, 0))
 
         self._play_btn = tk.Button(
             btn_row,
-            text=">>  Solo Play",
+            text=">>  Play",
             font=("Consolas", 10, "bold"),
             fg=ACCENT,
             bg=BTN_PLAY_BG,
@@ -867,7 +717,7 @@ class LauncherApp:
             cursor="hand2",
             padx=18,
             pady=5,
-            command=self._launch_solo,
+            command=self._launch_java_solo,
         )
         self._play_btn.pack(side="left")
 
@@ -919,178 +769,18 @@ class LauncherApp:
             command=self.root.destroy,
         ).pack(side="right")
 
-        # ── Multiplayer section ───────────────────────────────────────────────
-        tk.Frame(ctrl, height=1, bg=ACCENT).pack(fill="x", pady=(10, 0))
-
-        mp_header = tk.Frame(ctrl, bg=BG_DARK)
-        mp_header.pack(fill="x", pady=(4, 0))
-        tk.Label(
-            mp_header,
-            text="MULTIPLAYER",
-            font=("Consolas", 9, "bold"),
-            fg=ACCENT,
-            bg=BG_DARK,
-        ).pack(side="left")
-
-        mp_row = tk.Frame(ctrl, bg=BG_DARK)
-        mp_row.pack(fill="x", pady=(6, 0))
-
-        # Host side
-        host_frame = tk.Frame(mp_row, bg=BG_DARK)
-        host_frame.pack(side="left")
-
-        tk.Label(
-            host_frame,
-            text="Port:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-        ).pack(side="left")
-
-        self._host_port_var = tk.StringVar(value="7777")
-        tk.Entry(
-            host_frame,
-            textvariable=self._host_port_var,
-            font=("Consolas", 9),
-            bg=BG_MID,
-            fg=TEXT_PRIMARY,
-            insertbackground=ACCENT,
-            relief="flat",
-            width=6,
-        ).pack(side="left", padx=(4, 6))
-
-        tk.Label(
-            host_frame,
-            text="Max:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-        ).pack(side="left")
-
-        self._max_players_var = tk.StringVar(value="4")
-        tk.Spinbox(
-            host_frame,
-            from_=1,
-            to=4,
-            textvariable=self._max_players_var,
-            font=("Consolas", 9),
-            bg=BG_MID,
-            fg=TEXT_PRIMARY,
-            buttonbackground=BG_MID,
-            relief="flat",
-            width=2,
-            state="readonly",
-        ).pack(side="left", padx=(4, 6))
-
-        tk.Button(
-            host_frame,
-            text="[H]  Host Game",
-            font=("Consolas", 9, "bold"),
-            fg=TEXT_PRIMARY,
-            bg=BTN_HOST_BG,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            relief="flat",
-            cursor="hand2",
-            padx=10,
-            pady=5,
-            command=self._launch_host,
-        ).pack(side="left")
-
-        # Vertical divider
-        tk.Frame(mp_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=14)
-
-        # Join side
-        join_frame = tk.Frame(mp_row, bg=BG_DARK)
-        join_frame.pack(side="left")
-
-        tk.Label(
-            join_frame,
-            text="Server:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-        ).pack(side="left")
-
-        self._join_addr_var = tk.StringVar(value="")
-        self._join_entry = tk.Entry(
-            join_frame,
-            textvariable=self._join_addr_var,
-            font=("Consolas", 9),
-            bg=BG_MID,
-            fg=TEXT_PRIMARY,
-            insertbackground=ACCENT,
-            relief="flat",
-            width=16,
-        )
-        self._join_entry.pack(side="left", padx=(4, 6))
-        self._join_entry.insert(0, "host:7777")
-        self._join_entry.config(fg=TEXT_DIM)
-        self._join_entry.bind("<FocusIn>", self._on_join_focus_in)
-        self._join_entry.bind("<FocusOut>", self._on_join_focus_out)
-
-        tk.Button(
-            join_frame,
-            text="->  Join Game",
-            font=("Consolas", 9, "bold"),
-            fg=TEXT_PRIMARY,
-            bg=BTN_JOIN_BG,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            relief="flat",
-            cursor="hand2",
-            padx=10,
-            pady=5,
-            command=self._launch_join,
-        ).pack(side="left")
-
-        # Ping button + result label
-        tk.Frame(mp_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=12)
-        ping_frame = tk.Frame(mp_row, bg=BG_DARK)
-        ping_frame.pack(side="left")
-        tk.Button(
-            ping_frame,
-            text="Ping",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            relief="flat",
-            cursor="hand2",
-            padx=8,
-            pady=5,
-            command=self._ping_server_addr,
-        ).pack(side="left")
-        self._ping_result_var = tk.StringVar(value="")
-        self._ping_result_label_widget = tk.Label(
-            ping_frame,
-            textvariable=self._ping_result_var,
-            font=("Consolas", 8),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-        )
-        self._ping_result_label_widget.pack(side="left", padx=(4, 0))
-
-        # ── Java Client section ───────────────────────────────────────────────
+        # ── Runtime status row ────────────────────────────────────────────────
         tk.Frame(ctrl, height=1, bg=ACCENT).pack(fill="x", pady=(10, 0))
 
         java_header = tk.Frame(ctrl, bg=BG_DARK)
         java_header.pack(fill="x", pady=(4, 0))
         tk.Label(
             java_header,
-            text="JAVA CLIENT",
+            text="RUNTIME",
             font=("Consolas", 9, "bold"),
             fg=ACCENT,
             bg=BG_DARK,
         ).pack(side="left")
-        tk.Label(
-            java_header,
-            text="beta",
-            font=("Consolas", 7),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-        ).pack(side="left", padx=(6, 0))
 
         # Status row: Java runtime + JAR state
         java_status_row = tk.Frame(ctrl, bg=BG_DARK)
@@ -1134,76 +824,74 @@ class LauncherApp:
         )
         self._java_jar_label.pack(side="left")
 
-        # Launch row
-        java_btn_row = tk.Frame(ctrl, bg=BG_DARK)
-        java_btn_row.pack(fill="x", pady=(6, 0))
-
-        self._java_solo_btn = tk.Button(
-            java_btn_row,
-            text="[J]  Connect to localhost",
+        # ── Multiplayer section ───────────────────────────────────────────────
+        tk.Frame(ctrl, height=1, bg=ACCENT).pack(fill="x", pady=(10, 0))
+        tk.Label(
+            ctrl,
+            text="MULTIPLAYER",
             font=("Consolas", 9, "bold"),
             fg=ACCENT,
-            bg=BTN_PLAY_BG,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            relief="flat",
-            cursor="hand2",
-            padx=12,
-            pady=5,
-            command=self._launch_java_solo,
-        )
-        self._java_solo_btn.pack(side="left")
-
-        tk.Frame(java_btn_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=12)
-
-        # Java server controls (host port + start server button)
-        java_server_frame = tk.Frame(java_btn_row, bg=BG_DARK)
-        java_server_frame.pack(side="left")
-
-        tk.Label(
-            java_server_frame,
-            text="Connect:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
             bg=BG_DARK,
-        ).pack(side="left")
+            anchor="w",
+        ).pack(fill="x", pady=(4, 0))
 
-        self._java_addr_var = tk.StringVar(value="")
-        self._java_addr_entry = tk.Entry(
-            java_server_frame,
-            textvariable=self._java_addr_var,
+        # Host row: Port + Max + Host+Play + Start Server Only
+        host_row = tk.Frame(ctrl, bg=BG_DARK)
+        host_row.pack(fill="x", pady=(6, 0))
+
+        tk.Label(host_row, text="Port:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK).pack(
+            side="left"
+        )
+        self._host_port_var = tk.StringVar(value="7777")
+        tk.Entry(
+            host_row,
+            textvariable=self._host_port_var,
             font=("Consolas", 9),
             bg=BG_MID,
-            fg=TEXT_DIM,
+            fg=TEXT_PRIMARY,
             insertbackground=ACCENT,
             relief="flat",
-            width=14,
-        )
-        self._java_addr_entry.pack(side="left", padx=(4, 6))
-        self._java_addr_entry.insert(0, "host:7777")
-        self._java_addr_entry.bind("<FocusIn>", self._on_java_addr_focus_in)
-        self._java_addr_entry.bind("<FocusOut>", self._on_java_addr_focus_out)
+            width=6,
+        ).pack(side="left", padx=(4, 8))
 
-        self._java_join_btn = tk.Button(
-            java_server_frame,
-            text="->  Join",
+        tk.Label(host_row, text="Max:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK).pack(
+            side="left"
+        )
+        self._max_players_var = tk.StringVar(value="4")
+        tk.Spinbox(
+            host_row,
+            from_=1,
+            to=4,
+            textvariable=self._max_players_var,
             font=("Consolas", 9),
+            bg=BG_MID,
             fg=TEXT_PRIMARY,
-            bg=BTN_JOIN_BG,
+            buttonbackground=BG_MID,
+            relief="flat",
+            width=2,
+            state="readonly",
+        ).pack(side="left", padx=(4, 10))
+
+        self._java_host_play_btn = tk.Button(
+            host_row,
+            text="[H]  Host + Play",
+            font=("Consolas", 9, "bold"),
+            fg=TEXT_PRIMARY,
+            bg=BTN_HOST_BG,
             activebackground=BG_CARD,
             activeforeground=TEXT_SELECTED,
             relief="flat",
             cursor="hand2",
-            padx=8,
-            pady=5,
-            command=self._launch_java_join,
+            padx=10,
+            pady=4,
+            command=self._launch_java_host_play,
         )
-        self._java_join_btn.pack(side="left")
+        self._java_host_play_btn.pack(side="left")
 
-        tk.Frame(java_btn_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=12)
+        tk.Frame(host_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=10)
 
         self._java_server_btn = tk.Button(
-            java_btn_row,
+            host_row,
             text="[S]  Start Server",
             font=("Consolas", 9),
             fg=TEXT_PRIMARY,
@@ -1213,12 +901,75 @@ class LauncherApp:
             relief="flat",
             cursor="hand2",
             padx=8,
-            pady=5,
+            pady=4,
             command=self._launch_java_server,
         )
         self._java_server_btn.pack(side="left")
 
-        self._refresh_java_section()
+        # Join row: server address + Join + Ping
+        join_row = tk.Frame(ctrl, bg=BG_DARK)
+        join_row.pack(fill="x", pady=(6, 0))
+
+        tk.Label(join_row, text="Server:", font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK).pack(
+            side="left"
+        )
+        self._java_addr_var = tk.StringVar(value="")
+        self._java_addr_entry = tk.Entry(
+            join_row,
+            textvariable=self._java_addr_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_DIM,
+            insertbackground=ACCENT,
+            relief="flat",
+            width=16,
+        )
+        self._java_addr_entry.pack(side="left", padx=(4, 6))
+        self._java_addr_entry.insert(0, "host:7777")
+        self._java_addr_entry.bind("<FocusIn>", self._on_java_addr_focus_in)
+        self._java_addr_entry.bind("<FocusOut>", self._on_java_addr_focus_out)
+
+        self._java_join_btn = tk.Button(
+            join_row,
+            text="->  Join",
+            font=("Consolas", 9, "bold"),
+            fg=TEXT_PRIMARY,
+            bg=BTN_JOIN_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=4,
+            command=self._launch_java_join,
+        )
+        self._java_join_btn.pack(side="left")
+
+        tk.Frame(join_row, width=1, bg=BG_MID).pack(side="left", fill="y", padx=10)
+
+        tk.Button(
+            join_row,
+            text="Ping",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=4,
+            command=self._ping_server_addr,
+        ).pack(side="left")
+        self._ping_result_var = tk.StringVar(value="")
+        self._ping_result_label_widget = tk.Label(
+            join_row,
+            textvariable=self._ping_result_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+        )
+        self._ping_result_label_widget.pack(side="left", padx=(4, 0))
 
         # ── Changelog / News Feed ─────────────────────────────────────────────
         tk.Frame(ctrl, height=1, bg=BG_MID).pack(fill="x", pady=(12, 0))
@@ -1256,6 +1007,9 @@ class LauncherApp:
         self._changelog_txt.configure(yscrollcommand=cl_ys.set)
         cl_ys.pack(side="right", fill="y")
         self._changelog_txt.pack(fill="both", expand=True)
+
+        # All play-tab buttons now exist — safe to update states
+        self._refresh_java_section()
 
     # ── Profile actions ───────────────────────────────────────────────────────
 
@@ -1365,7 +1119,7 @@ class LauncherApp:
         os_str = platform.system()
         ver_str = self._local_version
         self._report_info_var = tk.StringVar(
-            value=f"v{ver_str}  |  {os_str}  |  Python {sys.version.split()[0]}"
+            value=f"v{ver_str}  |  {os_str}  |  {self._java_version_str}"
         )
         tk.Label(
             top,
@@ -1478,13 +1232,12 @@ class LauncherApp:
         desc_raw = self._report_desc.get("1.0", "end").strip()
 
         os_str = platform.system()
-        py_ver = sys.version.split()[0]
         game_ver = self._local_version
 
         body_lines = [
             f"**Version:** v{game_ver}",
             f"**OS:** {os_str}",
-            f"**Python:** {py_ver}",
+            f"**Java:** {self._java_version_str}",
             "",
             "---",
             "",
@@ -1522,164 +1275,47 @@ class LauncherApp:
         pad = tk.Frame(parent, bg=BG_DARK)
         pad.pack(fill="both", expand=True, padx=20, pady=(10, 8))
 
-        # ── Profiler section ──────────────────────────────────────────────────
+        # ── JAR Info section ──────────────────────────────────────────────────
         tk.Label(
-            pad,
-            text="PROFILER",
-            font=("Consolas", 9, "bold"),
-            fg=ACCENT,
-            bg=BG_DARK,
-            anchor="w",
+            pad, text="JAR INFO",
+            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
         ).pack(fill="x")
         tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
 
-        prof_btn_row = tk.Frame(pad, bg=BG_DARK)
-        prof_btn_row.pack(fill="x")
-
-        self._bench_btn = tk.Button(
-            prof_btn_row,
-            text=f"Run {_BENCHMARK_SECONDS}s Benchmark",
-            font=("Consolas", 9),
-            fg=TEXT_PRIMARY,
-            bg=BG_MID,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            relief="flat",
-            cursor="hand2",
-            padx=10,
-            pady=4,
-            command=self._run_benchmark,
-        )
-        self._bench_btn.pack(side="left")
-
-        self._save_baseline_btn = tk.Button(
-            prof_btn_row,
-            text="Save as Baseline",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            relief="flat",
-            cursor="hand2",
-            padx=10,
-            pady=4,
-            command=self._save_baseline,
-        )
-        self._save_baseline_btn.pack(side="left", padx=(6, 0))
-
-        self._bench_status_var = tk.StringVar(value="")
+        jar_info_frame = tk.Frame(pad, bg=BG_CARD)
+        jar_info_frame.pack(fill="x", pady=(0, 4))
+        self._jar_info_var = tk.StringVar(value="(click Refresh to check JARs)")
         tk.Label(
-            prof_btn_row,
-            textvariable=self._bench_status_var,
-            font=("Consolas", 8),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
+            jar_info_frame, textvariable=self._jar_info_var,
+            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_CARD,
+            anchor="w", justify="left", padx=6, pady=4,
+        ).pack(fill="x")
+
+        jar_btn_row = tk.Frame(pad, bg=BG_DARK)
+        jar_btn_row.pack(fill="x", pady=(2, 0))
+        tk.Button(
+            jar_btn_row, text="Refresh JAR Info",
+            font=("Consolas", 9), fg=TEXT_PRIMARY, bg=BG_MID,
+            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
+            relief="flat", cursor="hand2", padx=10, pady=3,
+            command=self._refresh_jar_info,
+        ).pack(side="left")
+        tk.Button(
+            jar_btn_row, text="Verify SHA256",
+            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            relief="flat", cursor="hand2", padx=10, pady=3,
+            command=self._verify_jar_sha256,
+        ).pack(side="left", padx=(6, 0))
+        tk.Button(
+            jar_btn_row, text="Open Game Dir",
+            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
+            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            relief="flat", cursor="hand2", padx=10, pady=3,
+            command=self._reveal_game_dir,
         ).pack(side="right")
 
-        # Baseline compare row
-        prof_btn_row2 = tk.Frame(pad, bg=BG_DARK)
-        prof_btn_row2.pack(fill="x", pady=(4, 0))
-        tk.Label(
-            prof_btn_row2,
-            text="Baseline:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-        ).pack(side="left")
-        self._baseline_var = tk.StringVar()
-        self._baseline_combo = ttk.Combobox(
-            prof_btn_row2,
-            textvariable=self._baseline_var,
-            state="readonly",
-            style="Launcher.TCombobox",
-            width=22,
-            font=("Consolas", 8),
-        )
-        self._baseline_combo.pack(side="left", padx=(4, 6))
-        tk.Button(
-            prof_btn_row2,
-            text="Compare",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            relief="flat",
-            cursor="hand2",
-            padx=8,
-            pady=4,
-            command=self._compare_to_baseline,
-        ).pack(side="left")
-
-        # Table / Chart toggle
-        self._prof_view_mode = "table"
-        toggle_row = tk.Frame(pad, bg=BG_DARK)
-        toggle_row.pack(fill="x", pady=(4, 0))
-        self._prof_table_btn = tk.Button(
-            toggle_row,
-            text="[Table]",
-            font=("Consolas", 8, "bold"),
-            fg=TEXT_SELECTED,
-            bg=BG_MID,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            relief="flat",
-            cursor="hand2",
-            padx=6,
-            pady=2,
-            command=lambda: self._set_prof_view("table"),
-        )
-        self._prof_table_btn.pack(side="left")
-        self._prof_chart_btn = tk.Button(
-            toggle_row,
-            text="Chart",
-            font=("Consolas", 8),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            relief="flat",
-            cursor="hand2",
-            padx=6,
-            pady=2,
-            command=lambda: self._set_prof_view("chart"),
-        )
-        self._prof_chart_btn.pack(side="left", padx=(4, 0))
-
-        # Results display: text table (read-only, scrollable)
-        prof_text_frame = tk.Frame(pad, bg=BG_CARD)
-        prof_text_frame.pack(fill="x", pady=(6, 0))
-        self._prof_txt = tk.Text(
-            prof_text_frame,
-            font=("Consolas", 8),
-            bg=BG_CARD,
-            fg=TEXT_PRIMARY,
-            wrap="none",
-            relief="flat",
-            height=8,
-            state="disabled",
-        )
-        _prof_ys = ttk.Scrollbar(prof_text_frame, orient="vertical", command=self._prof_txt.yview)
-        _prof_xs = ttk.Scrollbar(prof_text_frame, orient="horizontal", command=self._prof_txt.xview)
-        self._prof_txt.configure(yscrollcommand=_prof_ys.set, xscrollcommand=_prof_xs.set)
-        _prof_xs.pack(side="bottom", fill="x")
-        _prof_ys.pack(side="right", fill="y")
-        self._prof_txt.pack(fill="both", expand=True)
-        self._prof_text_frame = prof_text_frame
-
-        # Chart canvas (hidden until chart mode selected)
-        self._prof_canvas = tk.Canvas(
-            pad,
-            bg=BG_CARD,
-            height=120,
-            highlightthickness=0,
-        )
-        # Not packed yet — shown on demand
-
-        self._refresh_baseline_list()
-        # Load existing CSV on open
-        self._refresh_profiler_display()
+        self._refresh_jar_info()
 
         # ── Logs section ──────────────────────────────────────────────────────
         tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
@@ -2322,15 +1958,8 @@ class LauncherApp:
             self._refresh_backups_list()
             return
 
-        sig = wrapper.get("signature", "")
-        inner = wrapper.get("data", {})
-        if sig and inner:
-            ok = _verify_save_hmac(inner, sig)
-            status = "★ Verified" if ok else "✗ Signature mismatch"
-        elif inner:
-            status = "? No signature (old format)"
-        else:
-            status = "? Unknown format"
+        inner = wrapper.get("data", wrapper)  # flat or wrapped format
+        status = "OK" if inner else "? Unknown format"
         self._save_status_var.set(f"Status:  {status}")
 
         ver = wrapper.get("version", "?")
@@ -2443,32 +2072,22 @@ class LauncherApp:
         _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
         tk.Button(
             btn_frame,
-            text="Save Settings",
+            text="Save",
             fg=ACCENT,
             bg=BTN_PLAY_BG,
             activebackground=BG_CARD,
             activeforeground=TEXT_SELECTED,
-            command=self._save_settings_from_ui,
+            command=self._save_launcher_config_from_ui,
             **_b,
         ).pack(side="left")
         tk.Button(
             btn_frame,
-            text="Reset to Defaults",
+            text="Open Config File",
             fg=TEXT_DIM,
             bg=BG_DARK,
             activebackground=BG_MID,
             activeforeground=TEXT_PRIMARY,
-            command=self._reset_settings_to_defaults,
-            **_b,
-        ).pack(side="left", padx=(6, 0))
-        tk.Button(
-            btn_frame,
-            text="Open File",
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            command=self._open_settings_file,
+            command=self._open_launcher_config_file,
             **_b,
         ).pack(side="right")
 
@@ -2488,77 +2107,12 @@ class LauncherApp:
             ).pack(fill="x", pady=(10, 2))
             tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(0, 4))
 
-        def _sldr(key: str, label: str, lo: float = 0.0, hi: float = 1.0) -> None:
-            var = tk.DoubleVar()
-            self._settings_vars[key] = var
-            row = tk.Frame(pad, bg=BG_DARK)
-            row.pack(fill="x", pady=2)
-            tk.Label(
-                row,
-                text=label,
-                font=("Consolas", 9),
-                fg=TEXT_DIM,
-                bg=BG_DARK,
-                width=20,
-                anchor="w",
-            ).pack(side="left")
-            val_lbl = tk.Label(
-                row,
-                text="0.00",
-                font=("Consolas", 9),
-                fg=TEXT_PRIMARY,
-                bg=BG_DARK,
-                width=5,
-                anchor="e",
-            )
-            val_lbl.pack(side="right")
-
-            def _upd(*_):
-                val_lbl.config(text=f"{var.get():.2f}")
-
-            var.trace_add("write", _upd)
-            tk.Scale(
-                row,
-                variable=var,
-                from_=lo,
-                to=hi,
-                orient="horizontal",
-                length=200,
-                bg=BG_DARK,
-                fg=TEXT_DIM,
-                troughcolor=BG_MID,
-                highlightbackground=BG_DARK,
-                activebackground=ACCENT,
-                sliderrelief="flat",
-                showvalue=0,
-                resolution=0.01,
-                bd=0,
-            ).pack(side="right", padx=(0, 4))
-
-        def _chk(key: str, label: str) -> None:
-            var = tk.BooleanVar()
-            self._settings_vars[key] = var
-            tk.Checkbutton(
-                pad,
-                text=label,
-                variable=var,
-                font=("Consolas", 9),
-                fg=TEXT_PRIMARY,
-                bg=BG_DARK,
-                activebackground=BG_DARK,
-                activeforeground=TEXT_SELECTED,
-                selectcolor=BG_MID,
-                relief="flat",
-                bd=0,
-            ).pack(anchor="w", pady=2)
-
-        # PATHS
+        # ── PATHS ────────────────────────────────────────────────────────────
         _sec("PATHS")
         tk.Label(
             pad,
             text=(
-                "Game Directory — the folder containing ninja_dash.exe,\n"
-                "user_data/, mods/, and version.json.\n"
+                "Game directory — folder containing the JARs, user_data/, and version.json.\n"
                 "Default: same folder as the launcher."
             ),
             font=("Consolas", 8),
@@ -2571,191 +2125,108 @@ class LauncherApp:
         game_dir_row = tk.Frame(pad, bg=BG_DARK)
         game_dir_row.pack(fill="x", pady=2)
         tk.Label(
-            game_dir_row,
-            text="Game Dir:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            width=10,
-            anchor="w",
+            game_dir_row, text="Game Dir:", font=("Consolas", 9), fg=TEXT_DIM,
+            bg=BG_DARK, width=10, anchor="w",
         ).pack(side="left")
         self._game_dir_entry = tk.Entry(
-            game_dir_row,
-            textvariable=self._game_dir_var,
-            font=("Consolas", 8),
-            bg=BG_MID,
-            fg=TEXT_PRIMARY,
-            insertbackground=ACCENT,
-            relief="flat",
+            game_dir_row, textvariable=self._game_dir_var,
+            font=("Consolas", 8), bg=BG_MID, fg=TEXT_PRIMARY,
+            insertbackground=ACCENT, relief="flat",
         )
         self._game_dir_entry.pack(side="left", fill="x", expand=True, padx=(4, 4))
         tk.Button(
-            game_dir_row,
-            text="Browse…",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            relief="flat",
-            cursor="hand2",
-            padx=8,
-            pady=3,
+            game_dir_row, text="Browse…", font=("Consolas", 9), fg=TEXT_DIM,
+            bg=BG_DARK, activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
+            relief="flat", cursor="hand2", padx=8, pady=3,
             command=self._browse_game_dir,
         ).pack(side="left")
         tk.Button(
-            game_dir_row,
-            text="Apply",
-            font=("Consolas", 9),
-            fg=ACCENT,
-            bg=BTN_PLAY_BG,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            relief="flat",
-            cursor="hand2",
-            padx=8,
-            pady=3,
+            game_dir_row, text="Apply", font=("Consolas", 9), fg=ACCENT,
+            bg=BTN_PLAY_BG, activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
+            relief="flat", cursor="hand2", padx=8, pady=3,
             command=self._apply_game_dir,
         ).pack(side="left", padx=(4, 0))
 
         self._game_dir_status_var = tk.StringVar(value="")
         tk.Label(
-            pad,
-            textvariable=self._game_dir_status_var,
-            font=("Consolas", 8),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            anchor="w",
+            pad, textvariable=self._game_dir_status_var,
+            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
         ).pack(fill="x", pady=(2, 6))
 
-        # AUDIO
-        _sec("AUDIO")
-        _sldr("volume_master", "Master Volume")
-        _sldr("volume_music", "Music Volume")
-        _sldr("volume_sfx", "SFX Volume")
-
-        # DISPLAY
-        _sec("DISPLAY")
-        disp_row = tk.Frame(pad, bg=BG_DARK)
-        disp_row.pack(fill="x", pady=2)
-        for key, label in [
-            ("fullscreen", "Fullscreen"),
-            ("vsync", "VSync"),
-            ("show_fps", "Show FPS"),
-        ]:
-            var = tk.BooleanVar()
-            self._settings_vars[key] = var
-            tk.Checkbutton(
-                disp_row,
-                text=label,
-                variable=var,
-                font=("Consolas", 9),
-                fg=TEXT_PRIMARY,
-                bg=BG_DARK,
-                activebackground=BG_DARK,
-                activeforeground=TEXT_SELECTED,
-                selectcolor=BG_MID,
-                relief="flat",
-                bd=0,
-            ).pack(side="left", padx=(0, 16))
-
-        res_row = tk.Frame(pad, bg=BG_DARK)
-        res_row.pack(fill="x", pady=2)
+        # ── JVM ───────────────────────────────────────────────────────────────
+        _sec("JVM")
         tk.Label(
-            res_row,
-            text="Resolution:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            width=14,
-            anchor="w",
-        ).pack(side="left")
-        res_var = tk.StringVar()
-        self._settings_vars["resolution"] = res_var
-        ttk.Combobox(
-            res_row,
-            textvariable=res_var,
-            values=["800x600", "1280x720", "1920x1080", "2560x1440"],
-            state="readonly",
-            style="Launcher.TCombobox",
-            width=13,
-            font=("Consolas", 9),
-        ).pack(side="left", padx=(4, 8))
-        tk.Label(
-            res_row,
-            text="(requires restart)",
+            pad,
+            text="Heap sizes apply to both client and server JARs unless overridden per-JAR.",
             font=("Consolas", 8),
             fg=TEXT_DIM,
             bg=BG_DARK,
-        ).pack(side="left")
-
-        # GAMEPLAY
-        _sec("GAMEPLAY")
-        _chk("screenshake", "Screen Shake")
-        _chk("particles", "Particles")
-        _sldr("camera_smoothing", "Camera Smoothing")
-
-        # CONTROLS (read-only display)
-        _sec("CONTROLS")
-        ctrl_grid = tk.Frame(pad, bg=BG_DARK)
-        ctrl_grid.pack(fill="x", pady=(0, 4))
-        for i, (key, label) in enumerate(
-            [
-                ("key_left", "Left"),
-                ("key_right", "Right"),
-                ("key_jump", "Jump"),
-                ("key_dash", "Dash"),
-                ("key_crouch", "Crouch"),
-            ]
-        ):
-            col_f = tk.Frame(ctrl_grid, bg=BG_DARK)
-            col_f.pack(side="left", padx=(0, 20))
-            tk.Label(
-                col_f,
-                text=f"{label}:",
-                font=("Consolas", 8),
-                fg=TEXT_DIM,
-                bg=BG_DARK,
-                anchor="w",
-            ).pack(fill="x")
-            klbl = tk.Label(
-                col_f,
-                text="—",
-                font=("Consolas", 9, "bold"),
-                fg=TEXT_PRIMARY,
-                bg=BG_DARK,
-                anchor="w",
-            )
-            klbl.pack(fill="x")
-            self._ctrl_key_labels[key] = klbl
-
-        # DEVELOPER
-        _sec("DEVELOPER")
-        _chk("show_hitboxes", "Show Hitboxes")
-        dev_row = tk.Frame(pad, bg=BG_DARK)
-        dev_row.pack(fill="x", pady=2)
-        tk.Label(
-            dev_row,
-            text="Log Level:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            width=14,
+            justify="left",
             anchor="w",
-        ).pack(side="left")
-        log_var = tk.StringVar()
-        self._settings_vars["log_level"] = log_var
+        ).pack(fill="x", pady=(0, 4))
+
+        cfg = _read_launcher_config()
+
+        def _int_entry(parent_f, key: str, default: int, width: int = 6) -> tk.StringVar:
+            var = tk.StringVar(value=str(cfg.get(key, default)))
+            self._settings_vars[key] = var
+            tk.Entry(
+                parent_f, textvariable=var, font=("Consolas", 9),
+                bg=BG_MID, fg=TEXT_PRIMARY, insertbackground=ACCENT,
+                relief="flat", width=width,
+            ).pack(side="left", padx=(4, 6))
+            return var
+
+        def _row_int(label: str, key: str, default: int, unit: str = "MB") -> None:
+            r = tk.Frame(pad, bg=BG_DARK)
+            r.pack(fill="x", pady=2)
+            tk.Label(r, text=label, font=("Consolas", 9), fg=TEXT_DIM,
+                     bg=BG_DARK, width=22, anchor="w").pack(side="left")
+            _int_entry(r, key, default)
+            tk.Label(r, text=unit, font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(side="left")
+
+        _row_int("Client heap min:", "jvm_client_xms", 128)
+        _row_int("Client heap max:", "jvm_client_xmx", 512)
+        _row_int("Server heap min:", "jvm_server_xms", 256)
+        _row_int("Server heap max:", "jvm_server_xmx", 1024)
+
+        extra_row = tk.Frame(pad, bg=BG_DARK)
+        extra_row.pack(fill="x", pady=2)
+        tk.Label(extra_row, text="Extra JVM args:", font=("Consolas", 9), fg=TEXT_DIM,
+                 bg=BG_DARK, width=22, anchor="w").pack(side="left")
+        self._jvm_extra_var = tk.StringVar(value=cfg.get("jvm_extra_args", ""))
+        self._settings_vars["jvm_extra_args"] = self._jvm_extra_var
+        tk.Entry(
+            extra_row, textvariable=self._jvm_extra_var, font=("Consolas", 9),
+            bg=BG_MID, fg=TEXT_PRIMARY, insertbackground=ACCENT, relief="flat",
+        ).pack(side="left", fill="x", expand=True, padx=(4, 0))
+
+        # ── LAUNCHER ─────────────────────────────────────────────────────────
+        _sec("LAUNCHER")
+
+        on_exit_row = tk.Frame(pad, bg=BG_DARK)
+        on_exit_row.pack(fill="x", pady=2)
+        tk.Label(on_exit_row, text="On game exit:", font=("Consolas", 9), fg=TEXT_DIM,
+                 bg=BG_DARK, width=22, anchor="w").pack(side="left")
+        self._on_exit_var = tk.StringVar(value=cfg.get("on_game_exit", "restore"))
+        self._settings_vars["on_game_exit"] = self._on_exit_var
         ttk.Combobox(
-            dev_row,
-            textvariable=log_var,
-            values=["DEBUG", "INFO", "WARNING", "ERROR"],
-            state="readonly",
-            style="Launcher.TCombobox",
-            width=10,
-            font=("Consolas", 9),
+            on_exit_row, textvariable=self._on_exit_var,
+            values=["restore", "minimize", "quit"],
+            state="readonly", style="Launcher.TCombobox", width=12, font=("Consolas", 9),
         ).pack(side="left", padx=(4, 0))
 
-        self._load_settings_into_ui()
+        autoupdate_row = tk.Frame(pad, bg=BG_DARK)
+        autoupdate_row.pack(fill="x", pady=2)
+        self._autoupdate_var = tk.BooleanVar(value=cfg.get("auto_update_check", True))
+        self._settings_vars["auto_update_check"] = self._autoupdate_var
+        tk.Checkbutton(
+            autoupdate_row, text="Check for updates on launch",
+            variable=self._autoupdate_var,
+            font=("Consolas", 9), fg=TEXT_PRIMARY, bg=BG_DARK,
+            activebackground=BG_DARK, activeforeground=TEXT_SELECTED,
+            selectcolor=BG_MID, relief="flat", bd=0,
+        ).pack(anchor="w")
 
     def _build_scrollable_frame(self, parent: tk.Frame) -> tk.Frame:
         """Return an inner tk.Frame inside a canvas+scrollbar; mousewheel scrolls on hover."""
@@ -2787,57 +2258,31 @@ class LauncherApp:
 
     # ── Settings tab actions ──────────────────────────────────────────────────
 
-    def _load_settings_into_ui(self) -> None:
-        settings = _read_settings()
+    def _save_launcher_config_from_ui(self) -> None:
+        cfg = _read_launcher_config()
+        int_keys = {"jvm_client_xms", "jvm_client_xmx", "jvm_server_xms", "jvm_server_xmx"}
+        bool_keys = {"auto_update_check"}
         for key, var in self._settings_vars.items():
-            if key == "resolution":
-                w = settings.get("window_width", 1280)
-                h = settings.get("window_height", 720)
-                var.set(f"{w}x{h}")
-            else:
-                val = settings.get(key, _DEFAULT_SETTINGS.get(key))
-                if val is not None:
-                    var.set(val)
-        for key, lbl in self._ctrl_key_labels.items():
-            lbl.config(text=str(settings.get(key, _DEFAULT_SETTINGS.get(key, "—"))))
-
-    def _save_settings_from_ui(self) -> None:
-        settings = _read_settings()
-        for key, var in self._settings_vars.items():
-            if key == "resolution":
+            raw = var.get()
+            if key in int_keys:
                 try:
-                    w, h = var.get().split("x")
-                    settings["window_width"] = int(w)
-                    settings["window_height"] = int(h)
+                    cfg[key] = int(raw)
                 except ValueError:
                     pass
+            elif key in bool_keys:
+                cfg[key] = bool(raw)
             else:
-                settings[key] = var.get()
+                cfg[key] = raw
         try:
-            _write_settings_safe(settings)
-            messagebox.showinfo("Saved", "Settings saved.", parent=self.root)
+            _write_launcher_config(cfg)
+            messagebox.showinfo("Saved", "Launcher config saved.", parent=self.root)
         except Exception as exc:
             messagebox.showerror("Save Failed", str(exc), parent=self.root)
 
-    def _reset_settings_to_defaults(self) -> None:
-        if not messagebox.askyesno(
-            "Reset Settings", "Reset all settings to defaults?", parent=self.root
-        ):
-            return
-        try:
-            _write_settings_safe(_DEFAULT_SETTINGS.copy())
-            self._load_settings_into_ui()
-            messagebox.showinfo("Reset", "Settings reset to defaults.", parent=self.root)
-        except Exception as exc:
-            messagebox.showerror("Reset Failed", str(exc), parent=self.root)
-
-    def _open_settings_file(self) -> None:
-        path = _get_settings_path()
+    def _open_launcher_config_file(self) -> None:
+        path = _get_launcher_config_path()
         if not path.exists():
-            try:
-                _write_settings_safe(_DEFAULT_SETTINGS.copy())
-            except Exception:
-                pass
+            _write_launcher_config({})
         try:
             os.startfile(str(path))
         except AttributeError:
@@ -2889,686 +2334,9 @@ class LauncherApp:
         self._refresh_replays_tab()
         self._refresh_replay_list()
         self._refresh_log_list()
-        self._refresh_mods_list()
-        self._refresh_baseline_list()
+        self._refresh_jar_info()
         # Also re-read the local game version from the new directory
         self._local_version = _read_local_version()
-
-    # ── Tab 7: Mods ───────────────────────────────────────────────────────────
-
-    def _build_mods_tab(self, parent: tk.Frame) -> None:
-        pad = tk.Frame(parent, bg=BG_DARK)
-        pad.pack(fill="both", expand=True, padx=16, pady=(8, 6))
-
-        # Header
-        hdr_row = tk.Frame(pad, bg=BG_DARK)
-        hdr_row.pack(fill="x")
-        tk.Label(
-            hdr_row,
-            text="INSTALLED MODS",
-            font=("Consolas", 9, "bold"),
-            fg=ACCENT,
-            bg=BG_DARK,
-            anchor="w",
-        ).pack(side="left")
-        _b = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=8, pady=3)
-        tk.Button(
-            hdr_row,
-            text="Open Folder",
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            command=self._reveal_mods_folder,
-            **_b,
-        ).pack(side="right")
-        tk.Button(
-            hdr_row,
-            text="Refresh",
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            command=self._refresh_mods_list,
-            **_b,
-        ).pack(side="right", padx=(0, 4))
-        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
-
-        # Mods Treeview
-        tree_frame = tk.Frame(pad, bg=BG_CARD)
-        tree_frame.pack(fill="x")
-
-        cols = ("en", "name", "version", "author", "status")
-        self._mods_tree = ttk.Treeview(
-            tree_frame,
-            columns=cols,
-            show="headings",
-            style="Replay.Treeview",
-            height=6,
-            selectmode="browse",
-        )
-        for col, width, label in [
-            ("en", 30, ""),
-            ("name", 160, "Name"),
-            ("version", 70, "Version"),
-            ("author", 90, "Author"),
-            ("status", 90, "Status"),
-        ]:
-            self._mods_tree.heading(col, text=label, anchor="w")
-            self._mods_tree.column(col, width=width, minwidth=20, stretch=(col == "name"))
-
-        mods_ys = tk.Scrollbar(tree_frame, orient="vertical", command=self._mods_tree.yview)
-        self._mods_tree.configure(yscrollcommand=mods_ys.set)
-        mods_ys.pack(side="right", fill="y")
-        self._mods_tree.pack(fill="x")
-        self._mods_tree.bind("<<TreeviewSelect>>", self._on_mod_selected)
-        self._mods_tree.bind("<ButtonRelease-1>", self._on_mods_tree_click)
-
-        # Pending-restart note
-        self._mods_note_var = tk.StringVar(value="")
-        tk.Label(
-            pad,
-            textvariable=self._mods_note_var,
-            font=("Consolas", 8),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            anchor="w",
-        ).pack(fill="x", pady=(3, 0))
-
-        # Detail panel
-        detail_frame = tk.Frame(pad, bg=BG_CARD)
-        detail_frame.pack(fill="x", pady=(6, 0))
-        self._mod_detail_var = tk.StringVar(value="Select a mod above to see details.")
-        tk.Label(
-            detail_frame,
-            textvariable=self._mod_detail_var,
-            font=("Consolas", 8),
-            fg=TEXT_DIM,
-            bg=BG_CARD,
-            anchor="w",
-            justify="left",
-            padx=6,
-            pady=4,
-        ).pack(fill="x")
-
-        # Action buttons
-        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(8, 0))
-        btn_row = tk.Frame(pad, bg=BG_DARK)
-        btn_row.pack(fill="x", pady=(6, 0))
-
-        _b2 = dict(font=("Consolas", 9), relief="flat", cursor="hand2", padx=10, pady=4)
-        tk.Button(
-            btn_row,
-            text="Toggle Enable",
-            fg=TEXT_PRIMARY,
-            bg=BG_MID,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            command=self._toggle_selected_mod,
-            **_b2,
-        ).pack(side="left")
-        tk.Button(
-            btn_row,
-            text="Reveal Folder",
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            command=self._reveal_selected_mod_folder,
-            **_b2,
-        ).pack(side="left", padx=(6, 0))
-        tk.Button(
-            btn_row,
-            text="Delete Mod",
-            fg="#e05252",
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground="#e05252",
-            command=self._delete_selected_mod,
-            **_b2,
-        ).pack(side="left", padx=(6, 0))
-
-        # Install section
-        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(10, 0))
-        inst_hdr = tk.Frame(pad, bg=BG_DARK)
-        inst_hdr.pack(fill="x", pady=(4, 4))
-        tk.Label(
-            inst_hdr,
-            text="INSTALL MOD",
-            font=("Consolas", 9, "bold"),
-            fg=ACCENT,
-            bg=BG_DARK,
-            anchor="w",
-        ).pack(side="left")
-
-        inst_row = tk.Frame(pad, bg=BG_DARK)
-        inst_row.pack(fill="x")
-        tk.Label(
-            inst_row,
-            text="From ZIP:",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            width=10,
-            anchor="w",
-        ).pack(side="left")
-        self._mod_zip_var = tk.StringVar()
-        tk.Entry(
-            inst_row,
-            textvariable=self._mod_zip_var,
-            font=("Consolas", 9),
-            bg=BG_MID,
-            fg=TEXT_PRIMARY,
-            insertbackground=ACCENT,
-            relief="flat",
-            width=28,
-        ).pack(side="left", padx=(4, 6))
-        tk.Button(
-            inst_row,
-            text="Browse…",
-            font=("Consolas", 9),
-            fg=TEXT_DIM,
-            bg=BG_DARK,
-            activebackground=BG_MID,
-            activeforeground=TEXT_PRIMARY,
-            relief="flat",
-            cursor="hand2",
-            padx=8,
-            pady=3,
-            command=self._browse_mod_zip,
-        ).pack(side="left")
-        tk.Button(
-            inst_row,
-            text="Install",
-            font=("Consolas", 9, "bold"),
-            fg=ACCENT,
-            bg=BTN_PLAY_BG,
-            activebackground=BG_CARD,
-            activeforeground=TEXT_SELECTED,
-            relief="flat",
-            cursor="hand2",
-            padx=10,
-            pady=3,
-            command=self._install_mod_zip,
-        ).pack(side="left", padx=(6, 0))
-
-        self._refresh_mods_list()
-
-    # ── Mods tab actions ──────────────────────────────────────────────────────
-
-    def _refresh_mods_list(self) -> None:
-        for row in self._mods_tree.get_children():
-            self._mods_tree.delete(row)
-        manifests = _read_mod_manifests()
-        if not manifests:
-            self._mods_note_var.set("No mods found in user_data/mods/")
-            self._mod_detail_var.set("No mods installed.")
-            return
-
-        enabled_set = _read_enabled_mods()
-        all_ids = {m["mod_id"] for m in manifests}
-
-        for m in manifests:
-            mod_id = m.get("mod_id", "?")
-            # enabled_set is None means all enabled (no config written yet)
-            is_enabled = enabled_set is None or mod_id in enabled_set
-            en_str = "☑" if is_enabled else "☐"
-
-            deps = m.get("dependencies", [])
-            missing = [d for d in deps if d not in all_ids]
-            if missing:
-                status = f"Missing: {', '.join(missing)}"
-            else:
-                status = "OK"
-
-            self._mods_tree.insert(
-                "",
-                "end",
-                iid=mod_id,
-                values=(
-                    en_str,
-                    m.get("name", mod_id),
-                    m.get("version", "?"),
-                    m.get("author", "?"),
-                    status,
-                ),
-            )
-
-        note = "(enable/disable takes effect after game restart)" if manifests else ""
-        self._mods_note_var.set(note)
-
-        first = self._mods_tree.get_children()
-        if first:
-            self._mods_tree.selection_set(first[0])
-            self._on_mod_selected()
-
-    def _on_mod_selected(self, _event=None) -> None:
-        sel = self._mods_tree.selection()
-        if not sel:
-            return
-        mod_id = sel[0]
-        manifests = _read_mod_manifests()
-        m = next((x for x in manifests if x.get("mod_id") == mod_id), None)
-        if not m:
-            return
-        deps = m.get("dependencies", []) or []
-        dep_str = ", ".join(deps) if deps else "none"
-        self._mod_detail_var.set(
-            f"ID: {mod_id}   Version: {m.get('version', '?')}   Entry: {m.get('entry_point', '?')}\n"
-            f"Description: {m.get('description', '—')}\n"
-            f"Dependencies: {dep_str}\n"
-            f"Path: {m.get('_path', '?')}"
-        )
-
-    def _on_mods_tree_click(self, event) -> None:
-        region = self._mods_tree.identify_region(event.x, event.y)
-        if region != "cell":
-            return
-        col = self._mods_tree.identify_column(event.x)
-        if col != "#1":  # "en" column
-            return
-        iid = self._mods_tree.identify_row(event.y)
-        if iid:
-            self._toggle_mod_enabled(iid)
-
-    def _toggle_selected_mod(self) -> None:
-        sel = self._mods_tree.selection()
-        if not sel:
-            messagebox.showwarning("No Mod Selected", "Select a mod first.", parent=self.root)
-            return
-        self._toggle_mod_enabled(sel[0])
-
-    def _toggle_mod_enabled(self, mod_id: str) -> None:
-        enabled_set = _read_enabled_mods()
-        if enabled_set is None:
-            # First write: start with all enabled, then toggle
-            all_ids = {m["mod_id"] for m in _read_mod_manifests()}
-            enabled_set = all_ids.copy()
-        if mod_id in enabled_set:
-            enabled_set.discard(mod_id)
-        else:
-            enabled_set.add(mod_id)
-        _write_enabled_mods(enabled_set)
-        self._refresh_mods_list()
-        # Re-select the toggled mod
-        if self._mods_tree.exists(mod_id):
-            self._mods_tree.selection_set(mod_id)
-
-    def _reveal_selected_mod_folder(self) -> None:
-        sel = self._mods_tree.selection()
-        if not sel:
-            return
-        mod_id = sel[0]
-        mod_dir = _get_mods_dir() / mod_id
-        if not mod_dir.exists():
-            return
-        try:
-            os.startfile(str(mod_dir))
-        except AttributeError:
-            subprocess.Popen(["xdg-open", str(mod_dir)])
-
-    def _reveal_mods_folder(self) -> None:
-        mods_dir = _get_mods_dir()
-        mods_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            os.startfile(str(mods_dir))
-        except AttributeError:
-            subprocess.Popen(["xdg-open", str(mods_dir)])
-
-    def _delete_selected_mod(self) -> None:
-        sel = self._mods_tree.selection()
-        if not sel:
-            messagebox.showwarning("No Mod Selected", "Select a mod first.", parent=self.root)
-            return
-        mod_id = sel[0]
-        mod_dir = _get_mods_dir() / mod_id
-        if not messagebox.askyesno(
-            "Delete Mod",
-            f"Delete mod '{mod_id}' and all its files?\n\nThis cannot be undone.",
-            parent=self.root,
-        ):
-            return
-        try:
-            shutil.rmtree(mod_dir)
-        except OSError as exc:
-            messagebox.showerror("Delete Failed", str(exc), parent=self.root)
-            return
-        # Remove from enabled list if present
-        enabled_set = _read_enabled_mods()
-        if enabled_set is not None:
-            enabled_set.discard(mod_id)
-            _write_enabled_mods(enabled_set)
-        self._refresh_mods_list()
-
-    def _browse_mod_zip(self) -> None:
-        from tkinter import filedialog
-
-        path = filedialog.askopenfilename(
-            title="Select Mod ZIP",
-            filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")],
-            parent=self.root,
-        )
-        if path:
-            self._mod_zip_var.set(path)
-
-    def _install_mod_zip(self) -> None:
-        import zipfile
-
-        zip_path_str = self._mod_zip_var.get().strip()
-        if not zip_path_str:
-            messagebox.showwarning(
-                "No File Selected", "Browse to a ZIP file first.", parent=self.root
-            )
-            return
-        zip_path = Path(zip_path_str)
-        if not zip_path.exists():
-            messagebox.showerror("Not Found", f"File not found:\n{zip_path}", parent=self.root)
-            return
-
-        if not messagebox.askyesno(
-            "Security Warning",
-            "Mods execute Python code on your machine.\n\n"
-            "Only install mods from sources you trust.\n\n"
-            "Continue with installation?",
-            parent=self.root,
-            icon="warning",
-        ):
-            return
-
-        try:
-            with zipfile.ZipFile(zip_path) as zf:
-                names = zf.namelist()
-                candidates = [n for n in names if n.rstrip("/").endswith("mod.json")]
-                if not candidates:
-                    messagebox.showerror(
-                        "Invalid Mod ZIP", "No mod.json found in the ZIP file.", parent=self.root
-                    )
-                    return
-                # Pick the shallowest mod.json
-                manifest_name = min(candidates, key=lambda n: n.count("/"))
-                manifest_data = json.loads(zf.read(manifest_name).decode("utf-8"))
-                mod_id = manifest_data.get("mod_id", "").strip()
-                if not mod_id:
-                    messagebox.showerror(
-                        "Invalid mod.json",
-                        "mod.json is missing the 'mod_id' field.",
-                        parent=self.root,
-                    )
-                    return
-
-                dest_dir = _get_mods_dir() / mod_id
-                if dest_dir.exists():
-                    if not messagebox.askyesno(
-                        "Overwrite?",
-                        f"Mod '{mod_id}' is already installed. Overwrite?",
-                        parent=self.root,
-                    ):
-                        return
-                    shutil.rmtree(dest_dir)
-                dest_dir.mkdir(parents=True, exist_ok=True)
-
-                # Strip common prefix (supports both flat and subfolder layout)
-                prefix = manifest_name[: manifest_name.rfind("/") + 1]
-                for member in zf.infolist():
-                    fname = member.filename
-                    if not fname.startswith(prefix) or fname == prefix:
-                        continue
-                    rel = fname[len(prefix) :]
-                    out = dest_dir / rel
-                    if fname.endswith("/"):
-                        out.mkdir(parents=True, exist_ok=True)
-                    else:
-                        out.parent.mkdir(parents=True, exist_ok=True)
-                        out.write_bytes(zf.read(fname))
-        except Exception as exc:
-            messagebox.showerror("Install Failed", str(exc), parent=self.root)
-            return
-
-        # Auto-enable the newly installed mod
-        enabled_set = _read_enabled_mods()
-        if enabled_set is None:
-            enabled_set = {m["mod_id"] for m in _read_mod_manifests()}
-        else:
-            enabled_set.add(mod_id)
-        _write_enabled_mods(enabled_set)
-
-        self._mod_zip_var.set("")
-        self._refresh_mods_list()
-        messagebox.showinfo(
-            "Installed",
-            f"Mod '{mod_id}' installed and enabled.\n\nRestart the game to apply.",
-            parent=self.root,
-        )
-
-    # ── Profiler actions ──────────────────────────────────────────────────────
-
-    def _refresh_profiler_display(self, baseline_stats: dict | None = None) -> None:
-        """Read the existing profiler CSV (if any) and show a summary in the Text widget."""
-        csv_path = _get_profiler_csv()
-        stats = _parse_profiler_csv(csv_path)
-
-        self._prof_txt.configure(state="normal")
-        self._prof_txt.delete("1.0", "end")
-
-        if not stats:
-            self._prof_txt.insert("1.0", "No profiler data — run a benchmark first.")
-            self._prof_txt.configure(state="disabled")
-            return
-
-        has_baseline = baseline_stats is not None
-        if has_baseline:
-            header = f"{'Section':<20s}  {'avg':>7s}  {'p95':>7s}  {'max':>7s}  {'Δavg':>8s}"
-        else:
-            header = f"{'Section':<20s}  {'avg':>7s}  {'p95':>7s}  {'max':>7s}"
-        sep = "─" * len(header)
-
-        fps_line = (
-            f"Frames: {stats['frame_count']}    "
-            f"FPS  avg={stats['fps_avg']:.1f}  p5={stats['fps_p5']:.1f}  min={stats['fps_min']:.1f}"
-        )
-        lines = [fps_line, sep, header, sep]
-
-        sections = [k for k in stats if k not in ("frame_count", "fps_avg", "fps_p5", "fps_min")]
-        for sec in sections:
-            d = stats[sec]
-            if has_baseline and sec in baseline_stats:
-                bd = baseline_stats[sec]
-                delta = d["avg"] - bd["avg"]
-                sign = "+" if delta >= 0 else ""
-                lines.append(
-                    f"  {sec:<18s}  {d['avg']:6.2f}ms  {d['p95']:6.2f}ms  {d['max']:6.2f}ms  "
-                    f"{sign}{delta:+.2f}ms"
-                )
-            else:
-                lines.append(
-                    f"  {sec:<18s}  {d['avg']:6.2f}ms  {d['p95']:6.2f}ms  {d['max']:6.2f}ms"
-                )
-
-        self._prof_txt.insert("1.0", "\n".join(lines))
-        self._prof_txt.configure(state="disabled")
-
-        if self._prof_view_mode == "chart":
-            self._draw_profiler_chart(stats)
-
-    def _refresh_baseline_list(self) -> None:
-        """Populate the baseline combobox with perf_baseline*.csv files."""
-        base_dir = _get_user_data_dir()
-        files = (
-            sorted(base_dir.glob("perf_baseline*.csv"), reverse=True) if base_dir.exists() else []
-        )
-        names = [f.name for f in files]
-        self._baseline_combo.configure(values=names)
-        if names:
-            self._baseline_combo.current(0)
-
-    def _compare_to_baseline(self) -> None:
-        """Parse selected baseline CSV and re-render profiler display with delta column."""
-        name = self._baseline_var.get()
-        if not name:
-            messagebox.showinfo("No Baseline", "No baseline file selected.", parent=self.root)
-            return
-        baseline_path = _get_user_data_dir() / name
-        baseline_stats = _parse_profiler_csv(baseline_path)
-        if not baseline_stats:
-            messagebox.showerror(
-                "Parse Error", f"Could not read baseline:\n{baseline_path}", parent=self.root
-            )
-            return
-        self._refresh_profiler_display(baseline_stats=baseline_stats)
-        self._bench_status_var.set(f"Comparing vs {name}")
-
-    def _set_prof_view(self, mode: str) -> None:
-        """Toggle between 'table' and 'chart' view for profiler results."""
-        self._prof_view_mode = mode
-        if mode == "table":
-            self._prof_table_btn.configure(
-                fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold")
-            )
-            self._prof_chart_btn.configure(fg=TEXT_DIM, bg=BG_DARK, font=("Consolas", 8))
-            self._prof_canvas.pack_forget()
-            self._prof_text_frame.pack(fill="x", pady=(6, 0))
-        else:
-            self._prof_chart_btn.configure(
-                fg=TEXT_SELECTED, bg=BG_MID, font=("Consolas", 8, "bold")
-            )
-            self._prof_table_btn.configure(fg=TEXT_DIM, bg=BG_DARK, font=("Consolas", 8))
-            self._prof_text_frame.pack_forget()
-            self._prof_canvas.pack(fill="x", pady=(6, 0))
-            csv_path = _get_profiler_csv()
-            stats = _parse_profiler_csv(csv_path)
-            if stats:
-                self._draw_profiler_chart(stats)
-            else:
-                self._prof_canvas.delete("all")
-                self._prof_canvas.create_text(
-                    4, 60, text="No data", fill=TEXT_DIM, anchor="w", font=("Consolas", 8)
-                )
-
-    def _draw_profiler_chart(self, stats: dict) -> None:
-        """Draw a horizontal bar chart of per-section avg timings on the Canvas."""
-        canvas = self._prof_canvas
-        canvas.update_idletasks()
-        canvas.delete("all")
-
-        sections = [k for k in stats if k not in ("frame_count", "fps_avg", "fps_p5", "fps_min")]
-        if not sections:
-            return
-
-        W = canvas.winfo_width() or 400
-        label_w = 130
-        bar_area = W - label_w - 60
-        max_val = max(stats[s]["avg"] for s in sections) or 1.0
-        bar_h = 14
-        gap = 6
-        y0 = 8
-
-        for i, sec in enumerate(sections):
-            avg = stats[sec]["avg"]
-            y = y0 + i * (bar_h + gap)
-            bar_len = int(bar_area * avg / max_val)
-            # Color thresholds (ms)
-            if avg < 8:
-                color = "#4caf50"  # green
-            elif avg < 16:
-                color = "#ffd700"  # yellow (ACCENT)
-            else:
-                color = "#e53935"  # red
-            canvas.create_text(
-                label_w - 4,
-                y + bar_h // 2,
-                text=sec[:20],
-                fill=TEXT_DIM,
-                anchor="e",
-                font=("Consolas", 7),
-            )
-            canvas.create_rectangle(
-                label_w, y, label_w + bar_len, y + bar_h, fill=color, outline=""
-            )
-            canvas.create_text(
-                label_w + bar_len + 4,
-                y + bar_h // 2,
-                text=f"{avg:.2f}ms",
-                fill=TEXT_PRIMARY,
-                anchor="w",
-                font=("Consolas", 7),
-            )
-
-    def _run_benchmark(self) -> None:
-        """Launch the game headless with --profile, kill after N seconds, refresh display."""
-        if self._benchmark_proc is not None:
-            return  # already running
-
-        game_path = _get_game_exe()
-        if not game_path.exists():
-            messagebox.showerror(
-                "Game Not Found", f"Could not find:\n{game_path}", parent=self.root
-            )
-            return
-
-        cmd = [sys.executable, str(game_path)] if game_path.suffix == ".py" else [str(game_path)]
-        cmd += ["--headless", "--profile"]
-
-        self._bench_btn.configure(state="disabled", text="Running…")
-        self._bench_status_var.set(f"Runs for {_BENCHMARK_SECONDS}s…")
-
-        try:
-            self._benchmark_proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as exc:
-            self._benchmark_proc = None
-            self._bench_btn.configure(state="normal", text=f"Run {_BENCHMARK_SECONDS}s Benchmark")
-            self._bench_status_var.set(f"Launch failed: {exc}")
-            return
-
-        def _kill_and_refresh() -> None:
-            proc = self._benchmark_proc
-            if proc is not None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=3)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-            self._benchmark_proc = None
-            self._benchmark_timer = None
-            self.root.after(0, self._on_benchmark_done)
-
-        self._benchmark_timer = threading.Timer(_BENCHMARK_SECONDS, _kill_and_refresh)
-        self._benchmark_timer.daemon = True
-        self._benchmark_timer.start()
-
-    def _on_benchmark_done(self) -> None:
-        self._bench_btn.configure(state="normal", text=f"Run {_BENCHMARK_SECONDS}s Benchmark")
-        # Give the profiler a moment to flush then parse
-        self.root.after(400, self._after_benchmark_parse)
-
-    def _after_benchmark_parse(self) -> None:
-        self._refresh_profiler_display()
-        stats = _parse_profiler_csv(_get_profiler_csv())
-        if stats:
-            self._bench_status_var.set(
-                f"Done — {stats['frame_count']} frames, avg {stats['fps_avg']:.1f} FPS"
-            )
-        else:
-            self._bench_status_var.set("Done (no CSV written — headless may have exited early)")
-
-    def _save_baseline(self) -> None:
-        """Copy current profiler CSV to a dated baseline file."""
-        import shutil
-        from datetime import date
-
-        csv_path = _get_profiler_csv()
-        if not csv_path.exists():
-            messagebox.showinfo("No Data", "Run a benchmark first.", parent=self.root)
-            return
-        dated = csv_path.parent / f"perf_baseline_{date.today().isoformat()}.csv"
-        try:
-            shutil.copy2(csv_path, dated)
-            self._bench_status_var.set(f"Saved: {dated.name}")
-        except Exception as exc:
-            messagebox.showerror("Save Failed", str(exc), parent=self.root)
 
     # ── Log actions ───────────────────────────────────────────────────────────
 
@@ -3910,8 +2678,8 @@ class LauncherApp:
                 label = f"v  Downgrade JARs to {tag}"
 
         self._download_btn.configure(state="normal", text=label)
-        # Play button enabled if exe installed OR client JAR available (Java launch path)
-        play_ready = installed or _get_client_jar().exists()
+        # Play button enabled when client JAR is available
+        play_ready = _get_client_jar().exists() and self._java_ok
         play_state = "normal" if play_ready else "disabled"
         play_fg = ACCENT if play_ready else TEXT_DIM
         self._play_btn.configure(state=play_state, fg=play_fg)
@@ -4211,20 +2979,6 @@ class LauncherApp:
         self._status_var.set(f"X  {message}")
         self._refresh_download_btn()
 
-    # ── Join entry placeholder behaviour ─────────────────────────────────────
-
-    _JOIN_PLACEHOLDER = "host:7777"
-
-    def _on_join_focus_in(self, _event=None) -> None:
-        if self._join_addr_var.get() == self._JOIN_PLACEHOLDER:
-            self._join_entry.delete(0, "end")
-            self._join_entry.config(fg=TEXT_PRIMARY)
-
-    def _on_join_focus_out(self, _event=None) -> None:
-        if not self._join_addr_var.get().strip():
-            self._join_entry.insert(0, self._JOIN_PLACEHOLDER)
-            self._join_entry.config(fg=TEXT_DIM)
-
     # ── Launch helpers ────────────────────────────────────────────────────────
 
     def _launch_with_args(self, *extra_args: str) -> None:
@@ -4257,58 +3011,55 @@ class LauncherApp:
         except Exception as exc:
             messagebox.showerror("Launch Error", str(exc), parent=self.root)
 
-    def _launch_solo(self) -> None:
-        """Launch the game in single-player / solo mode."""
-        self._launch_with_args()
+    # ── JAR info helpers ─────────────────────────────────────────────────────
 
-    def _launch_host(self) -> None:
-        """Start a multiplayer server and join it as the host."""
-        port_str = self._host_port_var.get().strip()
+    def _refresh_jar_info(self) -> None:
+        lines = []
+        _, java_str = _detect_java()
+        lines.append(f"Java:    {java_str}")
+        for label, path in [
+            ("Client JAR", _get_client_jar()),
+            ("Server JAR", _get_server_jar()),
+        ]:
+            if path.exists():
+                try:
+                    size = _format_bytes(path.stat().st_size)
+                except OSError:
+                    size = "?"
+                lines.append(f"{label}:  {path.name}  ({size})")
+            else:
+                lines.append(f"{label}:  NOT FOUND")
+        self._jar_info_var.set("\n".join(lines))
+
+    def _verify_jar_sha256(self) -> None:
+        results = []
+        for label, path in [
+            ("Client JAR", _get_client_jar()),
+            ("Server JAR", _get_server_jar()),
+        ]:
+            if not path.exists():
+                results.append(f"{label}: not found")
+                continue
+            self._jar_info_var.set(f"Hashing {label}…")
+            self.root.update_idletasks()
+            sha = _sha256_file(path)
+            results.append(f"{label}: {sha}")
+        self._jar_info_var.set("\n".join(results))
+
+    def _reveal_game_dir(self) -> None:
+        d = _get_base_dir()
+        d.mkdir(parents=True, exist_ok=True)
         try:
-            port = int(port_str)
-            if not (1 <= port <= 65535):
-                raise ValueError
-        except ValueError:
-            messagebox.showerror(
-                "Invalid Port",
-                "Port must be a whole number between 1 and 65535.",
-                parent=self.root,
-            )
-            return
-        try:
-            max_players = int(self._max_players_var.get())
-            if not (1 <= max_players <= 4):
-                raise ValueError
-        except ValueError:
-            messagebox.showerror(
-                "Invalid Max Players",
-                "Max players must be a number between 1 and 4.",
-                parent=self.root,
-            )
-            return
-        self._launch_with_args("--host", str(port), "--max-players", str(max_players))
+            os.startfile(str(d))
+        except AttributeError:
+            subprocess.Popen(["xdg-open", str(d)])
 
-    def _launch_join(self) -> None:
-        """Connect to an existing multiplayer server."""
-        addr = self._join_addr_var.get().strip()
-        if not addr or addr == self._JOIN_PLACEHOLDER:
-            messagebox.showerror(
-                "No Server Address",
-                "Enter the server address as  host:port  (e.g. 192.168.1.5:7777).",
-                parent=self.root,
-            )
-            return
-        # Accept bare IP/hostname — default port 7777
-        if ":" not in addr:
-            addr = f"{addr}:7777"
-        self._launch_with_args("--connect", addr)
-
-    # ── Server ping (P3-F5) ───────────────────────────────────────────────────
+    # ── Server ping ───────────────────────────────────────────────────────────
 
     def _ping_server_addr(self) -> None:
         """TCP-connect to the join address and report latency."""
-        addr = self._join_addr_var.get().strip()
-        if not addr or addr == self._JOIN_PLACEHOLDER:
+        addr = self._java_addr_var.get().strip()
+        if not addr or addr == self._JAVA_ADDR_PLACEHOLDER:
             self._ping_result_var.set("no address")
             return
         if ":" in addr:
@@ -4385,11 +3136,13 @@ class LauncherApp:
         btn_state = "normal" if ready else "disabled"
         srv_state = "normal" if server_ready else "disabled"
         btn_fg = ACCENT if ready else TEXT_DIM
-        self._java_solo_btn.configure(state=btn_state, fg=btn_fg)
+        self._play_btn.configure(state=btn_state, fg=btn_fg)
         self._java_join_btn.configure(state=btn_state)
+        self._java_host_play_btn.configure(state="normal" if (ready and server_ready) else "disabled")
         self._java_server_btn.configure(state=srv_state)
 
     def _launch_java_solo(self) -> None:
+        """Launch client connecting to localhost (mode selection handled in-game)."""
         port_str = self._host_port_var.get().strip()
         try:
             port = int(port_str)
@@ -4398,6 +3151,19 @@ class LauncherApp:
         except ValueError:
             port = 7777
         self._launch_java_client("127.0.0.1", port)
+
+    def _launch_java_host_play(self) -> None:
+        """Start the server then connect the client to localhost."""
+        self._launch_java_server()
+        if self._java_server_proc is not None:
+            port_str = self._host_port_var.get().strip()
+            try:
+                port = int(port_str)
+                if not (1 <= port <= 65535):
+                    raise ValueError
+            except ValueError:
+                port = 7777
+            self._launch_java_client("127.0.0.1", port)
 
     def _launch_java_join(self) -> None:
         addr = self._java_addr_var.get().strip()
@@ -4438,7 +3204,11 @@ class LauncherApp:
                 parent=self.root,
             )
             return
-        cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), host, str(port)]
+        cfg = _read_launcher_config()
+        xms = cfg.get("jvm_client_xms", 128)
+        xmx = cfg.get("jvm_client_xmx", 512)
+        extra = cfg.get("jvm_extra_args", "").split()
+        cmd = [java, "-XX:+UseZGC", f"-Xms{xms}m", f"-Xmx{xmx}m", *extra, "-jar", str(jar), host, str(port)]
         try:
             proc = subprocess.Popen(cmd, cwd=str(_get_base_dir()))
             self._status_var.set(f"Java Client Running…  ({host}:{port})")
@@ -4494,7 +3264,11 @@ class LauncherApp:
                     parent=self.root,
                 )
                 return
-        cmd = [java, "-XX:+UseZGC", "-Xms128m", "-Xmx512m", "-jar", str(jar), str(port)]
+        cfg = _read_launcher_config()
+        xms = cfg.get("jvm_server_xms", 256)
+        xmx = cfg.get("jvm_server_xmx", 1024)
+        extra = cfg.get("jvm_extra_args", "").split()
+        cmd = [java, "-XX:+UseZGC", f"-Xms{xms}m", f"-Xmx{xmx}m", *extra, "-jar", str(jar), str(port)]
         try:
             self._java_server_proc = subprocess.Popen(cmd)
             self._status_var.set(f"Java Server running on port {port}")
@@ -4714,10 +3488,6 @@ class LauncherApp:
             command=win.destroy,
         ).pack(side="right")
 
-    # ── Legacy alias kept for any external callers ────────────────────────────
-
-    def _launch_game(self) -> None:
-        self._launch_solo()
 
     # ── Run ──────────────────────────────────────────────────────────────────
 
