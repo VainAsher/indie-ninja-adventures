@@ -3372,18 +3372,21 @@ class LauncherApp:
         xms = cfg.get("jvm_server_xms", 256)
         xmx = cfg.get("jvm_server_xmx", 1024)
         extra = cfg.get("jvm_extra_args", "").split()
+        # Inject -Dninja.record=true when the Replays tab "Record" checkbox is set.
+        record_flags = ["-Dninja.record=true"] if self._record_var.get() else []
         cmd = [
             java,
             "-XX:+UseZGC",
             f"-Xms{xms}m",
             f"-Xmx{xmx}m",
+            *record_flags,
             *extra,
             "-jar",
             str(jar),
             str(port),
         ]
         try:
-            self._java_server_proc = subprocess.Popen(cmd)
+            self._java_server_proc = subprocess.Popen(cmd, cwd=str(_get_base_dir()))
             self._status_var.set(f"Java Server running on port {port}")
             self._java_server_btn.configure(
                 text="[S]  Stop Server",

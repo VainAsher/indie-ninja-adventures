@@ -28,26 +28,24 @@ application {
     mainClass.set("com.indieniinja.client.DesktopLauncher")
 }
 
-// Bundle game assets into the JAR so it works standalone when downloaded.
-// Assets live in the repo root assets/ directory; Gdx.files.internal("assets/...")
-// resolves from the classpath root, so we include them with their "assets/" prefix intact.
 val repoRoot = projectDir.parentFile.parentFile  // java/client/ -> java/ -> repo root
-sourceSets.main {
-    resources {
-        srcDir(repoRoot)
-        include("assets/**")
-    }
-}
 
 // Fat JAR: stable name ninja-client-all.jar (no version suffix — launcher uses fixed filename)
+//
+// Assets are bundled via shadowJar's from() instead of sourceSets.main.resources.include()
+// because a global include() filter on the SourceDirectorySet would strip src/main/resources/
+// files (e.g. logback.xml) from the JAR — a subtle Gradle gotcha.
 tasks.shadowJar {
     archiveBaseName.set("ninja-client")
     archiveVersion.set("")
     archiveClassifier.set("all")
     mergeServiceFiles()
 
-    // libGDX LWJGL3 natives must be excluded from shadow and extracted at runtime
-    // via LWJGL's built-in loader — no special handling needed here.
+    // Bundle game assets from repo root so the fat JAR works standalone.
+    // Gdx.files.internal("assets/...") resolves from the classpath root.
+    from(repoRoot) {
+        include("assets/**")
+    }
 }
 
 // 'build' also produces the shadow jar
