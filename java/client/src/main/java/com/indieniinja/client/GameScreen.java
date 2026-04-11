@@ -33,6 +33,7 @@ import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WorldRoomDescriptor;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.world.AutotileResolver;
+import com.indieniinja.world.WorldGraph;
 import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.world.WorldGenerator;
 import org.slf4j.Logger;
@@ -75,6 +76,11 @@ public final class GameScreen implements Screen {
     private GameSimulator       localSim;
     /** Monotonically increasing frame counter for the local sim. */
     private long                localFrame = 0;
+    /** WorldGraph for the solo session — drives the multi-room megamap. */
+    private WorldGraph          soloWorldGraph;
+    /** Current room grid coords in solo mode (derived from player position). */
+    private int                 soloCurrentGridX = 0;
+    private int                 soloCurrentGridY = 0;
     /** Room type and neighbor dirs for solo mode snapshots (GameSimulator doesn't track these). */
     private java.util.List<String> soloNeighborDirs = java.util.List.of();
     private String                 soloRoomType     = "combat";
@@ -236,13 +242,18 @@ public final class GameScreen implements Screen {
         pauseScreen = new PauseScreen(game, this::resume);
 
         if (soloMode) {
-            // Offline path — build a local GameSimulator; no network thread needed.
+            // Offline path — build a multi-room WorldGraph and unified layout;
+            // no NetworkClientThread needed.
             long seed = System.currentTimeMillis();
-            soloSeed         = seed;
-            soloRoomType     = "combat";
-            soloNeighborDirs = java.util.List.of();
-            LevelLayout layout = LevelLayout.buildProceduralLayout(seed);
-            localSim = new GameSimulator(seed, "solo_hub", layout);
+            soloSeed       = seed;
+            soloWorldGraph = WorldGraph.generate(seed, 12, WorldGraph.WorldShape.BLOB);
+            WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
+            soloCurrentGridX = startRoom.gridX;
+            soloCurrentGridY = startRoom.gridY;
+            soloRoomType     = startRoom.type.wire();
+            soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
+            LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, "solo_hub");
+            localSim = new GameSimulator(startRoom.seed, "solo_hub", layout);
             SimPlayer player = new SimPlayer("solo_player", 0, layout.spawnX, layout.spawnY);
             localSim.addPlayer(player);
             // Push an initial full snapshot so GameScreen has something to render immediately.
@@ -272,26 +283,36 @@ public final class GameScreen implements Screen {
         inventoryOverlay = new InventoryOverlay();
         shopOverlay      = new ShopOverlay();
         craftingOverlay  = new com.indieniinja.client.ui.CraftingOverlay();
-        craftingOverlay.setOnCraft(recipeId ->
-            networkClient.sendMessage(
-                com.indieniinja.network.MessageType.CRAFT_REQUEST,
-                java.util.Map.of("recipe_id", recipeId)));
+        craftingOverlay.setOnCraft(recipeId -> {
+            if (networkClient != null)
+                networkClient.sendMessage(
+                    com.indieniinja.network.MessageType.CRAFT_REQUEST,
+                    java.util.Map.of("recipe_id", recipeId));
+        });
         minimapRenderer  = new MinimapRenderer();
         // Solo mode: GameSimulator.getSnapshot() never populates worldRooms, so
         // cachedWorldRooms stays empty and the minimap guard blocks rendering.
         // Build the single-room descriptor now so M-key works immediately.
         if (soloMode) {
-            WorldRoomDescriptor soloRoom = new WorldRoomDescriptor();
-            soloRoom.gridX        = 0;
-            soloRoom.gridY        = 0;
-            soloRoom.seed         = soloSeed;
-            soloRoom.roomType     = soloRoomType;
-            soloRoom.neighborDirs = new java.util.ArrayList<>(soloNeighborDirs);
-            buildMegamap(java.util.List.of(soloRoom));
-            cachedWorldRooms = java.util.List.of(soloRoom);
-            visitedRooms.add("0,0");
+            // Build the full multi-room megamap from the WorldGraph we generated above.
+            java.util.List<WorldRoomDescriptor> soloRooms = new java.util.ArrayList<>();
+            for (WorldGraph.RoomNode r : soloWorldGraph.allRooms()) {
+                WorldRoomDescriptor d = new WorldRoomDescriptor();
+                d.gridX        = r.gridX;
+                d.gridY        = r.gridY;
+                d.seed         = r.seed;
+                d.roomType     = r.type.wire();
+                d.neighborDirs = new java.util.ArrayList<>(r.neighborDirs());
+                d.biomeIndex   = r.biomeIndex;
+                soloRooms.add(d);
+            }
+            buildMegamap(soloRooms);
+            cachedWorldRooms = soloRooms;
+            WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
+            visitedRooms.add(startRoom.gridX + "," + startRoom.gridY);
         }
         shopOverlay.setOnTrade(req -> {
+            if (networkClient == null) return;
             java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
             payload.put("npc_id",   req.npcId());
             payload.put("item_id",  req.itemId());
@@ -301,12 +322,14 @@ public final class GameScreen implements Screen {
                 com.indieniinja.network.MessageType.TRADE_REQUEST, payload);
         });
         inventoryOverlay.setOnUseItem(itemId -> {
+            if (networkClient == null) return;
             java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
             payload.put("item_id", itemId);
             networkClient.sendMessage(
                 com.indieniinja.network.MessageType.USE_ITEM, payload);
         });
         inventoryOverlay.setOnEquipItem(itemId -> {
+            if (networkClient == null) return;
             java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
             payload.put("item_id", itemId);
             networkClient.sendMessage(
@@ -676,10 +699,32 @@ public final class GameScreen implements Screen {
      * Stamps room-context fields that GameSimulator doesn't track onto a solo snapshot.
      * The single-room tile fallback in render() reads these to generate the tile grid.
      */
+    private static final int SOLO_ROOM_PX =
+        PhysicsConstants.ROOM_WIDTH_TILES * PhysicsConstants.TILE_SIZE;  // 4096
+
     private void stampSoloFields(WorldSnapshot snap) {
+        // Derive current room from the local player's world-space position.
+        if (soloWorldGraph != null && !snap.players.isEmpty()) {
+            PlayerState ps = snap.players.get(0);
+            int minGX = Integer.MAX_VALUE, minGY = Integer.MAX_VALUE;
+            for (WorldGraph.RoomNode r : soloWorldGraph.allRooms()) {
+                if (r.gridX < minGX) minGX = r.gridX;
+                if (r.gridY < minGY) minGY = r.gridY;
+            }
+            int gx = (int) Math.floor(ps.posX / SOLO_ROOM_PX) + minGX;
+            int gy = (int) Math.floor(ps.posY / SOLO_ROOM_PX) + minGY;
+            WorldGraph.RoomNode room = soloWorldGraph.roomAt(gx, gy);
+            if (room != null && (gx != soloCurrentGridX || gy != soloCurrentGridY)) {
+                soloCurrentGridX = gx;
+                soloCurrentGridY = gy;
+                soloRoomType     = room.type.wire();
+                soloNeighborDirs = new java.util.ArrayList<>(room.neighborDirs());
+            }
+            snap.roomGridX    = soloCurrentGridX;
+            snap.roomGridY    = soloCurrentGridY;
+        }
         snap.roomType     = soloRoomType;
         snap.neighborDirs = soloNeighborDirs;
-        // roomGridX/Y default to 0,0 — correct for a single-room solo layout
     }
 
     // ── Megamap construction ──────────────────────────────────────────────────
