@@ -198,7 +198,6 @@ def _format_bytes(n: int) -> str:
     return f"{n} B"
 
 
-
 def _get_saves_dir() -> Path:
     return _get_user_data_dir() / "saves"
 
@@ -212,7 +211,6 @@ def _format_playtime(seconds: float) -> str:
         return f"{m}m {s:02d}s"
     h, m = divmod(m, 60)
     return f"{h}h {m:02d}m"
-
 
 
 def _read_local_version() -> str:
@@ -394,7 +392,6 @@ def _kill_process_on_port(port: int) -> bool:
         pass
     time.sleep(0.3)
     return not _is_port_in_use(port)
-
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1277,8 +1274,12 @@ class LauncherApp:
 
         # ── JAR Info section ──────────────────────────────────────────────────
         tk.Label(
-            pad, text="JAR INFO",
-            font=("Consolas", 9, "bold"), fg=ACCENT, bg=BG_DARK, anchor="w",
+            pad,
+            text="JAR INFO",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(fill="x")
         tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(3, 6))
 
@@ -1286,32 +1287,59 @@ class LauncherApp:
         jar_info_frame.pack(fill="x", pady=(0, 4))
         self._jar_info_var = tk.StringVar(value="(click Refresh to check JARs)")
         tk.Label(
-            jar_info_frame, textvariable=self._jar_info_var,
-            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_CARD,
-            anchor="w", justify="left", padx=6, pady=4,
+            jar_info_frame,
+            textvariable=self._jar_info_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_CARD,
+            anchor="w",
+            justify="left",
+            padx=6,
+            pady=4,
         ).pack(fill="x")
 
         jar_btn_row = tk.Frame(pad, bg=BG_DARK)
         jar_btn_row.pack(fill="x", pady=(2, 0))
         tk.Button(
-            jar_btn_row, text="Refresh JAR Info",
-            font=("Consolas", 9), fg=TEXT_PRIMARY, bg=BG_MID,
-            activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
-            relief="flat", cursor="hand2", padx=10, pady=3,
+            jar_btn_row,
+            text="Refresh JAR Info",
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BG_MID,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=3,
             command=self._refresh_jar_info,
         ).pack(side="left")
         tk.Button(
-            jar_btn_row, text="Verify SHA256",
-            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            relief="flat", cursor="hand2", padx=10, pady=3,
+            jar_btn_row,
+            text="Verify SHA256",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=3,
             command=self._verify_jar_sha256,
         ).pack(side="left", padx=(6, 0))
         tk.Button(
-            jar_btn_row, text="Open Game Dir",
-            font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK,
-            activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            relief="flat", cursor="hand2", padx=10, pady=3,
+            jar_btn_row,
+            text="Open Game Dir",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=3,
             command=self._reveal_game_dir,
         ).pack(side="right")
 
@@ -2125,32 +2153,61 @@ class LauncherApp:
         game_dir_row = tk.Frame(pad, bg=BG_DARK)
         game_dir_row.pack(fill="x", pady=2)
         tk.Label(
-            game_dir_row, text="Game Dir:", font=("Consolas", 9), fg=TEXT_DIM,
-            bg=BG_DARK, width=10, anchor="w",
+            game_dir_row,
+            text="Game Dir:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            width=10,
+            anchor="w",
         ).pack(side="left")
         self._game_dir_entry = tk.Entry(
-            game_dir_row, textvariable=self._game_dir_var,
-            font=("Consolas", 8), bg=BG_MID, fg=TEXT_PRIMARY,
-            insertbackground=ACCENT, relief="flat",
+            game_dir_row,
+            textvariable=self._game_dir_var,
+            font=("Consolas", 8),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
         )
         self._game_dir_entry.pack(side="left", fill="x", expand=True, padx=(4, 4))
         tk.Button(
-            game_dir_row, text="Browse…", font=("Consolas", 9), fg=TEXT_DIM,
-            bg=BG_DARK, activebackground=BG_MID, activeforeground=TEXT_PRIMARY,
-            relief="flat", cursor="hand2", padx=8, pady=3,
+            game_dir_row,
+            text="Browse…",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            activebackground=BG_MID,
+            activeforeground=TEXT_PRIMARY,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
             command=self._browse_game_dir,
         ).pack(side="left")
         tk.Button(
-            game_dir_row, text="Apply", font=("Consolas", 9), fg=ACCENT,
-            bg=BTN_PLAY_BG, activebackground=BG_CARD, activeforeground=TEXT_SELECTED,
-            relief="flat", cursor="hand2", padx=8, pady=3,
+            game_dir_row,
+            text="Apply",
+            font=("Consolas", 9),
+            fg=ACCENT,
+            bg=BTN_PLAY_BG,
+            activebackground=BG_CARD,
+            activeforeground=TEXT_SELECTED,
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
             command=self._apply_game_dir,
         ).pack(side="left", padx=(4, 0))
 
         self._game_dir_status_var = tk.StringVar(value="")
         tk.Label(
-            pad, textvariable=self._game_dir_status_var,
-            font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK, anchor="w",
+            pad,
+            textvariable=self._game_dir_status_var,
+            font=("Consolas", 8),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            anchor="w",
         ).pack(fill="x", pady=(2, 6))
 
         # ── JVM ───────────────────────────────────────────────────────────────
@@ -2171,17 +2228,23 @@ class LauncherApp:
             var = tk.StringVar(value=str(cfg.get(key, default)))
             self._settings_vars[key] = var
             tk.Entry(
-                parent_f, textvariable=var, font=("Consolas", 9),
-                bg=BG_MID, fg=TEXT_PRIMARY, insertbackground=ACCENT,
-                relief="flat", width=width,
+                parent_f,
+                textvariable=var,
+                font=("Consolas", 9),
+                bg=BG_MID,
+                fg=TEXT_PRIMARY,
+                insertbackground=ACCENT,
+                relief="flat",
+                width=width,
             ).pack(side="left", padx=(4, 6))
             return var
 
         def _row_int(label: str, key: str, default: int, unit: str = "MB") -> None:
             r = tk.Frame(pad, bg=BG_DARK)
             r.pack(fill="x", pady=2)
-            tk.Label(r, text=label, font=("Consolas", 9), fg=TEXT_DIM,
-                     bg=BG_DARK, width=22, anchor="w").pack(side="left")
+            tk.Label(
+                r, text=label, font=("Consolas", 9), fg=TEXT_DIM, bg=BG_DARK, width=22, anchor="w"
+            ).pack(side="left")
             _int_entry(r, key, default)
             tk.Label(r, text=unit, font=("Consolas", 8), fg=TEXT_DIM, bg=BG_DARK).pack(side="left")
 
@@ -2192,13 +2255,25 @@ class LauncherApp:
 
         extra_row = tk.Frame(pad, bg=BG_DARK)
         extra_row.pack(fill="x", pady=2)
-        tk.Label(extra_row, text="Extra JVM args:", font=("Consolas", 9), fg=TEXT_DIM,
-                 bg=BG_DARK, width=22, anchor="w").pack(side="left")
+        tk.Label(
+            extra_row,
+            text="Extra JVM args:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            width=22,
+            anchor="w",
+        ).pack(side="left")
         self._jvm_extra_var = tk.StringVar(value=cfg.get("jvm_extra_args", ""))
         self._settings_vars["jvm_extra_args"] = self._jvm_extra_var
         tk.Entry(
-            extra_row, textvariable=self._jvm_extra_var, font=("Consolas", 9),
-            bg=BG_MID, fg=TEXT_PRIMARY, insertbackground=ACCENT, relief="flat",
+            extra_row,
+            textvariable=self._jvm_extra_var,
+            font=("Consolas", 9),
+            bg=BG_MID,
+            fg=TEXT_PRIMARY,
+            insertbackground=ACCENT,
+            relief="flat",
         ).pack(side="left", fill="x", expand=True, padx=(4, 0))
 
         # ── LAUNCHER ─────────────────────────────────────────────────────────
@@ -2206,14 +2281,25 @@ class LauncherApp:
 
         on_exit_row = tk.Frame(pad, bg=BG_DARK)
         on_exit_row.pack(fill="x", pady=2)
-        tk.Label(on_exit_row, text="On game exit:", font=("Consolas", 9), fg=TEXT_DIM,
-                 bg=BG_DARK, width=22, anchor="w").pack(side="left")
+        tk.Label(
+            on_exit_row,
+            text="On game exit:",
+            font=("Consolas", 9),
+            fg=TEXT_DIM,
+            bg=BG_DARK,
+            width=22,
+            anchor="w",
+        ).pack(side="left")
         self._on_exit_var = tk.StringVar(value=cfg.get("on_game_exit", "restore"))
         self._settings_vars["on_game_exit"] = self._on_exit_var
         ttk.Combobox(
-            on_exit_row, textvariable=self._on_exit_var,
+            on_exit_row,
+            textvariable=self._on_exit_var,
             values=["restore", "minimize", "quit"],
-            state="readonly", style="Launcher.TCombobox", width=12, font=("Consolas", 9),
+            state="readonly",
+            style="Launcher.TCombobox",
+            width=12,
+            font=("Consolas", 9),
         ).pack(side="left", padx=(4, 0))
 
         autoupdate_row = tk.Frame(pad, bg=BG_DARK)
@@ -2221,11 +2307,17 @@ class LauncherApp:
         self._autoupdate_var = tk.BooleanVar(value=cfg.get("auto_update_check", True))
         self._settings_vars["auto_update_check"] = self._autoupdate_var
         tk.Checkbutton(
-            autoupdate_row, text="Check for updates on launch",
+            autoupdate_row,
+            text="Check for updates on launch",
             variable=self._autoupdate_var,
-            font=("Consolas", 9), fg=TEXT_PRIMARY, bg=BG_DARK,
-            activebackground=BG_DARK, activeforeground=TEXT_SELECTED,
-            selectcolor=BG_MID, relief="flat", bd=0,
+            font=("Consolas", 9),
+            fg=TEXT_PRIMARY,
+            bg=BG_DARK,
+            activebackground=BG_DARK,
+            activeforeground=TEXT_SELECTED,
+            selectcolor=BG_MID,
+            relief="flat",
+            bd=0,
         ).pack(anchor="w")
 
     def _build_scrollable_frame(self, parent: tk.Frame) -> tk.Frame:
@@ -3138,7 +3230,9 @@ class LauncherApp:
         btn_fg = ACCENT if ready else TEXT_DIM
         self._play_btn.configure(state=btn_state, fg=btn_fg)
         self._java_join_btn.configure(state=btn_state)
-        self._java_host_play_btn.configure(state="normal" if (ready and server_ready) else "disabled")
+        self._java_host_play_btn.configure(
+            state="normal" if (ready and server_ready) else "disabled"
+        )
         self._java_server_btn.configure(state=srv_state)
 
     def _launch_java_solo(self) -> None:
@@ -3208,7 +3302,17 @@ class LauncherApp:
         xms = cfg.get("jvm_client_xms", 128)
         xmx = cfg.get("jvm_client_xmx", 512)
         extra = cfg.get("jvm_extra_args", "").split()
-        cmd = [java, "-XX:+UseZGC", f"-Xms{xms}m", f"-Xmx{xmx}m", *extra, "-jar", str(jar), host, str(port)]
+        cmd = [
+            java,
+            "-XX:+UseZGC",
+            f"-Xms{xms}m",
+            f"-Xmx{xmx}m",
+            *extra,
+            "-jar",
+            str(jar),
+            host,
+            str(port),
+        ]
         try:
             proc = subprocess.Popen(cmd, cwd=str(_get_base_dir()))
             self._status_var.set(f"Java Client Running…  ({host}:{port})")
@@ -3268,7 +3372,16 @@ class LauncherApp:
         xms = cfg.get("jvm_server_xms", 256)
         xmx = cfg.get("jvm_server_xmx", 1024)
         extra = cfg.get("jvm_extra_args", "").split()
-        cmd = [java, "-XX:+UseZGC", f"-Xms{xms}m", f"-Xmx{xmx}m", *extra, "-jar", str(jar), str(port)]
+        cmd = [
+            java,
+            "-XX:+UseZGC",
+            f"-Xms{xms}m",
+            f"-Xmx{xmx}m",
+            *extra,
+            "-jar",
+            str(jar),
+            str(port),
+        ]
         try:
             self._java_server_proc = subprocess.Popen(cmd)
             self._status_var.set(f"Java Server running on port {port}")
@@ -3487,7 +3600,6 @@ class LauncherApp:
             pady=4,
             command=win.destroy,
         ).pack(side="right")
-
 
     # ── Run ──────────────────────────────────────────────────────────────────
 
