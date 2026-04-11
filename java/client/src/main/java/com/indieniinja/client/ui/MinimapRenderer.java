@@ -413,11 +413,14 @@ public final class MinimapRenderer {
             int minGX, int minGY, int maxGX, int maxGY,
             float gridOriX, float gridOriY, int maxGY2,
             float step, float roomSize) {
-        int gx = (int) Math.floor(worldX / roomWidthPx);
-        int gy = (int) Math.floor(worldY / roomHeightPx);
+        // Physics world is 0-based: the room at grid (minGX, minGY) starts at
+        // physics (0, 0).  Convert to actual grid coordinates before bounds check.
+        int gx = (int) Math.floor(worldX / roomWidthPx) + minGX;
+        int gy = (int) Math.floor(worldY / roomHeightPx) + minGY;
         if (gx < minGX || gx > maxGX || gy < minGY || gy > maxGY) return null;
-        float localX = worldX - gx * roomWidthPx;
-        float localY = worldY - gy * roomHeightPx;
+        // Room-local pixel coords — (gx-minGX) is the 0-based room index.
+        float localX = worldX - (gx - minGX) * roomWidthPx;
+        float localY = worldY - (gy - minGY) * roomHeightPx;
         float rx = gridOriX + (gx - minGX) * step;
         float ry = gridOriY + (maxGY2 - gy) * step;
         return new float[]{
