@@ -263,17 +263,37 @@ def _list_log_files() -> list[Path]:
 
 
 def _list_replay_files() -> list[Path]:
-    """Return replay files sorted newest-first."""
+    """Return replay files sorted newest-first.
+
+    Accepts both .json (Python replay format) and .ndjson (Java InputRecorder format).
+    """
     replay_dir = _get_user_data_dir() / "replays"
     if not replay_dir.exists():
         return []
-    return sorted(replay_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:20]
+    files = list(replay_dir.glob("*.json")) + list(replay_dir.glob("*.ndjson"))
+    return sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)[:20]
 
 
 def _read_replay_meta(path: Path) -> dict:
-    """Read a replay JSON and return its metadata keys (omits 'commands' list)."""
+    """Read a replay file and return its metadata.
+
+    Supports two formats:
+      .json   — Python format: single JSON object with a 'commands' list.
+      .ndjson — Java InputRecorder format: first line is a header JSON object
+                {"type":"header","seed":<long>,"entries":<int>}, subsequent lines
+                are per-frame input records.
+    """
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8")
+        if path.suffix == ".ndjson":
+            # Only the first line contains metadata; rest are input frames.
+            header = json.loads(text.splitlines()[0])
+            return {
+                "world_seed": header.get("seed", ""),
+                "entries": header.get("entries", ""),
+                "format": "ndjson",
+            }
+        data = json.loads(text)
         return {k: v for k, v in data.items() if k != "commands"}
     except Exception:
         return {}
@@ -3302,11 +3322,14 @@ class LauncherApp:
         xms = cfg.get("jvm_client_xms", 128)
         xmx = cfg.get("jvm_client_xmx", 512)
         extra = cfg.get("jvm_extra_args", "").split()
+        # Inject -Dninja.record=true for solo replay recording when checkbox is set.
+        record_flags = ["-Dninja.record=true"] if self._record_var.get() else []
         cmd = [
             java,
             "-XX:+UseZGC",
             f"-Xms{xms}m",
             f"-Xmx{xmx}m",
+            *record_flags,
             *extra,
             "-jar",
             str(jar),

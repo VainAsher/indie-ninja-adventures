@@ -88,6 +88,8 @@ public final class GameScreen implements Screen {
     /** World-space spawn position for solo mode — used by portal travel to warp back to start. */
     private float                  soloSpawnX       = 0f;
     private float                  soloSpawnY       = 0f;
+    /** Records per-frame inputs in solo mode when -Dninja.record=true is set. */
+    private final com.indieniinja.sim.InputRecorder soloRecorder = new com.indieniinja.sim.InputRecorder();
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
@@ -261,6 +263,8 @@ public final class GameScreen implements Screen {
             soloSpawnY = layout.spawnY;
             SimPlayer player = new SimPlayer("solo_player", 0, layout.spawnX, layout.spawnY);
             localSim.addPlayer(player);
+            // Start replay recording if -Dninja.record=true was passed to this JVM.
+            if (Boolean.getBoolean("ninja.record")) soloRecorder.startRecording(soloSeed);
             // Push an initial full snapshot so GameScreen has something to render immediately.
             com.indieniinja.network.WorldSnapshot initSnap = localSim.getSnapshot(localFrame++);
             stampSoloFields(initSnap);
@@ -392,6 +396,7 @@ public final class GameScreen implements Screen {
                 InputCommand cmd = inputPoller.poll();
                 if (soloMode) {
                     // Offline: step local sim directly and push snapshot to stateBuffer.
+                    if (soloRecorder.isRecording()) soloRecorder.record(localFrame, 0, cmd);
                     localSim.step(java.util.Map.of(0, cmd));
                     com.indieniinja.network.WorldSnapshot soloSnap = localSim.getSnapshot(localFrame++);
                     stampSoloFields(soloSnap);
@@ -974,6 +979,23 @@ public final class GameScreen implements Screen {
     }
 
     /**
+     * If a solo replay is in progress, stop it and write the .ndjson file to
+     * user_data/replays/. Called from hide() and dispose() so no session is lost.
+     */
+    private void flushSoloReplay() {
+        if (!soloRecorder.isRecording()) return;
+        try {
+            java.nio.file.Path dir = java.nio.file.Paths.get("user_data", "replays");
+            java.nio.file.Files.createDirectories(dir);
+            String fname = "replay_solo_" + System.currentTimeMillis() + ".ndjson";
+            soloRecorder.stopRecording(dir.resolve(fname));
+            log.info("[GameScreen] solo replay saved: {}", fname);
+        } catch (java.io.IOException e) {
+            log.warn("[GameScreen] failed to save solo replay: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Synchronise current in-memory game state into SaveManager's liveData before
      * a write.  Called from hide() and dispose() so nothing is lost on exit.
      *
@@ -1021,11 +1043,12 @@ public final class GameScreen implements Screen {
 
     @Override public void pause()  { paused = true;  pauseScreen.activate(); }
     @Override public void resume() { paused = false; Gdx.input.setInputProcessor(null); }
-    @Override public void hide()   { if (saveManager != null) { syncSaveState(); saveManager.save(); } }
+    @Override public void hide()   { if (saveManager != null) { syncSaveState(); saveManager.save(); } flushSoloReplay(); }
 
     @Override
     public void dispose() {
         if (saveManager    != null) { syncSaveState(); saveManager.save(); }
+        flushSoloReplay();
         if (audioManager   != null) audioManager.dispose();
         if (networkClient  != null) networkClient.shutdown();
         if (batch          != null) batch.dispose();
