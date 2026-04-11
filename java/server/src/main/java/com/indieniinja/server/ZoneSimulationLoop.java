@@ -133,6 +133,11 @@ public final class ZoneSimulationLoop implements Runnable {
         zone.simulator = new GameSimulator(graph.startRoom().seed, zone.hubId, layout);
         zone.simulator.setMode(zone.gameMode, zone.arcadeDepth, zone.arcadeRooms);
 
+        // Initialise hub evolution state machine (one per zone, keyed by masterHubId)
+        if (zone.hubStateMachine == null) {
+            zone.hubStateMachine = new com.indieniinja.world.HubStateMachine(zone.masterHubId);
+        }
+
         // Spawn position is in world-space from the unified layout
         zone.spawnX = layout.spawnX;
         zone.spawnY = layout.spawnY;
@@ -322,8 +327,13 @@ public final class ZoneSimulationLoop implements Runnable {
             pr.animState = sp.animState;
         }
 
-        // ── Diagnostic: log player ground state every 60 ticks (1s) ─────────
+        // ── Hub evolution: sync NPC roster once per second (every 60 ticks) ────
         long frame = zone.frame.get();
+        if (frame % 60 == 0 && zone.hubStateMachine != null) {
+            tickHubEvolution(sim);
+        }
+
+        // ── Diagnostic: log player ground state every 60 ticks (1s) ─────────
         if (frame % 60 == 0 && !zone.playerIds.isEmpty()) {
             for (String pid : zone.playerIds) {
                 PlayerRecord pr = session.players.get(pid);
@@ -339,6 +349,64 @@ public final class ZoneSimulationLoop implements Runnable {
                     (int)sp.physics.x, (int)sp.physics.y, sp.physics.onGround,
                     sp.animState, tileCol, tileFeetRow, tileHeadRow,
                     zone.currentRoomSeed);
+            }
+        }
+    }
+
+    // ── Hub evolution ─────────────────────────────────────────────────────────
+
+    /**
+     * Called once per second (every 60 ticks).
+     *
+     * Detects boss defeats by comparing the live boss list against the previous
+     * known-alive set, then syncs the NPC roster with the hub state machine:
+     * spawns NPCs that should be active and despawns ones that shouldn't.
+     */
+    private final java.util.Set<String> prevAliveBossIds = new java.util.HashSet<>();
+
+    private void tickHubEvolution(com.indieniinja.sim.GameSimulator sim) {
+        // ── Boss defeat detection ─────────────────────────────────────────────
+        // GameSimulator.getSnapshot() rebuilds the boss list from SimBoss each tick.
+        // Compare with our previous snapshot to detect transitions alive→dead.
+        com.indieniinja.network.WorldSnapshot snap = sim.getSnapshot(zone.frame.get());
+        java.util.Set<String> nowAlive = new java.util.HashSet<>();
+        for (com.indieniinja.network.BossState b : snap.bosses) {
+            if (b.alive) nowAlive.add(b.bossId);
+        }
+        for (String bid : prevAliveBossIds) {
+            if (!nowAlive.contains(bid)) {
+                // Boss was alive last second, now dead → defeat event
+                zone.hubStateMachine.onBossDefeated(bid);
+                log.info("[Zone {}] boss defeated: {}", zone.hubId, bid);
+            }
+        }
+        prevAliveBossIds.clear();
+        prevAliveBossIds.addAll(nowAlive);
+
+        // ── NPC roster sync ───────────────────────────────────────────────────
+        java.util.List<String> desiredTypes = zone.hubStateMachine.activeNpcTypes();
+
+        // Despawn NPCs whose type is no longer active
+        for (com.indieniinja.sim.SimNPC npc : sim.getNpcs()) {
+            if (!desiredTypes.contains(npc.type)) {
+                sim.removeNpc(npc.id);
+                log.info("[Zone {}] despawned NPC {} (type={})", zone.hubId, npc.id, npc.type);
+            }
+        }
+
+        // Spawn NPCs whose type should be active but aren't present
+        java.util.Set<String> liveTypes = new java.util.HashSet<>();
+        for (com.indieniinja.sim.SimNPC npc : sim.getNpcs()) liveTypes.add(npc.type);
+        for (String desiredType : desiredTypes) {
+            if (!liveTypes.contains(desiredType)) {
+                // Spawn near zone spawn point
+                String npcId = zone.hubId + "_hub_npc_" + desiredType + "_" + System.nanoTime();
+                float sx = zone.spawnX + 64f;   // offset slightly from player spawn
+                float sy = zone.spawnY;
+                com.indieniinja.sim.SimNPC npc = new com.indieniinja.sim.SimNPC(
+                    npcId, desiredType, sx, sy, 32, 48, sx - 96f, sx + 96f);
+                sim.addNpc(npc);
+                log.info("[Zone {}] spawned NPC {} (type={})", zone.hubId, npcId, desiredType);
             }
         }
     }
@@ -474,6 +542,11 @@ public final class ZoneSimulationLoop implements Runnable {
                 d.biomeIndex  = room.biomeIndex;
                 snap.worldRooms.add(d);
             }
+        }
+
+        // Hub evolution state — always stamped so client StoryManager stays in sync
+        if (zone.hubStateMachine != null) {
+            snap.hubState = zone.hubStateMachine.getState().name();
         }
 
         // Compute frameHash over the full authoritative state (before delta encoding)

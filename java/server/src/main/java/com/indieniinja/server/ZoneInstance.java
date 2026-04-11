@@ -3,6 +3,7 @@ package com.indieniinja.server;
 import com.indieniinja.sim.GameMode;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.world.HubStateMachine;
 import com.indieniinja.world.WorldGraph;
 import com.indieniinja.world.puzzle.PuzzlePlan;
 
@@ -104,6 +105,13 @@ public final class ZoneInstance {
         PuzzlePlan p = puzzlePlan;
         return p != null ? p : PuzzlePlan.empty();
     }
+
+    /**
+     * Hub evolution state machine for this zone.
+     * Initialised by ZoneSimulationLoop.initSimulator() with the hub's masterHubId.
+     * Null-safe: ZoneSimulationLoop checks for null before calling methods.
+     */
+    public volatile HubStateMachine hubStateMachine;
 
     /** Game mode for this zone — set when the zone is first created. */
     public volatile GameMode gameMode = GameMode.ARCADE;

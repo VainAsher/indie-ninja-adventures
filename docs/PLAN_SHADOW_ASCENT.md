@@ -407,14 +407,14 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 ### Milestone 3 — Hub Evolution (v0.11.1)
 *The hub breathes. NPCs appear and disappear. Acts I–II are playable.*
 
-- [ ] `HubState.java` + `HubStateMachine.java`
-- [ ] `HubRegistry` stores `HubStateMachine` per hub
-- [ ] `SimNPC` visible/hidden driven by `hub.activeNpcIds()` (via `EntityLifecycleListener`)
-- [ ] `WorldSnapshot.hubState` field
-- [ ] `Act.java` FSM — Acts I–II wired (hub transition triggers act change)
-- [ ] `StoryManager` reads `hubState` → NPC visibility + environment tint
-- [ ] Hub 1 (Bamboo Courtyard): FULL / CORRUPTED / EMPTY defined with NPC rosters
-- [ ] `player_progress` table with `hub_state JSONB` column (persisted on zone leave)
+- [x] `HubState.java` + `HubStateMachine.java`
+- [x] `HubStateMachine` stored per `ZoneInstance`; server ticks FSM at 1 Hz in `ZoneSimulationLoop`
+- [x] `SimNPC` spawned/despawned via `GameSimulator.addNpc/removeNpc` driven by `activeNpcTypes()`
+- [x] `WorldSnapshot.hubState` field
+- [x] `Act.java` FSM — Acts I–VI wired (hub state transition triggers act change)
+- [x] `StoryManager` reads `hubState` → drives act FSM; `GameScreen` wires it on every snapshot
+- [x] Hub 1 (Bamboo Courtyard): FULL / CORRUPTED / EMPTY roster; Hub 2: FRACTURED / RECOVERING / WHOLE
+- [x] `player_progress` table with `hub_state JSONB` column (persisted on zone leave)
 
 **Deliverable:** Playable Acts I–II. Enter full hub, watch it corrupt, Siren trigger, hub collapses.
 

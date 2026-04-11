@@ -107,7 +107,7 @@ public final class SaveData {
                          .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
         // Story
-        d.storyAct = story.actNum();
+        d.storyAct = story.currentAct().wire();
         Map<String,String> ctx = story.toConditionContext();
         d.hubDegradationLevel = parseInt(ctx, "hub_degradation_level", 0);
         d.lanternsMetCount    = parseInt(ctx, "lanterns_met", 0);
@@ -143,7 +143,7 @@ public final class SaveData {
      */
     public void restore(StoryManager story, MissionManager missions) {
         // Restore story
-        StoryManager.Act[] acts = StoryManager.Act.values();
+        Act[] acts = Act.values();
         if (storyAct >= 0 && storyAct < acts.length) story.setAct(acts[storyAct]);
         for (Map.Entry<String,String> e : storyFlags.entrySet())
             story.setFlag(e.getKey(), e.getValue());

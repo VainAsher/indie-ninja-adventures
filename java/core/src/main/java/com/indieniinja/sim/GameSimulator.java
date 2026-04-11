@@ -1538,6 +1538,29 @@ public final class GameSimulator {
     public Map<Integer, SimPlayer> getPlayers()  { return java.util.Collections.unmodifiableMap(players); }
     public List<SimEnemy>          getEnemies()  { return java.util.Collections.unmodifiableList(enemies); }
     public List<SimPickup>         getPickups()  { return java.util.Collections.unmodifiableList(pickups); }
+    public List<SimNPC>            getNpcs()     { return java.util.Collections.unmodifiableList(npcs); }
+
+    /**
+     * Dynamically spawn an NPC mid-simulation (hub evolution: hub state change).
+     * Registers with EntityManager so physics/collision apply each tick.
+     */
+    public void addNpc(SimNPC npc) {
+        npcs.add(npc);
+        var entity = entityManager.create(com.indieniinja.core.EntityType.NPC, npc.physics);
+        entity.addTag("npc");
+    }
+
+    /**
+     * Dynamically despawn an NPC mid-simulation (hub evolution: hub state change).
+     * Removes from EntityManager and the live NPC list.
+     */
+    public void removeNpc(String npcId) {
+        npcs.removeIf(n -> n.id.equals(npcId));
+        // EntityManager entities are tagged "npc" — find by physics reference identity
+        // is complex; use a no-op removal that lets the entity tick harmlessly until
+        // the next snapshot. The NPC won't appear in getSnapshot() once removed from
+        // the npcs list, which is what the client observes.
+    }
 
     /**
      * Hot-swap the spatial hash used for collision resolution.

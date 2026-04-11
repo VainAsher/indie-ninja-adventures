@@ -78,11 +78,18 @@ public final class InventoryRepository {
                     equipped_armor   TEXT,
                     slots            JSONB   NOT NULL DEFAULT '[]'
                 );
+
+                CREATE TABLE IF NOT EXISTS player_progress (
+                    player_id        TEXT    NOT NULL PRIMARY KEY,
+                    hub_state        JSONB   NOT NULL DEFAULT '{}',
+                    act              INT     NOT NULL DEFAULT 0,
+                    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
                 """;
         try (Connection conn = ds.getConnection();
              Statement st = conn.createStatement()) {
             st.execute(ddl);
-            log.info("Inventory schema ready (item_defs, recipe_defs, player_inventory)");
+            log.info("Inventory schema ready (item_defs, recipe_defs, player_inventory, player_progress)");
         } catch (SQLException e) {
             log.error("Failed to create inventory schema", e);
             throw new RuntimeException("DB schema init failed", e);
@@ -344,5 +351,61 @@ public final class InventoryRepository {
             ));
         }
         return result;
+    }
+
+    // ── Player progress (hub state, act) ─────────────────────────────────────
+
+    /**
+     * Persist hub state JSON for a player.
+     * Called by ZoneSimulationLoop on zone leave / periodic flush.
+     *
+     * @param playerId    stable player identifier
+     * @param hubState    {@link com.indieniinja.world.HubStateMachine#toMap()} result
+     * @param actOrdinal  {@link com.indieniinja.client.game.Act#wire()} value
+     */
+    public void saveProgress(String playerId,
+                             Map<String, Object> hubState,
+                             int actOrdinal) {
+        String sql = """
+                INSERT INTO player_progress (player_id, hub_state, act, updated_at)
+                VALUES (?, ?::jsonb, ?, now())
+                ON CONFLICT (player_id) DO UPDATE SET
+                    hub_state  = EXCLUDED.hub_state,
+                    act        = EXCLUDED.act,
+                    updated_at = now()
+                """;
+        try (Connection conn = ds.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerId);
+            ps.setString(2, JSON.writeValueAsString(hubState));
+            ps.setInt(3, actOrdinal);
+            ps.executeUpdate();
+            log.debug("Saved progress for player {} (act={})", playerId, actOrdinal);
+        } catch (Exception e) {
+            log.error("Failed to save progress for player {}", playerId, e);
+        }
+    }
+
+    /**
+     * Load hub state and act for a player.
+     *
+     * @return map with keys "hub_state" (Map) and "act" (int), or defaults if not found
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> loadProgress(String playerId) {
+        String sql = "SELECT hub_state, act FROM player_progress WHERE player_id = ?";
+        try (Connection conn = ds.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Map.of("hub_state", Map.of(), "act", 0);
+                Map<String, Object> hubState = JSON.readValue(
+                    rs.getString("hub_state"), new TypeReference<Map<String, Object>>() {});
+                return Map.of("hub_state", hubState, "act", rs.getInt("act"));
+            }
+        } catch (Exception e) {
+            log.error("Failed to load progress for player {}", playerId, e);
+            return Map.of("hub_state", Map.of(), "act", 0);
+        }
     }
 }

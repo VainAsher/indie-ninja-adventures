@@ -1,36 +1,41 @@
 package com.indieniinja.client.game;
 
+import com.indieniinja.world.HubState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Client-side story progression state.
+ * Client-side story progression state for Shadow Ascent (GDD §5).
  *
- * Java port of Python game/story_manager.py StoryManager.
- * Tracks the current act (0-4) and key story flags used by dialogue
- * condition evaluation and NPC dialogue ID selection.
+ * Drives the 7-act narrative arc. Acts advance based on:
+ *   - Hub state transitions received in WorldSnapshot.hubState
+ *   - Boss defeats signalled by server dialogue events
+ *   - Fragment collection milestones (tracked via inventory)
  *
- * Acts:
- *   0 — Rising Grounds (forest/town, hub empties as Veil Maiden emerges)
- *   1 — Veil Descends (caves, scripted defeat)
- *   2 — Hollow Depths (recovery zone, The Lanterns join)
- *   3 — Ascending Paths (castle, hub restored)
- *   4 — Winding Skyroad (sewer + final boss, moral choice)
+ * Acts map to rendering parameters via the {@link Act} enum:
+ *   hudAlpha, lanternDefault — consumed by HudRenderer and ChunkRenderer.
+ *
+ * Hub state is cached here so GameScreen can pass it to overlay systems
+ * without re-parsing the snapshot every frame.
  */
 public final class StoryManager {
 
-    // ── Acts ──────────────────────────────────────────────────────────────────
+    private static final Logger log = LoggerFactory.getLogger(StoryManager.class);
 
-    public enum Act { ACT_0, ACT_1, ACT_2, ACT_3, ACT_4;
-        public int num() { return ordinal(); }
-        public String wire() { return String.valueOf(ordinal()); }
-    }
+    // ── Acts (GDD §5) ─────────────────────────────────────────────────────────
 
-    private Act    currentAct = Act.ACT_0;
-    private int    hubDegradationLevel = 0;   // Act 0: 0-9 (hub empties over time)
-    private int    lanternsMetCount    = 0;    // Act 2: 0-5
+    private Act     currentAct      = Act.ACT_I_RISE;
+    private HubState currentHubState = HubState.FULL;
+
+    // ── Legacy fields (kept for DialogueManager condition evaluation) ─────────
+
+    private int     hubDegradationLevel = 0;   // 0-9 as hub empties in Act II
+    private int     lanternsMetCount    = 0;   // 0-5 in Act V
     private boolean veilMaidenEncountered   = false;
     private boolean veilMaidenDefeatedAct1  = false;
     private boolean veilMaidenDefeatedFinal = false;
@@ -44,26 +49,82 @@ public final class StoryManager {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    public Act    currentAct()           { return currentAct; }
-    public int    actNum()               { return currentAct.num(); }
-    public boolean yinYangPresent()      { return yinYangPresent; }
+    public Act      currentAct()          { return currentAct; }
+    public HubState currentHubState()     { return currentHubState; }
+    public boolean  yinYangPresent()      { return yinYangPresent; }
 
-    public void setAct(Act act)          { this.currentAct = act; syncFlags(); }
-    public void advanceAct()             { if (currentAct.ordinal() < 4) { currentAct = Act.values()[currentAct.ordinal()+1]; syncFlags(); } }
+    /** Called by GameScreen each frame when a new snapshot arrives. */
+    public void onHubStateUpdate(String hubStateWire) {
+        if (hubStateWire == null || hubStateWire.isEmpty()) return;
+        HubState incoming;
+        try {
+            incoming = HubState.valueOf(hubStateWire);
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        if (incoming == currentHubState) return;
 
-    public void setFlag(String key, String value) { flags.put(key, value); }
+        log.info("[StoryManager] hub state: {} → {}", currentHubState, incoming);
+        currentHubState = incoming;
+        syncActFromHubState();
+    }
+
+    /**
+     * Advance to a specific act (called from dialogue events or debug commands).
+     */
+    public void setAct(Act act) {
+        if (act != currentAct) {
+            log.info("[StoryManager] act: {} → {}", currentAct, act);
+            currentAct = act;
+            syncFlags();
+        }
+    }
+
+    /** Step to the next act (capped at ACT_VII). */
+    public void advanceAct() {
+        Act[] vals = Act.values();
+        int next = Math.min(currentAct.ordinal() + 1, vals.length - 1);
+        setAct(vals[next]);
+    }
+
+    public void setFlag(String key, String value)  { flags.put(key, value); }
     public String getFlag(String key, String def)  { return flags.getOrDefault(key, def); }
 
     public void missionCompleted(String missionId) { completedMissions.add(missionId); }
     public boolean isMissionCompleted(String id)   { return completedMissions.contains(id); }
 
+    // ── Signal handlers (called by GameScreen event callbacks) ────────────────
+
+    /** Veil Maiden / Siren encountered — hub starts corrupting. */
+    public void onVeilMaidenEncountered() {
+        veilMaidenEncountered = true;
+        flags.put("veil_maiden_encountered", "true");
+    }
+
+    /** Scripted loss to Siren in Act II — hub collapses to EMPTY. */
+    public void onVeilMaidenDefeatedAct1() {
+        veilMaidenDefeatedAct1 = true;
+        yinYangPresent = false;
+        flags.put("veil_maiden_defeated_act1", "true");
+        flags.put("yin_yang_present", "false");
+    }
+
+    /** Increments NPC-met counter used to track Act V progress. */
+    public void onNpcMet(String npcId) {
+        lanternsMetCount = Math.min(5, lanternsMetCount + 1);
+        flags.put("lanterns_met", String.valueOf(lanternsMetCount));
+    }
+
+    // ── Condition context for DialogueManager ─────────────────────────────────
+
     /**
-     * Returns the story_state map used by DialogueManager.checkCondition().
-     * Mirrors Python's StoryManager.to_dict() keys used in condition strings.
+     * Returns a string-keyed map consumed by DialogueManager.checkCondition().
+     * Keys mirror Python StoryManager.to_dict().
      */
     public Map<String, String> toConditionContext() {
         Map<String, String> ctx = new HashMap<>(flags);
-        ctx.put("act",                         currentAct.wire());
+        ctx.put("act",                         String.valueOf(currentAct.wire()));
+        ctx.put("hub_state",                   currentHubState.name());
         ctx.put("hub_degradation_level",       String.valueOf(hubDegradationLevel));
         ctx.put("lanterns_met",                String.valueOf(lanternsMetCount));
         ctx.put("veil_maiden_encountered",     String.valueOf(veilMaidenEncountered));
@@ -73,7 +134,37 @@ public final class StoryManager {
         return ctx;
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Derive the correct act from the current hub state.
+     * Hub 1: FULL→Act I, CORRUPTED→Act II, EMPTY→Act II end (Act III entry)
+     * Hub 2: FRACTURED→Act IV, RECOVERING→Act V, WHOLE→Act VI
+     */
+    private void syncActFromHubState() {
+        Act target = switch (currentHubState) {
+            case FULL       -> Act.ACT_I_RISE;
+            case CORRUPTED  -> Act.ACT_II_FALL;
+            case EMPTY      -> Act.ACT_III_LABYRINTH;
+            case FRACTURED  -> Act.ACT_IV_BREAK;
+            case RECOVERING -> Act.ACT_V_HEARTH;
+            case WHOLE      -> Act.ACT_VI_ASCENT;
+        };
+        // Never go backward — narrative only advances
+        if (target.ordinal() > currentAct.ordinal()) setAct(target);
+
+        // Sync degradation level for legacy conditions
+        hubDegradationLevel = switch (currentHubState) {
+            case FULL       -> 0;
+            case CORRUPTED  -> 5;
+            case EMPTY      -> 9;
+            default         -> hubDegradationLevel;
+        };
+        flags.put("hub_degradation_level", String.valueOf(hubDegradationLevel));
+    }
+
     private void syncFlags() {
-        flags.put("act", currentAct.wire());
+        flags.put("act",       String.valueOf(currentAct.wire()));
+        flags.put("hub_state", currentHubState.name());
     }
 }

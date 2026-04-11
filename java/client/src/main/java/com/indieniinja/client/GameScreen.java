@@ -503,6 +503,12 @@ public final class GameScreen implements Screen {
                 for (ShopState ss : snap.shopStates) latestShopStates.put(ss.npcId, ss);
             }
 
+            // ── Hub state → StoryManager → Act FSM ───────────────────────────
+            if (snap.hubState != null && !snap.hubState.isEmpty()) {
+                storyManager.onHubStateUpdate(snap.hubState);
+                dialogueManager.setStoryContext(storyManager.toConditionContext());
+            }
+
             // ── Cache world rooms from full snapshots (empty on delta frames) ──
             if (!snap.worldRooms.isEmpty()) {
                 cachedWorldRooms = snap.worldRooms;

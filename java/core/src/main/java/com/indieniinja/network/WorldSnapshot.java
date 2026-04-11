@@ -106,6 +106,14 @@ public final class WorldSnapshot {
     public Map<String, Object> metadata = new LinkedHashMap<>();
     public String hubId = "";
 
+    /**
+     * Current hub evolution state wire string (e.g. "FULL", "CORRUPTED", "EMPTY").
+     * Set by ZoneSimulationLoop from HubStateMachine.getState().name().
+     * Client passes to StoryManager to drive act transitions and NPC visibility.
+     * Empty string = unknown / not yet set (client keeps previous state).
+     */
+    public String hubState = "";
+
     // ── Game mode fields ──────────────────────────────────────────────────────
     /** Active play mode wire string: "arcade", "campaign", "sandbox". */
     public String gameMode    = "arcade";
@@ -128,6 +136,7 @@ public final class WorldSnapshot {
         s.schemaVersion = (int) num(m, "schema_version", SCHEMA_VERSION);
         s.frameHash    = num(m, "frame_hash",    0L);
         s.hubId       = str(m, "hub_id",     "");
+        s.hubState    = str(m, "hub_state",  "");
         s.gameMode    = str(m, "game_mode",  "arcade");
         s.arcadeScore = (int) num(m, "arcade_score", 0L);
         s.arcadeDepth = (int) num(m, "arcade_depth", 0L);
@@ -269,8 +278,9 @@ public final class WorldSnapshot {
         m.put("arcade_score", arcadeScore);
         m.put("arcade_depth", arcadeDepth);
         m.put("arcade_rooms", arcadeRooms);
-        m.put("metadata", metadata);
-        m.put("hub_id",   hubId != null ? hubId : "");
+        m.put("metadata",   metadata);
+        m.put("hub_id",    hubId     != null ? hubId     : "");
+        m.put("hub_state", hubState  != null ? hubState  : "");
         return m;
     }
 
