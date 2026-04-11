@@ -504,6 +504,8 @@ public final class GameScreen implements Screen {
                 cachedPortals = java.util.List.of();
                 cachedEnemies = java.util.List.of();
                 cachedPickups = java.util.List.of();
+                // Room entry is a meaningful checkpoint — trigger auto-save
+                if (saveManager != null) saveManager.markDirty();
                 log.debug("[GameScreen] room changed ({},{})→({},{})",
                     prevRoomGridX, prevRoomGridY, snap.roomGridX, snap.roomGridY);
                 // No camera snap needed — entities are already in world-space so the
@@ -941,7 +943,7 @@ public final class GameScreen implements Screen {
 
     @Override public void pause()  { paused = true;  pauseScreen.activate(); }
     @Override public void resume() { paused = false; Gdx.input.setInputProcessor(null); }
-    @Override public void hide()   {}
+    @Override public void hide()   { if (saveManager != null) saveManager.save(); }
 
     @Override
     public void dispose() {

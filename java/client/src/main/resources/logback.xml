@@ -2,26 +2,25 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} -- %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Rolling file appender — writes to user_data/logs/server.log -->
+    <!-- Rolling file appender — writes to user_data/logs/client.log -->
     <!-- Directory is created automatically by logback on first write -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>user_data/logs/server.log</file>
+        <file>user_data/logs/client.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>user_data/logs/server.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>user_data/logs/client.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} -- %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Zone simulation loop — reduce noise in production -->
-    <logger name="com.indieniinja.server.ZoneSimulationLoop" level="INFO"/>
-    <!-- Full debug available via -Dlogback.level=DEBUG -->
+    <!-- Reduce libGDX noise -->
+    <logger name="com.badlogic" level="WARN"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
