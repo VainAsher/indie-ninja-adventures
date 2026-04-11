@@ -91,10 +91,20 @@ public final class SaveManager {
     public boolean save() {
         try {
             SaveData data = SaveData.capture(story, missions);
-            // Merge runtime-tracked stats from liveData
+            // Merge all runtime-tracked state from liveData (populated by GameScreen.syncSaveState())
             data.totalEnemiesKilled = liveData.totalEnemiesKilled;
             data.visitedRoomKeys    = new java.util.ArrayList<>(liveData.visitedRoomKeys);
             data.achievements       = new java.util.ArrayList<>(liveData.achievements);
+            // Campaign / player state not accessible to SaveData.capture()
+            if (liveData.worldSeed != 0)             data.worldSeed          = liveData.worldSeed;
+            if (liveData.currency  != 0)             data.currency           = liveData.currency;
+            if (liveData.playerInventory   != null)  data.playerInventory    = new java.util.HashMap<>(liveData.playerInventory);
+            if (liveData.equippedWeapon    != null)  data.equippedWeapon     = liveData.equippedWeapon;
+            if (liveData.equippedArmor     != null)  data.equippedArmor      = liveData.equippedArmor;
+            if (liveData.unlockedAbilities != null && !liveData.unlockedAbilities.isEmpty())
+                                                     data.unlockedAbilities  = new java.util.ArrayList<>(liveData.unlockedAbilities);
+            if (liveData.defeatedBosses    != null && !liveData.defeatedBosses.isEmpty())
+                                                     data.defeatedBosses     = new java.util.ArrayList<>(liveData.defeatedBosses);
 
             // Rotate backups before overwriting
             FileHandle existing = Gdx.files.local(SAVE_PATH);

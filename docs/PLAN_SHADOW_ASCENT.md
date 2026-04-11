@@ -55,6 +55,21 @@ The GDD is single-player first with optional co-op. The codebase is multiplayer 
 
 **Decision:** Keep the networked architecture. Add an **in-process solo mode** where `GameSimulator` runs locally on the client, no socket required. The same rendering pipeline serves both paths. Multiplayer co-op becomes an optional overlay — Yin/Yang and Lantern work identically in both modes.
 
+### Three game modes (as of v0.11.3)
+
+The game ships **three distinct modes** with separate loops, tones, and world structures. The milestones below cover Campaign/Solo. Arcade and Sandbox are separate roadmap tracks.
+
+| Mode | Loop | World | Player identity | Status |
+|------|------|-------|-----------------|--------|
+| **Campaign / Solo** | Narrative Metroidvania; hub → portal → mission level | Instanced; procedurally generated interconnected rooms; hub world | The Hallowed Ninja | **Active — this roadmap** |
+| **Arcade** | Roguelike run; no hub; loadout + powerup/modifier builds; death ends run | Per-run generated dungeon; smaller rooms; no persistence | Unnamed Ninja (cosmetic) | Planned — separate Arcade roadmap |
+| **Sandbox** | Open-ended survival/construction; player-set goals; persistent server world | Endless interconnected world; no instancing; destructible | Disciples / Acolytes (NOT the Hallowed Ninja) | Planned — separate Sandbox roadmap |
+
+**Key design constraints that follow from this:**
+- Arcade must NOT use the Metroidvania hub system — it is a separate loop entirely
+- Sandbox players are not the protagonist; the world is the canvas, not the story
+- Solo/Campaign can share network code with Arcade for co-op lobby, but the world generation, persistence, and narrative systems are campaign-only
+
 ---
 
 ## 1. What to Keep

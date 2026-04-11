@@ -85,6 +85,9 @@ public final class GameScreen implements Screen {
     private java.util.List<String> soloNeighborDirs = java.util.List.of();
     private String                 soloRoomType     = "combat";
     private long                   soloSeed         = 0;
+    /** World-space spawn position for solo mode — used by portal travel to warp back to start. */
+    private float                  soloSpawnX       = 0f;
+    private float                  soloSpawnY       = 0f;
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
@@ -254,6 +257,8 @@ public final class GameScreen implements Screen {
             soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
             LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, "solo_hub");
             localSim = new GameSimulator(startRoom.seed, "solo_hub", layout);
+            soloSpawnX = layout.spawnX;
+            soloSpawnY = layout.spawnY;
             SimPlayer player = new SimPlayer("solo_player", 0, layout.spawnX, layout.spawnY);
             localSim.addPlayer(player);
             // Push an initial full snapshot so GameScreen has something to render immediately.
@@ -457,9 +462,15 @@ public final class GameScreen implements Screen {
                     float poCy = portal.y + portal.height * 0.5f;
                     float dx = pcx - poCx, dy = pcy - poCy;
                     if (dx * dx + dy * dy <= 56f * 56f) {
-                        // Send PORTAL_TRAVEL to server
-                        networkClient.sendMessage(com.indieniinja.network.MessageType.PORTAL_TRAVEL,
-                            java.util.Map.of("destination_id", portal.destinationId));
+                        if (networkClient == null) {
+                            // Solo mode: warp player directly to the destination room
+                            // in the unified world-space layout.
+                            handleSoloPortalTravel(portal.destinationId);
+                        } else {
+                            // Multiplayer: let the server handle the zone transition.
+                            networkClient.sendMessage(com.indieniinja.network.MessageType.PORTAL_TRAVEL,
+                                java.util.Map.of("destination_id", portal.destinationId));
+                        }
                         portalTriggered = true;
                         break;
                     }
@@ -729,6 +740,35 @@ public final class GameScreen implements Screen {
         snap.neighborDirs = soloNeighborDirs;
     }
 
+    /**
+     * Handles portal interaction in solo mode by warping the player directly to
+     * the start room's spawn point within the unified world layout.
+     * <p>
+     * In multiplayer, PORTAL_TRAVEL is a server-side zone transition; in solo mode
+     * there are no separate zones — the whole world is a single unified layout —
+     * so we treat every portal as a shortcut back to the START room (which acts as
+     * the hub in solo play).
+     */
+    private void handleSoloPortalTravel(String destinationId) {
+        if (localSim == null) return;
+        com.indieniinja.sim.SimPlayer sp = localSim.getPlayer(0);
+        if (sp == null) return;
+        // Warp to the start-room spawn saved when the solo session was initialised.
+        sp.physics.x  = soloSpawnX;
+        sp.physics.y  = soloSpawnY;
+        sp.physics.vx = 0f;
+        sp.physics.vy = 0f;
+        // Reset room tracking so stampSoloFields picks up the new position next frame.
+        if (soloWorldGraph != null) {
+            com.indieniinja.world.WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
+            soloCurrentGridX = startRoom.gridX;
+            soloCurrentGridY = startRoom.gridY;
+            soloRoomType     = startRoom.type.wire();
+            soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
+        }
+        log.info("[GameScreen] solo portal travel → start room ({})", destinationId);
+    }
+
     // ── Megamap construction ──────────────────────────────────────────────────
 
     /**
@@ -933,6 +973,44 @@ public final class GameScreen implements Screen {
         }
     }
 
+    /**
+     * Synchronise current in-memory game state into SaveManager's liveData before
+     * a write.  Called from hide() and dispose() so nothing is lost on exit.
+     *
+     * Covers fields that SaveData.capture(story, missions) doesn't reach:
+     *   world seed, visited rooms, player inventory, currency, abilities.
+     */
+    private void syncSaveState() {
+        if (saveManager == null) return;
+        com.indieniinja.client.game.SaveData live = saveManager.getSaveData();
+        if (live == null) return;
+
+        // World seed (solo session only; multiplayer seed lives on the server)
+        if (soloSeed != 0) live.worldSeed = soloSeed;
+
+        // Fog-of-war: rooms visited this session
+        live.visitedRoomKeys = new java.util.ArrayList<>(visitedRooms);
+
+        // Player state from solo sim
+        if (localSim != null) {
+            com.indieniinja.sim.SimPlayer sp = localSim.getPlayer(0);
+            if (sp != null) {
+                live.currency       = sp.inventory.currency;
+                live.equippedWeapon = sp.inventory.equippedWeapon;
+                live.equippedArmor  = sp.inventory.equippedArmor;
+                live.unlockedAbilities = new java.util.ArrayList<>(sp.unlockedAbilities);
+
+                // Flatten inventory slots → itemId → total quantity
+                live.playerInventory = new java.util.HashMap<>();
+                for (com.indieniinja.sim.SimInventory.Slot slot : sp.inventory.slots) {
+                    if (slot != null) {
+                        live.playerInventory.merge(slot.itemId(), slot.quantity(), Integer::sum);
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void resize(int w, int h) {
         camera.resize(w, h);
@@ -943,11 +1021,11 @@ public final class GameScreen implements Screen {
 
     @Override public void pause()  { paused = true;  pauseScreen.activate(); }
     @Override public void resume() { paused = false; Gdx.input.setInputProcessor(null); }
-    @Override public void hide()   { if (saveManager != null) saveManager.save(); }
+    @Override public void hide()   { if (saveManager != null) { syncSaveState(); saveManager.save(); } }
 
     @Override
     public void dispose() {
-        if (saveManager    != null) saveManager.save();
+        if (saveManager    != null) { syncSaveState(); saveManager.save(); }
         if (audioManager   != null) audioManager.dispose();
         if (networkClient  != null) networkClient.shutdown();
         if (batch          != null) batch.dispose();
