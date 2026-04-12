@@ -1,25 +1,42 @@
 # PLAN — Enemy Animation & AI Overhaul
 ## Replace Placeholder Shapes with Animated Stateful Enemy Sprites
-**Created:** 2026-04-12 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.9 | **Target release:** v0.12.x
+**Created:** 2026-04-12 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.10 | **Target release:** v0.12.x
 
 ---
 
 ## 0. Situation Summary
 
-### What exists
+### What shipped in v0.11.10
+
+Phases 2 and 3 are fully implemented:
+
+- **`AnimationRegistry.loadEnemySheets(FileHandle baseDir)`** — reads `assets/sprites/enemies/<type>/`,
+  registers `enemy_<type>_<state>` keys for all 8 AI states. Silently skips missing files.
+  "goblin" alias registered pointing to swordsman art for backward compat.
+- **`EnemyAIState`** — expanded with `FLEE` (`"flee"`) and `GUARD` (`"guard"`)
+- **`SimEnemy`** — `fleeTimer`, `guardTimer`, `FLEE_DURATION = 3.0f`, `GUARD_DURATION = 2.0f`,
+  `FLEE_HP_THRESHOLD = 0.25f`. `takeDamage()` sets `fleeTimer` when HP drops below threshold.
+- **`GameSimulator.stepEnemyAI()`** — rewritten: FLEE moves enemy away from player at 1.2× speed;
+  GUARD (skeleton only) holds the shield frame and sets `blockCooldown`; STUNNED transitions to
+  FLEE if `fleeTimer > 0`; `blockCooldown` ticked each frame.
+- **`stepCombat()`** — `if (en.aiState == EnemyAIState.GUARD) continue;` blocks melee on guarding skeleton
+- **`EntityRenderer.enemyFps()`** — all type+state entries including FLEE/GUARD FPS
+- **`EntityRenderer.enemySize()`** — swordsman/goblin→48×64, grunt/spearman→32×56
+- **`GameScreen`** — wires `anims.loadEnemySheets(enemySheetDir)` on startup
+
+### What exists (as of v0.11.10)
 
 The codebase has a complete server-side enemy simulation (`SimEnemy`, `EnemyAIState`,
 `GameSimulator.stepEnemyAI()`) and a client rendering path (`EntityRenderer.renderEnemy()`)
-that already resolves animation keys in the form `"enemy_<type>_<aiState>"`.
+that resolves animation keys in the form `"enemy_<type>_<aiState>"`.
 
-The `AnimationRegistry` supports spritesheet slicing (`sliceAndRegister()`), used extensively
-for the 171 player sprites shipped in v0.11.6. That same machinery is ready for enemies — it
-just has no `loadEnemySheets()` method yet.
+`AnimationRegistry.loadEnemySheets()` is implemented and wired in `GameScreen`. Spritesheets
+will load automatically once the stitch script (Phase 1) has been run against the source ZIP.
 
-**Current enemy rendering:** falls back to a 1×1 magenta placeholder for every enemy type
-because no enemy spritesheets exist in `assets/sprites/`.
+**Current enemy rendering:** falls back to a 1×1 magenta placeholder until Phase 1 stitch
+script populates `assets/sprites/enemies/<type>/`.
 
-**Current enemy AI states:** `IDLE`, `PATROL`, `CHASE`, `ATTACK`, `STUNNED`, `DEAD`
+**Current enemy AI states:** `IDLE`, `PATROL`, `CHASE`, `ATTACK`, `FLEE`, `GUARD`, `STUNNED`, `DEAD`
 
 **Existing enemy types (server):** swordsman, bat, slime, skeleton, wolf
 
