@@ -370,7 +370,7 @@ public final class EntityRenderer {
             boolean wantFlip = !e.facingRight;
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
             int[] sz = enemySize(typePrefix);
-            batch.draw(frame, e.x, e.y + sz[1] * ENEMY_LIFT, sz[0], sz[1]);
+            batch.draw(frame, e.x, e.y - sz[1] * ENEMY_LIFT, sz[0], sz[1]);
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
             return;
         }
@@ -387,7 +387,7 @@ public final class EntityRenderer {
         if (needEnemyChange) frame.flip(true, false);
 
         int[] sz = enemySize(typePrefix);
-        batch.draw(frame, e.x, e.y + sz[1] * ENEMY_LIFT, sz[0], sz[1]);
+        batch.draw(frame, e.x, e.y - sz[1] * ENEMY_LIFT, sz[0], sz[1]);
 
         if (needEnemyChange) frame.flip(true, false);
 
@@ -405,14 +405,32 @@ public final class EntityRenderer {
 
     // ── Pickups ───────────────────────────────────────────────────────────────
 
+    /** Returns a distinct RGBA colour for each pickup type so placeholders are recognisable. */
+    private static float[] pickupColor(String type) {
+        return switch (type != null ? type : "") {
+            case "coin"             -> new float[]{1.00f, 0.85f, 0.00f, 1f};  // gold
+            case "health_potion"    -> new float[]{0.90f, 0.15f, 0.15f, 1f};  // red
+            case "rare_potion"      -> new float[]{0.80f, 0.00f, 0.90f, 1f};  // purple
+            case "gem"              -> new float[]{0.10f, 0.90f, 0.90f, 1f};  // cyan
+            case "yin_fragment"     -> new float[]{0.30f, 0.50f, 1.00f, 1f};  // blue
+            case "yang_fragment"    -> new float[]{1.00f, 0.50f, 0.10f, 1f};  // orange
+            case "lantern_fragment" -> new float[]{1.00f, 1.00f, 0.40f, 1f};  // bright yellow
+            default                 -> new float[]{0.70f, 0.70f, 0.70f, 1f};  // grey
+        };
+    }
+
     private void renderPickup(SpriteBatch batch, PickupState p, float dt) {
         if (!p.alive) return;
 
-        String animKey = "pickup_" + (p.pickupType != null ? p.pickupType : "generic");
+        String type    = p.pickupType != null ? p.pickupType : "generic";
+        String animKey = "pickup_" + type;
         float stateTime = tickStateTime(p.pickupId, animKey, dt);
         TextureRegion frame = anims.getFrame(animKey, stateTime, PICKUP_ANIM_FPS);
 
+        float[] c = pickupColor(type);
+        batch.setColor(c[0], c[1], c[2], c[3]);
         batch.draw(frame, p.x - PICKUP_SIZE / 2f, p.y, PICKUP_SIZE, PICKUP_SIZE);
+        batch.setColor(Color.WHITE);
     }
 
     // ── NPCs ──────────────────────────────────────────────────────────────────

@@ -19,8 +19,8 @@ public final class SimPickup {
     public final int     height = PhysicsConstants.TILE_SIZE;
     public       boolean alive  = true;
 
-    // Lifetime counter — pickups despawn after 30 seconds (1800 ticks at 60 Hz)
-    public int  ticksRemaining = 1800;
+    // Lifetime counter — pickups despawn after 5 minutes (18000 ticks at 60 Hz)
+    public int  ticksRemaining = 18000;
 
     public SimPickup(String pickupId, String pickupType, float x, float y) {
         this.pickupId   = pickupId;
