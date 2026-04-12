@@ -200,14 +200,26 @@ public final class EntityRenderer {
     /** Map an animState string to its correct FPS — matches Python ANIMATION_DEFS fps column. */
     private static float playerFps(String animState) {
         return switch (animState) {
-            case "attack", "slash1", "slash2", "slash3", "slash_air", "jump_slash" -> FPS_ATTACK;
+            case "attack", "slash1", "slash2", "slash3", "slash_air", "jump_slash",
+                 "punch1", "punch2", "kick", "air_punch1", "air_punch2", "air_kick",
+                 "crouch_punch", "crouch_kick", "run_kick"                          -> FPS_ATTACK;
             case "throw", "throw_ground", "throw_air", "throw_crouch",
                  "teleport", "ninjutsu_hand", "ninjutsu_summon"                    -> FPS_THROW;
-            case "hurt", "hurt2", "death"                                           -> FPS_DEATH;
+            case "hurt", "hurt2", "crouch_hurt", "death", "death2",
+                 "prone_death", "prone_hurt"                                        -> FPS_DEATH;
             case "dash"                                                             -> FPS_DASH;
             case "run"                                                              -> FPS_RUN;
-            case "walk", "slow_walk"                                                -> FPS_WALK;
-            case "jump", "fall", "wall_slide", "wall_hang", "air_spin"             -> FPS_JUMP;
+            case "walk", "slow_walk", "crouch_walk",
+                 "prone_walk", "push", "pull"                                       -> FPS_WALK;
+            case "jump", "fall", "wall_slide", "wall_hang", "air_spin",
+                 "flip", "air_block"                                                -> FPS_JUMP;
+            case "roll", "slide", "wall_land", "run_stop", "skid"                  -> 15f;
+            case "swim", "swim_up", "swim_down", "swim_surface"                    -> 10f;
+            case "climb_side", "climb_back", "climb_right", "climb_left",
+                 "ledge_climb", "ledge_climb_back"                                  -> 10f;
+            case "swim_idle", "swim_surface_idle", "climb_idle_side",
+                 "climb_idle_back", "ledge_idle", "ledge_idle_back",
+                 "block", "rope", "sit"                                             -> 6f;
             default                                                                 -> FPS_IDLE;
         };
     }
@@ -215,8 +227,17 @@ public final class EntityRenderer {
     private void renderPlayer(SpriteBatch batch, PlayerState p, float dt) {
         if (p.isDead) return;
 
-        String state   = (p.animState != null && !p.animState.isEmpty()) ? p.animState : "idle";
-        String animKey = "player_" + state;
+        String state  = (p.animState != null && !p.animState.isEmpty()) ? p.animState : "idle";
+
+        // ── Weapon-state key routing (animation Phase 4) ──────────────────────
+        // EntityRenderer prepends the weapon prefix ("player_sword_") when the
+        // sword key is registered.  Falls through to unarmed if not registered.
+        String prefix = "player";
+        if ("sword".equals(p.weaponState)) {
+            String swordKey = "player_sword_" + state;
+            if (anims.has(swordKey)) prefix = "player_sword";
+        }
+        String animKey = prefix + "_" + state;
 
         // ── Animation state tracking ──────────────────────────────────────────
         String prevAnim = lastState.get(p.playerId);

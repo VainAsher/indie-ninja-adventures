@@ -215,13 +215,18 @@ public final class GameScreen implements Screen {
         FileHandle atlasFile    = Gdx.files.internal("assets/characters.atlas");
         FileHandle playerDir    = Gdx.files.internal("assets/sprites/player");
         FileHandle enemyBaseDir = Gdx.files.internal("assets/sprites/characters");
+        FileHandle unarmedDir = Gdx.files.internal("assets/sprites/player/unarmed");
+        FileHandle swordDir   = Gdx.files.internal("assets/sprites/player/sword");
         if (atlasFile.exists()) {
             anims.loadAtlas(new TextureAtlas(atlasFile));
         } else if (playerDir.exists()) {
-            anims.loadSpriteSheets(playerDir);
+            anims.loadSpriteSheets(playerDir);  // legacy flat directory fallback
         } else {
             anims.loadPlaceholder();
         }
+        // Load extracted template sheets (override legacy flat-dir mappings when present).
+        if (unarmedDir.exists()) anims.loadUnarmedSheets(unarmedDir);  // animation Phase 3
+        if (swordDir.exists())   anims.loadSwordSheets(swordDir);      // animation Phase 3
         // Load per-enemy-type animations (falls back to colored placeholders if
         // assets/sprites/characters/{type}/ does not exist).
         anims.loadEnemySprites(enemyBaseDir);
@@ -624,6 +629,16 @@ public final class GameScreen implements Screen {
 
         batch.setProjectionMatrix(camera.cam.combined);
 
+        // Pass 0 — update Lantern vignette intensity from local player state (M4)
+        if (snap != null) {
+            for (com.indieniinja.network.PlayerState lp : snap.players) {
+                if (lp.slot == localSlot) {
+                    chunkRenderer.setLanternValue(lp.lanternValue);
+                    break;
+                }
+            }
+        }
+
         // Pass 1 — tiles: megamap tiles are already in world-space coords, identity transform.
         batch.setTransformMatrix(entityTransform.idt());
         batch.begin();
@@ -638,6 +653,10 @@ public final class GameScreen implements Screen {
         batch.end();
 
         entityRenderer.pruneEntities(snap);
+
+        // Pass 2b — Lantern vignette (screen-space overlay drawn after world, before HUD) (M4)
+        chunkRenderer.renderVignette(hudRenderer.shapeRenderer(),
+            Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         hudRenderer.render(snap, soloMode || stateBuffer.isConnected(),
             Gdx.graphics.getFramesPerSecond(), localSlot);

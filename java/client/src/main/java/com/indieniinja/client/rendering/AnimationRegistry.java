@@ -140,6 +140,211 @@ public final class AnimationRegistry {
         sliceAndRegister(baseDir, "player_death", "death_spritesheet.png", 7);
     }
 
+    // ── Unarmed / Sword template sheet loading ────────────────────────────────
+
+    /**
+     * Load all unarmed player animations from assets/sprites/player/unarmed/.
+     *
+     * Supersedes loadSpriteSheets() — call after it (or instead of it) when the
+     * extracted template sheets are present.  All keys use the "player_" prefix.
+     *
+     * Frame counts are authoritative from the extracted PNG dimensions (80×80 px).
+     */
+    public void loadUnarmedSheets(FileHandle d) {
+        // Core locomotion
+        sliceAndRegister(d, "player_idle",          "idle_spritesheet.png",         8);
+        sliceAndRegister(d, "player_combat_idle",   "combat_idle_spritesheet.png",  8);
+        sliceAndRegister(d, "player_walk",          "walk_spritesheet.png",         8);
+        sliceAndRegister(d, "player_slow_walk",     "walk_spritesheet.png",         8);
+        sliceAndRegister(d, "player_run",           "run_spritesheet.png",          8);
+        sliceAndRegister(d, "player_dash",          "dash_spritesheet.png",         7);
+        sliceAndRegister(d, "player_run_stop",      "run_stop_spritesheet.png",     3);
+        sliceAndRegister(d, "player_skid",          "skid_spritesheet.png",         4);
+        sliceAndRegister(d, "player_flip",          "flip_spritesheet.png",         6);
+        sliceAndRegister(d, "player_roll",          "roll_spritesheet.png",         8);
+        sliceAndRegister(d, "player_slide",         "slide_spritesheet.png",        6);
+
+        // Jump / fall (split from 10-frame sheet)
+        registerJumpFall(d, "jumpfall_spritesheet.png");
+        sliceSubsetAndRegister(d, "player_air_spin",  "jumpfall_spritesheet.png", 10, 0, 5);
+        sliceSubsetAndRegister(d, "player_wall_hang", "jumpfall_spritesheet.png", 10, 0, 5);
+
+        // Crouch
+        sliceAndRegister(d, "player_crouch",        "crouch_idle_spritesheet.png",  9);
+        sliceAndRegister(d, "player_crouch_walk",   "crouch_walk_spritesheet.png",  8);
+        sliceAndRegister(d, "player_crouch_punch",  "crouch_punch_spritesheet.png", 5);
+        sliceAndRegister(d, "player_crouch_kick",   "crouch_kick_spritesheet.png",  6);
+
+        // Wall / climb
+        sliceAndRegister(d, "player_wall_slide",    "wall_slide_spritesheet.png",   4);
+        sliceAndRegister(d, "player_wall_land",     "wall_land_spritesheet.png",    4);
+        sliceAndRegister(d, "player_climb",         "climb_side_spritesheet.png",   6);
+        sliceAndRegister(d, "player_climb_idle",    "climb_idle_side_spritesheet.png", 8);
+        sliceAndRegister(d, "player_climb_left",    "climb_left_spritesheet.png",   6);
+        sliceAndRegister(d, "player_climb_right",   "climb_right_spritesheet.png",  6);
+        sliceAndRegister(d, "player_climb_back",    "climb_back_spritesheet.png",   6);
+
+        // Ledge
+        sliceAndRegister(d, "player_ledge",         "ledge_idle_spritesheet.png",   8);
+        sliceAndRegister(d, "player_ledge_idle",    "ledge_idle_spritesheet.png",   8);
+        sliceAndRegister(d, "player_ledge_grab",    "ledge_grab_spritesheet.png",   2);
+        sliceAndRegister(d, "player_ledge_climb",   "ledge_climb_spritesheet.png",  4);
+
+        // Rope
+        sliceAndRegister(d, "player_rope",          "rope_idle_spritesheet.png",    4);
+        sliceAndRegister(d, "player_rope_idle",     "rope_idle_spritesheet.png",    4);
+        sliceAndRegister(d, "player_rope_swing",    "rope_swing_spritesheet.png",   7);
+
+        // Swim
+        sliceAndRegister(d, "player_swim",               "swim_spritesheet.png",          6);
+        sliceAndRegister(d, "player_swim_idle",           "swim_idle_spritesheet.png",     8);
+        sliceAndRegister(d, "player_swim_up",             "swim_up_spritesheet.png",       6);
+        sliceAndRegister(d, "player_swim_down",           "swim_down_spritesheet.png",     6);
+        sliceAndRegister(d, "player_swim_surface",        "swim_surface_spritesheet.png",  6);
+        sliceAndRegister(d, "player_swim_surface_idle",   "swim_surface_idle_spritesheet.png", 8);
+
+        // Unarmed combat
+        sliceAndRegister(d, "player_punch1",        "punch1_spritesheet.png",        6);
+        sliceAndRegister(d, "player_punch2",        "punch2_spritesheet.png",        8);
+        sliceAndRegister(d, "player_air_punch1",    "air_punch1_spritesheet.png",    6);
+        sliceAndRegister(d, "player_air_punch2",    "air_punch2_spritesheet.png",    8);
+        sliceAndRegister(d, "player_kick",          "kick_spritesheet.png",          6);
+        sliceAndRegister(d, "player_air_kick",      "air_kick_spritesheet.png",      6);
+        sliceAndRegister(d, "player_run_kick",      "run_kick_spritesheet.png",      6);
+        sliceAndRegister(d, "player_crouch_punch",  "crouch_punch_spritesheet.png",  5);
+        sliceAndRegister(d, "player_crouch_kick",   "crouch_kick_spritesheet.png",   6);
+        // Map engine attack aliases to unarmed combo punches
+        sliceAndRegister(d, "player_attack",        "punch2_spritesheet.png",        8);
+        sliceAndRegister(d, "player_slash1",        "punch1_spritesheet.png",        6);
+        sliceAndRegister(d, "player_slash2",        "punch2_spritesheet.png",        8);
+        sliceAndRegister(d, "player_slash3",        "punch2_spritesheet.png",        8);
+        sliceAndRegister(d, "player_slash_air",     "air_punch2_spritesheet.png",    8);
+        sliceAndRegister(d, "player_jump_slash",    "air_punch1_spritesheet.png",    6);
+        sliceAndRegister(d, "player_throw",         "pickup_spritesheet.png",        5);
+        sliceAndRegister(d, "player_throw_ground",  "pickup_spritesheet.png",        5);
+        sliceAndRegister(d, "player_throw_air",     "pickup_spritesheet.png",        5);
+        sliceAndRegister(d, "player_throw_crouch",  "pickup_crouch_spritesheet.png", 4);
+        sliceAndRegister(d, "player_teleport",      "roll_spritesheet.png",          8);
+
+        // Block stances
+        sliceAndRegister(d, "player_block",             "block_idle_spritesheet.png",       8);
+        sliceAndRegister(d, "player_block_idle",        "block_idle_spritesheet.png",       8);
+        sliceAndRegister(d, "player_block_hit",         "block_hit_normal_spritesheet.png", 3);
+        sliceAndRegister(d, "player_block_hit_hard",    "block_hit_hard_spritesheet.png",   6);
+        sliceAndRegister(d, "player_air_block",         "air_block_spritesheet.png",       10);
+        sliceAndRegister(d, "player_air_block_hit",     "air_block_hit_spritesheet.png",    3);
+        sliceAndRegister(d, "player_crouch_block",      "crouch_block_spritesheet.png",     8);
+        sliceAndRegister(d, "player_crouch_block_hit",  "crouch_block_hit_spritesheet.png", 3);
+
+        // Hurt / death
+        sliceAndRegister(d, "player_hurt",          "hurt_upper_spritesheet.png",    4);
+        sliceAndRegister(d, "player_hurt2",         "hurt_lower_spritesheet.png",    4);
+        sliceAndRegister(d, "player_crouch_hurt",   "crouch_hurt_spritesheet.png",   4);
+        sliceAndRegister(d, "player_death",         "death_spritesheet.png",         7);
+        sliceAndRegister(d, "player_death2",        "death2_spritesheet.png",        7);
+        sliceAndRegister(d, "player_prone_hurt",    "prone_hurt_spritesheet.png",    4);
+        sliceAndRegister(d, "player_prone_death",   "prone_death_spritesheet.png",   5);
+        sliceAndRegister(d, "player_prone_idle",    "prone_idle_spritesheet.png",    9);
+        sliceAndRegister(d, "player_prone_revive",  "prone_revive_spritesheet.png",  5);
+        sliceAndRegister(d, "player_prone_walk",    "prone_walk_spritesheet.png",    8);
+
+        // Interactive / pickup
+        sliceAndRegister(d, "player_pickup",        "pickup_spritesheet.png",        5);
+        sliceAndRegister(d, "player_pickup_crouch", "pickup_crouch_spritesheet.png", 4);
+        sliceAndRegister(d, "player_pull",          "pull_spritesheet.png",          8);
+        sliceAndRegister(d, "player_push",          "push_spritesheet.png",          8);
+        sliceAndRegister(d, "player_push_idle",     "push_idle_spritesheet.png",     8);
+        sliceAndRegister(d, "player_drink",         "drink_spritesheet.png",         8);
+        sliceAndRegister(d, "player_revive",        "revive_spritesheet.png",        6);
+        sliceAndRegister(d, "player_revive2",       "revive2_spritesheet.png",       6);
+        sliceAndRegister(d, "player_button",        "button_spritesheet.png",        5);
+        sliceAndRegister(d, "player_lever",         "lever_spritesheet.png",         9);
+        sliceAndRegister(d, "player_chest_back",    "chest_back_spritesheet.png",    6);
+        sliceAndRegister(d, "player_chest_side",    "chest_side_spritesheet.png",    5);
+        sliceAndRegister(d, "player_door_enter",    "door_enter_spritesheet.png",   10);
+        sliceAndRegister(d, "player_door_exit",     "door_exit_spritesheet.png",    10);
+
+        // Social / emote
+        sliceAndRegister(d, "player_sit",           "sit_spritesheet.png",          12);
+        sliceAndRegister(d, "player_sleep",         "sleep_spritesheet.png",        15);
+        sliceAndRegister(d, "player_talk",          "talk_spritesheet.png",          9);
+        sliceAndRegister(d, "player_dance",         "dance_spritesheet.png",        12);
+        sliceAndRegister(d, "player_fidget",        "fidget_spritesheet.png",        8);
+        sliceAndRegister(d, "player_victory",       "victory_spritesheet.png",      10);
+    }
+
+    /**
+     * Load sword weapon-state animations from assets/sprites/player/sword/.
+     *
+     * Registers keys with the "player_sword_" prefix used by EntityRenderer's
+     * weapon-routing logic.  Only keys where the sword animation differs from
+     * unarmed are registered here; all other states fall through to unarmed
+     * automatically.
+     *
+     * Must be called after loadUnarmedSheets() or loadSpriteSheets() so the
+     * unarmed fallback keys exist.
+     */
+    public void loadSwordSheets(FileHandle d) {
+        // Locomotion — sword-specific idle/movement frames
+        sliceAndRegister(d, "player_sword_idle",        "idle_spritesheet.png",       8);
+        sliceAndRegister(d, "player_sword_combat_idle", "combat_idle_spritesheet.png",8);
+        sliceAndRegister(d, "player_sword_walk",        "walk_spritesheet.png",       8);
+        sliceAndRegister(d, "player_sword_slow_walk",   "walk_spritesheet.png",       8);
+        sliceAndRegister(d, "player_sword_run",         "run_spritesheet.png",        8);
+        sliceAndRegister(d, "player_sword_dash",        "dash_spritesheet.png",       7);
+
+        // Jump / fall split
+        registerJumpFallPrefixed(d, "jumpfall_spritesheet.png", "player_sword");
+
+        // Crouch
+        sliceAndRegister(d, "player_sword_crouch",      "crouch_idle_spritesheet.png",9);
+        sliceAndRegister(d, "player_sword_crouch_walk", "crouch_walk_spritesheet.png",8);
+
+        // Sword attack combos  (d0/d1/d2 = hit 1/2/3 of standing combo)
+        sliceAndRegister(d, "player_sword_attack",         "attack_combo_d0_spritesheet.png", 4);
+        sliceAndRegister(d, "player_sword_slash1",         "attack_combo_d0_spritesheet.png", 4);
+        sliceAndRegister(d, "player_sword_slash2",         "attack_combo_d1_spritesheet.png", 7);
+        sliceAndRegister(d, "player_sword_slash3",         "attack_combo_d2_spritesheet.png",12);
+        sliceAndRegister(d, "player_sword_air_attack",     "air_attack_d0_spritesheet.png",   4);
+        sliceAndRegister(d, "player_sword_air_slash",      "air_attack_d1_spritesheet.png",   7);
+        sliceAndRegister(d, "player_sword_slash_air",      "air_attack_d1_spritesheet.png",   7);
+        sliceAndRegister(d, "player_sword_jump_slash",     "air_attack_d0_spritesheet.png",   4);
+        sliceAndRegister(d, "player_sword_crouch_attack",  "crouch_attack_d0_spritesheet.png",4);
+        sliceAndRegister(d, "player_sword_crouch_slash",   "crouch_attack_d1_spritesheet.png",7);
+        sliceAndRegister(d, "player_sword_dash_attack",    "dash_attack_spritesheet.png",     7);
+        sliceAndRegister(d, "player_sword_stab",           "stab_combo_spritesheet.png",      4);
+
+        // Hurt / death — sword variant looks the same as unarmed but use the
+        // sword directory so artists can override per-weapon later
+        sliceAndRegister(d, "player_sword_hurt",   "hurt_upper_spritesheet.png", 4);
+        sliceAndRegister(d, "player_sword_hurt2",  "hurt_lower_spritesheet.png", 4);
+        sliceAndRegister(d, "player_sword_death",  "death_spritesheet.png",      7);
+    }
+
+    /**
+     * Variant of registerJumpFall that writes to "{prefix}_jump" / "{prefix}_fall"
+     * keys instead of always "player_jump" / "player_fall".
+     */
+    private void registerJumpFallPrefixed(FileHandle baseDir, String filename,
+                                           String prefix) {
+        Texture tex = loadCached(baseDir, filename);
+        if (tex == null) return;
+        int fw = tex.getWidth() / 10;
+        int fh = tex.getHeight();
+        TextureRegion[] jump = new TextureRegion[5];
+        TextureRegion[] fall = new TextureRegion[5];
+        for (int i = 0; i < 5; i++) {
+            jump[i] = new TextureRegion(tex, i * fw, 0, fw, fh);
+            jump[i].flip(false, true);
+        }
+        for (int i = 0; i < 5; i++) {
+            fall[i] = new TextureRegion(tex, (i + 5) * fw, 0, fw, fh);
+            fall[i].flip(false, true);
+        }
+        frames.put(prefix + "_jump", jump);
+        frames.put(prefix + "_fall", fall);
+    }
+
     // ── Enemy sprite loading ──────────────────────────────────────────────────
 
     /**

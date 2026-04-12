@@ -37,6 +37,16 @@ public final class PlayerState {
     /** Unlocked ability wire strings (e.g. "double_jump", "dash"). */
     public java.util.List<String> abilities = new java.util.ArrayList<>();
 
+    // ── Yin/Yang & Lantern (M4 — GDD §3.3/§3.4) ─────────────────────────────
+    public float   yinValue    = 0.5f;  // 0.0–1.0 Emotion
+    public float   yangValue   = 0.5f;  // 0.0–1.0 Discipline
+    public boolean flowMode    = false; // true when |yin−yang| < 0.15
+    public float   lanternValue = 0.8f; // 0.0–1.0 Clarity; drives vignette intensity
+
+    // ── Weapon state ──────────────────────────────────────────────────────────
+    /** Current weapon set: "unarmed" | "sword" | "pistol". Drives anim key prefix. */
+    public String  weaponState = "unarmed";
+
     public PlayerState() {}
 
     public Map<String, Object> toMap() {
@@ -63,6 +73,11 @@ public final class PlayerState {
         m.put("experience",           experience);
         m.put("level",                level);
         m.put("abilities",            abilities != null ? abilities : java.util.List.of());
+        m.put("yin_value",            yinValue);
+        m.put("yang_value",           yangValue);
+        m.put("flow_mode",            flowMode);
+        m.put("lantern_value",        lanternValue);
+        m.put("weapon_state",         weaponState != null ? weaponState : "unarmed");
         return m;
     }
 
@@ -100,6 +115,11 @@ public final class PlayerState {
         Object abilRaw = m.get("abilities");
         if (abilRaw instanceof java.util.List<?> al)
             for (Object a : al) s.abilities.add(a.toString());
+        s.yinValue     = flt2(m, "yin_value",     0.5f);
+        s.yangValue    = flt2(m, "yang_value",    0.5f);
+        s.flowMode     = bool(m, "flow_mode");
+        s.lanternValue = flt2(m, "lantern_value", 0.8f);
+        s.weaponState  = str(m,  "weapon_state",  "unarmed");
         return s;
     }
 

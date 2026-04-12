@@ -79,6 +79,18 @@ public final class ItemDatabase {
         regAbility("ability_shuriken",    "rare",     "Shuriken Scroll",     "Grants the power to throw shurikens.",   "shuriken");
         regAbility("ability_teleport",    "epic",     "Teleport Crystal",    "Grants the power of teleportation.",     "teleport");
         regAbility("ability_ninjutsu",    "legendary","Ninjutsu Tome",       "Grants mastery of ninjutsu.",            "ninjutsu");
+
+        // ── Yin/Yang/Lantern fragments (M4 — GDD §3.3/§3.4) ─────────────────────
+        // Non-stackable; consumed on pickup (handled in GameSimulator.applyPickup).
+        reg("yin_fragment",     "key_item", "rare",      "Yin Fragment",
+            "A shard of pure emotion. Raises your Yin, revealing hidden truths.",
+            1, 0, false, 0, 0, 0f, 0, 0);
+        reg("yang_fragment",    "key_item", "rare",      "Yang Fragment",
+            "A shard of pure discipline. Raises your Yang, sharpening your strikes.",
+            1, 0, false, 0, 0, 0f, 0, 0);
+        reg("lantern_fragment", "key_item", "rare",      "Lantern Fragment",
+            "A piece of the Eternal Lantern. Restores your emotional clarity.",
+            1, 0, false, 0, 0, 0f, 0, 0);
     }
 
     private static void reg(String id, String type, String rarity, String name, String desc,

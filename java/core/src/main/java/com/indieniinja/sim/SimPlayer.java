@@ -200,6 +200,17 @@ public final class SimPlayer {
         }
     }
 
+    // ── Yin/Yang & Lantern (M4 — GDD §3.3/§3.4) ─────────────────────────────
+    /** Yin/Yang emotional balance component. Ticked by GameSimulator.tickYinYang(). */
+    public final YinYangComponent yinYang = new YinYangComponent(-1);
+    /** Lantern clarity component. Ticked by GameSimulator.tickLantern(). */
+    public final LanternComponent lantern = new LanternComponent(-1);
+
+    // ── Weapon / animation state ──────────────────────────────────────────────
+    /** Current weapon set wire string: "unarmed" | "sword" | "pistol".
+     *  Drives animation key prefix in EntityRenderer (animation Phase 4). */
+    public String weaponState = "unarmed";
+
     // ── Inventory ─────────────────────────────────────────────────────────────
     public final SimInventory inventory = new SimInventory();
 
@@ -221,12 +232,13 @@ public final class SimPlayer {
         return health > 0 && !isDead;
     }
 
-    /** Apply damage; set isDead flag if health reaches 0. */
+    /** Apply damage; set isDead flag if health reaches 0. Also decays the Lantern. */
     public void takeDamage(int dmg) {
         if (invincibilityTicks > 0) return;
         health = Math.max(0, health - dmg);
         if (health <= 0) isDead = true;
         invincibilityTicks = 60;  // 1 second invincibility at 60 Hz
+        lantern.onDamage();       // taking damage dims the lantern
     }
 
     /** Called each tick; decrements invincibility timer. */

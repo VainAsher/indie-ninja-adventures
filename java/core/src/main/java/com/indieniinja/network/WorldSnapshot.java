@@ -18,8 +18,9 @@ import java.util.Map;
  */
 public final class WorldSnapshot {
 
-    /** Wire-format schema version — bump when the snapshot map layout changes. */
-    public static final int SCHEMA_VERSION = 1;
+    /** Wire-format schema version — bump when the snapshot map layout changes.
+     *  v2: added yinValue, yangValue, flowMode, lanternValue, weaponState to PlayerState. */
+    public static final int SCHEMA_VERSION = 2;
 
     public long   frame;
     public long   seed;

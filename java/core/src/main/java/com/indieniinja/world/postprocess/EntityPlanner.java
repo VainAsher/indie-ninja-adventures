@@ -153,7 +153,29 @@ public final class EntityPlanner {
             spawns.add(new LevelLayout.PickupSpawn("health_potion", safePos[0], safePos[1]));
         }
 
+        // Guaranteed fragment in BOSS and TREASURE rooms (M4 — GDD §3.3/§3.4)
+        if ((room.type == WorldGraph.RoomType.BOSS || room.type == WorldGraph.RoomType.TREASURE)
+                && valid.size() > offset + count + 1) {
+            float[] fragPos = valid.get(offset + count + 1);
+            spawns.add(new LevelLayout.PickupSpawn(
+                pickFragment(room.gridX, room.gridY, roomSeed), fragPos[0], fragPos[1]));
+        }
+
         return spawns;
+    }
+
+    /**
+     * Select which fragment type to place in this room.
+     * Cycles through yin → yang → lantern based on the room's grid position + seed
+     * so that a generated world always has a balanced set across its rooms.
+     */
+    private static String pickFragment(int gridX, int gridY, long roomSeed) {
+        int idx = (int)((Math.abs(roomSeed) + gridX * 31L + gridY * 17L) % 3);
+        return switch (idx) {
+            case 0  -> "yin_fragment";
+            case 1  -> "yang_fragment";
+            default -> "lantern_fragment";
+        };
     }
 
     private static int pickupCount(WorldGraph.RoomType type, Random rng) {

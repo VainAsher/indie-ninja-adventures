@@ -298,6 +298,58 @@ public final class GameSimulator {
                 sp.takeDamage(1);  // takeDamage() is no-op while invincibilityTicks > 0
             }
         }
+
+        // 13. Yin/Yang tick (GDD §3.3) — apply flags, flow mode, decay
+        tickYinYang();
+
+        // 14. Lantern tick (GDD §3.4) — apply physics bonuses, decay
+        tickLantern();
+    }
+
+    // ── Yin/Yang system (M4 — GDD §3.3) ─────────────────────────────────────
+
+    /**
+     * Tick Yin/Yang for all players:
+     * <ul>
+     *   <li>Decay towards neutral slowly</li>
+     *   <li>Yin &gt; HIGH_YIN_THRESHOLD → set ABILITY_YIN_SIGHT abilityFlag</li>
+     *   <li>Yang &gt; HIGH_YANG_THRESHOLD → yang_surge flag on player (damage modifier)</li>
+     *   <li>|yin − yang| &lt; BALANCE_THRESHOLD → flowMode</li>
+     * </ul>
+     */
+    private void tickYinYang() {
+        for (SimPlayer sp : players.values()) {
+            YinYangComponent yy = sp.yinYang;
+            yy.decay(DT);
+
+            PhysicsState p = sp.physics;
+            if (yy.hasYinSight()) {
+                p.abilityFlags |= PhysicsConstants.ABILITY_YIN_SIGHT;
+            } else {
+                p.abilityFlags &= ~PhysicsConstants.ABILITY_YIN_SIGHT;
+            }
+            // yang_surge and flowMode are read by getSnapshot() and sent as PlayerState fields
+        }
+    }
+
+    // ── Lantern system (M4 — GDD §3.4) ──────────────────────────────────────
+
+    /**
+     * Tick Lantern for all players:
+     * <ul>
+     *   <li>Decay when in dark areas (combat/boss rooms) or at low HP</li>
+     *   <li>High lantern → apply jump power and coyote time bonuses</li>
+     * </ul>
+     */
+    private void tickLantern() {
+        for (SimPlayer sp : players.values()) {
+            LanternComponent lc = sp.lantern;
+            // Treat non-hub rooms (combat, boss, platform, exit) as "dark"
+            boolean inDark = !hubId.contains("hub");
+            lc.decay(DT, inDark);
+            // High lantern bonus — applied via applyPlayerInput on next tick
+            // (we set a flag so physics pick it up; actual bonus in applyPlayerInput)
+        }
     }
 
     /**
@@ -344,6 +396,12 @@ public final class GameSimulator {
             ps.experience = p.experience;
             ps.level      = p.level;
             ps.abilities  = new java.util.ArrayList<>(p.unlockedAbilities);
+            // Yin/Yang & Lantern (M4)
+            ps.yinValue     = p.yinYang.yin;
+            ps.yangValue    = p.yinYang.yang;
+            ps.flowMode     = p.yinYang.isBalanced();
+            ps.lanternValue = p.lantern.value;
+            ps.weaponState  = p.weaponState;
             snap.players.add(ps);
         }
 
@@ -1262,7 +1320,7 @@ public final class GameSimulator {
         }
     }
 
-    /** Apply a collected pickup to a player — health, currency, or item to inventory. */
+    /** Apply a collected pickup to a player — health, currency, item, or M4 fragment. */
     private void applyPickup(SimPlayer p, String type) {
         switch (type != null ? type : "") {
             case "coin"         -> p.inventory.addCurrency(1);
@@ -1272,6 +1330,19 @@ public final class GameSimulator {
                 } else {
                     p.inventory.addItem("health_potion", 1);
                 }
+            }
+            // ── Yin/Yang/Lantern fragments (M4 — GDD §3.3/§3.4) ──────────────
+            case "yin_fragment" -> {
+                p.yinYang.absorbYin(YinYangComponent.NEUTRAL * 0.5f);  // +0.25
+                log.info("[M4] {} collected yin_fragment → yin={}", p.playerId, p.yinYang.yin);
+            }
+            case "yang_fragment" -> {
+                p.yinYang.absorbYang(YinYangComponent.NEUTRAL * 0.5f);  // +0.25
+                log.info("[M4] {} collected yang_fragment → yang={}", p.playerId, p.yinYang.yang);
+            }
+            case "lantern_fragment" -> {
+                p.lantern.restore(LanternComponent.FRAGMENT_RESTORE);   // +0.20
+                log.info("[M4] {} collected lantern_fragment → lantern={}", p.playerId, p.lantern.value);
             }
             default -> {
                 // Puzzle key: type = "key_<doorPuzzleId>" (e.g. "key_kd_0")

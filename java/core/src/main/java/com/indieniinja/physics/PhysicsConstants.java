@@ -64,6 +64,9 @@ public final class PhysicsConstants {
     public static final int ABILITY_ICE_GRIP   = 1 << 1;
     /** Entity is immune to GAS drag (e.g., GasResist ability). */
     public static final int ABILITY_GAS_RESIST = 1 << 2;
+    /** Yin Sight active — hidden-platform tiles treated as solid for this entity.
+     *  Set by GameSimulator.tickYinYang() when yin > YinYangComponent.HIGH_YIN_THRESHOLD. */
+    public static final int ABILITY_YIN_SIGHT  = 1 << 3;
 
     // ── Collision ─────────────────────────────────────────────────────────────
     /** Activate swept (sub-step) collision when speed exceeds this threshold. */

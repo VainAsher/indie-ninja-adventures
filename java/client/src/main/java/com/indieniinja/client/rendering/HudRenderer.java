@@ -40,6 +40,13 @@ public final class HudRenderer {
     private static final float XP_W         = 80f;
     private static final float XP_H         = 5f;
 
+    // ── Yin/Yang & Lantern bars (M4) ──────────────────────────────────────────
+    private static final float YIN_W       = 40f;
+    private static final float YANG_W      = 40f;
+    private static final float YY_H        = 5f;
+    private static final float LANTERN_W   = 80f;
+    private static final float LANTERN_H   = 5f;
+
     private final ShapeRenderer shapes;
     private final SpriteBatch   hudBatch;
     private final BitmapFont    font;
@@ -151,6 +158,56 @@ public final class HudRenderer {
                         shapes.setColor(0.9f + xpRatio * 0.1f, 0.75f * xpRatio, 0.1f, 1f);
                         shapes.rect(barX, xpY, XP_W * xpRatio, XP_H);
                     }
+
+                    // ── Yin bar (dark blue bg → sky blue fill) ────────────────
+                    float yinY = xpY - YY_H - 2f;
+                    float yinRatio = Math.max(0f, Math.min(1f, p.yinValue));
+                    shapes.setColor(0.05f, 0.05f, 0.2f, 0.85f);
+                    shapes.rect(barX, yinY, YIN_W, YY_H);
+                    shapes.setColor(0.3f, 0.6f + yinRatio * 0.4f, 1.0f, 1f);
+                    if (yinRatio > 0f)
+                        shapes.rect(barX, yinY, YIN_W * yinRatio, YY_H);
+                    // Yin Sight glow when > 0.7
+                    if (p.yinValue > 0.7f) {
+                        shapes.setColor(0.5f, 0.8f, 1f, 0.35f);
+                        shapes.rect(barX - 1, yinY - 1, YIN_W + 2, YY_H + 2);
+                    }
+
+                    // ── Yang bar (dark red bg → orange-gold fill) ─────────────
+                    float yangY = yinY;
+                    float yangX = barX + YIN_W + 2f;
+                    float yangRatio = Math.max(0f, Math.min(1f, p.yangValue));
+                    shapes.setColor(0.2f, 0.05f, 0.05f, 0.85f);
+                    shapes.rect(yangX, yangY, YANG_W, YY_H);
+                    shapes.setColor(1.0f, 0.4f + yangRatio * 0.5f, 0.1f * yangRatio, 1f);
+                    if (yangRatio > 0f)
+                        shapes.rect(yangX, yangY, YANG_W * yangRatio, YY_H);
+                    // Yang Surge glow when > 0.7
+                    if (p.yangValue > 0.7f) {
+                        shapes.setColor(1f, 0.6f, 0.1f, 0.35f);
+                        shapes.rect(yangX - 1, yangY - 1, YANG_W + 2, YY_H + 2);
+                    }
+
+                    // Flow Mode pulse (centre divider glows white)
+                    if (p.flowMode) {
+                        shapes.setColor(1f, 1f, 1f, 0.6f);
+                        shapes.rect(barX + YIN_W, yinY - 1, 2f, YY_H + 2);
+                    }
+
+                    // ── Lantern bar (black bg → warm amber fill) ──────────────
+                    float lanternY = yinY - LANTERN_H - 2f;
+                    float lanRatio = Math.max(0f, Math.min(1f, p.lanternValue));
+                    shapes.setColor(0.05f, 0.04f, 0.02f, 0.9f);
+                    shapes.rect(barX, lanternY, LANTERN_W, LANTERN_H);
+                    // Colour shifts: dim red → orange → warm gold as value rises
+                    shapes.setColor(0.5f + lanRatio * 0.5f, lanRatio * 0.65f, 0.05f, 1f);
+                    if (lanRatio > 0f)
+                        shapes.rect(barX, lanternY, LANTERN_W * lanRatio, LANTERN_H);
+                    // High lantern glow
+                    if (p.lanternValue > 0.7f) {
+                        shapes.setColor(1f, 0.9f, 0.4f, 0.3f);
+                        shapes.rect(barX - 1, lanternY - 1, LANTERN_W + 2, LANTERN_H + 2);
+                    }
                 }
             }
         }
@@ -221,6 +278,26 @@ public final class HudRenderer {
                     font.draw(hudBatch, "XP " + p.experience + "/" + xpNeeded,
                         10f + XP_W + 5f,
                         labelY - STAMINA_H * 3 - MANA_H * 2 - XP_H * 2 - 7f + XP_H);
+                    font.setColor(Color.WHITE);
+
+                    // Yin/Yang labels
+                    float yyLabelY = labelY - STAMINA_H * 3 - MANA_H * 2 - XP_H * 2 - YY_H * 2 - 10f + YY_H;
+                    font.setColor(0.3f, 0.7f, 1f, 1f);
+                    font.draw(hudBatch, "YIN", 10f + YIN_W + 4f, yyLabelY);
+                    font.setColor(1f, 0.55f, 0.1f, 1f);
+                    String yangLabel = p.yangValue > 0.7f ? "YANG!" : "YANG";
+                    font.draw(hudBatch, yangLabel, 10f + YIN_W + YANG_W + 8f, yyLabelY);
+                    if (p.flowMode) {
+                        font.setColor(1f, 1f, 0.7f, 1f);
+                        font.draw(hudBatch, "FLOW", 10f + YIN_W + YANG_W + 45f, yyLabelY);
+                    }
+
+                    // Lantern label
+                    float lanLabelY = yyLabelY - LANTERN_H - 3f;
+                    int lanPct = (int)(p.lanternValue * 100);
+                    font.setColor(0.9f + (p.lanternValue - 0.5f) * 0.2f,
+                                  0.55f * p.lanternValue, 0.05f, 1f);
+                    font.draw(hudBatch, "LANTERN " + lanPct + "%", 10f + LANTERN_W + 5f, lanLabelY + LANTERN_H);
                     font.setColor(Color.WHITE);
                 }
             }
@@ -362,6 +439,16 @@ public final class HudRenderer {
     /** Screen-space projection matrix — use for overlays rendered over the HUD. */
     public com.badlogic.gdx.math.Matrix4 screenProjection() {
         return screenCam.combined;
+    }
+
+    /**
+     * Expose the HUD ShapeRenderer so other renderers (e.g. ChunkRenderer vignette)
+     * can reuse it without allocating a second one.
+     * Caller must ensure it is used outside any active begin/end block.
+     */
+    public ShapeRenderer shapeRenderer() {
+        shapes.setProjectionMatrix(screenCam.combined);
+        return shapes;
     }
 
     public void dispose() {

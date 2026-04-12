@@ -41,6 +41,15 @@ public final class ChunkRenderer {
     // Scratch rectangle for frustum test
     private final Rectangle frustum = new Rectangle();
 
+    // ── Lantern vignette (M4) ─────────────────────────────────────────────────
+    /** Current lantern value [0.0–1.0].  Set each frame from PlayerState. */
+    private float lanternValue = 0.8f;
+
+    /** Update the lantern value used for vignette intensity this frame. */
+    public void setLanternValue(float value) {
+        this.lanternValue = Math.max(0f, Math.min(1f, value));
+    }
+
     // ── Setup ─────────────────────────────────────────────────────────────────
 
     /**
@@ -276,6 +285,59 @@ public final class ChunkRenderer {
                 batch.draw(tile, wx, wy, TILE, TILE);
             }
         }
+    }
+
+    /**
+     * Render the Lantern vignette as a screen-space overlay.
+     *
+     * <p>Must be called <em>after</em> the SpriteBatch world-rendering pass is ended
+     * and before the HUD pass begins.  The ShapeRenderer is not begun/ended by the caller
+     * — this method wraps its own begin/end.
+     *
+     * <p>Vignette intensity: when {@code lanternValue} = 1.0 the overlay is fully transparent
+     * (no effect).  At 0.0 the screen is heavily darkened with a deep-red tint.
+     * The effect is implemented as a series of concentric screen-edge rectangles
+     * (a pure-Java approximation of a radial gradient) — no GLSL shader required.
+     *
+     * @param shapes   a ShapeRenderer owned by the HUD layer (already has projection set)
+     * @param screenW  current screen width in pixels
+     * @param screenH  current screen height in pixels
+     */
+    public void renderVignette(com.badlogic.gdx.graphics.glutils.ShapeRenderer shapes,
+                               int screenW, int screenH) {
+        // vignetteIntensity: 0 = clear (high lantern), 1 = full dark (low lantern)
+        // Mirrors LanternComponent.vignetteIntensity() formula:
+        //   intensity = 1 - clamp((value - LOW) / (HIGH - LOW), 0, 1)
+        float low  = 0.3f;
+        float high = 0.7f;
+        float intensity = 1.0f - Math.min(1.0f, Math.max(0f,
+            (lanternValue - low) / (high - low)));
+
+        if (intensity < 0.01f) return;  // no vignette when lantern is high
+
+        // Maximum alpha for the darkest edge ring — scales with intensity
+        float maxAlpha = intensity * 0.85f;
+        // Warm-red tint strengthens as lantern drops below 0.3
+        float redBoost = Math.max(0f, 1.0f - lanternValue / low) * 0.25f;
+
+        int layers = 12;
+        shapes.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+        for (int i = 0; i < layers; i++) {
+            float t     = (float) i / layers;          // 0 = outermost, 1 = innermost
+            float alpha = maxAlpha * (1.0f - t);       // fade towards centre
+            float inset = t * Math.min(screenW, screenH) * 0.35f;
+            shapes.setColor(0.05f + redBoost, 0.0f, 0.02f, alpha);
+
+            // Top strip
+            shapes.rect(0,          screenH - inset - TILE, screenW, TILE);
+            // Bottom strip
+            shapes.rect(0,          inset, screenW, TILE);
+            // Left strip
+            shapes.rect(inset,      0, TILE, screenH);
+            // Right strip
+            shapes.rect(screenW - inset - TILE, 0, TILE, screenH);
+        }
+        shapes.end();
     }
 
     public void dispose() {

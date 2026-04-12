@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Codebase version:** v0.10.84 | **Next release target:** v0.11.0 (Milestone 2 in progress)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-11 | **Codebase version:** v0.11.6 | **Next release target:** v0.11.7 (Milestone 5 — Boss AI)
 
 ---
 
@@ -21,33 +21,49 @@ The Java codebase landed on Apr 4 and reached v0.10.83 by Apr 10 — **6 days to
 
 **The fourth pivot is Shadow Ascent.** It exists in the GDD and these planning documents — not yet in a single line of game-specific Java code. The infrastructure is the most complete it has ever been. The game itself has not started.
 
-### Current codebase state (v0.10.83)
+### Current codebase state (v0.11.5)
 
-The Phase 0 audit (Apr 9) identified ~30 structural issues. All 20 post-audit commits (Apr 10) resolved them systematically. Status:
+The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milestones 1–3 shipped. Infrastructure bugs discovered in the first playable sessions and fixed.
 
 | Area | Resolved | Still open |
 |------|----------|-----------|
 | ECS | EntityLifecycleListener, SerializableComponent, auto-tag index, concrete components | ECS-4 (no auto-registration, low risk) |
-| Physics | TileType decoupling, GAS tile, abilityFlags, dynamicTiles in candidates, raycast API | PHYS-4/6 (documented contracts) |
+| Physics | TileType decoupling, GAS tile, abilityFlags, dynamicTiles in candidates, raycast API; lava ceiling trigger test; swept non-tunnel test | PHYS-4/6 (documented contracts) |
 | World gen | Back-edges (Metroidvania loops ready), Redis tile cache, PostgreSQL, deterministic biomes | WORLD-5/6/7 (low risk) |
-| Networking | Schema version, frameHash desync detection, Redis zone cache, no boxing | NET-1 (spawn default, med), NET-4/5 (no NPC/inventory delta, low) |
+| Networking | Schema version, frameHash desync detection, Redis zone cache, no boxing; NET-1 spawn default | NET-4/5 (no NPC/inventory delta, low) |
 | Inventory | DB-backed items/recipes, player_inventory persistence, ability type, coin recipe fix, item Redis cache | — |
-| Tests | 13 test files; all previously-missing gaps covered | Lava ceiling trigger, swept non-tunnel |
+| Tests | 13 test files; all gaps closed including lava ceiling trigger + swept non-tunnel | — |
+| Solo mode | In-process GameSimulator; no server required; unified world layout; 12-room megamap | — |
+| Hub system | HubState FSM, HubStateMachine, NPC spawn/despawn, Act.java FSM, player_progress persistence | — |
+| Save state | Full save (currency, inventory, abilities, world seed, visited rooms) via syncSaveState() | — |
+| Logging | logback.xml in shadow JAR (Gradle resource-filter bug fixed); client.log written on disk | — |
+| Replays | Solo InputRecorder wired into GameScreen; .ndjson files in user_data/replays/ | — |
+| Launcher | cwd fixed for server Popen; replay viewer handles .ndjson; record flag wired to -Dninja.record | — |
 
-**Two test gaps remain** before the physics is fully regression-proof. They belong in the already-existing `CollisionEdgeCaseTest` — two new `@Test` methods.
+### What shipped since plan was written (v0.11.0 → v0.11.6)
+
+| Version | What shipped |
+| ------- | ------------ |
+| v0.11.0 | M1: test gaps closed, version sync; M2: solo mode in-process GameSimulator |
+| v0.11.1 | M3: HubStateMachine, Act FSM, NPC roster sync, player_progress persistence |
+| v0.11.2 | fix: solo multi-room world; hub NPC authority; overlay null-guards |
+| v0.11.3 | fix: portal NPE in solo (networkClient null-guard); full save state (currency/inventory/abilities) |
+| v0.11.4 | fix: logback.xml stripped by Gradle resource filter; server cwd missing in launcher |
+| v0.11.5 | feat: solo InputRecorder + .ndjson replay files; launcher replay viewer updated |
+| v0.11.6 | M4: YinYangComponent + LanternComponent + vignette + HUD bars + weapon-state animation routing; 171 player sprite sheets extracted |
 
 ### What the GDD requires that doesn't exist
 
-Four interlocking pillars define Shadow Ascent. None are started:
+Four interlocking pillars define Shadow Ascent. Two are shipped:
 
 | Pillar | GDD section | Status |
 |--------|-------------|--------|
-| Yin/Yang system | §3.3 | Not started |
-| Lantern system | §3.4 | Not started |
-| Hub evolution state machine | §4 | `HubRegistry` is a static list; no FSM |
-| Narrative Act FSM | §5 | `StoryManager` stub; no act transitions |
+| Yin/Yang system | §3.3 | **Done** — `YinYangComponent`, decay/sight/surge, bars in HUD (v0.11.6) |
+| Lantern system | §3.4 | **Done** — `LanternComponent`, vignette overlay, lantern meter (v0.11.6) |
+| Hub evolution state machine | §4 | **Done** — `HubState`, `HubStateMachine`, NPC roster sync, `player_progress` (v0.11.1) |
+| Narrative Act FSM | §5 | **Done** — `Act.java` FSM Acts I–VI, `StoryManager` wired to hub state (v0.11.1) |
 
-Secondary systems — boss AI behavioral patterns, Echo mechanic, puzzle archetypes, Act IV depression mechanics — also do not exist.
+Secondary systems — boss AI behavioral patterns, Echo mechanic, puzzle archetypes, Act IV depression mechanics — not yet built.
 
 ### The multiplayer vs. single-player decision
 
@@ -339,21 +355,21 @@ public final class EchoRecorder {
 
 ## 4. File Creation Checklist
 
-Files that must be created (none currently exist):
+Files that must be created (✓ = already exists):
 
 ```
 core/src/main/java/com/indieniinja/
 ├── world/
-│   ├── HubState.java
-│   └── HubStateMachine.java
+│   ├── HubState.java          ✓ (v0.11.1)
+│   └── HubStateMachine.java   ✓ (v0.11.1)
 └── sim/
-    ├── YinYangComponent.java
-    ├── LanternComponent.java
-    ├── SimEcho.java
-    └── EchoRecorder.java
+    ├── YinYangComponent.java  ✓ (v0.11.6)
+    ├── LanternComponent.java  ✓ (v0.11.6)
+    ├── SimEcho.java           ← M6
+    └── EchoRecorder.java      ← M6
 
 client/src/main/java/com/indieniinja/client/game/
-└── Act.java
+└── Act.java                   ✓ (v0.11.1)
 ```
 
 Files requiring significant modification:
@@ -435,23 +451,27 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 ---
 
-### Milestone 4 — Yin/Yang & Lantern (v0.11.2)
+### Milestone 4 — Yin/Yang & Lantern (v0.11.6) ✓ SHIPPED
+
 *The core emotional mechanics are functional and visible.*
 
-- [ ] `YinYangComponent` (server + client effects)
-- [ ] `LanternComponent` (server decay/restore + client vignette)
-- [ ] `PlayerState` + `WorldSnapshot` updated (SCHEMA_VERSION → 2)
-- [ ] `HudRenderer` Yin/Yang bar + Lantern meter (replace stubs)
-- [ ] `ChunkRenderer` vignette
-- [ ] `EntityRenderer` hidden platform reveal pass (Yin > 0.7)
-- [ ] Fragment items in `ItemDatabase` + placed by `EntityPlanner`
-- [ ] Siren: scripted loss → Yin/Yang → 0 → hub state → EMPTY
+- [x] `YinYangComponent` (server tick: decay, yin_sight flag, balanced check)
+- [x] `LanternComponent` (server decay/restore, dark-room check, jump bonus)
+- [x] `PlayerState` + `WorldSnapshot` updated (SCHEMA_VERSION → 2, 5 new fields)
+- [x] `HudRenderer` Yin/Yang bars + Lantern meter (glow states, Flow Mode indicator)
+- [x] `ChunkRenderer` vignette (12-layer screen-edge overlay, red-tint at low lantern)
+- [x] `ABILITY_YIN_SIGHT` bitmask in `PhysicsConstants`; set/cleared in `GameSimulator.tickYinYang()`
+- [x] Fragment items in `ItemDatabase` + placed by `EntityPlanner` in BOSS/TREASURE rooms
+- [x] Weapon-state animation routing in `EntityRenderer` (`player_sword_*` prefix)
+- [x] 171 player sprite sheets extracted: 81 unarmed, 90 sword (tools/extract_animations.py)
+- [x] `AnimationRegistry.loadUnarmedSheets()` + `loadSwordSheets()` — 130+ animation keys
+- [ ] Siren: scripted loss → Yin/Yang → 0 → hub state → EMPTY (deferred to M5)
 
-**Deliverable:** Collecting a fragment visibly changes the world. Low Lantern feels oppressive. Siren encounter is mechanically complete.
+**Deliverable:** Yin/Yang bars and Lantern meter render live. Low Lantern creates oppressive vignette. Fragments spawn in boss/treasure rooms. Full player animation set loaded from template sheets.
 
 ---
 
-### Milestone 5 — Boss AI (v0.11.3)
+### Milestone 5 — Boss AI (v0.11.7)
 *Four bosses, each with a distinct psychological pattern. Ship working FSMs first, tune after.*
 
 - [ ] Echo Warden: mirror-movement with 0.5 s delay (`EchoRecorder` already exists for this)
@@ -464,7 +484,7 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 ---
 
-### Milestone 6 — Echo System & Puzzles (v0.11.4)
+### Milestone 6 — Echo System & Puzzles (v0.11.8)
 *Solo play feels co-op through echoes. Puzzle rooms are distinct.*
 
 - [ ] `EchoRecorder` (600-tick ring buffer on `SimPlayer`)
@@ -479,7 +499,7 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 ---
 
-### Milestone 7 — Act IV & Narrative Arc (v0.11.5)
+### Milestone 7 — Act IV & Narrative Arc (v0.11.9)
 *The 7-act emotional arc is playable end-to-end.*
 
 - [ ] Full `Act.java` FSM — all 7 acts with `hudAlpha` and `lanternDefault`
@@ -494,7 +514,7 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 ---
 
-### Milestone 8 — Polish (v0.11.6+)
+### Milestone 8 — Polish (v0.11.10+)
 
 - [ ] Music / BGM hooks (Lantern-dynamic music system)
 - [ ] Gamepad support (`InputPoller` extension)
