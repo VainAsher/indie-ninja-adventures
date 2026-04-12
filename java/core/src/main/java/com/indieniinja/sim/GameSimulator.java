@@ -103,6 +103,14 @@ public final class GameSimulator {
     /** Player slots that had interact=true in the previous tick (edge-detect). */
     private final Set<Integer> prevInteract = new HashSet<>();
 
+    // ── Shadow Ascent M5 — narrative boss state ───────────────────────────────
+    /** Optional HubStateMachine — injected by ZoneSimulationLoop for server mode;
+     *  null in solo mode (boss patterns still work but hub transitions are skipped). */
+    private com.indieniinja.world.HubStateMachine hub = null;
+    /** Set to true when the Siren scripted loss fires; caller should broadcast
+     *  MessageType.SCRIPTED_LOSS and then clear this via drainPendingScriptedLoss(). */
+    private boolean pendingScriptedLoss = false;
+
     // ── Construction ─────────────────────────────────────────────────────────
 
     public GameSimulator(long seed, String hubId, LevelLayout layout) {
@@ -349,6 +357,19 @@ public final class GameSimulator {
      * Called by GameScreen each frame in solo mode.
      */
     public void setDarkArea(boolean dark) { this.isDarkArea = dark; }
+
+    /** Inject the hub state machine so Shadow Ascent boss patterns can trigger hub transitions. */
+    public void setHub(com.indieniinja.world.HubStateMachine hub) { this.hub = hub; }
+
+    /**
+     * Returns true if the Siren scripted-loss fired this tick and clears the flag.
+     * Caller (ZoneSimulationLoop or GameScreen) should broadcast MessageType.SCRIPTED_LOSS.
+     */
+    public boolean drainPendingScriptedLoss() {
+        boolean v = pendingScriptedLoss;
+        pendingScriptedLoss = false;
+        return v;
+    }
 
     private void tickLantern() {
         for (SimPlayer sp : players.values()) {
@@ -942,6 +963,13 @@ public final class GameSimulator {
             sp.animState = "attack";
         } else if (sp.isThrowing) {
             sp.animState = "throw";
+        } else if (sp.isClimbing) {
+            // Climbing surface (ladder/vine — detection wired in Phase 6)
+            sp.animState = Math.abs(p.vy) > 0.1f ? "climb" : "climb_idle";
+        } else if (sp.isLedgeClimbing) {
+            sp.animState = "ledge_climb";
+        } else if (sp.isOnLedge) {
+            sp.animState = "ledge_idle";
         } else if (sp.isWallSliding) {
             sp.animState = "wall_slide";
         } else if (!p.onGround) {
@@ -1106,7 +1134,7 @@ public final class GameSimulator {
 
     /**
      * Enemy AI state machine — mirrors Python entities/enemy.py EnemyManager.update().
-     * Simplified to the four states used in the server sim.
+     * States: IDLE/PATROL ↔ CHASE ↔ ATTACK; FLEE when low HP; GUARD for skeleton.
      */
     private void stepEnemyAI(SimEnemy en, float[] nearest, List<float[]> players) {
         float dist = en.distanceTo(nearest[0], nearest[1]);
@@ -1126,8 +1154,15 @@ public final class GameSimulator {
                     en.facingRight = false;
                 }
 
-                // Detect player
-                if (dist < en.detectionRadius) en.aiState = EnemyAIState.CHASE;
+                // Detect player — skeleton guards when very close, others chase
+                if (dist < en.detectionRadius) {
+                    if ("skeleton".equals(en.enemyType) && dist < en.attackRange * 1.5f) {
+                        en.aiState   = EnemyAIState.GUARD;
+                        en.guardTimer = SimEnemy.GUARD_DURATION;
+                    } else {
+                        en.aiState = EnemyAIState.CHASE;
+                    }
+                }
             }
             case CHASE -> {
                 // Move toward nearest player
@@ -1137,8 +1172,12 @@ public final class GameSimulator {
                 if (tx > cx) { en.physics.x += speed; en.facingRight = true; }
                 else         { en.physics.x -= speed; en.facingRight = false; }
 
-                if (dist < en.attackRange)     { en.aiState = EnemyAIState.ATTACK; en.attackWindupTimer = SimEnemy.ATTACK_WINDUP_TIME; }
-                else if (dist > en.detectionRadius * 1.5f) en.aiState = EnemyAIState.PATROL;
+                if (dist < en.attackRange) {
+                    en.aiState = EnemyAIState.ATTACK;
+                    en.attackWindupTimer = SimEnemy.ATTACK_WINDUP_TIME;
+                } else if (dist > en.detectionRadius * 1.5f) {
+                    en.aiState = EnemyAIState.PATROL;
+                }
             }
             case ATTACK -> {
                 // Telegraphed attack phases
@@ -1152,11 +1191,39 @@ public final class GameSimulator {
                     en.aiState = EnemyAIState.CHASE;
                 }
             }
+            case FLEE -> {
+                // Run directly away from the nearest player
+                float tx = nearest[0];
+                float cx = en.physics.x + en.physics.width * 0.5f;
+                float speed = en.moveSpeed * 1.2f * DT;  // flee slightly faster than normal
+                if (tx > cx) { en.physics.x -= speed; en.facingRight = false; }
+                else         { en.physics.x += speed; en.facingRight = true; }
+
+                en.fleeTimer -= DT;
+                if (en.fleeTimer <= 0) {
+                    en.fleeTimer = 0;
+                    en.aiState  = EnemyAIState.PATROL;
+                }
+            }
+            case GUARD -> {
+                // Skeleton raises shield — stationary; blocks incoming melee (handled in stepCombat)
+                en.guardTimer -= DT;
+                if (en.guardTimer <= 0) {
+                    en.guardTimer = 0;
+                    // After guard, counter-attack if player still in range
+                    en.aiState = (dist < en.attackRange)
+                        ? EnemyAIState.ATTACK
+                        : EnemyAIState.CHASE;
+                    if (en.aiState == EnemyAIState.ATTACK)
+                        en.attackWindupTimer = SimEnemy.ATTACK_WINDUP_TIME * 0.5f; // faster counter
+                }
+            }
             case STUNNED -> {
                 en.stunTimer -= DT;
                 if (en.stunTimer <= 0) {
                     en.stunTimer = 0;
-                    en.aiState  = EnemyAIState.PATROL;
+                    // Transition to FLEE if flee timer was set during takeDamage
+                    en.aiState = (en.fleeTimer > 0) ? EnemyAIState.FLEE : EnemyAIState.PATROL;
                 }
             }
             case DEAD -> { /* nothing */ }
@@ -1200,6 +1267,8 @@ public final class GameSimulator {
                 if (!en.isAlive()) continue;
                 if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
                                 en.physics.x, en.physics.y, en.physics.width, en.physics.height)) {
+                    // Skeleton in GUARD state blocks melee — takes no damage, guard drops after counter
+                    if (en.aiState == EnemyAIState.GUARD) continue;
                     if (en.takeDamage(SimPlayer.MELEE_DAMAGE)) spawnLoot(en);
                 }
             }
@@ -1467,7 +1536,25 @@ public final class GameSimulator {
             float dy = nearestPlayer != null ? (nearestY - by) : 0;
             float dist = (float) Math.sqrt(dx*dx + dy*dy);
 
-            boss.step(DT, nearestX, nearestY, dist);
+            // Shadow Ascent narrative patterns override the generic step() for their 4 types
+            boolean isNarrativeBoss = switch (boss.type) {
+                case SIREN, ECHO_WARDEN, TIME_LEECH_LORD, MEMORY_EATER -> true;
+                default -> false;
+            };
+
+            if (isNarrativeBoss) {
+                BossPatternLibrary.PatternContext ctx = new BossPatternLibrary.PatternContext(
+                    players,
+                    hub,
+                    () -> pendingScriptedLoss = true,
+                    (type, x, y) -> spawnEnemyAt(type, x, y)
+                );
+                BossPatternLibrary.ServerEvent evt = BossPatternLibrary.tick(boss, ctx, DT);
+                if (evt == BossPatternLibrary.ServerEvent.SCRIPTED_LOSS)
+                    log.info("[M5] SCRIPTED_LOSS event queued for broadcast");
+            } else {
+                boss.step(DT, nearestX, nearestY, dist);
+            }
 
             // Gravity (bosses fall like enemies — no flying)
             boss.physics.vy = Math.min(boss.physics.vy + 0.4f, 12f);
@@ -1616,6 +1703,25 @@ public final class GameSimulator {
             case "wolf"     -> new SimEnemy(hubId+"_wolf_"+idx,     "wolf",     spec.x(), spec.y(), 48, 32, 3+hpBonus, 2, 90f *speedMult, 220f, 48f, spec.patrolMinX(), spec.patrolMaxX(), false);
             default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
         };
+    }
+
+    /**
+     * Dynamically spawn an enemy mid-simulation (used by Time Leech Lord pattern).
+     * Spawns at the given world position with default patrol bounds centred on spawn.
+     */
+    private void spawnEnemyAt(String type, float x, float y) {
+        int idx = enemies.size();
+        float patrolHalf = 96f;
+        SimEnemy en = switch (type) {
+            case "time_leech" -> new SimEnemy(hubId+"_tl_"+idx, "slime", x, y, 32, 32,
+                                              2, 1, 80f, 160f, 32f,
+                                              x - patrolHalf, x + patrolHalf, false);
+            default           -> new SimEnemy(hubId+"_dyn_"+idx, type, x, y, 32, 48,
+                                              2, 1, 72f, 180f, 32f,
+                                              x - patrolHalf, x + patrolHalf, false);
+        };
+        enemies.add(en);
+        log.debug("[M5] spawned {} at ({},{})", type, x, y);
     }
 
     // ── Accessors (for testing) ───────────────────────────────────────────────

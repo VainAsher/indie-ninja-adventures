@@ -1,5 +1,5 @@
 # PLAN — Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-12 | **Base version:** v0.11.4 | **Current version:** v0.11.7
+**Created:** 2026-04-11 | **Last updated:** 2026-04-12 | **Base version:** v0.11.4 | **Current version:** v0.11.10
 
 ---
 
@@ -204,8 +204,8 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 | 2 | Sprite Sheet Spec Update | Phase 1 | **Done v0.11.6** — frame counts verified (80×80 px uniform) |
 | 3 | AnimationRegistry Expansion | Phase 2 | **Done v0.11.6** — `loadUnarmedSheets()` + `loadSwordSheets()` (130+ keys) |
 | 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** — `player_sword_*` prefix fallthrough routing |
-| 5 | Locomotion & Traversal Animations | Phase 4 | **Partial v0.11.7** — crouch_walk + swim/swim_idle states wired in GameSimulator FSM |
-| 6 | Climb & Swim State Machine | Phase 5 | Not started |
+| 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** — climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
+| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.10** — animation keys exist; physics detection (ladder/vine tile recognition, ledge grab trigger) not yet built |
 | 7 | Interaction Animations | Phase 6 | Not started |
 | 8 | Weapon State System | Phase 4 | **Partial v0.11.6** — `weaponState` field wired; sword routing live; combo chain not yet |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |

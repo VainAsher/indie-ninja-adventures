@@ -348,6 +348,81 @@ public final class AnimationRegistry {
     // ── Enemy sprite loading ──────────────────────────────────────────────────
 
     /**
+     * Load enemy animations from the stitched spritesheet directory produced by
+     * tools/stitch_enemy_frames.py.
+     *
+     * Expected structure: baseDir/<type>/<state>.png  (horizontal strips)
+     *   swordsman/ idle.png walk.png attack_a.png attack_b.png hit.png dead.png jump.png
+     *   skeleton/  idle.png walk.png attack_a.png attack_b.png hit.png dead.png jump.png shield_block.png
+     *   slime/     idle.png walk.png attack_a.png attack_b.png attack_c.png hit.png dead.png
+     *   grunt/     idle.png walk.png attack_a.png attack_b.png hit.png dead.png jump.png
+     *   wolf/      idle.png run.png  attack_a.png attack_b.png hit.png dead.png jump.png
+     *
+     * Registered keys: "enemy_<type>_<aiState>" — consumed by EntityRenderer.renderEnemy().
+     * AI states covered: idle, patrol, chase, flee, attack, guard (skeleton), stunned, dead, jump.
+     *
+     * Missing files are silently skipped; colored placeholders remain for that key.
+     * Must be called after loadEnemySprites() so the placeholder fallbacks exist.
+     */
+    public void loadEnemySheets(FileHandle baseDir) {
+        // Frame counts per type+state (from dimension audit after stitch script runs)
+        loadEnemySheetType(baseDir, "swordsman", new int[]{2, 6, 6, 0, 6, 10, 0, 3, 4, 5});
+        loadEnemySheetType(baseDir, "skeleton",  new int[]{4, 6, 6, 0, 12, 7, 2, 3, 4, 5});
+        loadEnemySheetType(baseDir, "slime",     new int[]{4, 4, 4, 0, 10, 11, 8, 3, 5, 0});
+        loadEnemySheetType(baseDir, "grunt",     new int[]{4, 6, 6, 0, 6, 10, 0, 3, 4, 5});
+        loadEnemySheetType(baseDir, "wolf",      new int[]{2, 12, 12, 0, 8, 11, 0, 4, 4, 6});
+        // "goblin" alias → swordsman art (backward compat with existing snapshots)
+        loadEnemySheetType(baseDir, "swordsman", "goblin", new int[]{2, 6, 6, 0, 6, 10, 0, 3, 4, 5});
+    }
+
+    /**
+     * Load one enemy type's animated states from baseDir/<type>/.
+     * frameCounts index: [idle, walk/patrol, run/chase, flee, attack_a, attack_b,
+     *                     shield_block/guard, hit/stunned, dead, jump]
+     */
+    private void loadEnemySheetType(FileHandle baseDir, String type, int[] fc) {
+        loadEnemySheetType(baseDir, type, type, fc);
+    }
+
+    private void loadEnemySheetType(FileHandle baseDir, String srcType, String regType, int[] fc) {
+        FileHandle d = baseDir.child(srcType);
+        String p = "enemy_" + regType + "_";
+
+        // idle
+        if (fc[0] > 0) loadIfExistsEnemy(d, p + "idle",    "idle.png",          fc[0]);
+        // patrol → walk sheet
+        if (fc[1] > 0) loadIfExistsEnemy(d, p + "patrol",  "walk.png",          fc[1]);
+        // chase → run sheet, else walk
+        boolean hasRun = d.child("run.png").exists();
+        int chaseF = hasRun ? (fc[2] > 0 ? fc[2] : fc[1]) : fc[1];
+        loadIfExistsEnemy(d, p + "chase", hasRun ? "run.png" : "walk.png", chaseF);
+        // flee → same sheet as chase (direction flip handled by renderer)
+        loadIfExistsEnemy(d, p + "flee",  hasRun ? "run.png" : "walk.png", chaseF);
+        // attack_a
+        if (fc[4] > 0) loadIfExistsEnemy(d, p + "attack",   "attack_a.png",     fc[4]);
+        // attack_b (secondary; renderer can query "enemy_<type>_attack_b" explicitly)
+        if (fc[5] > 0) loadIfExistsEnemy(d, p + "attack_b", "attack_b.png",     fc[5]);
+        // attack_c (slime only)
+        if (d.child("attack_c.png").exists())
+            loadIfExistsEnemy(d, p + "attack_c", "attack_c.png", 8);
+        // guard → shield_block sheet (skeleton); falls back to idle for others
+        if (fc[6] > 0) loadIfExistsEnemy(d, p + "guard", "shield_block.png",    fc[6]);
+        // stunned → hit sheet
+        if (fc[7] > 0) loadIfExistsEnemy(d, p + "stunned", "hit.png",           fc[7]);
+        // dead → death sheet
+        if (fc[8] > 0) loadIfExistsEnemy(d, p + "dead",    "dead.png",          fc[8]);
+        // jump (airborne)
+        if (fc[9] > 0) loadIfExistsEnemy(d, p + "jump",    "jump.png",          fc[9]);
+    }
+
+    /** Load a spritesheet only if the file exists; silently skip otherwise. */
+    private void loadIfExistsEnemy(FileHandle dir, String key, String filename, int frameCount) {
+        Texture tex = loadCached(dir, filename);
+        if (tex == null) return;
+        frames.put(key, sliceSheet(tex, frameCount));
+    }
+
+    /**
      * Load per-enemy-type animations from assets/sprites/characters/{type}/.
      *
      * Expected sheets (all uniform horizontal strips, same 80×80 frame format):

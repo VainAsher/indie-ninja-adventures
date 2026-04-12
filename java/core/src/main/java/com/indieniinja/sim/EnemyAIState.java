@@ -10,6 +10,8 @@ public enum EnemyAIState {
     PATROL   ("patrol"),
     CHASE    ("chase"),
     ATTACK   ("attack"),
+    FLEE     ("flee"),    // retreat when HP is critically low
+    GUARD    ("guard"),   // skeleton: raise shield, block incoming melee
     STUNNED  ("stunned"),
     DEAD     ("dead");
 

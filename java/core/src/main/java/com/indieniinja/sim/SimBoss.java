@@ -70,6 +70,18 @@ public final class SimBoss {
     public boolean facingRight = false;
     public boolean removed     = false;
 
+    // ── Shadow Ascent M5 pattern fields ──────────────────────────────────────
+    /** Siren: set to true when the scripted loss has fired (prevents double-trigger). */
+    public boolean scriptedLossTriggered = false;
+    /** Echo Warden: ring buffer of recent player X positions for mirror movement. */
+    public java.util.Deque<Float> echoBuffer = null;
+    /** Time Leech Lord: countdown until next minion spawn. */
+    public float spawnTimer = 0f;
+    /** Time Leech Lord: true once HP drops to 30% speed-burst threshold. */
+    public boolean speedBurstActive = false;
+    /** Memory Eater: set to true when a phase change triggers platform reset. */
+    public boolean platformReset = false;
+
     // ── Speed multiplier — increases each phase ───────────────────────────────
     private float speedMult = 1.0f;
 
@@ -84,6 +96,14 @@ public final class SimBoss {
     // ── Public accessors ──────────────────────────────────────────────────────
 
     public float hpRatio() { return maxHp > 0 ? (float) hp / maxHp : 0f; }
+
+    /** Distance from boss centre to a world point (used by BossPatternLibrary). */
+    public float distanceTo(float tx, float ty) {
+        float cx = physics.x + physics.width  * 0.5f;
+        float cy = physics.y + physics.height * 0.5f;
+        float dx = tx - cx, dy = ty - cy;
+        return (float) Math.sqrt(dx * dx + dy * dy);
+    }
 
     public boolean isAlive() { return hp > 0 && !removed; }
 

@@ -52,6 +52,13 @@ public final class SimPlayer {
     // Ground state from previous tick (for coyote-time detection)
     public boolean wasOnGround  = false;
 
+    // ── Traverse state (Phase 5/6) ────────────────────────────────────────────
+    // Climb: set by physics when player presses into a climbable surface (ladder/vine).
+    // Detection logic is Phase 6 — flags are wired into the animation FSM now.
+    public boolean isClimbing   = false;  // player is actively climbing a surface
+    public boolean isOnLedge    = false;  // player is hanging on a ledge grab point
+    public boolean isLedgeClimbing = false; // playing ledge-climb-up animation
+
     // ── Combat state ─────────────────────────────────────────────────────────
     // Melee attack (J key / left mouse)
     public boolean isAttacking      = false;

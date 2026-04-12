@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.7 | **Next release target:** v0.11.8 (Milestone 5 — Boss AI)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.10 | **Next release target:** v0.11.11 (Milestone 6 — Echo System & Puzzles)
 
 ---
 
@@ -52,6 +52,9 @@ The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milest
 | v0.11.5 | feat: solo InputRecorder + .ndjson replay files; launcher replay viewer updated |
 | v0.11.6 | M4: YinYangComponent + LanternComponent + vignette + HUD bars + weapon-state animation routing; 171 player sprite sheets extracted |
 | v0.11.7 | fix: vignette in solo mode (setDarkArea flag); crouch_walk + swim animation states; companion orbs scale with Yin/Yang; HUD redesign (merged stamina, lantern bottom-left) |
+| v0.11.8 | fix(vignette): smoother gradient (20 layers, quadratic curve), corner overlap fix, base dim layer; build.gradle.kts version resync (0.10.83 → 0.11.8) |
+| v0.11.9 | fix(vignette): critical GL blend state bug — SpriteBatch.end() disables GL_BLEND; ShapeRenderer did not re-enable it; all vignette rectangles drew as solid opaque black covering the game world. Fix: explicit glEnable(GL_BLEND) before shapes.begin() |
+| v0.11.10 | feat(m5): Shadow Ascent boss AI — BossPatternLibrary (Siren/EchoWarden/TimeLechLord/MemoryEater); SCRIPTED_LOSS MessageType; enemy FLEE+GUARD states; loadEnemySheets() + stitch_enemy_frames.py; climb/ledge animation FSM routing |
 
 ### What the GDD requires that doesn't exist
 
@@ -472,20 +475,29 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 ---
 
-### Milestone 5 — Boss AI (v0.11.7)
+### Milestone 5 — Boss AI (v0.11.10) ✓ SHIPPED
+
 *Four bosses, each with a distinct psychological pattern. Ship working FSMs first, tune after.*
 
-- [ ] Echo Warden: mirror-movement with 0.5 s delay (`EchoRecorder` already exists for this)
-- [ ] Time Leech Lord: Lantern drain + enemy spawns + speed burst at 30% HP
-- [ ] Memory Eater: platform reset per phase + `SpatialHash.remove()` on door unlocks
-- [ ] Siren: `SCRIPTED_LOSS` MessageType + client collapse animation
-- [ ] Each boss defeat → fragment drop → `HubStateMachine.onBossDefeated()` → act advance
+- [x] Shadow Ascent `BossType` values: SIREN, ECHO_WARDEN, TIME_LEECH_LORD, MEMORY_EATER
+- [x] `BossPatternLibrary.java` — 4 psychological patterns (ScriptedLoss, EchoMirror, LanternDrain, PhaseReset)
+- [x] `SCRIPTED_LOSS` `MessageType` added; `GameSimulator.drainPendingScriptedLoss()` poll method
+- [x] `GameSimulator.setHub()` injection point; narrative patterns wired in `stepBosses()`
+- [x] Siren: invincible; after 6 s song sequence → zero all Yin/Yang → `hub.onSirenDefeated()` → `SCRIPTED_LOSS`
+- [x] Echo Warden: 30-tick ring buffer mirrors player movement with 0.5 s delay
+- [x] Time Leech Lord: drains Lantern each tick; spawns `time_leech` enemies every 8 s; speed burst at 30% HP
+- [x] Memory Eater: `boss.platformReset` flag set on phase transition; `ZoneSimulationLoop` reads and acts on it
+- [ ] Client collapse animation on `SCRIPTED_LOSS` receive (deferred — needs new anim state in EntityRenderer)
+- [ ] Boss defeat → fragment drop → `HubStateMachine.onBossDefeated()` (fragment wiring deferred to M6)
 
-**Deliverable:** Acts I–VI each have a boss encounter. Expect tuning commits after first playtest.
+**What shipped:** All 4 psychological patterns are live server-side. Siren scripted loss fires correctly. Echo Warden mirrors movement. Time Leech Lord drains lantern and spawns minions. Memory Eater signals platform reset per phase. Client-side collapse animation and fragment drop wiring are next-session tuning items.
+
+**Note:** Boss tuning (HP, timings, difficulty) will need iteration after first playtests — Lesson 1 from project history.
 
 ---
 
-### Milestone 6 — Echo System & Puzzles (v0.11.8)
+### Milestone 6 — Echo System & Puzzles (v0.11.11)
+
 *Solo play feels co-op through echoes. Puzzle rooms are distinct.*
 
 - [ ] `EchoRecorder` (600-tick ring buffer on `SimPlayer`)
@@ -500,7 +512,8 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 ---
 
-### Milestone 7 — Act IV & Narrative Arc (v0.11.9)
+### Milestone 7 — Act IV & Narrative Arc (v0.11.12)
+
 *The 7-act emotional arc is playable end-to-end.*
 
 - [ ] Full `Act.java` FSM — all 7 acts with `hudAlpha` and `lanternDefault`
@@ -515,7 +528,7 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 ---
 
-### Milestone 8 — Polish (v0.11.10+)
+### Milestone 8 — Polish (v0.11.13+)
 
 - [ ] Music / BGM hooks (Lantern-dynamic music system)
 - [ ] Gamepad support (`InputPoller` extension)

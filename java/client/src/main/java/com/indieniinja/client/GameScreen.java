@@ -230,6 +230,10 @@ public final class GameScreen implements Screen {
         // Load per-enemy-type animations (falls back to colored placeholders if
         // assets/sprites/characters/{type}/ does not exist).
         anims.loadEnemySprites(enemyBaseDir);
+        // Load stitched enemy spritesheets from tools/stitch_enemy_frames.py output.
+        // Overrides the colored placeholders above when the sheets are present.
+        FileHandle enemySheetDir = Gdx.files.internal("assets/sprites/enemies");
+        if (enemySheetDir.exists()) anims.loadEnemySheets(enemySheetDir);
         // Load per-NPC-type animations + dot texture for indicators/companions.
         FileHandle npcBaseDir = Gdx.files.internal("assets/sprites/npc");
         anims.loadNpcSprites(npcBaseDir);

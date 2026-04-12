@@ -68,12 +68,13 @@ public final class EntityRenderer {
      */
     private static int[] enemySize(String enemyType) {
         return switch (enemyType) {
-            case "bat"      -> new int[]{28, 28};
-            case "slime"    -> new int[]{40, 32};   // Python: WIDTH=40, HEIGHT=32
-            case "wolf"     -> new int[]{48, 32};   // Python: WIDTH=48, HEIGHT=32
-            case "skeleton" -> new int[]{32, 56};   // Python: WIDTH=32, HEIGHT=56
-            case "goblin"   -> new int[]{32, 48};   // Python: WIDTH=32, HEIGHT=48
-            default         -> new int[]{32, 48};
+            case "bat"               -> new int[]{28, 28};
+            case "slime"             -> new int[]{40, 32};
+            case "wolf", "archer"    -> new int[]{48, 32};
+            case "skeleton"          -> new int[]{32, 56};
+            case "goblin", "swordsman" -> new int[]{48, 64};  // greatsword fighter — taller
+            case "grunt", "spearman" -> new int[]{32, 56};    // spear fighter
+            default                  -> new int[]{32, 48};
         };
     }
 
@@ -97,22 +98,51 @@ public final class EntityRenderer {
      */
     private static float enemyFps(String type, String aiState) {
         return switch (type + "." + aiState) {
-            case "goblin.idle"              -> 8f;
-            case "goblin.patrol"            -> 10f;
-            case "goblin.chase"             -> 12f;
-            case "goblin.attack"            -> 12f;
-            case "goblin.stunned"           -> 10f;
-            case "goblin.dead"              -> 10f;
-            case "slime.idle"               -> 6f;
-            case "slime.patrol", "slime.chase" -> 8f;
-            case "slime.attack"             -> 10f;
-            case "skeleton.idle"            -> 8f;
-            case "skeleton.patrol", "skeleton.chase" -> 10f;
-            case "skeleton.attack"          -> 12f;
-            case "wolf.idle"                -> 8f;
-            case "wolf.patrol"              -> 10f;
-            case "wolf.chase", "wolf.attack"-> 14f;
-            default                         -> 8f;
+            // swordsman (greatsword) — slow, heavy
+            case "swordsman.idle"                          -> 6f;
+            case "swordsman.patrol"                        -> 7f;
+            case "swordsman.chase"                         -> 8f;
+            case "swordsman.flee"                          -> 8f;
+            case "swordsman.attack", "swordsman.attack_b"  -> 6f;
+            case "swordsman.stunned"                       -> 8f;
+            case "swordsman.dead"                          -> 8f;
+            // goblin alias (backward compat with old snapshots)
+            case "goblin.idle"   -> 6f;
+            case "goblin.patrol" -> 7f;
+            case "goblin.chase"  -> 8f;
+            case "goblin.flee"   -> 8f;
+            case "goblin.attack" -> 6f;
+            case "goblin.stunned"-> 8f;
+            case "goblin.dead"   -> 8f;
+            // skeleton (shield fighter)
+            case "skeleton.idle"                              -> 6f;
+            case "skeleton.patrol"                            -> 8f;
+            case "skeleton.chase", "skeleton.flee"            -> 10f;
+            case "skeleton.attack", "skeleton.attack_b"       -> 10f;
+            case "skeleton.guard"                             -> 6f;
+            case "skeleton.stunned"                           -> 8f;
+            case "skeleton.dead"                              -> 8f;
+            // slime (multi-hit melee)
+            case "slime.idle"                                              -> 6f;
+            case "slime.patrol", "slime.chase", "slime.flee"               -> 8f;
+            case "slime.attack", "slime.attack_b", "slime.attack_c"        -> 10f;
+            case "slime.stunned"                                           -> 8f;
+            case "slime.dead"                                              -> 8f;
+            // grunt / spearman
+            case "grunt.idle"                          -> 6f;
+            case "grunt.patrol"                        -> 8f;
+            case "grunt.chase", "grunt.flee"           -> 10f;
+            case "grunt.attack", "grunt.attack_b"      -> 10f;
+            case "grunt.stunned"                       -> 8f;
+            case "grunt.dead"                          -> 8f;
+            // wolf / archer (fast kiter)
+            case "wolf.idle"                           -> 6f;
+            case "wolf.patrol"                         -> 8f;
+            case "wolf.chase", "wolf.flee"             -> 12f;
+            case "wolf.attack", "wolf.attack_b"        -> 12f;
+            case "wolf.stunned"                        -> 8f;
+            case "wolf.dead"                           -> 8f;
+            default                                    -> 8f;
         };
     }
 

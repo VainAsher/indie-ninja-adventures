@@ -31,5 +31,11 @@ public final class MessageType {
     public static final String WORLD_TRANSITION = "world_transition";
     public static final String ZONE_PRESENCE    = "zone_presence";
 
+    // Shadow Ascent M5 — narrative boss events
+    /** Server → Client: Siren's scripted loss sequence is complete.
+     *  Payload: { "player_id": int } — client plays collapse animation;
+     *  server has already zeroed Yin/Yang and transitioned hub to EMPTY. */
+    public static final String SCRIPTED_LOSS   = "scripted_loss";
+
     public static final String PROTOCOL_VERSION = "2";
 }

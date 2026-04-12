@@ -40,6 +40,8 @@ public final class SimEnemy {
     // Timers (in seconds)
     public float attackTimer      = 0f;   // time until next attack allowed
     public float stunTimer        = 0f;
+    public float fleeTimer        = 0f;   // seconds remaining in FLEE state
+    public float guardTimer       = 0f;   // seconds remaining in GUARD state
 
     // Attack sub-state timing (mirrors Python EnemyAttackSubState)
     public float attackWindupTimer    = 0f;
@@ -54,6 +56,9 @@ public final class SimEnemy {
     public static final float ATTACK_ACTIVE_TIME   = 0.15f;
     public static final float ATTACK_RECOVERY_TIME = 0.4f;
     public static final float STUN_DURATION        = 0.5f;
+    public static final float FLEE_DURATION        = 3.0f;   // seconds enemy flees before patrolling
+    public static final float GUARD_DURATION       = 2.0f;   // seconds skeleton holds guard stance
+    public static final float FLEE_HP_THRESHOLD    = 0.25f;  // flee when HP falls below 25%
 
     public SimEnemy(
             String enemyId, String enemyType,
@@ -95,6 +100,11 @@ public final class SimEnemy {
             aiState = EnemyAIState.DEAD;
             removed = true;
             return true;
+        }
+        // At critically low HP: flee after stun instead of returning to patrol
+        if ((float) hp / maxHp <= FLEE_HP_THRESHOLD) {
+            fleeTimer = FLEE_DURATION;
+            // Still stun first — flee begins when stun ends (see stepEnemyAI)
         }
         aiState    = EnemyAIState.STUNNED;
         stunTimer  = STUN_DURATION;

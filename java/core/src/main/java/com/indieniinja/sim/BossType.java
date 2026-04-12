@@ -1,12 +1,27 @@
 package com.indieniinja.sim;
 
 /**
- * Boss type definitions — mirrors Python entities/boss.py BossType + BOSS_DEFINITIONS.
+ * Boss type definitions.
  *
- * Five boss types, each with distinct stats. The boss spawned in a "boss" room
- * is determined deterministically from the room seed.
+ * Shadow Ascent narrative bosses (M5): SIREN, ECHO_WARDEN, TIME_LEECH_LORD, MEMORY_EATER.
+ * Each has a distinct psychological pattern (see BossPatternLibrary).
+ *
+ * Legacy generic types kept for backward compatibility with existing rooms.
+ * The boss spawned in a given room is driven by BossPatternLibrary.selectForAct()
+ * in narrative mode, or deterministically from room seed in generic/arcade mode.
  */
 public enum BossType {
+    // ── Shadow Ascent narrative bosses (M5) ──────────────────────────────────
+    /** Act II — scripted loss; invincible; strips Yin/Yang to 0; triggers hub collapse */
+    SIREN          ("siren",           8,  0, 48f,  "boss_siren"),
+    /** Act III — mirrors player movement with 0.5 s delay; exploitable via hazards */
+    ECHO_WARDEN    ("echo_warden",     20, 3, 72f,  "boss_echo_warden"),
+    /** Act IV — drains Lantern each tick; spawns time_leech enemies; speed burst at 30% */
+    TIME_LEECH_LORD("time_leech_lord", 25, 4, 84f,  "boss_time_leech_lord"),
+    /** Act VI — resets platform positions each phase; can re-lock unlocked doors */
+    MEMORY_EATER   ("memory_eater",    30, 3, 60f,  "boss_memory_eater"),
+
+    // ── Legacy generic bosses (pre-Shadow Ascent; used in arcade/seed rooms) ─
     FOREST_GUARDIAN("forest_guardian", 15, 2, 72f,  "boss_forest_guardian"),
     CORRUPT_MAYOR  ("corrupt_mayor",   12, 1, 60f,  "boss_corrupt_mayor"),
     CRYSTAL_GOLEM  ("crystal_golem",   20, 3, 48f,  "boss_crystal_golem"),
