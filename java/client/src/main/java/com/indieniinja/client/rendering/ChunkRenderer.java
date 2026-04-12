@@ -323,13 +323,21 @@ public final class ChunkRenderer {
         float g = 0.00f;
         float b = 0.01f;
 
+        // SpriteBatch.end() (called by the entity/tile render passes above us)
+        // disables GL_BLEND.  ShapeRenderer.begin() does NOT re-enable it, so
+        // every rect would render as solid-opaque without this call.
+        com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+        com.badlogic.gdx.Gdx.gl.glBlendFunc(
+            com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+            com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+
         shapes.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
 
         // ── Pass 1: uniform full-screen base dim ──────────────────────────────
-        // Subtle global darkening even at mid intensity, so the edge gradient
-        // does not look like it's floating on a bright background.
-        float baseDim = intensity * 0.22f;
-        shapes.setColor(r * 0.6f, g, b * 0.5f, baseDim);
+        // Subtle global darkening so the edge gradient does not float on a
+        // bright background.  Only meaningful at low lantern (< 0.3).
+        float baseDim = intensity * 0.15f;
+        shapes.setColor(r * 0.5f, g, b * 0.4f, baseDim);
         shapes.rect(0, 0, screenW, screenH);
 
         // ── Pass 2: concentric hollow-rect layers (edge → centre) ────────────
