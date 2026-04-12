@@ -1,5 +1,5 @@
 # PLAN — Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-11 | **Base version:** v0.11.4 | **Current version:** v0.11.6
+**Created:** 2026-04-11 | **Last updated:** 2026-04-12 | **Base version:** v0.11.4 | **Current version:** v0.11.7
 
 ---
 
@@ -204,7 +204,7 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 | 2 | Sprite Sheet Spec Update | Phase 1 | **Done v0.11.6** — frame counts verified (80×80 px uniform) |
 | 3 | AnimationRegistry Expansion | Phase 2 | **Done v0.11.6** — `loadUnarmedSheets()` + `loadSwordSheets()` (130+ keys) |
 | 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** — `player_sword_*` prefix fallthrough routing |
-| 5 | Locomotion & Traversal Animations | Phase 4 | Not started |
+| 5 | Locomotion & Traversal Animations | Phase 4 | **Partial v0.11.7** — crouch_walk + swim/swim_idle states wired in GameSimulator FSM |
 | 6 | Climb & Swim State Machine | Phase 5 | Not started |
 | 7 | Interaction Animations | Phase 6 | Not started |
 | 8 | Weapon State System | Phase 4 | **Partial v0.11.6** — `weaponState` field wired; sword routing live; combo chain not yet |

@@ -90,6 +90,8 @@ public final class GameSimulator {
     // ── World ─────────────────────────────────────────────────────────────────
     public final long   seed;
     public final String hubId;
+    /** Whether the current room is dark (lantern decays). Set by caller for solo mode. */
+    private boolean isDarkArea = false;
     private final float worldHeightPx;
     private com.indieniinja.physics.SpatialHash spatialHash;
 
@@ -341,11 +343,19 @@ public final class GameSimulator {
      *   <li>High lantern → apply jump power and coyote time bonuses</li>
      * </ul>
      */
+    /**
+     * Set whether the current room is a dark area (lantern should decay).
+     * Hub rooms pass false; all combat/boss/dungeon rooms pass true.
+     * Called by GameScreen each frame in solo mode.
+     */
+    public void setDarkArea(boolean dark) { this.isDarkArea = dark; }
+
     private void tickLantern() {
         for (SimPlayer sp : players.values()) {
             LanternComponent lc = sp.lantern;
-            // Treat non-hub rooms (combat, boss, platform, exit) as "dark"
-            boolean inDark = !hubId.contains("hub");
+            // isDarkArea is updated by caller (GameScreen in solo, ZoneSimulationLoop in server).
+            // Fallback: treat non-hub hubIds as dark (multiplayer server path).
+            boolean inDark = isDarkArea || !hubId.contains("hub");
             lc.decay(DT, inDark);
             // High lantern bonus — applied via applyPlayerInput on next tick
             // (we set a flag so physics pick it up; actual bonus in applyPlayerInput)
@@ -925,6 +935,9 @@ public final class GameSimulator {
             sp.animState = "teleport";
         } else if (sp.isDashing) {
             sp.animState = "dash";
+        } else if (p.inWater) {
+            // Swim states — horizontal movement = swim, stationary = swim_idle
+            sp.animState = Math.abs(p.vx) > 0.1f ? "swim" : "swim_idle";
         } else if (sp.isAttacking) {
             sp.animState = "attack";
         } else if (sp.isThrowing) {
@@ -934,7 +947,8 @@ public final class GameSimulator {
         } else if (!p.onGround) {
             sp.animState = p.vy < 0f ? "jump" : "fall";
         } else if (cmd.crouch) {
-            sp.animState = "crouch";
+            // Crouch walk when crouched AND moving; pure crouch when still
+            sp.animState = Math.abs(p.vx) > 0.1f ? "crouch_walk" : "crouch";
         } else if (Math.abs(p.vx) > 0.1f) {
             // ALT key (cmd.slowWalk) = run; default movement = slow_walk
             sp.animState = cmd.slowWalk ? "run" : "slow_walk";

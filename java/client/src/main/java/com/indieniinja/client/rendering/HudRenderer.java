@@ -27,25 +27,28 @@ import com.indieniinja.network.WorldSnapshot;
  */
 public final class HudRenderer {
 
-    // Health bar dimensions
-    private static final float BAR_W       = 100f;
-    private static final float BAR_H       = 12f;
-    private static final float BAR_GAP     = 32f;   // space per player row
-    private static final int   MAX_HP      = 5;
-    private static final float STAMINA_W    = 80f;
-    private static final float STAMINA_H    = 6f;
-    private static final float MAX_STAMINA  = 3.0f;
-    private static final float MANA_W       = 80f;
-    private static final float MANA_H       = 6f;
-    private static final float XP_W         = 80f;
-    private static final float XP_H         = 5f;
+    // ── Per-player bar dimensions ─────────────────────────────────────────────
+    private static final float BAR_W      = 120f;  // health bar width
+    private static final float BAR_H      = 10f;   // health bar height
+    private static final float BAR_GAP    = 26f;   // vertical spacing between players
+    private static final int   MAX_HP     = 5;
+    private static final float STAM_W     = 100f;  // merged stamina bar (general + wall-slide)
+    private static final float STAM_H     = 5f;
+    private static final float MAX_STAMINA = 3.0f;
+    private static final float MANA_W     = 100f;
+    private static final float MANA_H     = 5f;
+    private static final float XP_W       = 100f;
+    private static final float XP_H       = 3f;
+    // Row offsets below the health bar (all local-player rows)
+    private static final float STAM_OFF   = BAR_H + 4f;   // 14 px below health top
+    private static final float MANA_OFF   = STAM_OFF + STAM_H + 3f;
+    private static final float XP_OFF     = MANA_OFF + MANA_H + 2f;
 
-    // ── Yin/Yang & Lantern bars (M4) ──────────────────────────────────────────
-    private static final float YIN_W       = 40f;
-    private static final float YANG_W      = 40f;
-    private static final float YY_H        = 5f;
-    private static final float LANTERN_W   = 80f;
-    private static final float LANTERN_H   = 5f;
+    // ── Lantern indicator — bottom-left ───────────────────────────────────────
+    private static final float LAN_W      = 80f;
+    private static final float LAN_H      = 7f;
+    private static final float LAN_X      = 10f;
+    private static final float LAN_Y      = 90f;  // above currency row
 
     private final ShapeRenderer shapes;
     private final SpriteBatch   hudBatch;
@@ -94,121 +97,79 @@ public final class HudRenderer {
                 float barX = 10f;
                 float barY = sh - 14f - i * BAR_GAP;
 
-                // Background (dark grey)
-                shapes.setColor(0.2f, 0.2f, 0.2f, 0.8f);
+                // ── Health bar ────────────────────────────────────────────────
+                shapes.setColor(0.15f, 0.1f, 0.1f, 0.85f);
                 shapes.rect(barX, barY, BAR_W, BAR_H);
-
-                // Health filled portion
-                float ratio = Math.max(0f, Math.min(1f, (float) p.health / MAX_HP));
-                shapes.setColor(healthColor(ratio));
-                shapes.rect(barX, barY, BAR_W * ratio, BAR_H);
-
-                // Highlight local player
+                float hpRatio = Math.max(0f, Math.min(1f, (float) p.health / MAX_HP));
+                shapes.setColor(healthColor(hpRatio));
+                shapes.rect(barX, barY, BAR_W * hpRatio, BAR_H);
+                // Local player border
                 if (p.slot == localSlot) {
-                    shapes.setColor(1f, 1f, 0f, 0.5f);
-                    shapes.rect(barX - 2, barY - 2, BAR_W + 4, BAR_H + 4);
+                    shapes.setColor(1f, 1f, 1f, 0.25f);
+                    shapes.rect(barX - 1, barY - 1, BAR_W + 2, BAR_H + 2);
                 }
 
-                // Wall slide stamina bar (below health bar)
-                float staminaY = barY - STAMINA_H - 3f;
-                float staminaRatio = Math.max(0f, Math.min(1f, p.wallSlideStamina / MAX_STAMINA));
-                shapes.setColor(0.15f, 0.15f, 0.25f, 0.8f);
-                shapes.rect(barX, staminaY, STAMINA_W, STAMINA_H);
-                float sr = staminaRatio;
-                shapes.setColor(1f - sr * 0.5f, 0.5f + sr * 0.5f, sr, 1f);
-                if (staminaRatio > 0f)
-                    shapes.rect(barX, staminaY, STAMINA_W * staminaRatio, STAMINA_H);
+                // ── Merged stamina bar (wall-slide overrides general) ─────────
+                float stamY = barY - STAM_OFF;
+                shapes.setColor(0.1f, 0.1f, 0.15f, 0.8f);
+                shapes.rect(barX, stamY, STAM_W, STAM_H);
                 if (p.isWallSliding) {
-                    shapes.setColor(0f, 1f, 1f, 0.4f);
-                    shapes.rect(barX - 1, staminaY - 1, STAMINA_W + 2, STAMINA_H + 2);
+                    // Wall-slide: cyan, shows remaining wall-slide stamina
+                    float sr = Math.max(0f, Math.min(1f, p.wallSlideStamina / MAX_STAMINA));
+                    shapes.setColor(0.1f, 0.85f, 0.9f, 1f);
+                    if (sr > 0f) shapes.rect(barX, stamY, STAM_W * sr, STAM_H);
+                    shapes.setColor(0f, 1f, 1f, 0.3f);
+                    shapes.rect(barX - 1, stamY - 1, STAM_W + 2, STAM_H + 2);
+                } else {
+                    // General stamina: green → yellow
+                    float gr = Math.max(0f, Math.min(1f, p.stamina / Math.max(1, p.maxStamina)));
+                    shapes.setColor(gr * 0.6f, 0.5f + gr * 0.5f, 0.1f, 1f);
+                    if (gr > 0f) shapes.rect(barX, stamY, STAM_W * gr, STAM_H);
                 }
 
-                // General stamina bar (green → yellow) — drains while running
-                float genStamY = staminaY - STAMINA_H - 2f;
-                float genRatio = Math.max(0f, Math.min(1f, p.stamina / Math.max(1, p.maxStamina)));
-                shapes.setColor(0.15f, 0.15f, 0.15f, 0.8f);
-                shapes.rect(barX, genStamY, STAMINA_W, STAMINA_H);
-                shapes.setColor(genRatio, 0.6f + genRatio * 0.4f, 0f, 1f);
-                if (genRatio > 0f)
-                    shapes.rect(barX, genStamY, STAMINA_W * genRatio, STAMINA_H);
-
-                // Mana bar (blue → dark blue)
-                float manaY   = genStamY - MANA_H - 2f;
-                float manaRatio = Math.max(0f, Math.min(1f, p.mana / Math.max(1, p.maxMana)));
-                shapes.setColor(0.1f, 0.1f, 0.25f, 0.8f);
+                // ── Mana bar ──────────────────────────────────────────────────
+                float manaY = barY - MANA_OFF;
+                float manaR = Math.max(0f, Math.min(1f, p.mana / Math.max(1, p.maxMana)));
+                shapes.setColor(0.08f, 0.08f, 0.22f, 0.8f);
                 shapes.rect(barX, manaY, MANA_W, MANA_H);
-                shapes.setColor(0.2f + manaRatio * 0.3f, 0.4f + manaRatio * 0.4f, 1f, 1f);
-                if (manaRatio > 0f)
-                    shapes.rect(barX, manaY, MANA_W * manaRatio, MANA_H);
-                // Pulse when casting ninjutsu
+                shapes.setColor(0.25f + manaR * 0.25f, 0.4f + manaR * 0.35f, 1f, 1f);
+                if (manaR > 0f) shapes.rect(barX, manaY, MANA_W * manaR, MANA_H);
                 if (p.ninjutsuCasting) {
-                    shapes.setColor(0.6f, 0.3f, 1f, 0.5f);
+                    shapes.setColor(0.6f, 0.3f, 1f, 0.45f);
                     shapes.rect(barX - 1, manaY - 1, MANA_W + 2, MANA_H + 2);
                 }
 
-                // XP bar (local player only — dark gold → bright gold)
+                // ── XP bar — local player only, very thin gold strip ──────────
                 if (p.slot == localSlot) {
-                    float xpY = manaY - XP_H - 3f;
-                    int xpNeeded = p.level * 50;  // mirrors SimPlayer.xpToNextLevel()
-                    float xpRatio = xpNeeded > 0
+                    float xpY = barY - XP_OFF;
+                    int xpNeeded = p.level * 50;
+                    float xpR = xpNeeded > 0
                         ? Math.max(0f, Math.min(1f, (float) p.experience / xpNeeded)) : 0f;
-                    shapes.setColor(0.15f, 0.12f, 0.05f, 0.8f);
+                    shapes.setColor(0.12f, 0.10f, 0.04f, 0.8f);
                     shapes.rect(barX, xpY, XP_W, XP_H);
-                    if (xpRatio > 0f) {
-                        shapes.setColor(0.9f + xpRatio * 0.1f, 0.75f * xpRatio, 0.1f, 1f);
-                        shapes.rect(barX, xpY, XP_W * xpRatio, XP_H);
-                    }
-
-                    // ── Yin bar (dark blue bg → sky blue fill) ────────────────
-                    float yinY = xpY - YY_H - 2f;
-                    float yinRatio = Math.max(0f, Math.min(1f, p.yinValue));
-                    shapes.setColor(0.05f, 0.05f, 0.2f, 0.85f);
-                    shapes.rect(barX, yinY, YIN_W, YY_H);
-                    shapes.setColor(0.3f, 0.6f + yinRatio * 0.4f, 1.0f, 1f);
-                    if (yinRatio > 0f)
-                        shapes.rect(barX, yinY, YIN_W * yinRatio, YY_H);
-                    // Yin Sight glow when > 0.7
-                    if (p.yinValue > 0.7f) {
-                        shapes.setColor(0.5f, 0.8f, 1f, 0.35f);
-                        shapes.rect(barX - 1, yinY - 1, YIN_W + 2, YY_H + 2);
-                    }
-
-                    // ── Yang bar (dark red bg → orange-gold fill) ─────────────
-                    float yangY = yinY;
-                    float yangX = barX + YIN_W + 2f;
-                    float yangRatio = Math.max(0f, Math.min(1f, p.yangValue));
-                    shapes.setColor(0.2f, 0.05f, 0.05f, 0.85f);
-                    shapes.rect(yangX, yangY, YANG_W, YY_H);
-                    shapes.setColor(1.0f, 0.4f + yangRatio * 0.5f, 0.1f * yangRatio, 1f);
-                    if (yangRatio > 0f)
-                        shapes.rect(yangX, yangY, YANG_W * yangRatio, YY_H);
-                    // Yang Surge glow when > 0.7
-                    if (p.yangValue > 0.7f) {
-                        shapes.setColor(1f, 0.6f, 0.1f, 0.35f);
-                        shapes.rect(yangX - 1, yangY - 1, YANG_W + 2, YY_H + 2);
-                    }
-
-                    // Flow Mode pulse (centre divider glows white)
-                    if (p.flowMode) {
-                        shapes.setColor(1f, 1f, 1f, 0.6f);
-                        shapes.rect(barX + YIN_W, yinY - 1, 2f, YY_H + 2);
-                    }
-
-                    // ── Lantern bar (black bg → warm amber fill) ──────────────
-                    float lanternY = yinY - LANTERN_H - 2f;
-                    float lanRatio = Math.max(0f, Math.min(1f, p.lanternValue));
-                    shapes.setColor(0.05f, 0.04f, 0.02f, 0.9f);
-                    shapes.rect(barX, lanternY, LANTERN_W, LANTERN_H);
-                    // Colour shifts: dim red → orange → warm gold as value rises
-                    shapes.setColor(0.5f + lanRatio * 0.5f, lanRatio * 0.65f, 0.05f, 1f);
-                    if (lanRatio > 0f)
-                        shapes.rect(barX, lanternY, LANTERN_W * lanRatio, LANTERN_H);
-                    // High lantern glow
-                    if (p.lanternValue > 0.7f) {
-                        shapes.setColor(1f, 0.9f, 0.4f, 0.3f);
-                        shapes.rect(barX - 1, lanternY - 1, LANTERN_W + 2, LANTERN_H + 2);
+                    if (xpR > 0f) {
+                        shapes.setColor(0.95f, 0.8f * xpR, 0.1f, 1f);
+                        shapes.rect(barX, xpY, XP_W * xpR, XP_H);
                     }
                 }
+            }
+
+            // ── Lantern indicator — bottom-left (local player only) ───────────
+            for (PlayerState p : snap.players) {
+                if (p.slot != localSlot) continue;
+                float lanR = Math.max(0f, Math.min(1f, p.lanternValue));
+                // Background
+                shapes.setColor(0.05f, 0.04f, 0.02f, 0.88f);
+                shapes.rect(LAN_X, LAN_Y, LAN_W, LAN_H);
+                // Fill: dim amber → bright gold
+                shapes.setColor(0.45f + lanR * 0.55f, lanR * 0.68f, 0.04f, 1f);
+                if (lanR > 0f) shapes.rect(LAN_X, LAN_Y, LAN_W * lanR, LAN_H);
+                // Glow when bright
+                if (p.lanternValue > 0.65f) {
+                    shapes.setColor(1f, 0.88f, 0.35f, 0.28f);
+                    shapes.rect(LAN_X - 1, LAN_Y - 1, LAN_W + 2, LAN_H + 2);
+                }
+                break;
             }
         }
 
@@ -254,52 +215,51 @@ public final class HudRenderer {
         hudBatch.setProjectionMatrix(screenCam.combined);
         hudBatch.begin();
 
-        // Player health + stamina labels
+        // ── Player stat labels ────────────────────────────────────────────────
         if (snap != null) {
             for (int i = 0; i < snap.players.size(); i++) {
                 PlayerState p = snap.players.get(i);
                 float labelX = 10f + BAR_W + 5f;
                 float labelY = sh - 4f - i * BAR_GAP;
-                String name = p.slot == localSlot ? "You" : "P" + (p.slot + 1);
-                String hpLabel = name + " Lv" + p.level + "  " + p.health + "/" + MAX_HP;
-                font.draw(hudBatch, hpLabel, labelX, labelY);
+                String name  = p.slot == localSlot ? "You" : "P" + (p.slot + 1);
+                font.draw(hudBatch, name + " Lv" + p.level + "  " + p.health + "/" + MAX_HP,
+                    labelX, labelY);
 
-                // Stamina / mana % labels for local player only
                 if (p.slot == localSlot) {
-                    int stPct = (int)(p.wallSlideStamina / MAX_STAMINA * 100);
-                    String stLabel = p.isWallSliding ? "SLIDING" : stPct + "%";
-                    font.draw(hudBatch, stLabel, 10f + STAMINA_W + 5f, labelY - STAMINA_H - 3f + STAMINA_H);
-                    int manaPct = (int)(p.mana / Math.max(1, p.maxMana) * 100);
-                    font.draw(hudBatch, "MP " + manaPct + "%", 10f + MANA_W + 5f,
-                              labelY - STAMINA_H * 3 - MANA_H * 2 - 4f + MANA_H);
-                    // XP label
-                    int xpNeeded = p.level * 50;
-                    font.setColor(0.9f, 0.75f, 0.2f, 1f);
-                    font.draw(hudBatch, "XP " + p.experience + "/" + xpNeeded,
-                        10f + XP_W + 5f,
-                        labelY - STAMINA_H * 3 - MANA_H * 2 - XP_H * 2 - 7f + XP_H);
-                    font.setColor(Color.WHITE);
-
-                    // Yin/Yang labels
-                    float yyLabelY = labelY - STAMINA_H * 3 - MANA_H * 2 - XP_H * 2 - YY_H * 2 - 10f + YY_H;
-                    font.setColor(0.3f, 0.7f, 1f, 1f);
-                    font.draw(hudBatch, "YIN", 10f + YIN_W + 4f, yyLabelY);
-                    font.setColor(1f, 0.55f, 0.1f, 1f);
-                    String yangLabel = p.yangValue > 0.7f ? "YANG!" : "YANG";
-                    font.draw(hudBatch, yangLabel, 10f + YIN_W + YANG_W + 8f, yyLabelY);
-                    if (p.flowMode) {
-                        font.setColor(1f, 1f, 0.7f, 1f);
-                        font.draw(hudBatch, "FLOW", 10f + YIN_W + YANG_W + 45f, yyLabelY);
+                    // Stamina label — "WALL" when sliding, otherwise blank (bar speaks for itself)
+                    if (p.isWallSliding) {
+                        font.setColor(0.1f, 0.95f, 1f, 1f);
+                        font.draw(hudBatch, "WALL", labelX, labelY - STAM_OFF + STAM_H);
+                        font.setColor(Color.WHITE);
                     }
-
-                    // Lantern label
-                    float lanLabelY = yyLabelY - LANTERN_H - 3f;
-                    int lanPct = (int)(p.lanternValue * 100);
-                    font.setColor(0.9f + (p.lanternValue - 0.5f) * 0.2f,
-                                  0.55f * p.lanternValue, 0.05f, 1f);
-                    font.draw(hudBatch, "LANTERN " + lanPct + "%", 10f + LANTERN_W + 5f, lanLabelY + LANTERN_H);
+                    // Mana %
+                    int manaPct = (int)(p.mana / Math.max(1, p.maxMana) * 100);
+                    font.setColor(0.5f, 0.7f, 1f, 0.9f);
+                    font.draw(hudBatch, "MP " + manaPct + "%", labelX, labelY - MANA_OFF + MANA_H);
+                    font.setColor(Color.WHITE);
+                    // XP
+                    int xpNeeded = p.level * 50;
+                    font.setColor(0.9f, 0.75f, 0.2f, 0.9f);
+                    font.draw(hudBatch, "XP " + p.experience + "/" + xpNeeded,
+                        labelX, labelY - XP_OFF + XP_H);
                     font.setColor(Color.WHITE);
                 }
+            }
+
+            // ── Lantern label — bottom-left ───────────────────────────────────
+            for (PlayerState p : snap.players) {
+                if (p.slot != localSlot) continue;
+                int lanPct = (int)(p.lanternValue * 100);
+                float lanLabelAlpha = 0.6f + p.lanternValue * 0.4f;
+                font.setColor(0.95f, 0.7f * p.lanternValue + 0.1f, 0.05f, lanLabelAlpha);
+                font.draw(hudBatch, "\u25ca " + lanPct + "%", LAN_X + LAN_W + 5f, LAN_Y + LAN_H);
+                // Flow Mode indicator near the lantern
+                if (p.flowMode) {
+                    font.setColor(0.9f, 1f, 0.7f, 0.9f);
+                    font.draw(hudBatch, "FLOW", LAN_X + LAN_W + 45f, LAN_Y + LAN_H);
+                }
+                font.setColor(Color.WHITE);
+                break;
             }
         }
 

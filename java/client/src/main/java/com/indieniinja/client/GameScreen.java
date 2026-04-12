@@ -264,6 +264,7 @@ public final class GameScreen implements Screen {
             soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
             LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, "solo_hub");
             localSim = new GameSimulator(startRoom.seed, "solo_hub", layout);
+            localSim.setDarkArea(true);  // solo dungeon is always dark — lantern decays
             soloSpawnX = layout.spawnX;
             soloSpawnY = layout.spawnY;
             SimPlayer player = new SimPlayer("solo_player", 0, layout.spawnX, layout.spawnY);

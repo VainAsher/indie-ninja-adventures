@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-11 | **Codebase version:** v0.11.6 | **Next release target:** v0.11.7 (Milestone 5 — Boss AI)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.7 | **Next release target:** v0.11.8 (Milestone 5 — Boss AI)
 
 ---
 
@@ -51,6 +51,7 @@ The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milest
 | v0.11.4 | fix: logback.xml stripped by Gradle resource filter; server cwd missing in launcher |
 | v0.11.5 | feat: solo InputRecorder + .ndjson replay files; launcher replay viewer updated |
 | v0.11.6 | M4: YinYangComponent + LanternComponent + vignette + HUD bars + weapon-state animation routing; 171 player sprite sheets extracted |
+| v0.11.7 | fix: vignette in solo mode (setDarkArea flag); crouch_walk + swim animation states; companion orbs scale with Yin/Yang; HUD redesign (merged stamina, lantern bottom-left) |
 
 ### What the GDD requires that doesn't exist
 
