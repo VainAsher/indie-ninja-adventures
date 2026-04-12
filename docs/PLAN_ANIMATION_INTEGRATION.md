@@ -1,5 +1,5 @@
 # PLAN — Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-12 | **Base version:** v0.11.4 | **Current version:** v0.11.11
+**Created:** 2026-04-11 | **Last updated:** 2026-04-12 | **Base version:** v0.11.4 | **Current version:** v0.11.12
 
 ---
 

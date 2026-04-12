@@ -69,15 +69,15 @@ public final class EntityRenderer {
     private static int[] enemySize(String enemyType) {
         // All enemy art is 128x96 px per frame (4:3 landscape). Display sizes scale
         // to 64x48 world px (4:3) so sprites render without stretching.
-        // Bat retains its placeholder square; tune per-type in Phase 5/6 QA.
+        // Bat retains its placeholder square; tune per-type in Phase 6 QA.
         return switch (enemyType) {
-            case "bat"               -> new int[]{28, 28};
-            case "slime"             -> new int[]{48, 36};
-            case "wolf", "archer"    -> new int[]{64, 48};
-            case "skeleton"          -> new int[]{64, 48};
+            case "bat"                 -> new int[]{28, 28};
+            case "slime"               -> new int[]{48, 36};
             case "goblin", "swordsman" -> new int[]{64, 48};
-            case "grunt", "spearman" -> new int[]{64, 48};
-            default                  -> new int[]{64, 48};
+            case "skeleton"            -> new int[]{64, 48};
+            case "spearman"            -> new int[]{64, 48};
+            case "archer"              -> new int[]{64, 48};
+            default                    -> new int[]{64, 48};
         };
     }
 
@@ -131,20 +131,20 @@ public final class EntityRenderer {
             case "slime.attack", "slime.attack_b", "slime.attack_c"        -> 10f;
             case "slime.stunned"                                           -> 8f;
             case "slime.dead"                                              -> 8f;
-            // grunt / spearman
-            case "grunt.idle"                          -> 6f;
-            case "grunt.patrol"                        -> 8f;
-            case "grunt.chase", "grunt.flee"           -> 10f;
-            case "grunt.attack", "grunt.attack_b"      -> 10f;
-            case "grunt.stunned"                       -> 8f;
-            case "grunt.dead"                          -> 8f;
-            // wolf / archer (fast kiter)
-            case "wolf.idle"                           -> 6f;
-            case "wolf.patrol"                         -> 8f;
-            case "wolf.chase", "wolf.flee"             -> 12f;
-            case "wolf.attack", "wolf.attack_b"        -> 12f;
-            case "wolf.stunned"                        -> 8f;
-            case "wolf.dead"                           -> 8f;
+            // spearman (skeleton with spear)
+            case "spearman.idle"                             -> 6f;
+            case "spearman.patrol"                           -> 8f;
+            case "spearman.chase", "spearman.flee"           -> 10f;
+            case "spearman.attack", "spearman.attack_b"      -> 10f;
+            case "spearman.stunned"                          -> 8f;
+            case "spearman.dead"                             -> 8f;
+            // archer (skeleton archer, kiter)
+            case "archer.idle"                               -> 6f;
+            case "archer.patrol"                             -> 8f;
+            case "archer.chase", "archer.flee"               -> 12f;
+            case "archer.attack", "archer.attack_b"          -> 12f;
+            case "archer.stunned"                            -> 8f;
+            case "archer.dead"                               -> 8f;
             default                                    -> 8f;
         };
     }
@@ -162,6 +162,8 @@ public final class EntityRenderer {
     private final java.util.HashMap<String, Boolean> prevTeleport = new java.util.HashMap<>();
     // Companion orb orbit angle per player (radians, advances each frame)
     private final java.util.HashMap<String, Float>   companionAngle = new java.util.HashMap<>();
+    // Death animation elapsed time per enemy — holds last frame after animation completes
+    private final java.util.HashMap<String, Float>   deathTimers    = new java.util.HashMap<>();
 
     public EntityRenderer(AnimationRegistry anims, ParticleSystem particles) {
         this.anims     = anims;
@@ -349,14 +351,32 @@ public final class EntityRenderer {
     // ── Enemies ───────────────────────────────────────────────────────────────
 
     private void renderEnemy(SpriteBatch batch, EnemyState e, float dt) {
-        if ("dead".equals(e.aiState)) return;
-
         // Use explicit enemyType from wire; fall back to ID-parsing for old snapshots
         String typePrefix = (e.enemyType != null && !e.enemyType.isEmpty())
             ? e.enemyType
             : derivePrefixFromId(e.enemyId);
-        String animKey = "enemy_" + typePrefix + "_" + (e.aiState != null ? e.aiState : "idle");
 
+        boolean isDead = "dead".equals(e.aiState);
+
+        if (isDead) {
+            // Accumulate death timer; clamp frame to last so it holds
+            float elapsed = deathTimers.getOrDefault(e.enemyId, 0f) + dt;
+            deathTimers.put(e.enemyId, elapsed);
+            String deadKey = "enemy_" + typePrefix + "_dead";
+            float fps = enemyFps(typePrefix, "dead");
+            TextureRegion frame = anims.getFrameClamped(deadKey, elapsed, fps);
+            boolean wantFlip = !e.facingRight;
+            if (wantFlip != frame.isFlipX()) frame.flip(true, false);
+            int[] sz = enemySize(typePrefix);
+            batch.draw(frame, e.x, e.y, sz[0], sz[1]);
+            if (wantFlip != frame.isFlipX()) frame.flip(true, false);
+            return;
+        }
+
+        // Living enemy — remove stale death timer if it somehow lingers
+        deathTimers.remove(e.enemyId);
+
+        String animKey = "enemy_" + typePrefix + "_" + (e.aiState != null ? e.aiState : "idle");
         float stateTime = tickStateTime(e.enemyId, animKey, dt);
         TextureRegion frame = anims.getFrame(animKey, stateTime, enemyFps(typePrefix, e.aiState != null ? e.aiState : "idle"));
 

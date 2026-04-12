@@ -355,8 +355,8 @@ public final class AnimationRegistry {
      *   swordsman/ idle.png walk.png attack_a.png attack_b.png hit.png dead.png jump.png
      *   skeleton/  idle.png walk.png attack_a.png attack_b.png hit.png dead.png jump.png shield_block.png
      *   slime/     idle.png walk.png attack_a.png attack_b.png attack_c.png hit.png dead.png
-     *   grunt/     idle.png walk.png attack_a.png attack_b.png hit.png dead.png jump.png
-     *   wolf/      idle.png run.png  attack_a.png attack_b.png hit.png dead.png jump.png
+     *   spearman/  idle.png walk.png attack_a.png attack_b.png hit.png dead.png jump.png
+     *   archer/    idle.png run.png  attack_a.png attack_b.png hit.png dead.png jump.png
      *
      * Registered keys: "enemy_<type>_<aiState>" — consumed by EntityRenderer.renderEnemy().
      * AI states covered: idle, patrol, chase, flee, attack, guard (skeleton), stunned, dead, jump.
@@ -371,8 +371,8 @@ public final class AnimationRegistry {
         loadEnemySheetType(baseDir, "swordsman", new int[]{4, 6, 6, 0, 8, 11, 0, 3, 4, 6});
         loadEnemySheetType(baseDir, "skeleton",  new int[]{4, 6, 6, 0, 12, 7, 2, 3, 4, 5});
         loadEnemySheetType(baseDir, "slime",     new int[]{4, 4, 4, 0, 10, 11, 8, 3, 5, 0});
-        loadEnemySheetType(baseDir, "grunt",     new int[]{2, 6, 6, 0, 6, 10, 0, 3, 4, 5});
-        loadEnemySheetType(baseDir, "wolf",      new int[]{2, 12, 12, 0, 6, 6, 0, 4, 4, 6});
+        loadEnemySheetType(baseDir, "spearman",  new int[]{2, 6, 6, 0, 6, 10, 0, 3, 4, 5});
+        loadEnemySheetType(baseDir, "archer",    new int[]{2, 12, 12, 0, 6, 6, 0, 4, 4, 6});
         // "goblin" alias → swordsman art (backward compat with existing snapshots)
         loadEnemySheetType(baseDir, "swordsman", "goblin", new int[]{4, 6, 6, 0, 8, 11, 0, 3, 4, 6});
     }
@@ -605,6 +605,18 @@ public final class AnimationRegistry {
         TextureRegion[] strip = frames.get(key);
         if (strip == null || strip.length == 0) return getFallback();
         int idx = (int) (stateTime * fps) % strip.length;
+        TextureRegion r = strip[idx];
+        return r != null ? r : getFallback();
+    }
+
+    /**
+     * Like getFrame() but clamps to the last frame instead of looping.
+     * Used for play-once animations (death, etc.) that should hold the final frame.
+     */
+    public TextureRegion getFrameClamped(String key, float stateTime, float fps) {
+        TextureRegion[] strip = frames.get(key);
+        if (strip == null || strip.length == 0) return getFallback();
+        int idx = Math.min((int)(stateTime * fps), strip.length - 1);
         TextureRegion r = strip[idx];
         return r != null ? r : getFallback();
     }

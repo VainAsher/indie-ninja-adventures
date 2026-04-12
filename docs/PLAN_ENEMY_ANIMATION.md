@@ -1,6 +1,6 @@
 # PLAN — Enemy Animation & AI Overhaul
 ## Replace Placeholder Shapes with Animated Stateful Enemy Sprites
-**Created:** 2026-04-12 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.11 | **Target release:** v0.12.x
+**Created:** 2026-04-12 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.12 | **Target release:** v0.12.x
 
 ---
 
@@ -38,7 +38,7 @@ script populates `assets/sprites/enemies/<type>/`.
 
 **Current enemy AI states:** `IDLE`, `PATROL`, `CHASE`, `ATTACK`, `FLEE`, `GUARD`, `STUNNED`, `DEAD`
 
-**Existing enemy types (server):** swordsman, bat, slime, skeleton, wolf
+**Existing enemy types (server):** swordsman, bat, slime, skeleton, spearman, archer
 
 ### What we have in the ZIP
 
@@ -46,13 +46,13 @@ script populates `assets/sprites/enemies/<type>/`.
 individual-frame PNGs already extracted from PSD layers. No spritesheet stitching has been
 done yet — the frames are named `idle-1.png`, `walk-2.png`, `attack-A3.png`, etc.
 
-| Folder | PSD title | Unique states | Frame counts |
-|--------|-----------|---------------|--------------|
-| `1 Enemy` | attack, idle, walk | idle(2), walk(6), attack-A(6)+attack-B(10), dead(4), hit(3), jump(5) | ~36 total |
-| `2 Enemy` | attack, block, idle, walk | idle(4), walk(6), attack-A(12)+attack-B(7), dead(4), hit(3), jump(5), **shield-block(2)** | ~43 total |
-| `3 Enemy` | attacks, dead, hit, idle, walk | idle(4), walk(4), attack-A(10)+attack-B(11)+attack-C(8), dead(5), hit(3) | ~45, no jump |
-| `4 Enemy` | attack, idle, walk — **spear** | idle(4), walk(6), attack-A(6)+attack-B(10), dead(4), hit(3), jump(5) | ~38 total |
-| `5 Enemy` | attack, idle, run — **bow** | idle(2+), **run(12)**, attack-A(8)+attack-B(11), dead(4), hit(4), jump(6) | ~47 total |
+| Folder | Enemy type | Actual frame counts (confirmed 2026-04-12) |
+|--------|------------|-------------------------------------------|
+| `1 Enemy` | swordsman | idle(4), walk(6), attack-A(8)+attack-B(11), dead(4), hit(3), jump(6) — 42 total |
+| `2 Enemy` | skeleton | idle(4), walk(6), attack-A(12)+attack-B(7), dead(4), hit(3), jump(5), shield-block(2) — 43 total |
+| `3 Enemy` | slime | idle(4), walk(4), attack-A(10)+attack-B(11)+attack-C(8), dead(5), hit(3) — 45 total, no jump |
+| `4 Enemy` | spearman | idle(2), walk(6), attack-A(6)+attack-B(10), dead(4), hit(3), jump(5) — 36 total |
+| `5 Enemy` | archer | idle(2), run(12), attack-A(6)+attack-B(6), dead(4), hit(4), jump(6) — 40 total |
 
 ### Enemy-to-art mapping
 
@@ -855,14 +855,16 @@ java/core/src/main/java/com/indieniinja/world/postprocess/EntityPlanner.java
 - [ ] Ledge detection in patrol (detect floor drop-offs) — deferred to Phase 3 follow-up
 
 ### Phase 4 — Wire & Planner
-- [ ] Add `grunt` type to `buildEnemy()` and `enemyXp()`
-- [ ] Add grunt spawn slots in `EntityPlanner`
-- [ ] Commit: `feat(enemy-ai): grunt enemy type + EntityPlanner slots (m-ea3)`
+- [x] Corrected type names: `grunt`→`spearman`, `wolf`→`archer` across stitch script, registry, renderer, simulator (v0.11.12)
+- [x] Add `spearman` type to `buildEnemy()` (36×52 hitbox, 80px reach) and `enemyXp()` (13 XP) (v0.11.12)
+- [x] Add `archer` type to `buildEnemy()` (32×48 hitbox, 320px detection, 200px range) and `enemyXp()` (15 XP) (v0.11.12)
+- [x] Update `EntityPlanner.enemyPool()` — spearman at depth ≥3, archer at depth ≥6 and heavy rooms (v0.11.12)
 
 ### Phase 5 — Renderer Polish
 - [x] FLEE/GUARD routing in `renderEnemy()` — automatic via `e.aiState` key lookup (v0.11.10)
-- [ ] Implement death animation hold-until-complete
-- [ ] Tune `enemySize()` display dimensions from Phase 1 frame audit (pending stitch script run)
+- [x] Death animation hold-until-complete — `deathTimers` map + `getFrameClamped()` (v0.11.12)
+- [x] `enemySize()` updated to 64×48 world px matching 4:3 art; slime 48×36 (v0.11.11)
+- [ ] Tune per-type display dimensions in Phase 6 QA playtest
 
 ### Phase 6 — Integration QA
 - [ ] Run through full per-type checklist in solo mode
@@ -876,7 +878,7 @@ java/core/src/main/java/com/indieniinja/world/postprocess/EntityPlanner.java
 | Question | Decision |
 |----------|----------|
 | Bat art | Not in ZIP; retain magenta placeholder; dedicated flying spritesheet is a separate backlog item |
-| 5th enemy type | Introduce `grunt` (maps to Enemy 4 art) rather than leaving one art set unused |
+| Enemy type names | Confirmed v0.11.12: `4 Enemy`→`spearman`, `5 Enemy`→`archer`; old `grunt`/`wolf` labels were incorrect |
 | Attack variants (B/C) | Register as separate keys (`attack_b`, `attack_c`); server picks variant by random sub-state — not wired in Phase 3, backlog |
 | FLEE direction | Handled purely by `facingRight` flip in renderer — no new wire field needed |
 | GUARD wire field | Uses existing `aiState` string `"guard"` — no protocol change |

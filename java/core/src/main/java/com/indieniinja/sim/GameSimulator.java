@@ -1318,7 +1318,8 @@ public final class GameSimulator {
             case "goblin"   -> 10;
             case "slime"    ->  8;
             case "skeleton" -> 12;
-            case "wolf"     -> 15;
+            case "spearman" -> 13;
+            case "archer"   -> 15;
             case "bat"      ->  6;
             default         -> 10;
         };
@@ -1700,7 +1701,8 @@ public final class GameSimulator {
             case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 2+hpBonus, 1, 90f *speedMult, 180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
             case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 40, 32, 4+hpBonus, 2, 60f *speedMult, 160f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
             case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 3+hpBonus, 1, 60f *speedMult, 200f, 64f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "wolf"     -> new SimEnemy(hubId+"_wolf_"+idx,     "wolf",     spec.x(), spec.y(), 48, 32, 3+hpBonus, 2, 90f *speedMult, 220f, 48f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "spearman" -> new SimEnemy(hubId+"_spearman_"+idx, "spearman", spec.x(), spec.y(), 36, 52, 4+hpBonus, 2, 65f *speedMult, 190f, 80f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "archer"   -> new SimEnemy(hubId+"_archer_"+idx,   "archer",   spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 90f *speedMult, 320f, 200f,spec.patrolMinX(), spec.patrolMaxX(), false);
             default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
         };
     }

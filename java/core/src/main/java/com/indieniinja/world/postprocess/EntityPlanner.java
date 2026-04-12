@@ -89,13 +89,14 @@ public final class EntityPlanner {
     }
 
     private static String[] enemyPool(WorldGraph.RoomType type, int depth) {
-        String[] heavy = {"skeleton", "wolf", "skeleton"};
+        // heavy rooms: skeleton shield + archer kiter
+        String[] heavy = {"skeleton", "archer", "skeleton"};
         String[] light = {"goblin", "slime", "goblin"};
 
         if (type == WorldGraph.RoomType.BOSS || type == WorldGraph.RoomType.PLATFORM
                 || type == WorldGraph.RoomType.TREASURE) return heavy;
-        if (depth >= 6) return new String[]{"skeleton", "wolf", "bat"};
-        if (depth >= 3) return new String[]{"goblin", "skeleton", "bat"};
+        if (depth >= 6) return new String[]{"skeleton", "archer", "spearman"};
+        if (depth >= 3) return new String[]{"goblin", "skeleton", "spearman"};
         return light;
     }
 

@@ -1,8 +1,8 @@
 # Shadow Ascent — Player Expectations Guide
 ## Living Document: What Works, What to Expect, How to Test
 
-**Current version:** v0.11.10 | **Last updated:** 2026-04-12
-**How to start:** `python launcher/launcher.py`
+**Current version:** v0.11.12 | **Last updated:** 2026-04-12
+**How to start:** Launch the game using the launcher application (launcher.exe / launcher shortcut)
 
 ---
 
@@ -25,7 +25,7 @@
 | Boss encounters | **Working (v0.11.10)** | 4-phase FSM + Shadow Ascent patterns (Siren, Echo Warden, Time Leech Lord, Memory Eater) |
 | Save state | **Working** | Currency, inventory, abilities, visited rooms |
 | Replay recording | **Working** | `-Dninja.record` flag; .ndjson in user_data/replays/ |
-| Enemy sprites | **Placeholder** | Colored rectangles; stitch script pending |
+| Enemy sprites | **Working (v0.11.12)** | Real animated sprites: swordsman, skeleton, slime, spearman, archer |
 | Climb/ledge animations | **Partial** | States wired; sheets available but need FSM routing |
 | Boss (Shadow Ascent) | **Working (v0.11.10)** | Siren, Echo Warden, Time Leech Lord, Memory Eater — BossPatternLibrary |
 | Echo system | **Not started** | M6 |
@@ -35,17 +35,17 @@
 
 ---
 
-## Full Test Checklist — v0.11.10
+## Full Test Checklist — v0.11.12
 
-Run each of these in order. Start every session from `python launcher/launcher.py`.
+Run each of these in order. Start every session by opening the launcher application.
 
 ### 1. Launch & Mode Select
 
-- [ ] Launcher opens with server address field, CONNECT and QUIT buttons
+- [ ] Open the launcher — window appears with server address field, CONNECT and QUIT buttons
 - [ ] Click CONNECT → Mode Select screen appears
 - [ ] Four mode cards visible: ARCADE (green), CAMPAIGN (blue), SOLO (purple), SANDBOX (gold)
 - [ ] Arrow keys navigate between cards; Enter or click selects
-- [ ] Select SOLO → game starts without a server running
+- [ ] Select SOLO → game starts without needing a server
 
 ### 2. HUD
 
@@ -100,7 +100,10 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 - [ ] **GUARD (v0.11.10, skeleton only)**: skeleton may raise shield instead of attacking; hit during GUARD deals ~1/3 damage
 - [ ] STUNNED: hit enemy → stun animation, then returns to PATROL
 - [ ] Enemy dies at 0 HP → loot drops (coins, fragments)
-- [ ] Enemy sprites: currently colored rectangles — run `python tools/stitch_enemy_frames.py` then rebuild to get real art
+- [ ] **Enemy sprites (v0.11.12)**: real animated sprites visible for swordsman, skeleton, slime, spearman, and archer — no more colored rectangles
+- [ ] **Death animation (v0.11.12)**: enemy plays death anim to last frame before disappearing; does not vanish instantly
+- [ ] **Spearman (v0.11.12)**: skeleton with spear spawns at mid-depth rooms; longer attack reach than swordsman
+- [ ] **Archer (v0.11.12)**: skeleton archer spawns at high-depth rooms; kites at range rather than chasing
 
 ### 8. Bosses
 
@@ -132,7 +135,7 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 
 - **Black screen / all-white screen**: If the vignette covers the world entirely → GL blend regression. Check ChunkRenderer.renderVignette().
 - **Magenta rectangles for player**: Animation sheets not found under `assets/sprites/player/unarmed/`. Check that extraction ran.
-- **Green/blue/grey/orange rectangles for enemies**: Normal — enemy stitch script not yet run. Expected behavior.
+- **Colored rectangles for enemies**: Should no longer appear in v0.11.12+ — if seen, the launcher may be running an old JAR. Relaunch.
 - **Missing HUD bars**: YinYangComponent or LanternComponent not wired on the entity. Check GameSimulator.
 
 ---
@@ -141,7 +144,9 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 
 | Version | What Changed for the Player |
 |---------|----------------------------|
-| v0.11.10 | **M5 — Enemy AI + Boss Patterns**: FLEE/GUARD enemy states; skeleton shields; Siren, Echo Warden, Time Leech Lord, Memory Eater bosses; enemy sprite registry wired (art pending stitch script) |
+| v0.11.12 | **Enemy art + type corrections**: real animated sprites for all 5 types (swordsman, skeleton, slime, spearman, archer); death animation plays to completion; spearman and archer spawn in world |
+| v0.11.11 | **Enemy spritesheets shipped**: 37 sheets stitched from art ZIP; frame counts calibrated to actual 128×96 art |
+| v0.11.10 | **M5 — Enemy AI + Boss Patterns**: FLEE/GUARD enemy states; skeleton shields; Siren, Echo Warden, Time Leech Lord, Memory Eater bosses |
 | v0.11.9 | **Vignette fix**: transparent overlay restored — game world now always visible through darkness effect |
 | v0.11.8 | Smoother vignette gradient (20 layers, quadratic curve); corner overlap fixed; base dim layer added |
 | v0.11.7 | Vignette works in solo mode; crouch-walk and swim animations wired; companion orbs scale with Yin/Yang; HUD redesign |
@@ -157,31 +162,42 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 
 ## Upcoming: What's Being Built
 
-### v0.11.11 — Milestone 6: Echo System & Puzzles
+### v0.11.13 — Milestone 6: Echo System & Puzzles
 
 - **Echo recording**: player leaves an echo trail through rooms; echoes replay past movements
 - **Echo-trigger zones**: step into a zone → echo activates; used for pressure-plate puzzles
 - **Puzzle archetypes**: echo-door (echo must stand on plate), echo-bridge (echo carries light across gap)
 - **Fragment drop → boss rewards**: defeating a Shadow Ascent boss drops a story fragment / ability unlock
 
-### v0.11.10 — SHIPPED
+### v0.11.12 — SHIPPED
+
+#### Enemy type corrections
+
+All 5 enemy types now correctly named and playable with real animated sprites:
+
+- **swordsman** — greatsword skeleton; slow heavy overhead smash
+- **skeleton** — sword + shield skeleton; GUARD state blocks melee hits
+- **slime** — ground-only; three attack variants; no jump
+- **spearman** — skeleton with spear; longer attack reach; spawns at mid-depth (3+)
+- **archer** — skeleton archer; kites at range; spawns at high-depth (6+) and boss/treasure rooms
+
+#### Death animation hold
+
+Enemies now play their death animation to the last frame before disappearing, instead of vanishing instantly on death.
+
+### v0.11.10–11 — SHIPPED
 
 #### Enemy AI expanded
 
 - FLEE state: enemies retreat when HP drops below 25%
 - GUARD state (skeleton only): skeleton raises shield; blocked hits deal ~1/3 damage
 
-#### Shadow Ascent boss patterns (BossPatternLibrary)
+#### Shadow Ascent boss patterns
 
 - **Siren of the Veiled Vale** — scripted loss; strips Yin/Yang to 0 over 6 s; hub collapses to EMPTY
 - **Echo Warden** — mirrors player X with 0.5 s delay; attacks when it catches the player
 - **Time Leech Lord** — drains Lantern constantly; spawns minions every 8 s; speed burst at 30% HP
 - **Memory Eater** — resets platform positions on each phase transition
-
-#### Enemy sprite registry
-
-- `AnimationRegistry.loadEnemySheets()` implemented and wired; sheets load automatically
-- Run `python tools/stitch_enemy_frames.py` then rebuild to replace colored rectangles with art
 
 ---
 
@@ -194,9 +210,9 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 | Hub evolution (§4) | Done (v0.11.1) | v0.11.1 |
 | Narrative Act FSM (§5) | Done (v0.11.1) | v0.11.1 |
 | Boss AI — psychological (§7) | Done (v0.11.10) | v0.11.10 |
-| Echo system (§6) | Not started (M6) | v0.11.11+ |
-| Act IV depression (§5) | Not started (M7) | v0.11.12+ |
-| Proof token / labyrinth (§5) | Not started (M6) | v0.11.11+ |
+| Echo system (§6) | Not started (M6) | v0.11.13+ |
+| Act IV depression (§5) | Not started (M7) | v0.11.14+ |
+| Proof token / labyrinth (§5) | Not started (M6) | v0.11.13+ |
 | Arcade mode (§0.2) | Not started | TBD |
 | Sandbox mode (§0.3) | Not started | TBD |
 
