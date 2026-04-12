@@ -66,18 +66,20 @@ public final class EntityRenderer {
      * Returns [w, h] physics dimensions for an enemy type.
      * Matches Python entities/*.py WIDTH/HEIGHT constants exactly.
      */
+    // 5% lift: draw enemy sprite slightly above its physics Y so feet sit on the ground
+    private static final float ENEMY_LIFT = 0.05f;
+
     private static int[] enemySize(String enemyType) {
-        // Art is 128x96 px per frame. Display at native 1:1 resolution (128x96)
-        // so sprites aren't under-scaled. Player renders at 160x160 for reference.
+        // Art is 128x96 px per frame. Display at 134x101 (128x96 + 5%) per player feedback.
         // Bat retains placeholder; tune per-type after Phase 6 QA playtest.
         return switch (enemyType) {
             case "bat"                 -> new int[]{28, 28};
-            case "slime"               -> new int[]{128, 96};
-            case "goblin", "swordsman" -> new int[]{128, 96};
-            case "skeleton"            -> new int[]{128, 96};
-            case "spearman"            -> new int[]{128, 96};
-            case "archer"              -> new int[]{128, 96};
-            default                    -> new int[]{128, 96};
+            case "slime"               -> new int[]{134, 101};
+            case "goblin", "swordsman" -> new int[]{134, 101};
+            case "skeleton"            -> new int[]{134, 101};
+            case "spearman"            -> new int[]{134, 101};
+            case "archer"              -> new int[]{134, 101};
+            default                    -> new int[]{134, 101};
         };
     }
 
@@ -368,7 +370,7 @@ public final class EntityRenderer {
             boolean wantFlip = !e.facingRight;
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
             int[] sz = enemySize(typePrefix);
-            batch.draw(frame, e.x, e.y, sz[0], sz[1]);
+            batch.draw(frame, e.x, e.y + sz[1] * ENEMY_LIFT, sz[0], sz[1]);
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
             return;
         }
@@ -385,7 +387,7 @@ public final class EntityRenderer {
         if (needEnemyChange) frame.flip(true, false);
 
         int[] sz = enemySize(typePrefix);
-        batch.draw(frame, e.x, e.y, sz[0], sz[1]);
+        batch.draw(frame, e.x, e.y + sz[1] * ENEMY_LIFT, sz[0], sz[1]);
 
         if (needEnemyChange) frame.flip(true, false);
 
@@ -394,7 +396,7 @@ public final class EntityRenderer {
             int prev = prevHealth.getOrDefault(e.enemyId, e.hp);
             if (e.hp < prev) {
                 float cx = e.x + sz[0] * 0.5f;
-                float cy = e.y + sz[1] * 0.5f;
+                float cy = e.y + sz[1] * (0.5f + ENEMY_LIFT);
                 particles.emitHitSpark(cx, cy);
             }
             prevHealth.put(e.enemyId, e.hp);
