@@ -296,8 +296,12 @@ public final class ChunkRenderer {
      *
      * <p>Vignette intensity: when {@code lanternValue} = 1.0 the overlay is fully transparent
      * (no effect).  At 0.0 the screen is heavily darkened with a deep-red tint.
-     * The effect is implemented as a series of concentric screen-edge rectangles
-     * (a pure-Java approximation of a radial gradient) — no GLSL shader required.
+     *
+     * <p>Implementation: a base uniform dim pass followed by {@value #VIGNETTE_LAYERS}
+     * concentric hollow-rectangle layers that fade toward the centre.  Corner overlap is
+     * eliminated by shrinking the horizontal strips so they do not reach the corner regions
+     * (vertical strips own the corners).  The per-layer alpha uses an exponential (²)
+     * curve for a smoother, more natural falloff.
      *
      * @param shapes   a ShapeRenderer owned by the HUD layer (already has projection set)
      * @param screenW  current screen width in pixels
@@ -306,39 +310,66 @@ public final class ChunkRenderer {
     public void renderVignette(com.badlogic.gdx.graphics.glutils.ShapeRenderer shapes,
                                int screenW, int screenH) {
         // vignetteIntensity: 0 = clear (high lantern), 1 = full dark (low lantern)
-        // Mirrors LanternComponent.vignetteIntensity() formula:
-        //   intensity = 1 - clamp((value - LOW) / (HIGH - LOW), 0, 1)
         float low  = 0.3f;
         float high = 0.7f;
         float intensity = 1.0f - Math.min(1.0f, Math.max(0f,
             (lanternValue - low) / (high - low)));
 
-        if (intensity < 0.01f) return;  // no vignette when lantern is high
+        if (intensity < 0.01f) return;
 
-        // Maximum alpha for the darkest edge ring — scales with intensity
-        float maxAlpha = intensity * 0.85f;
-        // Warm-red tint strengthens as lantern drops below 0.3
-        float redBoost = Math.max(0f, 1.0f - lanternValue / low) * 0.25f;
+        // Warm-red tint grows as lantern drops below 0.3
+        float redBoost = Math.max(0f, 1.0f - lanternValue / low) * 0.30f;
+        float r = 0.04f + redBoost;
+        float g = 0.00f;
+        float b = 0.01f;
 
-        int layers = 12;
         shapes.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
-        for (int i = 0; i < layers; i++) {
-            float t     = (float) i / layers;          // 0 = outermost, 1 = innermost
-            float alpha = maxAlpha * (1.0f - t);       // fade towards centre
-            float inset = t * Math.min(screenW, screenH) * 0.35f;
-            shapes.setColor(0.05f + redBoost, 0.0f, 0.02f, alpha);
 
-            // Top strip
-            shapes.rect(0,          screenH - inset - TILE, screenW, TILE);
-            // Bottom strip
-            shapes.rect(0,          inset, screenW, TILE);
-            // Left strip
-            shapes.rect(inset,      0, TILE, screenH);
-            // Right strip
-            shapes.rect(screenW - inset - TILE, 0, TILE, screenH);
+        // ── Pass 1: uniform full-screen base dim ──────────────────────────────
+        // Subtle global darkening even at mid intensity, so the edge gradient
+        // does not look like it's floating on a bright background.
+        float baseDim = intensity * 0.22f;
+        shapes.setColor(r * 0.6f, g, b * 0.5f, baseDim);
+        shapes.rect(0, 0, screenW, screenH);
+
+        // ── Pass 2: concentric hollow-rect layers (edge → centre) ────────────
+        // Each layer is 4 strips; horizontal strips do NOT reach the side edges
+        // so that vertical strips own the corners — eliminates double-alpha bleed.
+        int   layers     = VIGNETTE_LAYERS;
+        float reach      = Math.min(screenW, screenH) * 0.42f;  // max inset depth
+        float stripThick = reach / layers;                       // px per layer
+        float maxAlpha   = intensity * 0.82f;
+
+        for (int i = 0; i < layers; i++) {
+            float t     = (float) i / layers;           // 0 = outermost, 1 = innermost
+            float alpha = maxAlpha * (1.0f - t * t);   // quadratic: sharp edge, soft centre
+            float inset = t * reach;
+
+            shapes.setColor(r, g, b, alpha);
+
+            float hInset  = inset + stripThick;         // left/right boundary of horiz strips
+            float hWidth  = screenW - hInset * 2f;      // horiz strip spans only the middle
+            float vHeight = screenH - inset * 2f;       // vert strips span full remaining height
+
+            // Top strip (middle section only — corners excluded)
+            if (hWidth > 0)
+                shapes.rect(hInset, screenH - inset - stripThick, hWidth, stripThick);
+            // Bottom strip (middle section only)
+            if (hWidth > 0)
+                shapes.rect(hInset, inset, hWidth, stripThick);
+            // Left strip (full height including corners)
+            if (vHeight > 0)
+                shapes.rect(inset, inset, stripThick, vHeight);
+            // Right strip (full height including corners)
+            if (vHeight > 0)
+                shapes.rect(screenW - inset - stripThick, inset, stripThick, vHeight);
         }
+
         shapes.end();
     }
+
+    /** Number of concentric layers in the vignette gradient. */
+    private static final int VIGNETTE_LAYERS = 20;
 
     public void dispose() {
         if (placeholderSolid    != null) placeholderSolid.getTexture().dispose();
