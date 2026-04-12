@@ -1,7 +1,7 @@
 # Shadow Ascent — Player Expectations Guide
 ## Living Document: What Works, What to Expect, How to Test
 
-**Current version:** v0.11.9 | **Last updated:** 2026-04-12
+**Current version:** v0.11.10 | **Last updated:** 2026-04-12
 **How to start:** `python launcher/launcher.py`
 
 ---
@@ -21,13 +21,13 @@
 | Player animations (sword) | **Working** | 90 sword sheets loaded |
 | Crouch/crouch-walk | **Working** | Hold S or down-arrow |
 | Swim states | **Working** | Enters water → swim/swim_idle |
-| Enemy AI | **Working** | IDLE/PATROL/CHASE/ATTACK/STUNNED |
-| Boss encounters | **Working** | 4-phase FSM, all 5 types active |
+| Enemy AI | **Working (v0.11.10)** | IDLE/PATROL/CHASE/ATTACK/FLEE/GUARD/STUNNED/DEAD — skeleton blocks, enemies flee at low HP |
+| Boss encounters | **Working (v0.11.10)** | 4-phase FSM + Shadow Ascent patterns (Siren, Echo Warden, Time Leech Lord, Memory Eater) |
 | Save state | **Working** | Currency, inventory, abilities, visited rooms |
 | Replay recording | **Working** | `-Dninja.record` flag; .ndjson in user_data/replays/ |
 | Enemy sprites | **Placeholder** | Colored rectangles; stitch script pending |
 | Climb/ledge animations | **Partial** | States wired; sheets available but need FSM routing |
-| Boss (Shadow Ascent) | **Not started** | Siren, Echo Warden, etc. — M5 |
+| Boss (Shadow Ascent) | **Working (v0.11.10)** | Siren, Echo Warden, Time Leech Lord, Memory Eater — BossPatternLibrary |
 | Echo system | **Not started** | M6 |
 | Act IV depression mechanics | **Not started** | M7 |
 | Arcade mode | **Not started** | Separate roadmap |
@@ -35,7 +35,7 @@
 
 ---
 
-## Full Test Checklist — v0.11.9
+## Full Test Checklist — v0.11.10
 
 Run each of these in order. Start every session from `python launcher/launcher.py`.
 
@@ -96,9 +96,11 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 - [ ] PATROL: enemy walks between waypoints
 - [ ] CHASE: player enters detection range → enemy pursues
 - [ ] ATTACK: enemy enters attack range → attack animation + player takes damage
+- [ ] **FLEE (v0.11.10)**: damage enemy below 25% HP → enemy turns and retreats; animation plays (not T-pose)
+- [ ] **GUARD (v0.11.10, skeleton only)**: skeleton may raise shield instead of attacking; hit during GUARD deals ~1/3 damage
 - [ ] STUNNED: hit enemy → stun animation, then returns to PATROL
 - [ ] Enemy dies at 0 HP → loot drops (coins, fragments)
-- [ ] Enemy sprites: currently colored rectangles (stitch script pending for real art)
+- [ ] Enemy sprites: currently colored rectangles — run `python tools/stitch_enemy_frames.py` then rebuild to get real art
 
 ### 8. Bosses
 
@@ -107,7 +109,10 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 - [ ] PHASE_TRANSITION: brief pause, then resumes at higher speed
 - [ ] VULNERABLE window: 3 seconds of increased damage window
 - [ ] Boss death → loot spawn → room clears
-- [ ] Shadow Ascent specific bosses (Siren, Echo Warden, etc.) coming in M5
+- [ ] **Siren (v0.11.10)**: scripted loss — Siren drains Yin/Yang to 0 over ~6 s; player collapses; hub transitions to EMPTY
+- [ ] **Echo Warden (v0.11.10)**: mirrors player X with 0.5 s delay ring buffer; boss attacks when it catches up
+- [ ] **Time Leech Lord (v0.11.10)**: Lantern drains constantly; spawns Time Leech minions every 8 s; speed burst at 30% HP
+- [ ] **Memory Eater (v0.11.10)**: resets platform positions on each phase change; unlocked doors can relock
 
 ### 9. Combat
 
@@ -136,6 +141,7 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 
 | Version | What Changed for the Player |
 |---------|----------------------------|
+| v0.11.10 | **M5 — Enemy AI + Boss Patterns**: FLEE/GUARD enemy states; skeleton shields; Siren, Echo Warden, Time Leech Lord, Memory Eater bosses; enemy sprite registry wired (art pending stitch script) |
 | v0.11.9 | **Vignette fix**: transparent overlay restored — game world now always visible through darkness effect |
 | v0.11.8 | Smoother vignette gradient (20 layers, quadratic curve); corner overlap fixed; base dim layer added |
 | v0.11.7 | Vignette works in solo mode; crouch-walk and swim animations wired; companion orbs scale with Yin/Yang; HUD redesign |
@@ -151,20 +157,31 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 
 ## Upcoming: What's Being Built
 
-### v0.11.10 — Milestone 5: Enemy Art + Boss AI
+### v0.11.11 — Milestone 6: Echo System & Puzzles
 
-**Enemy art (player-visible)**
-- Swordsman, skeleton, slime, spearman, archer — real animated sprites replace colored rectangles
-- Enemies FLEE when low HP; skeleton enters GUARD stance and blocks attacks
+- **Echo recording**: player leaves an echo trail through rooms; echoes replay past movements
+- **Echo-trigger zones**: step into a zone → echo activates; used for pressure-plate puzzles
+- **Puzzle archetypes**: echo-door (echo must stand on plate), echo-bridge (echo carries light across gap)
+- **Fragment drop → boss rewards**: defeating a Shadow Ascent boss drops a story fragment / ability unlock
 
-**Shadow Ascent boss encounters**
-- **Siren of the Veiled Vale** — scripted loss; not a fight; Siren strips Yin/Yang to 0; hub collapses
-- **Echo Warden** — mirrors your movement 0.5 s delayed; walk into hazards to exploit it
-- **Time Leech Lord** — drains your Lantern meter; spawns Time Leech enemies; speed burst at 30% HP
-- **Memory Eater** — resets platform positions each phase; unlocked doors can be locked again
+### v0.11.10 — SHIPPED
 
-**Climb/Ledge animations**
-- Player climbing walls and grabbing ledges shows correct animation
+#### Enemy AI expanded
+
+- FLEE state: enemies retreat when HP drops below 25%
+- GUARD state (skeleton only): skeleton raises shield; blocked hits deal ~1/3 damage
+
+#### Shadow Ascent boss patterns (BossPatternLibrary)
+
+- **Siren of the Veiled Vale** — scripted loss; strips Yin/Yang to 0 over 6 s; hub collapses to EMPTY
+- **Echo Warden** — mirrors player X with 0.5 s delay; attacks when it catches the player
+- **Time Leech Lord** — drains Lantern constantly; spawns minions every 8 s; speed burst at 30% HP
+- **Memory Eater** — resets platform positions on each phase transition
+
+#### Enemy sprite registry
+
+- `AnimationRegistry.loadEnemySheets()` implemented and wired; sheets load automatically
+- Run `python tools/stitch_enemy_frames.py` then rebuild to replace colored rectangles with art
 
 ---
 
@@ -176,7 +193,7 @@ Run each of these in order. Start every session from `python launcher/launcher.p
 | Lantern (§3.4) | Done (v0.11.6) | v0.11.6 |
 | Hub evolution (§4) | Done (v0.11.1) | v0.11.1 |
 | Narrative Act FSM (§5) | Done (v0.11.1) | v0.11.1 |
-| Boss AI — psychological (§7) | In progress (M5) | v0.11.10 |
+| Boss AI — psychological (§7) | Done (v0.11.10) | v0.11.10 |
 | Echo system (§6) | Not started (M6) | v0.11.11+ |
 | Act IV depression (§5) | Not started (M7) | v0.11.12+ |
 | Proof token / labyrinth (§5) | Not started (M6) | v0.11.11+ |
