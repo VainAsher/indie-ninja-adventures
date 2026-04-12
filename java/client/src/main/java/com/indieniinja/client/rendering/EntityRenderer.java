@@ -67,17 +67,17 @@ public final class EntityRenderer {
      * Matches Python entities/*.py WIDTH/HEIGHT constants exactly.
      */
     private static int[] enemySize(String enemyType) {
-        // All enemy art is 128x96 px per frame (4:3 landscape). Display sizes scale
-        // to 64x48 world px (4:3) so sprites render without stretching.
-        // Bat retains its placeholder square; tune per-type in Phase 6 QA.
+        // Art is 128x96 px per frame. Display at native 1:1 resolution (128x96)
+        // so sprites aren't under-scaled. Player renders at 160x160 for reference.
+        // Bat retains placeholder; tune per-type after Phase 6 QA playtest.
         return switch (enemyType) {
             case "bat"                 -> new int[]{28, 28};
-            case "slime"               -> new int[]{48, 36};
-            case "goblin", "swordsman" -> new int[]{64, 48};
-            case "skeleton"            -> new int[]{64, 48};
-            case "spearman"            -> new int[]{64, 48};
-            case "archer"              -> new int[]{64, 48};
-            default                    -> new int[]{64, 48};
+            case "slime"               -> new int[]{128, 96};
+            case "goblin", "swordsman" -> new int[]{128, 96};
+            case "skeleton"            -> new int[]{128, 96};
+            case "spearman"            -> new int[]{128, 96};
+            case "archer"              -> new int[]{128, 96};
+            default                    -> new int[]{128, 96};
         };
     }
 
