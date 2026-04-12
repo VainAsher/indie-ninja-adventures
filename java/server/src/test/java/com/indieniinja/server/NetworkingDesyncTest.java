@@ -33,7 +33,7 @@ class NetworkingDesyncTest {
     void snapshotSchemaVersionIsStamped() {
         WorldSnapshot snap = new WorldSnapshot();
         assertThat(snap.schemaVersion).isEqualTo(WorldSnapshot.SCHEMA_VERSION);
-        assertThat(WorldSnapshot.SCHEMA_VERSION).isEqualTo(1);
+        assertThat(WorldSnapshot.SCHEMA_VERSION).isEqualTo(2);  // v2: yinValue/yangValue/flowMode/lanternValue/weaponState added
     }
 
     @Test
