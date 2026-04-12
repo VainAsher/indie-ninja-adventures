@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,9 @@ public final class GameSimulator {
     /** Slot → SimPlayer (ordered by slot for deterministic snapshot). */
     private final Map<Integer, SimPlayer> players = new LinkedHashMap<>();
     private final List<SimEnemy>    enemies   = new ArrayList<>();
-    private final List<SimPickup>   pickups   = new ArrayList<>();
+    private final List<SimPickup>   pickups      = new ArrayList<>();
+    private final List<PickupSlot>  pickupSlots  = new ArrayList<>();
+    private final Random            slotRng      = new Random();
     private final List<FallingPlatform>    fallingPlatforms = new ArrayList<>();
     private final List<SimMovingPlatform>  movingPlatforms  = new ArrayList<>();
     private final List<SimShuriken> shurikens = new ArrayList<>();
@@ -141,12 +144,15 @@ public final class GameSimulator {
             }
         }
 
-        // Spawn pickups
+        // Spawn pickups and register respawn slots
         int pickupIdx = 0;
         for (LevelLayout.PickupSpawn spec : layout.pickupSpawns) {
+            int slotIdx = pickupSlots.size();
+            pickupSlots.add(new PickupSlot(spec.x(), spec.y(), spec.type()));
+            int ticks = 1800 + slotRng.nextInt(1801); // 30–60 s
             pickups.add(new SimPickup(
                 hubId + "_pickup_" + pickupIdx++,
-                spec.type(), spec.x(), spec.y()
+                spec.type(), spec.x(), spec.y(), slotIdx, ticks
             ));
         }
 
@@ -287,8 +293,9 @@ public final class GameSimulator {
         // 7. Advance shurikens (movement + tile/enemy collision)
         stepShurikens();
 
-        // 8. Pickups: lifetime + authoritative collection
+        // 8. Pickups: lifetime + authoritative collection + respawn
         stepPickups();
+        stepPickupRespawns();
 
         // 9. NPC patrol + player-facing
         stepNpcs();
@@ -1401,6 +1408,32 @@ public final class GameSimulator {
                     break;
                 }
             }
+            // Start respawn cooldown when this pickup has just died
+            if (!pu.alive && pu.slotIdx >= 0) {
+                startRespawn(pu.slotIdx);
+            }
+        }
+        pickups.removeIf(pu -> !pu.alive);
+    }
+
+    private void startRespawn(int slotIdx) {
+        PickupSlot slot = pickupSlots.get(slotIdx);
+        slot.active       = false;
+        slot.cooldownTicks = 900 + slotRng.nextInt(901); // 15–30 s
+    }
+
+    private void stepPickupRespawns() {
+        for (int i = 0; i < pickupSlots.size(); i++) {
+            PickupSlot slot = pickupSlots.get(i);
+            if (slot.active) continue;
+            if (--slot.cooldownTicks <= 0) {
+                slot.active = true;
+                int ticks   = 1800 + slotRng.nextInt(1801); // 30–60 s
+                pickups.add(new SimPickup(
+                    hubId + "_rpickup_" + i + "_" + lootSeq++,
+                    slot.type, slot.x, slot.y, i, ticks
+                ));
+            }
         }
     }
 
@@ -1763,5 +1796,28 @@ public final class GameSimulator {
     public void updateSpatialHash(com.indieniinja.physics.SpatialHash hash) {
         this.spatialHash = hash;
         collisionSystem.setSpatialHash(hash);
+    }
+
+    // ── Inner types ───────────────────────────────────────────────────────────
+
+    /**
+     * Respawn slot for a room-layout pickup position.
+     * When the live pickup for this slot is collected or expires, the slot
+     * enters cooldown; once cooldownTicks reaches 0 a fresh pickup is spawned.
+     */
+    private static final class PickupSlot {
+        final float  x, y;
+        final String type;
+        /** Counts down to 0, then a new pickup is spawned. */
+        int     cooldownTicks;
+        /** True while a live SimPickup exists for this slot. */
+        boolean active;
+
+        PickupSlot(float x, float y, String type) {
+            this.x      = x;
+            this.y      = y;
+            this.type   = type;
+            this.active = true;
+        }
     }
 }
