@@ -1,6 +1,6 @@
 # PLAN — Enemy Animation & AI Overhaul
 ## Replace Placeholder Shapes with Animated Stateful Enemy Sprites
-**Created:** 2026-04-12 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.10 | **Target release:** v0.12.x
+**Created:** 2026-04-12 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.11 | **Target release:** v0.12.x
 
 ---
 
@@ -835,16 +835,17 @@ java/core/src/main/java/com/indieniinja/world/postprocess/EntityPlanner.java
 
 ### Phase 1 — Asset Pipeline
 - [x] Write `tools/stitch_enemy_frames.py` (v0.11.10) — ZIP path: Desktop/New folder (4)/enemy placeholder animations...zip
-- [ ] Run script → verify all 5 enemy type directories populated ← **next step: run `python tools/stitch_enemy_frames.py`**
-- [ ] Confirm frame dimensions match expected size (print from script)
-- [ ] Commit: `feat(enemy-art): stitch enemy placeholder frames into spritesheets`
+- [x] Run script → all 5 enemy type directories populated (v0.11.11) — 37 spritesheets, 128×96 px/frame
+- [x] Frame dimensions confirmed: 128×96 px per frame (4:3 landscape); `enemySize()` updated to 64×48 world px
+- [x] Commit: `feat(enemy-art): stitch enemy placeholder frames into spritesheets` (v0.11.11)
 
 ### Phase 2 — AnimationRegistry
 - [x] Add `loadEnemySheets()` + `loadEnemySheetType()` to `AnimationRegistry` (v0.11.10)
 - [x] Update `enemyFps()` with all type+state entries incl. FLEE/GUARD (v0.11.10)
-- [x] Update `enemySize()` for swordsman/grunt display dimensions (v0.11.10)
+- [x] Frame counts corrected from stitch script audit (v0.11.11) — swordsman/grunt/wolf counts adjusted
+- [x] Update `enemySize()` to 64×48 world px matching 128×96 art 4:3 ratio (v0.11.11)
 - [x] Wire in `GameScreen` — loads from `assets/sprites/enemies/` if directory exists (v0.11.10)
-- [ ] Verify in-game: colored placeholders replaced by real sprites once stitch script has run
+- [ ] Verify in-game: colored placeholders replaced by real sprites (first launcher run post-v0.11.11)
 
 ### Phase 3 — AI Expansion
 - [x] Add FLEE + GUARD to `EnemyAIState` (v0.11.10)

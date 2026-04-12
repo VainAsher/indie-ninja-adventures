@@ -366,13 +366,15 @@ public final class AnimationRegistry {
      */
     public void loadEnemySheets(FileHandle baseDir) {
         // Frame counts per type+state (from dimension audit after stitch script runs)
-        loadEnemySheetType(baseDir, "swordsman", new int[]{2, 6, 6, 0, 6, 10, 0, 3, 4, 5});
+        // Frame counts confirmed from stitch script run 2026-04-12 (all art is 128×96 px/frame)
+        // Index: [idle, walk, run/chase, unused, attack_a, attack_b, guard, stunned, dead, jump]
+        loadEnemySheetType(baseDir, "swordsman", new int[]{4, 6, 6, 0, 8, 11, 0, 3, 4, 6});
         loadEnemySheetType(baseDir, "skeleton",  new int[]{4, 6, 6, 0, 12, 7, 2, 3, 4, 5});
         loadEnemySheetType(baseDir, "slime",     new int[]{4, 4, 4, 0, 10, 11, 8, 3, 5, 0});
-        loadEnemySheetType(baseDir, "grunt",     new int[]{4, 6, 6, 0, 6, 10, 0, 3, 4, 5});
-        loadEnemySheetType(baseDir, "wolf",      new int[]{2, 12, 12, 0, 8, 11, 0, 4, 4, 6});
+        loadEnemySheetType(baseDir, "grunt",     new int[]{2, 6, 6, 0, 6, 10, 0, 3, 4, 5});
+        loadEnemySheetType(baseDir, "wolf",      new int[]{2, 12, 12, 0, 6, 6, 0, 4, 4, 6});
         // "goblin" alias → swordsman art (backward compat with existing snapshots)
-        loadEnemySheetType(baseDir, "swordsman", "goblin", new int[]{2, 6, 6, 0, 6, 10, 0, 3, 4, 5});
+        loadEnemySheetType(baseDir, "swordsman", "goblin", new int[]{4, 6, 6, 0, 8, 11, 0, 3, 4, 6});
     }
 
     /**

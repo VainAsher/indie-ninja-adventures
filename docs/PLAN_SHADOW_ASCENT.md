@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.10 | **Next release target:** v0.11.11 (Milestone 6 — Echo System & Puzzles)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.11 | **Next release target:** v0.11.12 (Milestone 6 — Echo System & Puzzles)
 
 ---
 

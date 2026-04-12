@@ -245,22 +245,22 @@ def main():
             summary[enemy_type] = stats
 
     # ── Summary report ────────────────────────────────────────────────────────
-    print("\n" + "─" * 60)
+    print("\n" + "-" * 60)
     print("SUMMARY")
-    print("─" * 60)
+    print("-" * 60)
     total_sheets = 0
     for etype, stats in summary.items():
         present = [(f, c) for f, c in stats.items() if c > 0]
         missing = [f for f, c in stats.items() if c == 0]
         print(f"\n{etype}:")
         for fname, count in present:
-            print(f"  ✓  {fname}  ({count} frames)")
+            print(f"  OK  {fname}  ({count} frames)")
         for fname in missing:
-            print(f"  ✗  {fname}  (no frames found — key will use placeholder)")
+            print(f"  --  {fname}  (no frames found - key will use placeholder)")
         total_sheets += len(present)
 
     print(f"\n{total_sheets} spritesheets written to {out_dir}")
-    print("\nNext step: run the Java build — loadEnemySheets() will pick these up automatically.")
+    print("\nNext step: run the Java build -- loadEnemySheets() will pick these up automatically.")
     print("Build with:  cd java && gradle buildAll")
 
     # Write a README in the output dir
