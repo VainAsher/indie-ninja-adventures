@@ -272,6 +272,11 @@ public final class GameSimulator {
             p.latestInput = e.getValue();
             applyPlayerInput(p, e.getValue());
         }
+        // Shadow Ascent M6: sample each player's effective input once per tick
+        // for 10-second echo playback buffers.
+        for (SimPlayer p : players.values()) {
+            p.echoRecorder.record(p.latestInput);
+        }
 
         // Tick invincibility timers
         for (SimPlayer p : players.values()) p.tickInvincibility();

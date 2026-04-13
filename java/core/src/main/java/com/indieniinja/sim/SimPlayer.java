@@ -228,6 +228,8 @@ public final class SimPlayer {
 
     // Input — written by Netty I/O thread, read by sim thread via AtomicRef in PlayerRecord
     public InputCommand latestInput = InputCommand.neutral(0);
+    // Shadow Ascent M6: last 10 seconds of input history for echo playback.
+    public final EchoRecorder echoRecorder = new EchoRecorder();
 
     public SimPlayer(String playerId, int slot, float spawnX, float spawnY) {
         this.playerId = playerId;
