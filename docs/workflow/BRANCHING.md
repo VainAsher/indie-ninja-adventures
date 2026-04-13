@@ -1,134 +1,67 @@
 # Branching Model
 
-Indie Ninja Adventures uses a simple Git Flow adapted for solo development.
+Branching is optimized for rapid, testable iteration releases.
 
----
+Primary reference: [ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.md)
 
 ## Branch Structure
 
 ```
-main         ← stable, tagged releases only — never commit directly
-develop      ← integration branch — all features merge here first
-feature/*    ← new work — branched from develop, PR back to develop
-hotfix/*     ← urgent production fixes — branched from main, PR to main
+master       <- integration + release branch (iteration tags are cut here)
+feature/*    <- optional short-lived branch for larger/riskier work
+hotfix/*     <- urgent production fix branch
 ```
 
-### `main`
+`develop` is optional legacy flow. It is not required for the current iteration-release process.
 
-- Only updated by merging `develop` at release time, or a `hotfix/*` branch
-- Every merge to `main` gets a version tag: `v0.8.0`, `v0.8.1`, etc.
-- CI runs on push to `main`
+## Expected Flow
 
-### `develop`
-
-- The active working branch
-- All features and fixes merge here via PR
-- CI runs on every push — if CI fails, do not merge further until fixed
-- Periodically merged into `main` as a release
-
-### `feature/<name>`
-
-- One branch per task/feature
-- Branch from `develop`: `git checkout -b feature/boss-ai develop`
-- Keep focused — one logical change per branch
-- PR → `develop` when complete and CI-green
-- Delete branch after merge
-
-### `hotfix/<name>`
-
-- For urgent production bugs only (crash, data loss, unplayable)
-- Branch from `main`: `git checkout -b hotfix/fix-save-corruption main`
-- PR → `main` (triggers release workflow if tagged)
-- Back-merge into `develop` immediately after: `git merge hotfix/fix-save-corruption`
-
----
+1. Start from `master`.
+2. Use `feature/*` only when the change is risky or long-running.
+3. Merge back to `master`.
+4. Run local build/test gates.
+5. Tag and release from `master`.
 
 ## Commit Message Format
 
-```
-<type>: <short description>
+Use Conventional Commit style:
+
+```text
+<type>: <short summary>
 
 [optional body]
-[optional: Closes #123]
 ```
 
-**Types:**
+Supported types:
 
-| Type | When to use |
-|------|-------------|
-| `feat` | New feature or capability |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `test` | Adding or updating tests |
-| `chore` | Build, CI, dependencies, tooling |
-| `refactor` | Code change with no behaviour change |
-| `perf` | Performance improvement |
+- `feat`
+- `fix`
+- `docs`
+- `test`
+- `chore`
+- `refactor`
+- `perf`
 
-**Examples:**
+## Tagging Rules
 
-```
-feat: add boss phase transitions for Forest zone
+1. Do not use `v1.0.0` (or any `v1.x.x`) until the owner explicitly declares alpha readiness.
+2. Use `v0.<minor>.<patch>` during development.
+3. Tag the final commit of the iteration.
+4. Prefer annotated tags:
+   - `git tag -a v0.11.22 -m "v0.11.22 - <summary>"`
 
-fix: resolve replay desync on frame skip after wall jump
-
-docs: add multiplayer architecture section to ARCHITECTURE.md
-
-test: add edge case for wall collision during dash
-
-chore: bump version to 0.8.1 in version.json and pyproject.toml
-```
-
----
-
-## Day-to-Day Workflow
+## Minimal Day-to-Day Commands
 
 ```bash
-# Start a new task
-git checkout develop
-git pull origin develop
+git checkout master
+git pull origin master
+
+# optional
 git checkout -b feature/my-task
 
-# Work, commit often
+# work + validate
 git add <files>
-git commit -m "feat: implement X"
-
-# Before PR — run tests
-python run_tests.py
-
-# Push and open PR → develop
-git push -u origin feature/my-task
+git commit -m "fix: <summary>"
 ```
 
----
-
-## Release Workflow
-
-```bash
-# 1. Merge develop → main
-git checkout main
-git merge develop --no-ff -m "chore: release v0.8.1"
-
-# 2. Tag the release
-git tag v0.8.1
-
-# 3. Push (triggers GitHub Actions release build)
-git push origin main
-git push origin v0.8.1
-
-# 4. Cut new develop from main
-git checkout develop
-git merge main
-git push origin develop
-```
-
-See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for the full pre/post-release process.
-
----
-
-## Naming Conventions
-
-| Branch type | Format | Example |
-|-------------|--------|---------|
-| Feature | `feature/<kebab-case>` | `feature/boss-ai-forest` |
-| Hotfix | `hotfix/<kebab-case>` | `hotfix/fix-save-corruption` |
-| Tags | `v<major>.<minor>.<patch>` | `v0.8.1` |
+For release commands and verification gates, use [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).

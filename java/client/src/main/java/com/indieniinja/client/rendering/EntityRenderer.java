@@ -13,6 +13,7 @@ import com.indieniinja.network.PortalState;
 import com.indieniinja.network.ShurikenState;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.SimShuriken;
+import com.indieniinja.sim.EnemyAttackGeometry;
 import com.indieniinja.physics.PhysicsConstants;
 
 /**
@@ -727,24 +728,10 @@ public final class EntityRenderer {
 
         // Enemies — red body box, lighter red for sprite display bounds
         for (EnemyState e : snap.enemies) {
-            String t  = (e.enemyType != null && !e.enemyType.isEmpty()) ? e.enemyType : "skeleton";
-            int    pw = enemyPhysicsW(t);
-            int    ph = enemyPhysicsH(t);
-            // Physics AABB (bright red)
-            sr.setColor(1f, 0.15f, 0.15f, 1f);
-            sr.rect(e.x, e.y, pw, ph);
-            // Sprite display bounds (dark red, shows where art actually renders)
-            int[]  sz    = enemySize(t);
-            float  drawY = e.y + ph - sz[1] * (1f + ENEMY_LIFT);
-            sr.setColor(0.8f, 0.3f, 0.3f, 0.5f);
-            sr.rect(e.x, drawY, sz[0], sz[1]);
+            drawEnemyDebugHitboxes(sr, e);
         }
         for (EnemyState e : snap.overflowEnemies) {
-            String t  = (e.enemyType != null && !e.enemyType.isEmpty()) ? e.enemyType : "skeleton";
-            int    pw = enemyPhysicsW(t);
-            int    ph = enemyPhysicsH(t);
-            sr.setColor(1f, 0.15f, 0.15f, 1f);
-            sr.rect(e.x, e.y, pw, ph);
+            drawEnemyDebugHitboxes(sr, e);
         }
 
         // NPCs — orange
@@ -757,6 +744,31 @@ public final class EntityRenderer {
         sr.setColor(1f, 1f, 0.1f, 1f);
         for (com.indieniinja.network.PickupState p : snap.pickups) {
             if (p.alive) sr.rect(p.x, p.y, PhysicsConstants.TILE_SIZE, PhysicsConstants.TILE_SIZE);
+        }
+    }
+
+    private void drawEnemyDebugHitboxes(com.badlogic.gdx.graphics.glutils.ShapeRenderer sr, EnemyState e) {
+        String t = (e.enemyType != null && !e.enemyType.isEmpty()) ? e.enemyType : "skeleton";
+        int pw = enemyPhysicsW(t);
+        int ph = enemyPhysicsH(t);
+
+        // Authoritative enemy body collision box.
+        sr.setColor(1f, 0.15f, 0.15f, 1f);
+        sr.rect(e.x, e.y, pw, ph);
+
+        // Attack zone preview while the enemy is in ATTACK state.
+        if ("attack".equals(e.aiState)) {
+            EnemyAttackGeometry.Rect[] rects = EnemyAttackGeometry.debugAttackRects(
+                t,
+                e.x, e.y,
+                pw, ph,
+                EnemyAttackGeometry.defaultAttackRange(t),
+                e.facingRight
+            );
+            sr.setColor(1f, 0.72f, 0.15f, 1f);
+            for (EnemyAttackGeometry.Rect r : rects) {
+                sr.rect(r.x, r.y, r.w, r.h);
+            }
         }
     }
 }

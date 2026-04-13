@@ -81,7 +81,7 @@ class CollisionEdgeCaseTest {
         // Entity falling (vy=10) from above should land on a platform tile.
         // Position y=245 puts bottom at 301 — just 1 px below platform top (300).
         SpatialHash hash = new SpatialHash();
-        TileRect platform = new TileRect(50, 300, 200, 8, true);  // isPlatform=true
+        TileRect platform = new TileRect(50, 300, 200, 32, true);  // isPlatform=true
         hash.insert(platform);
 
         PhysicsState p = new PhysicsState(100, 245, 28, 56);
@@ -101,7 +101,7 @@ class CollisionEdgeCaseTest {
         // Entity rising fast (vy=-20) through a platform should pass without
         // landing — platforms only resolve when the entity is moving downward.
         SpatialHash hash = new SpatialHash();
-        TileRect platform = new TileRect(50, 300, 200, 8, true);
+        TileRect platform = new TileRect(50, 300, 200, 32, true);
         hash.insert(platform);
 
         PhysicsState p = new PhysicsState(100, 310, 28, 56);

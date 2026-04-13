@@ -1294,9 +1294,20 @@ public final class GameSimulator {
             if (!en.isAlive()) continue;
             if (en.aiState != EnemyAIState.ATTACK) continue;
             if (en.attackActiveTimer <= 0) continue;
+            float activeProgress = (SimEnemy.ATTACK_ACTIVE_TIME > 0f)
+                ? Math.min(1f, en.attackActiveTimer / SimEnemy.ATTACK_ACTIVE_TIME)
+                : 1f;
+            EnemyAttackGeometry.Rect atk = EnemyAttackGeometry.attackRect(
+                en.enemyType,
+                en.physics.x, en.physics.y,
+                en.physics.width, en.physics.height,
+                en.attackRange,
+                en.facingRight,
+                activeProgress
+            );
             for (SimPlayer p : players.values()) {
                 if (!p.isAlive()) continue;
-                if (aabbOverlap(en.physics.x, en.physics.y, en.physics.width, en.physics.height,
+                if (aabbOverlap(atk.x, atk.y, atk.w, atk.h,
                                 p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
                     p.takeDamage(en.baseDamage);
                 }

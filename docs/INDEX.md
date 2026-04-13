@@ -54,6 +54,7 @@ Each file covers a single system: rationale, architecture, key classes, usage, a
 
 | Document | Purpose |
 | --- | --- |
+| [workflow/ITERATION_RELEASE_PROTOCOL.md](workflow/ITERATION_RELEASE_PROTOCOL.md) | Canonical commit/push/tag/release loop for per-iteration testable releases |
 | [UAT_SUITE.md](UAT_SUITE.md) | User acceptance test checklist (result columns need filling) |
 | [operations/CI_CD_PLAN.md](operations/CI_CD_PLAN.md) | CI/CD pipeline |
 | [operations/BUG_BACKLOG.md](operations/BUG_BACKLOG.md) | Bug tracking |

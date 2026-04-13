@@ -12,6 +12,7 @@ This folder contains living documentation for the project. Use it as your hub fo
 - **SYSTEM_OVERVIEW.md** — API reference and usage patterns
 - **ARCHITECTURE.md** — Design principles and patterns
 - **QUICK_START.md** — Run the game and tests in minutes
+- **workflow/ITERATION_RELEASE_PROTOCOL.md** — Per-iteration release process and version/tag rules
 - **PROJECT_ORGANIZATION.md** — Current repo layout and conventions
 - **MODDING_GUIDE.md** — How to build plugins/mods
 

@@ -1,6 +1,162 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-13 | **Codebase version:** v0.11.19 | **Next release target:** v0.11.20 (player respawn + platform collision hardening)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-13 | **Codebase version:** v0.11.20 | **Next release target:** v0.11.21 (campaign loop hardening + balance instrumentation)
+
+---
+
+## 0A. Feedback Workloop Operating Model (Mandatory)
+
+This plan now uses the Implementation Work Loop from:
+`C:\Users\asher\.claude\projects\c--Users-asher-Vain-Asher-Gaming\memory\feedback_work_loop.md`
+
+Every implementation cycle must follow this exact order:
+
+| Step | Action | Required artifact |
+|------|--------|-------------------|
+| 1 | Review plan and current phase state | Plan status read and acknowledged in work notes |
+| 2 | Create phase-specific todo list | Todo list mapped to current plan IDs |
+| 3 | Execute tasks one by one | Task state moved to done in checklist/todo |
+| 4 | Commit after each logical unit | Detailed commit message with plan ID references |
+| 5 | Update plan | Completed items marked, decisions and next step captured |
+| 6 | Push to remote | Branch updated on GitHub |
+| 7 | Loop | Start next cycle from step 1 |
+
+### Workloop rules
+
+- Never batch all work into one end-of-day commit.
+- Every meaningful implementation unit must map to at least one checklist ID below.
+- Commit messages should include: `plan_id`, `scope`, `reason`, `risk`.
+- Plan updates happen each loop, not only at milestone boundaries.
+- Unknown scope discovered mid-loop becomes a new checklist row, not ad-hoc drift.
+
+### Branch and commit format
+
+- Branch naming: `feature/shadow-ascent-<phase>-<topic>`
+- Commit subject format: `<type>(<plan_id>): <summary>`
+- Commit body template:
+  - `What changed`
+  - `Why now`
+  - `Risks`
+  - `Validation`
+  - `Next checklist item`
+
+### Status legend
+
+- `[ ]` Not started
+- `[~]` In progress
+- `[x]` Done
+- `[!]` Blocked
+
+---
+
+## 0B. Execution-Ordered Checklist (P0/P1/P2)
+
+### Sprint map
+
+- `S1-S4`: P0 (ship blockers)
+- `S5-S9`: P1 (balance, tuning, content throughput)
+- `S10-S14`: P2 (release hardening and full release)
+
+Owner roles:
+
+- `ENG-CORE`: Core sim/physics/systems
+- `ENG-CLIENT`: Client/UI/rendering/input/save UX
+- `ENG-NET`: Protocol/server/client message flow
+- `ENG-DATA`: Missions/dialogue/items/data validation
+- `DESIGN`: Balance, pacing, playtest interpretation
+- `QA`: Test plans/regression/verification
+- `PROD`: Planning, release process, dependency tracking
+
+---
+
+## P0 - Core Campaign Loop Stabilization
+
+Goal: make campaign progression complete, testable, and safe to iterate.
+
+| Status | ID | Task | Owner | Sprint | Depends on | Deliverable | Balance / ideation hook | Exit gate |
+|--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
+| [ ] | P0-01 | Restore build/test baseline (fix Gradle wrapper path, ensure `./gradlew.bat test` works) | ENG-CORE + QA | S1 | None | Reproducible local test command and CI run | Enables rapid tuning safely | All existing tests run from clean checkout |
+| [ ] | P0-02 | Mission objective integration for all objective types (`collect_items`, `activate_switches`, `reach_location`, `time_challenge`, `defeat_boss`, `kill_all_enemies`) | ENG-CLIENT + ENG-CORE | S1 | P0-01 | Objective event adapters and mission progress hooks | Exposes full mission pacing for tuning | 30/30 missions can progress objectives in playtest harness |
+| [ ] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
+| [ ] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
+| [ ] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
+| [ ] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
+| [ ] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
+| [ ] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
+| [ ] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
+| [ ] | P0-10 | P0 signoff playtest pack and blocker triage | DESIGN + QA + PROD | S4 | P0-09 | Structured playtest report with blocker decisions | Establishes tuning baseline for P1 | No open P0 blockers and approved handoff to P1 |
+
+---
+
+## P1 - Balance, Tuning, and Content Throughput
+
+Goal: make gameplay feel coherent and tunable while increasing mission/story output safely.
+
+| Status | ID | Task | Owner | Sprint | Depends on | Deliverable | Balance / ideation hook | Exit gate |
+|--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
+| [ ] | P1-01 | Data-driven tuning layer (movement/combat/economy/mission timing/boss parameters) | ENG-CORE + ENG-DATA | S5 | P0-10 | Config-driven tuning files and loader | Fast hypothesis testing without code churn | Core balance constants removed from hardcoded logic path |
+| [ ] | P1-02 | Telemetry instrumentation (mission fail reasons, death causes, DPS in/out, completion times, economy curves) | ENG-CORE + ENG-CLIENT | S5 | P1-01 | Session telemetry logs and aggregation scripts | Quantifies tuning changes | Every playtest produces comparable metrics bundle |
+| [ ] | P1-03 | Balance dashboard and target bands | DESIGN + QA | S5-S6 | P1-02 | KPI sheet with min/max target bands | Converts feel goals into measurable thresholds | Targets defined for TTK, fail-rate, mission duration, resource pressure |
+| [ ] | P1-04 | Weekly balance loop (hypothesis -> change -> playtest -> metrics review -> decision log) | DESIGN + ENG-CORE | S6-S9 (recurring) | P1-03 | Weekly balance notes linked to commits | Structured ideation and tuning rhythm | 4 consecutive loops completed with logged decisions |
+| [ ] | P1-05 | Story pacing pass (mission unlock cadence, act transition timing, hub evolution rhythm) | DESIGN + ENG-DATA | S6-S7 | P1-02 | Progression pacing matrix | Supports narrative ideation against measurable flow | No dead-end progression in scripted path tests |
+| [ ] | P1-06 | Enemy and boss tuning pass (difficulty curves by act and mission tier) | DESIGN + ENG-CORE | S7-S8 | P1-04 | Tuning table per archetype and phase | Core combat feel iteration | Difficulty spikes within target fail-rate bands |
+| [ ] | P1-07 | Economy and rewards pass (currency sinks, reward fairness, fragment pacing) | DESIGN + ENG-DATA | S8 | P1-04, P0-07 | Economy model and reward audit | Sustains long-term progression motivation | Economy inflation/shortage outside target band eliminated |
+| [ ] | P1-08 | Content authoring guardrails (mission lint, dialogue event lint, schema CI) | ENG-DATA + QA | S8-S9 | P0-07 | CI content validation gates | Enables safe ideation at higher throughput | Invalid mission/dialogue content blocked pre-merge |
+| [ ] | P1-09 | Client integration tests for gameplay-facing systems | QA + ENG-CLIENT | S9 | P1-08 | Expanded automated regression tests | Prevents tuning regressions from UI/client side | Critical client gameplay regressions detected in CI |
+| [ ] | P1-10 | P1 signoff and release candidate criteria lock | PROD + DESIGN + QA | S9 | P1-09 | Approved P2 entry criteria | Freezes design pillars before hardening | P1 targets met and signed off by leads |
+
+---
+
+## P2 - Full Release Hardening and Launch
+
+Goal: content-complete, performance-stable, release-managed build to ship and maintain.
+
+| Status | ID | Task | Owner | Sprint | Depends on | Deliverable | Balance / ideation hook | Exit gate |
+|--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
+| [ ] | P2-01 | Complete remaining roadmap systems (Echo, Act IV depression mechanics, final-act integrations) | ENG-CORE + ENG-CLIENT + DESIGN | S10-S11 | P1-10 | Feature-complete release branch | Final thematic tuning and identity cohesion | GDD must-have systems marked implemented |
+| [ ] | P2-02 | Performance and stability optimization (long session, load times, memory, frame pacing) | ENG-CORE + ENG-CLIENT + QA | S11-S12 | P2-01 | Profiling reports and optimizations | Maintains feel under stress | Meets performance budgets on target hardware |
+| [ ] | P2-03 | UX/accessibility and onboarding pass | ENG-CLIENT + DESIGN + QA | S12 | P2-01 | UX polish checklist and options validation | Reduces friction in first-hour tuning insights | New-player completion funnel improves vs P1 baseline |
+| [ ] | P2-04 | Release candidate process (code freeze, blocker-only merges, triage SLA, rollback plan) | PROD + QA + ENG-CORE | S13 | P2-02, P2-03 | RC protocol and signoff artifacts | Locks tuned state for launch quality | RC passes full regression + playtest signoff |
+| [ ] | P2-05 | Launch prep and post-launch loop setup (telemetry review cadence, hotfix path, backlog triage rules) | PROD + DESIGN + QA | S13-S14 | P2-04 | Live ops handbook | Keeps ideation alive post-launch without destabilizing game | Day-0 and Day-7 post-launch review process approved |
+| [ ] | P2-06 | Final release signoff and shipping checklist | PROD + all leads | S14 | P2-05 | Final release decision record | Final confirmation of tuned and stable experience | No critical or high-severity blockers remain |
+
+---
+
+## 0C. Balancing, Tweaking, and Ideation Cadence (Runs Through All Phases)
+
+### Weekly cadence
+
+| Day | Activity | Owner | Artifact |
+|-----|----------|-------|----------|
+| Mon | Set hypotheses for week | DESIGN + ENG leads | `balance_hypotheses.md` |
+| Tue-Wed | Implement targeted changes | ENG roles | Commits linked to plan IDs |
+| Thu | Structured playtest sessions (baseline/challenge/new-player) | QA + DESIGN | Playtest observations + telemetry bundle |
+| Fri | Review metrics, accept/reject hypotheses, queue next loop | DESIGN + PROD + ENG | Decision log + updated checklist status |
+
+### Mandatory balance artifacts
+
+- `BALANCE_LOG.md`: each parameter change, why it changed, expected effect, observed result.
+- `IDEATION_BACKLOG.md`: candidate ideas with `impact`, `effort`, `risk`, `thematic_fit`.
+- `PLAYTEST_REPORT_<date>.md`: qualitative notes plus quantitative telemetry.
+- `RISK_REGISTER.md`: known risks, mitigations, owner, due sprint.
+
+### Metric guardrails (initial targets, refine during P1)
+
+| Metric | Target band | Usage |
+|--------|-------------|-------|
+| Mission completion rate (mainline) | 65% to 85% | Detects overtuned or undertuned progression |
+| Mission fail due to unclear objective | < 10% | Signals objective readability issues |
+| Average retries per boss (story path) | 2 to 6 | Controls frustration vs mastery |
+| Median mission duration | 8 to 18 min | Maintains pacing consistency |
+| Economy reserve at act transitions | Positive but constrained | Prevents inflation and hard-lock scarcity |
+| Severe spike encounters per session | 0 to 1 | Keeps difficulty ramps intentional |
+
+### Change-control rules for tuning
+
+- Do not merge unmeasured balance changes.
+- Each balance commit must reference a hypothesis ID.
+- Freeze tuning 48 hours before any release candidate.
+- After freeze, only blocker fixes are allowed.
 
 ---
 
