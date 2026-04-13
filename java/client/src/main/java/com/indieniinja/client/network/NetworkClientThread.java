@@ -164,6 +164,9 @@ public final class NetworkClientThread extends Thread {
                 log.info("[Net] WORLD_TRANSITION → hub={}", newHubId);
                 buffer.resetForZoneTransition();
             }
+            case MessageType.SCRIPTED_LOSS -> {
+                buffer.markScriptedLoss();
+            }
             default -> log.debug("[Net] Ignored message type: {}", msg.type());
         }
     }

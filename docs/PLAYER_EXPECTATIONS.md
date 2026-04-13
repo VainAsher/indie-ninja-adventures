@@ -1,8 +1,8 @@
 # Shadow Ascent - Launcher-Only Player Expectations and UX Test Guide
 ## Living Playtest Document for User-Experience, Design-Intent, and Balance Validation
 
-**Current target build:** `v0.11.28`  
-**Last updated:** `2026-04-13 21:44:57 +01:00`  
+**Current target build:** `v0.11.29`  
+**Last updated:** `2026-04-13 22:47:26 +01:00`  
 **Tester profile:** User with `launcher.exe` only (no IDE, no terminal, no debug tooling required)
 
 ---
@@ -41,7 +41,7 @@ Optional artifact to attach if available: `user_data/logs/client.log`.
 
 ---
 
-## 4) Current Player-Visible Scope (v0.11.26)
+## 4) Current Player-Visible Scope (v0.11.29)
 
 | Feature | Status | What tester should expect |
 |---|---|---|
@@ -52,7 +52,10 @@ Optional artifact to attach if available: `user_data/logs/client.log`.
 | Hub state evolution | Working | NPC roster and hub feel change with progression |
 | Enemy AI states (patrol/chase/attack/flee/guard/stunned/dead) | Working | Distinct behavior per archetype |
 | Boss psychological patterns (Siren, Echo Warden, Time Leech Lord, Memory Eater) | Working | Distinct fight identity and narrative behavior |
-| Enemy tuning pass (slime/skeleton/archer) | Working in `v0.11.26` | Slime forward lunge, skeleton +15% range, archer projectile offense |
+| Enemy tuning pass (slime/skeleton/archer) | Working in `v0.11.29` | Slime lunge alignment pass, skeleton directional guard + retreat, archer kiting + projectile pressure |
+| Enemy/platform reliability pass | Working in `v0.11.29` | One-way platform stacking fix; enemies should no longer desync around tightly stacked platform+terrain tiles |
+| Siren first-boss 3-phase rewrite baseline | Working in `v0.11.29` | Phase 1 ranged lane control; phase 2 teleport reposition; phase 3 volley pressure; red-slime add waves |
+| Scripted-loss splash flow | Working in `v0.11.29` | On Siren defeat path, placeholder narrative splash appears with CONTINUE action |
 | Save/load core persistence | Working | Progress/state should persist between sessions |
 | Echo system foundations (`EchoRecorder`, `SimEcho`) | In progress | Foundation exists, full puzzle-driven player experience not yet fully exposed |
 | Act IV depression mechanics + full late-act pacing | Not complete | Do not treat as regression if absent |
@@ -105,28 +108,60 @@ Record:
 - `could_player_explain_yin_yang_effects (yes/no)`
 - `could_player_explain_lantern_effects (yes/no)`
 
-## Session D - Enemy Balance Focus (v0.11.26) (20-30 min)
+## Session D - Enemy Balance Focus (v0.11.29) (20-30 min)
 
 ### Slime
 - [ ] Attack now reaches about one slime body length in front
 - [ ] Telegraph is readable enough to react
 - [ ] Hits feel consistent with visible body/contact zone
+- [ ] Slimes do not float or ignore gravity in normal terrain traversal
+- [ ] Slimes do not clip through stacked platform+terrain geometry
 
 ### Skeleton shield bearer
 - [ ] Effective threat range feels increased versus prior baseline
 - [ ] Added range creates pressure without feeling "invisible"
 - [ ] Guard behavior remains readable and counterplay still exists
+- [ ] Front-facing guard blocks/reduces damage; rear-side attacks still reward flanks
+- [ ] Enemy briefly retreats into guard after attack attempt (not constant face-tank)
 
 ### Archer
 - [ ] Archer emits projectile attacks (not only melee presence)
 - [ ] Projectile readability is sufficient for dodge/positioning
 - [ ] Projectile damage pressure feels fair for encounter context
+- [ ] Archer repositions to restore firing lane before shooting (kiting behavior)
+- [ ] Archer has no hidden melee pressure when in close range
 
 Record:
 - `slime_fairness_score (1-5)`
 - `skeleton_range_fairness_score (1-5)`
 - `archer_projectile_readability_score (1-5)`
 - `enemy_with_most_unfair_hits`
+- `platform_clipping_incidents`
+- `stacked_platform_failures`
+
+## Session F - First Boss and Scripted Defeat Flow (20-30 min)
+
+### Siren phase behavior
+- [ ] Phase 1 reads as ranged spacing and projectile pressure
+- [ ] Phase 2 clearly introduces teleport repositioning
+- [ ] Phase 3 clearly upgrades to multi-shot volleys
+- [ ] Boss remains inside the room bounds (no arena escape)
+
+### Add-wave vulnerability loop
+- [ ] Red slimes spawn each phase in room-local zones
+- [ ] Clearing red slimes is readable as prerequisite to meaningful boss damage
+- [ ] Add-wave count per phase feels intentional (not random clutter)
+
+### Scripted loss splash
+- [ ] Defeat path triggers narrative splash reliably
+- [ ] CONTINUE input reliably dismisses splash and returns control
+- [ ] Post-splash progression aligns with Act II scripted-loss expectations
+
+Record:
+- `boss_phase_readability_score (1-5)`
+- `boss_damage_window_clarity (1-5)`
+- `scripted_loss_overlay_success (yes/no)`
+- `boss_room_escape_seen (yes/no)`
 
 ## Session E - Progression and Persistence (10-15 min)
 - [ ] Exiting and relaunching from launcher preserves expected progress
@@ -190,7 +225,7 @@ Use these IDs in notes, bug reports, and balancing reviews.
 
 ```md
 ### Session Summary
-Build: v0.11.26
+Build: v0.11.29
 Mode: SOLO / CAMPAIGN
 Session length: XX min
 
@@ -233,7 +268,7 @@ ID: BAL-ENEMY / BAL-DIFFICULTY / UX-READABILITY
 
 ```md
 ### Bug Report
-Build: v0.11.26
+Build: v0.11.29
 Mode: SOLO / CAMPAIGN
 Severity: blocker / high / medium / low
 
@@ -259,6 +294,7 @@ ID: TECH-STABILITY / UX-___ / BAL-___
 
 | Version | Player-visible impact |
 |---|---|
+| `v0.11.29` | Enemy/platform reliability pass, archer kiting behavior, skeleton directional guard+retreat, Siren 3-phase baseline, scripted-loss continue splash |
 | `v0.11.28` | Release metadata sync for launcher/release pipeline (`version.json` + Gradle version) and launcher UX guide alignment |
 | `v0.11.27` | Launcher-only UX test handbook refresh: updated expected scope, structured feedback IDs, and balancing capture templates |
 | `v0.11.26` | Enemy tuning pass: slime forward lunge reach update, skeleton range +15%, archers fire damaging projectiles |

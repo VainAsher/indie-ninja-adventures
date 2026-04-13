@@ -60,6 +60,9 @@ public final class GameSimulator {
     private static final float PIXELS_PER_S = 1f / DT;  // 60
     private static final float SKELETON_RANGE_MULT = 1.15f;
     private static final float ARCHER_PROJECTILE_SPEED = SimPlayer.SHURIKEN_SPEED * 0.90f;
+    private static final float ARCHER_MIN_COMBAT_RANGE = 112f;
+    private static final float ARCHER_MAX_COMBAT_RANGE = 220f;
+    private static final float SKELETON_GUARD_RETREAT_SPEED_MULT = 0.35f;
 
     // ── Core systems ──────────────────────────────────────────────────────────
     private final EventBus      bus;
@@ -326,57 +329,57 @@ public final class GameSimulator {
         // 2. Rebuild dynamic tile list so CollisionSystem sees current platform positions.
         rebuildDynamicTiles();
 
-        // 3a. Physics tick: gravity + integration + collision (via EventBus)
-        clock.stepOne();  // emits TickEvent → PhysicsSystem(60) → CollisionSystem(45)
-
-        // 3b. Platform state machines (step AFTER physics so triggers are current-frame)
-        stepPlatforms();
-
-        // 4. Enemy AI + physics
+        // 3a. Enemy AI intent before physics so movement is collision-resolved in the same tick.
         stepEnemies();
 
-        // 5. Server-side player-enemy combat (melee + contact)
+        // 3b. Physics tick: gravity + integration + collision (via EventBus)
+        clock.stepOne();  // emits TickEvent → PhysicsSystem(60) → CollisionSystem(45)
+
+        // 3c. Platform state machines (step AFTER physics so triggers are current-frame)
+        stepPlatforms();
+
+        // 4. Server-side player-enemy combat (melee + contact)
         stepCombat();
 
-        // 6. Spawn any shurikens flagged by applyPlayerInput
+        // 5. Spawn any shurikens flagged by applyPlayerInput
         spawnPendingShurikens();
 
-        // 7. Advance shurikens (movement + tile/enemy collision)
+        // 6. Advance shurikens (movement + tile/enemy collision)
         stepShurikens();
 
-        // 8. Pickups: lifetime + authoritative collection + respawn
+        // 7. Pickups: lifetime + authoritative collection + respawn
         stepPickups();
         stepPickupRespawns();
 
-        // 9. NPC patrol + player-facing
+        // 8. NPC patrol + player-facing
         stepNpcs();
 
-        // 9b. Echo playback (M6)
+        // 8b. Echo playback (M6)
         stepEchoes();
 
-        // 9c. Puzzle lever/button interaction (interact key edge-triggered)
+        // 8c. Puzzle lever/button interaction (interact key edge-triggered)
         stepLeverInteraction();
 
-        // 10. Boss AI + combat
+        // 9. Boss AI + combat
         stepBosses();
 
-        // 11. Portal animation timers
+        // 10. Portal animation timers
         for (SimPortal portal : portals) portal.step(DT);
 
-        // 12. Lava damage — 1 HP per tick for any player touching lava
+        // 11. Lava damage — 1 HP per tick for any player touching lava
         for (SimPlayer sp : players.values()) {
             if (sp.physics.onLava && sp.isAlive()) {
                 sp.takeDamage(1);  // takeDamage() is no-op while invincibilityTicks > 0
             }
         }
 
-        // 13. Yin/Yang tick (GDD §3.3) — apply flags, flow mode, decay
+        // 12. Yin/Yang tick (GDD §3.3) — apply flags, flow mode, decay
         tickYinYang();
 
-        // 14. Lantern tick (GDD §3.4) — apply physics bonuses, decay
+        // 13. Lantern tick (GDD §3.4) — apply physics bonuses, decay
         tickLantern();
 
-        // 15. Player respawn countdowns
+        // 14. Player respawn countdowns
         stepPlayerRespawns();
     }
 
@@ -1247,17 +1250,38 @@ public final class GameSimulator {
                 }
             }
             case CHASE -> {
-                // Move toward nearest player
                 float tx = nearest[0];
                 float cx = en.physics.x + en.physics.width * 0.5f;
                 float speed = en.moveSpeed * DT;
-                if (tx > cx) { en.physics.x += speed; en.facingRight = true; }
-                else         { en.physics.x -= speed; en.facingRight = false; }
 
-                if (dist < en.attackRange) {
-                    en.aiState = EnemyAIState.ATTACK;
-                    en.attackWindupTimer = SimEnemy.ATTACK_WINDUP_TIME;
-                } else if (dist > en.detectionRadius * 1.5f) {
+                if ("archer".equals(en.enemyType)) {
+                    float dx = tx - cx;
+                    float absDx = Math.abs(dx);
+                    en.facingRight = dx >= 0f;
+
+                    if (absDx < ARCHER_MIN_COMBAT_RANGE) {
+                        // Too close: kite backward before shooting.
+                        en.physics.x += (dx >= 0f ? -1f : 1f) * speed;
+                    } else if (absDx > ARCHER_MAX_COMBAT_RANGE) {
+                        // Too far: reposition to reacquire an effective firing lane.
+                        en.physics.x += (dx >= 0f ? 1f : -1f) * speed;
+                    } else {
+                        en.aiState = EnemyAIState.ATTACK;
+                        en.attackWindupTimer = SimEnemy.ATTACK_WINDUP_TIME * 0.85f;
+                        break;
+                    }
+                } else {
+                    // Move toward nearest player
+                    if (tx > cx) { en.physics.x += speed; en.facingRight = true; }
+                    else         { en.physics.x -= speed; en.facingRight = false; }
+
+                    if (dist < en.attackRange) {
+                        en.aiState = EnemyAIState.ATTACK;
+                        en.attackWindupTimer = SimEnemy.ATTACK_WINDUP_TIME;
+                    }
+                }
+
+                if (dist > en.detectionRadius * 1.5f) {
                     en.aiState = EnemyAIState.PATROL;
                 }
             }
@@ -1275,7 +1299,12 @@ public final class GameSimulator {
                 } else {
                     en.attackActiveTimer  = 0f;
                     en.attackRecoveryTimer = SimEnemy.ATTACK_RECOVERY_TIME;
-                    en.aiState = EnemyAIState.CHASE;
+                    if ("skeleton".equals(en.enemyType)) {
+                        en.aiState = EnemyAIState.GUARD;
+                        en.guardTimer = SimEnemy.GUARD_DURATION * 0.55f;
+                    } else {
+                        en.aiState = EnemyAIState.CHASE;
+                    }
                 }
             }
             case FLEE -> {
@@ -1293,7 +1322,13 @@ public final class GameSimulator {
                 }
             }
             case GUARD -> {
-                // Skeleton raises shield — stationary; blocks incoming melee (handled in stepCombat)
+                // Skeleton raises shield and back-steps while holding block.
+                if ("skeleton".equals(en.enemyType)) {
+                    float cx = en.physics.x + en.physics.width * 0.5f;
+                    en.facingRight = nearest[0] >= cx;
+                    float retreat = en.moveSpeed * SKELETON_GUARD_RETREAT_SPEED_MULT * DT;
+                    en.physics.x += en.facingRight ? -retreat : retreat;
+                }
                 en.guardTimer -= DT;
                 if (en.guardTimer <= 0) {
                     en.guardTimer = 0;
@@ -1406,8 +1441,10 @@ public final class GameSimulator {
                 );
                 if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
                                 hurt.x, hurt.y, hurt.w, hurt.h)) {
-                    // Skeleton in GUARD state blocks melee — takes no damage, guard drops after counter
-                    if (en.aiState == EnemyAIState.GUARD) continue;
+                    // Skeleton guard is directional: front-side attacks are blocked.
+                    if (isBlockedBySkeletonGuard(en, sp.physics.x + sp.physics.width * 0.5f)) {
+                        continue;
+                    }
                     if (en.takeDamage(SimPlayer.MELEE_DAMAGE)) spawnLoot(en);
                 }
             }
@@ -1503,19 +1540,29 @@ public final class GameSimulator {
     }
 
     private void spawnArcherProjectile(SimEnemy en, float targetX, float targetY) {
-        float sx = en.physics.x + en.physics.width  * 0.5f - SimShuriken.W * 0.5f;
-        float sy = en.physics.y + en.physics.height * 0.5f - SimShuriken.H * 0.5f;
-        float toX = targetX - (sx + SimShuriken.W * 0.5f);
-        float toY = targetY - (sy + SimShuriken.H * 0.5f);
+        float cx = en.physics.x + en.physics.width * 0.5f;
+        float cy = en.physics.y + en.physics.height * 0.42f;
+        float toX = targetX - cx;
+        float toY = targetY - cy;
         float len = (float) Math.sqrt(toX * toX + toY * toY);
 
         float vx, vy;
+        float dirX;
         if (len > 0.001f) {
-            vx = (toX / len) * ARCHER_PROJECTILE_SPEED;
+            dirX = toX / len;
+            vx = dirX * ARCHER_PROJECTILE_SPEED;
             vy = (toY / len) * ARCHER_PROJECTILE_SPEED;
         } else {
-            vx = en.facingRight ? ARCHER_PROJECTILE_SPEED : -ARCHER_PROJECTILE_SPEED;
+            dirX = en.facingRight ? 1f : -1f;
+            vx = dirX * ARCHER_PROJECTILE_SPEED;
             vy = 0f;
+        }
+
+        float sx = cx + dirX * (en.physics.width * 0.5f + SimShuriken.W * 0.5f + 4f) - SimShuriken.W * 0.5f;
+        float sy = cy - SimShuriken.H * 0.5f;
+        // Nudge spawn out of solid overlap so shots don't immediately pin to nearby tiles.
+        for (int i = 0; i < 5 && projectileOverlapsTile(sx, sy); i++) {
+            sx += dirX * 6f;
         }
 
         shurikens.add(new SimShuriken(
@@ -1528,6 +1575,60 @@ public final class GameSimulator {
             true,
             Math.max(1, en.baseDamage)
         ));
+    }
+
+    private void spawnBossProjectile(SimBoss boss, float targetX, float targetY, float speed, int damage) {
+        float cx = boss.physics.x + boss.physics.width * 0.5f;
+        float cy = boss.physics.y + boss.physics.height * 0.38f;
+        float toX = targetX - cx;
+        float toY = targetY - cy;
+        float len = (float) Math.sqrt(toX * toX + toY * toY);
+        float dirX = (len > 0.001f) ? (toX / len) : (boss.facingRight ? 1f : -1f);
+        float dirY = (len > 0.001f) ? (toY / len) : 0f;
+
+        float sx = cx + dirX * (boss.physics.width * 0.5f + SimShuriken.W * 0.5f + 6f) - SimShuriken.W * 0.5f;
+        float sy = cy - SimShuriken.H * 0.5f;
+        for (int i = 0; i < 6 && projectileOverlapsTile(sx, sy); i++) {
+            sx += dirX * 8f;
+        }
+
+        shurikens.add(new SimShuriken(
+            hubId + "_boss_shot_" + shurikenSeq++,
+            -2,
+            sx,
+            sy,
+            dirX * speed,
+            dirY * speed,
+            true,
+            Math.max(1, damage)
+        ));
+    }
+
+    private int countAliveEnemiesByType(String type) {
+        if (type == null || type.isBlank()) return 0;
+        int count = 0;
+        for (SimEnemy en : enemies) {
+            if (!en.isAlive()) continue;
+            if (type.equals(en.enemyType)) count++;
+        }
+        return count;
+    }
+
+    private void triggerSirenScriptedLoss() {
+        if (pendingScriptedLoss) return;
+        pendingScriptedLoss = true;
+        for (SimEnemy en : enemies) {
+            if (!"slime_red".equals(en.enemyType)) continue;
+            en.removed = true;
+            en.hp = 0;
+            en.aiState = EnemyAIState.DEAD;
+        }
+        for (SimPlayer p : players.values()) {
+            if (p.yinYang == null) continue;
+            p.yinYang.yin = 0f;
+            p.yinYang.yang = 0f;
+        }
+        if (hub != null) hub.onSirenDefeated();
     }
 
     private void spawnPendingShurikens() {
@@ -1589,7 +1690,10 @@ public final class GameSimulator {
                     );
                     if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
                                     hurt.x, hurt.y, hurt.w, hurt.h)) {
-                        if (en.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnLoot(en);
+                        float shotCx = s.x + SimShuriken.W * 0.5f;
+                        if (!isBlockedBySkeletonGuard(en, shotCx)) {
+                            if (en.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnLoot(en);
+                        }
                         s.stuck      = true;
                         s.stuckTimer = 0.1f;
                         break;
@@ -1789,9 +1893,11 @@ public final class GameSimulator {
             if (isNarrativeBoss) {
                 BossPatternLibrary.PatternContext ctx = new BossPatternLibrary.PatternContext(
                     players,
+                    enemies,
                     hub,
                     () -> pendingScriptedLoss = true,
-                    (type, x, y) -> spawnEnemyAt(type, x, y)
+                    (type, x, y) -> spawnEnemyAt(type, x, y),
+                    (b, tx, ty, speed, damage) -> spawnBossProjectile(b, tx, ty, speed, damage)
                 );
                 BossPatternLibrary.ServerEvent evt = BossPatternLibrary.tick(boss, ctx, DT);
                 if (evt == BossPatternLibrary.ServerEvent.SCRIPTED_LOSS)
@@ -1818,6 +1924,7 @@ public final class GameSimulator {
                     break;
                 }
             }
+            boss.clampToArena();
 
             // ── Boss → player damage (melee active window) ────────────────────
             if (boss.isMeleeActive() && nearestPlayer != null) {
@@ -1838,18 +1945,35 @@ public final class GameSimulator {
                 float halfH = SimPlayer.MELEE_HEIGHT * 0.5f;
                 float hbX   = sp.facing >= 0 ? cx2 : cx2 - reach;
                 float hbY   = cy2 - halfH;
+                boolean sirenShielded = boss.type == BossType.SIREN && countAliveEnemiesByType("slime_red") > 0;
                 if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
                                 boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height)) {
-                    if (boss.takeDamage(SimPlayer.MELEE_DAMAGE)) spawnBossLoot(boss);
+                    if (sirenShielded) continue;
+                    if (boss.takeDamage(SimPlayer.MELEE_DAMAGE)) {
+                        if (boss.type == BossType.SIREN) {
+                            triggerSirenScriptedLoss();
+                        } else {
+                            spawnBossLoot(boss);
+                        }
+                    }
                 }
             }
 
             // ── Shuriken → boss ───────────────────────────────────────────────
             for (SimShuriken s : shurikens) {
                 if (!s.alive || s.stuck) continue;
+                boolean sirenShielded = boss.type == BossType.SIREN && countAliveEnemiesByType("slime_red") > 0;
                 if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
                                 boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height)) {
-                    if (boss.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnBossLoot(boss);
+                    if (!sirenShielded) {
+                        if (boss.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) {
+                            if (boss.type == BossType.SIREN) {
+                                triggerSirenScriptedLoss();
+                            } else {
+                                spawnBossLoot(boss);
+                            }
+                        }
+                    }
                     s.stuck      = true;
                     s.stuckTimer = 0.1f;
                 }
@@ -1923,6 +2047,20 @@ public final class GameSimulator {
             && ay < by + bh && ay + ah > by;
     }
 
+    private boolean projectileOverlapsTile(float x, float y) {
+        var tiles = spatialHash.candidates(x, y, SimShuriken.W, SimShuriken.H);
+        for (var tile : tiles) {
+            if (tile.overlaps(x, y, SimShuriken.W, SimShuriken.H)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isBlockedBySkeletonGuard(SimEnemy enemy, float attackerCenterX) {
+        if (!"skeleton".equals(enemy.enemyType) || enemy.aiState != EnemyAIState.GUARD) return false;
+        float enemyCx = enemy.physics.x + enemy.physics.width * 0.5f;
+        return enemy.facingRight ? attackerCenterX >= enemyCx : attackerCenterX <= enemyCx;
+    }
+
     private void rebuildPlayerEntities() {
         // Remove all player-tagged entities then re-add from current players map
         for (com.indieniinja.core.Entity e : entityManager.byTag("player")) {
@@ -1961,11 +2099,18 @@ public final class GameSimulator {
             case "time_leech" -> new SimEnemy(hubId+"_tl_"+idx, "slime", x, y, 32, 32,
                                               2, 1, 80f, 160f, 32f,
                                               x - patrolHalf, x + patrolHalf, false);
+            case "slime_red" -> new SimEnemy(hubId+"_rs_"+idx, "slime_red", x, y, 40, 32,
+                                             5, 2, 68f, 180f, 44f,
+                                             x - patrolHalf, x + patrolHalf, false);
             default           -> new SimEnemy(hubId+"_dyn_"+idx, type, x, y, 32, 48,
                                               2, 1, 72f, 180f, 32f,
                                               x - patrolHalf, x + patrolHalf, false);
         };
         enemies.add(en);
+        if (!en.canFly) {
+            var entity = entityManager.create(com.indieniinja.core.EntityType.ENEMY, en.physics);
+            entity.addTag("enemy");
+        }
         log.debug("[M5] spawned {} at ({},{})", type, x, y);
     }
 

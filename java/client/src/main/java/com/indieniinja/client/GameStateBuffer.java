@@ -34,6 +34,8 @@ public final class GameStateBuffer {
     private volatile boolean connected      = false;
     /** Set by NetworkClientThread on WORLD_TRANSITION; consumed once by GameScreen. */
     private final AtomicBoolean pendingZoneTransition = new AtomicBoolean(false);
+    /** Set on SCRIPTED_LOSS; consumed once by GameScreen for narrative splash flow. */
+    private final AtomicBoolean pendingScriptedLoss = new AtomicBoolean(false);
     /** Set by NetworkClientThread on SERVER_HELLO; consumed once by GameScreen to set localSlot. */
     private final java.util.concurrent.atomic.AtomicInteger pendingLocalSlot =
         new java.util.concurrent.atomic.AtomicInteger(-1);
@@ -128,6 +130,10 @@ public final class GameStateBuffer {
     public boolean pollZoneTransition() {
         return pendingZoneTransition.getAndSet(false);
     }
+
+    public void markScriptedLoss() { pendingScriptedLoss.set(true); }
+
+    public boolean pollScriptedLoss() { return pendingScriptedLoss.getAndSet(false); }
 
     /** Called by NetworkClientThread when SERVER_HELLO carries a slot assignment. */
     public void setPendingLocalSlot(int slot) { pendingLocalSlot.set(slot); }

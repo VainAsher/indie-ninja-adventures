@@ -61,6 +61,11 @@ public final class HudRenderer {
     private static final float TOAST_FADE = 0.8f;   // start fading in final 0.8s
     private final java.util.List<String> toastTexts = new java.util.ArrayList<>();
     private final java.util.List<Float>  toastTtls  = new java.util.ArrayList<>();
+    // Scripted-loss splash continue button bounds (screen-space, y-up).
+    private float scriptedLossBtnX = 0f;
+    private float scriptedLossBtnY = 0f;
+    private float scriptedLossBtnW = 0f;
+    private float scriptedLossBtnH = 0f;
 
     public HudRenderer() {
         shapes    = new ShapeRenderer();
@@ -463,6 +468,81 @@ public final class HudRenderer {
         font.getData().setScale(1f);
         font.setColor(Color.WHITE);
         hudBatch.end();
+    }
+
+    public void renderScriptedLossOverlay() {
+        int sw = Gdx.graphics.getWidth();
+        int sh = Gdx.graphics.getHeight();
+        screenCam.setToOrtho(false, sw, sh);
+        screenCam.update();
+
+        float panelW = Math.min(sw * 0.72f, 760f);
+        float panelH = Math.min(sh * 0.58f, 420f);
+        float panelX = (sw - panelW) * 0.5f;
+        float panelY = (sh - panelH) * 0.5f;
+        scriptedLossBtnW = 210f;
+        scriptedLossBtnH = 46f;
+        scriptedLossBtnX = panelX + (panelW - scriptedLossBtnW) * 0.5f;
+        scriptedLossBtnY = panelY + 30f;
+
+        Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+            com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.setProjectionMatrix(screenCam.combined);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0f, 0f, 0f, 0.70f);
+        shapes.rect(0f, 0f, sw, sh);
+        shapes.setColor(0.10f, 0.08f, 0.16f, 0.92f);
+        shapes.rect(panelX, panelY, panelW, panelH);
+        shapes.setColor(0.95f, 0.85f, 0.25f, 0.95f);
+        shapes.rect(panelX, panelY + panelH - 6f, panelW, 6f);
+        shapes.setColor(0.16f, 0.22f, 0.34f, 1f);
+        shapes.rect(scriptedLossBtnX, scriptedLossBtnY, scriptedLossBtnW, scriptedLossBtnH);
+        shapes.end();
+
+        hudBatch.setProjectionMatrix(screenCam.combined);
+        hudBatch.begin();
+        float cx = sw * 0.5f;
+        font.getData().setScale(1.9f);
+        font.setColor(0.98f, 0.91f, 0.30f, 1f);
+        com.badlogic.gdx.graphics.g2d.GlyphLayout title =
+            new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, "FRACTURED BALANCE");
+        font.draw(hudBatch, title, cx - title.width * 0.5f, panelY + panelH - 34f);
+
+        font.getData().setScale(1f);
+        font.setColor(0.90f, 0.90f, 0.95f, 1f);
+        String[] lines = {
+            "The Siren's assault tears your Yin and Yang apart.",
+            "Your stance collapses and the room fades into silence.",
+            "You awaken at the edge of the ascent, forced to rebuild."
+        };
+        float textY = panelY + panelH - 92f;
+        for (String line : lines) {
+            com.badlogic.gdx.graphics.g2d.GlyphLayout gl =
+                new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, line);
+            font.draw(hudBatch, gl, cx - gl.width * 0.5f, textY);
+            textY -= 32f;
+        }
+
+        font.getData().setScale(1.1f);
+        font.setColor(0.96f, 0.97f, 1f, 1f);
+        com.badlogic.gdx.graphics.g2d.GlyphLayout cta =
+            new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, "CONTINUE");
+        font.draw(hudBatch, cta,
+            scriptedLossBtnX + (scriptedLossBtnW - cta.width) * 0.5f,
+            scriptedLossBtnY + scriptedLossBtnH * 0.64f);
+        font.getData().setScale(1f);
+        font.setColor(Color.WHITE);
+        hudBatch.end();
+    }
+
+    public boolean scriptedLossButtonHit(int screenX, int screenY) {
+        int sh = Gdx.graphics.getHeight();
+        float yUp = sh - screenY;
+        return screenX >= scriptedLossBtnX
+            && screenX <= scriptedLossBtnX + scriptedLossBtnW
+            && yUp >= scriptedLossBtnY
+            && yUp <= scriptedLossBtnY + scriptedLossBtnH;
     }
 
     public void dispose() {

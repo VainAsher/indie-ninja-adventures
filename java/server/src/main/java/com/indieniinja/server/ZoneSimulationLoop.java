@@ -316,6 +316,12 @@ public final class ZoneSimulationLoop implements Runnable {
 
         tickCount++;
         sim.step(inputs);
+        if (sim.drainPendingScriptedLoss()) {
+            broadcastEvent(MessageType.SCRIPTED_LOSS, java.util.Map.of(
+                "hub_id", zone.hubId,
+                "event", "siren_scripted_loss"
+            ));
+        }
 
         // Write authoritative physics results back to PlayerRecords for broadcast
         for (String pid : zone.playerIds) {
@@ -516,6 +522,29 @@ public final class ZoneSimulationLoop implements Runnable {
                     }
                 });
             }
+        }
+    }
+
+    private void broadcastEvent(String messageType, java.util.Map<String, Object> payload) {
+        List<PlayerRecord> zonePlayers = playersInZone();
+        if (zonePlayers.isEmpty()) return;
+        byte[] encoded;
+        try {
+            encoded = WireCodec.encodeBody(messageType, payload);
+        } catch (Exception ex) {
+            log.error("[Zone {}] event encode error ({}): {}", zone.hubId, messageType, ex.getMessage());
+            return;
+        }
+        for (PlayerRecord p : zonePlayers) {
+            Channel ch = p.channel;
+            if (ch == null || !ch.isActive()) continue;
+            ByteBuf buf = Unpooled.wrappedBuffer(encoded);
+            ch.writeAndFlush(buf).addListener(f -> {
+                if (!f.isSuccess()) {
+                    log.warn("[Zone {}] event write failed for {}: {}",
+                        zone.hubId, p.playerId, f.cause().getMessage());
+                }
+            });
         }
     }
 

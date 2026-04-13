@@ -73,7 +73,7 @@ public final class EntityRenderer {
     private static int[] enemySize(String enemyType) {
         return switch (enemyType) {
             case "bat"                 -> new int[]{28, 28};
-            case "slime"               -> new int[]{134, 101};
+            case "slime", "slime_red"  -> new int[]{134, 101};
             case "goblin", "swordsman" -> new int[]{134, 101};
             case "skeleton"            -> new int[]{134, 101};
             case "spearman"            -> new int[]{134, 101};
@@ -90,7 +90,7 @@ public final class EntityRenderer {
     private static int enemyPhysicsH(String enemyType) {
         return switch (enemyType) {
             case "bat"                 -> 28;
-            case "slime"               -> 32;
+            case "slime", "slime_red"  -> 32;
             case "skeleton"            -> 56;
             case "spearman"            -> 52;
             case "goblin", "swordsman",
@@ -103,7 +103,7 @@ public final class EntityRenderer {
     private static int enemyPhysicsW(String enemyType) {
         return switch (enemyType) {
             case "bat"      -> 28;
-            case "slime"    -> 40;
+            case "slime", "slime_red" -> 40;
             case "skeleton" -> 32;
             case "spearman" -> 36;
             case "goblin", "swordsman", "archer" -> 32;
@@ -123,6 +123,11 @@ public final class EntityRenderer {
             case "archer"              -> spriteW * 0.56f;
             default                    -> spriteW * 0.50f;
         };
+        if ("goblin".equals(enemyType) || "swordsman".equals(enemyType)) {
+            // Greatsword sheets are heavily padded behind the body; keep a fixed
+            // body anchor to avoid left/right mirroring drift in gameplay hitbox alignment.
+            return anchorUnflipped;
+        }
         return facingRight ? anchorUnflipped : (spriteW - anchorUnflipped);
     }
 
@@ -171,11 +176,13 @@ public final class EntityRenderer {
             case "skeleton.stunned"                           -> 8f;
             case "skeleton.dead"                              -> 8f;
             // slime (multi-hit melee)
-            case "slime.idle"                                              -> 6f;
-            case "slime.patrol", "slime.chase", "slime.flee"               -> 8f;
-            case "slime.attack", "slime.attack_b", "slime.attack_c"        -> 10f;
-            case "slime.stunned"                                           -> 8f;
-            case "slime.dead"                                              -> 8f;
+            case "slime.idle", "slime_red.idle"                                              -> 6f;
+            case "slime.patrol", "slime.chase", "slime.flee",
+                 "slime_red.patrol", "slime_red.chase", "slime_red.flee"                     -> 8f;
+            case "slime.attack", "slime.attack_b", "slime.attack_c",
+                 "slime_red.attack", "slime_red.attack_b", "slime_red.attack_c"              -> 10f;
+            case "slime.stunned", "slime_red.stunned"                                         -> 8f;
+            case "slime.dead", "slime_red.dead"                                               -> 8f;
             // spearman (skeleton with spear)
             case "spearman.idle"                             -> 6f;
             case "spearman.patrol"                           -> 8f;
@@ -400,6 +407,7 @@ public final class EntityRenderer {
         String typePrefix = (e.enemyType != null && !e.enemyType.isEmpty())
             ? e.enemyType
             : derivePrefixFromId(e.enemyId);
+        String animType = "slime_red".equals(typePrefix) ? "slime" : typePrefix;
 
         boolean isDead = "dead".equals(e.aiState);
 
@@ -416,7 +424,7 @@ public final class EntityRenderer {
             // Accumulate death timer; clamp frame to last so it holds
             float elapsed = deathTimers.getOrDefault(e.enemyId, 0f) + dt;
             deathTimers.put(e.enemyId, elapsed);
-            String deadKey = "enemy_" + typePrefix + "_dead";
+            String deadKey = "enemy_" + animType + "_dead";
             float fps = enemyFps(typePrefix, "dead");
             TextureRegion frame = anims.getFrameClamped(deadKey, elapsed, fps);
             boolean wantFlip = !e.facingRight;
@@ -429,7 +437,7 @@ public final class EntityRenderer {
         // Living enemy — remove stale death timer if it somehow lingers
         deathTimers.remove(e.enemyId);
 
-        String animKey = "enemy_" + typePrefix + "_" + (e.aiState != null ? e.aiState : "idle");
+        String animKey = "enemy_" + animType + "_" + (e.aiState != null ? e.aiState : "idle");
         float stateTime = tickStateTime(e.enemyId, animKey, dt);
         TextureRegion frame = anims.getFrame(animKey, stateTime, enemyFps(typePrefix, e.aiState != null ? e.aiState : "idle"));
 
@@ -437,7 +445,13 @@ public final class EntityRenderer {
         boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();
         if (needEnemyChange) frame.flip(true, false);
 
+        if ("slime_red".equals(typePrefix)) {
+            batch.setColor(1f, 0.55f, 0.55f, 1f);
+        }
         batch.draw(frame, drawX, drawY, sz[0], sz[1]);
+        if ("slime_red".equals(typePrefix)) {
+            batch.setColor(Color.WHITE);
+        }
 
         if (needEnemyChange) frame.flip(true, false);
 

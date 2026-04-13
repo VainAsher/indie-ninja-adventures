@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-13 21:44:57 +01:00 | **Codebase version:** v0.11.28 | **Next release target:** v0.11.29 (M6 echo trigger zones + puzzle hooks)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-13 22:47:26 +01:00 | **Codebase version:** v0.11.29 | **Next release target:** v0.11.30 (follow-up enemy traversal + stance-system implementation pass)
 
 ---
 
@@ -29,6 +29,24 @@ Every implementation cycle must follow this exact order:
 - Plan updates happen each loop, not only at milestone boundaries.
 - Unknown scope discovered mid-loop becomes a new checklist row, not ad-hoc drift.
 - All plan updates and loop notes must use full timestamps: `YYYY-MM-DD HH:mm:ss ±HH:MM` (not date-only).
+
+### Latest loop note
+
+`2026-04-13 22:41:01 +01:00`
+
+- Implemented enemy/platform reliability pass:
+  - one-way platform landing regression fix for stacked platform/terrain layouts
+  - enemy AI now updates before physics tick so horizontal intent is collision-resolved same frame
+  - archer kiting/range-reposition behavior tuned to avoid melee-style pressure
+  - skeleton shield bearer now uses directional guard checks and retreating guard posture
+- Implemented first-boss rewrite baseline:
+  - Siren now runs a 3-phase combat pattern (ranged -> ranged+teleport -> volley bursts)
+  - phase-based red-slime add waves (`slime_red`) spawn within boss-room bounds
+  - boss-room confinement clamp added for boss movement
+  - scripted-loss message now broadcasts end-to-end (sim -> server -> client) with continue-overlay handling
+- Follow-up required in next loop:
+  - finalize slime wall-crawl behavior (all-side surface traversal) as dedicated movement system
+  - tune Siren vulnerability window and add-wave pacing via playtest metrics
 
 ### Branch and commit format
 
@@ -81,7 +99,7 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | [ ] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
 | [ ] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
 | [ ] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
-| [ ] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
+| [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
 | [ ] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
 | [ ] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
 | [ ] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |

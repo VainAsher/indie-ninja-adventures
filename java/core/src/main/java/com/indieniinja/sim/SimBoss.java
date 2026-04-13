@@ -1,5 +1,6 @@
 package com.indieniinja.sim;
 
+import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.physics.PhysicsState;
 
 /**
@@ -73,6 +74,16 @@ public final class SimBoss {
     // ── Shadow Ascent M5 pattern fields ──────────────────────────────────────
     /** Siren: set to true when the scripted loss has fired (prevents double-trigger). */
     public boolean scriptedLossTriggered = false;
+    /** Siren: last phase number whose add-wave has already spawned. */
+    public int sirenAddsPhaseSpawned = 0;
+    /** Siren: cooldown until next short-range teleport (phase 2+). */
+    public float sirenTeleportCooldown = 0f;
+    /** Siren: pending shots in phase-3 burst volley. */
+    public int sirenVolleyShotsRemaining = 0;
+    /** Siren: timer between shots in a burst volley. */
+    public float sirenVolleyTimer = 0f;
+    /** Siren: vulnerability timer after add-wave clear. */
+    public float sirenVulnerableTimer = 0f;
     /** Echo Warden: ring buffer of recent player X positions for mirror movement. */
     public java.util.Deque<Float> echoBuffer = null;
     /** Time Leech Lord: countdown until next minion spawn. */
@@ -81,6 +92,12 @@ public final class SimBoss {
     public boolean speedBurstActive = false;
     /** Memory Eater: set to true when a phase change triggers platform reset. */
     public boolean platformReset = false;
+
+    // Boss-room confinement bounds (world-space AABB origin limits for this boss body).
+    public final float arenaMinX;
+    public final float arenaMaxX;
+    public final float arenaMinY;
+    public final float arenaMaxY;
 
     // ── Speed multiplier — increases each phase ───────────────────────────────
     private float speedMult = 1.0f;
@@ -91,6 +108,15 @@ public final class SimBoss {
         this.maxHp   = type.maxHp;
         this.hp      = maxHp;
         this.physics = new PhysicsState(spawnX, spawnY, type.width(), type.height());
+
+        float roomW = PhysicsConstants.ROOM_WIDTH_TILES * PhysicsConstants.TILE_SIZE;
+        float roomH = PhysicsConstants.ROOM_HEIGHT_TILES * PhysicsConstants.TILE_SIZE;
+        float roomLeft = (float) Math.floor(spawnX / roomW) * roomW;
+        float roomTop  = (float) Math.floor(spawnY / roomH) * roomH;
+        this.arenaMinX = roomLeft + 32f;
+        this.arenaMaxX = roomLeft + roomW - type.width() - 32f;
+        this.arenaMinY = roomTop + 24f;
+        this.arenaMaxY = roomTop + roomH - type.height() - 24f;
     }
 
     // ── Public accessors ──────────────────────────────────────────────────────
@@ -108,6 +134,11 @@ public final class SimBoss {
     public boolean isAlive() { return hp > 0 && !removed; }
 
     public String phaseWire() { return "phase_" + phaseNumber; }
+
+    public void clampToArena() {
+        physics.x = Math.max(arenaMinX, Math.min(arenaMaxX, physics.x));
+        physics.y = Math.max(arenaMinY, Math.min(arenaMaxY, physics.y));
+    }
 
     /**
      * Apply damage. Returns true if the boss died.
@@ -272,9 +303,15 @@ public final class SimBoss {
 
     private void checkPhaseTransition() {
         int targetPhase = phaseNumber;
-        if      (hpRatio() <= PHASE4_RATIO && phaseNumber < 4) targetPhase = 4;
-        else if (hpRatio() <= PHASE3_RATIO && phaseNumber < 3) targetPhase = 3;
-        else if (hpRatio() <= PHASE2_RATIO && phaseNumber < 2) targetPhase = 2;
+        if (type == BossType.SIREN) {
+            // First boss now uses a 3-phase structure.
+            if      (hpRatio() <= 0.34f && phaseNumber < 3) targetPhase = 3;
+            else if (hpRatio() <= 0.67f && phaseNumber < 2) targetPhase = 2;
+        } else {
+            if      (hpRatio() <= PHASE4_RATIO && phaseNumber < 4) targetPhase = 4;
+            else if (hpRatio() <= PHASE3_RATIO && phaseNumber < 3) targetPhase = 3;
+            else if (hpRatio() <= PHASE2_RATIO && phaseNumber < 2) targetPhase = 2;
+        }
 
         if (targetPhase > phaseNumber) {
             pendingPhase = targetPhase;

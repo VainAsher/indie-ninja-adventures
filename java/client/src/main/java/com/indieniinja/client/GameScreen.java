@@ -102,6 +102,7 @@ public final class GameScreen implements Screen {
     // ── Pause overlay ─────────────────────────────────────────────────────────
     private PauseScreen pauseScreen;
     private boolean     paused = false;
+    private boolean     scriptedLossOverlay = false;
 
     // ── Campaign / missions / dialogue / save ─────────────────────────────────
     private StoryManager    storyManager;
@@ -378,17 +379,27 @@ public final class GameScreen implements Screen {
             log.info("[GameScreen] Local slot assigned: {}", pendingSlot);
             localSlot = pendingSlot;
         }
+        if (stateBuffer.pollScriptedLoss()) {
+            scriptedLossOverlay = true;
+        }
+        boolean scriptedLossConsumed = handleScriptedLossOverlayInput();
 
         // ── Overlay input priority: crafting > shop > inventory > dialogue > game
         // Use prevSnap (last frame's snapshot) since this frame's snap hasn't been polled yet.
         PlayerState prevLocal = prevSnap == null ? null : prevSnap.players.stream()
             .filter(p -> p.slot == localSlot).findFirst().orElse(null);
-        boolean craftConsumed = craftingOverlay.handleInputAndRender(batch, prevLocal, delta);
-        boolean shopConsumed  = !craftConsumed && shopOverlay.handleInput(prevLocal);
-        boolean invConsumed   = !craftConsumed && !shopConsumed && inventoryOverlay.handleInput();
+        boolean craftConsumed = false;
+        boolean shopConsumed  = false;
+        boolean invConsumed   = false;
+        if (!scriptedLossConsumed) {
+            craftConsumed = craftingOverlay.handleInputAndRender(batch, prevLocal, delta);
+            shopConsumed  = !craftConsumed && shopOverlay.handleInput(prevLocal);
+            invConsumed   = !craftConsumed && !shopConsumed && inventoryOverlay.handleInput();
+        }
 
         // ── Dialogue input (consumes keys when dialogue is open) ─────────────
-        boolean dialogueConsumed = !shopConsumed && !invConsumed && dialogueOverlay.handleInput();
+        boolean dialogueConsumed = !scriptedLossConsumed
+            && !shopConsumed && !invConsumed && dialogueOverlay.handleInput();
 
         // ── I key: toggle inventory (when no other overlay active) ────────────
         if (!shopConsumed && !invConsumed && !dialogueConsumed && !paused
@@ -401,7 +412,7 @@ public final class GameScreen implements Screen {
         }
 
         // ── ESC toggles pause (only when no overlay active) ───────────────────
-        boolean anyOverlay = craftConsumed || shopConsumed || invConsumed || dialogueConsumed;
+        boolean anyOverlay = scriptedLossConsumed || craftConsumed || shopConsumed || invConsumed || dialogueConsumed;
 
         // ── H key: toggle hitbox debug overlay ───────────────────────────────
         if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.H)) {
@@ -411,7 +422,7 @@ public final class GameScreen implements Screen {
             if (paused) resume(); else pause();
         }
 
-        if (!paused && !dialogueConsumed) {
+        if (!paused && !dialogueConsumed && !scriptedLossConsumed) {
             accumulator += delta;
             while (accumulator >= PHYSICS_DT) {
                 InputCommand cmd = inputPoller.poll();
@@ -419,6 +430,9 @@ public final class GameScreen implements Screen {
                     // Offline: step local sim directly and push snapshot to stateBuffer.
                     if (soloRecorder.isRecording()) soloRecorder.record(localFrame, 0, cmd);
                     localSim.step(java.util.Map.of(0, cmd));
+                    if (localSim.drainPendingScriptedLoss()) {
+                        stateBuffer.markScriptedLoss();
+                    }
                     com.indieniinja.network.WorldSnapshot soloSnap = localSim.getSnapshot(localFrame++);
                     stampSoloFields(soloSnap);
                     stateBuffer.update(soloSnap);
@@ -757,6 +771,10 @@ public final class GameScreen implements Screen {
             }
         }
 
+        if (scriptedLossOverlay) {
+            hudRenderer.renderScriptedLossOverlay();
+        }
+
         // ── Pause overlay (rendered on top) ───────────────────────────────────
         if (paused) {
             pauseScreen.render(delta);
@@ -764,6 +782,21 @@ public final class GameScreen implements Screen {
 
         // ── Persist snapshot for next frame's overlay input handling ──────────
         if (snap != null) prevSnap = snap;
+    }
+
+    private boolean handleScriptedLossOverlayInput() {
+        if (!scriptedLossOverlay) return false;
+        boolean continuePressed =
+            Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+                || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
+                || (Gdx.input.justTouched()
+                    && hudRenderer.scriptedLossButtonHit(Gdx.input.getX(), Gdx.input.getY()));
+        if (continuePressed) {
+            scriptedLossOverlay = false;
+            storyManager.onVeilMaidenDefeatedAct1();
+            dialogueManager.setStoryContext(storyManager.toConditionContext());
+        }
+        return true;
     }
 
     // ── Solo-mode helpers ─────────────────────────────────────────────────────

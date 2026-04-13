@@ -29,7 +29,7 @@ public final class EnemyAttackGeometry {
     public static float defaultAttackRange(String enemyType) {
         return switch (normalizeType(enemyType)) {
             case "bat"      -> 28f;
-            case "slime"    -> 40f;
+            case "slime", "slime_red" -> 40f;
             case "skeleton" -> 64f * SKELETON_RANGE_MULT;
             case "spearman" -> 80f;
             case "archer"   -> 200f;
@@ -57,7 +57,7 @@ public final class EnemyAttackGeometry {
                 forwardThrust(bodyX, bodyY, bodyW, bodyH, Math.max(attackRange, 88f), facingRight, 0.55f);
             case "archer" ->
                 forwardThrust(bodyX, bodyY, bodyW, bodyH, 36f, facingRight, 0.60f);
-            case "slime" ->
+            case "slime", "slime_red" ->
                 slimeBodyLengthLunge(bodyX, bodyY, bodyW, bodyH, attackRange, facingRight);
             case "bat" ->
                 forwardThrust(bodyX, bodyY, bodyW, bodyH, 28f, facingRight, 0.70f);
@@ -117,7 +117,7 @@ public final class EnemyAttackGeometry {
                 w = bodyW * 1.20f;
                 h = bodyH * 1.20f;
             }
-            case "slime" -> {
+            case "slime", "slime_red" -> {
                 w = bodyW * 1.15f;
                 h = bodyH * 1.10f;
             }
@@ -183,9 +183,9 @@ public final class EnemyAttackGeometry {
     private static Rect slimeBodyLengthLunge(float bodyX, float bodyY, float bodyW, float bodyH,
                                              float attackRange, boolean facingRight) {
         float reach = Math.max(attackRange, bodyW);
-        float h = Math.max(22f, bodyH * 0.90f);
+        float h = Math.max(20f, bodyH * 0.78f);
         float x = facingRight ? bodyX + bodyW : bodyX - reach;
-        float y = bodyY + bodyH * 0.08f;
+        float y = bodyY + bodyH * 0.22f;
         return new Rect(x, y, reach, h);
     }
 

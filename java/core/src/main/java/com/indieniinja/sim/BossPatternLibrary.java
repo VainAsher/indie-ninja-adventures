@@ -54,26 +54,38 @@ public final class BossPatternLibrary {
     /** Everything a pattern needs to read or write during a tick. */
     public static final class PatternContext {
         public final Map<Integer, SimPlayer> players;
+        public final java.util.List<SimEnemy> enemies;
         public final HubStateMachine         hub;
         /** Called to broadcast a SCRIPTED_LOSS message to all clients. */
         public final Runnable                broadcastScriptedLoss;
         /** Called to spawn a time_leech enemy near a world position. */
         public final SpawnRequest            spawnEnemy;
+        /** Called to fire a boss projectile toward a target point. */
+        public final ProjectileRequest       fireProjectile;
 
         public PatternContext(Map<Integer, SimPlayer> players,
+                              java.util.List<SimEnemy> enemies,
                               HubStateMachine hub,
                               Runnable broadcastScriptedLoss,
-                              SpawnRequest spawnEnemy) {
+                              SpawnRequest spawnEnemy,
+                              ProjectileRequest fireProjectile) {
             this.players             = players;
+            this.enemies             = enemies;
             this.hub                 = hub;
             this.broadcastScriptedLoss = broadcastScriptedLoss;
             this.spawnEnemy          = spawnEnemy;
+            this.fireProjectile      = fireProjectile;
         }
     }
 
     @FunctionalInterface
     public interface SpawnRequest {
         void spawn(String enemyType, float x, float y);
+    }
+
+    @FunctionalInterface
+    public interface ProjectileRequest {
+        void fire(SimBoss boss, float targetX, float targetY, float speed, int damage);
     }
 
     // ── Server event ─────────────────────────────────────────────────────────
@@ -84,54 +96,123 @@ public final class BossPatternLibrary {
     // Pattern 1 — Siren: Scripted Loss (Act II)
     // ─────────────────────────────────────────────────────────────────────────
     /**
-     * The Siren is not a fight.
+     * Campaign first-boss rewrite:
+     *   Phase 1 - archer-style standoff and single projectile fire.
+     *   Phase 2 - adds short-range teleport repositioning.
+     *   Phase 3 - upgrades attacks into 3-shot volleys.
      *
-     * Phase 1: Siren appears in IDLE state, begins a brief "song sequence"
-     *          (dialogue timer).  Player attacks deal 0 damage.
-     * Phase 2: After SIREN_SONG_DURATION seconds, the sequence completes:
-     *   - Server zeros all player Yin + Yang
-     *   - HubStateMachine.onSirenDefeated() → hub transitions to EMPTY
-     *   - SCRIPTED_LOSS event broadcast → clients play collapse animation
-     * Phase 3: Siren despawns.
-     *
-     * Psychological theme: scripted loss — the player cannot win this fight.
-     * The "defeat" is the narrative point.
+     * Each phase spawns red-tinted slime adds in the boss room. Boss damage
+     * windows are expected to open only after that wave is cleared.
      */
     private static final class ScriptedLossPattern {
 
-        private static final float SIREN_SONG_DURATION = 6.0f; // seconds of "dialogue"
+        private static final float PHASE1_MIN_RANGE = 220f;
+        private static final float PHASE1_MAX_RANGE = 360f;
+        private static final float PHASE2_MIN_RANGE = 180f;
+        private static final float PHASE2_MAX_RANGE = 320f;
+        private static final float PROJECTILE_SPEED = SimPlayer.SHURIKEN_SPEED * 0.95f;
+        private static final float TELEPORT_COOLDOWN = 3.0f;
+        private static final float VOLLEY_INTERVAL = 0.22f;
 
         static ServerEvent tick(SimBoss boss, PatternContext ctx, float dt) {
-            // Siren is permanently invincible — override HP if takeDamage was called
-            boss.hp = Math.max(1, boss.hp);
+            SimPlayer target = nearestAlivePlayer(boss, ctx);
+            if (target == null) return null;
 
-            // Advance song timer using boss.stateTimer (reused field)
-            boss.stateTimer += dt;
+            boss.tickInvincibility();
+            if (boss.attackCooldown > 0f) boss.attackCooldown -= dt;
+            if (boss.sirenTeleportCooldown > 0f) boss.sirenTeleportCooldown -= dt;
+            if (boss.sirenVulnerableTimer > 0f) boss.sirenVulnerableTimer -= dt;
 
-            if (boss.stateTimer >= SIREN_SONG_DURATION && !boss.scriptedLossTriggered) {
-                boss.scriptedLossTriggered = true;
-                log.info("[Siren] scripted loss sequence complete — stripping Yin/Yang");
+            int phase = Math.max(1, Math.min(3, boss.phaseNumber));
+            if (boss.sirenAddsPhaseSpawned < phase) {
+                spawnSirenAddsForPhase(boss, ctx, phase);
+                boss.sirenAddsPhaseSpawned = phase;
+                boss.sirenVulnerableTimer = 0f;
+            }
 
-                // Zero all player Yin/Yang
-                for (SimPlayer p : ctx.players.values()) {
-                    if (p.yinYang != null) {
-                        p.yinYang.yin  = 0f;
-                        p.yinYang.yang = 0f;
-                    }
+            // Keep the boss in a ranged pressure band.
+            float bossCx = boss.physics.x + boss.physics.width * 0.5f;
+            float bossCy = boss.physics.y + boss.physics.height * 0.5f;
+            float tx = target.physics.x + target.physics.width * 0.5f;
+            float ty = target.physics.y + target.physics.height * 0.5f;
+            float dx = tx - bossCx;
+            float absDx = Math.abs(dx);
+            float speed = boss.type.moveSpeed * dt;
+            float minRange = phase >= 2 ? PHASE2_MIN_RANGE : PHASE1_MIN_RANGE;
+            float maxRange = phase >= 2 ? PHASE2_MAX_RANGE : PHASE1_MAX_RANGE;
+
+            // Phase 2+ teleport to force directional swaps.
+            if (phase >= 2 && boss.sirenTeleportCooldown <= 0f && absDx < minRange * 1.25f) {
+                float teleportDir = dx >= 0f ? -1f : 1f;
+                float jump = 140f + phase * 26f;
+                float dstX = boss.physics.x + teleportDir * jump;
+                boss.physics.x = Math.max(boss.arenaMinX, Math.min(boss.arenaMaxX, dstX));
+                boss.sirenTeleportCooldown = TELEPORT_COOLDOWN;
+            } else {
+                if (absDx < minRange) {
+                    boss.physics.x += (dx >= 0f ? -1f : 1f) * speed;
+                } else if (absDx > maxRange) {
+                    boss.physics.x += (dx >= 0f ? 1f : -1f) * speed;
                 }
+            }
 
-                // Hub collapses
-                if (ctx.hub != null) ctx.hub.onSirenDefeated();
+            boss.facingRight = tx >= boss.physics.x + boss.physics.width * 0.5f;
+            boss.clampToArena();
 
-                // Signal caller to broadcast SCRIPTED_LOSS
-                if (ctx.broadcastScriptedLoss != null) ctx.broadcastScriptedLoss.run();
+            // Phase 3 bursts: fire 3-shot volley with short cadence.
+            if (boss.sirenVolleyShotsRemaining > 0) {
+                boss.aiState = BossAIState.ATTACK_RANGED;
+                boss.sirenVolleyTimer -= dt;
+                if (boss.sirenVolleyTimer <= 0f) {
+                    float spread = (boss.sirenVolleyShotsRemaining - 2) * 26f;
+                    if (ctx.fireProjectile != null) {
+                        ctx.fireProjectile.fire(boss, tx + spread, ty, PROJECTILE_SPEED, boss.type.baseDamage + 1);
+                    }
+                    boss.sirenVolleyShotsRemaining--;
+                    boss.sirenVolleyTimer = VOLLEY_INTERVAL;
+                }
+                return null;
+            }
 
-                // Despawn siren
-                boss.hp = 0;
-
-                return ServerEvent.SCRIPTED_LOSS;
+            if (boss.attackCooldown <= 0f) {
+                if (phase == 3) {
+                    boss.sirenVolleyShotsRemaining = 3;
+                    boss.sirenVolleyTimer = 0f;
+                    boss.attackCooldown = 1.95f;
+                    boss.aiState = BossAIState.ATTACK_RANGED;
+                } else {
+                    if (ctx.fireProjectile != null) {
+                        ctx.fireProjectile.fire(boss, tx, ty, PROJECTILE_SPEED, boss.type.baseDamage + (phase >= 2 ? 1 : 0));
+                    }
+                    boss.attackCooldown = (phase == 1) ? 1.70f : 1.35f;
+                    boss.aiState = BossAIState.ATTACK_RANGED;
+                }
+            } else {
+                boss.aiState = BossAIState.MOVE;
             }
             return null;
+        }
+
+        private static void spawnSirenAddsForPhase(SimBoss boss, PatternContext ctx, int phase) {
+            if (ctx.spawnEnemy == null) return;
+
+            int extraMax = phase * 2;
+            int seed = Math.abs(boss.bossId.hashCode() * 31 + phase * 97);
+            int extra = seed % (extraMax + 1);
+            int addCount = phase * 3 + extra; // [phase*3, phase*5]
+            float cx = boss.physics.x + boss.physics.width * 0.5f;
+            float cy = boss.physics.y + boss.physics.height * 0.5f;
+
+            for (int i = 0; i < addCount; i++) {
+                double a = (Math.PI * 2.0 * i) / Math.max(1, addCount);
+                float r = 96f + (i % 4) * 28f;
+                float sx = cx + (float) Math.cos(a) * r;
+                float sy = cy + (float) Math.sin(a) * (r * 0.35f);
+                sx = Math.max(boss.arenaMinX, Math.min(boss.arenaMaxX, sx));
+                sy = Math.max(boss.arenaMinY, Math.min(boss.arenaMaxY, sy));
+                ctx.spawnEnemy.spawn("slime_red", sx, sy);
+            }
+            log.info("[Siren] phase {} add wave spawned: {}", phase, addCount);
         }
     }
 

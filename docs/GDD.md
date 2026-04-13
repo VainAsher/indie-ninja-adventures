@@ -83,9 +83,28 @@ A 2D narrative-driven platformer where players embody a disgraced ninja who has 
 * Climbing and movement mastery as growth
 * Loss, rebuilding, and self-reclamation
 
+### 1.4 Design Realignment Addendum (`2026-04-13 22:41:01 +01:00`)
+
+This addendum realigns Shadow Ascent toward a stance-driven mastery loop without
+rewriting narrative structure.
+
+#### Updated Pillar Structure
+
+* Movement mastery
+* Yin/Yang stance gameplay
+* Balance-driven Flow state
+* Echo time-clone integration
+* Stance-expressive phase teleport
+* Lantern as mastery amplifier
+* Gear-driven playstyle expression
+
+This shifts gameplay from static stat bonuses toward intentional style switching.
+
 ---
 
 # 2. CORE GAME LOOP
+
+### 2.1 Meta loop (hub progression)
 
 1. Enter Hub
 2. Accept mission / access level
@@ -95,6 +114,17 @@ A 2D narrative-driven platformer where players embody a disgraced ninja who has 
 6. Hub evolves (NPCs added/removed, areas unlocked)
 7. Unlock new abilities / pathways
 8. Repeat
+
+### 2.2 Moment-to-moment loop (stance and Flow)
+
+1. Enter room
+2. Choose a Yin or Yang approach
+3. Execute stance-specific movement/combat actions
+4. Drift toward imbalance
+5. Rebalance via opposite stance actions
+6. Trigger temporary Flow window
+7. Exploit Flow for traversal/combat burst
+8. Return toward neutral and repeat
 
 ---
 
@@ -116,41 +146,56 @@ Movement evolves over time to reflect mastery and emotional stability.
 * Defensive/parry abilities
 * Limited enemy focus (platforming-first design)
 
-## 3.3 Yin & Yang System
+## 3.3 Yin & Yang System (Stance Model)
 
-### Yin (Emotion)
+Yin and Yang are not passive meters; they are active stances with distinct feel.
 
-* Reveals hidden platforms
-* Slows time perception
-* Enhances environmental awareness
+### Yin Stance (Control / Stealth)
 
-### Yang (Discipline)
+* Quiet movement profile
+* Safer setup and positioning tools
+* Puzzle-first and avoidance-first options
+* Precision-focused movement handling
 
-* Increases attack strength
-* Improves movement precision
-* Reduces stamina drain
+### Yang Stance (Aggression / Action)
 
-### Balance State
+* Higher offensive pressure and commit speed
+* Faster burst movement options
+* Break-through and direct-engagement behavior
+* Louder, riskier play profile
 
-* Unlocks “Flow Mode”
-* Smooth animation blending
-* Enhanced traversal + combat
+### Balance and Flow State
 
-## 3.4 Lantern System (Mental State)
+Flow is triggered by balanced recent action usage, not static stat stacking.
 
-* Acts as global modifier
+* Movement gains: smoother acceleration, cleaner chaining, reduced friction
+* Combat gains: faster recovery, reduced action tax, stronger aerial control
+* Traversal gains: stronger dash/teleport consistency and forgiveness
+
+Flow is short, skill-earned, and must be maintained through continued rebalance.
+
+## 3.4 Lantern System (Mastery Amplifier)
+
+Lantern remains the emotional clarity axis but now scales systemic mastery effects.
 
 Low Lantern:
 
-* Darkened world
-* Missing platforms
-* Reduced control
+* Short Flow windows
+* Weaker Flow bonuses
+* Less stable Echo/teleport execution
+
+Mid Lantern:
+
+* Baseline Flow duration and reliability
+* Stable Echo utility
 
 High Lantern:
 
-* Clear pathways
-* Extended jumps
-* Environmental assistance
+* Extended Flow windows
+* Stronger Flow amplification
+* Highest teleport precision and Echo stability
+
+Lantern does not replace stance play; it amplifies successful stance balancing.
 
 ---
 

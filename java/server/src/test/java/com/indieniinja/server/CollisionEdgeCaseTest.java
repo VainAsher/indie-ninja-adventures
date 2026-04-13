@@ -113,6 +113,27 @@ class CollisionEdgeCaseTest {
         assertThat(p.vy).isLessThan(0f);   // still rising (or at least not zeroed)
     }
 
+    @Test
+    void stackedPlatformAboveSolidDoesNotSnapEntityUpward() {
+        // Repro case: one-way platform directly above solid terrain.
+        // Entity overlapping both tiles should resolve to the solid floor, not pop up
+        // onto the one-way platform from below.
+        SpatialHash hash = new SpatialHash();
+        TileRect platform = new TileRect(50, 288, 220, 32, true);
+        TileRect floor = new TileRect(50, 320, 220, 32, false);
+        hash.insert(platform);
+        hash.insert(floor);
+
+        PhysicsState p = new PhysicsState(100, 262, 28, 56);
+        p.vy = 4f;
+        Sim sim = buildSim(p, hash);
+        tick(sim, 0);
+
+        assertThat(p.onGround).isTrue();
+        assertThat(p.y).isCloseTo(floor.y() - p.height, within(1f));
+        assertThat(p.y).isGreaterThan(250f);
+    }
+
     // ── PHYS-3: water drag caps vy and sets inWater ───────────────────────────
 
     @Test
