@@ -1,221 +1,282 @@
-# Shadow Ascent — Player Expectations Guide
-## Living Document: What Works, What to Expect, How to Test
+# Shadow Ascent - Launcher-Only Player Expectations and UX Test Guide
+## Living Playtest Document for User-Experience, Design-Intent, and Balance Validation
 
-**Current version:** v0.11.12 | **Last updated:** 2026-04-12
-**How to start:** Launch the game using the launcher application (launcher.exe / launcher shortcut)
-
----
-
-## Quick Status: What's Playable Right Now
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Solo mode (no server) | **Working** | Select "Solo" on mode select screen |
-| Campaign/Multiplayer | **Working** | Requires server running |
-| Yin/Yang system | **Working** | Bars visible in HUD bottom-left |
-| Lantern system | **Working** | Meter visible; vignette responds |
-| Vignette overlay | **Working (v0.11.9)** | Transparent gradient at screen edges; GL blend bug fixed |
-| Hub state machine | **Working** | Hub evolves as you play |
-| NPC roster sync | **Working** | NPCs appear/vanish per hub state |
-| Player animations (unarmed) | **Working** | 81 production sheets loaded |
-| Player animations (sword) | **Working** | 90 sword sheets loaded |
-| Crouch/crouch-walk | **Working** | Hold S or down-arrow |
-| Swim states | **Working** | Enters water → swim/swim_idle |
-| Enemy AI | **Working (v0.11.10)** | IDLE/PATROL/CHASE/ATTACK/FLEE/GUARD/STUNNED/DEAD — skeleton blocks, enemies flee at low HP |
-| Boss encounters | **Working (v0.11.10)** | 4-phase FSM + Shadow Ascent patterns (Siren, Echo Warden, Time Leech Lord, Memory Eater) |
-| Save state | **Working** | Currency, inventory, abilities, visited rooms |
-| Replay recording | **Working** | `-Dninja.record` flag; .ndjson in user_data/replays/ |
-| Enemy sprites | **Working (v0.11.12)** | Real animated sprites: swordsman, skeleton, slime, spearman, archer |
-| Climb/ledge animations | **Partial** | States wired; sheets available but need FSM routing |
-| Boss (Shadow Ascent) | **Working (v0.11.10)** | Siren, Echo Warden, Time Leech Lord, Memory Eater — BossPatternLibrary |
-| Echo system | **Not started** | M6 |
-| Act IV depression mechanics | **Not started** | M7 |
-| Arcade mode | **Not started** | Separate roadmap |
-| Sandbox mode | **Not started** | Separate roadmap |
+**Current target build:** `v0.11.27`  
+**Last updated:** `2026-04-13 21:37:26 +01:00`  
+**Tester profile:** User with `launcher.exe` only (no IDE, no terminal, no debug tooling required)
 
 ---
 
-## Full Test Checklist — v0.11.12
+## 1) Purpose
+Use this document to evaluate whether the shipped player experience matches the intended design in `GDD.md` and active plans.
 
-Run each of these in order. Start every session by opening the launcher application.
-
-### 1. Launch & Mode Select
-
-- [ ] Open the launcher — window appears with server address field, CONNECT and QUIT buttons
-- [ ] Click CONNECT → Mode Select screen appears
-- [ ] Four mode cards visible: ARCADE (green), CAMPAIGN (blue), SOLO (purple), SANDBOX (gold)
-- [ ] Arrow keys navigate between cards; Enter or click selects
-- [ ] Select SOLO → game starts without needing a server
-
-### 2. HUD
-
-- [ ] Bottom-left: Yin bar (blue), Yang bar (orange)
-- [ ] Bottom-left: Lantern meter below Yin/Yang
-- [ ] Bars animate as values change
-- [ ] "FLOW" indicator appears when Yin ≈ Yang (within 0.15)
-
-### 3. Movement
-
-- [ ] Left/Right arrow keys move the player horizontally
-- [ ] Space or Up to jump; variable height hold
-- [ ] Double-jump (if unlocked)
-- [ ] Dash: Shift key — quick horizontal burst
-- [ ] Wall-slide: hold toward wall while airborne
-- [ ] Crouch: Down arrow or S — player crouches with animation
-- [ ] Crouch-walk: hold Down and move — crouch-walk animation plays
-- [ ] Enter water tile → swim animation plays
-- [ ] Stationary in water → swim_idle animation plays
-
-### 4. Vignette (key v0.11.9 fix)
-
-- [ ] When Lantern value is high (>0.7): minimal or no vignette; world fully visible
-- [ ] When Lantern value is mid (0.3–0.7): soft transparent gradient at screen edges
-- [ ] When Lantern value is low (<0.3): deep vignette darkens edges; red tint visible
-- [ ] **Critical check**: game world (terrain, player, enemies) should ALWAYS be visible through vignette — it is a transparent overlay, not a solid mask
-- [ ] Moving through dark areas causes Lantern decay; world darkens gradually
-- [ ] Collecting a lantern fragment restores Lantern meter
-
-### 5. Yin/Yang Effects
-
-- [ ] Collect a yin_fragment pickup → Yin bar increases
-- [ ] At Yin > 0.7: hidden platforms become visible (revealed with alpha proportional to Yin)
-- [ ] Collect a yang_fragment pickup → Yang bar increases
-- [ ] At Yang > 0.7: attack damage increases (combat feedback)
-- [ ] With both bars balanced: FLOW mode indicator shows; companion orbs orbit more quickly
-
-### 6. Hub System
-
-- [ ] Hub starts in FULL state: multiple NPCs visible (vendors, mentors, training dummies)
-- [ ] After first boss defeat: hub transitions to CORRUPTED — some NPCs vanish, dialogue changes
-- [ ] Siren encounter (planned M5): hub transitions to EMPTY; only Siren remains
-- [ ] Hub 2 (Chasm): begins FRACTURED; NPCs return as fragments collected
-
-### 7. Enemies
-
-- [ ] Enemies spawn in level rooms
-- [ ] PATROL: enemy walks between waypoints
-- [ ] CHASE: player enters detection range → enemy pursues
-- [ ] ATTACK: enemy enters attack range → attack animation + player takes damage
-- [ ] **FLEE (v0.11.10)**: damage enemy below 25% HP → enemy turns and retreats; animation plays (not T-pose)
-- [ ] **GUARD (v0.11.10, skeleton only)**: skeleton may raise shield instead of attacking; hit during GUARD deals ~1/3 damage
-- [ ] STUNNED: hit enemy → stun animation, then returns to PATROL
-- [ ] Enemy dies at 0 HP → loot drops (coins, fragments)
-- [ ] **Enemy sprites (v0.11.12)**: real animated sprites visible for swordsman, skeleton, slime, spearman, and archer — no more colored rectangles
-- [ ] **Death animation (v0.11.12)**: enemy plays death anim to last frame before disappearing; does not vanish instantly
-- [ ] **Spearman (v0.11.12)**: skeleton with spear spawns at mid-depth rooms; longer attack reach than swordsman
-- [ ] **Archer (v0.11.12)**: skeleton archer spawns at high-depth rooms; kites at range rather than chasing
-
-### 8. Bosses
-
-- [ ] Boss room spawns one boss (type determined by room seed)
-- [ ] Boss has 4 phases: combat intensifies at 75%, 50%, 25% HP
-- [ ] PHASE_TRANSITION: brief pause, then resumes at higher speed
-- [ ] VULNERABLE window: 3 seconds of increased damage window
-- [ ] Boss death → loot spawn → room clears
-- [ ] **Siren (v0.11.10)**: scripted loss — Siren drains Yin/Yang to 0 over ~6 s; player collapses; hub transitions to EMPTY
-- [ ] **Echo Warden (v0.11.10)**: mirrors player X with 0.5 s delay ring buffer; boss attacks when it catches up
-- [ ] **Time Leech Lord (v0.11.10)**: Lantern drains constantly; spawns Time Leech minions every 8 s; speed burst at 30% HP
-- [ ] **Memory Eater (v0.11.10)**: resets platform positions on each phase change; unlocked doors can relock
-
-### 9. Combat
-
-- [ ] Z key: basic attack (combo chain: slash1 → slash2 → slash3)
-- [ ] X key: throw shuriken
-- [ ] Sword state: if weapon equipped — sword-specific animations play
-- [ ] Unarmed state: punch/kick animations
-
-### 10. Persistence (Solo)
-
-- [ ] Die → respawn at last checkpoint; currency/inventory preserved
-- [ ] Exit solo and re-enter → progress saved (visited rooms, abilities)
+This guide is intentionally written from a player-only perspective:
+- Start from `launcher.exe`
+- Play normally
+- Record what you felt, what confused you, and where difficulty felt unfair or flat
 
 ---
 
-## What You Should NOT See (Known Issues Would Look Like This)
+## 2) How to Run a Launcher-Only Test
 
-- **Black screen / all-white screen**: If the vignette covers the world entirely → GL blend regression. Check ChunkRenderer.renderVignette().
-- **Magenta rectangles for player**: Animation sheets not found under `assets/sprites/player/unarmed/`. Check that extraction ran.
-- **Colored rectangles for enemies**: Should no longer appear in v0.11.12+ — if seen, the launcher may be running an old JAR. Relaunch.
-- **Missing HUD bars**: YinYangComponent or LanternComponent not wired on the entity. Check GameSimulator.
+1. Launch `launcher.exe`.
+2. Enter game via **SOLO** (recommended for repeatable UX tests) or **CAMPAIGN** if you are validating online flow.
+3. Run the session blocks in Section 6.
+4. Capture feedback using the templates in Section 9.
+5. Include screenshots or short clips for high-impact issues.
 
----
-
-## Version History (Player-Visible Changes)
-
-| Version | What Changed for the Player |
-|---------|----------------------------|
-| v0.11.12 | **Enemy art + type corrections**: real animated sprites for all 5 types (swordsman, skeleton, slime, spearman, archer); death animation plays to completion; spearman and archer spawn in world |
-| v0.11.11 | **Enemy spritesheets shipped**: 37 sheets stitched from art ZIP; frame counts calibrated to actual 128×96 art |
-| v0.11.10 | **M5 — Enemy AI + Boss Patterns**: FLEE/GUARD enemy states; skeleton shields; Siren, Echo Warden, Time Leech Lord, Memory Eater bosses |
-| v0.11.9 | **Vignette fix**: transparent overlay restored — game world now always visible through darkness effect |
-| v0.11.8 | Smoother vignette gradient (20 layers, quadratic curve); corner overlap fixed; base dim layer added |
-| v0.11.7 | Vignette works in solo mode; crouch-walk and swim animations wired; companion orbs scale with Yin/Yang; HUD redesign |
-| v0.11.6 | Yin/Yang bars and Lantern meter appear in HUD; vignette darkens screen edges; 171 player sprite sheets; sword animation routing |
-| v0.11.5 | Solo replay recording; `.ndjson` replay files written to `user_data/replays/`; launcher replay viewer |
-| v0.11.4 | Log files now write to disk; server starts correctly from launcher |
-| v0.11.3 | Portal NPE fix in solo; full save state (currency, inventory, abilities) |
-| v0.11.2 | Solo multi-room world works; hub NPCs authority fix |
-| v0.11.1 | Hub evolution: NPCs appear/vanish per act; Acts I–VI wired |
-| v0.11.0 | Solo mode added: play without a server; physics regression tests closed |
+Optional artifact to attach if available: `user_data/logs/client.log`.
 
 ---
 
-## Upcoming: What's Being Built
+## 3) Intended Experience (from GDD) and What to Verify
 
-### v0.11.13 — Milestone 6: Echo System & Puzzles
-
-- **Echo recording**: player leaves an echo trail through rooms; echoes replay past movements
-- **Echo-trigger zones**: step into a zone → echo activates; used for pressure-plate puzzles
-- **Puzzle archetypes**: echo-door (echo must stand on plate), echo-bridge (echo carries light across gap)
-- **Fragment drop → boss rewards**: defeating a Shadow Ascent boss drops a story fragment / ability unlock
-
-### v0.11.12 — SHIPPED
-
-#### Enemy type corrections
-
-All 5 enemy types now correctly named and playable with real animated sprites:
-
-- **swordsman** — greatsword skeleton; slow heavy overhead smash
-- **skeleton** — sword + shield skeleton; GUARD state blocks melee hits
-- **slime** — ground-only; three attack variants; no jump
-- **spearman** — skeleton with spear; longer attack reach; spawns at mid-depth (3+)
-- **archer** — skeleton archer; kites at range; spawns at high-depth (6+) and boss/treasure rooms
-
-#### Death animation hold
-
-Enemies now play their death animation to the last frame before disappearing, instead of vanishing instantly on death.
-
-### v0.11.10–11 — SHIPPED
-
-#### Enemy AI expanded
-
-- FLEE state: enemies retreat when HP drops below 25%
-- GUARD state (skeleton only): skeleton raises shield; blocked hits deal ~1/3 damage
-
-#### Shadow Ascent boss patterns
-
-- **Siren of the Veiled Vale** — scripted loss; strips Yin/Yang to 0 over 6 s; hub collapses to EMPTY
-- **Echo Warden** — mirrors player X with 0.5 s delay; attacks when it catches the player
-- **Time Leech Lord** — drains Lantern constantly; spawns minions every 8 s; speed burst at 30% HP
-- **Memory Eater** — resets platform positions on each phase transition
+| Design goal | Player should feel | Validate with feedback area IDs |
+|---|---|---|
+| Movement mastery is the core fantasy | Precise control, readable failure, fast retry confidence | `UX-MOVE`, `UX-COMBAT` |
+| Combat is light but meaningful | Combat supports traversal/story pacing, not pure attrition | `UX-COMBAT`, `BAL-ENEMY` |
+| Yin/Yang and Lantern represent internal state | World readability and power expression shift with emotional state | `UX-SYSTEMS`, `BAL-SYSTEMS` |
+| Hub evolution carries narrative weight | Return-to-hub moments feel like progression/loss/recovery | `UX-NARRATIVE`, `UX-PROGRESSION` |
+| Challenge should be teachable, not random | Losses feel earned and understandable | `BAL-DIFFICULTY`, `UX-READABILITY` |
 
 ---
 
-## Design Reference
+## 4) Current Player-Visible Scope (v0.11.26)
 
-| GDD System | Code status | First playable |
-|------------|-------------|----------------|
-| Yin/Yang (§3.3) | Done (v0.11.6) | v0.11.6 |
-| Lantern (§3.4) | Done (v0.11.6) | v0.11.6 |
-| Hub evolution (§4) | Done (v0.11.1) | v0.11.1 |
-| Narrative Act FSM (§5) | Done (v0.11.1) | v0.11.1 |
-| Boss AI — psychological (§7) | Done (v0.11.10) | v0.11.10 |
-| Echo system (§6) | Not started (M6) | v0.11.11+ |
-| Act IV depression (§5) | Not started (M7) | v0.11.12+ |
-| Proof token / labyrinth (§5) | Not started (M6) | v0.11.11+ |
-| Arcade mode (§0.2) | Not started | TBD |
-| Sandbox mode (§0.3) | Not started | TBD |
+| Feature | Status | What tester should expect |
+|---|---|---|
+| Launcher to mode-select flow | Working | Can enter game from launcher without terminal steps |
+| Solo mode | Working | Full playable loop without dedicated server setup |
+| Yin/Yang + Lantern HUD systems | Working | Values affect feel/readability; HUD updates during play |
+| Vignette/darkness presentation | Working | World remains visible through vignette (no opaque mask) |
+| Hub state evolution | Working | NPC roster and hub feel change with progression |
+| Enemy AI states (patrol/chase/attack/flee/guard/stunned/dead) | Working | Distinct behavior per archetype |
+| Boss psychological patterns (Siren, Echo Warden, Time Leech Lord, Memory Eater) | Working | Distinct fight identity and narrative behavior |
+| Enemy tuning pass (slime/skeleton/archer) | Working in `v0.11.26` | Slime forward lunge, skeleton +15% range, archer projectile offense |
+| Save/load core persistence | Working | Progress/state should persist between sessions |
+| Echo system foundations (`EchoRecorder`, `SimEcho`) | In progress | Foundation exists, full puzzle-driven player experience not yet fully exposed |
+| Act IV depression mechanics + full late-act pacing | Not complete | Do not treat as regression if absent |
+| Proof token/labyrinth loop | Not complete | Planned scope, not final player-facing behavior yet |
 
 ---
 
-*This document is updated with every release. "What You Should NOT See" section tracks known regressions to watch for during playtesting.*
+## 5) Do Not Misclassify These as Regressions Yet
+
+Report as "not-yet-implemented" unless behavior contradicts release notes:
+- Full Echo puzzle loop content
+- Complete Act IV/Act V/Act VII emotional-arc tuning
+- Final proof-token labyrinth gating
+- Final arcade/sandbox feature-complete loops
+
+---
+
+## 6) Launcher-Only Test Sessions (Execution Order)
+
+## Session A - First 15 Minutes (Onboarding and Friction)
+- [ ] Launcher opens and user can enter a game mode without confusion
+- [ ] Controls are discoverable enough to move/jump/attack without external docs
+- [ ] HUD elements are understandable at a glance
+- [ ] First enemy encounter communicates threat and response options
+
+Record:
+- `time_to_first_control_confidence`
+- `first_point_of_confusion`
+- `did_user_feel_stuck_without_docs (yes/no)`
+
+## Session B - Core Movement and Combat Feel (20-30 min)
+- [ ] Movement feels responsive enough for precision platforming
+- [ ] Crouch, jump, dash, wall interactions behave consistently
+- [ ] Taking damage feels fair and readable
+- [ ] Combat cadence does not overshadow traversal identity
+
+Record:
+- `movement_responsiveness_score (1-5)`
+- `combat_readability_score (1-5)`
+- `deaths_total`
+- `deaths_that_felt_unfair`
+
+## Session C - Systems Clarity (Yin/Yang/Lantern) (20 min)
+- [ ] Yin/Yang changes are visible and understandable
+- [ ] Lantern state changes world readability in a legible way
+- [ ] Flow-state moments are noticeable and satisfying
+
+Record:
+- `systems_clarity_score (1-5)`
+- `could_player_explain_yin_yang_effects (yes/no)`
+- `could_player_explain_lantern_effects (yes/no)`
+
+## Session D - Enemy Balance Focus (v0.11.26) (20-30 min)
+
+### Slime
+- [ ] Attack now reaches about one slime body length in front
+- [ ] Telegraph is readable enough to react
+- [ ] Hits feel consistent with visible body/contact zone
+
+### Skeleton shield bearer
+- [ ] Effective threat range feels increased versus prior baseline
+- [ ] Added range creates pressure without feeling "invisible"
+- [ ] Guard behavior remains readable and counterplay still exists
+
+### Archer
+- [ ] Archer emits projectile attacks (not only melee presence)
+- [ ] Projectile readability is sufficient for dodge/positioning
+- [ ] Projectile damage pressure feels fair for encounter context
+
+Record:
+- `slime_fairness_score (1-5)`
+- `skeleton_range_fairness_score (1-5)`
+- `archer_projectile_readability_score (1-5)`
+- `enemy_with_most_unfair_hits`
+
+## Session E - Progression and Persistence (10-15 min)
+- [ ] Exiting and relaunching from launcher preserves expected progress
+- [ ] Returning player context is understandable
+- [ ] Hub/progression state feels coherent after reload
+
+Record:
+- `save_load_confidence (1-5)`
+- `missing_or_confusing_state_after_reload`
+
+---
+
+## 7) Detailed Feedback Gathering Areas
+
+Use these IDs in notes, bug reports, and balancing reviews.
+
+| ID | Area | What to capture | Why it matters |
+|---|---|---|---|
+| `UX-LAUNCH` | Launcher and entry flow | Confusion points, failed starts, mode-select clarity | First-minute abandonment risk |
+| `UX-CONTROLS` | Input and control discoverability | Any action that felt hidden or unintuitive | Lowers onboarding friction |
+| `UX-MOVE` | Traversal responsiveness | Delay, missed inputs, inconsistent jump/dash outcomes | Core game identity is movement mastery |
+| `UX-READABILITY` | Visual and combat readability | Could player parse threat, space, and affordances quickly? | Reduces "cheap" deaths |
+| `UX-COMBAT` | Combat feel and pacing | Is combat supportive or dominant vs traversal? | Aligns with "light combat" design pillar |
+| `UX-SYSTEMS` | Yin/Yang/Lantern understanding | Can player explain what changed and why? | Systems must be felt, not hidden |
+| `UX-NARRATIVE` | Emotional arc delivery through play | Hub return feeling, loss/recovery tone, act transitions | Validates narrative-through-mechanics goal |
+| `UX-PROGRESSION` | Mission and progression confidence | Clarity of next objective and unlock logic | Prevents churn from uncertainty |
+| `BAL-ENEMY` | Enemy archetype tuning | Fairness and pressure for slime/skeleton/archer/bosses | Main balancing loop input |
+| `BAL-DIFFICULTY` | Difficulty curve quality | Spike locations, retry load, fatigue points | Keeps challenge intentional |
+| `BAL-RESOURCES` | Economy and sustain pressure | Potion/fragment scarcity or overload | Impacts long-session pacing |
+| `TECH-STABILITY` | Runtime reliability | Crashes, hard-locks, visual corruption, desync-like behavior | Release-blocking health |
+
+---
+
+## 8) Balance-Specific Questions (Answer Explicitly)
+
+### Slime range update
+- Did slime hits now match visible forward body extension?
+- Did you ever feel hit from behind/side when visual did not support it?
+- If unfair, estimate distance error in "tiles" or "character widths".
+
+### Skeleton +15% range
+- Did added range feel like healthy threat or surprise/unreadable poke?
+- Could you learn spacing reliably after 2-3 encounters?
+- Did guard + longer reach create unavoidable damage chains?
+
+### Archer projectile behavior
+- Could you reliably identify incoming projectiles before impact?
+- Did projectile speed feel dodgeable with current movement kit?
+- Were encounters with multiple archers still readable?
+
+### Global tuning
+- Which enemy type currently causes the most "unearned" damage?
+- Which enemy is now too weak to be interesting?
+- If one tuning change should be next, what is it and why?
+
+---
+
+## 9) Feedback Templates
+
+## A) Session Summary Template
+
+```md
+### Session Summary
+Build: v0.11.26
+Mode: SOLO / CAMPAIGN
+Session length: XX min
+
+Top 3 positives:
+1.
+2.
+3.
+
+Top 3 pain points:
+1.
+2.
+3.
+
+Most likely churn moment:
+
+Overall alignment to intended experience (1-5):
+
+IDs used: UX-___, BAL-___, TECH-___
+```
+
+## B) Encounter and Balance Template
+
+```md
+### Encounter Note
+Area/room:
+Enemy type(s):
+
+What happened:
+Expected behavior:
+Observed behavior:
+
+Fairness score (1-5):
+Readability score (1-5):
+Suggested adjustment:
+
+ID: BAL-ENEMY / BAL-DIFFICULTY / UX-READABILITY
+```
+
+## C) Bug Template (Launcher-Only)
+
+```md
+### Bug Report
+Build: v0.11.26
+Mode: SOLO / CAMPAIGN
+Severity: blocker / high / medium / low
+
+Steps to reproduce:
+1.
+2.
+3.
+
+Expected:
+Observed:
+Repro rate:
+
+Attachments:
+- screenshot/video
+- optional log snippet from user_data/logs/client.log
+
+ID: TECH-STABILITY / UX-___ / BAL-___
+```
+
+---
+
+## 10) Version Notes (Player-Visible, Recent)
+
+| Version | Player-visible impact |
+|---|---|
+| `v0.11.27` | Launcher-only UX test handbook refresh: updated expected scope, structured feedback IDs, and balancing capture templates |
+| `v0.11.26` | Enemy tuning pass: slime forward lunge reach update, skeleton range +15%, archers fire damaging projectiles |
+| `v0.11.25` | Echo system foundation (`SimEcho`) integrated server-side for future puzzle loops |
+| `v0.11.24` | Enemy hitbox and attack-zone alignment fixes |
+| `v0.11.23` | Enemy targeting and hitbox tuning refinements |
+| `v0.11.10` | Boss psychological patterns live (Siren, Echo Warden, Time Leech Lord, Memory Eater) |
+| `v0.11.6-0.11.9` | Yin/Yang and Lantern HUD systems plus vignette clarity fixes |
+
+---
+
+## 11) Exit Criteria for This Guide
+
+This guide is considered successful when a launcher-only tester can:
+1. Enter and play without setup confusion.
+2. Provide actionable feedback tied to `UX-*`, `BAL-*`, and `TECH-*` IDs.
+3. Identify whether current experience matches intended GDD pillars.
+4. Produce at least one concrete balancing recommendation from actual play.
+
+---
+
+*Keep this file aligned with release tags and plan updates every loop.*
