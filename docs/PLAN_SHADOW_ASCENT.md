@@ -664,7 +664,7 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 *Solo play feels co-op through echoes. Puzzle rooms are distinct.*
 
 - [x] `EchoRecorder` (600-tick ring buffer on `SimPlayer`)
-- [ ] `SimEcho` (`ReplayPlayer`-driven, `recallable` flag)
+- [x] `SimEcho` (`ReplayPlayer`-driven, `recallable` flag)
 - [ ] Echo trigger zones placed by `EntityPlanner` in PUZZLE rooms
 - [ ] Puzzle archetype: **Asymmetric Ability Lock** (echo holds position)
 - [ ] Puzzle archetype: **Simultaneous Timing** (echo replicates past actions)
@@ -673,6 +673,10 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 Loop note (2026-04-13): `EchoRecorder` added in `core/sim`, integrated on `SimPlayer`,
 and sampled each tick in `GameSimulator.step()`; covered by `EchoRecorderTest`.
+Loop note (2026-04-13): `SimEcho` added as a `ReplayPlayer`-driven entity with
+`recallable` fail semantics; `GameSimulator` now supports echo spawn/tick/recall
+hooks (`spawnEchoFromPlayer`, `addEcho`, `stepEchoes`, `recallEcho`), and behavior
+is covered by `SimEchoTest`.
 
 **Deliverable:** Puzzle rooms are mechanically interesting solo. Act III "unfair" platforms work.
 

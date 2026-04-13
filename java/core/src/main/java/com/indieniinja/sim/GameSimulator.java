@@ -77,12 +77,14 @@ public final class GameSimulator {
     private final List<SimMovingPlatform>  movingPlatforms  = new ArrayList<>();
     private final List<SimShuriken> shurikens = new ArrayList<>();
     private final List<SimNPC>      npcs      = new ArrayList<>();
+    private final List<SimEcho>     echoes    = new ArrayList<>();
     private final List<SimBoss>     bosses    = new ArrayList<>();
     private final List<SimPortal>   portals   = new ArrayList<>();
     /** NPC ID → shop (only for "shop" type NPCs). */
     private final Map<String, SimShop> shops = new LinkedHashMap<>();
     private int shurikenSeq = 0;
     private int lootSeq     = 0;
+    private int echoSeq     = 0;
 
     // ── Game mode state ───────────────────────────────────────────────────────
     private GameMode gameMode    = GameMode.ARCADE;
@@ -238,6 +240,44 @@ public final class GameSimulator {
         rebuildPlayerEntities();
     }
 
+    /** Add an already-constructed echo entity to the active room. */
+    public void addEcho(SimEcho echo) {
+        if (echo != null) echoes.add(echo);
+    }
+
+    /**
+     * Spawn an echo from a player's 10-second recorder buffer.
+     * Returns null when the slot is unknown or no buffered inputs exist yet.
+     */
+    public SimEcho spawnEchoFromPlayer(int slot, boolean recallable) {
+        SimPlayer owner = players.get(slot);
+        if (owner == null) return null;
+        List<InputCommand> recorded = owner.echoRecorder.snapshot();
+        if (recorded.isEmpty()) return null;
+        ReplayPlayer replay = ReplayPlayer.fromInputSequence(seed, slot, recorded);
+        SimEcho echo = new SimEcho(
+            hubId + "_echo_" + echoSeq++,
+            slot,
+            owner.physics.x,
+            owner.physics.y,
+            replay,
+            recallable
+        );
+        echoes.add(echo);
+        return echo;
+    }
+
+    /**
+     * Attempt to recall an existing echo.
+     * Returns false when recall fails puzzle semantics.
+     */
+    public boolean recallEcho(String echoId) {
+        for (SimEcho echo : echoes) {
+            if (echo.echoId.equals(echoId)) return echo.recall();
+        }
+        return true;
+    }
+
     /**
      * Set game mode and arcade depth/rooms.  Called by ZoneSimulationLoop
      * after the simulator is built but before any players join.
@@ -309,7 +349,10 @@ public final class GameSimulator {
         // 9. NPC patrol + player-facing
         stepNpcs();
 
-        // 9b. Puzzle lever/button interaction (interact key edge-triggered)
+        // 9b. Echo playback (M6)
+        stepEchoes();
+
+        // 9c. Puzzle lever/button interaction (interact key edge-triggered)
         stepLeverInteraction();
 
         // 10. Boss AI + combat
@@ -1597,6 +1640,13 @@ public final class GameSimulator {
         log.info("[puzzle] door unlocked: {}", doorPuzzleId);
     }
 
+    /** Advance all active echoes by one replay tick. */
+    private void stepEchoes() {
+        for (SimEcho echo : echoes) {
+            if (!echo.failed) echo.step();
+        }
+    }
+
     /**
      * Check for player lever/button interaction.
      * Activates when a player presses interact (edge-triggered) within 80 px of a
@@ -1876,6 +1926,7 @@ public final class GameSimulator {
     public List<SimEnemy>          getEnemies()  { return java.util.Collections.unmodifiableList(enemies); }
     public List<SimPickup>         getPickups()  { return java.util.Collections.unmodifiableList(pickups); }
     public List<SimNPC>            getNpcs()     { return java.util.Collections.unmodifiableList(npcs); }
+    public List<SimEcho>           getEchoes()   { return java.util.Collections.unmodifiableList(echoes); }
 
     /**
      * Dynamically spawn an NPC mid-simulation (hub evolution: hub state change).
