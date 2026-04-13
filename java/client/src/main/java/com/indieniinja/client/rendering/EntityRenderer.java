@@ -62,16 +62,15 @@ public final class EntityRenderer {
     private static final float COMPANION_RADIUS    = 35f;   // orbit radius in px
     private static final float COMPANION_SPEED     = 0.8f;  // rad/s — doubled in Flow Mode
 
-    /**
-     * Returns [w, h] physics dimensions for an enemy type.
-     * Matches Python entities/*.py WIDTH/HEIGHT constants exactly.
-     */
-    // 5% lift: draw enemy sprite slightly above its physics Y so feet sit on the ground
+    // Lift fraction: sprite is raised this fraction of its display height above the physics feet.
+    // Positive = upward (sprite bottom floats above the tile surface slightly).
     private static final float ENEMY_LIFT = 0.05f;
 
+    /**
+     * Display size [w, h] for each enemy type.
+     * Art is 128×96 px per frame; displayed at 134×101 (+5%) per player feedback.
+     */
     private static int[] enemySize(String enemyType) {
-        // Art is 128x96 px per frame. Display at 134x101 (128x96 + 5%) per player feedback.
-        // Bat retains placeholder; tune per-type after Phase 6 QA playtest.
         return switch (enemyType) {
             case "bat"                 -> new int[]{28, 28};
             case "slime"               -> new int[]{134, 101};
@@ -80,6 +79,23 @@ public final class EntityRenderer {
             case "spearman"            -> new int[]{134, 101};
             case "archer"              -> new int[]{134, 101};
             default                    -> new int[]{134, 101};
+        };
+    }
+
+    /**
+     * Physics AABB height for each enemy type.
+     * Must mirror GameSimulator.buildEnemy() constructor arguments exactly.
+     * Used to bottom-align the display sprite with the physics feet.
+     */
+    private static int enemyPhysicsH(String enemyType) {
+        return switch (enemyType) {
+            case "bat"                 -> 28;
+            case "slime"               -> 32;
+            case "skeleton"            -> 56;
+            case "spearman"            -> 52;
+            case "goblin", "swordsman",
+                 "archer"              -> 48;
+            default                    -> 48;
         };
     }
 
@@ -360,6 +376,12 @@ public final class EntityRenderer {
 
         boolean isDead = "dead".equals(e.aiState);
 
+        int[] sz    = enemySize(typePrefix);
+        int   physH = enemyPhysicsH(typePrefix);
+        // Bottom-anchor: align sprite bottom with physics feet (e.y + physH), then lift.
+        // Y-down coords: smaller Y = higher on screen.
+        float drawY = e.y + physH - sz[1] * (1f + ENEMY_LIFT);
+
         if (isDead) {
             // Accumulate death timer; clamp frame to last so it holds
             float elapsed = deathTimers.getOrDefault(e.enemyId, 0f) + dt;
@@ -369,8 +391,7 @@ public final class EntityRenderer {
             TextureRegion frame = anims.getFrameClamped(deadKey, elapsed, fps);
             boolean wantFlip = !e.facingRight;
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
-            int[] sz = enemySize(typePrefix);
-            batch.draw(frame, e.x, e.y - sz[1] * ENEMY_LIFT, sz[0], sz[1]);
+            batch.draw(frame, e.x, drawY, sz[0], sz[1]);
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
             return;
         }
@@ -386,8 +407,7 @@ public final class EntityRenderer {
         boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();
         if (needEnemyChange) frame.flip(true, false);
 
-        int[] sz = enemySize(typePrefix);
-        batch.draw(frame, e.x, e.y - sz[1] * ENEMY_LIFT, sz[0], sz[1]);
+        batch.draw(frame, e.x, drawY, sz[0], sz[1]);
 
         if (needEnemyChange) frame.flip(true, false);
 
@@ -396,7 +416,7 @@ public final class EntityRenderer {
             int prev = prevHealth.getOrDefault(e.enemyId, e.hp);
             if (e.hp < prev) {
                 float cx = e.x + sz[0] * 0.5f;
-                float cy = e.y + sz[1] * (0.5f + ENEMY_LIFT);
+                float cy = drawY + sz[1] * 0.5f;  // centre of the displayed sprite
                 particles.emitHitSpark(cx, cy);
             }
             prevHealth.put(e.enemyId, e.hp);
