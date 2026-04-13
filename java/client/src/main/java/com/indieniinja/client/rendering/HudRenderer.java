@@ -411,6 +411,60 @@ public final class HudRenderer {
         return shapes;
     }
 
+    /**
+     * Render the full-screen death / respawn overlay.
+     *
+     * Shows a dark-red vignette, a large "YOU DIED" heading, and a countdown
+     * to respawn.  Call this after all world and HUD passes but before the
+     * pause screen (so pause still renders on top).
+     *
+     * @param respawnTimer seconds remaining; ≤ 0 means just respawned (overlay hidden)
+     */
+    public void renderDeathOverlay(float respawnTimer) {
+        int sw = Gdx.graphics.getWidth();
+        int sh = Gdx.graphics.getHeight();
+        screenCam.setToOrtho(false, sw, sh);
+        screenCam.update();
+
+        // Semi-transparent dark-red background
+        Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+                           com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.setProjectionMatrix(screenCam.combined);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.25f, 0f, 0f, 0.72f);
+        shapes.rect(0, 0, sw, sh);
+        shapes.end();
+
+        // Text pass
+        hudBatch.setProjectionMatrix(screenCam.combined);
+        hudBatch.begin();
+
+        float cx = sw * 0.5f;
+        float cy = sh * 0.5f;
+
+        // "YOU DIED" — large centred
+        font.getData().setScale(2.8f);
+        font.setColor(1f, 0.12f, 0.12f, 1f);
+        com.badlogic.gdx.graphics.g2d.GlyphLayout layout =
+            new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, "YOU DIED");
+        font.draw(hudBatch, layout, cx - layout.width * 0.5f, cy + 30f);
+
+        // Countdown
+        if (respawnTimer > 0f) {
+            font.getData().setScale(1.1f);
+            font.setColor(1f, 0.72f, 0.72f, 1f);
+            String msg = String.format("Respawning in %.1f...", respawnTimer);
+            com.badlogic.gdx.graphics.g2d.GlyphLayout sub =
+                new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, msg);
+            font.draw(hudBatch, sub, cx - sub.width * 0.5f, cy - 20f);
+        }
+
+        font.getData().setScale(1f);
+        font.setColor(Color.WHITE);
+        hudBatch.end();
+    }
+
     public void dispose() {
         shapes.dispose();
         hudBatch.dispose();

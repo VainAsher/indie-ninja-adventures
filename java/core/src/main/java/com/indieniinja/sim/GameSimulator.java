@@ -325,6 +325,9 @@ public final class GameSimulator {
 
         // 14. Lantern tick (GDD §3.4) — apply physics bonuses, decay
         tickLantern();
+
+        // 15. Player respawn countdowns
+        stepPlayerRespawns();
     }
 
     // ── Yin/Yang system (M4 — GDD §3.3) ─────────────────────────────────────
@@ -443,7 +446,8 @@ public final class GameSimulator {
             ps.yangValue    = p.yinYang.yang;
             ps.flowMode     = p.yinYang.isBalanced();
             ps.lanternValue = p.lantern.value;
-            ps.weaponState  = p.weaponState;
+            ps.weaponState    = p.weaponState;
+            ps.respawnTimer   = p.respawnTimer;
             snap.players.add(ps);
         }
 
@@ -1247,6 +1251,41 @@ public final class GameSimulator {
         en.physics.y += (float)(Math.sin(System.nanoTime() * 1e-9 * 2.0) * 0.5);
         // Clamp to reasonable world bounds
         if (en.physics.y < 0) en.physics.y = 0;
+    }
+
+    // ── Respawn delay (seconds) ────────────────────────────────────────────────
+    private static final float RESPAWN_DELAY = 5.0f;
+
+    /**
+     * Count down respawn timers and restore dead players when time expires.
+     * Called once per step (after all combat/damage) as step 15.
+     */
+    private void stepPlayerRespawns() {
+        for (SimPlayer p : players.values()) {
+            if (!p.isDead) continue;
+            if (p.respawnTimer < 0f) {
+                // Player just died this tick (or timer not started) — begin countdown
+                p.respawnTimer = RESPAWN_DELAY;
+            } else {
+                p.respawnTimer -= DT;
+                if (p.respawnTimer <= 0f) {
+                    p.respawnTimer        = -1f;
+                    p.isDead              = false;
+                    p.health              = p.maxHealth;
+                    p.physics.x           = p.spawnX;
+                    p.physics.y           = p.spawnY;
+                    p.physics.vx          = 0f;
+                    p.physics.vy          = 0f;
+                    p.invincibilityTicks  = 120;  // 2 s post-respawn invincibility
+                    p.isDashing           = false;
+                    p.dashTimer           = 0f;
+                    p.isAttacking         = false;
+                    p.isThrowing          = false;
+                    log.info("Player {} (slot {}) respawned at ({},{})",
+                             p.playerId, p.slot, p.spawnX, p.spawnY);
+                }
+            }
+        }
     }
 
     private void stepCombat() {

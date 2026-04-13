@@ -747,6 +747,16 @@ public final class GameScreen implements Screen {
             batch.setProjectionMatrix(camera.cam.combined);
         }
 
+        // ── Death / respawn overlay ───────────────────────────────────────────
+        if (snap != null) {
+            PlayerState localPlayer = snap.players.stream()
+                .filter(p -> p.slot == localSlot)
+                .findFirst().orElse(null);
+            if (localPlayer != null && localPlayer.isDead) {
+                hudRenderer.renderDeathOverlay(localPlayer.respawnTimer);
+            }
+        }
+
         // ── Pause overlay (rendered on top) ───────────────────────────────────
         if (paused) {
             pauseScreen.render(delta);

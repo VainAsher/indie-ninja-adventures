@@ -170,8 +170,13 @@ public final class CollisionSystem {
             float overlapBottom = (tile.y() + tile.h()) - entityTop;
 
             if (tile.isPlatform()) {
-                // One-way: only collide from above, only when moving downward
-                if (p.vy >= 0 && overlapTop >= 0 && overlapTop <= PLATFORM_GRACE_PIXELS + p.vy + 1) {
+                // One-way: only from above, only when moving downward or at rest.
+                // Accept landing if entity has entered less than 80% of tile height —
+                // this is velocity-independent and correctly handles slow falls, fast
+                // falls, and cases where the player spawned slightly inside the tile.
+                // (Old condition used `PLATFORM_GRACE_PIXELS + p.vy + 1` which failed
+                //  at low vy when overlapTop exceeded the tiny fixed threshold.)
+                if (p.vy >= 0 && overlapTop > 0 && overlapTop < tile.h() * 0.8f) {
                     p.y        = tile.y() - p.height;
                     p.vy       = 0;
                     p.onGround = true;

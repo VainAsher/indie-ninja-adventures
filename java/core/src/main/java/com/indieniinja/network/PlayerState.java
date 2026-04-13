@@ -47,6 +47,9 @@ public final class PlayerState {
     /** Current weapon set: "unarmed" | "sword" | "pistol". Drives anim key prefix. */
     public String  weaponState = "unarmed";
 
+    /** Seconds remaining until respawn; -1 means alive (not counting down). */
+    public float   respawnTimer = -1f;
+
     public PlayerState() {}
 
     public Map<String, Object> toMap() {
@@ -78,6 +81,7 @@ public final class PlayerState {
         m.put("flow_mode",            flowMode);
         m.put("lantern_value",        lanternValue);
         m.put("weapon_state",         weaponState != null ? weaponState : "unarmed");
+        m.put("respawn_timer",        respawnTimer);
         return m;
     }
 
@@ -120,6 +124,7 @@ public final class PlayerState {
         s.flowMode     = bool(m, "flow_mode");
         s.lanternValue = flt2(m, "lantern_value", 0.8f);
         s.weaponState  = str(m,  "weapon_state",  "unarmed");
+        s.respawnTimer = flt2(m, "respawn_timer", -1f);
         return s;
     }
 

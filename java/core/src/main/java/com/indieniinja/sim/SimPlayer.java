@@ -30,6 +30,11 @@ public final class SimPlayer {
     public boolean isDead    = false;
     public String  animState = "";
 
+    // Respawn — timer counts down from RESPAWN_DELAY after death; -1 = not pending
+    public float respawnTimer = -1f;
+    /** World-space spawn position (set at construction; used to reset position on respawn). */
+    public float spawnX, spawnY;
+
     // Invincibility frames after taking damage (ticks)
     public int invincibilityTicks = 0;
 
@@ -227,6 +232,8 @@ public final class SimPlayer {
     public SimPlayer(String playerId, int slot, float spawnX, float spawnY) {
         this.playerId = playerId;
         this.slot     = slot;
+        this.spawnX   = spawnX;
+        this.spawnY   = spawnY;
         this.physics  = new PhysicsState(
             spawnX, spawnY,
             PhysicsConstants.PLAYER_WIDTH,
