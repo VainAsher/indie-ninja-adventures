@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-13 | **Codebase version:** v0.11.20 | **Next release target:** v0.11.21 (campaign loop hardening + balance instrumentation)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-13 21:28:59 +01:00 | **Codebase version:** v0.11.26 | **Next release target:** v0.11.27 (M6 echo trigger zones + puzzle hooks)
 
 ---
 
@@ -28,6 +28,7 @@ Every implementation cycle must follow this exact order:
 - Commit messages should include: `plan_id`, `scope`, `reason`, `risk`.
 - Plan updates happen each loop, not only at milestone boundaries.
 - Unknown scope discovered mid-loop becomes a new checklist row, not ad-hoc drift.
+- All plan updates and loop notes must use full timestamps: `YYYY-MM-DD HH:mm:ss ±HH:MM` (not date-only).
 
 ### Branch and commit format
 
@@ -655,7 +656,7 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 **What shipped:** All 4 psychological patterns are live server-side. Siren scripted loss fires correctly. Echo Warden mirrors movement. Time Leech Lord drains lantern and spawns minions. Memory Eater signals platform reset per phase. Client-side collapse animation and fragment drop wiring are next-session tuning items.
 
-Loop note (2026-04-13): Enemy combat tuning pass shipped after M5:
+Loop note (2026-04-13 21:27:17 +01:00): Enemy combat tuning pass shipped after M5:
 slime attack hitbox now lunges one body-length forward, skeleton attack range is
 extended by 15%, and archers now fire projectile attacks that damage players.
 
@@ -675,9 +676,9 @@ extended by 15%, and archers now fire projectile attacks that damage players.
 - [ ] Proof token mechanic (`RoomType.LABYRINTH`, `TOKEN_GATE`)
 - [ ] `ValidationLayer` verifies all puzzles solvable with current ability set
 
-Loop note (2026-04-13): `EchoRecorder` added in `core/sim`, integrated on `SimPlayer`,
+Loop note (2026-04-13 19:36:16 +01:00): `EchoRecorder` added in `core/sim`, integrated on `SimPlayer`,
 and sampled each tick in `GameSimulator.step()`; covered by `EchoRecorderTest`.
-Loop note (2026-04-13): `SimEcho` added as a `ReplayPlayer`-driven entity with
+Loop note (2026-04-13 20:03:24 +01:00): `SimEcho` added as a `ReplayPlayer`-driven entity with
 `recallable` fail semantics; `GameSimulator` now supports echo spawn/tick/recall
 hooks (`spawnEchoFromPlayer`, `addEcho`, `stepEchoes`, `recallEcho`), and behavior
 is covered by `SimEchoTest`.
