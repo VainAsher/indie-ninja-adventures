@@ -99,6 +99,18 @@ public final class EntityRenderer {
         };
     }
 
+    /** Physics AABB width — mirrors GameSimulator.buildEnemy(). */
+    private static int enemyPhysicsW(String enemyType) {
+        return switch (enemyType) {
+            case "bat"      -> 28;
+            case "slime"    -> 40;
+            case "skeleton" -> 32;
+            case "spearman" -> 36;
+            case "goblin", "swordsman", "archer" -> 32;
+            default         -> 32;
+        };
+    }
+
     // Per-state FPS constants matching Python sprite_manager.py ANIMATION_DEFS exactly
     // idle=8, walk/slow_walk=8-10, run=12, dash=20, attack=15, throw=12, hurt=12, death=12
     private static final float FPS_IDLE       = 8f;
@@ -686,5 +698,65 @@ public final class EntityRenderer {
         prevTeleport.keySet().retainAll(live);
         companionAngle.keySet().retainAll(snap.players.stream()
             .map(p -> p.playerId).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    // ── Debug: physics AABB hitbox overlay ───────────────────────────────────
+
+    /**
+     * Draw wireframe AABB rectangles over all entity physics boxes.
+     * Toggle with H key in GameScreen.
+     *
+     * Colours:
+     *   Cyan   — player AABB
+     *   Red    — enemy AABB
+     *   Orange — NPC AABB
+     *   Yellow — pickup AABB
+     *
+     * The ShapeRenderer must be in Line mode and sharing the game camera's
+     * combined projection matrix before this method is called.
+     */
+    public void renderHitboxes(com.badlogic.gdx.graphics.glutils.ShapeRenderer sr,
+                                WorldSnapshot snap) {
+        if (snap == null) return;
+
+        // Players — cyan
+        sr.setColor(0f, 1f, 1f, 1f);
+        for (PlayerState p : snap.players) {
+            sr.rect(p.posX, p.posY, PW, PH);
+        }
+
+        // Enemies — red body box, lighter red for sprite display bounds
+        for (EnemyState e : snap.enemies) {
+            String t  = (e.enemyType != null && !e.enemyType.isEmpty()) ? e.enemyType : "skeleton";
+            int    pw = enemyPhysicsW(t);
+            int    ph = enemyPhysicsH(t);
+            // Physics AABB (bright red)
+            sr.setColor(1f, 0.15f, 0.15f, 1f);
+            sr.rect(e.x, e.y, pw, ph);
+            // Sprite display bounds (dark red, shows where art actually renders)
+            int[]  sz    = enemySize(t);
+            float  drawY = e.y + ph - sz[1] * (1f + ENEMY_LIFT);
+            sr.setColor(0.8f, 0.3f, 0.3f, 0.5f);
+            sr.rect(e.x, drawY, sz[0], sz[1]);
+        }
+        for (EnemyState e : snap.overflowEnemies) {
+            String t  = (e.enemyType != null && !e.enemyType.isEmpty()) ? e.enemyType : "skeleton";
+            int    pw = enemyPhysicsW(t);
+            int    ph = enemyPhysicsH(t);
+            sr.setColor(1f, 0.15f, 0.15f, 1f);
+            sr.rect(e.x, e.y, pw, ph);
+        }
+
+        // NPCs — orange
+        sr.setColor(1f, 0.55f, 0.05f, 1f);
+        for (com.indieniinja.network.NPCState n : snap.npcs) {
+            sr.rect(n.x, n.y, 32, 48);
+        }
+
+        // Pickups — yellow
+        sr.setColor(1f, 1f, 0.1f, 1f);
+        for (com.indieniinja.network.PickupState p : snap.pickups) {
+            if (p.alive) sr.rect(p.x, p.y, PhysicsConstants.TILE_SIZE, PhysicsConstants.TILE_SIZE);
+        }
     }
 }

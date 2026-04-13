@@ -130,6 +130,11 @@ public final class GameScreen implements Screen {
     /** Rooms the local player has visited (entered at least once). */
     private final java.util.Set<String> visitedRooms = new java.util.HashSet<>();
 
+    // ── Debug ─────────────────────────────────────────────────────────────────
+    /** Toggle with H key — draws physics AABB outlines over all entities. */
+    private boolean debugHitboxes = false;
+    private com.badlogic.gdx.graphics.glutils.ShapeRenderer hitboxRenderer;
+
     // ── Audio ─────────────────────────────────────────────────────────────────
     private AudioManager audioManager;
     /** Previous animState per player slot — for state-transition SFX detection. */
@@ -252,6 +257,7 @@ public final class GameScreen implements Screen {
         particleSystem = new ParticleSystem();
         entityRenderer = new EntityRenderer(anims, particleSystem);
         hudRenderer    = new HudRenderer();
+        hitboxRenderer = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
 
         pauseScreen = new PauseScreen(game, this::resume);
 
@@ -396,6 +402,11 @@ public final class GameScreen implements Screen {
 
         // ── ESC toggles pause (only when no overlay active) ───────────────────
         boolean anyOverlay = craftConsumed || shopConsumed || invConsumed || dialogueConsumed;
+
+        // ── H key: toggle hitbox debug overlay ───────────────────────────────
+        if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+            debugHitboxes = !debugHitboxes;
+        }
         if (!anyOverlay && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (paused) resume(); else pause();
         }
@@ -658,6 +669,16 @@ public final class GameScreen implements Screen {
         batch.end();
 
         entityRenderer.pruneEntities(snap);
+
+        // Pass 2c — Debug hitbox overlay (H key toggle).
+        if (debugHitboxes && snap != null) {
+            Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+            hitboxRenderer.setProjectionMatrix(camera.cam.combined);
+            hitboxRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Line);
+            entityRenderer.renderHitboxes(hitboxRenderer, snap);
+            hitboxRenderer.end();
+            Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+        }
 
         // Pass 2b — Lantern vignette (screen-space overlay drawn after world, before HUD) (M4)
         chunkRenderer.renderVignette(hudRenderer.shapeRenderer(),
@@ -1087,5 +1108,6 @@ public final class GameScreen implements Screen {
         if (shopOverlay      != null) shopOverlay.dispose();
         if (craftingOverlay  != null) craftingOverlay.dispose();
         if (minimapRenderer  != null) minimapRenderer.dispose();
+        if (hitboxRenderer   != null) hitboxRenderer.dispose();
     }
 }

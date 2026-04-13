@@ -79,6 +79,11 @@ public final class ZonePlanner {
         // Step 5: fill obstacles (with connectivity check)
         addFillZones(zones, roomType, mustConnect, rng);
 
+        // Step 5b: thicken room perimeters — fill border zones that are still DECOR,
+        // except within the door corridor. This limits traversal to intentional paths
+        // and makes the dungeon feel enclosed rather than open at room edges.
+        thickenPerimeter(zones, neighborDirs, mustConnect);
+
         // Step 6: finalize DECOR
         finalizeDecor(zones, roomType, rng);
 
@@ -256,16 +261,16 @@ public final class ZonePlanner {
 
     private static void addFillZones(byte[][] z, String roomType,
                                       List<int[]> mustConnect, Random rng) {
-        // Fill count by room type — combat and platform rooms are denser with more obstacles.
-        // Treasure rooms are maze-like (more fills); boss rooms have an arena-feel (moderate).
+        // Fill count by room type — significantly increased to create denser, more dungeon-like rooms.
+        // Higher values mean more solid-obstacle zones placed per room, limiting open traversal paths.
         int fillCount;
         switch (roomType != null ? roomType : "combat") {
-            case "combat"   -> fillCount = 4 + rng.nextInt(5);  // 4-8 (dense terrain)
-            case "platform" -> fillCount = 3 + rng.nextInt(4);  // 3-6 (multi-level obstacles)
-            case "treasure" -> fillCount = 4 + rng.nextInt(4);  // 4-7 (maze-like)
-            case "boss"     -> fillCount = 2 + rng.nextInt(3);  // 2-4 (arena, not too cluttered)
-            case "shop", "start", "exit" -> fillCount = 1 + rng.nextInt(2);  // 1-2 (open)
-            default         -> fillCount = 2 + rng.nextInt(3);  // 2-4
+            case "combat"   -> fillCount = 10 + rng.nextInt(7);  // 10-16 (dense combat arena)
+            case "platform" -> fillCount =  8 + rng.nextInt(6);  // 8-13  (multi-level obstacles)
+            case "treasure" -> fillCount = 12 + rng.nextInt(5);  // 12-16 (maze-like)
+            case "boss"     -> fillCount =  5 + rng.nextInt(4);  // 5-8   (arena, moderate clutter)
+            case "shop", "start", "exit" -> fillCount = 3 + rng.nextInt(3);  // 3-5 (navigable but not empty)
+            default         -> fillCount =  8 + rng.nextInt(5);  // 8-12
         }
 
         // Candidate DECOR zones not in mustConnect
@@ -319,14 +324,16 @@ public final class ZonePlanner {
         // treasure: high solid (maze walls) + moderate platforms + some void pits
         // boss:     open arena with scattered platforms
         // shop/start: open and navigable
+        // Higher fillProb = more solid walls in remaining DECOR zones after explicit fills.
+        // Reduced void/walk so dungeon reads as enclosed rather than open.
         float fillProb, platProb, walkProb;
         switch (roomType != null ? roomType : "combat") {
-            case "platform" -> { fillProb = 0.18f; platProb = 0.62f; walkProb = 0.15f; }
-            case "combat"   -> { fillProb = 0.22f; platProb = 0.50f; walkProb = 0.18f; }
-            case "treasure" -> { fillProb = 0.28f; platProb = 0.30f; walkProb = 0.20f; }
-            case "boss"     -> { fillProb = 0.10f; platProb = 0.35f; walkProb = 0.28f; }
-            case "shop", "start", "exit" -> { fillProb = 0.06f; platProb = 0.22f; walkProb = 0.35f; }
-            default         -> { fillProb = 0.10f; platProb = 0.30f; walkProb = 0.25f; }
+            case "platform" -> { fillProb = 0.30f; platProb = 0.50f; walkProb = 0.12f; }
+            case "combat"   -> { fillProb = 0.38f; platProb = 0.38f; walkProb = 0.14f; }
+            case "treasure" -> { fillProb = 0.45f; platProb = 0.22f; walkProb = 0.15f; }
+            case "boss"     -> { fillProb = 0.18f; platProb = 0.30f; walkProb = 0.22f; }
+            case "shop", "start", "exit" -> { fillProb = 0.12f; platProb = 0.28f; walkProb = 0.30f; }
+            default         -> { fillProb = 0.25f; platProb = 0.30f; walkProb = 0.20f; }
         }
 
         for (int y = 0; y < H; y++) {
@@ -337,6 +344,58 @@ public final class ZonePlanner {
                 else if (r < fillProb + platProb)         z[y][x] = PLAT;
                 else if (r < fillProb + platProb + walkProb) z[y][x] = WALK;
                 else                                      z[y][x] = VOID;
+            }
+        }
+    }
+
+    // ── Step 5b — Perimeter thickening ───────────────────────────────────────
+
+    /**
+     * Fill the 2-zone-deep perimeter ring with FILL wherever the zone is still DECOR,
+     * skipping a ±1 zone corridor around each door opening.
+     * This blocks off accidental open paths near room edges and forces traversal
+     * through intentional corridors (doors) only.
+     */
+    private static void thickenPerimeter(byte[][] z, Collection<String> dirs,
+                                          List<int[]> mustConnect) {
+        Set<Long> mustSet = new HashSet<>();
+        for (int[] c : mustConnect) mustSet.add((long) c[0] * H + c[1]);
+
+        int depth = 2;  // how many zones deep from each wall to fill
+
+        // Collect door centre positions so we can exempt a narrow corridor
+        // Door is at (W/2, 0), (W/2, H-1), (0, H/2), (W-1, H/2) — see placeDoors()
+        Set<Long> doorCorridor = new HashSet<>();
+        int cx = W / 2, cy = H / 2;
+        if (dirs.contains("up"))    { for (int x = cx - 1; x <= cx + 1; x++) for (int y = 0; y < depth; y++) doorCorridor.add((long) x * H + y); }
+        if (dirs.contains("down"))  { for (int x = cx - 1; x <= cx + 1; x++) for (int y = H - depth; y < H; y++) doorCorridor.add((long) x * H + y); }
+        if (dirs.contains("left"))  { for (int y = cy - 1; y <= cy + 1; y++) for (int x = 0; x < depth; x++) doorCorridor.add((long) x * H + y); }
+        if (dirs.contains("right")) { for (int y = cy - 1; y <= cy + 1; y++) for (int x = W - depth; x < W; x++) doorCorridor.add((long) x * H + y); }
+
+        for (int y = 0; y < H; y++) {
+            for (int x = 0; x < W; x++) {
+                boolean onPerimeter = (x < depth || x >= W - depth || y < depth || y >= H - depth);
+                if (!onPerimeter) continue;
+                if (z[y][x] != DECOR) continue;
+                long key = (long) x * H + y;
+                if (mustSet.contains(key)) continue;
+                if (doorCorridor.contains(key)) continue;
+                z[y][x] = FILL;
+            }
+        }
+        // Connectivity check — revert fills that disconnect required zones
+        // (iterate in reverse insertion order so reversions are cheap)
+        for (int y = 0; y < H; y++) {
+            for (int x = 0; x < W; x++) {
+                boolean onPerimeter = (x < depth || x >= W - depth || y < depth || y >= H - depth);
+                if (!onPerimeter) continue;
+                if (z[y][x] != FILL) continue;
+                // Temporarily revert and check
+                z[y][x] = DECOR;
+                if (checkConnectivity(z, mustConnect)) {
+                    z[y][x] = FILL;  // restore — connectivity maintained without this zone
+                }
+                // else leave as DECOR — this fill would disconnect a required path
             }
         }
     }

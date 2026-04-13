@@ -144,15 +144,19 @@ public final class GameSimulator {
             }
         }
 
-        // Spawn pickups and register respawn slots
+        // Spawn pickups and register respawn slots.
+        // spec.y() is the top of the ground tile (entity-bottom anchor from WorldGenerator).
+        // Subtract TILE_SIZE so the pickup sits ON TOP of the tile, not inside it.
         int pickupIdx = 0;
         for (LevelLayout.PickupSpawn spec : layout.pickupSpawns) {
+            float px = spec.x();
+            float py = spec.y() - PhysicsConstants.TILE_SIZE;
             int slotIdx = pickupSlots.size();
-            pickupSlots.add(new PickupSlot(spec.x(), spec.y(), spec.type()));
+            pickupSlots.add(new PickupSlot(px, py, spec.type()));
             int ticks = 1800 + slotRng.nextInt(1801); // 30–60 s
             pickups.add(new SimPickup(
                 hubId + "_pickup_" + pickupIdx++,
-                spec.type(), spec.x(), spec.y(), slotIdx, ticks
+                spec.type(), px, py, slotIdx, ticks
             ));
         }
 
@@ -1284,7 +1288,16 @@ public final class GameSimulator {
 
     /**
      * Spawn 1–2 loot pickups at the dead enemy's position and grant XP to the nearest player.
-     * 70% coin, 20% health_potion, 10% nothing — matches Python enemy loot tables.
+     *
+     * Loot table (d20):
+     *   0-9  (50%) coin
+     *   10-13 (20%) health_potion
+     *   14-15 (10%) rare_potion
+     *   16    (5%)  yin_fragment
+     *   17    (5%)  yang_fragment
+     *   18    (5%)  lantern_fragment
+     *   19    (5%)  gem
+     * Additionally rolls a second coin drop on values 0-3 (20%).
      */
     private void spawnLoot(SimEnemy en) {
         // Arcade score: +1 per kill
@@ -1295,16 +1308,27 @@ public final class GameSimulator {
         grantXpToNearest(en.physics.x + en.physics.width * 0.5f,
                          en.physics.y + en.physics.height * 0.5f, xp);
 
+        // Drop position: sit on top of where the enemy died (feet level)
         float cx = en.physics.x + en.physics.width  * 0.5f - 10f;
-        float cy = en.physics.y;
-        int roll = (int) Math.abs((en.physics.x * 7 + en.physics.y * 13 + lootSeq * 31) % 10);
+        float cy = en.physics.y + en.physics.height - PhysicsConstants.TILE_SIZE;
+
+        int roll = (int) Math.abs((en.physics.x * 7 + en.physics.y * 13 + lootSeq * 31) % 20);
         lootSeq++;
-        String type = roll < 7 ? "coin" : roll < 9 ? "health_potion" : null;
-        if (type != null) pickups.add(new SimPickup(hubId + "_loot_" + lootSeq, type, cx, cy));
-        if (roll < 2)     pickups.add(new SimPickup(hubId + "_loot_" + (lootSeq + 100), "coin", cx + 12f, cy));
+        String type = switch (roll) {
+            case 0,1,2,3,4,5,6,7,8,9 -> "coin";
+            case 10,11,12,13           -> "health_potion";
+            case 14,15                 -> "rare_potion";
+            case 16                    -> "yin_fragment";
+            case 17                    -> "yang_fragment";
+            case 18                    -> "lantern_fragment";
+            default                    -> "gem";   // 19
+        };
+        pickups.add(new SimPickup(hubId + "_loot_" + lootSeq, type, cx, cy));
+        // 20% chance of a bonus coin drop alongside the primary
+        if (roll < 4) pickups.add(new SimPickup(hubId + "_loot_" + (lootSeq + 100), "coin", cx + 14f, cy));
     }
 
-    /** Spawn loot and XP from a dead boss. Drops 3–5 items plus guaranteed currency. */
+    /** Spawn loot and XP from a dead boss. Drops 3–5 items plus guaranteed currency and fragments. */
     private void spawnBossLoot(SimBoss boss) {
         if (gameMode == GameMode.ARCADE) arcadeScore += 10;
 
@@ -1313,11 +1337,16 @@ public final class GameSimulator {
                          boss.type.xpReward());
 
         float cx = boss.physics.x + boss.physics.width * 0.5f;
-        float cy = boss.physics.y;
+        float cy = boss.physics.y + boss.physics.height - PhysicsConstants.TILE_SIZE;
         // Guaranteed: 3 coins + 1 health potion
         for (int i = 0; i < 3; i++)
-            pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "coin", cx - 20f + i * 20f, cy));
-        pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "health_potion", cx, cy - 32f));
+            pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "coin",         cx - 20f + i * 20f, cy));
+        pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "health_potion",    cx,           cy));
+        // Guaranteed fragment trio from bosses
+        pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "yin_fragment",     cx - 16f,     cy - 36f));
+        pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "yang_fragment",    cx,           cy - 36f));
+        pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "lantern_fragment", cx + 16f,     cy - 36f));
+        pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "gem",              cx,           cy - 70f));
     }
 
     private static int enemyXp(String type) {

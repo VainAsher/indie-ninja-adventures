@@ -38,13 +38,13 @@ import java.util.Set;
 public final class MinimapRenderer {
 
     // ── Layout ────────────────────────────────────────────────────────────────
-    private static final float MAX_PANEL_W = 580f;
-    private static final float MAX_PANEL_H = 480f;
+    private static final float MAX_PANEL_W = 860f;
+    private static final float MAX_PANEL_H = 680f;
     private static final float PANEL_PAD   =  20f;
     private static final float ROOM_PAD    =   4f;
     private static final float TITLE_H     =  22f;
     /** Footer holds room-type legend + toggle-state row. */
-    private static final float FOOTER_H    =  38f;
+    private static final float FOOTER_H    =  46f;
 
     // ── Tile detail texture: 64×64 downsampled from the 128×128 tile grid ─────
     private static final int TEX_SZ    = 64;
@@ -56,7 +56,19 @@ public final class MinimapRenderer {
     private static final int PIX_PLATFORM = Color.rgba8888(0.55f, 0.44f, 0.30f, 1f);
     private static final int PIX_AIR      = 0x00000000;  // transparent
 
-    // ── Room type colours ─────────────────────────────────────────────────────
+    // ── Room type colours + labels ────────────────────────────────────────────
+    private static String roomLabel(String type) {
+        return switch (type != null ? type : "combat") {
+            case "start"    -> "START";
+            case "exit"     -> "EXIT";
+            case "shop"     -> "SHOP";
+            case "platform" -> "PLAT";
+            case "treasure" -> "TREAS";
+            case "boss"     -> "BOSS";
+            default         -> "CMB";
+        };
+    }
+
     private static Color roomColor(String type) {
         return switch (type != null ? type : "combat") {
             case "start"    -> new Color(0.31f, 0.86f, 0.31f, 1f);
@@ -75,6 +87,12 @@ public final class MinimapRenderer {
     private boolean showFog        = true;
     private boolean showEntities   = true;
 
+    // Zoom: 1 = full world, 2 = 8-room window, 4 = 4-room window
+    private int     zoomLevel  = 1;
+    // Focused room — MIN_VALUE means "follow current player room"
+    private int     focusGX    = Integer.MIN_VALUE;
+    private int     focusGY    = Integer.MIN_VALUE;
+
     private final ShapeRenderer        shapes;
     private final BitmapFont           font;
     /** Cached tile-detail textures, keyed "gx,gy". */
@@ -83,7 +101,6 @@ public final class MinimapRenderer {
     // ── Colours reused per-frame ──────────────────────────────────────────────
     private static final Color COL_UNVISITED = new Color(0.10f, 0.10f, 0.16f, 1f);
     private static final Color COL_ENEMY     = new Color(1f,    0.22f, 0.22f, 0.90f);
-    private static final Color COL_PICKUP    = new Color(1f,    0.90f, 0.20f, 0.90f);
     private static final Color COL_BOSS      = new Color(0.82f, 0.25f, 0.82f, 1f);
     private static final Color COL_NPC       = new Color(1f,    0.55f, 0.12f, 0.90f);
     private static final Color COL_PORTAL    = new Color(0.25f, 0.90f, 0.90f, 0.90f);
@@ -112,7 +129,7 @@ public final class MinimapRenderer {
     }
 
     /**
-     * Handle M / ESC / 1 / 2 / 3 key input.
+     * Handle M / ESC / 1 / 2 / 3 / + / - / arrow keys.
      * Returns true if the event was consumed.
      */
     public boolean handleInput() {
@@ -122,7 +139,38 @@ public final class MinimapRenderer {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) { showTileDetail = !showTileDetail; return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) { showFog        = !showFog;        return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) { showEntities   = !showEntities;   return true; }
+        // Zoom in/out: + / - keys
+        if (Gdx.input.isKeyJustPressed(Input.Keys.EQUALS) || Gdx.input.isKeyJustPressed(Input.Keys.PLUS)) {
+            zoomLevel = Math.min(4, zoomLevel * 2);
+            return true;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.MINUS)) {
+            zoomLevel = Math.max(1, zoomLevel / 2);
+            if (zoomLevel == 1) { focusGX = Integer.MIN_VALUE; focusGY = Integer.MIN_VALUE; }
+            return true;
+        }
+        // Pan focused room with arrow keys when zoomed
+        if (zoomLevel > 1) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT))  { if (focusGX != Integer.MIN_VALUE) focusGX--; return true; }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) { if (focusGX != Integer.MIN_VALUE) focusGX++; return true; }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.UP))    { if (focusGY != Integer.MIN_VALUE) focusGY--; return true; }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN))  { if (focusGY != Integer.MIN_VALUE) focusGY++; return true; }
+        }
         return false;
+    }
+
+    /** Returns a distinct colour per pickup type for the minimap dot. */
+    private static Color pickupTypeColor(String type) {
+        return switch (type != null ? type : "") {
+            case "coin"             -> new Color(1.00f, 0.85f, 0.00f, 0.9f);
+            case "health_potion"    -> new Color(0.90f, 0.20f, 0.20f, 0.9f);
+            case "rare_potion"      -> new Color(0.80f, 0.10f, 0.90f, 0.9f);
+            case "gem"              -> new Color(0.10f, 0.90f, 0.90f, 0.9f);
+            case "yin_fragment"     -> new Color(0.40f, 0.55f, 1.00f, 1.0f);
+            case "yang_fragment"    -> new Color(1.00f, 0.55f, 0.15f, 1.0f);
+            case "lantern_fragment" -> new Color(1.00f, 1.00f, 0.35f, 1.0f);
+            default                 -> new Color(1.00f, 0.90f, 0.20f, 0.9f);
+        };
     }
 
     /**
@@ -172,6 +220,20 @@ public final class MinimapRenderer {
         int spanW = maxGX - minGX + 1;
         int spanH = maxGY - minGY + 1;
 
+        // ── Zoom: clamp visible grid to a window centred on focus room ────────
+        if (zoomLevel > 1) {
+            if (focusGX == Integer.MIN_VALUE) { focusGX = currentGridX; focusGY = currentGridY; }
+            // Half-width/-height of the visible window (in rooms), at least 2 each side
+            int halfW = Math.max(2, spanW / (zoomLevel * 2));
+            int halfH = Math.max(2, spanH / (zoomLevel * 2));
+            minGX = Math.max(minGX, focusGX - halfW);
+            maxGX = Math.min(maxGX, focusGX + halfW);
+            minGY = Math.max(minGY, focusGY - halfH);
+            maxGY = Math.min(maxGY, focusGY + halfH);
+            spanW = maxGX - minGX + 1;
+            spanH = maxGY - minGY + 1;
+        }
+
         // ── Fit room cell size ────────────────────────────────────────────────
         float innerW    = MAX_PANEL_W - PANEL_PAD * 2f;
         float innerH    = MAX_PANEL_H - PANEL_PAD * 2f - TITLE_H - FOOTER_H;
@@ -206,6 +268,8 @@ public final class MinimapRenderer {
         shapes.rect(panelX, panelY, panelW, panelH);
 
         for (WorldRoomDescriptor room : rooms) {
+            if (room.gridX < minGX || room.gridX > maxGX) continue;
+            if (room.gridY < minGY || room.gridY > maxGY) continue;
             boolean visited = !showFog || visitedRooms.contains(roomKey(room.gridX, room.gridY));
             float rx = gridOriX + (room.gridX - minGX) * fStep;
             float ry = fGridOriY + (fMaxGY - room.gridY) * fStep;
@@ -230,6 +294,8 @@ public final class MinimapRenderer {
 
         shapes.setColor(0.28f, 0.28f, 0.42f, 1f);
         for (WorldRoomDescriptor room : rooms) {
+            if (room.gridX < minGX || room.gridX > maxGX) continue;
+            if (room.gridY < minGY || room.gridY > maxGY) continue;
             if (showFog && !visitedRooms.contains(roomKey(room.gridX, room.gridY))) continue;
             float cx1 = gridOriX + (room.gridX - minGX) * fStep + roomSize * 0.5f;
             float cy1 = fGridOriY + (fMaxGY - room.gridY) * fStep + roomSize * 0.5f;
@@ -258,6 +324,8 @@ public final class MinimapRenderer {
             batch.begin();
             batch.setColor(1f, 1f, 1f, 0.88f);
             for (WorldRoomDescriptor room : rooms) {
+                if (room.gridX < minGX || room.gridX > maxGX) continue;
+                if (room.gridY < minGY || room.gridY > maxGY) continue;
                 String key = roomKey(room.gridX, room.gridY);
                 if (showFog && !visitedRooms.contains(key)) continue;
                 byte[][] grid = tileGrids.get(key);
@@ -294,11 +362,11 @@ public final class MinimapRenderer {
                 }
             }
 
-            // Pickups
+            // Pickups — per-type colour
             if (cachedPickups != null) {
-                shapes.setColor(COL_PICKUP);
                 for (PickupState p : cachedPickups) {
                     if (!p.alive) continue;
+                    shapes.setColor(pickupTypeColor(p.pickupType));
                     float[] sc = worldToMinimap(p.x, p.y, roomWidthPx, roomHeightPx,
                         minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                     if (sc != null) shapes.circle(sc[0], sc[1], dotR * 0.85f, 8);
@@ -360,12 +428,38 @@ public final class MinimapRenderer {
         shapes.end();
 
         // ═════════════════════════════════════════════════════════════════════
-        // Pass 5 — current-room outline (always on top)
+        // Pass 5 — current-room outline (only if visible in window)
         // ═════════════════════════════════════════════════════════════════════
-        shapes.begin(ShapeRenderer.ShapeType.Line);
-        shapes.setColor(1f, 1f, 1f, 1f);
-        shapes.rect(crx - 1.5f, cry - 1.5f, roomSize + 3f, roomSize + 3f);
-        shapes.end();
+        if (currentGridX >= minGX && currentGridX <= maxGX
+                && currentGridY >= minGY && currentGridY <= maxGY) {
+            shapes.begin(ShapeRenderer.ShapeType.Line);
+            shapes.setColor(1f, 1f, 1f, 1f);
+            shapes.rect(crx - 1.5f, cry - 1.5f, roomSize + 3f, roomSize + 3f);
+            shapes.end();
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // Pass 5b — room type labels when zoomed in enough (roomSize > 28 px)
+        // ═════════════════════════════════════════════════════════════════════
+        if (roomSize > 28f) {
+            batch.begin();
+            font.getData().setScale(Math.min(0.68f, roomSize * 0.014f));
+            for (WorldRoomDescriptor room : rooms) {
+                if (room.gridX < minGX || room.gridX > maxGX) continue;
+                if (room.gridY < minGY || room.gridY > maxGY) continue;
+                if (showFog && !visitedRooms.contains(roomKey(room.gridX, room.gridY))) continue;
+                Color rc = roomColor(room.roomType);
+                font.setColor(Math.min(1f, rc.r * 0.6f + 0.45f),
+                              Math.min(1f, rc.g * 0.6f + 0.45f),
+                              Math.min(1f, rc.b * 0.6f + 0.45f), 1f);
+                float rx = gridOriX + (room.gridX - minGX) * fStep;
+                float ry = fGridOriY + (fMaxGY - room.gridY) * fStep;
+                font.draw(batch, roomLabel(room.roomType), rx + roomSize * 0.06f, ry + roomSize * 0.52f);
+            }
+            font.getData().setScale(0.85f);
+            font.setColor(Color.WHITE);
+            batch.end();
+        }
 
         // ═════════════════════════════════════════════════════════════════════
         // Pass 6 — title + legend + toggle state
@@ -391,6 +485,9 @@ public final class MinimapRenderer {
         font.setColor(showTileDetail ? COL_ON : COL_OFF); font.draw(batch, "[1] Detail",   lx,        ty);
         font.setColor(showFog        ? COL_ON : COL_OFF); font.draw(batch, "[2] Fog",      lx +  78f, ty);
         font.setColor(showEntities   ? COL_ON : COL_OFF); font.draw(batch, "[3] Entities", lx + 128f, ty);
+        font.setColor(0.72f, 0.88f, 1f, 1f);
+        String zoomText = "[+/-] Zoom: " + zoomLevel + "x" + (zoomLevel > 1 ? "  [Arrows] Pan" : "");
+        font.draw(batch, zoomText, lx + 258f, ty);
 
         font.getData().setScale(0.85f);
         font.setColor(Color.WHITE);

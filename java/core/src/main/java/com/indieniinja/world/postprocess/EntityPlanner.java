@@ -192,11 +192,22 @@ public final class EntityPlanner {
 
     private static String[] pickupTypes(WorldGraph.RoomType type) {
         return switch (type) {
-            case BOSS     -> new String[]{"gem", "rare_potion", "coin", "gem", "coin", "health_potion"};
-            case TREASURE -> new String[]{"gem", "rare_potion", "gem", "coin"};
-            case COMBAT   -> new String[]{"coin", "health_potion", "coin", "coin"};
-            case PLATFORM -> new String[]{"coin", "health_potion", "coin"};
-            default       -> new String[]{"health_potion", "coin"};
+            // Boss: rich loot including all three fragment types
+            case BOSS     -> new String[]{
+                "gem", "rare_potion", "coin", "gem", "coin", "health_potion",
+                "yin_fragment", "yang_fragment", "lantern_fragment"};
+            // Treasure: high-value including fragments
+            case TREASURE -> new String[]{
+                "gem", "rare_potion", "gem", "coin",
+                "yin_fragment", "yang_fragment", "lantern_fragment"};
+            // Combat: standard drops + rare fragment chance (1-in-6 slot)
+            case COMBAT   -> new String[]{
+                "coin", "health_potion", "coin", "coin",
+                "yin_fragment", "yang_fragment"};
+            // Platform: lighter loot, occasional fragment
+            case PLATFORM -> new String[]{
+                "coin", "health_potion", "coin", "lantern_fragment"};
+            default -> new String[]{"health_potion", "coin", "yin_fragment"};
         };
     }
 
