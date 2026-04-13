@@ -41,10 +41,12 @@ tasks.shadowJar {
     archiveClassifier.set("all")
     mergeServiceFiles()
 
-    // Bundle game assets from repo root so the fat JAR works standalone.
-    // Gdx.files.internal("assets/...") resolves from the classpath root.
+    // Bundle game assets and data from repo root so the fat JAR works standalone.
+    // Gdx.files.internal("assets/...") and Gdx.files.internal("data/...") both
+    // resolve from the classpath root when running from a fat JAR.
     from(repoRoot) {
         include("assets/**")
+        include("data/**")
     }
 }
 
