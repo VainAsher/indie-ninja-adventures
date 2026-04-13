@@ -58,6 +58,8 @@ public final class GameSimulator {
     // ── Constants ─────────────────────────────────────────────────────────────
     private static final float DT           = PhysicsConstants.FIXED_DT;
     private static final float PIXELS_PER_S = 1f / DT;  // 60
+    private static final float SKELETON_RANGE_MULT = 1.15f;
+    private static final float ARCHER_PROJECTILE_SPEED = SimPlayer.SHURIKEN_SPEED * 0.90f;
 
     // ── Core systems ──────────────────────────────────────────────────────────
     private final EventBus      bus;
@@ -1264,7 +1266,12 @@ public final class GameSimulator {
                 if (en.attackWindupTimer > 0) {
                     en.attackWindupTimer -= DT;
                 } else if (en.attackActiveTimer < SimEnemy.ATTACK_ACTIVE_TIME) {
+                    boolean wasInactive = en.attackActiveTimer <= 0f;
                     en.attackActiveTimer += DT;
+                    // Archer attack payload is projectile-based (no melee touch damage).
+                    if (wasInactive && "archer".equals(en.enemyType)) {
+                        spawnArcherProjectile(en, nearest[0], nearest[1]);
+                    }
                 } else {
                     en.attackActiveTimer  = 0f;
                     en.attackRecoveryTimer = SimEnemy.ATTACK_RECOVERY_TIME;
@@ -1359,6 +1366,7 @@ public final class GameSimulator {
             if (!en.isAlive()) continue;
             if (en.aiState != EnemyAIState.ATTACK) continue;
             if (en.attackActiveTimer <= 0) continue;
+            if ("archer".equals(en.enemyType)) continue;
             float activeProgress = (SimEnemy.ATTACK_ACTIVE_TIME > 0f)
                 ? Math.min(1f, en.attackActiveTimer / SimEnemy.ATTACK_ACTIVE_TIME)
                 : 1f;
@@ -1494,6 +1502,34 @@ public final class GameSimulator {
         if (nearest != null) nearest.addXp(xp);
     }
 
+    private void spawnArcherProjectile(SimEnemy en, float targetX, float targetY) {
+        float sx = en.physics.x + en.physics.width  * 0.5f - SimShuriken.W * 0.5f;
+        float sy = en.physics.y + en.physics.height * 0.5f - SimShuriken.H * 0.5f;
+        float toX = targetX - (sx + SimShuriken.W * 0.5f);
+        float toY = targetY - (sy + SimShuriken.H * 0.5f);
+        float len = (float) Math.sqrt(toX * toX + toY * toY);
+
+        float vx, vy;
+        if (len > 0.001f) {
+            vx = (toX / len) * ARCHER_PROJECTILE_SPEED;
+            vy = (toY / len) * ARCHER_PROJECTILE_SPEED;
+        } else {
+            vx = en.facingRight ? ARCHER_PROJECTILE_SPEED : -ARCHER_PROJECTILE_SPEED;
+            vy = 0f;
+        }
+
+        shurikens.add(new SimShuriken(
+            hubId + "_enemy_shot_" + shurikenSeq++,
+            -1,
+            sx,
+            sy,
+            vx,
+            vy,
+            true,
+            Math.max(1, en.baseDamage)
+        ));
+    }
+
     private void spawnPendingShurikens() {
         for (SimPlayer sp : players.values()) {
             if (!sp.pendingShuriken) continue;
@@ -1531,20 +1567,33 @@ public final class GameSimulator {
             }
             if (s.stuck) continue;
 
-            // Enemy collision
-            for (SimEnemy en : enemies) {
-                if (!en.isAlive()) continue;
-                EnemyAttackGeometry.Rect hurt = EnemyAttackGeometry.hurtboxRect(
-                    en.enemyType,
-                    en.physics.x, en.physics.y,
-                    en.physics.width, en.physics.height
-                );
-                if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
-                                hurt.x, hurt.y, hurt.w, hurt.h)) {
-                    if (en.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnLoot(en);
-                    s.stuck      = true;
-                    s.stuckTimer = 0.1f;
-                    break;
+            if (s.damagesPlayers) {
+                for (SimPlayer p : players.values()) {
+                    if (!p.isAlive()) continue;
+                    if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
+                                    p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
+                        p.takeDamage(s.damage);
+                        s.stuck      = true;
+                        s.stuckTimer = 0.1f;
+                        break;
+                    }
+                }
+            } else {
+                // Enemy collision
+                for (SimEnemy en : enemies) {
+                    if (!en.isAlive()) continue;
+                    EnemyAttackGeometry.Rect hurt = EnemyAttackGeometry.hurtboxRect(
+                        en.enemyType,
+                        en.physics.x, en.physics.y,
+                        en.physics.width, en.physics.height
+                    );
+                    if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
+                                    hurt.x, hurt.y, hurt.w, hurt.h)) {
+                        if (en.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnLoot(en);
+                        s.stuck      = true;
+                        s.stuckTimer = 0.1f;
+                        break;
+                    }
                 }
             }
         }
@@ -1894,7 +1943,7 @@ public final class GameSimulator {
             case "goblin"   -> new SimEnemy(hubId+"_goblin_"+idx,   "goblin",   spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
             case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 2+hpBonus, 1, 90f *speedMult, 180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
             case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 40, 32, 4+hpBonus, 2, 60f *speedMult, 160f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 3+hpBonus, 1, 60f *speedMult, 200f, 64f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 3+hpBonus, 1, 60f *speedMult, 200f, 64f * SKELETON_RANGE_MULT, spec.patrolMinX(), spec.patrolMaxX(), false);
             case "spearman" -> new SimEnemy(hubId+"_spearman_"+idx, "spearman", spec.x(), spec.y(), 36, 52, 4+hpBonus, 2, 65f *speedMult, 190f, 80f, spec.patrolMinX(), spec.patrolMaxX(), false);
             case "archer"   -> new SimEnemy(hubId+"_archer_"+idx,   "archer",   spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 90f *speedMult, 320f, 200f,spec.patrolMinX(), spec.patrolMaxX(), false);
             default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);

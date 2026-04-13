@@ -655,6 +655,10 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 **What shipped:** All 4 psychological patterns are live server-side. Siren scripted loss fires correctly. Echo Warden mirrors movement. Time Leech Lord drains lantern and spawns minions. Memory Eater signals platform reset per phase. Client-side collapse animation and fragment drop wiring are next-session tuning items.
 
+Loop note (2026-04-13): Enemy combat tuning pass shipped after M5:
+slime attack hitbox now lunges one body-length forward, skeleton attack range is
+extended by 15%, and archers now fire projectile attacks that damage players.
+
 **Note:** Boss tuning (HP, timings, difficulty) will need iteration after first playtests — Lesson 1 from project history.
 
 ---

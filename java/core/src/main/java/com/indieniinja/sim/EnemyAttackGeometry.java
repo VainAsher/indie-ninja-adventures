@@ -8,6 +8,7 @@ package com.indieniinja.sim;
 public final class EnemyAttackGeometry {
 
     private EnemyAttackGeometry() {}
+    private static final float SKELETON_RANGE_MULT = 1.15f;
 
     /** Immutable AABB rectangle. */
     public static final class Rect {
@@ -29,7 +30,7 @@ public final class EnemyAttackGeometry {
         return switch (normalizeType(enemyType)) {
             case "bat"      -> 28f;
             case "slime"    -> 40f;
-            case "skeleton" -> 64f;
+            case "skeleton" -> 64f * SKELETON_RANGE_MULT;
             case "spearman" -> 80f;
             case "archer"   -> 200f;
             case "goblin", "swordsman", "default" -> 32f;
@@ -57,7 +58,7 @@ public final class EnemyAttackGeometry {
             case "archer" ->
                 forwardThrust(bodyX, bodyY, bodyW, bodyH, 36f, facingRight, 0.60f);
             case "slime" ->
-                radialSwipe(bodyX, bodyY, bodyW, bodyH, 1.25f, 0.85f, 0.10f);
+                slimeBodyLengthLunge(bodyX, bodyY, bodyW, bodyH, attackRange, facingRight);
             case "bat" ->
                 forwardThrust(bodyX, bodyY, bodyW, bodyH, 28f, facingRight, 0.70f);
             default ->
@@ -177,6 +178,15 @@ public final class EnemyAttackGeometry {
         float x = bodyX - (w - bodyW) * 0.5f;
         float y = bodyY + bodyH * yOffsetRatio;
         return new Rect(x, y, w, h);
+    }
+
+    private static Rect slimeBodyLengthLunge(float bodyX, float bodyY, float bodyW, float bodyH,
+                                             float attackRange, boolean facingRight) {
+        float reach = Math.max(attackRange, bodyW);
+        float h = Math.max(22f, bodyH * 0.90f);
+        float x = facingRight ? bodyX + bodyW : bodyX - reach;
+        float y = bodyY + bodyH * 0.08f;
+        return new Rect(x, y, reach, h);
     }
 
     private static String normalizeType(String enemyType) {
