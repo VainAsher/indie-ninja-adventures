@@ -176,7 +176,7 @@ public final class CollisionSystem {
                 // falls, and cases where the player spawned slightly inside the tile.
                 // (Old condition used `PLATFORM_GRACE_PIXELS + p.vy + 1` which failed
                 //  at low vy when overlapTop exceeded the tiny fixed threshold.)
-                if (p.vy >= 0 && overlapTop > 0 && overlapTop < tile.h() * 0.8f) {
+                if (p.vy >= 0 && overlapTop >= 0 && overlapTop < tile.h() * 0.8f) {
                     p.y        = tile.y() - p.height;
                     p.vy       = 0;
                     p.onGround = true;
