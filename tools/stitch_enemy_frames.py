@@ -46,7 +46,9 @@ DEFAULT_ZIP = (
 
 # Script lives in tools/, repo root is one level up
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_OUT = REPO_ROOT / "java" / "client" / "src" / "main" / "resources" / "assets" / "sprites" / "enemies"
+DEFAULT_OUT = (
+    REPO_ROOT / "java" / "client" / "src" / "main" / "resources" / "assets" / "sprites" / "enemies"
+)
 
 # ── Folder → enemy type mapping ───────────────────────────────────────────────
 #
@@ -54,11 +56,11 @@ DEFAULT_OUT = REPO_ROOT / "java" / "client" / "src" / "main" / "resources" / "as
 # Each folder has a "PNG" subdirectory with individual frames.
 
 FOLDER_MAP = {
-    "1 Enemy": "swordsman",   # greatsword skeleton
-    "2 Enemy": "skeleton",    # sword + shield skeleton
-    "3 Enemy": "slime",       # slime (ground-only)
-    "4 Enemy": "spearman",    # skeleton spearman (longer reach)
-    "5 Enemy": "archer",      # skeleton archer (kiter, bow)
+    "1 Enemy": "swordsman",  # greatsword skeleton
+    "2 Enemy": "skeleton",  # sword + shield skeleton
+    "3 Enemy": "slime",  # slime (ground-only)
+    "4 Enemy": "spearman",  # skeleton spearman (longer reach)
+    "5 Enemy": "archer",  # skeleton archer (kiter, bow)
 }
 
 # ── Frame-group rules per enemy type ──────────────────────────────────────────
@@ -72,52 +74,52 @@ FOLDER_MAP = {
 
 FRAME_GROUPS = {
     "swordsman": {
-        "idle.png":     ["idle-"],
-        "walk.png":     ["walk-"],
+        "idle.png": ["idle-"],
+        "walk.png": ["walk-"],
         "attack_a.png": ["attack-a"],
         "attack_b.png": ["attack-b"],
-        "hit.png":      ["hit-"],
-        "dead.png":     ["dead-"],
-        "jump.png":     ["jump-"],
+        "hit.png": ["hit-"],
+        "dead.png": ["dead-"],
+        "jump.png": ["jump-"],
     },
     "skeleton": {
-        "idle.png":         ["idle-"],
-        "walk.png":         ["walk-"],
-        "attack_a.png":     ["attack-a"],
-        "attack_b.png":     ["attack-b"],
-        "hit.png":          ["hit-"],
-        "dead.png":         ["dead-"],
-        "jump.png":         ["jump-"],
+        "idle.png": ["idle-"],
+        "walk.png": ["walk-"],
+        "attack_a.png": ["attack-a"],
+        "attack_b.png": ["attack-b"],
+        "hit.png": ["hit-"],
+        "dead.png": ["dead-"],
+        "jump.png": ["jump-"],
         "shield_block.png": ["shield-block", "shield_block"],
     },
     "slime": {
-        "idle.png":     ["idle-"],
-        "walk.png":     ["walk-"],
+        "idle.png": ["idle-"],
+        "walk.png": ["walk-"],
         "attack_a.png": ["attack-a"],
         "attack_b.png": ["attack-b"],
         "attack_c.png": ["attack-c"],
-        "hit.png":      ["hit-"],
-        "dead.png":     ["dead-"],
+        "hit.png": ["hit-"],
+        "dead.png": ["dead-"],
         # slime has no jump
     },
     "spearman": {
-        "idle.png":     ["idle-"],
-        "walk.png":     ["walk-"],
+        "idle.png": ["idle-"],
+        "walk.png": ["walk-"],
         "attack_a.png": ["attack-a"],
         "attack_b.png": ["attack-b"],
-        "hit.png":      ["hit-"],
-        "dead.png":     ["dead-"],
-        "jump.png":     ["jump-"],
+        "hit.png": ["hit-"],
+        "dead.png": ["dead-"],
+        "jump.png": ["jump-"],
     },
     "archer": {
-        "idle.png":     ["idle-"],
-        "run.png":      ["run-"],      # archer kites using run anim
-        "walk.png":     ["run-"],      # walk alias -> same run sheet
+        "idle.png": ["idle-"],
+        "run.png": ["run-"],  # archer kites using run anim
+        "walk.png": ["run-"],  # walk alias -> same run sheet
         "attack_a.png": ["attack-a"],
         "attack_b.png": ["attack-b"],
-        "hit.png":      ["hit-"],
-        "dead.png":     ["dead-"],
-        "jump.png":     ["jump-"],
+        "hit.png": ["hit-"],
+        "dead.png": ["dead-"],
+        "jump.png": ["jump-"],
     },
 }
 
@@ -149,8 +151,9 @@ def matches_prefix(filename: str, prefixes: list[str]) -> bool:
     return any(name_low.startswith(p.lower()) for p in prefixes)
 
 
-def process_enemy(zip_ref: zipfile.ZipFile, folder: str, enemy_type: str,
-                  out_dir: Path, groups: dict) -> dict:
+def process_enemy(
+    zip_ref: zipfile.ZipFile, folder: str, enemy_type: str, out_dir: Path, groups: dict
+) -> dict:
     """Extract + stitch all animation groups for one enemy type. Returns stats dict."""
     stats = {}
 
@@ -158,10 +161,9 @@ def process_enemy(zip_ref: zipfile.ZipFile, folder: str, enemy_type: str,
     png_prefix = folder + "/PNG/"
     # Also handle nested subdirs within the folder (some ZIPs vary)
     all_paths = [
-        zi for zi in zip_ref.infolist()
-        if not zi.is_dir()
-        and folder in zi.filename
-        and zi.filename.lower().endswith(".png")
+        zi
+        for zi in zip_ref.infolist()
+        if not zi.is_dir() and folder in zi.filename and zi.filename.lower().endswith(".png")
     ]
 
     if not all_paths:
@@ -178,10 +180,7 @@ def process_enemy(zip_ref: zipfile.ZipFile, folder: str, enemy_type: str,
 
     for output_file, prefix_list in groups.items():
         # Collect matching frames, sorted naturally
-        matching = [
-            zi for zi in all_paths
-            if matches_prefix(Path(zi.filename).name, prefix_list)
-        ]
+        matching = [zi for zi in all_paths if matches_prefix(Path(zi.filename).name, prefix_list)]
         matching.sort(key=lambda zi: natural_sort_key(Path(zi.filename).name))
 
         if not matching:
@@ -217,11 +216,11 @@ def main():
     args = parser.parse_args()
 
     zip_path = Path(args.zip)
-    out_dir  = Path(args.out)
+    out_dir = Path(args.out)
 
     if not zip_path.exists():
         print(f"ERROR: ZIP not found: {zip_path}")
-        print(f"Pass the correct path with:  --zip \"path/to/enemy animations.zip\"")
+        print(f'Pass the correct path with:  --zip "path/to/enemy animations.zip"')
         sys.exit(1)
 
     print(f"Source ZIP : {zip_path}")
@@ -237,11 +236,15 @@ def main():
         for folder, enemy_type in FOLDER_MAP.items():
             # Try to find the folder — handle spaces and case variation
             actual_folder = next(
-                (d for d in top_dirs if d.lower().replace(" ", "") == folder.lower().replace(" ", "")),
-                folder
+                (
+                    d
+                    for d in top_dirs
+                    if d.lower().replace(" ", "") == folder.lower().replace(" ", "")
+                ),
+                folder,
             )
             groups = FRAME_GROUPS.get(enemy_type, {})
-            stats  = process_enemy(zf, actual_folder, enemy_type, out_dir, groups)
+            stats = process_enemy(zf, actual_folder, enemy_type, out_dir, groups)
             summary[enemy_type] = stats
 
     # ── Summary report ────────────────────────────────────────────────────────
