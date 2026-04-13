@@ -1343,8 +1343,13 @@ public final class GameSimulator {
             float hbY     = cy - halfH;
             for (SimEnemy en : enemies) {
                 if (!en.isAlive()) continue;
+                EnemyAttackGeometry.Rect hurt = EnemyAttackGeometry.hurtboxRect(
+                    en.enemyType,
+                    en.physics.x, en.physics.y,
+                    en.physics.width, en.physics.height
+                );
                 if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
-                                en.physics.x, en.physics.y, en.physics.width, en.physics.height)) {
+                                hurt.x, hurt.y, hurt.w, hurt.h)) {
                     // Skeleton in GUARD state blocks melee — takes no damage, guard drops after counter
                     if (en.aiState == EnemyAIState.GUARD) continue;
                     if (en.takeDamage(SimPlayer.MELEE_DAMAGE)) spawnLoot(en);
@@ -1481,8 +1486,13 @@ public final class GameSimulator {
             // Enemy collision
             for (SimEnemy en : enemies) {
                 if (!en.isAlive()) continue;
+                EnemyAttackGeometry.Rect hurt = EnemyAttackGeometry.hurtboxRect(
+                    en.enemyType,
+                    en.physics.x, en.physics.y,
+                    en.physics.width, en.physics.height
+                );
                 if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
-                                en.physics.x, en.physics.y, en.physics.width, en.physics.height)) {
+                                hurt.x, hurt.y, hurt.w, hurt.h)) {
                     if (en.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) spawnLoot(en);
                     s.stuck      = true;
                     s.stuckTimer = 0.1f;

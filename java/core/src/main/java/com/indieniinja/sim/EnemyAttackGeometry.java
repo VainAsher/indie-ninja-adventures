@@ -87,6 +87,47 @@ public final class EnemyAttackGeometry {
         };
     }
 
+    /**
+     * Enemy hurtbox (where player melee/shuriken can damage the enemy).
+     *
+     * Movement/collision physics remains the authoritative body AABB; this hurtbox
+     * is expanded for heavily padded sprite sheets so damage feedback matches visuals.
+     */
+    public static Rect hurtboxRect(String enemyType,
+                                   float bodyX, float bodyY,
+                                   float bodyW, float bodyH) {
+        String t = normalizeType(enemyType);
+        float w = bodyW;
+        float h = bodyH;
+        switch (t) {
+            case "goblin", "swordsman" -> {
+                w = bodyW * 1.45f;
+                h = bodyH * 1.50f;
+            }
+            case "skeleton" -> {
+                w = bodyW * 1.30f;
+                h = bodyH * 1.35f;
+            }
+            case "spearman" -> {
+                w = bodyW * 1.30f;
+                h = bodyH * 1.30f;
+            }
+            case "archer" -> {
+                w = bodyW * 1.20f;
+                h = bodyH * 1.20f;
+            }
+            case "slime" -> {
+                w = bodyW * 1.15f;
+                h = bodyH * 1.10f;
+            }
+            default -> { /* keep physics-sized hurtbox */ }
+        }
+
+        float cx = bodyX + bodyW * 0.5f;
+        float feetY = bodyY + bodyH;
+        return new Rect(cx - w * 0.5f, feetY - h, w, h);
+    }
+
     private static Rect greatswordSweep(float bodyX, float bodyY, float bodyW, float bodyH,
                                         float attackRange, boolean facingRight, float progress) {
         float swingReach = Math.max(attackRange, 56f);

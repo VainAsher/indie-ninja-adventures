@@ -63,9 +63,8 @@ public final class EntityRenderer {
     private static final float COMPANION_RADIUS    = 35f;   // orbit radius in px
     private static final float COMPANION_SPEED     = 0.8f;  // rad/s — doubled in Flow Mode
 
-    // Lift fraction: sprite is raised this fraction of its display height above the physics feet.
-    // Positive = upward (sprite bottom floats above the tile surface slightly).
-    private static final float ENEMY_LIFT = 0.05f;
+    // Lift fraction relative to sprite height. Keep at 0 so enemy feet sit on tiles.
+    private static final float ENEMY_LIFT = 0.0f;
 
     /**
      * Display size [w, h] for each enemy type.
@@ -110,6 +109,21 @@ public final class EntityRenderer {
             case "goblin", "swordsman", "archer" -> 32;
             default         -> 32;
         };
+    }
+
+    /**
+     * Approximate horizontal body-centre anchor inside enemy spritesheets.
+     * Some frames include heavy trailing-weapon padding, so centre anchoring
+     * can place the visible body away from its gameplay hitboxes.
+     */
+    private static float enemyBodyCenterAnchorX(String enemyType, int spriteW, boolean facingRight) {
+        float anchorUnflipped = switch (enemyType) {
+            case "goblin", "swordsman" -> spriteW * 0.66f;
+            case "spearman"            -> spriteW * 0.60f;
+            case "archer"              -> spriteW * 0.56f;
+            default                    -> spriteW * 0.50f;
+        };
+        return facingRight ? anchorUnflipped : (spriteW - anchorUnflipped);
     }
 
     // Per-state FPS constants matching Python sprite_manager.py ANIMATION_DEFS exactly
@@ -392,8 +406,8 @@ public final class EntityRenderer {
         int[] sz    = enemySize(typePrefix);
         int   physW = enemyPhysicsW(typePrefix);
         int   physH = enemyPhysicsH(typePrefix);
-        // X-anchor: centre display sprite over the physics body.
-        float drawX = e.x + physW * 0.5f - sz[0] * 0.5f;
+        float bodyCx = e.x + physW * 0.5f;
+        float drawX = bodyCx - enemyBodyCenterAnchorX(typePrefix, sz[0], e.facingRight);
         // Bottom-anchor: align sprite bottom with physics feet (e.y + physH), then lift.
         // Y-down coords: smaller Y = higher on screen.
         float drawY = e.y + physH - sz[1] * (1f + ENEMY_LIFT);
@@ -754,9 +768,14 @@ public final class EntityRenderer {
         String t = (e.enemyType != null && !e.enemyType.isEmpty()) ? e.enemyType : "skeleton";
         int pw = enemyPhysicsW(t);
         int ph = enemyPhysicsH(t);
+        EnemyAttackGeometry.Rect hurt = EnemyAttackGeometry.hurtboxRect(t, e.x, e.y, pw, ph);
 
-        // Authoritative enemy body collision box.
+        // Enemy hurtbox (what player attacks can hit).
         sr.setColor(1f, 0.15f, 0.15f, 1f);
+        sr.rect(hurt.x, hurt.y, hurt.w, hurt.h);
+
+        // Physics body AABB (movement/collision) in dim red.
+        sr.setColor(0.75f, 0.25f, 0.25f, 0.6f);
         sr.rect(e.x, e.y, pw, ph);
 
         // Attack zone preview while the enemy is in ATTACK state.
