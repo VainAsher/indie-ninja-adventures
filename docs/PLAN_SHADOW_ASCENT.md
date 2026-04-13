@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-13 22:47:26 +01:00 | **Codebase version:** v0.11.29 | **Next release target:** v0.11.30 (follow-up enemy traversal + stance-system implementation pass)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-13 23:17:46 +01:00 | **Codebase version:** v0.11.29 | **Next release target:** v0.11.30 (follow-up enemy traversal + stance-system implementation pass)
 
 ---
 
@@ -48,6 +48,26 @@ Every implementation cycle must follow this exact order:
   - finalize slime wall-crawl behavior (all-side surface traversal) as dedicated movement system
   - tune Siren vulnerability window and add-wave pacing via playtest metrics
 
+`2026-04-13 23:17:46 +01:00`
+
+- P0 workloop audit pass completed against current GDD + code:
+  - confirmed `P0-06` scripted-loss pipeline is fully wired in sim/server/client flow
+  - identified objective-system drift: only kill/boss hooks were wired at runtime
+- Implemented `P0-01` build baseline quality-of-life closure:
+  - added repo-root Gradle wrappers (`gradlew`, `gradlew.bat`) delegating to `java/gradlew`
+  - validated root command path: `./gradlew.bat test` and `./gradlew.bat :server:test :client:compileJava`
+- Implemented `P0-02` objective-normalization pass (partial integration closure):
+  - normalized objective key handling (case-insensitive) in `MissionManager`
+  - fixed objective requirement bug: `activate_switches` now honors `count` (with `target` fallback)
+  - added runtime adapters (`onEnemyKilled`, `onBossDefeated`, `onItemCollected`, `onSwitchActivated`, `onReachLocation`)
+  - wired `GameScreen` inventory-diff tracking to feed `collect_items` objective progress
+- Implemented `P0-04` dialogue-event routing hardening:
+  - removed silent drops by handling all currently-authored dialogue events
+  - unknown dialogue events now emit telemetry and are persisted as story flags
+- Follow-up required in next loop:
+  - define canonical runtime sources for `reach_location` and `activate_switches` mission objectives
+  - add objective coverage tests for mixed missions (collect/reach/switch/time)
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -94,10 +114,10 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 
 | Status | ID | Task | Owner | Sprint | Depends on | Deliverable | Balance / ideation hook | Exit gate |
 |--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
-| [ ] | P0-01 | Restore build/test baseline (fix Gradle wrapper path, ensure `./gradlew.bat test` works) | ENG-CORE + QA | S1 | None | Reproducible local test command and CI run | Enables rapid tuning safely | All existing tests run from clean checkout |
-| [ ] | P0-02 | Mission objective integration for all objective types (`collect_items`, `activate_switches`, `reach_location`, `time_challenge`, `defeat_boss`, `kill_all_enemies`) | ENG-CLIENT + ENG-CORE | S1 | P0-01 | Objective event adapters and mission progress hooks | Exposes full mission pacing for tuning | 30/30 missions can progress objectives in playtest harness |
+| [x] | P0-01 | Restore build/test baseline (fix Gradle wrapper path, ensure `./gradlew.bat test` works) | ENG-CORE + QA | S1 | None | Reproducible local test command and CI run | Enables rapid tuning safely | All existing tests run from clean checkout |
+| [~] | P0-02 | Mission objective integration for all objective types (`collect_items`, `activate_switches`, `reach_location`, `time_challenge`, `defeat_boss`, `kill_all_enemies`) | ENG-CLIENT + ENG-CORE | S1 | P0-01 | Objective event adapters and mission progress hooks | Exposes full mission pacing for tuning | 30/30 missions can progress objectives in playtest harness |
 | [ ] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
-| [ ] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
+| [~] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
 | [ ] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
 | [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
 | [ ] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |

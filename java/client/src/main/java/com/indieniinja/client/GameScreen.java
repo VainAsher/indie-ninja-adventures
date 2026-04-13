@@ -151,6 +151,10 @@ public final class GameScreen implements Screen {
     private final java.util.Set<String>           prevEnemyIds  = new java.util.HashSet<>();
     /** Boss alive state last frame — transition true→false signals defeat. */
     private final java.util.Map<String, Boolean>  prevBossAlive = new java.util.HashMap<>();
+    /** Local player inventory totals from previous frame — diff used for collect_items objectives. */
+    private final java.util.Map<String, Integer>  prevInventoryTotals = new java.util.HashMap<>();
+    /** Dialogue event telemetry: key -> count processed this session. */
+    private final java.util.Map<String, Integer>  dialogueEventCounts = new java.util.HashMap<>();
 
     // ── Ability unlock toasts (Loop 20) ──────────────────────────────────────
     /** Abilities seen last frame for local player — new entries trigger toast notification. */
@@ -994,13 +998,40 @@ public final class GameScreen implements Screen {
     private void handleDialogueEvent(String event) {
         if (event == null) return;
         String[] parts = event.split(":", 2);
-        switch (parts[0]) {
+        String key = parts[0];
+        String arg = parts.length > 1 ? parts[1] : "";
+        dialogueEventCounts.merge(key, 1, Integer::sum);
+
+        switch (key) {
             case "start_mission" -> {
-                if (parts.length > 1) missionManager.startMission(parts[1]);
+                if (!arg.isBlank()) missionManager.startMission(arg);
             }
             case "open_shop"     -> { /* stub — shop UI not yet implemented */ }
             case "advance_act"   -> storyManager.advanceAct();
-            default              -> { /* unknown event — no-op */ }
+            // Known authored narrative events from data/dialogues.json.
+            // Preserve them as story flags even when they do not map to an immediate gameplay action.
+            case "tutorial_completed",
+                 "town_lore_learned",
+                 "act2_elder_conversation_complete",
+                 "act2_elder_patience_shown",
+                 "act3_final_blessing_received",
+                 "act3_elder_final_conversation",
+                 "open_mission_menu" -> {
+                storyManager.setFlag(key, "true");
+                if ("open_mission_menu".equals(key)) {
+                    log.info("[Dialogue] open_mission_menu emitted but mission menu UI is not yet implemented");
+                }
+            }
+            // Generic mission adapters (optional authored dialogue hooks).
+            case "switch_activated" -> missionManager.onSwitchActivated(arg);
+            case "reach_location" -> missionManager.onReachLocation(arg);
+            case "collect_item" -> missionManager.onItemCollected(arg, 1);
+            default -> {
+                String value = arg.isBlank() ? "true" : arg;
+                storyManager.setFlag(key, value);
+                log.warn("[Dialogue] unknown event '{}'; stored as story flag='{}' (count={})",
+                    key, value, dialogueEventCounts.getOrDefault(key, 1));
+            }
         }
     }
 
@@ -1023,7 +1054,7 @@ public final class GameScreen implements Screen {
             int kills = 0;
             for (String id : prevEnemyIds) if (!currentIds.contains(id)) kills++;
             if (kills > 0) {
-                missionManager.progressObjective("kill_all_enemies_", kills);
+                missionManager.onEnemyKilled(kills);
                 log.debug("[Mission] {} enemy kill(s) detected", kills);
                 // Persist to save stats
                 var sd = saveManager.getSaveData();
@@ -1041,11 +1072,7 @@ public final class GameScreen implements Screen {
         for (com.indieniinja.network.BossState boss : snap.bosses) {
             boolean wasAlive = prevBossAlive.getOrDefault(boss.bossId, true);
             if (wasAlive && !boss.alive) {
-                missionManager.progressObjective("defeat_boss_", 1);
-                // Also try keyed by boss type in case mission specifies one
-                if (boss.bossType != null && !boss.bossType.isEmpty()) {
-                    missionManager.progressObjective("defeat_boss_" + boss.bossType, 1);
-                }
+                missionManager.onBossDefeated(boss.bossType);
                 log.debug("[Mission] boss {} defeated", boss.bossId);
             }
             prevBossAlive.put(boss.bossId, boss.alive);
@@ -1063,6 +1090,27 @@ public final class GameScreen implements Screen {
             }
             prevLocalAbilities.clear();
             prevLocalAbilities.addAll(localP.abilities);
+        }
+
+        // Inventory gains (collect_items objective wiring).
+        if (localP != null && localP.inventory != null) {
+            java.util.Map<String, Integer> currentTotals = new java.util.HashMap<>();
+            for (var slot : localP.inventory.slots) {
+                if (slot == null) continue;
+                String itemId = slot.itemId();
+                if (itemId == null || itemId.isBlank()) continue;
+                currentTotals.merge(itemId.toLowerCase(java.util.Locale.ROOT), slot.quantity(), Integer::sum);
+            }
+            for (var e : currentTotals.entrySet()) {
+                int prevQty = prevInventoryTotals.getOrDefault(e.getKey(), 0);
+                int gained = e.getValue() - prevQty;
+                if (gained > 0) {
+                    missionManager.onItemCollected(e.getKey(), gained);
+                    log.debug("[Mission] item gain {} +{}", e.getKey(), gained);
+                }
+            }
+            prevInventoryTotals.clear();
+            prevInventoryTotals.putAll(currentTotals);
         }
     }
 

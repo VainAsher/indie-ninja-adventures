@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -89,12 +90,46 @@ public final class MissionManager {
         MissionDefinition def = definitions.get(activeMissionId);
         if (def == null) return;
 
-        objectiveProgress.merge(objectiveKey, delta, Integer::sum);
+        String key = normalizeObjectiveKey(objectiveKey);
+        objectiveProgress.merge(key, delta, Integer::sum);
         if (onObjectiveComplete != null) onObjectiveComplete.accept(objectiveKey);
 
         if (checkAllObjectivesMet(def)) {
             exitLocked = false;
         }
+    }
+
+    /** Objective adapter used by gameplay systems when enemies are defeated. */
+    public void onEnemyKilled(int count) {
+        if (count > 0) progressObjective(objectiveKey(ObjectiveType.KILL_ALL_ENEMIES, null), count);
+    }
+
+    /** Objective adapter used by gameplay systems when bosses are defeated. */
+    public void onBossDefeated(String bossId) {
+        progressObjective(objectiveKey(ObjectiveType.DEFEAT_BOSS, null), 1);
+        if (bossId != null && !bossId.isBlank()) {
+            progressObjective(objectiveKey(ObjectiveType.DEFEAT_BOSS, bossId), 1);
+        }
+    }
+
+    /** Objective adapter used by gameplay systems when items are acquired. */
+    public void onItemCollected(String itemId, int count) {
+        if (itemId == null || itemId.isBlank() || count <= 0) return;
+        progressObjective(objectiveKey(ObjectiveType.COLLECT_ITEMS, itemId), count);
+    }
+
+    /** Objective adapter used by gameplay systems when a switch is activated. */
+    public void onSwitchActivated(String switchId) {
+        progressObjective(objectiveKey(ObjectiveType.ACTIVATE_SWITCHES, null), 1);
+        if (switchId != null && !switchId.isBlank()) {
+            progressObjective(objectiveKey(ObjectiveType.ACTIVATE_SWITCHES, switchId), 1);
+        }
+    }
+
+    /** Objective adapter used by gameplay systems when a named location is reached. */
+    public void onReachLocation(String locationId) {
+        if (locationId == null || locationId.isBlank()) return;
+        progressObjective(objectiveKey(ObjectiveType.REACH_LOCATION, locationId), 1);
     }
 
     /**
@@ -158,15 +193,41 @@ public final class MissionManager {
 
     private boolean checkAllObjectivesMet(MissionDefinition def) {
         for (MissionObjective obj : def.objectives) {
+            if (obj.type == ObjectiveType.TIME_CHALLENGE) {
+                float limit = obj.timeLimit > 0f ? obj.timeLimit : def.timeLimit;
+                if (limit > 0f && missionTimer > limit) return false;
+                continue;
+            }
+
             int needed = switch (obj.type) {
-                case COLLECT_ITEMS     -> obj.count;
-                case KILL_ALL_ENEMIES,
-                     ACTIVATE_SWITCHES -> obj.target;
+                case COLLECT_ITEMS     -> Math.max(1, obj.count);
+                case KILL_ALL_ENEMIES  -> Math.max(1, obj.target);
+                case ACTIVATE_SWITCHES -> Math.max(1, obj.count > 0 ? obj.count : obj.target);
+                case REACH_LOCATION,
+                     DEFEAT_BOSS       -> 1;
                 default                -> 1;
             };
-            String key = obj.type.name().toLowerCase() + "_" + (obj.item != null ? obj.item : "");
+            String key = objectiveKeyForDefinition(obj);
             if (objectiveProgress.getOrDefault(key, 0) < needed) return false;
         }
         return true;
+    }
+
+    private String objectiveKeyForDefinition(MissionObjective obj) {
+        return switch (obj.type) {
+            case COLLECT_ITEMS     -> objectiveKey(obj.type, obj.item);
+            case REACH_LOCATION    -> objectiveKey(obj.type, obj.location);
+            case DEFEAT_BOSS       -> objectiveKey(obj.type, obj.boss);
+            default                -> objectiveKey(obj.type, null);
+        };
+    }
+
+    private String objectiveKey(ObjectiveType type, String qualifier) {
+        String q = qualifier == null ? "" : qualifier.trim().toLowerCase(Locale.ROOT);
+        return type.name().toLowerCase(Locale.ROOT) + "_" + q;
+    }
+
+    private String normalizeObjectiveKey(String key) {
+        return key == null ? "" : key.trim().toLowerCase(Locale.ROOT);
     }
 }
