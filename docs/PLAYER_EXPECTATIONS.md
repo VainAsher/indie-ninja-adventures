@@ -1,8 +1,8 @@
 # Shadow Ascent - Launcher-Only Player Expectations and UX Test Guide
 ## Living Playtest Document for User-Experience, Design-Intent, and Balance Validation
 
-**Current target build:** `v0.11.27`  
-**Last updated:** `2026-04-13 21:37:26 +01:00`  
+**Current target build:** `v0.11.28`  
+**Last updated:** `2026-04-13 21:44:57 +01:00`  
 **Tester profile:** User with `launcher.exe` only (no IDE, no terminal, no debug tooling required)
 
 ---
@@ -259,6 +259,7 @@ ID: TECH-STABILITY / UX-___ / BAL-___
 
 | Version | Player-visible impact |
 |---|---|
+| `v0.11.28` | Release metadata sync for launcher/release pipeline (`version.json` + Gradle version) and launcher UX guide alignment |
 | `v0.11.27` | Launcher-only UX test handbook refresh: updated expected scope, structured feedback IDs, and balancing capture templates |
 | `v0.11.26` | Enemy tuning pass: slime forward lunge reach update, skeleton range +15%, archers fire damaging projectiles |
 | `v0.11.25` | Echo system foundation (`SimEcho`) integrated server-side for future puzzle loops |
