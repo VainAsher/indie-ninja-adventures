@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.12 | **Next release target:** v0.11.13 (Milestone 6 — Echo System & Puzzles)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-13 | **Codebase version:** v0.11.19 | **Next release target:** v0.11.20 (player respawn + platform collision hardening)
 
 ---
 
@@ -55,6 +55,13 @@ The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milest
 | v0.11.8 | fix(vignette): smoother gradient (20 layers, quadratic curve), corner overlap fix, base dim layer; build.gradle.kts version resync (0.10.83 → 0.11.8) |
 | v0.11.9 | fix(vignette): critical GL blend state bug — SpriteBatch.end() disables GL_BLEND; ShapeRenderer did not re-enable it; all vignette rectangles drew as solid opaque black covering the game world. Fix: explicit glEnable(GL_BLEND) before shapes.begin() |
 | v0.11.10 | feat(m5): Shadow Ascent boss AI — BossPatternLibrary (Siren/EchoWarden/TimeLechLord/MemoryEater); SCRIPTED_LOSS MessageType; enemy FLEE+GUARD states; loadEnemySheets() + stitch_enemy_frames.py; climb/ledge animation FSM routing |
+| v0.11.11 | fix(m3): hub NPC authority; overlay null-guards |
+| v0.11.12 | fix(m3): skip hub NPC sync at frame 0; fix CME when despawning NPCs |
+| v0.11.13–15 | fix: log files, save-on-exit, save-on-room-entry; launcher black formatting CI fix |
+| v0.11.16 | feat(pickups): PickupSlot respawn system (30–60 s lifetime, 15–30 s cooldown) |
+| v0.11.17 | fix(rendering): bottom-anchor enemy sprites to physics feet; ENEMY_LIFT formula |
+| v0.11.18 | fix(dialogue): bundle data/ into fat JAR so NPC dialogues load from classpath |
+| v0.11.19 | feat(minimap): 860×680 panel; zoom 1x/2x/4x (+/-); arrow pan; per-pickup-type colours; room labels when zoomed; hitbox debug overlay (H); terrain density boost; fragments in all loot pools; pickup Y-spawn fix |
 
 ### What the GDD requires that doesn't exist
 
