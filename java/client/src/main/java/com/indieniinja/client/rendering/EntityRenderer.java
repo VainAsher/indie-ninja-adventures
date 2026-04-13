@@ -390,7 +390,10 @@ public final class EntityRenderer {
         boolean isDead = "dead".equals(e.aiState);
 
         int[] sz    = enemySize(typePrefix);
+        int   physW = enemyPhysicsW(typePrefix);
         int   physH = enemyPhysicsH(typePrefix);
+        // X-anchor: centre display sprite over the physics body.
+        float drawX = e.x + physW * 0.5f - sz[0] * 0.5f;
         // Bottom-anchor: align sprite bottom with physics feet (e.y + physH), then lift.
         // Y-down coords: smaller Y = higher on screen.
         float drawY = e.y + physH - sz[1] * (1f + ENEMY_LIFT);
@@ -404,7 +407,7 @@ public final class EntityRenderer {
             TextureRegion frame = anims.getFrameClamped(deadKey, elapsed, fps);
             boolean wantFlip = !e.facingRight;
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
-            batch.draw(frame, e.x, drawY, sz[0], sz[1]);
+            batch.draw(frame, drawX, drawY, sz[0], sz[1]);
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
             return;
         }
@@ -420,7 +423,7 @@ public final class EntityRenderer {
         boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();
         if (needEnemyChange) frame.flip(true, false);
 
-        batch.draw(frame, e.x, drawY, sz[0], sz[1]);
+        batch.draw(frame, drawX, drawY, sz[0], sz[1]);
 
         if (needEnemyChange) frame.flip(true, false);
 
@@ -428,7 +431,7 @@ public final class EntityRenderer {
         if (particles != null) {
             int prev = prevHealth.getOrDefault(e.enemyId, e.hp);
             if (e.hp < prev) {
-                float cx = e.x + sz[0] * 0.5f;
+                float cx = drawX + sz[0] * 0.5f;
                 float cy = drawY + sz[1] * 0.5f;  // centre of the displayed sprite
                 particles.emitHitSpark(cx, cy);
             }
@@ -726,7 +729,7 @@ public final class EntityRenderer {
             sr.rect(p.posX, p.posY, PW, PH);
         }
 
-        // Enemies — red body box, lighter red for sprite display bounds
+        // Enemies: red body hitbox and amber attack zones (when attacking)
         for (EnemyState e : snap.enemies) {
             drawEnemyDebugHitboxes(sr, e);
         }

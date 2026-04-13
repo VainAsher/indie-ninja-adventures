@@ -1125,33 +1125,50 @@ public final class GameSimulator {
     }
 
     private void stepEnemies() {
-        // Collect alive player positions (for targeting and multi-player aware AI)
-        List<float[]> playerTuples = new ArrayList<>(players.size());
+        // Collect alive player centres for targeting.
+        List<float[]> playerCenters = new ArrayList<>(players.size());
         for (SimPlayer p : players.values()) {
             if (p.isAlive()) {
-                playerTuples.add(new float[]{
-                    p.physics.x, p.physics.y, p.physics.width, p.physics.height
+                playerCenters.add(new float[]{
+                    p.physics.x + p.physics.width * 0.5f,
+                    p.physics.y + p.physics.height * 0.5f
                 });
             }
         }
-        if (playerTuples.isEmpty()) return;
-
-        float[] nearest = playerTuples.get(0);
+        if (playerCenters.isEmpty()) return;
 
         for (SimEnemy en : enemies) {
             if (!en.isAlive()) continue;
-            stepEnemyAI(en, nearest, playerTuples);
+            float[] nearest = nearestPlayerCenter(en, playerCenters);
+            stepEnemyAI(en, nearest);
             // Flying enemies manage their own vertical movement (no CollisionSystem for them)
             if (en.canFly) applyFlyingEnemyMovement(en);
             // Ground enemies: gravity + collision handled by PhysicsSystem/CollisionSystem via EntityManager
         }
     }
 
+    private static float[] nearestPlayerCenter(SimEnemy en, List<float[]> playerCenters) {
+        float ex = en.physics.x + en.physics.width * 0.5f;
+        float ey = en.physics.y + en.physics.height * 0.5f;
+        float best = Float.MAX_VALUE;
+        float[] nearest = playerCenters.get(0);
+        for (float[] pc : playerCenters) {
+            float dx = pc[0] - ex;
+            float dy = pc[1] - ey;
+            float d2 = dx * dx + dy * dy;
+            if (d2 < best) {
+                best = d2;
+                nearest = pc;
+            }
+        }
+        return nearest;
+    }
+
     /**
      * Enemy AI state machine — mirrors Python entities/enemy.py EnemyManager.update().
      * States: IDLE/PATROL ↔ CHASE ↔ ATTACK; FLEE when low HP; GUARD for skeleton.
      */
-    private void stepEnemyAI(SimEnemy en, float[] nearest, List<float[]> players) {
+    private void stepEnemyAI(SimEnemy en, float[] nearest) {
         float dist = en.distanceTo(nearest[0], nearest[1]);
 
         switch (en.aiState) {

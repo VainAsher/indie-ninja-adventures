@@ -210,9 +210,9 @@ Enemies now play their death animation to the last frame before disappearing, in
 | Hub evolution (§4) | Done (v0.11.1) | v0.11.1 |
 | Narrative Act FSM (§5) | Done (v0.11.1) | v0.11.1 |
 | Boss AI — psychological (§7) | Done (v0.11.10) | v0.11.10 |
-| Echo system (§6) | Not started (M6) | v0.11.13+ |
-| Act IV depression (§5) | Not started (M7) | v0.11.14+ |
-| Proof token / labyrinth (§5) | Not started (M6) | v0.11.13+ |
+| Echo system (§6) | Not started (M6) | v0.11.11+ |
+| Act IV depression (§5) | Not started (M7) | v0.11.12+ |
+| Proof token / labyrinth (§5) | Not started (M6) | v0.11.11+ |
 | Arcade mode (§0.2) | Not started | TBD |
 | Sandbox mode (§0.3) | Not started | TBD |
 
