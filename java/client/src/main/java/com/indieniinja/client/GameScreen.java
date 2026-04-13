@@ -9,7 +9,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.indieniinja.client.audio.AudioManager;
 import com.indieniinja.client.game.DialogueManager;
+import com.indieniinja.client.game.MissionDefinition;
 import com.indieniinja.client.game.MissionManager;
+import com.indieniinja.client.game.MissionObjective;
+import com.indieniinja.client.game.ObjectiveType;
 import com.indieniinja.client.game.StoryManager;
 import com.indieniinja.client.network.NetworkClientThread;
 import com.indieniinja.sim.GameSimulator;
@@ -24,6 +27,7 @@ import com.indieniinja.client.rendering.ParticleSystem;
 import com.indieniinja.client.ui.DialogueOverlay;
 import com.indieniinja.client.ui.InventoryOverlay;
 import com.indieniinja.client.ui.MinimapRenderer;
+import com.indieniinja.client.ui.MissionSelectOverlay;
 import com.indieniinja.client.ui.PauseScreen;
 import com.indieniinja.client.ui.ShopOverlay;
 import com.indieniinja.network.ShopState;
@@ -109,6 +113,7 @@ public final class GameScreen implements Screen {
     private MissionManager  missionManager;
     private DialogueManager dialogueManager;
     private DialogueOverlay dialogueOverlay;
+    private MissionSelectOverlay missionSelectOverlay;
     private com.indieniinja.client.game.SaveManager saveManager;
 
     // ── Inventory / shop / minimap overlays ──────────────────────────────────
@@ -155,6 +160,13 @@ public final class GameScreen implements Screen {
     private final java.util.Map<String, Integer>  prevInventoryTotals = new java.util.HashMap<>();
     /** Dialogue event telemetry: key -> count processed this session. */
     private final java.util.Map<String, Integer>  dialogueEventCounts = new java.util.HashMap<>();
+    /** Per-mission reached location ids to avoid replaying one-shot objective triggers. */
+    private final java.util.Set<String> missionReachedLocations = new java.util.HashSet<>();
+    private String missionTriggerMissionId = "";
+    /** Mission contact volumes rebuilt from room entities each frame (debug-visible with H). */
+    private final java.util.List<MissionContactVolume> missionContactVolumes = new java.util.ArrayList<>();
+
+    private record MissionContactVolume(String id, float x, float y, float width, float height, String source) {}
 
     // ── Ability unlock toasts (Loop 20) ──────────────────────────────────────
     /** Abilities seen last frame for local player — new entries trigger toast notification. */
@@ -304,6 +316,15 @@ public final class GameScreen implements Screen {
         dialogueManager.setStoryContext(storyManager.toConditionContext());
         dialogueManager.setEventCallback(this::handleDialogueEvent);
         dialogueOverlay = new DialogueOverlay(dialogueManager);
+        missionSelectOverlay = new MissionSelectOverlay(missionManager);
+        missionSelectOverlay.setOnStartMission(missionId -> {
+            missionManager.startMission(missionId);
+            missionReachedLocations.clear();
+            missionTriggerMissionId = missionId;
+            if (saveManager != null) saveManager.markDirty();
+            log.info("[Mission] started via overlay: {}", missionId);
+        });
+        missionSelectOverlay.setOnClose(() -> dialogueManager.setStoryContext(storyManager.toConditionContext()));
         saveManager     = new com.indieniinja.client.game.SaveManager(storyManager, missionManager);
         saveManager.load();
         missionManager.setOnMissionComplete(() -> saveManager.markDirty());
@@ -404,19 +425,24 @@ public final class GameScreen implements Screen {
         // ── Dialogue input (consumes keys when dialogue is open) ─────────────
         boolean dialogueConsumed = !scriptedLossConsumed
             && !shopConsumed && !invConsumed && dialogueOverlay.handleInput();
+        boolean missionOverlayConsumed = !scriptedLossConsumed
+            && !craftConsumed && !shopConsumed && !invConsumed
+            && !dialogueConsumed
+            && missionSelectOverlay.handleInput(storyManager.currentAct().wire());
 
         // ── I key: toggle inventory (when no other overlay active) ────────────
-        if (!shopConsumed && !invConsumed && !dialogueConsumed && !paused
+        if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
                 && Gdx.input.isKeyJustPressed(Input.Keys.I)) {
             inventoryOverlay.toggle();
         }
         // ── M key: toggle minimap ─────────────────────────────────────────────
-        if (!shopConsumed && !invConsumed && !dialogueConsumed && !paused) {
+        if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused) {
             minimapRenderer.handleInput();
         }
 
         // ── ESC toggles pause (only when no overlay active) ───────────────────
-        boolean anyOverlay = scriptedLossConsumed || craftConsumed || shopConsumed || invConsumed || dialogueConsumed;
+        boolean anyOverlay = scriptedLossConsumed || craftConsumed || shopConsumed || invConsumed
+            || dialogueConsumed || missionOverlayConsumed;
 
         // ── H key: toggle hitbox debug overlay ───────────────────────────────
         if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.H)) {
@@ -426,7 +452,7 @@ public final class GameScreen implements Screen {
             if (paused) resume(); else pause();
         }
 
-        if (!paused && !dialogueConsumed && !scriptedLossConsumed) {
+        if (!paused && !dialogueConsumed && !missionOverlayConsumed && !scriptedLossConsumed) {
             accumulator += delta;
             while (accumulator >= PHYSICS_DT) {
                 InputCommand cmd = inputPoller.poll();
@@ -467,6 +493,7 @@ public final class GameScreen implements Screen {
             prevRoomGridY      = Integer.MIN_VALUE;
             prevEnemyIds.clear();
             prevBossAlive.clear();
+            missionContactVolumes.clear();
             cachedEnemies  = java.util.List.of();
             cachedPickups  = java.util.List.of();
             cachedTileGrids.clear();
@@ -486,6 +513,7 @@ public final class GameScreen implements Screen {
 
         // ── Mission objective progress (enemy kills, boss defeat) ────────────
         if (snap != null) tickMissionProgress(snap);
+        if (snap != null) tickMissionContactVolumes(snap);
 
         // ── E-key: interact with nearest interactable NPC or portal ─────────────
         if (!anyOverlay && !paused && snap != null
@@ -498,14 +526,26 @@ public final class GameScreen implements Screen {
             PlayerState localPlayer = snap.players.stream()
                 .filter(p -> p.slot == localSlot).findFirst().orElse(null);
             if (localPlayer != null) {
+                float pcx = localPlayer.posX + 14f;  // player centre (width=28/2)
+                float pcy = localPlayer.posY + 28f;  // player centre (height=56/2)
                 for (com.indieniinja.network.PortalState portal : cachedPortals) {
                     if (!portal.isActive) continue;
-                    float pcx = localPlayer.posX + 14f;  // player centre (width=28/2)
-                    float pcy = localPlayer.posY + 28f;  // player centre (height=56/2)
                     float poCx = portal.x + portal.width  * 0.5f;
                     float poCy = portal.y + portal.height * 0.5f;
                     float dx = pcx - poCx, dy = pcy - poCy;
                     if (dx * dx + dy * dy <= 56f * 56f) {
+                        if (missionManager.isActive() && isMissionExitPortal(portal, snap)) {
+                            if (missionManager.isExitLocked()) {
+                                log.info("[Mission] exit blocked until objectives are complete");
+                                portalTriggered = true;
+                                break;
+                            }
+                            missionManager.completeMission();
+                            if (saveManager != null) saveManager.markDirty();
+                            missionReachedLocations.clear();
+                            missionTriggerMissionId = "";
+                            log.info("[Mission] completed on exit contact before portal travel");
+                        }
                         if (networkClient == null) {
                             // Solo mode: warp player directly to the destination room
                             // in the unified world-space layout.
@@ -522,21 +562,44 @@ public final class GameScreen implements Screen {
             }
 
             if (!portalTriggered) {
-                for (NPCState npc : snap.npcs) {
-                    if (npc.isInteractable) {
-                        if ("shop".equals(npc.npcType) && latestShopStates.containsKey(npc.npcId)) {
-                            inventoryOverlay.hide();
-                            shopOverlay.open(latestShopStates.get(npc.npcId));
-                        } else if ("crafter".equals(npc.npcType)) {
-                            inventoryOverlay.hide();
-                            shopOverlay.hide();
-                            craftingOverlay.open();
-                        } else {
-                            String dialogueId = npcDialogueId(npc.npcType);
-                            dialogueManager.setStoryContext(storyManager.toConditionContext());
-                            dialogueManager.startNpcDialogue(dialogueId);
+                NPCState closestNpc = null;
+                if (localPlayer != null) {
+                    float pcx = localPlayer.posX + 14f;
+                    float pcy = localPlayer.posY + 28f;
+                    float bestD2 = Float.MAX_VALUE;
+                    for (NPCState npc : snap.npcs) {
+                        if (!npc.isInteractable) continue;
+                        float ncx = npc.x + 14f;
+                        float ncy = npc.y + 28f;
+                        float dx = pcx - ncx;
+                        float dy = pcy - ncy;
+                        float d2 = dx * dx + dy * dy;
+                        if (d2 < bestD2) {
+                            bestD2 = d2;
+                            closestNpc = npc;
                         }
-                        break;
+                    }
+                }
+                if (closestNpc != null) {
+                    if (closestNpc.npcType != null
+                            && (closestNpc.npcType.startsWith("btn_") || closestNpc.npcType.startsWith("lever_"))) {
+                        String activeMissionId = missionManager.getActiveMissionId();
+                        if (activeMissionId != null && !activeMissionId.isBlank()) {
+                            missionManager.onSwitchActivated(activeMissionId + ":" + closestNpc.npcId);
+                            log.debug("[Mission] switch activation tagged for mission {} via {}",
+                                activeMissionId, closestNpc.npcId);
+                        }
+                    } else if ("shop".equals(closestNpc.npcType) && latestShopStates.containsKey(closestNpc.npcId)) {
+                        inventoryOverlay.hide();
+                        shopOverlay.open(latestShopStates.get(closestNpc.npcId));
+                    } else if ("crafter".equals(closestNpc.npcType)) {
+                        inventoryOverlay.hide();
+                        shopOverlay.hide();
+                        craftingOverlay.open();
+                    } else {
+                        String dialogueId = npcDialogueId(closestNpc.npcType);
+                        dialogueManager.setStoryContext(storyManager.toConditionContext());
+                        dialogueManager.startNpcDialogue(dialogueId);
                     }
                 }
             }
@@ -555,6 +618,7 @@ public final class GameScreen implements Screen {
                 // (WORLD_TRANSITION) need a megamap rebuild.
                 prevEnemyIds.clear();         // avoid false kill counts across rooms
                 prevBossAlive.clear();
+                missionContactVolumes.clear();
                 latestShopStates.clear();
                 cachedPortals = java.util.List.of();
                 cachedEnemies = java.util.List.of();
@@ -694,6 +758,15 @@ public final class GameScreen implements Screen {
             hitboxRenderer.setProjectionMatrix(camera.cam.combined);
             hitboxRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Line);
             entityRenderer.renderHitboxes(hitboxRenderer, snap);
+            for (MissionContactVolume v : missionContactVolumes) {
+                if (v == null) continue;
+                if ("portal".equals(v.source)) {
+                    hitboxRenderer.setColor(0.20f, 0.90f, 1.00f, 1f);
+                } else {
+                    hitboxRenderer.setColor(1.00f, 0.80f, 0.25f, 1f);
+                }
+                hitboxRenderer.rect(v.x, v.y, v.width, v.height);
+            }
             hitboxRenderer.end();
             Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
         }
@@ -713,6 +786,14 @@ public final class GameScreen implements Screen {
             batch.setProjectionMatrix(hudRenderer.screenProjection());
             batch.begin();
             dialogueOverlay.render(batch);
+            batch.end();
+            batch.setProjectionMatrix(camera.cam.combined);
+        }
+
+        if (missionSelectOverlay.isVisible()) {
+            batch.setProjectionMatrix(hudRenderer.screenProjection());
+            batch.begin();
+            missionSelectOverlay.render(batch, storyManager.currentAct().wire());
             batch.end();
             batch.setProjectionMatrix(camera.cam.combined);
         }
@@ -801,6 +882,131 @@ public final class GameScreen implements Screen {
             dialogueManager.setStoryContext(storyManager.toConditionContext());
         }
         return true;
+    }
+
+    /**
+     * Contact-volume mission logic:
+     * - REACH_LOCATION objectives fire when player overlaps a volume matching locationId.
+     * - Mission completes only when objectives are met and player reaches exit contact.
+     */
+    private void tickMissionContactVolumes(WorldSnapshot snap) {
+        String activeMissionId = missionManager.getActiveMissionId();
+        if (activeMissionId == null || activeMissionId.isBlank()) {
+            missionTriggerMissionId = "";
+            missionReachedLocations.clear();
+            missionContactVolumes.clear();
+            return;
+        }
+
+        if (!activeMissionId.equals(missionTriggerMissionId)) {
+            missionTriggerMissionId = activeMissionId;
+            missionReachedLocations.clear();
+        }
+
+        MissionDefinition def = missionManager.getActiveDefinition();
+        if (def == null) return;
+
+        PlayerState local = snap.players.stream()
+            .filter(p -> p.slot == localSlot)
+            .findFirst().orElse(null);
+        if (local == null) return;
+
+        buildMissionContactVolumes(snap);
+        float px = local.posX + 14f;
+        float py = local.posY + 28f;
+
+        for (MissionObjective obj : def.objectives) {
+            if (obj.type != ObjectiveType.REACH_LOCATION || obj.location == null || obj.location.isBlank()) continue;
+            String loc = normalizeKey(obj.location);
+            if (missionReachedLocations.contains(loc)) continue;
+            if (!hasMissionVolume(loc)) {
+                MissionContactVolume exit = firstMissionVolume("exit");
+                if (exit != null) {
+                    missionContactVolumes.add(new MissionContactVolume(
+                        loc, exit.x, exit.y, exit.width, exit.height, "fallback_exit_alias"));
+                }
+            }
+            if (playerOverlapsVolume(loc, px, py)) {
+                missionManager.onReachLocation(loc);
+                missionReachedLocations.add(loc);
+                log.info("[Mission] location reached: {} (mission {})", loc, activeMissionId);
+            }
+        }
+
+        if (!missionManager.isExitLocked() && playerOverlapsVolume("exit", px, py)) {
+            missionManager.completeMission();
+            if (saveManager != null) saveManager.markDirty();
+            missionReachedLocations.clear();
+            missionTriggerMissionId = "";
+            log.info("[Mission] completed by reaching exit contact volume");
+        }
+    }
+
+    private void buildMissionContactVolumes(WorldSnapshot snap) {
+        missionContactVolumes.clear();
+
+        // Portals become explicit contact volumes.
+        for (com.indieniinja.network.PortalState portal : cachedPortals) {
+            if (!portal.isActive) continue;
+            float x = portal.x;
+            float y = portal.y;
+            float w = portal.width;
+            float h = portal.height;
+
+            missionContactVolumes.add(new MissionContactVolume("exit", x, y, w, h, "portal"));
+            missionContactVolumes.add(new MissionContactVolume("portal:" + normalizeKey(portal.destinationId), x, y, w, h, "portal"));
+            missionContactVolumes.add(new MissionContactVolume(normalizeKey(portal.destinationId), x, y, w, h, "portal"));
+        }
+
+        // Falling platforms can be authored as explicit location ids:
+        //   "platform:<platformId>" or "<platformId>" in mission objective location field.
+        for (var p : snap.platformStates) {
+            if (!p.visible) continue;
+            float x = p.originX;
+            float y = p.posY;
+            float w = p.width;
+            float h = p.height;
+            String id = normalizeKey(p.platformId);
+            missionContactVolumes.add(new MissionContactVolume("platform:" + id, x, y, w, h, "falling_platform"));
+            missionContactVolumes.add(new MissionContactVolume(id, x, y, w, h, "falling_platform"));
+        }
+    }
+
+    private boolean playerOverlapsVolume(String id, float px, float py) {
+        String key = normalizeKey(id);
+        for (MissionContactVolume v : missionContactVolumes) {
+            if (!v.id.equals(key)) continue;
+            if (px >= v.x && px <= v.x + v.width && py >= v.y && py <= v.y + v.height) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasMissionVolume(String id) {
+        String key = normalizeKey(id);
+        for (MissionContactVolume v : missionContactVolumes) {
+            if (v.id.equals(key)) return true;
+        }
+        return false;
+    }
+
+    private MissionContactVolume firstMissionVolume(String id) {
+        String key = normalizeKey(id);
+        for (MissionContactVolume v : missionContactVolumes) {
+            if (v.id.equals(key)) return v;
+        }
+        return null;
+    }
+
+    private static String normalizeKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private boolean isMissionExitPortal(com.indieniinja.network.PortalState portal, WorldSnapshot snap) {
+        if (portal == null || snap == null) return false;
+        if ("exit".equalsIgnoreCase(snap.roomType)) return true;
+        return "hub".equalsIgnoreCase(portal.portalType);
     }
 
     // ── Solo-mode helpers ─────────────────────────────────────────────────────
@@ -1004,7 +1210,12 @@ public final class GameScreen implements Screen {
 
         switch (key) {
             case "start_mission" -> {
-                if (!arg.isBlank()) missionManager.startMission(arg);
+                if (!arg.isBlank()) {
+                    missionManager.startMission(arg);
+                    missionReachedLocations.clear();
+                    missionTriggerMissionId = arg;
+                    if (saveManager != null) saveManager.markDirty();
+                }
             }
             case "open_shop"     -> { /* stub — shop UI not yet implemented */ }
             case "advance_act"   -> storyManager.advanceAct();
@@ -1015,12 +1226,16 @@ public final class GameScreen implements Screen {
                  "act2_elder_conversation_complete",
                  "act2_elder_patience_shown",
                  "act3_final_blessing_received",
-                 "act3_elder_final_conversation",
-                 "open_mission_menu" -> {
+                 "act3_elder_final_conversation" -> {
                 storyManager.setFlag(key, "true");
-                if ("open_mission_menu".equals(key)) {
-                    log.info("[Dialogue] open_mission_menu emitted but mission menu UI is not yet implemented");
-                }
+            }
+            case "open_mission_menu" -> {
+                storyManager.setFlag(key, "true");
+                inventoryOverlay.hide();
+                shopOverlay.hide();
+                craftingOverlay.close();
+                missionSelectOverlay.open(storyManager.currentAct().wire());
+                log.info("[Dialogue] opened mission select overlay");
             }
             // Generic mission adapters (optional authored dialogue hooks).
             case "switch_activated" -> missionManager.onSwitchActivated(arg);
@@ -1195,6 +1410,7 @@ public final class GameScreen implements Screen {
         if (hudRenderer    != null) hudRenderer.dispose();
         if (pauseScreen    != null) pauseScreen.dispose();
         if (dialogueOverlay  != null) dialogueOverlay.dispose();
+        if (missionSelectOverlay != null) missionSelectOverlay.dispose();
         if (inventoryOverlay != null) inventoryOverlay.dispose();
         if (shopOverlay      != null) shopOverlay.dispose();
         if (craftingOverlay  != null) craftingOverlay.dispose();

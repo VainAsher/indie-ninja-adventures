@@ -44,6 +44,7 @@ public final class MissionManager {
     // ── Query ─────────────────────────────────────────────────────────────────
 
     public MissionDefinition     getDefinition(String id)  { return definitions.get(id); }
+    public MissionDefinition     getActiveDefinition()     { return activeMissionId != null ? definitions.get(activeMissionId) : null; }
     public MissionState          getState(String id)       { return states.getOrDefault(id, MissionState.NOT_STARTED); }
     public boolean               isActive()               { return activeMissionId != null; }
     public String                getActiveMissionId()     { return activeMissionId; }
@@ -120,10 +121,18 @@ public final class MissionManager {
 
     /** Objective adapter used by gameplay systems when a switch is activated. */
     public void onSwitchActivated(String switchId) {
+        if (activeMissionId == null) return;
+        String active = normalizeObjectiveKey(activeMissionId);
+        String tag = normalizeObjectiveKey(switchId);
+
+        // Only mission-tagged switch activations should count.
+        // Accepted forms:
+        //   <missionId>
+        //   <missionId>:<switchId>
+        if (!(tag.equals(active) || tag.startsWith(active + ":"))) return;
+
         progressObjective(objectiveKey(ObjectiveType.ACTIVATE_SWITCHES, null), 1);
-        if (switchId != null && !switchId.isBlank()) {
-            progressObjective(objectiveKey(ObjectiveType.ACTIVATE_SWITCHES, switchId), 1);
-        }
+        if (!tag.isBlank()) progressObjective(objectiveKey(ObjectiveType.ACTIVATE_SWITCHES, tag), 1);
     }
 
     /** Objective adapter used by gameplay systems when a named location is reached. */

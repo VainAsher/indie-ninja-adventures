@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-13 23:17:46 +01:00 | **Codebase version:** v0.11.29 | **Next release target:** v0.11.30 (follow-up enemy traversal + stance-system implementation pass)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-13 23:38:32 +01:00 | **Codebase version:** v0.11.29 | **Next release target:** v0.11.30 (follow-up enemy traversal + stance-system implementation pass)
 
 ---
 
@@ -68,6 +68,31 @@ Every implementation cycle must follow this exact order:
   - define canonical runtime sources for `reach_location` and `activate_switches` mission objectives
   - add objective coverage tests for mixed missions (collect/reach/switch/time)
 
+`2026-04-13 23:38:32 +01:00`
+
+- Applied user decisions for mission flow and objective semantics:
+  - `reach_location` now uses explicit contact-volume IDs (portal and falling-platform derived volumes)
+  - `activate_switches` now only counts mission-tagged activations (`<missionId>:<switchId>`)
+  - mission completion now happens on exit-contact after objectives unlock (not immediately on objective completion)
+  - `open_mission_menu` now opens a dedicated mission-select overlay
+- Implemented `P0-03` mission lifecycle wiring (partial):
+  - portal interaction blocks mission exit when objectives are incomplete
+  - exit contact completes active mission and then allows portal travel
+  - mission progress state reset/cleanup handled on mission start/complete and room transitions
+- Implemented `P0-02` reach/switch integration expansion:
+  - `MissionManager.onSwitchActivated` enforces current mission tag contract
+  - `GameScreen` emits mission-tagged switch events when interacting with `btn_` / `lever_` NPCs
+  - contact-volume trigger system resolves `reach_location` objectives via explicit IDs, with temporary exit-volume alias fallback when no authored volume exists
+- Implemented dedicated mission selection UI:
+  - new `MissionSelectOverlay` with navigation and mission start callbacks
+  - dialogue event `open_mission_menu` now opens the overlay and suspends conflicting overlays
+- Validation:
+  - `./gradlew.bat test` ✅
+  - `./gradlew.bat :server:test :client:compileJava` ✅
+- Follow-up required in next loop:
+  - remove temporary `reach_location` exit-alias fallback once authored location volume maps are present per mission
+  - add automated objective lifecycle tests (reach/switch/exit-complete)
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -116,7 +141,7 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 |--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
 | [x] | P0-01 | Restore build/test baseline (fix Gradle wrapper path, ensure `./gradlew.bat test` works) | ENG-CORE + QA | S1 | None | Reproducible local test command and CI run | Enables rapid tuning safely | All existing tests run from clean checkout |
 | [~] | P0-02 | Mission objective integration for all objective types (`collect_items`, `activate_switches`, `reach_location`, `time_challenge`, `defeat_boss`, `kill_all_enemies`) | ENG-CLIENT + ENG-CORE | S1 | P0-01 | Objective event adapters and mission progress hooks | Exposes full mission pacing for tuning | 30/30 missions can progress objectives in playtest harness |
-| [ ] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
+| [~] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
 | [~] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
 | [ ] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
 | [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
