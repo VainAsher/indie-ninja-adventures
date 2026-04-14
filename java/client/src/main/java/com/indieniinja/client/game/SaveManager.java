@@ -43,6 +43,8 @@ public final class SaveManager {
     private boolean  saveExists = false;
     /** Live in-memory save data — updated each session; merged into capture() on write. */
     private SaveData liveData   = new SaveData();
+    /** Optional callback invoked immediately before serializing save data. */
+    private Runnable preSaveSync;
 
     public SaveManager(StoryManager story, MissionManager missions) {
         this.story    = story;
@@ -71,10 +73,7 @@ public final class SaveManager {
             if (data == null) { log.warn("[Save] Empty save file"); return false; }
             data = migrate(data);
             data.restore(story, missions);
-            // Sync runtime-tracked fields into liveData
-            liveData.totalEnemiesKilled = data.totalEnemiesKilled;
-            liveData.visitedRoomKeys    = data.visitedRoomKeys   != null ? data.visitedRoomKeys    : new java.util.ArrayList<>();
-            liveData.achievements       = data.achievements       != null ? data.achievements       : new java.util.ArrayList<>();
+            liveData = deepCopy(data);
             saveExists = true;
             log.info("[Save] Loaded v{} from {}", data.version, SAVE_PATH);
             return true;
@@ -90,21 +89,16 @@ public final class SaveManager {
      */
     public boolean save() {
         try {
-            SaveData data = SaveData.capture(story, missions);
-            // Merge all runtime-tracked state from liveData (populated by GameScreen.syncSaveState())
-            data.totalEnemiesKilled = liveData.totalEnemiesKilled;
-            data.visitedRoomKeys    = new java.util.ArrayList<>(liveData.visitedRoomKeys);
-            data.achievements       = new java.util.ArrayList<>(liveData.achievements);
-            // Campaign / player state not accessible to SaveData.capture()
-            if (liveData.worldSeed != 0)             data.worldSeed          = liveData.worldSeed;
-            if (liveData.currency  != 0)             data.currency           = liveData.currency;
-            if (liveData.playerInventory   != null)  data.playerInventory    = new java.util.HashMap<>(liveData.playerInventory);
-            if (liveData.equippedWeapon    != null)  data.equippedWeapon     = liveData.equippedWeapon;
-            if (liveData.equippedArmor     != null)  data.equippedArmor      = liveData.equippedArmor;
-            if (liveData.unlockedAbilities != null && !liveData.unlockedAbilities.isEmpty())
-                                                     data.unlockedAbilities  = new java.util.ArrayList<>(liveData.unlockedAbilities);
-            if (liveData.defeatedBosses    != null && !liveData.defeatedBosses.isEmpty())
-                                                     data.defeatedBosses     = new java.util.ArrayList<>(liveData.defeatedBosses);
+            if (preSaveSync != null) {
+                try { preSaveSync.run(); }
+                catch (Exception e) { log.warn("[Save] pre-save sync hook failed: {}", e.getMessage()); }
+            }
+
+            // Start from the fully-restored runtime snapshot to preserve all non-manager fields.
+            SaveData data = deepCopy(liveData);
+            // Overlay current manager-owned fields (story + missions) so active runtime state wins.
+            SaveData captured = SaveData.capture(story, missions);
+            overlayCapturedManagerState(data, captured);
 
             // Rotate backups before overwriting
             FileHandle existing = Gdx.files.local(SAVE_PATH);
@@ -113,6 +107,7 @@ public final class SaveManager {
             // Write new save
             String jsonStr = json.prettyPrint(data);
             Gdx.files.local(SAVE_PATH).writeString(jsonStr, false, "UTF-8");
+            liveData = deepCopy(data);
             saveExists = true;
             needsSave  = false;
             saveTimer  = 0f;
@@ -136,6 +131,9 @@ public final class SaveManager {
      * Changes are merged into the captured data on the next save.
      */
     public SaveData getSaveData() { return liveData; }
+
+    /** Set an optional callback used to refresh liveData immediately before save writes. */
+    public void setPreSaveSync(Runnable preSaveSync) { this.preSaveSync = preSaveSync; }
 
     /**
      * Advance the auto-save timer.  Call each game frame with delta seconds.
@@ -190,11 +188,45 @@ public final class SaveManager {
         if (d.missionAttempts   == null) d.missionAttempts   = new java.util.HashMap<>();
         if (d.playerInventory   == null) d.playerInventory   = new java.util.HashMap<>();
         if (d.missionStates     == null) d.missionStates     = new java.util.HashMap<>();
+        if (d.activeMissionObjectiveProgress == null) d.activeMissionObjectiveProgress = new java.util.HashMap<>();
         if (d.storyFlags        == null) d.storyFlags        = new java.util.HashMap<>();
 
         d.currency      = Math.min(d.currency,      999_999);
         d.totalPlaytime = Math.min(d.totalPlaytime,  360_000f);
-        d.storyAct      = Math.max(0, Math.min(d.storyAct, 4));
+        d.storyAct      = clampStoryActOrdinal(d.storyAct);
         return d;
+    }
+
+    static int clampStoryActOrdinal(int raw) {
+        return Math.max(0, Math.min(raw, Act.values().length - 1));
+    }
+
+    private SaveData deepCopy(SaveData src) {
+        if (src == null) return new SaveData();
+        SaveData copy = json.fromJson(SaveData.class, json.toJson(src));
+        return copy != null ? copy : new SaveData();
+    }
+
+    private static void overlayCapturedManagerState(SaveData base, SaveData captured) {
+        base.version = captured.version;
+        base.saveDate = captured.saveDate;
+
+        base.storyAct = captured.storyAct;
+        base.hubDegradationLevel = captured.hubDegradationLevel;
+        base.lanternsMetCount = captured.lanternsMetCount;
+        base.veilMaidenEncountered = captured.veilMaidenEncountered;
+        base.veilMaidenDefeatedAct1 = captured.veilMaidenDefeatedAct1;
+        base.veilMaidenDefeatedFinal = captured.veilMaidenDefeatedFinal;
+        base.yinYangPresent = captured.yinYangPresent;
+        base.storyFlags = new java.util.HashMap<>(captured.storyFlags);
+
+        base.completedMissions = new java.util.ArrayList<>(captured.completedMissions);
+        base.missionStates = new java.util.HashMap<>(captured.missionStates);
+        base.missionBestTimes = new java.util.HashMap<>(captured.missionBestTimes);
+        base.missionAttempts = new java.util.HashMap<>(captured.missionAttempts);
+        base.activeMissionId = captured.activeMissionId;
+        base.missionTimer = captured.missionTimer;
+        base.activeMissionObjectiveProgress =
+            new java.util.HashMap<>(captured.activeMissionObjectiveProgress);
     }
 }

@@ -87,6 +87,9 @@ public final class SaveData {
     public int               hubDegradationLevel = 0;
     public int               lanternsMetCount    = 0;
     public boolean           veilMaidenEncountered = false;
+    public boolean           veilMaidenDefeatedAct1 = false;
+    public boolean           veilMaidenDefeatedFinal = false;
+    public boolean           yinYangPresent = true;
     public Map<String,String> storyFlags         = new HashMap<>();
 
     // ── Mission manager state ─────────────────────────────────────────────────
@@ -94,6 +97,7 @@ public final class SaveData {
     public String            activeMissionId     = null;
     public float             missionTimer        = 0f;
     public Map<String,MissionState> missionStates= new HashMap<>();
+    public Map<String,Integer> activeMissionObjectiveProgress = new HashMap<>();
 
     // ── Serialization helpers ─────────────────────────────────────────────────
 
@@ -113,6 +117,12 @@ public final class SaveData {
         d.lanternsMetCount    = parseInt(ctx, "lanterns_met", 0);
         d.veilMaidenEncountered = Boolean.parseBoolean(
             ctx.getOrDefault("veil_maiden_encountered", "false"));
+        d.veilMaidenDefeatedAct1 = Boolean.parseBoolean(
+            ctx.getOrDefault("veil_maiden_defeated_act1", "false"));
+        d.veilMaidenDefeatedFinal = Boolean.parseBoolean(
+            ctx.getOrDefault("veil_maiden_defeated_final", "false"));
+        d.yinYangPresent = Boolean.parseBoolean(
+            ctx.getOrDefault("yin_yang_present", "true"));
         ctx.remove("act");
         ctx.remove("hub_degradation_level");
         ctx.remove("lanterns_met");
@@ -124,16 +134,15 @@ public final class SaveData {
 
         // Missions
         d.completedMissions = new ArrayList<>();
-        d.missionStates     = new HashMap<>();
+        d.missionStates     = missions.getStatesSnapshot();
         d.missionBestTimes  = new HashMap<>(missions.getBestTimes());
         d.missionAttempts   = new HashMap<>(missions.getAttempts());
-        for (String id : missions.getAllDefinitionIds()) {
-            MissionState ms = missions.getState(id);
-            d.missionStates.put(id, ms);
-            if (ms == MissionState.COMPLETED) d.completedMissions.add(id);
+        for (Map.Entry<String, MissionState> e : d.missionStates.entrySet()) {
+            if (e.getValue() == MissionState.COMPLETED) d.completedMissions.add(e.getKey());
         }
         d.activeMissionId = missions.getActiveMissionId();
         d.missionTimer    = missions.getMissionTimer();
+        d.activeMissionObjectiveProgress = missions.getObjectiveProgressSnapshot();
 
         return d;
     }
@@ -143,17 +152,26 @@ public final class SaveData {
      */
     public void restore(StoryManager story, MissionManager missions) {
         // Restore story
-        Act[] acts = Act.values();
-        if (storyAct >= 0 && storyAct < acts.length) story.setAct(acts[storyAct]);
-        for (Map.Entry<String,String> e : storyFlags.entrySet())
-            story.setFlag(e.getKey(), e.getValue());
+        story.restoreSnapshot(
+            storyAct,
+            hubDegradationLevel,
+            lanternsMetCount,
+            veilMaidenEncountered,
+            veilMaidenDefeatedAct1,
+            veilMaidenDefeatedFinal,
+            yinYangPresent,
+            storyFlags);
 
         // Restore missions
-        for (Map.Entry<String,MissionState> e : missionStates.entrySet()) {
-            if (e.getValue() == MissionState.COMPLETED) missions.markCompleted(e.getKey());
+        missions.restoreStates(missionStates);
+        if ((missionStates == null || missionStates.isEmpty()) && completedMissions != null) {
+            for (String id : completedMissions) {
+                missions.markCompleted(id);
+            }
         }
         missions.restoreBestTimes(missionBestTimes);
         missions.restoreAttempts(missionAttempts);
+        missions.restoreActiveMission(activeMissionId, missionTimer, activeMissionObjectiveProgress);
     }
 
     private static int parseInt(Map<String,String> m, String key, int def) {

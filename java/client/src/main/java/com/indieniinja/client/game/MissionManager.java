@@ -58,6 +58,8 @@ public final class MissionManager {
     public java.util.Set<String> getAllDefinitionIds()    { return definitions.keySet(); }
     public Map<String, Float>    getBestTimes()           { return java.util.Collections.unmodifiableMap(bestTimes); }
     public Map<String, Integer>  getAttempts()            { return java.util.Collections.unmodifiableMap(attempts); }
+    public Map<String, MissionState> getStatesSnapshot()   { return new HashMap<>(states); }
+    public Map<String, Integer>  getObjectiveProgressSnapshot() { return new HashMap<>(objectiveProgress); }
 
     /** All available mission definitions ordered by difficulty (for mission menu UI). */
     public List<MissionDefinition> availableMissions(int currentAct) {
@@ -194,8 +196,59 @@ public final class MissionManager {
         states.put(missionId, MissionState.COMPLETED);
     }
 
-    public void restoreBestTimes(Map<String, Float> data)   { bestTimes.putAll(data); }
-    public void restoreAttempts(Map<String, Integer> data)  { attempts.putAll(data); }
+    /** Restore all known mission states (used during load). */
+    public void restoreStates(Map<String, MissionState> restoredStates) {
+        states.clear();
+        for (String id : definitions.keySet()) {
+            states.put(id, MissionState.NOT_STARTED);
+        }
+        if (restoredStates == null) return;
+        for (Map.Entry<String, MissionState> e : restoredStates.entrySet()) {
+            String id = e.getKey();
+            MissionState state = e.getValue();
+            if (id == null || state == null) continue;
+            if (!definitions.containsKey(id)) continue;
+            states.put(id, state);
+        }
+    }
+
+    /**
+     * Restore an active in-progress mission exactly as it was saved.
+     * Objective progress is optional for backward compatibility.
+     */
+    public void restoreActiveMission(String missionId, float timer, Map<String, Integer> savedObjectiveProgress) {
+        activeMissionId = null;
+        missionTimer = 0f;
+        exitLocked = false;
+        objectiveProgress.clear();
+
+        if (missionId == null || missionId.isBlank()) return;
+        MissionDefinition def = definitions.get(missionId);
+        if (def == null) return;
+
+        activeMissionId = missionId;
+        missionTimer = Math.max(0f, timer);
+        if (savedObjectiveProgress != null) {
+            for (Map.Entry<String, Integer> e : savedObjectiveProgress.entrySet()) {
+                String key = normalizeObjectiveKey(e.getKey());
+                if (key.isBlank()) continue;
+                int value = Math.max(0, e.getValue() == null ? 0 : e.getValue());
+                if (value > 0) objectiveProgress.put(key, value);
+            }
+        }
+        states.put(missionId, MissionState.IN_PROGRESS);
+        exitLocked = !checkAllObjectivesMet(def);
+    }
+
+    public void restoreBestTimes(Map<String, Float> data) {
+        bestTimes.clear();
+        if (data != null) bestTimes.putAll(data);
+    }
+
+    public void restoreAttempts(Map<String, Integer> data) {
+        attempts.clear();
+        if (data != null) attempts.putAll(data);
+    }
 
     // ── Callbacks ─────────────────────────────────────────────────────────────
 

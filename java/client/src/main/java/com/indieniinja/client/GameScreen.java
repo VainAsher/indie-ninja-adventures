@@ -342,6 +342,7 @@ public final class GameScreen implements Screen {
         });
         missionSelectOverlay.setOnClose(() -> dialogueManager.setStoryContext(storyManager.toConditionContext()));
         saveManager     = new com.indieniinja.client.game.SaveManager(storyManager, missionManager);
+        saveManager.setPreSaveSync(this::syncSaveState);
         saveManager.load();
         missionManager.setOnMissionComplete(() -> saveManager.markDirty());
         missionManager.setOnMissionFail(    () -> saveManager.markDirty());

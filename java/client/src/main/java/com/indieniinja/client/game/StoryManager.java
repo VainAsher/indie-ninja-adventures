@@ -93,6 +93,39 @@ public final class StoryManager {
     public void missionCompleted(String missionId) { completedMissions.add(missionId); }
     public boolean isMissionCompleted(String id)   { return completedMissions.contains(id); }
 
+    /**
+     * Restore persisted story state values from SaveData.
+     * Keeps backward compatibility with older saves that only provided custom flags.
+     */
+    public void restoreSnapshot(
+        int actWire,
+        int savedHubDegradationLevel,
+        int savedLanternsMetCount,
+        boolean savedVeilMaidenEncountered,
+        boolean savedVeilMaidenDefeatedAct1,
+        boolean savedVeilMaidenDefeatedFinal,
+        boolean savedYinYangPresent,
+        Map<String, String> savedFlags
+    ) {
+        setAct(Act.fromWire(actWire));
+        hubDegradationLevel   = Math.max(0, savedHubDegradationLevel);
+        lanternsMetCount      = Math.max(0, savedLanternsMetCount);
+        veilMaidenEncountered = savedVeilMaidenEncountered;
+        veilMaidenDefeatedAct1  = savedVeilMaidenDefeatedAct1;
+        veilMaidenDefeatedFinal = savedVeilMaidenDefeatedFinal;
+        yinYangPresent        = savedYinYangPresent;
+
+        flags.clear();
+        if (savedFlags != null) flags.putAll(savedFlags);
+        syncFlags();
+        flags.put("hub_degradation_level",      String.valueOf(hubDegradationLevel));
+        flags.put("lanterns_met",               String.valueOf(lanternsMetCount));
+        flags.put("veil_maiden_encountered",    String.valueOf(veilMaidenEncountered));
+        flags.put("veil_maiden_defeated_act1",  String.valueOf(veilMaidenDefeatedAct1));
+        flags.put("veil_maiden_defeated_final", String.valueOf(veilMaidenDefeatedFinal));
+        flags.put("yin_yang_present",           String.valueOf(yinYangPresent));
+    }
+
     // ── Signal handlers (called by GameScreen event callbacks) ────────────────
 
     /** Veil Maiden / Siren encountered — hub starts corrupting. */

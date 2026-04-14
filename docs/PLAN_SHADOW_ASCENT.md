@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 03:07:54 +01:00 | **Codebase version:** v0.11.30 | **Next release target:** v0.11.31 (P0 objective lifecycle hardening and authored reach-location trigger map)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 03:19:52 +01:00 | **Codebase version:** v0.11.31 | **Next release target:** v0.11.32 (P0-05 save/load parity hardening pass)
 
 ---
 
@@ -115,6 +115,25 @@ Every implementation cycle must follow this exact order:
   - stabilize client test cache path for reliable `:client:test` execution in CI/local
   - continue `P0-05` save/load parity hardening after objective lifecycle suite expands
 
+`2026-04-14 03:19:52 +01:00`
+
+- Implemented `P0-05` save/load parity hardening pass (phase 1):
+  - `MissionManager` now supports restore of full mission states plus active mission id/timer/objective progress
+  - `SaveData` now persists/rehydrates full story snapshot booleans (`veil_maiden_defeated_*`, `yin_yang_present`) and active-mission objective progress
+  - `StoryManager.restoreSnapshot(...)` added to restore saved story internals deterministically (act + legacy condition fields + flags)
+  - fixed story-act migration clamp to use full act range (`0..6`) instead of truncating to `0..4`
+  - `SaveManager` now deep-copies loaded save into `liveData` and writes saves from `liveData` baseline overlaid with fresh manager-owned state
+  - added pre-save sync hook; `GameScreen` wires `syncSaveState()` into every save path (including auto-save)
+- Added regression tests for this loop:
+  - `SaveDataParityTest` (story snapshot + active mission restore behavior)
+  - `SaveManagerMigrationTest` (act clamp bounds)
+- Validation:
+  - `./gradlew :server:test :client:compileJava` ✅
+  - `./gradlew :client:test --tests "*SaveDataParityTest" --tests "*SaveManagerMigrationTest"` blocked by existing local Gradle cache lock (`gdx-jnigen-loader-2.3.1.jar` access denied)
+- Next loop:
+  - close remaining `P0-05` parity gaps around full runtime world/player rehydrate-on-load behavior
+  - stabilize local client-test cache path to unblock `:client:test` regression execution
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -165,7 +184,7 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | [~] | P0-02 | Mission objective integration for all objective types (`collect_items`, `activate_switches`, `reach_location`, `time_challenge`, `defeat_boss`, `kill_all_enemies`) | ENG-CLIENT + ENG-CORE | S1 | P0-01 | Objective event adapters and mission progress hooks | Exposes full mission pacing for tuning | 30/30 missions can progress objectives in playtest harness |
 | [~] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
 | [~] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
-| [ ] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
+| [~] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
 | [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
 | [ ] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
 | [ ] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
