@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 03:35:37 +01:00 | **Codebase version:** v0.11.32 | **Next release target:** v0.11.33 (P0-05 runtime rehydrate continuation)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 04:22:46 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-07 mission/item contract normalization continuation)
 
 ---
 
@@ -154,6 +154,21 @@ Every implementation cycle must follow this exact order:
   - continue `P0-05` with direct save/load roundtrip harness assertions for `SaveManager` liveData overlay path
   - either isolate `:client:test` dependency/cache issue or run client test stage in CI-only validation mode
 
+`2026-04-14 04:22:46 +01:00`
+
+- Started `P0-07` mission/item contract normalization pass:
+  - normalized mission boss IDs in `data/missions.json` to canonical lowercase snake_case wire format
+  - aligned `tests/test_data_integrity.py` boss validation to the real authored contract surface:
+    - legacy boss wires from `entities/boss.py`
+    - campaign boss IDs from `entities/boss_manager.py` normalized via enum name
+  - added explicit lowercase-canonical assertion for mission boss objective IDs to prevent future case drift
+- Validation:
+  - `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass
+  - `./gradlew :server:test :client:compileJava --console=plain --no-daemon` pass
+- Next loop:
+  - continue `P0-07` by adding explicit runtime-boss compatibility validation so authored mission boss objectives cannot target non-emitted boss wires silently
+  - begin `P0-08` version source-of-truth consolidation once P0-07 validation coverage is complete
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -206,7 +221,7 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | [~] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
 | [~] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
 | [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
-| [ ] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
+| [~] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
 | [ ] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
 | [ ] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
 | [ ] | P0-10 | P0 signoff playtest pack and blocker triage | DESIGN + QA + PROD | S4 | P0-09 | Structured playtest report with blocker decisions | Establishes tuning baseline for P1 | No open P0 blockers and approved handoff to P1 |

@@ -12,7 +12,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from entities.boss import BossType
+from entities.boss import BossType as LegacyBossType
+from entities.boss_manager import BossType as CampaignBossType
 from entities.enemy import EnemyType
 from game.mission_system import get_mission_registry as get_legacy_mission_registry
 from game.trading_system import SHOP_TIER_POOLS
@@ -30,7 +31,11 @@ class TestDataIntegrity(unittest.TestCase):
         cls.mission_ids = {mission["mission_id"] for mission in cls.missions.get("missions", [])}
         cls.item_ids = {item["item_id"] for item in cls.items.get("items", [])}
         cls.enemy_ids = {enemy.value for enemy in EnemyType}
-        cls.boss_ids = {boss.value for boss in BossType}
+        # Canonical mission boss contract:
+        # - legacy lowercase wire IDs from entities/boss.py
+        # - campaign boss IDs normalized to lowercase enum names from entities/boss_manager.py
+        cls.boss_ids = {boss.value for boss in LegacyBossType}
+        cls.boss_ids.update({boss.name.lower() for boss in CampaignBossType})
         cls.hazard_ids = {"spike", "poison", "void"}
 
     def test_mission_objective_items_exist(self):
@@ -77,12 +82,22 @@ class TestDataIntegrity(unittest.TestCase):
 
     def test_mission_boss_ids_exist(self):
         missing = set()
+        non_canonical_case = set()
         for mission in self.missions.get("missions", []):
             for obj in mission.get("objectives", []):
                 boss_id = obj.get("boss")
-                if boss_id and boss_id not in self.boss_ids:
-                    missing.add(boss_id)
+                if not boss_id:
+                    continue
+                canonical = boss_id.strip().lower()
+                if boss_id != canonical:
+                    non_canonical_case.add(boss_id)
+                if canonical not in self.boss_ids:
+                    missing.add(canonical)
 
+        self.assertFalse(
+            non_canonical_case,
+            f"Boss ids must be lowercase canonical IDs: {sorted(non_canonical_case)}",
+        )
         self.assertFalse(missing, f"Missing boss ids: {sorted(missing)}")
 
     def test_shop_pool_items_exist(self):
