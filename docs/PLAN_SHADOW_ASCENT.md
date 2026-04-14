@@ -1,13 +1,57 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 04:22:46 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-07 mission/item contract normalization continuation)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 07:25:41 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-08 version source-of-truth consolidation)
+
+---
+
+## PLAN STATUS — UPDATED IN PLACE
+**Pivot effective from:** 2026-04-14 12:00:00 +01:00  
+**Pivot type:** gameplay identity realignment on top of an existing campaign-first roadmap
+
+This plan remains the active execution roadmap for Shadow Ascent.  
+It has been **updated in place**, not replaced.
+
+### Why this pivot exists
+Since earlier versions of this plan were written, the game’s implemented movement, combat, animation, boss, HUD, and simulation foundations have made the intended player experience much clearer. The campaign-first product direction remains correct, but parts of the gameplay framing in this document still reflect an older Yin/Yang interpretation centered on abstract meter behavior, hidden-platform revelation, and threshold bonuses.
+
+The current design direction is tighter and more legible:
+
+- Passive / Aggressive stance gameplay
+- Roll vs Dash movement identity
+- Armed / Unarmed posture readability
+- Shared combo/parry system with lethal vs non-lethal differentiation
+- Aerial directional attacks and throws
+- Flow as an earned mastery state reached through balanced stance use
+- Lantern as a mastery amplifier
+- Balance readability as a core UX requirement
+
+### What this pivot changes
+This update pivots the plan toward:
+- movement-first stealth-action combat feel
+- stance-driven moment-to-moment decision-making
+- Flow as the primary mastery reward
+- Trials as mastery extensions of the same combat/movement language
+- clearer co-op stance synergy expectations
+
+### What this pivot does not change
+This pivot does **not** change:
+- Campaign-first product direction
+- Sandbox removal
+- Trials as the repurposing of useful Arcade scaffolding
+- Raids as later, subordinate challenge content
+- Solo as an access path, not a separate flagship product
+- Preservation of the current Java architecture
+- The value of the existing implementation work loop and milestone discipline
+
+### Interpretation rule from this point forward
+Where older sections of this plan describe Yin/Yang primarily as abstract meter thresholds, hidden-platform gating, or raw stat-expression systems, those sections should now be interpreted through the newer stance-driven model unless explicitly preserved for historical implementation context.
 
 ---
 
 ## 0A. Feedback Workloop Operating Model (Mandatory)
 
 This plan now uses the Implementation Work Loop from:
-`C:\Users\asher\.claude\projects\c--Users-asher-Vain-Asher-Gaming\memory\feedback_work_loop.md`
+`C:\\Users\\asher\\.claude\\projects\\c--Users-asher-Vain-Asher-Gaming\\memory\\feedback_work_loop.md`
 
 Every implementation cycle must follow this exact order:
 
@@ -29,6 +73,17 @@ Every implementation cycle must follow this exact order:
 - Plan updates happen each loop, not only at milestone boundaries.
 - Unknown scope discovered mid-loop becomes a new checklist row, not ad-hoc drift.
 - All plan updates and loop notes must use full timestamps: `YYYY-MM-DD HH:mm:ss ±HH:MM` (not date-only).
+
+### Added rule from this pivot
+**Added:** 2026-04-14 12:00:00 +01:00
+
+Any loop that changes movement, combat, stance, Flow, Lantern readability, or Trials feel must also record:
+- the intended player-facing feel change
+- whether the change affects Passive play, Aggressive play, or both
+- whether the change affects Flow entry, Flow maintenance, or Flow readability
+
+**Why added:**  
+The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
 
@@ -169,6 +224,21 @@ Every implementation cycle must follow this exact order:
   - continue `P0-07` by adding explicit runtime-boss compatibility validation so authored mission boss objectives cannot target non-emitted boss wires silently
   - begin `P0-08` version source-of-truth consolidation once P0-07 validation coverage is complete
 
+`2026-04-14 07:25:41 +01:00`
+
+- Reassessed P0 execution order for current pivot:
+  - prioritized completion of `P0-07` runtime contract safety before further system expansion
+  - kept `P0-05` marked in-progress, but moved immediate next critical gate to release metadata parity (`P0-08`)
+- Completed remaining `P0-07` runtime compatibility check:
+  - extended Java runtime boss wire catalog in `java/core/.../BossType.java` to include campaign-authored boss IDs used by mission objectives
+  - added explicit data-integrity gate in `tests/test_data_integrity.py` that parses Java runtime boss wires and fails if mission `defeat_boss` objectives (or mission-level `boss`) target non-emitted IDs
+- Validation:
+  - `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass (`test_mission_boss_ids_runtime_compatible` added)
+  - `./gradlew :server:test :client:compileJava --console=plain --no-daemon` pass
+- Next loop:
+  - start `P0-08` version/document source-of-truth consolidation (`version.json`, tag policy, release metadata sync)
+  - keep `P0-05` stabilization items queued behind release metadata parity closure
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -207,6 +277,17 @@ Owner roles:
 - `QA`: Test plans/regression/verification
 - `PROD`: Planning, release process, dependency tracking
 
+### Interpretation update from pivot date
+**Added:** 2026-04-14 12:00:00 +01:00
+
+From this point onward:
+- P0 remains primarily about structural campaign reliability.
+- P1 is no longer only “general balance and content throughput.” It is now also the phase where **core combat feel, stealth readability, stance distinction, and Flow usability are locked**.
+- P2 should only harden and scale systems whose moment-to-moment identity has already been proven in P1.
+
+**Why added:**  
+The earlier checklist assumed game feel would emerge naturally from structural stability plus broad tuning. The current design direction is more specific than that: the game now depends on a tight stance/Flow feel model that must be explicitly validated as a deliverable.
+
 ---
 
 ## P0 - Core Campaign Loop Stabilization
@@ -221,7 +302,7 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | [~] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
 | [~] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
 | [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
-| [~] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
+| [x] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
 | [ ] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
 | [ ] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
 | [ ] | P0-10 | P0 signoff playtest pack and blocker triage | DESIGN + QA + PROD | S4 | P0-09 | Structured playtest report with blocker decisions | Establishes tuning baseline for P1 | No open P0 blockers and approved handoff to P1 |
@@ -232,11 +313,25 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 
 Goal: make gameplay feel coherent and tunable while increasing mission/story output safely.
 
+### Added interpretation from pivot date
+**Added:** 2026-04-14 12:00:00 +01:00
+
+P1 is now the phase where the following must be explicitly proven:
+
+- Passive and Aggressive stances feel meaningfully different
+- Roll and Dash each support their intended fantasy
+- shared combat language feels tight
+- lethal/non-lethal split is readable and satisfying
+- Flow is understandable, reachable, and rewarding
+- the balance indicator teaches players how to lean and rebalance
+- Trials inherit the same gameplay language cleanly
+
 | Status | ID | Task | Owner | Sprint | Depends on | Deliverable | Balance / ideation hook | Exit gate |
 |--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
 | [ ] | P1-01 | Data-driven tuning layer (movement/combat/economy/mission timing/boss parameters) | ENG-CORE + ENG-DATA | S5 | P0-10 | Config-driven tuning files and loader | Fast hypothesis testing without code churn | Core balance constants removed from hardcoded logic path |
 | [ ] | P1-02 | Telemetry instrumentation (mission fail reasons, death causes, DPS in/out, completion times, economy curves) | ENG-CORE + ENG-CLIENT | S5 | P1-01 | Session telemetry logs and aggregation scripts | Quantifies tuning changes | Every playtest produces comparable metrics bundle |
 | [ ] | P1-03 | Balance dashboard and target bands | DESIGN + QA | S5-S6 | P1-02 | KPI sheet with min/max target bands | Converts feel goals into measurable thresholds | Targets defined for TTK, fail-rate, mission duration, resource pressure |
+| [ ] | P1-03A | Stance/Flow combat-feel lock (Roll vs Dash tuning, Passive/Aggressive readability, block/parry/combo feel, balance indicator clarity, Flow usability) | DESIGN + ENG-CORE + ENG-CLIENT + QA | S5-S7 | P1-01, P1-02 | Locked stance/combat/Flow tuning notes and validated playtest results | Converts broad combat/stealth goals into a shippable gameplay identity | Playtesters can distinguish stances, understand Flow pursuit, and report tighter combat feel consistently |
 | [ ] | P1-04 | Weekly balance loop (hypothesis -> change -> playtest -> metrics review -> decision log) | DESIGN + ENG-CORE | S6-S9 (recurring) | P1-03 | Weekly balance notes linked to commits | Structured ideation and tuning rhythm | 4 consecutive loops completed with logged decisions |
 | [ ] | P1-05 | Story pacing pass (mission unlock cadence, act transition timing, hub evolution rhythm) | DESIGN + ENG-DATA | S6-S7 | P1-02 | Progression pacing matrix | Supports narrative ideation against measurable flow | No dead-end progression in scripted path tests |
 | [ ] | P1-06 | Enemy and boss tuning pass (difficulty curves by act and mission tier) | DESIGN + ENG-CORE | S7-S8 | P1-04 | Tuning table per archetype and phase | Core combat feel iteration | Difficulty spikes within target fail-rate bands |
@@ -250,6 +345,17 @@ Goal: make gameplay feel coherent and tunable while increasing mission/story out
 ## P2 - Full Release Hardening and Launch
 
 Goal: content-complete, performance-stable, release-managed build to ship and maintain.
+
+### Added rule from pivot date
+**Added:** 2026-04-14 12:00:00 +01:00
+
+P2 should assume:
+- the core stance/Flow combat identity is already proven
+- the balance indicator and Flow readability are already adequate
+- Trials already feel like the same game
+- Echo/advanced systems already support, rather than obscure, the core loop
+
+Do not let P2 become a hidden design-discovery phase for core combat feel. That work belongs in P1.
 
 | Status | ID | Task | Owner | Sprint | Depends on | Deliverable | Balance / ideation hook | Exit gate |
 |--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
@@ -280,6 +386,24 @@ Goal: content-complete, performance-stable, release-managed build to ship and ma
 - `PLAYTEST_REPORT_<date>.md`: qualitative notes plus quantitative telemetry.
 - `RISK_REGISTER.md`: known risks, mitigations, owner, due sprint.
 
+### Addendum — stance / Flow playtest focus
+**Added:** 2026-04-14 12:00:00 +01:00
+
+All future balance and ideation loops must explicitly track at least these gameplay questions:
+
+- Does Passive stance feel distinct from Aggressive stance in movement, silhouette, and combat outcome?
+- Does Roll feel stealthy, low-profile, and controllable?
+- Does Dash feel fast, forceful, and aggressive?
+- Is the lethality split between unarmed and armed play readable and satisfying?
+- Are block/parry timings readable and rewarding in both stances?
+- Do aerial directional attacks and throws preserve the stance fantasy?
+- Can players understand how close they are to Flow?
+- Is the balance indicator clear without cluttering play?
+- Does Flow feel smoother and more masterful rather than simply stronger?
+
+**Why added:**  
+The original cadence was broad enough for system tuning, but the realigned design depends on a set of very specific experiential goals. These now need to be explicit test criteria.
+
 ### Metric guardrails (initial targets, refine during P1)
 
 | Metric | Target band | Usage |
@@ -290,6 +414,11 @@ Goal: content-complete, performance-stable, release-managed build to ship and ma
 | Median mission duration | 8 to 18 min | Maintains pacing consistency |
 | Economy reserve at act transitions | Positive but constrained | Prevents inflation and hard-lock scarcity |
 | Severe spike encounters per session | 0 to 1 | Keeps difficulty ramps intentional |
+| Flow activation frequency (mainline missions) | Regular but not constant | Ensures Flow is achievable without becoming background noise |
+| Passive vs Aggressive usage spread | Neither stance ignored in successful runs | Detects dominance of one stance over the intended rebalance loop |
+| Balance indicator comprehension rate | High in first-hour tests | Detects whether players understand how to reach Flow |
+| Parry success readability | Improvement across sessions | Measures whether combat timing communicates well |
+| Roll vs Dash preference skew | No single movement identity invalidates the other | Detects stance-mobility imbalance |
 
 ### Change-control rules for tuning
 
@@ -297,6 +426,8 @@ Goal: content-complete, performance-stable, release-managed build to ship and ma
 - Each balance commit must reference a hypothesis ID.
 - Freeze tuning 48 hours before any release candidate.
 - After freeze, only blocker fixes are allowed.
+- Do not merge major movement/combat feel changes without a short before/after note in `BALANCE_LOG.md`.
+- Any change to Roll, Dash, Parry, stance readability, Flow entry, or Flow visuals must reference a gameplay hypothesis, not only a bug fix.
 
 ---
 
@@ -372,6 +503,38 @@ Four interlocking pillars define Shadow Ascent. Two are shipped:
 
 Secondary systems — boss AI behavioral patterns, Echo mechanic, puzzle archetypes, Act IV depression mechanics — not yet built.
 
+### Pivot interpretation update
+**Added:** 2026-04-14 12:00:00 +01:00
+
+The earlier reading of this section focused on whether the Java codebase had caught up to the original GDD pillars. That was the correct question at the time.
+
+The current question is different:
+
+**which parts of the original GDD are already materially present, which parts now need reinterpretation through the stance/Flow model, and which parts remain genuinely unbuilt?**
+
+### Updated current status by gameplay identity
+
+The architecture is mature enough to support the intended game.
+Core campaign-critical systems are substantially wired.
+Yin/Yang, Lantern, hub, act, boss, and mission foundations all exist.
+
+The biggest remaining product risk is not infrastructure absence, but gameplay cohesion.
+
+The codebase now supports the following as the intended active gameplay direction:
+
+- Passive stance with low-profile, stealth-leaning movement and non-lethal control
+- Aggressive stance with burst movement and lethal pressure
+- shared combat language across stances
+- directional aerial combat and throws
+- Flow as the reward for balanced play
+- Lantern as a Flow amplifier
+- player-readable balance feedback as a required UX layer
+
+These are no longer speculative design notes. They are now the intended interpretation layer for all future campaign, Trials, and polish work.
+
+**Why added:**  
+The live plan records shipped systems well, but it does not yet establish the new stance/combat/Flow direction as the active lens through which those systems should be developed.
+
 ### The multiplayer vs. single-player decision
 
 The GDD is single-player first with optional co-op. The codebase is multiplayer first.
@@ -415,6 +578,15 @@ The game ships **three distinct modes** with separate loops, tones, and world st
 | `DialogueManager` / `DialogueTree` | GDD NPC dialogue is minimal-symbolic; existing system is sufficient |
 | `MissionManager` | Maps to "Accept mission / access level" in GDD core loop |
 
+### Interpretation note from pivot date
+**Added:** 2026-04-14 12:00:00 +01:00
+
+The main lesson remains:
+
+**extend and reinterpret; do not rewrite.**
+
+However, “reinterpret” now matters more than earlier versions of this plan acknowledged. Several systems that were previously mapped as abstract GDD equivalents now need to be **re-centered around combat feel, stance clarity, and Flow readability** rather than left in their earlier meter-first framing.
+
 ---
 
 ## 2. Historical lessons that shape the plan
@@ -433,6 +605,18 @@ The game ships **three distinct modes** with separate loops, tones, and world st
 
 ## 3. What to Build New
 
+### Interpretation addendum — what “build new” means now
+**Added:** 2026-04-14 12:00:00 +01:00
+
+This section now needs to be read in three categories:
+
+1. systems that already exist and should be reinterpreted
+2. systems that remain incomplete and must be extended
+3. systems that are still genuinely new work
+
+**Why added:**  
+The live file still contains several “build new” subsections for systems that are already shipped or substantially wired. That creates confusion and makes the plan look less honest than it really is.
+
 ### 3.1 In-Process Solo Mode (pre-requisite for everything)
 
 `GameScreen` gets an `offlineMode` path: instantiates `GameSimulator` locally, skips `NetworkClientThread`. Input feeds directly to local `sim.step()` each render frame. `WorldSnapshot` assembled locally and consumed by the same rendering pipeline.
@@ -445,8 +629,8 @@ No server code changes. Solo and networked clients use identical rendering paths
 
 ### 3.2 Yin/Yang System (GDD §3.3)
 
-**Yin (Emotion):** Reveals hidden platforms, slows time, environmental awareness
-**Yang (Discipline):** Attack strength, movement precision, stamina
+**Yin (Emotion):** Reveals hidden platforms, slows time, environmental awareness  
+**Yang (Discipline):** Attack strength, movement precision, stamina  
 **Balance (`|yin − yang| < 0.15`):** Flow Mode — smooth animation blending + enhanced traversal + combat
 
 ```java
@@ -482,6 +666,19 @@ public final class YinYangComponent extends Component implements SerializableCom
 
 **Files to modify:** `network/PlayerState.java`, `network/WorldSnapshot.java`, `sim/GameSimulator.java`, `physics/CollisionSystem.java`, `physics/PhysicsConstants.java`, `client/rendering/EntityRenderer.java`, `client/rendering/HudRenderer.java`
 
+#### Pivot note — updated interpretation of Yin/Yang
+**Added:** 2026-04-14 12:00:00 +01:00
+
+The implementation foundation described below remains valuable, but the player-facing interpretation has evolved.
+
+From this point forward, Yin/Yang should be read primarily as support for a stance-driven gameplay model:
+
+- Passive stance = stealth/control/non-lethal bias
+- Aggressive stance = pressure/lethality/burst bias
+- balance between those stances = Flow access
+
+The earlier meter-first interpretation remains useful as historical implementation context, but it is no longer the clearest primary gameplay description.
+
 ---
 
 ### 3.3 Lantern System (GDD §3.4)
@@ -507,7 +704,7 @@ public final class LanternComponent extends Component implements SerializableCom
 | 0.3–0.7 | Normal | Partial shadow |
 | > 0.7 | Jump height +20%, coyote time 4→8 ticks | Clear, warm |
 
-**Server:** Decay −0.01/s in dark areas or on damage. Restore +0.05 per NPC interaction, +0.2 per Lantern fragment.
+**Server:** Decay −0.01/s in dark areas or on damage. Restore +0.05 per NPC interaction, +0.2 per Lantern fragment.  
 **Client:** `ChunkRenderer` vignette intensity ∝ `1.0 - lanternValue`. At low Lantern, re-rasterize PLATFORM as SOLID visually (matches server physics).
 
 `PlayerState` gains: `lanternValue`.
@@ -515,6 +712,18 @@ public final class LanternComponent extends Component implements SerializableCom
 **Files to create:** `core/sim/LanternComponent.java`
 
 **Files to modify:** `network/PlayerState.java`, `sim/GameSimulator.java`, `client/rendering/ChunkRenderer.java`, `client/rendering/HudRenderer.java`
+
+#### Pivot note — updated interpretation of Lantern
+**Added:** 2026-04-14 12:00:00 +01:00
+
+Lantern remains implemented and valid, but its priority meaning shifts.
+
+From this point forward, Lantern should be read primarily as:
+- a mastery amplifier
+- a clarity modifier
+- a scaler for the quality, duration, and confidence of Flow expression
+
+It should not replace stance mastery as the main player skill loop.
 
 ---
 
@@ -525,7 +734,7 @@ Three new `ItemDef` records in `ItemDatabase` (type `"ability"`, non-stackable):
 - `"yang_fragment"` — calls `YinYangComponent.absorbYang(0.25f)` on pickup
 - `"lantern_fragment"` — calls `LanternComponent.restore(0.2f)` on pickup
 
-`EntityPlanner` places fragments in BOSS and TREASURE rooms.
+`EntityPlanner` places fragments in BOSS and TREASURE rooms.  
 Three new `ObjectiveType` values: `COLLECT_YIN_FRAGMENT`, `COLLECT_YANG_FRAGMENT`, `COLLECT_LANTERN_FRAGMENT`.
 
 **Files to modify:** `sim/ItemDatabase.java`, `client/game/MissionManager.java`, `world/postprocess/EntityPlanner.java`
@@ -627,6 +836,29 @@ Transitions driven by: boss defeats, fragment milestones, hub state changes.
 
 **Files to modify:** `sim/SimBoss.java`, `sim/BossAIState.java`, new `sim/BossPatternLibrary.java`, `network/MessageType.java`
 
+### Gameplay identity lock from this point forward
+**Added:** 2026-04-14 12:00:00 +01:00
+
+All roadmap and implementation decisions should now be interpreted through the following gameplay identity lock:
+
+Shadow Ascent is being aligned as:
+- a campaign-first stealth-action precision platformer
+- where players balance Passive and Aggressive playstyles
+- to enter Flow
+- and master movement, combat, and advanced integration systems
+
+Core identity components:
+- Passive stance
+- Aggressive stance
+- Roll vs Dash mobility identity
+- shared combat language
+- lethal vs non-lethal differentiation
+- aerial directional attacks and throws
+- Flow as a mastery state
+- Lantern as a mastery amplifier
+- readable balance guidance for the player
+- Echo and later advanced traversal/combat systems as integration layers
+
 ---
 
 ### 3.8 Echo System (GDD §6)
@@ -716,6 +948,24 @@ client/src/main/java/com/indieniinja/client/
 
 Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop system from the Java rebuild sprint.
 
+### Milestone interpretation update
+**Added:** 2026-04-14 12:00:00 +01:00
+
+From this point onward, a milestone may be considered:
+- technically shipped
+- partially design-complete
+- or design-complete
+
+Shipped infrastructure milestones must now also be reviewed for:
+- stance clarity
+- movement identity
+- combat feel
+- Flow readability
+- campaign-facing usability
+
+**Why added:**  
+The live milestone history accurately records shipping progress, but the new gameplay direction makes it important to distinguish “implemented” from “fully aligned.”
+
 ---
 
 ### Milestone 1 — Foundation Close (v0.11.0)
@@ -776,6 +1026,22 @@ Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop sy
 
 **Deliverable:** Yin/Yang bars and Lantern meter render live. Low Lantern creates oppressive vignette. Fragments spawn in boss/treasure rooms. Full player animation set loaded from template sheets.
 
+#### Pivot interpretation note
+**Added:** 2026-04-14 12:00:00 +01:00
+
+Milestone 4 remains shipped and important. However, its original interpretation should now be treated as foundational rather than final.
+
+Milestone 4 should now be read as:
+- the data and presentation foundation for the later stance/Flow system
+- not the final design definition of Passive/Aggressive stance gameplay
+
+What remains to be aligned on top of M4:
+- Passive vs Aggressive stance readability
+- Roll vs Dash movement expression
+- balance indicator refinement
+- Flow UX refinement
+- reinterpretation of Yin/Yang values as stance/balance support rather than the core fantasy themselves
+
 ---
 
 ### Milestone 5 — Boss AI (v0.11.10) ✓ SHIPPED
@@ -801,6 +1067,21 @@ extended by 15%, and archers now fire projectile attacks that damage players.
 
 **Note:** Boss tuning (HP, timings, difficulty) will need iteration after first playtests — Lesson 1 from project history.
 
+#### Pivot tuning note
+**Added:** 2026-04-14 12:00:00 +01:00
+
+Bosses should now be tuned not only for:
+- difficulty
+- pacing
+- pattern readability
+
+but also for:
+- stance-switching opportunities
+- Passive vs Aggressive expression
+- Flow entry pressure and payoff
+- movement chaining opportunities
+- multiplayer stance synergy where relevant
+
 ---
 
 ### Milestone 6 — Echo System & Puzzles (v0.11.11)
@@ -823,6 +1104,19 @@ hooks (`spawnEchoFromPlayer`, `addEcho`, `stepEchoes`, `recallEcho`), and behavi
 is covered by `SimEchoTest`.
 
 **Deliverable:** Puzzle rooms are mechanically interesting solo. Act III "unfair" platforms work.
+
+#### Pivot scope-control note
+**Added:** 2026-04-14 12:00:00 +01:00
+
+Echo should first ship as:
+- authored, testable, understandable puzzle support
+- optional late combat support only where readability remains high
+- a solo/co-op coordination language
+
+Echo should not expand into broad systemic complexity until:
+- stance feel is locked
+- Flow readability is locked
+- campaign pacing is stable
 
 ---
 
@@ -851,6 +1145,14 @@ is covered by `SimEchoTest`.
 - [ ] Alternate endings based on Yin/Yang balance at Act VII
 - [ ] Fix `version.json`, `build.gradle.kts`, and `README.md` in sync after each release
 
+#### Added polish targets from this pivot
+- balance indicator refinement
+- stance silhouette refinement
+- Roll vs Dash readability refinement
+- Flow visual/audio refinement
+- combat hit feedback refinement
+- aerial attack/throw readability refinement
+
 ---
 
 ## 6. Design Decisions
@@ -867,9 +1169,73 @@ is covered by `SimEchoTest`.
 | Commit prefix | `feat(m1):`, `feat(m2):` etc. — mirrors Loop system, maintains git traceability. |
 | Version discipline | After every milestone release: `version.json`, `build.gradle.kts`, and `README.md` must match. |
 
+### Design decisions added by pivot
+**Added:** 2026-04-14 12:00:00 +01:00
+
+| Question | Decision |
+|----------|----------|
+| Core stance split | Passive and Aggressive are the active gameplay stances from this point forward |
+| Mobility identity | Passive centers on Roll; Aggressive centers on Dash |
+| Combat posture | Passive defaults to Unarmed readability; Aggressive defaults to Armed readability |
+| Combat language | Both stances share block, parry, 5-hit combo, aerial attacks, and aerial throws |
+| Lethality split | Passive play is primarily non-lethal/control oriented; Aggressive play is primarily lethal/pressure oriented |
+| Throw behavior | Same input, stance-dependent outcome: smoke/distraction in Passive, weapon projectile in Aggressive |
+| Flow readability | Balance indicator is required and uses a combined solution: player ring + stance glow + Flow afterimage/pulse |
+| Flow feel | Flow should primarily improve smoothness, chaining, responsiveness, and clarity rather than acting as a raw stat spike |
+| Trials identity | Trials must reinforce the same stance/Flow/movement/combat language as Campaign |
+
+### Co-op interpretation note from pivot date
+**Added:** 2026-04-14 12:00:00 +01:00
+
+The earlier co-op Yin/Yang framing should now be read more flexibly:
+
+- Each player maintains their own local balance state.
+- Flow should remain primarily readable and earnable at the per-player level.
+- Co-op design should reward Passive/Aggressive synergy, but one player’s imbalance should not trivially hard-lock another player’s ability to understand or access their own Flow.
+- Shared team-level modifiers may still exist where appropriate, but local readability must come first.
+
 ---
 
 ## 7. Success Criteria
+
+### Success-criteria addendum from pivot date
+**Added:** 2026-04-14 12:00:00 +01:00
+
+In addition to the structural campaign criteria already listed below, this plan now also succeeds when the following are true:
+
+1. A player can read the game’s identity quickly:
+   - Passive feels stealthy/control-oriented
+   - Aggressive feels forceful/pressure-oriented
+
+2. The player can distinguish and use:
+   - Roll vs Dash
+   - smoke throw vs weapon throw
+   - unarmed vs armed posture
+   - non-lethal vs lethal combat outcomes
+
+3. The player can perform and understand:
+   - block
+   - parry
+   - 5-hit combo
+   - aerial directional attacks
+   - aerial directional throws
+
+4. The player can understand how to reach Flow:
+   - balance indicator is readable
+   - stance leaning is understandable
+   - Flow activation feels intentional rather than accidental
+
+5. Flow feels like mastery:
+   - smoother
+   - cleaner
+   - more confident
+   - not merely overpowered
+
+6. Trials feel like extensions of the same game:
+   - not a detached arcade ruleset
+   - but a mastery surface for the same movement/combat/Flow language
+
+7. Echo and later advanced systems deepen the core loop rather than replacing it.
 
 Complete when a player can, in a single session:
 
@@ -883,6 +1249,159 @@ Complete when a player can, in a single session:
 8. Collect enough fragments in Act VI to trigger Flow Mode
 9. Reach Act VII with full abilities, a populated final hub
 10. Receive a narrative resolution that was felt, not told
+
+---
+
+## Current Priority Order From Pivot Date
+**Added:** 2026-04-14 12:00:00 +01:00
+
+### Priority 1 — Campaign structural reliability
+Includes:
+- mission lifecycle
+- save/load parity
+- scripted-loss integrity
+- hub progression correctness
+- solo and co-op campaign stability
+
+### Priority 2 — Stance / Flow gameplay identity lock
+Includes:
+- Passive vs Aggressive distinction
+- Roll vs Dash feel
+- armed/unarmed readability
+- block/parry/combo feel
+- aerial directional combat readability
+- smoke vs weapon throw clarity
+- balance indicator usability
+- Flow readability and satisfaction
+
+### Priority 3 — Trials integration under the new gameplay language
+Trials should be replayable mastery spaces built from the same stance/Flow language.
+
+### Priority 4 — Content throughput and authored depth
+Includes:
+- mission breadth
+- puzzle breadth
+- boss encounter tuning
+- authored Trials buckets
+- Echo-authored content
+- advanced traversal/combat integration
+
+### Priority 5 — Raids and late prestige challenge content
+Keep this late and subordinate.
+
+---
+
+## Do-Not-Regress Rules
+**Added:** 2026-04-14 12:00:00 +01:00
+
+### Do not regress product clarity
+Do not reintroduce framing that makes the project appear to be:
+- multiple equal flagship games
+- a sandbox-led roadmap
+- an arcade-first identity
+- a mechanically generic platformer with abstract meters
+
+### Do not regress stance readability
+Do not allow ongoing tuning to collapse Passive and Aggressive into cosmetic variations of the same playstyle.
+
+### Do not regress movement identity
+Roll and Dash must remain clearly differentiated in:
+- feel
+- silhouette
+- use case
+- audio/visual feedback
+
+### Do not regress combat clarity
+The game’s combat language should remain simple to understand and deep to master.
+
+Shared:
+- block
+- parry
+- 5-hit combo
+- aerial directionals
+- aerial throws
+
+Differences should come from:
+- lethality
+- mobility identity
+- posture/readability
+- Flow interaction
+
+### Do not regress Flow readability
+Players must continue to be able to understand:
+- which way they are leaning
+- how to rebalance
+- when Flow has activated
+- why Flow feels different
+
+### Do not regress campaign-first discipline
+Trials, Raids, Echo complexity, and advanced systems must not destabilize:
+- campaign readability
+- campaign pacing
+- solo/co-op parity
+- save/load reliability
+- boss consequence loops
+
+---
+
+## Plan Maintenance Rule After Pivot
+**Added:** 2026-04-14 12:00:00 +01:00
+
+Any future update to `docs/PLAN_SHADOW_ASCENT.md` that changes:
+- stance interpretation
+- Flow interpretation
+- combat identity
+- Trials purpose
+- co-op Flow rules
+- balance indicator/readability requirements
+
+must include:
+1. timestamp
+2. what changed
+3. why it changed
+4. whether it changes product direction, gameplay identity, or only implementation detail
+
+---
+
+## Updated Final Statement of Scope
+**Added:** 2026-04-14 12:00:00 +01:00
+
+Shadow Ascent remains:
+- one campaign-first game,
+- with solo play and first-class drop-in/drop-out co-op in Campaign,
+- plus repeatable Trials,
+- and optional future Raids.
+
+That product direction does not change.
+
+What has changed is the gameplay identity lock inside that structure.
+
+From this point forward, Shadow Ascent should be interpreted and built as:
+- a movement-first stealth-action platformer,
+- with Passive and Aggressive stance play,
+- Roll and Dash as distinct mobility identities,
+- shared combat language differentiated by lethality and posture,
+- Flow as the primary mastery reward for balanced play,
+- Lantern as a mastery amplifier,
+- and Trials as replayable mastery extensions of the same gameplay language.
+
+Sandbox remains removed.  
+Trials remain subordinate to Campaign.  
+The codebase remains directed toward finishing the game it has already become.
+
+---
+
+## Maintainer Note
+**Added:** 2026-04-14 12:00:00 +01:00
+
+This document should now be read as having three layers:
+
+1. Operational roadmap  
+2. Implementation history  
+3. Gameplay identity alignment  
+
+Do not strip out the implementation history unless it is first archived elsewhere, because it remains useful for milestone traceability.  
+Do not treat the gameplay identity sections as optional commentary, because they now define how the roadmap should be interpreted.
 
 ---
 
