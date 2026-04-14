@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 17:26:10 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-05/P0-06 parity closure + P0-09 green CI)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 17:39:30 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-06 ordering checks + P0-09 CI readiness)
 
 ---
 
@@ -304,6 +304,24 @@ The original workloop is excellent for implementation discipline, but the new di
   - finish remaining `P0-05` world/runtime rehydrate edge assertions (cross-hub position semantics + inventory overflow edge cases)
   - complete `P0-06` end-to-end multiplayer scripted-loss consequence checks against live snapshot ordering
   - continue toward `P0-10` signoff pack once P0 criticals are marked done
+
+`2026-04-14 17:39:30 +01:00`
+
+- Continued `P0-05` save/load edge hardening:
+  - added migration regression coverage for invalid saved `hubState` values (`SaveManagerMigrationTest.invalidSavedHubStateIsSanitizedToFull`)
+  - added roundtrip guard that reserved story context key `hub_state` does not leak into generic `storyFlags` (`SaveManagerRoundtripTest`)
+- Continued `P0-06` multiplayer scripted-loss consequence checks:
+  - added `ZoneSimulationLoopScriptedLossOrderingTest` to verify:
+    - `SCRIPTED_LOSS` is broadcast when pending scripted loss is drained during sim tick
+    - hub collapse consequence (`EMPTY`) is visible in subsequent world snapshot hub-state
+    - broadcast is one-shot (no duplicate scripted-loss events across ticks)
+- Validation:
+  - `./gradlew :server:test :client:test --console=plain --no-daemon` pass
+  - `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass
+- Next loop:
+  - finish remaining `P0-05` runtime rehydrate edge assertions tied to `GameScreen.restoreSoloPlayerFromSave(...)` semantics
+  - reassess `P0-02/P0-03/P0-04` status against now-expanded regression evidence and promote to done where exit gates are satisfied
+  - stage `P0-10` signoff playtest pack skeleton once P0 in-progress items are either closed or explicitly blocked
 
 ### Branch and commit format
 

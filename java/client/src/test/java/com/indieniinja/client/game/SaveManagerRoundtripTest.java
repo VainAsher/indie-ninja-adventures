@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SaveManagerRoundtripTest {
@@ -44,7 +45,10 @@ class SaveManagerRoundtripTest {
         loaded.veilMaidenDefeatedAct1 = true;
         loaded.veilMaidenDefeatedFinal = false;
         loaded.yinYangPresent = false;
-        loaded.storyFlags = Map.of("custom_story_flag", "ok");
+        loaded.storyFlags = Map.of(
+            "custom_story_flag", "ok",
+            "hub_state", "CORRUPTED"
+        );
 
         loaded.missionStates = Map.of("roundtrip_mission", MissionState.IN_PROGRESS);
         loaded.activeMissionId = "roundtrip_mission";
@@ -81,6 +85,7 @@ class SaveManagerRoundtripTest {
         assertEquals(loaded.yinYangPresent, out.yinYangPresent);
         assertTrue(out.storyFlags.containsKey("custom_story_flag"));
         assertEquals("ok", out.storyFlags.get("custom_story_flag"));
+        assertFalse(out.storyFlags.containsKey("hub_state"));
 
         assertEquals("roundtrip_mission", out.activeMissionId);
         assertEquals(21.5f, out.missionTimer, 0.0001f);
