@@ -173,10 +173,15 @@ public final class CollisionSystem {
                 // One-way: only from above, only while descending.
                 // Use previous-bottom crossing to avoid snapping onto stacked platforms
                 // when the body already intersects from below.
+                // Also allow shallow lateral run-on entries: when moving horizontally onto
+                // a platform while descending, previous-bottom may not cross the platform
+                // top this frame even though the overlap is a valid from-above landing.
                 float prevBottom = entityBottom - p.vy;
                 float landingGrace = Math.max(PLATFORM_GRACE_PIXELS, Math.abs(p.vy) + 1f);
-                boolean crossedFromAbove = prevBottom <= tile.y() + landingGrace;
-                if (p.vy >= 0 && crossedFromAbove && overlapTop >= 0 && overlapTop < tile.h() * 0.8f) {
+                float maxTopPenetration = tile.h() * 0.8f;
+                boolean crossedFromAbove =
+                    prevBottom <= tile.y() + Math.max(landingGrace, maxTopPenetration);
+                if (p.vy >= 0 && crossedFromAbove && overlapTop >= 0 && overlapTop < maxTopPenetration) {
                     p.y        = tile.y() - p.height;
                     p.vy       = 0;
                     p.onGround = true;

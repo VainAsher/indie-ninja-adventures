@@ -134,6 +134,26 @@ class CollisionEdgeCaseTest {
         assertThat(p.y).isGreaterThan(250f);
     }
 
+    @Test
+    void runningOntoPlatformFromSideStillLands() {
+        // Regression guard (v0.11.29): with crossedFromAbove based only on previous
+        // bottom position, a player entering a platform laterally while falling a few
+        // pixels can miss the one-way landing check and drop through.
+        SpatialHash hash = new SpatialHash();
+        TileRect platform = new TileRect(200, 300, 200, 32, true);
+        hash.insert(platform);
+
+        PhysicsState p = new PhysicsState(169, 250, 28, 56);
+        p.vx = 6f;   // run speed into platform from the side
+        p.vy = 2f;   // slight descent while traversing
+        Sim sim = buildSim(p, hash);
+        tick(sim, 0);
+
+        assertThat(p.onGround).isTrue();
+        assertThat(p.vy).isCloseTo(0f, within(TOL));
+        assertThat(p.y).isCloseTo(platform.y() - p.height, within(1f));
+    }
+
     // ── PHYS-3: water drag caps vy and sets inWater ───────────────────────────
 
     @Test
