@@ -21,6 +21,14 @@ public enum BossType {
     /** Act VI — resets platform positions each phase; can re-lock unlocked doors */
     MEMORY_EATER   ("memory_eater",    30, 3, 60f,  "boss_memory_eater"),
 
+    // Campaign-authored boss IDs (mission objective compatibility)
+    SHADOW_LORD    ("shadow_lord",     25, 1, 80f,  "boss_shadow_lord"),
+    FIRE_DEMON     ("fire_demon",      30, 1, 100f, "boss_fire_demon"),
+    ICE_QUEEN      ("ice_queen",       28, 1, 70f,  "boss_ice_queen"),
+    NECROMANCER    ("necromancer",     20, 1, 60f,  "boss_necromancer"),
+    DRAGON         ("dragon",          35, 1, 90f,  "boss_dragon"),
+    VEIL_MAIDEN    ("veil_maiden",     40, 1, 90f,  "boss_veil_maiden"),
+
     // ── Legacy generic bosses (pre-Shadow Ascent; used in arcade/seed rooms) ─
     FOREST_GUARDIAN("forest_guardian", 15, 2, 72f,  "boss_forest_guardian"),
     CORRUPT_MAYOR  ("corrupt_mayor",   12, 1, 60f,  "boss_corrupt_mayor"),

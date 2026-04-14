@@ -5,6 +5,7 @@ Validates mission data references against item/enemy/hazard definitions.
 """
 
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -27,6 +28,7 @@ class TestDataIntegrity(unittest.TestCase):
         root = Path(__file__).parent.parent
         cls.missions = json.loads((root / "data" / "missions.json").read_text(encoding="utf-8"))
         cls.items = json.loads((root / "data" / "items.json").read_text(encoding="utf-8"))
+        cls.java_runtime_boss_ids = cls._load_java_runtime_boss_ids(root)
 
         cls.mission_ids = {mission["mission_id"] for mission in cls.missions.get("missions", [])}
         cls.item_ids = {item["item_id"] for item in cls.items.get("items", [])}
@@ -37,6 +39,28 @@ class TestDataIntegrity(unittest.TestCase):
         cls.boss_ids = {boss.value for boss in LegacyBossType}
         cls.boss_ids.update({boss.name.lower() for boss in CampaignBossType})
         cls.hazard_ids = {"spike", "poison", "void"}
+
+    @staticmethod
+    def _load_java_runtime_boss_ids(root: Path) -> set[str]:
+        boss_type_java = (
+            root
+            / "java"
+            / "core"
+            / "src"
+            / "main"
+            / "java"
+            / "com"
+            / "indieniinja"
+            / "sim"
+            / "BossType.java"
+        )
+        text = boss_type_java.read_text(encoding="utf-8")
+        wire_ids = set(
+            re.findall(r"^\s*[A-Z0-9_]+\s*\(\s*\"([a-z_]+)\"\s*,", text, flags=re.MULTILINE)
+        )
+        if not wire_ids:
+            raise AssertionError("Could not parse Java runtime boss IDs from BossType.java")
+        return wire_ids
 
     def test_mission_objective_items_exist(self):
         missing = set()
@@ -99,6 +123,26 @@ class TestDataIntegrity(unittest.TestCase):
             f"Boss ids must be lowercase canonical IDs: {sorted(non_canonical_case)}",
         )
         self.assertFalse(missing, f"Missing boss ids: {sorted(missing)}")
+
+    def test_mission_boss_ids_runtime_compatible(self):
+        incompatible = set()
+        for mission in self.missions.get("missions", []):
+            mission_id = mission.get("mission_id", "<unknown>")
+
+            for obj in mission.get("objectives", []):
+                boss_id = obj.get("boss")
+                if boss_id and boss_id not in self.java_runtime_boss_ids:
+                    incompatible.add(f"{mission_id}:{boss_id}")
+
+            mission_boss = mission.get("boss")
+            if mission_boss and mission_boss not in self.java_runtime_boss_ids:
+                incompatible.add(f"{mission_id}:{mission_boss}")
+
+        self.assertFalse(
+            incompatible,
+            "Mission defeat_boss objectives target boss IDs not emitted by Java runtime: "
+            f"{sorted(incompatible)}",
+        )
 
     def test_shop_pool_items_exist(self):
         missing = set()
