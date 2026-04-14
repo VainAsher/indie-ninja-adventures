@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.35] - 2026-04-14 (P0 regression closure pass)
+
+### Added
+
+- Solo save-runtime rehydrate edge regression suite for `GameScreen.restoreSoloPlayerFromSave(...)`:
+  - cross-hub position preservation
+  - same-hub position clamp + velocity reset
+  - inventory overflow/currency clamp behavior
+  - equipment + ability rehydrate parity
+- Authored mission progression harness proving `30/30` missions can progress objectives and unlock exits (`MissionAuthoringProgressionCoverageTest`).
+- Multiplayer scripted-loss ordering/consequence coverage validating:
+  - zone-wide `SCRIPTED_LOSS` event fanout
+  - non-zone exclusion
+  - collapsed hub state + drained Yin/Yang reflected in authoritative snapshot.
+- P0 regression runner script (`tools/run_p0_regression_suite.py`) with generated artifact report (`docs/reports/P0_REGRESSION_REPORT.md`).
+
+### Changed
+
+- CI formatting gate blocker fixed by Black-compatible formatting in `tools/check_version_sync.py`.
+- `PLAN_SHADOW_ASCENT` P0 status progression updated (`P0-02/03/04/05/06` done; `P0-09` remains in-progress pending fresh CI confirmation after this release commit).
+
+### Validation
+
+- `.venv\\Scripts\\python.exe tools/run_p0_regression_suite.py` pass.
+- `./gradlew :server:test :client:test --console=plain --no-daemon` pass.
+- `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass.
+- `.venv\\Scripts\\python.exe tools/check_version_sync.py` pass.
+
+---
+
 ## [0.11.34] - 2026-04-14 (P0 stabilization baseline)
 
 ### Added

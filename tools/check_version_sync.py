@@ -51,7 +51,9 @@ def _load_authoritative_version(root: Path) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate version metadata synchronization.")
+    parser = argparse.ArgumentParser(
+        description="Validate version metadata synchronization."
+    )
     parser.add_argument(
         "--tag",
         default=None,
@@ -74,7 +76,10 @@ def main() -> int:
         tag = args.tag.strip()
         if not re.fullmatch(r"v0\.\d+\.\d+", tag):
             errors.append(
-                f"Invalid release tag '{tag}'. Only v0.<minor>.<patch> is allowed pre-alpha."
+                (
+                    f"Invalid release tag '{tag}'. "
+                    "Only v0.<minor>.<patch> is allowed pre-alpha."
+                )
             )
         if tag != expected_tag:
             errors.append(f"Tag mismatch: tag={tag} version.json={expected_tag}")
@@ -91,7 +96,10 @@ def main() -> int:
     )
     if gradle_version != version:
         errors.append(
-            f"Gradle version mismatch: java/build.gradle.kts={gradle_version} version.json={version}"
+            (
+                "Gradle version mismatch: "
+                f"java/build.gradle.kts={gradle_version} version.json={version}"
+            )
         )
 
     readme_version = _match_or_error(
@@ -100,7 +108,10 @@ def main() -> int:
         "README version banner",
     )
     if readme_version != version:
-        errors.append(f"README version mismatch: README=v{readme_version} version.json={expected_tag}")
+        errors.append(
+            "README version mismatch: "
+            f"README=v{readme_version} version.json={expected_tag}"
+        )
 
     roadmap_version = _match_or_error(
         roadmap_text,
@@ -109,7 +120,10 @@ def main() -> int:
     )
     if roadmap_version != version:
         errors.append(
-            f"ROADMAP version mismatch: docs/ROADMAP.md=v{roadmap_version} version.json={expected_tag}"
+            (
+                "ROADMAP version mismatch: "
+                f"docs/ROADMAP.md=v{roadmap_version} version.json={expected_tag}"
+            )
         )
 
     changelog_latest = _match_or_error(
@@ -119,7 +133,10 @@ def main() -> int:
     )
     if changelog_latest != version:
         errors.append(
-            f"CHANGELOG latest version mismatch: docs/CHANGELOG.md={changelog_latest} version.json={version}"
+            (
+                "CHANGELOG latest version mismatch: "
+                f"docs/CHANGELOG.md={changelog_latest} version.json={version}"
+            )
         )
 
     if errors:

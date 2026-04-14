@@ -6,6 +6,7 @@ import com.indieniinja.network.WireMessage;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.sim.SimPlayer;
 import com.indieniinja.world.HubState;
 import com.indieniinja.world.HubStateMachine;
 import io.netty.buffer.ByteBuf;
@@ -64,6 +65,42 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         }
     }
 
+    @Test
+    void scriptedLossBroadcastsToAllZoneMembersAndDrainsSnapshotYinYang() throws Exception {
+        MultiHarness harness = createMultiHarness();
+        try {
+            triggerScriptedLoss(harness.zone.simulator);
+            invokeSimulateTick(harness.loop);
+
+            List<WireMessage> p1Msgs = readOutboundMessages(harness.channel1);
+            List<WireMessage> p2Msgs = readOutboundMessages(harness.channel2);
+            List<WireMessage> outsiderMsgs = readOutboundMessages(harness.outsiderChannel);
+
+            assertThat(p1Msgs).hasSize(1);
+            assertThat(p1Msgs.get(0).type()).isEqualTo(MessageType.SCRIPTED_LOSS);
+            assertThat(p2Msgs).hasSize(1);
+            assertThat(p2Msgs.get(0).type()).isEqualTo(MessageType.SCRIPTED_LOSS);
+            assertThat(outsiderMsgs).isEmpty();
+
+            WorldSnapshot snap = invokeBuildSnapshot(
+                harness.loop,
+                List.of(harness.player1, harness.player2)
+            );
+            assertThat(snap.hubState).isEqualTo(HubState.EMPTY.name());
+            assertThat(snap.players).hasSize(2);
+            assertThat(snap.players)
+                .allSatisfy(ps -> {
+                    assertThat(ps.yinValue).isLessThan(0.1f);
+                    assertThat(ps.yangValue).isLessThan(0.1f);
+                });
+        } finally {
+            harness.executor.shutdownNow();
+            harness.channel1.close();
+            harness.channel2.close();
+            harness.outsiderChannel.close();
+        }
+    }
+
     private static TestHarness createHarness() {
         GameSession session = new GameSession(12345L);
         ZoneInstance zone = new ZoneInstance(
@@ -89,6 +126,60 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         return new TestHarness(loop, zone, player, channel, executor);
     }
 
+    private static MultiHarness createMultiHarness() {
+        GameSession session = new GameSession(22345L);
+        ZoneInstance zone = new ZoneInstance(
+            "central_hub:1:0", "central_hub", 22345L, "blob", 12, 22345L, 256f, 256f);
+        zone.simulator = new GameSimulator(zone.seed, zone.hubId, LevelLayout.buildTestLayout(zone.seed));
+        zone.hubStateMachine = new HubStateMachine(zone.masterHubId);
+        zone.simulator.setHub(zone.hubStateMachine);
+
+        SimPlayer sp1 = new SimPlayer("p1", 0, 256f, 256f);
+        sp1.yinYang.yin = 0.9f;
+        sp1.yinYang.yang = 0.7f;
+        zone.simulator.addPlayer(sp1);
+        SimPlayer sp2 = new SimPlayer("p2", 1, 320f, 256f);
+        sp2.yinYang.yin = 0.8f;
+        sp2.yinYang.yang = 0.6f;
+        zone.simulator.addPlayer(sp2);
+
+        EmbeddedChannel channel1 = new EmbeddedChannel();
+        EmbeddedChannel channel2 = new EmbeddedChannel();
+        EmbeddedChannel outsiderChannel = new EmbeddedChannel();
+        PlayerRecord player1 = new PlayerRecord("p1", 0, channel1);
+        player1.hubId = zone.hubId;
+        PlayerRecord player2 = new PlayerRecord("p2", 1, channel2);
+        player2.hubId = zone.hubId;
+        PlayerRecord outsider = new PlayerRecord("p3", 2, outsiderChannel);
+        outsider.hubId = "some_other_hub";
+
+        zone.playerIds.add("p1");
+        zone.playerIds.add("p2");
+        session.players.put(player1.playerId, player1);
+        session.players.put(player2.playerId, player2);
+        session.players.put(outsider.playerId, outsider);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ZoneSimulationLoop loop = new ZoneSimulationLoop(
+            zone,
+            session,
+            new AtomicBoolean(false),
+            new ConcurrentHashMap<>(Map.of(zone.hubId, zone)),
+            executor
+        );
+        return new MultiHarness(
+            loop,
+            zone,
+            player1,
+            player2,
+            outsider,
+            channel1,
+            channel2,
+            outsiderChannel,
+            executor
+        );
+    }
+
     private static void triggerScriptedLoss(GameSimulator sim) throws Exception {
         Method trigger = GameSimulator.class.getDeclaredMethod("triggerSirenScriptedLoss");
         trigger.setAccessible(true);
@@ -103,9 +194,14 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
 
     private static WorldSnapshot invokeBuildSnapshot(ZoneSimulationLoop loop, PlayerRecord player)
         throws Exception {
+        return invokeBuildSnapshot(loop, List.of(player));
+    }
+
+    private static WorldSnapshot invokeBuildSnapshot(ZoneSimulationLoop loop, List<PlayerRecord> players)
+        throws Exception {
         Method build = ZoneSimulationLoop.class.getDeclaredMethod("buildSnapshot", boolean.class, List.class);
         build.setAccessible(true);
-        return (WorldSnapshot) build.invoke(loop, true, List.of(player));
+        return (WorldSnapshot) build.invoke(loop, true, players);
     }
 
     private static List<WireMessage> readOutboundMessages(EmbeddedChannel channel) {
@@ -131,6 +227,18 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         ZoneInstance zone,
         PlayerRecord player,
         EmbeddedChannel channel,
+        ExecutorService executor
+    ) {}
+
+    private record MultiHarness(
+        ZoneSimulationLoop loop,
+        ZoneInstance zone,
+        PlayerRecord player1,
+        PlayerRecord player2,
+        PlayerRecord outsider,
+        EmbeddedChannel channel1,
+        EmbeddedChannel channel2,
+        EmbeddedChannel outsiderChannel,
         ExecutorService executor
     ) {}
 }

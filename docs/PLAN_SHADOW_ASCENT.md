@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 17:39:30 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-06 ordering checks + P0-09 CI readiness)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 18:55:13 +01:00 | **Codebase version:** v0.11.35 | **Next release target:** v0.11.36 (P0-10 signoff pack scaffold)
 
 ---
 
@@ -323,6 +323,63 @@ The original workloop is excellent for implementation discipline, but the new di
   - reassess `P0-02/P0-03/P0-04` status against now-expanded regression evidence and promote to done where exit gates are satisfied
   - stage `P0-10` signoff playtest pack skeleton once P0 in-progress items are either closed or explicitly blocked
 
+`2026-04-14 17:53:17 +01:00`
+
+- Completed final `P0-05` runtime rehydrate edge assertions around `GameScreen.restoreSoloPlayerFromSave(...)`:
+  - added `GameScreenSaveRestoreTest` coverage for:
+    - cross-hub saved-position semantics (saved coordinates do not override current player position when hub IDs differ)
+    - same-hub position clamping to world bounds with velocity reset
+    - currency clamp and inventory overflow capping against slot/stack limits
+    - equipment + ability rehydrate parity (`equippedWeapon`, `equippedArmor`, `weaponState`, unlocked ability set)
+- Reassessed `P0-02/P0-03/P0-04` and closed exit gates on regression evidence:
+  - added `MissionAuthoringProgressionCoverageTest` proving `30/30` authored missions can progress objectives via runtime adapters and unlock exits
+  - confirmed mission lifecycle matrix remains green via `MissionManagerObjectiveLifecycleTest` + `CampaignCriticalFlowTest`
+  - confirmed dialogue parity lint remains green via `tests/test_data_integrity.py` (`test_dialogue_events_supported_by_runtime_router`)
+- Validation:
+  - `./gradlew :server:test :client:test --console=plain --no-daemon` pass
+  - `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass
+- Next loop:
+  - close remaining `P0-05` runtime/world rehydrate parity edges outside player restore (if any are discovered in playtest)
+  - continue `P0-06` + `P0-09` final closure pass and prepare `P0-10` signoff playtest pack skeleton
+
+`2026-04-14 18:53:17 +01:00`
+
+- Continued in-progress P0 closure pass (`P0-05`/`P0-06`/`P0-09`):
+  - expanded scripted-loss multiplayer consequence coverage in `ZoneSimulationLoopScriptedLossOrderingTest`:
+    - verifies `SCRIPTED_LOSS` is broadcast to all zone members
+    - verifies non-zone player channels do not receive the event
+    - verifies post-loss authoritative snapshot carries collapsed hub state and drained Yin/Yang values for affected players
+  - stabilized `P0-09` CI blocker found in latest CI run history:
+    - identified failing step (`black --check`) from CI run `24411277310`
+    - reformatted `tools/check_version_sync.py` to Black-compatible layout to remove formatting gate failure
+- Reassessed status gates:
+  - marked `P0-05` done based on migration + roundtrip + runtime rehydrate regression coverage
+  - marked `P0-06` done based on single-player + multiplayer scripted-loss network/state transition coverage
+  - kept `P0-09` in progress pending fresh remote CI confirmation after push
+- Validation:
+  - `./gradlew :server:test :client:test --console=plain --no-daemon` pass
+  - `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass
+  - `.venv\\Scripts\\python.exe tools/check_version_sync.py` pass
+  - `gh run view 24411277310 --repo VainAsher/indie-ninja-adventures --log-failed` reviewed (Python Black gate root cause captured and fixed)
+- Next loop:
+  - push current branch and confirm CI green status for `P0-09` exit gate
+  - stage `P0-10` signoff playtest pack + blocker triage scaffold once CI confirms
+
+`2026-04-14 18:55:13 +01:00`
+
+- Continued `P0-09` regression-suite deliverable hardening:
+  - added `tools/run_p0_regression_suite.py` to execute core P0 gates in one command:
+    - version sync (`tools/check_version_sync.py`)
+    - data integrity (`tests/test_data_integrity.py`)
+    - Java campaign-critical regressions (`:server:test` + `:client:test`)
+  - report artifact now generated automatically at `docs/reports/P0_REGRESSION_REPORT.md`
+  - executed runner locally and captured passing report (`Overall: PASS`)
+- Validation:
+  - `.venv\\Scripts\\python.exe tools/run_p0_regression_suite.py` pass
+- Next loop:
+  - commit/push this P0 closure batch and confirm remote CI turns green
+  - move directly into `P0-10` playtest signoff scaffold after CI confirmation
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -381,11 +438,11 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | Status | ID | Task | Owner | Sprint | Depends on | Deliverable | Balance / ideation hook | Exit gate |
 |--------|----|------|-------|--------|------------|-------------|--------------------------|-----------|
 | [x] | P0-01 | Restore build/test baseline (fix Gradle wrapper path, ensure `./gradlew.bat test` works) | ENG-CORE + QA | S1 | None | Reproducible local test command and CI run | Enables rapid tuning safely | All existing tests run from clean checkout |
-| [~] | P0-02 | Mission objective integration for all objective types (`collect_items`, `activate_switches`, `reach_location`, `time_challenge`, `defeat_boss`, `kill_all_enemies`) | ENG-CLIENT + ENG-CORE | S1 | P0-01 | Objective event adapters and mission progress hooks | Exposes full mission pacing for tuning | 30/30 missions can progress objectives in playtest harness |
-| [~] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
-| [~] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
-| [~] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
-| [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
+| [x] | P0-02 | Mission objective integration for all objective types (`collect_items`, `activate_switches`, `reach_location`, `time_challenge`, `defeat_boss`, `kill_all_enemies`) | ENG-CLIENT + ENG-CORE | S1 | P0-01 | Objective event adapters and mission progress hooks | Exposes full mission pacing for tuning | 30/30 missions can progress objectives in playtest harness |
+| [x] | P0-03 | Mission completion and exit-lock behavior wiring | ENG-CLIENT | S1 | P0-02 | Mission completion trigger + unlock/lock lifecycle | Supports mission difficulty tuning | Mission state transitions pass lifecycle test matrix |
+| [x] | P0-04 | Dialogue event routing parity (handle all emitted events or remove dead authored events) | ENG-DATA + ENG-CLIENT | S1-S2 | P0-02 | Event router map + unknown-event telemetry | Enables narrative pacing experiments | Zero silent event drops in dialogue lint output |
+| [x] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
+| [x] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
 | [x] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
 | [x] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
 | [~] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
