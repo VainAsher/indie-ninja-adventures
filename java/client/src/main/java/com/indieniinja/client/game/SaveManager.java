@@ -71,9 +71,7 @@ public final class SaveManager {
         try {
             SaveData data = json.fromJson(SaveData.class, fh.readString("UTF-8"));
             if (data == null) { log.warn("[Save] Empty save file"); return false; }
-            data = migrate(data);
-            data.restore(story, missions);
-            liveData = deepCopy(data);
+            applyLoadedData(data);
             saveExists = true;
             log.info("[Save] Loaded v{} from {}", data.version, SAVE_PATH);
             return true;
@@ -89,16 +87,7 @@ public final class SaveManager {
      */
     public boolean save() {
         try {
-            if (preSaveSync != null) {
-                try { preSaveSync.run(); }
-                catch (Exception e) { log.warn("[Save] pre-save sync hook failed: {}", e.getMessage()); }
-            }
-
-            // Start from the fully-restored runtime snapshot to preserve all non-manager fields.
-            SaveData data = deepCopy(liveData);
-            // Overlay current manager-owned fields (story + missions) so active runtime state wins.
-            SaveData captured = SaveData.capture(story, missions);
-            overlayCapturedManagerState(data, captured);
+            SaveData data = buildSaveSnapshotForWrite();
 
             // Rotate backups before overwriting
             FileHandle existing = Gdx.files.local(SAVE_PATH);
@@ -201,10 +190,65 @@ public final class SaveManager {
         return Math.max(0, Math.min(raw, Act.values().length - 1));
     }
 
+    /**
+     * Apply loaded save data to runtime managers + liveData without filesystem access.
+     * Package-private so roundtrip tests can validate load/write symmetry directly.
+     */
+    void applyLoadedData(SaveData loaded) {
+        SaveData migrated = migrate(deepCopy(loaded));
+        migrated.restore(story, missions);
+        liveData = deepCopy(migrated);
+    }
+
+    /**
+     * Build the next save snapshot by combining liveData with fresh manager state.
+     * Package-private for direct roundtrip assertions in unit tests.
+     */
+    SaveData buildSaveSnapshotForWrite() {
+        if (preSaveSync != null) {
+            try { preSaveSync.run(); }
+            catch (Exception e) { log.warn("[Save] pre-save sync hook failed: {}", e.getMessage()); }
+        }
+        SaveData data = deepCopy(liveData);
+        SaveData captured = SaveData.capture(story, missions);
+        overlayCapturedManagerState(data, captured);
+        return data;
+    }
+
     private SaveData deepCopy(SaveData src) {
         if (src == null) return new SaveData();
+        // libGDX Json cannot round-trip immutable collection impls from Map.of/List.of
+        // because it serializes their concrete runtime type names (no default ctor).
+        // Normalize to mutable JDK collections before JSON cloning.
+        normalizeCollectionsForSerialization(src);
         SaveData copy = json.fromJson(SaveData.class, json.toJson(src));
         return copy != null ? copy : new SaveData();
+    }
+
+    private static void normalizeCollectionsForSerialization(SaveData d) {
+        d.levelsCompleted = mutableList(d.levelsCompleted);
+        d.bestTimes = mutableMap(d.bestTimes);
+        d.tutorialsSeen = mutableList(d.tutorialsSeen);
+        d.unlockedRegions = mutableList(d.unlockedRegions);
+        d.completedMissions = mutableList(d.completedMissions);
+        d.unlockedAbilities = mutableList(d.unlockedAbilities);
+        d.missionAttempts = mutableMap(d.missionAttempts);
+        d.missionBestTimes = mutableMap(d.missionBestTimes);
+        d.playerInventory = mutableMap(d.playerInventory);
+        d.defeatedBosses = mutableList(d.defeatedBosses);
+        d.visitedRoomKeys = mutableList(d.visitedRoomKeys);
+        d.achievements = mutableList(d.achievements);
+        d.storyFlags = mutableMap(d.storyFlags);
+        d.missionStates = mutableMap(d.missionStates);
+        d.activeMissionObjectiveProgress = mutableMap(d.activeMissionObjectiveProgress);
+    }
+
+    private static <T> java.util.ArrayList<T> mutableList(java.util.List<T> in) {
+        return in == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(in);
+    }
+
+    private static <K, V> java.util.HashMap<K, V> mutableMap(java.util.Map<K, V> in) {
+        return in == null ? new java.util.HashMap<>() : new java.util.HashMap<>(in);
     }
 
     private static void overlayCapturedManagerState(SaveData base, SaveData captured) {

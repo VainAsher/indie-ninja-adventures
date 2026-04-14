@@ -13,7 +13,7 @@ dependencies {
     // libGDX — desktop backend
     implementation("com.badlogicgames.gdx:gdx:$gdxVersion")
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
-    implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
+    runtimeOnly("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.13")
@@ -21,6 +21,22 @@ dependencies {
 
     // Testing
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+}
+
+configurations {
+    // Keep JVM unit tests independent from desktop runtime-native artifacts. Tests under
+    // src/test exercise save/mission/story logic and do not initialize the LWJGL backend.
+    // This avoids intermittent OneDrive/AV file-lock contention on native jars.
+    testCompileClasspath {
+        exclude(group = "com.badlogicgames.gdx", module = "gdx-jnigen-loader")
+        exclude(group = "com.badlogicgames.gdx", module = "gdx-backend-lwjgl3")
+        exclude(group = "org.lwjgl")
+    }
+    testRuntimeClasspath {
+        exclude(group = "com.badlogicgames.gdx", module = "gdx-jnigen-loader")
+        exclude(group = "com.badlogicgames.gdx", module = "gdx-backend-lwjgl3")
+        exclude(group = "org.lwjgl")
+    }
 }
 
 application {
