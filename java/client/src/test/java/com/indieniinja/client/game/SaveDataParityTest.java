@@ -33,6 +33,7 @@ class SaveDataParityTest {
 
         SaveData save = new SaveData();
         save.storyAct = Act.ACT_VI_ASCENT.wire();
+        save.hubState = "RECOVERING";
         save.hubDegradationLevel = 7;
         save.lanternsMetCount = 3;
         save.veilMaidenEncountered = true;
@@ -58,6 +59,7 @@ class SaveDataParityTest {
 
         Map<String, String> ctx = story.toConditionContext();
         assertEquals(String.valueOf(Act.ACT_VI_ASCENT.wire()), ctx.get("act"));
+        assertEquals("RECOVERING", ctx.get("hub_state"));
         assertEquals("7", ctx.get("hub_degradation_level"));
         assertEquals("3", ctx.get("lanterns_met"));
         assertEquals("true", ctx.get("veil_maiden_encountered"));

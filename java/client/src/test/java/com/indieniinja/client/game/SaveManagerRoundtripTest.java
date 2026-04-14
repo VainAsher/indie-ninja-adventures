@@ -37,6 +37,7 @@ class SaveManagerRoundtripTest {
         loaded.achievements = List.of("first_steps");
 
         loaded.storyAct = Act.ACT_V_HEARTH.wire();
+        loaded.hubState = "EMPTY";
         loaded.hubDegradationLevel = 6;
         loaded.lanternsMetCount = 2;
         loaded.veilMaidenEncountered = true;
@@ -71,6 +72,7 @@ class SaveManagerRoundtripTest {
         assertEquals(loaded.achievements, out.achievements);
 
         assertEquals(loaded.storyAct, out.storyAct);
+        assertEquals(loaded.hubState, out.hubState);
         assertEquals(loaded.hubDegradationLevel, out.hubDegradationLevel);
         assertEquals(loaded.lanternsMetCount, out.lanternsMetCount);
         assertEquals(loaded.veilMaidenEncountered, out.veilMaidenEncountered);

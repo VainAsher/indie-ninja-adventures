@@ -179,6 +179,16 @@ public final class SaveManager {
         if (d.missionStates     == null) d.missionStates     = new java.util.HashMap<>();
         if (d.activeMissionObjectiveProgress == null) d.activeMissionObjectiveProgress = new java.util.HashMap<>();
         if (d.storyFlags        == null) d.storyFlags        = new java.util.HashMap<>();
+        if (d.hubState == null || d.hubState.isBlank()) d.hubState = "FULL";
+        else {
+            try {
+                d.hubState = com.indieniinja.world.HubState
+                    .valueOf(d.hubState.trim().toUpperCase(java.util.Locale.ROOT))
+                    .name();
+            } catch (IllegalArgumentException ex) {
+                d.hubState = "FULL";
+            }
+        }
 
         d.currency      = Math.min(d.currency,      999_999);
         d.totalPlaytime = Math.min(d.totalPlaytime,  360_000f);
@@ -256,6 +266,7 @@ public final class SaveManager {
         base.saveDate = captured.saveDate;
 
         base.storyAct = captured.storyAct;
+        base.hubState = captured.hubState;
         base.hubDegradationLevel = captured.hubDegradationLevel;
         base.lanternsMetCount = captured.lanternsMetCount;
         base.veilMaidenEncountered = captured.veilMaidenEncountered;

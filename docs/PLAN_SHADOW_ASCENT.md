@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 17:10:17 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-09 critical integration suite + CI gating)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 17:26:10 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-05/P0-06 parity closure + P0-09 green CI)
 
 ---
 
@@ -282,6 +282,28 @@ The original workloop is excellent for implementation discipline, but the new di
   - close remaining `P0-05` save/load parity items with full-world runtime restore assertions
   - finish `P0-06` scripted-loss consequence parity checks (story/hub post-overlay transitions)
   - move `P0-10` playtest pack/blocker triage once `P0-09` CI results confirm stability
+
+`2026-04-14 17:26:10 +01:00`
+
+- Continued `P0-05` save/load parity hardening:
+  - added explicit `hubState` persistence in `SaveData` capture/restore path
+  - removed duplicate `hub_state` leakage into generic `storyFlags` during capture
+  - added migration sanitation for invalid/blank saved hub state values in `SaveManager.migrate(...)`
+  - ensured `SaveManager` write overlay includes manager-captured `hubState`
+- Continued `P0-06` scripted-loss consequence parity:
+  - fixed `StoryManager.onVeilMaidenDefeatedAct1()` to actually enforce intended consequence contract:
+    - collapse hub state to `EMPTY`
+    - clamp hub degradation to collapse level
+    - enforce minimum narrative progression to Act III
+  - added server regression test proving scripted loss drains player Yin/Yang and collapses hub FSM state
+  - added client regression tests for scripted-loss story consequences and hub-state restore from save
+- Validation:
+  - `./gradlew :server:test :client:test --console=plain --no-daemon` pass
+  - `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass
+- Next loop:
+  - finish remaining `P0-05` world/runtime rehydrate edge assertions (cross-hub position semantics + inventory overflow edge cases)
+  - complete `P0-06` end-to-end multiplayer scripted-loss consequence checks against live snapshot ordering
+  - continue toward `P0-10` signoff pack once P0 criticals are marked done
 
 ### Branch and commit format
 

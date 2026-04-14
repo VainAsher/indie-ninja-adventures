@@ -99,6 +99,7 @@ public final class StoryManager {
      */
     public void restoreSnapshot(
         int actWire,
+        String savedHubState,
         int savedHubDegradationLevel,
         int savedLanternsMetCount,
         boolean savedVeilMaidenEncountered,
@@ -107,6 +108,7 @@ public final class StoryManager {
         boolean savedYinYangPresent,
         Map<String, String> savedFlags
     ) {
+        currentHubState = parseHubState(savedHubState, currentHubState);
         setAct(Act.fromWire(actWire));
         hubDegradationLevel   = Math.max(0, savedHubDegradationLevel);
         lanternsMetCount      = Math.max(0, savedLanternsMetCount);
@@ -138,8 +140,16 @@ public final class StoryManager {
     public void onVeilMaidenDefeatedAct1() {
         veilMaidenDefeatedAct1 = true;
         yinYangPresent = false;
+        hubDegradationLevel = Math.max(hubDegradationLevel, 9);
+        currentHubState = HubState.EMPTY;
+        if (currentAct.ordinal() < Act.ACT_III_LABYRINTH.ordinal()) {
+            setAct(Act.ACT_III_LABYRINTH);
+        } else {
+            syncFlags();
+        }
         flags.put("veil_maiden_defeated_act1", "true");
         flags.put("yin_yang_present", "false");
+        flags.put("hub_degradation_level", String.valueOf(hubDegradationLevel));
     }
 
     /** Increments NPC-met counter used to track Act V progress. */
@@ -199,5 +209,14 @@ public final class StoryManager {
     private void syncFlags() {
         flags.put("act",       String.valueOf(currentAct.wire()));
         flags.put("hub_state", currentHubState.name());
+    }
+
+    private static HubState parseHubState(String wire, HubState fallback) {
+        if (wire == null || wire.isBlank()) return fallback;
+        try {
+            return HubState.valueOf(wire.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return fallback;
+        }
     }
 }

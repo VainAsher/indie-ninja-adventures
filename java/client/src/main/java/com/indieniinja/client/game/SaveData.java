@@ -84,6 +84,7 @@ public final class SaveData {
     // ── Story state ───────────────────────────────────────────────────────────
     /** Serialized StoryManager flags — matches Python story_manager.to_dict(). */
     public int               storyAct            = 0;
+    public String            hubState            = "FULL";
     public int               hubDegradationLevel = 0;
     public int               lanternsMetCount    = 0;
     public boolean           veilMaidenEncountered = false;
@@ -112,6 +113,7 @@ public final class SaveData {
 
         // Story
         d.storyAct = story.currentAct().wire();
+        d.hubState = story.currentHubState().name();
         Map<String,String> ctx = story.toConditionContext();
         d.hubDegradationLevel = parseInt(ctx, "hub_degradation_level", 0);
         d.lanternsMetCount    = parseInt(ctx, "lanterns_met", 0);
@@ -124,6 +126,7 @@ public final class SaveData {
         d.yinYangPresent = Boolean.parseBoolean(
             ctx.getOrDefault("yin_yang_present", "true"));
         ctx.remove("act");
+        ctx.remove("hub_state");
         ctx.remove("hub_degradation_level");
         ctx.remove("lanterns_met");
         ctx.remove("veil_maiden_encountered");
@@ -154,6 +157,7 @@ public final class SaveData {
         // Restore story
         story.restoreSnapshot(
             storyAct,
+            hubState,
             hubDegradationLevel,
             lanternsMetCount,
             veilMaidenEncountered,
