@@ -167,6 +167,8 @@ public final class GameScreen implements Screen {
     private final java.util.Map<String, Integer>  dialogueEventCounts = new java.util.HashMap<>();
     /** Per-mission reached location ids to avoid replaying one-shot objective triggers. */
     private final java.util.Set<String> missionReachedLocations = new java.util.HashSet<>();
+    /** Per-mission activated fallback switch IDs (prevents duplicate activate_switches increments). */
+    private final java.util.Set<String> missionActivatedSwitches = new java.util.HashSet<>();
     private String missionTriggerMissionId = "";
     /** Mission contact volumes rebuilt from room entities each frame (debug-visible with H). */
     private final java.util.List<MissionContactVolume> missionContactVolumes = new java.util.ArrayList<>();
@@ -185,7 +187,7 @@ public final class GameScreen implements Screen {
     private static String npcDialogueId(String npcType) {
         return switch (npcType != null ? npcType : "lore") {
             case "shop"          -> "shop_keeper";
-            case "mission_giver" -> "mission_elder";
+            case "mission_giver" -> "forest_ranger";
             case "tutorial"      -> "tutorial_elder";
             default              -> "tutorial_elder";   // "lore" and unknown
         };
@@ -318,6 +320,7 @@ public final class GameScreen implements Screen {
         missionSelectOverlay.setOnStartMission(missionId -> {
             missionManager.startMission(missionId);
             missionReachedLocations.clear();
+            missionActivatedSwitches.clear();
             missionTriggerMissionId = missionId;
             if (saveManager != null) saveManager.markDirty();
             log.info("[Mission] started via overlay: {}", missionId);
@@ -419,7 +422,7 @@ public final class GameScreen implements Screen {
                 && Gdx.input.isKeyJustPressed(Input.Keys.I)) {
             inventoryOverlay.toggle();
         }
-        // ── M key: toggle minimap ─────────────────────────────────────────────
+        // ── TAB key: map toggle / map overlay input ───────────────────────────
         if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused) {
             minimapRenderer.handleInput();
         }
@@ -536,6 +539,7 @@ public final class GameScreen implements Screen {
                             missionManager.completeMission();
                             if (saveManager != null) saveManager.markDirty();
                             missionReachedLocations.clear();
+                            missionActivatedSwitches.clear();
                             missionTriggerMissionId = "";
                             log.info("[Mission] completed on exit contact before portal travel");
                         }
@@ -589,6 +593,8 @@ public final class GameScreen implements Screen {
                         inventoryOverlay.hide();
                         shopOverlay.hide();
                         craftingOverlay.open();
+                    } else if ("mission_giver".equals(closestNpc.npcType)) {
+                        openMissionSelectOverlay("npc_mission_giver");
                     } else {
                         String dialogueId = npcDialogueId(closestNpc.npcType);
                         dialogueManager.setStoryContext(storyManager.toConditionContext());
@@ -755,6 +761,8 @@ public final class GameScreen implements Screen {
                 if (v == null) continue;
                 if ("portal".equals(v.source)) {
                     hitboxRenderer.setColor(0.20f, 0.90f, 1.00f, 1f);
+                } else if ("mission_switch_fallback".equals(v.source)) {
+                    hitboxRenderer.setColor(1.00f, 0.20f, 0.25f, 1f);
                 } else {
                     hitboxRenderer.setColor(1.00f, 0.80f, 0.25f, 1f);
                 }
@@ -883,6 +891,16 @@ public final class GameScreen implements Screen {
         return true;
     }
 
+    private void openMissionSelectOverlay(String reason) {
+        if (missionSelectOverlay == null || missionSelectOverlay.isVisible()) return;
+        inventoryOverlay.hide();
+        shopOverlay.hide();
+        craftingOverlay.close();
+        dialogueManager.setStoryContext(storyManager.toConditionContext());
+        missionSelectOverlay.open(storyManager.currentAct().wire());
+        log.info("[Mission] opened mission select overlay via {}", reason);
+    }
+
     /**
      * Contact-volume mission logic:
      * - REACH_LOCATION objectives fire when player overlaps a volume matching locationId.
@@ -893,6 +911,7 @@ public final class GameScreen implements Screen {
         if (activeMissionId == null || activeMissionId.isBlank()) {
             missionTriggerMissionId = "";
             missionReachedLocations.clear();
+            missionActivatedSwitches.clear();
             missionContactVolumes.clear();
             return;
         }
@@ -900,6 +919,7 @@ public final class GameScreen implements Screen {
         if (!activeMissionId.equals(missionTriggerMissionId)) {
             missionTriggerMissionId = activeMissionId;
             missionReachedLocations.clear();
+            missionActivatedSwitches.clear();
         }
 
         MissionDefinition def = missionManager.getActiveDefinition();
@@ -928,10 +948,28 @@ public final class GameScreen implements Screen {
             }
         }
 
+        boolean interactPressed = Gdx.input.isKeyJustPressed(Input.Keys.E)
+            || Gdx.input.isKeyJustPressed(Input.Keys.F);
+        if (interactPressed) {
+            int requiredSwitches = requiredSwitchActivationCount(def);
+            for (int i = 1; i <= requiredSwitches; i++) {
+                String switchTag = normalizeKey(activeMissionId) + ":switch_" + i;
+                if (missionActivatedSwitches.contains(switchTag)) continue;
+                if (playerOverlapsVolume(switchTag, px, py)) {
+                    missionManager.onSwitchActivated(switchTag);
+                    missionActivatedSwitches.add(switchTag);
+                    log.info(
+                        "[Mission] fallback switch activated: {} hub={} room=({}, {}) pos=({}, {})",
+                        switchTag, snap.hubId, snap.roomGridX, snap.roomGridY, (int) px, (int) py);
+                }
+            }
+        }
+
         if (!missionManager.isExitLocked() && playerOverlapsVolume("exit", px, py)) {
             missionManager.completeMission();
             if (saveManager != null) saveManager.markDirty();
             missionReachedLocations.clear();
+            missionActivatedSwitches.clear();
             missionTriggerMissionId = "";
             log.info(
                 "[Mission] completed by reaching exit contact volume hub={} room=({}, {}) pos=({}, {})",
@@ -971,6 +1009,64 @@ public final class GameScreen implements Screen {
             }
             missionContactVolumes.add(
                 buildAuthoredReachLocationVolume(activeMissionId, locationId, triggerDef, anchorGridX, anchorGridY));
+        }
+
+        appendFallbackSwitchVolumes(snap, def, activeMissionId);
+    }
+
+    private int requiredSwitchActivationCount(MissionDefinition def) {
+        if (def == null) return 0;
+        int total = 0;
+        for (MissionObjective obj : def.objectives) {
+            if (obj.type != ObjectiveType.ACTIVATE_SWITCHES) continue;
+            total += Math.max(1, obj.count > 0 ? obj.count : obj.target);
+        }
+        return total;
+    }
+
+    private void appendFallbackSwitchVolumes(WorldSnapshot snap, MissionDefinition def, String activeMissionId) {
+        int required = requiredSwitchActivationCount(def);
+        if (required <= 0) return;
+
+        // Preserve authored world interactions when present.
+        boolean hasAuthoredSwitchNpc = false;
+        for (NPCState npc : snap.npcs) {
+            if (npc == null || npc.npcType == null) continue;
+            if (npc.npcType.startsWith("btn_") || npc.npcType.startsWith("lever_")) {
+                hasAuthoredSwitchNpc = true;
+                break;
+            }
+        }
+        if (hasAuthoredSwitchNpc) return;
+
+        int roomGridX = snap.roomGridX;
+        int roomGridY = snap.roomGridY;
+        byte[][] grid = tileGridForRoom(roomGridX, roomGridY);
+        int tile = PhysicsConstants.TILE_SIZE;
+        float roomPxX = LEVEL_COLS * tile;
+        float roomPxY = LEVEL_ROWS * tile;
+        float roomOriginX = (roomGridX - megamapMinGridX) * roomPxX;
+        float roomOriginY = (roomGridY - megamapMinGridY) * roomPxY;
+
+        for (int i = 0; i < required; i++) {
+            float fraction = (i + 1f) / (required + 1f);
+            int anchorCol = clampInt(Math.round(fraction * (LEVEL_COLS - 1)), 0, LEVEL_COLS - 1);
+            int anchorRow = LEVEL_ROWS - 2;
+            int[] cell = grid != null
+                ? findNearestReachableGroundCell(grid, anchorRow, anchorCol, Math.max(LEVEL_COLS, LEVEL_ROWS))
+                : null;
+            if (cell == null) {
+                cell = new int[] { clampInt(LEVEL_ROWS - 2, 1, LEVEL_ROWS - 1), anchorCol };
+            }
+
+            float width = 24f;
+            float height = 40f;
+            float x = roomOriginX + cell[1] * tile + (tile - width) * 0.5f;
+            float y = roomOriginY + cell[0] * tile - height;
+            String switchTag = normalizeKey(activeMissionId) + ":switch_" + (i + 1);
+            missionContactVolumes.add(clampVolumeToRoom(
+                new MissionContactVolume(switchTag, x, y, width, height, "mission_switch_fallback"),
+                roomGridX, roomGridY));
         }
     }
 
@@ -1180,6 +1276,7 @@ public final class GameScreen implements Screen {
         prevInventoryTotals.clear();
         prevLocalAbilities.clear();
         missionReachedLocations.clear();
+        missionActivatedSwitches.clear();
         missionTriggerMissionId = "";
 
         WorldSnapshot initSnap = localSim.getSnapshot(localFrame++);
@@ -1293,6 +1390,7 @@ public final class GameScreen implements Screen {
 
     private void restoreMissionReachProgressFromSave() {
         missionReachedLocations.clear();
+        missionActivatedSwitches.clear();
         String activeMissionId = missionManager.getActiveMissionId();
         missionTriggerMissionId = activeMissionId == null ? "" : activeMissionId;
         if (activeMissionId == null || activeMissionId.isBlank()) return;
@@ -1305,6 +1403,14 @@ public final class GameScreen implements Screen {
             String key = "reach_location_" + loc;
             if (progress.getOrDefault(key, 0) > 0) {
                 missionReachedLocations.add(loc);
+            }
+        }
+        int requiredSwitches = requiredSwitchActivationCount(def);
+        for (int i = 1; i <= requiredSwitches; i++) {
+            String tag = normalizeKey(activeMissionId) + ":switch_" + i;
+            String key = "activate_switches_" + tag;
+            if (progress.getOrDefault(key, 0) > 0) {
+                missionActivatedSwitches.add(tag);
             }
         }
     }
@@ -1518,6 +1624,7 @@ public final class GameScreen implements Screen {
                 if (!arg.isBlank()) {
                     missionManager.startMission(arg);
                     missionReachedLocations.clear();
+                    missionActivatedSwitches.clear();
                     missionTriggerMissionId = arg;
                     if (saveManager != null) saveManager.markDirty();
                 }
@@ -1536,11 +1643,7 @@ public final class GameScreen implements Screen {
             }
             case "open_mission_menu" -> {
                 storyManager.setFlag(key, "true");
-                inventoryOverlay.hide();
-                shopOverlay.hide();
-                craftingOverlay.close();
-                missionSelectOverlay.open(storyManager.currentAct().wire());
-                log.info("[Dialogue] opened mission select overlay");
+                openMissionSelectOverlay("dialogue_event");
             }
             // Generic mission adapters (optional authored dialogue hooks).
             case "switch_activated" -> missionManager.onSwitchActivated(arg);

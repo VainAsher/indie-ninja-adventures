@@ -5,60 +5,61 @@ import com.badlogic.gdx.Input;
 import com.indieniinja.network.InputCommand;
 
 /**
- * Polls libGDX's input state each frame and builds an InputCommand.
+ * Polls libGDX input each frame and builds an InputCommand.
  *
- * Key bindings match the Python client defaults from demo_game.py.
- * Must be called from the libGDX render thread (main thread).
+ * Key bindings follow GDD 10.3.13 (Precision Keyboard Preset).
  */
 public final class InputPoller {
 
     private long frameCounter = 0;
 
     /**
-     * Sample current keyboard/gamepad state and return a packed InputCommand.
-     * Called once per render frame — the result is forwarded to the server.
+     * Sample current keyboard state and return a packed InputCommand.
+     * Called once per render frame.
      */
     public InputCommand poll() {
         InputCommand cmd = new InputCommand((int) (frameCounter++ & 0x7FFF_FFFFL));
 
-        // Movement
-        cmd.up     = Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP);
-        cmd.down   = Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN);
-        cmd.left   = Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT);
-        cmd.right  = Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        // Movement (GDD: Arrow keys)
+        cmd.up = Gdx.input.isKeyPressed(Input.Keys.UP);
+        cmd.down = Gdx.input.isKeyPressed(Input.Keys.DOWN);
+        cmd.left = Gdx.input.isKeyPressed(Input.Keys.LEFT);
+        cmd.right = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
 
-        // Jump / action
-        cmd.jump   = Gdx.input.isKeyPressed(Input.Keys.SPACE);
-        cmd.dash   = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
-        cmd.crouch = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
+        // Core movement profile (GDD: Z jump, C dash, Shift run modifier)
+        cmd.jump = Gdx.input.isKeyPressed(Input.Keys.Z);
+        cmd.dash = Gdx.input.isKeyPressed(Input.Keys.C);
+        cmd.crouch = cmd.down;
+        cmd.slowWalk = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
+            || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
 
-        // Combat — held state so the server's own edge-detection (prevAttack/prevThrow) has
-        // a wider window to catch the press even with slight render/tick desync.
-        cmd.attack        = Gdx.input.isKeyPressed(Input.Keys.J) || Gdx.input.isButtonPressed(Input.Buttons.LEFT);
-        cmd.throwShuriken = Gdx.input.isKeyPressed(Input.Keys.K);
-        cmd.ninjutsu      = Gdx.input.isKeyPressed(Input.Keys.L);  // held; server detects release
-        // Teleport — held so the server can detect the press edge and track phase steering
-        cmd.teleport      = Gdx.input.isKeyPressed(Input.Keys.F) || Gdx.input.isKeyPressed(Input.Keys.T);
+        // Combat and arts (GDD: X/A/S/D/F/R)
+        cmd.attack = Gdx.input.isKeyPressed(Input.Keys.X);
+        cmd.throwShuriken = Gdx.input.isKeyPressed(Input.Keys.F);
+        cmd.teleport = Gdx.input.isKeyPressed(Input.Keys.D);  // Traversal Art
+        cmd.ninjutsu = Gdx.input.isKeyPressed(Input.Keys.R);  // Echo Art
+        cmd.stanceSwitch = Gdx.input.isKeyJustPressed(Input.Keys.A);
+        // NOTE: Guard/Parry (S) is reserved in GDD, but there is no dedicated
+        // player guard input field in the current network command schema yet.
 
-        // Interaction
-        cmd.interact   = Gdx.input.isKeyJustPressed(Input.Keys.E) || Gdx.input.isKeyJustPressed(Input.Keys.F);
-        cmd.inventory  = Gdx.input.isKeyJustPressed(Input.Keys.I) || Gdx.input.isKeyJustPressed(Input.Keys.TAB);
+        // Interaction/meta
+        cmd.interact = Gdx.input.isKeyJustPressed(Input.Keys.E);
+        cmd.inventory = Gdx.input.isKeyJustPressed(Input.Keys.I);
         cmd.consumable = Gdx.input.isKeyJustPressed(Input.Keys.Q);
-        cmd.slowWalk   = Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT);
 
-        // Map / overlays
-        cmd.minimap         = Gdx.input.isKeyJustPressed(Input.Keys.M);
-        cmd.fullmap         = Gdx.input.isKeyJustPressed(Input.Keys.N);
+        // Map and overlays
+        cmd.minimap = Gdx.input.isKeyJustPressed(Input.Keys.TAB);
+        cmd.fullmap = Gdx.input.isKeyPressed(Input.Keys.TAB);
         cmd.controlsOverlay = Gdx.input.isKeyJustPressed(Input.Keys.F1);
-        cmd.debugOverlay    = Gdx.input.isKeyJustPressed(Input.Keys.F3);
+        cmd.debugOverlay = Gdx.input.isKeyJustPressed(Input.Keys.F3);
 
-        // Camera
-        cmd.cycleCamera = Gdx.input.isKeyJustPressed(Input.Keys.C);
-        cmd.toggleProc  = Gdx.input.isKeyJustPressed(Input.Keys.P);
+        // Debug camera/dev toggles
+        cmd.cycleCamera = Gdx.input.isKeyJustPressed(Input.Keys.V);
+        cmd.toggleProc = Gdx.input.isKeyJustPressed(Input.Keys.P);
 
         // Menu
-        cmd.menuConfirm = Gdx.input.isKeyJustPressed(Input.Keys.ENTER)    || Gdx.input.isKeyJustPressed(Input.Keys.Z);
-        cmd.menuBack    = Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)    || Gdx.input.isKeyJustPressed(Input.Keys.X);
+        cmd.menuConfirm = Gdx.input.isKeyJustPressed(Input.Keys.ENTER);
+        cmd.menuBack = Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE);
 
         return cmd;
     }

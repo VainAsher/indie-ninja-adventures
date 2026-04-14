@@ -217,6 +217,8 @@ public final class SimPlayer {
     public final YinYangComponent yinYang = new YinYangComponent(-1);
     /** Lantern clarity component. Ticked by GameSimulator.tickLantern(). */
     public final LanternComponent lantern = new LanternComponent(-1);
+    /** Active stance mode for P0 readability bridge: "yin" | "yang". */
+    public String stanceMode = "yin";
 
     // ── Weapon / animation state ──────────────────────────────────────────────
     /** Current weapon set wire string: "unarmed" | "sword" | "pistol".

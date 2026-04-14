@@ -19,6 +19,8 @@ public final class InputCommand {
     public boolean interact, inventory, consumable;
     public boolean minimap, fullmap, controlsOverlay, debugOverlay;
     public boolean slowWalk, menuConfirm, menuBack;
+    /** Toggle Yin/Yang stance (client just-pressed key). */
+    public boolean stanceSwitch;
 
     public InputCommand() {}
 
@@ -61,6 +63,7 @@ public final class InputCommand {
         m.put("slow_walk",        slowWalk);
         m.put("menu_confirm",     menuConfirm);
         m.put("menu_back",        menuBack);
+        m.put("stance_switch",    stanceSwitch);
         return m;
     }
 
@@ -91,6 +94,7 @@ public final class InputCommand {
         c.slowWalk        = bool(m, "slow_walk");
         c.menuConfirm     = bool(m, "menu_confirm");
         c.menuBack        = bool(m, "menu_back");
+        c.stanceSwitch    = bool(m, "stance_switch");
         return c;
     }
 

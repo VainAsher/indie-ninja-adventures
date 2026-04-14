@@ -1,5 +1,5 @@
 # PLAN — Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-12 | **Base version:** v0.11.4 | **Current version:** v0.11.12
+**Created:** 2026-04-11 | **Last updated:** 2026-04-14 23:58:00 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.38
 
 ---
 
@@ -214,9 +214,48 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 | 12 | Social / Emote Animations | Phase 7 | Not started |
 | 13 | Death, Revive & Prone System | Phase 5 | Not started |
 | 14 | Testing & Validation | All | Not started |
-| 15 | Complete Keybinding Scheme | Phase 8 | Not started |
-| 16 | KeyBindings System (Configurable) | Phase 15 | Not started |
-| 17 | Controls Overlay (In-Game HUD) | Phase 16 | Not started |
+| 15 | Complete Keybinding Scheme | Phase 8 | **Partial v0.11.38** - runtime map/core action keys now align to GDD baseline, but `S` guard/parry remains schema-pending |
+| 16 | KeyBindings System (Configurable) | Phase 15 | **Partial v0.11.38** - launcher settings exist, but runtime action rebinding parity is incomplete |
+| 17 | Controls Overlay (In-Game HUD) | Phase 16 | **Partial v0.11.38** - `F1` overlay now mirrors GDD core keys, with full action-family parity still in progress |
+
+---
+
+## 0.4 P0 Blocker Realignment Addendum (`2026-04-14 22:31:21 +01:00`)
+
+This plan now explicitly supports `P0-10` blocker closure, not only asset/moveset breadth.
+
+### Confirmed P0 blockers from current playtest loop
+
+- No explicit, discoverable Yin/Yang stance-switch interaction in live input flow.
+- Mission selection depends on dialogue/event routes that are not consistently discoverable.
+- `activate_switches` objectives can be authored without guaranteed in-room switch affordances.
+- Controller-path controls are underspecified in runtime behavior, even when keyboard fallback works.
+
+### P0 animation/input bridge goals
+
+1. Make stance state changes visible and testable from minute one.
+2. Make mission start/select available without hidden dialogue dependencies.
+3. Make objective interactions visually represented (or debug-visible) whenever required.
+4. Align runtime controls behavior with GDD `10.3` before handing off to P1 tuning.
+
+### Execution track (P0-A to P0-D)
+
+| ID | Work item | Owner | Deliverable | Exit gate |
+|----|-----------|-------|-------------|-----------|
+| `P0-A` | Stance input + animation readability bridge | ENG-CORE + ENG-CLIENT | Deterministic stance-switch input route and visible stance posture/readability state | Tester can switch stance on demand and observe immediate visual/readability change |
+| `P0-B` | Mission menu discoverability hardening | ENG-CLIENT | Direct mission-overlay entry path plus dialogue-route fallback | Tester can open mission list and start a mission in under 30 seconds from hub |
+| `P0-C` | Objective interaction affordance pass | ENG-CORE + ENG-CLIENT | Guaranteed switch/objective contact affordances, with debug hitboxes when enabled | `activate_switches` objectives remain completable even when procedural switch NPCs are absent |
+| `P0-D` | Controls matrix sync pass | ENG-CLIENT + DESIGN | Runtime controls table synchronized with GDD `10.3` and overlay labels | `F1` overlay and player expectations doc show the same actionable controls |
+
+### Validation additions for this plan
+
+- Add a smoke-test path that verifies:
+  - stance switching input is accepted and mirrored in HUD/debug readouts;
+  - mission overlay can be opened and mission started without special dialogue branching;
+  - at least one `activate_switches` objective is completable in a fresh campaign session.
+- Update animation QA to include readability checks:
+  - stance silhouette clarity while idle/moving/attacking;
+  - clear distinction between interaction affordances (switch/lever/mission contact volumes).
 
 ---
 

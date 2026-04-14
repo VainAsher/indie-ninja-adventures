@@ -258,6 +258,8 @@ public final class HudRenderer {
                 float lanLabelAlpha = 0.6f + p.lanternValue * 0.4f;
                 font.setColor(0.95f, 0.7f * p.lanternValue + 0.1f, 0.05f, lanLabelAlpha);
                 font.draw(hudBatch, "\u25ca " + lanPct + "%", LAN_X + LAN_W + 5f, LAN_Y + LAN_H);
+                font.setColor(0.70f, 0.86f, 1f, 0.95f);
+                font.draw(hudBatch, "STANCE: " + stanceLabel(p), LAN_X + LAN_W + 5f, LAN_Y - 6f);
                 // Flow Mode indicator near the lantern
                 if (p.flowMode) {
                     font.setColor(0.9f, 1f, 0.7f, 0.9f);
@@ -309,7 +311,7 @@ public final class HudRenderer {
                     font.setColor(Color.WHITE);
                     // Controls hint
                     font.setColor(0.5f, 0.5f, 0.5f, 1f);
-                    font.draw(hudBatch, "[I]inv [M]map", 10f, 60f);
+                    font.draw(hudBatch, "[E]interact [TAB]map [I]inventory", 10f, 60f);
                     font.setColor(Color.WHITE);
                     break;
                 }
@@ -583,11 +585,11 @@ public final class HudRenderer {
         font.getData().setScale(1f);
         font.setColor(0.88f, 0.92f, 0.98f, 1f);
         String[] lines = {
-            "Movement: A/D or LEFT/RIGHT  |  Jump: SPACE  |  Dash: SHIFT  |  Crouch: CTRL",
-            "Combat: Attack J / LMB  |  Throw K  |  Ninjutsu L  |  Teleport F/T",
-            "Interact: E/F  |  Inventory: I/TAB  |  Consumable: Q",
-            "Map: M (mini) / N (full)  |  Camera mode: C",
-            "Debug: H (hitboxes)  |  F3 (debug panel)  |  ESC (pause/back)",
+            "Movement: Arrow Keys  |  Run Modifier: Left Shift  |  Jump: Z  |  Dash: C",
+            "Core Actions: X Melee  |  A Switch Yin/Yang  |  S Guard/Parry  |  D Traversal Art",
+            "Arts & Utility: F Thrown Tool  |  R Echo Art  |  E Interact",
+            "Map: TAB tap = quick map  |  TAB hold = full map  |  ESC = pause/menu",
+            "Debug/Dev: H hitboxes  |  F1 controls  |  F3 telemetry",
             "",
             "Launcher Tips:",
             "- Start Server + Play for localhost multiplayer in one click.",
@@ -668,6 +670,7 @@ public final class HudRenderer {
             "local.stamina: " + (local != null ? local.stamina : -1),
             "local.mana: " + (local != null ? local.mana : -1),
             "local.flow: " + (local != null && local.flowMode),
+            "local.stance: " + (local != null ? stanceLabel(local) : "?"),
             "local.yin: " + (local != null ? String.format(java.util.Locale.ROOT, "%.2f", local.yinValue) : "?"),
             "local.yang: " + (local != null ? String.format(java.util.Locale.ROOT, "%.2f", local.yangValue) : "?"),
             "local.balance_delta: " + (local != null ? String.format(java.util.Locale.ROOT, "%.2f", balanceDelta) : "?")
@@ -693,5 +696,12 @@ public final class HudRenderer {
         if (ratio > 0.6f) return Color.GREEN;
         if (ratio > 0.3f) return Color.YELLOW;
         return Color.RED;
+    }
+
+    private static String stanceLabel(PlayerState p) {
+        if (p == null) return "UNKNOWN";
+        float delta = p.yinValue - p.yangValue;
+        if (Math.abs(delta) <= 0.03f) return "BALANCED";
+        return delta > 0f ? "YIN" : "YANG";
     }
 }

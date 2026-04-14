@@ -63,6 +63,8 @@ public final class GameSimulator {
     private static final float ARCHER_MIN_COMBAT_RANGE = 112f;
     private static final float ARCHER_MAX_COMBAT_RANGE = 220f;
     private static final float SKELETON_GUARD_RETREAT_SPEED_MULT = 0.35f;
+    private static final float STANCE_DRIFT_PER_SECOND = 0.09f;
+    private static final float STANCE_SWITCH_BOOST = 0.035f;
 
     // ── Core systems ──────────────────────────────────────────────────────────
     private final EventBus      bus;
@@ -398,6 +400,12 @@ public final class GameSimulator {
         for (SimPlayer sp : players.values()) {
             YinYangComponent yy = sp.yinYang;
             yy.decay(DT);
+            if ("yang".equals(sp.stanceMode)) {
+                yy.absorbYang(STANCE_DRIFT_PER_SECOND * DT);
+            } else {
+                // Default stance is Yin for deterministic startup behavior.
+                yy.absorbYin(STANCE_DRIFT_PER_SECOND * DT);
+            }
 
             PhysicsState p = sp.physics;
             if (yy.hasYinSight()) {
@@ -756,6 +764,16 @@ public final class GameSimulator {
         boolean attackJustPressed = cmd.attack        && !sp.prevAttack;
         boolean throwJustPressed  = cmd.throwShuriken && !sp.prevThrow;
 
+        // ── Stance switching (P0-A bridge) ───────────────────────────────────
+        if (cmd.stanceSwitch) {
+            sp.stanceMode = "yin".equals(sp.stanceMode) ? "yang" : "yin";
+            if ("yang".equals(sp.stanceMode)) {
+                sp.yinYang.absorbYang(STANCE_SWITCH_BOOST);
+            } else {
+                sp.yinYang.absorbYin(STANCE_SWITCH_BOOST);
+            }
+        }
+
         // ── Jump buffer: store a jump press for landing ───────────────────────
         if (jumpJustPressed) sp.jumpBuffer = PhysicsConstants.JUMP_BUFFER_TIME;
         if (sp.jumpBuffer > 0f) sp.jumpBuffer -= DT;
@@ -866,10 +884,8 @@ public final class GameSimulator {
         p.fastFallActive = cmd.down && !p.onGround;
 
         // ── Stamina + Mana resources ──────────────────────────────────────────
-        // Mirrors Python player._update_resources()
-        boolean isRunning = sp.animState.equals("run") || (cmd.slowWalk && false); // run=ALT held
-        // Actually: run = not slowWalk (ALT = slowWalk, no ALT = run in Python)
-        isRunning = !cmd.slowWalk && (cmd.left || cmd.right) && p.onGround;
+        // Run modifier held while moving on ground drains stamina.
+        boolean isRunning = cmd.slowWalk && (cmd.left || cmd.right) && p.onGround;
         if (isRunning) {
             sp.stamina = Math.max(0f, sp.stamina - SimPlayer.STAMINA_RUN_DRAIN * DT);
         } else {

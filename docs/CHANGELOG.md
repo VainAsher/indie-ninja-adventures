@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.38] - 2026-04-14 (GDD keyboard remap + P0 mission/stance affordance pass)
+
+### Added
+
+- Stance-switch input path in the core command schema:
+  - `InputCommand.stanceSwitch`
+  - replay/record parity via `InputRecorder` and `ReplayPlayer`
+- Mission objective fallback switch volumes for `activate_switches` objectives when authored switch NPCs are absent.
+- Regression coverage for stance-switch drift behavior (`GameSimulatorTest.stanceSwitchInputBiasesYinYangTowardToggledStance`).
+
+### Changed
+
+- Mission menu discoverability hardening:
+  - mission giver NPC opens mission select overlay directly
+  - dialogue `open_mission_menu` event now uses the same centralized overlay path
+  - removed legacy `O` mission-open shortcut
+- Keyboard controls remapped to GDD `10.3.13` precision preset baseline:
+  - Arrow keys movement
+  - `Left Shift` run modifier
+  - `Z` jump, `X` melee, `C` dash
+  - `A` stance switch, `D` traversal art, `F` thrown tool, `R` echo art
+  - `E` interact, `TAB` map route, `ESC` pause/menu back
+- HUD/overlay text updated to reflect the same GDD control language and map keying.
+- Mission and minimap overlays updated to close/toggle with `TAB`/`ESC` instead of legacy `M` bindings.
+- Running stamina drain semantics aligned with run-modifier input (`slowWalk` held).
+
+### Validation
+
+- `./gradlew :server:test :client:compileJava` pass.
+
+---
+
 ## [0.11.37] - 2026-04-14 (P0-10 playtest scaffold + controls alignment)
 
 ### Added

@@ -147,4 +147,21 @@ class GameSimulatorTest {
         assertThat(com.indieniinja.physics.PhysicsConstants.PLAYER_WIDTH).isEqualTo(28);
         assertThat(com.indieniinja.physics.PhysicsConstants.PLAYER_HEIGHT).isEqualTo(56);
     }
+
+    @Test
+    void stanceSwitchInputBiasesYinYangTowardToggledStance() {
+        GameSimulator sim = buildSim(321L);
+        SimPlayer player = new SimPlayer("p1", 0, 200f, 800f);
+        sim.addPlayer(player);
+
+        InputCommand toggle = new InputCommand(0);
+        toggle.stanceSwitch = true;
+        sim.step(Map.of(0, toggle)); // default yin -> yang
+
+        for (int i = 0; i < 60; i++) sim.step(Map.of());
+
+        WorldSnapshot snap = sim.getSnapshot(61);
+        assertThat(snap.players).hasSize(1);
+        assertThat(snap.players.get(0).yangValue).isGreaterThan(snap.players.get(0).yinValue);
+    }
 }

@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Minimap overlay — toggled with M key.
+ * Minimap overlay — toggled with TAB key.
  *
  * Three toggleable features (press 1/2/3 while minimap is open):
  *   [1] Tile detail  — pixel mask of the actual tile layout per room
@@ -129,11 +129,11 @@ public final class MinimapRenderer {
     }
 
     /**
-     * Handle M / ESC / 1 / 2 / 3 / + / - / arrow keys.
+     * Handle TAB / ESC / 1 / 2 / 3 / + / - / arrow keys.
      * Returns true if the event was consumed.
      */
     public boolean handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) { toggle(); return true; }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) { toggle(); return true; }
         if (!visible) return false;
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { visible = false; return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) { showTileDetail = !showTileDetail; return true; }
@@ -466,7 +466,7 @@ public final class MinimapRenderer {
         // ═════════════════════════════════════════════════════════════════════
         batch.begin();
         font.setColor(0.75f, 0.75f, 1f, 1f);
-        font.draw(batch, "MAP  [M] close", panelX + PANEL_PAD, panelY + panelH - 5f);
+        font.draw(batch, "MAP  [TAB] toggle  [ESC] close", panelX + PANEL_PAD, panelY + panelH - 5f);
 
         float lx = panelX + PANEL_PAD;
 

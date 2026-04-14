@@ -71,7 +71,7 @@ public final class MissionSelectOverlay {
         refresh(currentAct);
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
-                || Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+                || Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
             visible = false;
             onClose.run();
             return true;
@@ -129,7 +129,7 @@ public final class MissionSelectOverlay {
         font.getData().setScale(1f);
 
         font.setColor(new Color(0.7f, 0.78f, 0.95f, 1f));
-        font.draw(batch, "[UP/DOWN] Select   [ENTER/E] Start   [ESC/M] Close",
+        font.draw(batch, "[UP/DOWN] Select   [ENTER/E] Start   [ESC/TAB] Close",
             panelX + PAD, panelY + PANEL_H - PAD - 22f);
 
         float listX = panelX + PAD;

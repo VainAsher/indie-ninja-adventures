@@ -130,6 +130,7 @@ public final class ReplayPlayer {
         c.ninjutsu = parseBool(json, "ninjutsu");
         c.interact = parseBool(json, "interact");
         c.slowWalk = parseBool(json, "slowWalk");
+        c.stanceSwitch = parseBool(json, "stanceSwitch");
         return c;
     }
 

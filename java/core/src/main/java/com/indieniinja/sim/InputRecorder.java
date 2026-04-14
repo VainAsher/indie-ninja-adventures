@@ -83,6 +83,7 @@ public final class InputRecorder {
              + ",\"ninjutsu\":"  + c.ninjutsu
              + ",\"interact\":"  + c.interact
              + ",\"slowWalk\":"  + c.slowWalk
+             + ",\"stanceSwitch\":" + c.stanceSwitch
              + "}";
     }
 }
