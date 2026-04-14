@@ -140,6 +140,10 @@ public final class GameScreen implements Screen {
     // ── Debug ─────────────────────────────────────────────────────────────────
     /** Toggle with H key — draws physics AABB outlines over all entities. */
     private boolean debugHitboxes = false;
+    /** Toggle with F1 key — launcher-friendly controls panel. */
+    private boolean showControlsOverlay = false;
+    /** Toggle with F3 key — runtime telemetry panel for playtesting. */
+    private boolean showDebugOverlay = false;
     private com.badlogic.gdx.graphics.glutils.ShapeRenderer hitboxRenderer;
 
     // ── Audio ─────────────────────────────────────────────────────────────────
@@ -427,6 +431,15 @@ public final class GameScreen implements Screen {
         // ── H key: toggle hitbox debug overlay ───────────────────────────────
         if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.H)) {
             debugHitboxes = !debugHitboxes;
+            log.info("[Debug] hitbox overlay {}", debugHitboxes ? "enabled" : "disabled");
+        }
+        if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
+            showControlsOverlay = !showControlsOverlay;
+            log.info("[Debug] controls overlay {}", showControlsOverlay ? "enabled" : "disabled");
+        }
+        if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
+            showDebugOverlay = !showDebugOverlay;
+            log.info("[Debug] telemetry overlay {}", showDebugOverlay ? "enabled" : "disabled");
         }
         if (!anyOverlay && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (paused) resume(); else pause();
@@ -839,6 +852,12 @@ public final class GameScreen implements Screen {
         if (scriptedLossOverlay) {
             hudRenderer.renderScriptedLossOverlay();
         }
+        if (showControlsOverlay) {
+            hudRenderer.renderControlsOverlay();
+        }
+        if (showDebugOverlay) {
+            hudRenderer.renderDebugOverlay(snap, localSlot, soloMode || stateBuffer.isConnected(), gameMode);
+        }
 
         // ── Pause overlay (rendered on top) ───────────────────────────────────
         if (paused) {
@@ -902,7 +921,10 @@ public final class GameScreen implements Screen {
             if (playerOverlapsVolume(loc, px, py)) {
                 missionManager.onReachLocation(loc);
                 missionReachedLocations.add(loc);
-                log.info("[Mission] location reached: {} (mission {})", loc, activeMissionId);
+                log.info(
+                    "[Mission] location reached: {} (mission {}) hub={} room=({}, {}) pos=({}, {})",
+                    loc, activeMissionId, snap.hubId, snap.roomGridX, snap.roomGridY,
+                    (int) px, (int) py);
             }
         }
 
@@ -911,7 +933,9 @@ public final class GameScreen implements Screen {
             if (saveManager != null) saveManager.markDirty();
             missionReachedLocations.clear();
             missionTriggerMissionId = "";
-            log.info("[Mission] completed by reaching exit contact volume");
+            log.info(
+                "[Mission] completed by reaching exit contact volume hub={} room=({}, {}) pos=({}, {})",
+                snap.hubId, snap.roomGridX, snap.roomGridY, (int) px, (int) py);
         }
     }
 

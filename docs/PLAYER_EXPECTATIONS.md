@@ -1,319 +1,416 @@
-# Shadow Ascent - Launcher-Only Player Expectations and UX Test Guide
-## Living Playtest Document for User-Experience, Design-Intent, and Balance Validation
+# Shadow Ascent - Launcher-Only Playtest Pack
+## End-to-End UX Validation for Solo and Multiplayer
 
-**Current target build:** `v0.11.29`  
-**Last updated:** `2026-04-13 22:47:26 +01:00`  
-**Tester profile:** User with `launcher.exe` only (no IDE, no terminal, no debug tooling required)
-
----
-
-## 1) Purpose
-Use this document to evaluate whether the shipped player experience matches the intended design in `GDD.md` and active plans.
-
-This guide is intentionally written from a player-only perspective:
-- Start from `launcher.exe`
-- Play normally
-- Record what you felt, what confused you, and where difficulty felt unfair or flat
+**Target build:** `v0.11.37`
+**Last updated:** `2026-04-14 21:52:31 +01:00`
+**Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
+**Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
 
 ---
 
-## 2) How to Run a Launcher-Only Test
+## 1. Scope and intent
 
-1. Launch `launcher.exe`.
-2. Enter game via **SOLO** (recommended for repeatable UX tests) or **CAMPAIGN** if you are validating online flow.
-3. Run the session blocks in Section 6.
-4. Capture feedback using the templates in Section 9.
-5. Include screenshots or short clips for high-impact issues.
+This document is the canonical launcher-only playtest pack for Shadow Ascent.
 
-Optional artifact to attach if available: `user_data/logs/client.log`.
+Use it to answer three release questions:
+
+1. Can a new player install and play without hidden setup knowledge?
+2. Do core systems behave consistently enough to start P1 balancing and tuning?
+3. Are findings captured in a form that maps directly to design goals in `docs/GDD.md`?
+
+This pack assumes the tester starts from launcher only.
 
 ---
 
-## 3) Intended Experience (from GDD) and What to Verify
+## 2. Tester profile and assumptions
 
-| Design goal | Player should feel | Validate with feedback area IDs |
+- Tester has `launcher.exe` and game files in one folder.
+- Tester has no repo access and no command line requirements.
+- Tester may have never seen controls, lore, or system terminology before.
+
+If a tester cannot progress without external help, capture that as onboarding friction.
+
+---
+
+## 3. Quick start from launcher.exe
+
+1. Open `launcher.exe`.
+2. On Play tab:
+- For solo baseline: click `Play` and choose `SOLO` in mode select.
+- For localhost multiplayer baseline: click `Start Server`, then `Host + Play`.
+- For remote multiplayer baseline: click `Join` and enter `host:port`.
+3. Confirm game reaches Main Menu, then Mode Select, then in-game HUD.
+4. Run test packs in order from Section 7.
+
+---
+
+## 4. Control reference for first-time testers
+
+Use this as the default expected keyboard map.
+
+| Action | Input |
+|---|---|
+| Move | `A/D` or `Left/Right` |
+| Jump | `Space` |
+| Dash | `Left Shift` or `Right Shift` |
+| Crouch | `Left Ctrl` or `Right Ctrl` |
+| Attack | `J` or left mouse |
+| Throw | `K` |
+| Ninjutsu | `L` |
+| Teleport/phase | `F` or `T` |
+| Interact | `E` or `F` |
+| Inventory | `I` or `Tab` |
+| Consumable | `Q` |
+| Minimap | `M` |
+| Full map | `N` |
+| Pause/back | `Esc` |
+| Hitbox overlay | `H` |
+| Controls overlay | `F1` |
+| Runtime debug overlay | `F3` |
+
+If control understanding is poor, tag finding with `UX-CONTROLS`.
+
+---
+
+## 5. Lore primer for playtest context
+
+Give testers this short framing before first run:
+
+- You are the Hollowed Ninja reclaiming balance.
+- The game expresses identity through movement, stance pressure, and recovery loops.
+- Hub progression and scripted loss are intended narrative beats, not random failures.
+- Yin, Yang, Lantern, and Flow are intended to be felt in play, not explained by long text.
+
+Do not preload mechanical spoilers beyond this.
+
+---
+
+## 6. Current runtime instrumentation audit
+
+### 6.1 Logging status
+
+| Area | Current status | Notes |
 |---|---|---|
-| Movement mastery is the core fantasy | Precise control, readable failure, fast retry confidence | `UX-MOVE`, `UX-COMBAT` |
-| Combat is light but meaningful | Combat supports traversal/story pacing, not pure attrition | `UX-COMBAT`, `BAL-ENEMY` |
-| Yin/Yang and Lantern represent internal state | World readability and power expression shift with emotional state | `UX-SYSTEMS`, `BAL-SYSTEMS` |
-| Hub evolution carries narrative weight | Return-to-hub moments feel like progression/loss/recovery | `UX-NARRATIVE`, `UX-PROGRESSION` |
-| Challenge should be teachable, not random | Losses feel earned and understandable | `BAL-DIFFICULTY`, `UX-READABILITY` |
+| Client log file | Working | `user_data/logs/client.log` rolling daily |
+| Server log file | Working | `user_data/logs/server.log` rolling daily |
+| Mission event logging | Partial | Includes mission/location events; now includes hub, room, and position on reach/complete |
+| Structured event IDs | Missing | Logs are human-readable but not fully structured telemetry |
+| Correlation/session IDs | Missing | No global session id across client/server traces |
 
----
+### 6.2 Debug tooling status
 
-## 4) Current Player-Visible Scope (v0.11.29)
-
-| Feature | Status | What tester should expect |
+| Tool | Current status | Access |
 |---|---|---|
-| Launcher to mode-select flow | Working | Can enter game from launcher without terminal steps |
-| Solo mode | Working | Full playable loop without dedicated server setup |
-| Yin/Yang + Lantern HUD systems | Working | Values affect feel/readability; HUD updates during play |
-| Vignette/darkness presentation | Working | World remains visible through vignette (no opaque mask) |
-| Hub state evolution | Working | NPC roster and hub feel change with progression |
-| Enemy AI states (patrol/chase/attack/flee/guard/stunned/dead) | Working | Distinct behavior per archetype |
-| Boss psychological patterns (Siren, Echo Warden, Time Leech Lord, Memory Eater) | Working | Distinct fight identity and narrative behavior |
-| Enemy tuning pass (slime/skeleton/archer) | Working in `v0.11.29` | Slime lunge alignment pass, skeleton directional guard + retreat, archer kiting + projectile pressure |
-| Enemy/platform reliability pass | Working in `v0.11.29` | One-way platform stacking fix; enemies should no longer desync around tightly stacked platform+terrain tiles |
-| Siren first-boss 3-phase rewrite baseline | Working in `v0.11.29` | Phase 1 ranged lane control; phase 2 teleport reposition; phase 3 volley pressure; red-slime add waves |
-| Scripted-loss splash flow | Working in `v0.11.29` | On Siren defeat path, placeholder narrative splash appears with CONTINUE action |
-| Save/load core persistence | Working | Progress/state should persist between sessions |
-| Echo system foundations (`EchoRecorder`, `SimEcho`) | In progress | Foundation exists, full puzzle-driven player experience not yet fully exposed |
-| Act IV depression mechanics + full late-act pacing | Not complete | Do not treat as regression if absent |
-| Proof token/labyrinth loop | Not complete | Planned scope, not final player-facing behavior yet |
+| Hitbox overlay | Working | Press `H` in-game |
+| Controls overlay | Working | Press `F1` in-game |
+| Runtime telemetry panel | Working | Press `F3` in-game |
+| Launcher log viewer | Working | Launcher `Dev Tools` tab |
+| Deep simulation inspector | Missing | No dedicated in-game dev console yet |
+
+### 6.3 Player settings status
+
+| Area | Current status | Gap |
+|---|---|---|
+| Launcher settings (JVM, paths, update behavior) | Working | Launcher-level only |
+| In-game key rebinding | Missing | Input bindings remain hardcoded in client |
+| In-game graphics/audio settings UI | Missing | No full settings menu path in Java client |
+| Per-profile gameplay settings | Missing/partial | Profiles exist in launcher; gameplay settings not fully wired |
+
+Conclusion: logging/debug exist and are useful for playtesting, but not yet full-featured.
 
 ---
 
-## 5) Do Not Misclassify These as Regressions Yet
+## 7. End-to-end test packs
 
-Report as "not-yet-implemented" unless behavior contradicts release notes:
-- Full Echo puzzle loop content
-- Complete Act IV/Act V/Act VII emotional-arc tuning
-- Final proof-token labyrinth gating
-- Final arcade/sandbox feature-complete loops
+## Pack A: First-run solo onboarding (45 to 60 min)
 
----
+**Goal:** Validate a brand-new player path from launcher to first meaningful progression.
 
-## 6) Launcher-Only Test Sessions (Execution Order)
+### Steps
 
-## Session A - First 15 Minutes (Onboarding and Friction)
-- [ ] Launcher opens and user can enter a game mode without confusion
-- [ ] Controls are discoverable enough to move/jump/attack without external docs
-- [ ] HUD elements are understandable at a glance
-- [ ] First enemy encounter communicates threat and response options
+1. Start from launcher and enter `SOLO`.
+2. Reach first enemy encounter.
+3. Open inventory once (`I`) and minimap once (`M`).
+4. Trigger at least one mission objective interaction.
+5. Trigger at least one failure/death and recover.
 
-Record:
-- `time_to_first_control_confidence`
-- `first_point_of_confusion`
-- `did_user_feel_stuck_without_docs (yes/no)`
+### Record
 
-## Session B - Core Movement and Combat Feel (20-30 min)
-- [ ] Movement feels responsive enough for precision platforming
-- [ ] Crouch, jump, dash, wall interactions behave consistently
-- [ ] Taking damage feels fair and readable
-- [ ] Combat cadence does not overshadow traversal identity
+- `time_to_first_movement_confidence`
+- `time_to_first_combat_confidence`
+- `first_confusion_point`
+- `first_rage_point_or_none`
+- `onboarding_clarity_score_1_5`
 
-Record:
-- `movement_responsiveness_score (1-5)`
-- `combat_readability_score (1-5)`
-- `deaths_total`
-- `deaths_that_felt_unfair`
+### Expected
 
-## Session C - Systems Clarity (Yin/Yang/Lantern) (20 min)
-- [ ] Yin/Yang changes are visible and understandable
-- [ ] Lantern state changes world readability in a legible way
-- [ ] Flow-state moments are noticeable and satisfying
-
-Record:
-- `systems_clarity_score (1-5)`
-- `could_player_explain_yin_yang_effects (yes/no)`
-- `could_player_explain_lantern_effects (yes/no)`
-
-## Session D - Enemy Balance Focus (v0.11.29) (20-30 min)
-
-### Slime
-- [ ] Attack now reaches about one slime body length in front
-- [ ] Telegraph is readable enough to react
-- [ ] Hits feel consistent with visible body/contact zone
-- [ ] Slimes do not float or ignore gravity in normal terrain traversal
-- [ ] Slimes do not clip through stacked platform+terrain geometry
-
-### Skeleton shield bearer
-- [ ] Effective threat range feels increased versus prior baseline
-- [ ] Added range creates pressure without feeling "invisible"
-- [ ] Guard behavior remains readable and counterplay still exists
-- [ ] Front-facing guard blocks/reduces damage; rear-side attacks still reward flanks
-- [ ] Enemy briefly retreats into guard after attack attempt (not constant face-tank)
-
-### Archer
-- [ ] Archer emits projectile attacks (not only melee presence)
-- [ ] Projectile readability is sufficient for dodge/positioning
-- [ ] Projectile damage pressure feels fair for encounter context
-- [ ] Archer repositions to restore firing lane before shooting (kiting behavior)
-- [ ] Archer has no hidden melee pressure when in close range
-
-Record:
-- `slime_fairness_score (1-5)`
-- `skeleton_range_fairness_score (1-5)`
-- `archer_projectile_readability_score (1-5)`
-- `enemy_with_most_unfair_hits`
-- `platform_clipping_incidents`
-- `stacked_platform_failures`
-
-## Session F - First Boss and Scripted Defeat Flow (20-30 min)
-
-### Siren phase behavior
-- [ ] Phase 1 reads as ranged spacing and projectile pressure
-- [ ] Phase 2 clearly introduces teleport repositioning
-- [ ] Phase 3 clearly upgrades to multi-shot volleys
-- [ ] Boss remains inside the room bounds (no arena escape)
-
-### Add-wave vulnerability loop
-- [ ] Red slimes spawn each phase in room-local zones
-- [ ] Clearing red slimes is readable as prerequisite to meaningful boss damage
-- [ ] Add-wave count per phase feels intentional (not random clutter)
-
-### Scripted loss splash
-- [ ] Defeat path triggers narrative splash reliably
-- [ ] CONTINUE input reliably dismisses splash and returns control
-- [ ] Post-splash progression aligns with Act II scripted-loss expectations
-
-Record:
-- `boss_phase_readability_score (1-5)`
-- `boss_damage_window_clarity (1-5)`
-- `scripted_loss_overlay_success (yes/no)`
-- `boss_room_escape_seen (yes/no)`
-
-## Session E - Progression and Persistence (10-15 min)
-- [ ] Exiting and relaunching from launcher preserves expected progress
-- [ ] Returning player context is understandable
-- [ ] Hub/progression state feels coherent after reload
-
-Record:
-- `save_load_confidence (1-5)`
-- `missing_or_confusing_state_after_reload`
+- Player can progress without external docs.
+- UI does not block basic understanding.
+- Death and retry feel readable, not random.
 
 ---
 
-## 7) Detailed Feedback Gathering Areas
+## Pack B: Save/load and continuity (20 to 30 min)
 
-Use these IDs in notes, bug reports, and balancing reviews.
+**Goal:** Verify persistence integrity for active progression.
 
-| ID | Area | What to capture | Why it matters |
-|---|---|---|---|
-| `UX-LAUNCH` | Launcher and entry flow | Confusion points, failed starts, mode-select clarity | First-minute abandonment risk |
-| `UX-CONTROLS` | Input and control discoverability | Any action that felt hidden or unintuitive | Lowers onboarding friction |
-| `UX-MOVE` | Traversal responsiveness | Delay, missed inputs, inconsistent jump/dash outcomes | Core game identity is movement mastery |
-| `UX-READABILITY` | Visual and combat readability | Could player parse threat, space, and affordances quickly? | Reduces "cheap" deaths |
-| `UX-COMBAT` | Combat feel and pacing | Is combat supportive or dominant vs traversal? | Aligns with "light combat" design pillar |
-| `UX-SYSTEMS` | Yin/Yang/Lantern understanding | Can player explain what changed and why? | Systems must be felt, not hidden |
-| `UX-NARRATIVE` | Emotional arc delivery through play | Hub return feeling, loss/recovery tone, act transitions | Validates narrative-through-mechanics goal |
-| `UX-PROGRESSION` | Mission and progression confidence | Clarity of next objective and unlock logic | Prevents churn from uncertainty |
-| `BAL-ENEMY` | Enemy archetype tuning | Fairness and pressure for slime/skeleton/archer/bosses | Main balancing loop input |
-| `BAL-DIFFICULTY` | Difficulty curve quality | Spike locations, retry load, fatigue points | Keeps challenge intentional |
-| `BAL-RESOURCES` | Economy and sustain pressure | Potion/fragment scarcity or overload | Impacts long-session pacing |
-| `TECH-STABILITY` | Runtime reliability | Crashes, hard-locks, visual corruption, desync-like behavior | Release-blocking health |
+### Steps
 
----
+1. In solo, advance at least one mission objective.
+2. Exit to launcher.
+3. Relaunch and re-enter same mode.
+4. Confirm mission/story context, position, and inventory continuity.
+5. Repeat with a second quit/relaunch cycle.
 
-## 8) Balance-Specific Questions (Answer Explicitly)
+### Record
 
-### Slime range update
-- Did slime hits now match visible forward body extension?
-- Did you ever feel hit from behind/side when visual did not support it?
-- If unfair, estimate distance error in "tiles" or "character widths".
+- `save_load_confidence_score_1_5`
+- `state_fields_lost_or_reset`
+- `any_wrong_respawn_or_wrong_hub`
 
-### Skeleton +15% range
-- Did added range feel like healthy threat or surprise/unreadable poke?
-- Could you learn spacing reliably after 2-3 encounters?
-- Did guard + longer reach create unavoidable damage chains?
+### Expected
 
-### Archer projectile behavior
-- Could you reliably identify incoming projectiles before impact?
-- Did projectile speed feel dodgeable with current movement kit?
-- Were encounters with multiple archers still readable?
-
-### Global tuning
-- Which enemy type currently causes the most "unearned" damage?
-- Which enemy is now too weak to be interesting?
-- If one tuning change should be next, what is it and why?
+- No critical progression fields lost.
+- Re-entry context is coherent.
 
 ---
 
-## 9) Feedback Templates
+## Pack C: Multiplayer launcher path (30 to 45 min)
 
-## A) Session Summary Template
+**Goal:** Validate host/join lifecycle, combat readability, and sync confidence.
+
+### Steps
+
+1. Host starts `Start Server` then `Host + Play`.
+2. Joiner connects via `Join`.
+3. Both players enter combat and move across rooms.
+4. Verify both can see enemy pressure and updates consistently.
+5. Disconnect/reconnect one client and verify session continuity.
+
+### Record
+
+- `join_success_time`
+- `desync_symptoms`
+- `reconnect_behavior`
+- `multiplayer_readability_score_1_5`
+
+### Expected
+
+- Joining works without manual network troubleshooting.
+- Reconnect does not corrupt active session behavior.
+
+---
+
+## Pack D: Combat and systems clarity baseline (40 to 60 min)
+
+**Goal:** Establish P1-ready baseline for enemy fairness and systems readability.
+
+### Focus checks
+
+- Slime attack reach and visual alignment.
+- Skeleton shield bearer pressure and block readability.
+- Archer spacing and projectile readability.
+- Yin/Yang/Lantern/Flow clarity from player perspective.
+
+### Record
+
+- `enemy_fairness_scores_by_type_1_5`
+- `systems_clarity_score_1_5`
+- `flow_understanding_yes_no`
+- `top_3_tuning_requests`
+
+### Expected
+
+- Most failures can be explained by player action, not hidden behavior.
+- Systems changes are visible enough to describe in plain language.
+
+---
+
+## 8. What to capture for every issue
+
+For every bug, frustration point, or balance note capture:
+
+1. Build version (`v0.11.37` or newer).
+2. Mode (`SOLO`, `CAMPAIGN`, `HOST`, `JOIN`).
+3. Area context (`hub`, `room grid`, enemy type, mission id).
+4. Exact player-visible behavior.
+5. Expected behavior in plain language.
+6. Severity (`blocker`, `high`, `medium`, `low`).
+7. Log snippet and screenshot/video if possible.
+
+---
+
+## 9. Logs and debug collection guide
+
+## 9.1 File locations
+
+Default game data root (launcher-managed):
+
+- `user_data/logs/client.log`
+- `user_data/logs/server.log`
+- `user_data/saves/savegame.json`
+- `user_data/settings/settings.json`
+- `user_data/replays/*.ndjson`
+
+If tester changed game directory in launcher Settings, use that configured folder's `user_data` tree.
+
+## 9.2 How to access logs from launcher
+
+1. Open launcher.
+2. Go to `Dev Tools` tab.
+3. Use Log viewer dropdown.
+4. Filter by level and text.
+5. Copy relevant lines into report.
+
+## 9.3 In-game debug screens
+
+- `H`: Hitbox overlay.
+- `F1`: Controls overlay.
+- `F3`: Runtime telemetry panel.
+
+When reporting spatial bugs include telemetry values:
+
+- `snapshot.hub`
+- `snapshot.room`
+- `local.pos`
+- `local.player_id`
+
+## 9.4 Recommended report attachments
+
+- One screenshot showing issue and HUD.
+- One short log snippet (10 to 40 lines).
+- Optional short clip for timing/readability issues.
+
+---
+
+## 10. Identity and persistence note (important)
+
+Previous builds generated a new multiplayer `player_id` every client launch, which breaks server-side identity continuity.
+
+Expected behavior after the current fix:
+
+- Launcher profile now provides stable player identity for Java client sessions.
+- Client also supports persisted fallback identity at `user_data/profiles/client_identity.json`.
+
+Validation check:
+
+1. Connect twice from same launcher profile.
+2. Confirm `server.log` shows same `Player <uuid>` value both sessions.
+
+If UUID changes across relaunch with same profile, report as `TECH-STABILITY` blocker.
+
+---
+
+## 11. Feedback IDs for triage
+
+| ID | Area |
+|---|---|
+| `UX-LAUNCH` | Launcher and startup flow |
+| `UX-CONTROLS` | Controls discoverability and comfort |
+| `UX-MOVE` | Movement responsiveness and consistency |
+| `UX-COMBAT` | Combat readability and fairness |
+| `UX-SYSTEMS` | Yin/Yang/Lantern/Flow understanding |
+| `UX-PROGRESSION` | Mission and save continuity |
+| `UX-NARRATIVE` | Story/hub emotional pacing |
+| `BAL-ENEMY` | Enemy and boss tuning |
+| `BAL-DIFFICULTY` | Difficulty curve and spikes |
+| `TECH-STABILITY` | Crashes, softlocks, desync, persistence faults |
+| `TECH-LOGGING` | Missing or unclear diagnostics |
+| `TECH-SETTINGS` | Settings feature gaps or nonfunctional options |
+
+---
+
+## 12. Templates
+
+## Session summary template
 
 ```md
 ### Session Summary
-Build: v0.11.29
-Mode: SOLO / CAMPAIGN
-Session length: XX min
+Build: v0.11.37
+Mode: SOLO / HOST / JOIN
+Duration: XX min
 
-Top 3 positives:
+Top positives:
 1.
 2.
 3.
 
-Top 3 pain points:
+Top issues:
 1.
 2.
 3.
 
-Most likely churn moment:
+Most severe issue:
 
-Overall alignment to intended experience (1-5):
+Overall readiness for P1 tuning (1-5):
 
-IDs used: UX-___, BAL-___, TECH-___
+IDs: UX-___ / BAL-___ / TECH-___
 ```
 
-## B) Encounter and Balance Template
+## Bug template
 
 ```md
-### Encounter Note
-Area/room:
-Enemy type(s):
-
-What happened:
-Expected behavior:
-Observed behavior:
-
-Fairness score (1-5):
-Readability score (1-5):
-Suggested adjustment:
-
-ID: BAL-ENEMY / BAL-DIFFICULTY / UX-READABILITY
-```
-
-## C) Bug Template (Launcher-Only)
-
-```md
-### Bug Report
-Build: v0.11.29
-Mode: SOLO / CAMPAIGN
+### Bug
+Build: v0.11.37
+Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 
-Steps to reproduce:
+Steps:
 1.
 2.
 3.
 
 Expected:
 Observed:
-Repro rate:
 
-Attachments:
-- screenshot/video
-- optional log snippet from user_data/logs/client.log
+Telemetry:
+- hub:
+- room:
+- pos:
+- player_id:
+
+Logs:
+[paste 10-40 lines]
 
 ID: TECH-STABILITY / UX-___ / BAL-___
 ```
 
----
+## Balance note template
 
-## 10) Version Notes (Player-Visible, Recent)
+```md
+### Balance Observation
+Enemy/System:
+Context (hub/room/mission):
 
-| Version | Player-visible impact |
-|---|---|
-| `v0.11.29` | Enemy/platform reliability pass, archer kiting behavior, skeleton directional guard+retreat, Siren 3-phase baseline, scripted-loss continue splash |
-| `v0.11.28` | Release metadata sync for launcher/release pipeline (`version.json` + Gradle version) and launcher UX guide alignment |
-| `v0.11.27` | Launcher-only UX test handbook refresh: updated expected scope, structured feedback IDs, and balancing capture templates |
-| `v0.11.26` | Enemy tuning pass: slime forward lunge reach update, skeleton range +15%, archers fire damaging projectiles |
-| `v0.11.25` | Echo system foundation (`SimEcho`) integrated server-side for future puzzle loops |
-| `v0.11.24` | Enemy hitbox and attack-zone alignment fixes |
-| `v0.11.23` | Enemy targeting and hitbox tuning refinements |
-| `v0.11.10` | Boss psychological patterns live (Siren, Echo Warden, Time Leech Lord, Memory Eater) |
-| `v0.11.6-0.11.9` | Yin/Yang and Lantern HUD systems plus vignette clarity fixes |
+What felt unfair or unclear:
+What felt good:
+Proposed adjustment:
 
----
-
-## 11) Exit Criteria for This Guide
-
-This guide is considered successful when a launcher-only tester can:
-1. Enter and play without setup confusion.
-2. Provide actionable feedback tied to `UX-*`, `BAL-*`, and `TECH-*` IDs.
-3. Identify whether current experience matches intended GDD pillars.
-4. Produce at least one concrete balancing recommendation from actual play.
+Confidence: low / medium / high
+ID: BAL-ENEMY / BAL-DIFFICULTY / UX-SYSTEMS
+```
 
 ---
 
-*Keep this file aligned with release tags and plan updates every loop.*
+## 13. Exit criteria for P0-10 handoff to P1
+
+The playtest pack phase is complete when all are true:
+
+1. Solo and multiplayer launcher paths are validated by at least 3 sessions each.
+2. No open blocker in `TECH-STABILITY`.
+3. Every high-severity issue has owner and next action.
+4. Flow baseline feedback exists with repeatable evidence.
+5. Balance backlog is prioritized for P1 (`enemy`, `movement`, `systems`, `progression`).
+
+---
+
+## 14. Maintainer note
+
+Update this file every release candidate with:
+
+- current build version
+- known instrumentation changes
+- test pack changes
+- newly discovered must-test regressions
+
+This document is a release artifact, not just internal notes.

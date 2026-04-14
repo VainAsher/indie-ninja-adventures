@@ -545,6 +545,142 @@ public final class HudRenderer {
             && yUp <= scriptedLossBtnY + scriptedLossBtnH;
     }
 
+    /**
+     * Render a launcher-friendly controls reference panel.
+     * Intended for first-time users with no external documentation.
+     */
+    public void renderControlsOverlay() {
+        int sw = Gdx.graphics.getWidth();
+        int sh = Gdx.graphics.getHeight();
+        screenCam.setToOrtho(false, sw, sh);
+        screenCam.update();
+
+        float panelW = Math.min(sw * 0.78f, 900f);
+        float panelH = Math.min(sh * 0.72f, 560f);
+        float panelX = (sw - panelW) * 0.5f;
+        float panelY = (sh - panelH) * 0.5f;
+
+        Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+            com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.setProjectionMatrix(screenCam.combined);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0f, 0f, 0f, 0.62f);
+        shapes.rect(0f, 0f, sw, sh);
+        shapes.setColor(0.08f, 0.12f, 0.18f, 0.94f);
+        shapes.rect(panelX, panelY, panelW, panelH);
+        shapes.setColor(0.28f, 0.78f, 0.98f, 0.95f);
+        shapes.rect(panelX, panelY + panelH - 5f, panelW, 5f);
+        shapes.end();
+
+        hudBatch.setProjectionMatrix(screenCam.combined);
+        hudBatch.begin();
+
+        font.getData().setScale(1.5f);
+        font.setColor(0.90f, 0.96f, 1f, 1f);
+        font.draw(hudBatch, "CONTROLS (F1 TO CLOSE)", panelX + 22f, panelY + panelH - 20f);
+
+        font.getData().setScale(1f);
+        font.setColor(0.88f, 0.92f, 0.98f, 1f);
+        String[] lines = {
+            "Movement: A/D or LEFT/RIGHT  |  Jump: SPACE  |  Dash: SHIFT  |  Crouch: CTRL",
+            "Combat: Attack J / LMB  |  Throw K  |  Ninjutsu L  |  Teleport F/T",
+            "Interact: E/F  |  Inventory: I/TAB  |  Consumable: Q",
+            "Map: M (mini) / N (full)  |  Camera mode: C",
+            "Debug: H (hitboxes)  |  F3 (debug panel)  |  ESC (pause/back)",
+            "",
+            "Launcher Tips:",
+            "- Start Server + Play for localhost multiplayer in one click.",
+            "- Logs are written to user_data/logs/client.log and user_data/logs/server.log.",
+            "- Include log snippets and screenshot when reporting bugs."
+        };
+        float y = panelY + panelH - 56f;
+        for (String line : lines) {
+            font.draw(hudBatch, line, panelX + 22f, y);
+            y -= line.isEmpty() ? 14f : 26f;
+        }
+
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1f);
+        hudBatch.end();
+    }
+
+    /**
+     * Render debugging telemetry panel for playtest sessions.
+     */
+    public void renderDebugOverlay(
+        WorldSnapshot snap, int localSlot, boolean connected, String gameMode
+    ) {
+        int sw = Gdx.graphics.getWidth();
+        int sh = Gdx.graphics.getHeight();
+        screenCam.setToOrtho(false, sw, sh);
+        screenCam.update();
+
+        float panelW = Math.min(sw * 0.46f, 560f);
+        float panelH = Math.min(sh * 0.72f, 520f);
+        float panelX = sw - panelW - 14f;
+        float panelY = sh - panelH - 14f;
+
+        PlayerState local = null;
+        if (snap != null) {
+            for (PlayerState p : snap.players) {
+                if (p.slot == localSlot) {
+                    local = p;
+                    break;
+                }
+            }
+        }
+
+        Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+            com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.setProjectionMatrix(screenCam.combined);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0f, 0f, 0f, 0.55f);
+        shapes.rect(panelX, panelY, panelW, panelH);
+        shapes.setColor(0.80f, 0.35f, 0.95f, 0.90f);
+        shapes.rect(panelX, panelY + panelH - 4f, panelW, 4f);
+        shapes.end();
+
+        hudBatch.setProjectionMatrix(screenCam.combined);
+        hudBatch.begin();
+        font.getData().setScale(1f);
+        font.setColor(0.95f, 0.92f, 0.98f, 1f);
+
+        float y = panelY + panelH - 14f;
+        font.draw(hudBatch, "DEBUG OVERLAY (F3 TO CLOSE)", panelX + 12f, y);
+        y -= 24f;
+
+        float balanceDelta = local != null ? Math.abs(local.yinValue - local.yangValue) : -1f;
+        String[] lines = {
+            "net.connected: " + connected,
+            "mode: " + (gameMode == null ? "?" : gameMode),
+            "fps: " + Gdx.graphics.getFramesPerSecond(),
+            "snapshot.frame: " + (snap != null ? snap.frame : -1),
+            "snapshot.hub: " + (snap != null ? snap.hubId : "?"),
+            "snapshot.room: " + (snap != null ? (snap.roomGridX + "," + snap.roomGridY) : "?"),
+            "snapshot.seed: " + (snap != null ? snap.seed : 0L),
+            "local.slot: " + localSlot,
+            "local.player_id: " + (local != null ? local.playerId : "?"),
+            "local.pos: " + (local != null ? ((int) local.posX + "," + (int) local.posY) : "?"),
+            "local.vel: " + (local != null ? ((int) local.velX + "," + (int) local.velY) : "?"),
+            "local.hp: " + (local != null ? local.health : -1),
+            "local.stamina: " + (local != null ? local.stamina : -1),
+            "local.mana: " + (local != null ? local.mana : -1),
+            "local.flow: " + (local != null && local.flowMode),
+            "local.yin: " + (local != null ? String.format(java.util.Locale.ROOT, "%.2f", local.yinValue) : "?"),
+            "local.yang: " + (local != null ? String.format(java.util.Locale.ROOT, "%.2f", local.yangValue) : "?"),
+            "local.balance_delta: " + (local != null ? String.format(java.util.Locale.ROOT, "%.2f", balanceDelta) : "?")
+        };
+        for (String line : lines) {
+            font.draw(hudBatch, line, panelX + 12f, y);
+            y -= 21f;
+        }
+
+        font.setColor(Color.WHITE);
+        hudBatch.end();
+    }
+
     public void dispose() {
         shapes.dispose();
         hudBatch.dispose();

@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 18:55:13 +01:00 | **Codebase version:** v0.11.35 | **Next release target:** v0.11.36 (P0-10 signoff pack scaffold)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 21:52:31 +01:00 | **Codebase version:** v0.11.37 | **Next release target:** v0.11.38 (P0-10 blocker-triage follow-up)
 
 ---
 
@@ -380,6 +380,36 @@ The original workloop is excellent for implementation discipline, but the new di
   - commit/push this P0 closure batch and confirm remote CI turns green
   - move directly into `P0-10` playtest signoff scaffold after CI confirmation
 
+`2026-04-14 20:15:00 +01:00`
+
+- Closed `P0-09` exit gate on confirmed remote CI and release parity:
+  - latest `master` CI run passed (`24416458487`)
+  - latest release run for `v0.11.36` passed (`24416474476`)
+- Started `P0-10` signoff scaffold:
+  - rewrote `docs/PLAYER_EXPECTATIONS.md` into launcher-only end-to-end solo + multiplayer playtest packs
+  - added explicit tester instructions for controls, lore framing, logs, debug overlays, and reporting templates
+  - added instrumentation audit section (logging/debug/settings) to separate implemented tooling from current gaps
+- Multiplayer identity persistence hardening (playtest reliability):
+  - fixed client identity churn by resolving stable `player_id` from launcher profile property or persisted file fallback
+  - launcher now assigns per-profile `player_id` and passes `-Dninja.playerId=<uuid>` to Java client
+  - added in-game `F1` controls overlay and `F3` telemetry overlay for first-time tester support
+  - enriched mission contact logs with hub, room, and coordinates for human-readable repro trails
+- Validation target for next loop:
+  - run `:server:test` + `:client:compileJava`, verify stable UUID across reconnect in `server.log`
+  - execute first full P0-10 playtest cycle and triage blocker list
+
+`2026-04-14 21:52:31 +01:00`
+
+- Reviewed new GDD controls spec (`docs/GDD.md` section `10.3`) for P0/P1 alignment:
+  - confirmed movement-profile vs stance separation, context-priority routing, and launcher-first input discoverability are now explicit design gates
+  - mapped controls goals into P0-10 signoff so first external playtest pack validates onboarding, default input readability, and debug discoverability before P1 tuning lock
+- Release prep for first P0-10 build:
+  - staged runtime support for launcher-only testers (`F1` controls overlay, `F3` telemetry overlay, richer mission location logging)
+  - staged identity persistence hardening to stop per-session UUID churn across reconnects
+- Next loop:
+  - execute first full P0-10 run and log blockers against GDD `10.3` controls requirements
+  - start P1 handover only after control baseline and remaining P0 gates are signed off
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -445,8 +475,8 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | [x] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
 | [x] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
 | [x] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
-| [~] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
-| [ ] | P0-10 | P0 signoff playtest pack and blocker triage | DESIGN + QA + PROD | S4 | P0-09 | Structured playtest report with blocker decisions | Establishes tuning baseline for P1 | No open P0 blockers and approved handoff to P1 |
+| [x] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
+| [~] | P0-10 | P0 signoff playtest pack, controls-spec traceability, and blocker triage | DESIGN + QA + PROD | S4 | P0-09 | Structured playtest report plus GDD 10.3 control-resolution matrix | Establishes tuning baseline for P1 | No open P0 blockers, controls baseline validated against GDD 10.3, and approved handoff to P1 |
 
 ---
 

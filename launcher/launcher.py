@@ -29,6 +29,7 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
+import uuid
 from pathlib import Path
 from tkinter import messagebox
 import tkinter as tk
@@ -1061,6 +1062,19 @@ class LauncherApp:
             self._profile_var.set(active)
         else:
             self._profile_combo.current(0)
+
+    def _ensure_profile_player_id(self, profile_name: str) -> str:
+        data = self._read_profiles()
+        profiles = data.setdefault("profiles", {})
+        profile = profiles.setdefault(profile_name, {"created": "", "save_slot": "savegame.json"})
+        pid = str(profile.get("player_id", "")).strip()
+        try:
+            pid = str(uuid.UUID(pid))
+        except Exception:
+            pid = str(uuid.uuid4())
+            profile["player_id"] = pid
+            self._write_profiles(data)
+        return pid
 
     def _on_profile_selected(self, _event=None) -> None:
         name = self._profile_var.get()
@@ -3322,6 +3336,10 @@ class LauncherApp:
         xms = cfg.get("jvm_client_xms", 128)
         xmx = cfg.get("jvm_client_xmx", 512)
         extra = cfg.get("jvm_extra_args", "").split()
+        profile_name = (
+            self._profile_var.get().strip() if hasattr(self, "_profile_var") else "Player1"
+        ) or "Player1"
+        player_id = self._ensure_profile_player_id(profile_name)
         # Inject -Dninja.record=true for solo replay recording when checkbox is set.
         record_flags = ["-Dninja.record=true"] if self._record_var.get() else []
         cmd = [
@@ -3329,6 +3347,8 @@ class LauncherApp:
             "-XX:+UseZGC",
             f"-Xms{xms}m",
             f"-Xmx{xmx}m",
+            f"-Dninja.playerId={player_id}",
+            f"-Dninja.profileName={profile_name}",
             *record_flags,
             *extra,
             "-jar",

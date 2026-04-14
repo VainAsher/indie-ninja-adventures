@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.37] - 2026-04-14 (P0-10 playtest scaffold + controls alignment)
+
+### Added
+
+- Launcher-first playtest UX support in client runtime:
+  - `F1` controls overlay for first-run testers
+  - `F3` runtime telemetry overlay for fast repro context
+- Stable multiplayer identity handoff path:
+  - launcher now persists per-profile `player_id`
+  - client resolves preferred `player_id` from launch args/env/persisted fallback
+- Mission location logging enrichment with hub, room, and coordinates for triage-ready logs.
+
+### Changed
+
+- Updated `docs/PLAYER_EXPECTATIONS.md` to a launcher-only end-to-end solo and multiplayer pack with explicit logging/debug capture guidance.
+- Updated `docs/PLAN_SHADOW_ASCENT.md` P0-10 scope to require GDD 10.3 controls-spec traceability before P1 handoff.
+
+### Validation
+
+- `./gradlew :server:test :client:compileJava --console=plain --no-daemon` pass.
+- `.venv\\Scripts\\python.exe tools/check_version_sync.py --tag v0.11.37` pass.
+
+---
+
 ## [0.11.36] - 2026-04-14 (CI formatting gate fix)
 
 ### Fixed

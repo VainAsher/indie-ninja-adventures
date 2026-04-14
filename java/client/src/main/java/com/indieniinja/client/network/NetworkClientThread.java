@@ -13,10 +13,15 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Background thread that maintains a persistent TCP connection to the Java server.
@@ -40,6 +45,12 @@ public final class NetworkClientThread extends Thread {
 
     private static final int    RECONNECT_BASE_MS  = 1_000;
     private static final int    RECONNECT_MAX_MS   = 30_000;
+    private static final String PLAYER_ID_PROPERTY = "ninja.playerId";
+    private static final String PLAYER_ID_ENV      = "NINJA_PLAYER_ID";
+    private static final Path   PLAYER_ID_PATH     =
+        Path.of("user_data", "profiles", "client_identity.json");
+    private static final Pattern PLAYER_ID_JSON_PATTERN =
+        Pattern.compile("\"player_id\"\\s*:\\s*\"([^\"]+)\"");
 
     private final String          host;
     private final int             port;
@@ -61,7 +72,7 @@ public final class NetworkClientThread extends Thread {
         setDaemon(true);  // don't block JVM shutdown
         this.host      = host;
         this.port      = port;
-        this.playerId  = UUID.randomUUID().toString();
+        this.playerId  = resolveStablePlayerId();
         this.buffer    = buffer;
     }
 
@@ -206,6 +217,70 @@ public final class NetworkClientThread extends Thread {
             os.writeInt(body.length);
             os.write(body);
             os.flush();
+        }
+    }
+
+    private static String resolveStablePlayerId() {
+        String prop = normalizeUuid(System.getProperty(PLAYER_ID_PROPERTY));
+        if (prop != null) {
+            log.info("[Net] player_id source=system-property key={} value={}", PLAYER_ID_PROPERTY, prop);
+            return prop;
+        }
+
+        String env = normalizeUuid(System.getenv(PLAYER_ID_ENV));
+        if (env != null) {
+            log.info("[Net] player_id source=env key={} value={}", PLAYER_ID_ENV, env);
+            return env;
+        }
+
+        String fromFile = loadPlayerIdFromDisk();
+        if (fromFile != null) {
+            log.info("[Net] player_id source=file path={} value={}", PLAYER_ID_PATH, fromFile);
+            return fromFile;
+        }
+
+        String generated = UUID.randomUUID().toString();
+        persistPlayerId(generated);
+        log.info("[Net] player_id source=generated path={} value={}", PLAYER_ID_PATH, generated);
+        return generated;
+    }
+
+    private static String loadPlayerIdFromDisk() {
+        try {
+            if (!Files.exists(PLAYER_ID_PATH)) return null;
+            String text = Files.readString(PLAYER_ID_PATH, StandardCharsets.UTF_8);
+            Matcher m = PLAYER_ID_JSON_PATTERN.matcher(text);
+            if (!m.find()) return null;
+            return normalizeUuid(m.group(1));
+        } catch (Exception ex) {
+            log.warn("[Net] failed reading player identity file {}: {}", PLAYER_ID_PATH, ex.getMessage());
+            return null;
+        }
+    }
+
+    private static void persistPlayerId(String playerId) {
+        try {
+            Path parent = PLAYER_ID_PATH.getParent();
+            if (parent != null) Files.createDirectories(parent);
+            String now = java.time.OffsetDateTime.now().toString();
+            String content = "{\n"
+                + "  \"player_id\": \"" + playerId + "\",\n"
+                + "  \"created_at\": \"" + now + "\"\n"
+                + "}\n";
+            Files.writeString(PLAYER_ID_PATH, content, StandardCharsets.UTF_8);
+        } catch (Exception ex) {
+            log.warn("[Net] failed persisting player identity to {}: {}", PLAYER_ID_PATH, ex.getMessage());
+        }
+    }
+
+    private static String normalizeUuid(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) return null;
+        try {
+            return UUID.fromString(trimmed).toString();
+        } catch (IllegalArgumentException ex) {
+            return null;
         }
     }
 }
