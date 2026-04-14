@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.indieniinja.client.audio.AudioManager;
 import com.indieniinja.client.game.DialogueManager;
 import com.indieniinja.client.game.MissionDefinition;
+import com.indieniinja.client.game.MissionLocationTriggerRegistry;
 import com.indieniinja.client.game.MissionManager;
 import com.indieniinja.client.game.MissionObjective;
 import com.indieniinja.client.game.ObjectiveType;
@@ -165,6 +166,10 @@ public final class GameScreen implements Screen {
     private String missionTriggerMissionId = "";
     /** Mission contact volumes rebuilt from room entities each frame (debug-visible with H). */
     private final java.util.List<MissionContactVolume> missionContactVolumes = new java.util.ArrayList<>();
+    /** Authored REACH_LOCATION trigger map loaded from data/mission_location_triggers.json. */
+    private MissionLocationTriggerRegistry missionLocationTriggers = MissionLocationTriggerRegistry.load(null);
+    /** Missing trigger warnings already emitted (avoid per-frame spam). */
+    private final java.util.Set<String> missingMissionTriggerWarnings = new java.util.HashSet<>();
 
     private record MissionContactVolume(String id, float x, float y, float width, float height, String source) {}
 
@@ -312,6 +317,17 @@ public final class GameScreen implements Screen {
         // Campaign / missions / dialogue / save systems
         storyManager    = new StoryManager();
         missionManager  = new MissionManager();
+        missionLocationTriggers = MissionLocationTriggerRegistry.load(
+            Gdx.files.internal("data/mission_location_triggers.json"));
+        java.util.List<String> missingReachObjectives =
+            missionLocationTriggers.findMissingReachObjectives(missionManager);
+        if (!missingReachObjectives.isEmpty()) {
+            log.error("[Mission] missing authored location triggers for {} objective(s): {}",
+                missingReachObjectives.size(), missingReachObjectives);
+        } else {
+            log.info("[Mission] loaded {} authored mission location triggers",
+                missionLocationTriggers.size());
+        }
         dialogueManager = new DialogueManager();
         dialogueManager.setStoryContext(storyManager.toConditionContext());
         dialogueManager.setEventCallback(this::handleDialogueEvent);
@@ -911,7 +927,7 @@ public final class GameScreen implements Screen {
             .findFirst().orElse(null);
         if (local == null) return;
 
-        buildMissionContactVolumes(snap);
+        buildMissionContactVolumes(snap, def, activeMissionId);
         float px = local.posX + 14f;
         float py = local.posY + 28f;
 
@@ -919,13 +935,6 @@ public final class GameScreen implements Screen {
             if (obj.type != ObjectiveType.REACH_LOCATION || obj.location == null || obj.location.isBlank()) continue;
             String loc = normalizeKey(obj.location);
             if (missionReachedLocations.contains(loc)) continue;
-            if (!hasMissionVolume(loc)) {
-                MissionContactVolume exit = firstMissionVolume("exit");
-                if (exit != null) {
-                    missionContactVolumes.add(new MissionContactVolume(
-                        loc, exit.x, exit.y, exit.width, exit.height, "fallback_exit_alias"));
-                }
-            }
             if (playerOverlapsVolume(loc, px, py)) {
                 missionManager.onReachLocation(loc);
                 missionReachedLocations.add(loc);
@@ -942,33 +951,38 @@ public final class GameScreen implements Screen {
         }
     }
 
-    private void buildMissionContactVolumes(WorldSnapshot snap) {
+    private void buildMissionContactVolumes(WorldSnapshot snap, MissionDefinition def, String activeMissionId) {
         missionContactVolumes.clear();
 
-        // Portals become explicit contact volumes.
+        // Exit volume stays portal-driven for mission completion.
         for (com.indieniinja.network.PortalState portal : cachedPortals) {
             if (!portal.isActive) continue;
-            float x = portal.x;
-            float y = portal.y;
-            float w = portal.width;
-            float h = portal.height;
-
-            missionContactVolumes.add(new MissionContactVolume("exit", x, y, w, h, "portal"));
-            missionContactVolumes.add(new MissionContactVolume("portal:" + normalizeKey(portal.destinationId), x, y, w, h, "portal"));
-            missionContactVolumes.add(new MissionContactVolume(normalizeKey(portal.destinationId), x, y, w, h, "portal"));
+            missionContactVolumes.add(new MissionContactVolume(
+                "exit", portal.x, portal.y, portal.width, portal.height, "portal"));
         }
 
-        // Falling platforms can be authored as explicit location ids:
-        //   "platform:<platformId>" or "<platformId>" in mission objective location field.
-        for (var p : snap.platformStates) {
-            if (!p.visible) continue;
-            float x = p.originX;
-            float y = p.posY;
-            float w = p.width;
-            float h = p.height;
-            String id = normalizeKey(p.platformId);
-            missionContactVolumes.add(new MissionContactVolume("platform:" + id, x, y, w, h, "falling_platform"));
-            missionContactVolumes.add(new MissionContactVolume(id, x, y, w, h, "falling_platform"));
+        if (missionLocationTriggers == null || def == null || activeMissionId == null || activeMissionId.isBlank()) {
+            return;
+        }
+
+        int[] anchorRoom = resolveMissionAnchorRoom(snap);
+        int anchorGridX = anchorRoom[0];
+        int anchorGridY = anchorRoom[1];
+
+        for (MissionObjective obj : def.objectives) {
+            if (obj.type != ObjectiveType.REACH_LOCATION || obj.location == null || obj.location.isBlank()) continue;
+            String locationId = normalizeKey(obj.location);
+            MissionLocationTriggerRegistry.TriggerDef triggerDef =
+                missionLocationTriggers.get(activeMissionId, locationId);
+            if (triggerDef == null) {
+                String missing = normalizeKey(activeMissionId) + ":" + locationId;
+                if (missingMissionTriggerWarnings.add(missing)) {
+                    log.error("[Mission] missing authored trigger mapping for {}", missing);
+                }
+                continue;
+            }
+            missionContactVolumes.add(
+                buildAuthoredReachLocationVolume(activeMissionId, locationId, triggerDef, anchorGridX, anchorGridY));
         }
     }
 
@@ -983,20 +997,155 @@ public final class GameScreen implements Screen {
         return false;
     }
 
-    private boolean hasMissionVolume(String id) {
-        String key = normalizeKey(id);
-        for (MissionContactVolume v : missionContactVolumes) {
-            if (v.id.equals(key)) return true;
+    private int[] resolveMissionAnchorRoom(WorldSnapshot snap) {
+        for (WorldRoomDescriptor room : cachedWorldRooms) {
+            if ("start".equalsIgnoreCase(room.roomType)) {
+                return new int[] { room.gridX, room.gridY };
+            }
         }
-        return false;
+        return new int[] { snap.roomGridX, snap.roomGridY };
     }
 
-    private MissionContactVolume firstMissionVolume(String id) {
-        String key = normalizeKey(id);
-        for (MissionContactVolume v : missionContactVolumes) {
-            if (v.id.equals(key)) return v;
+    private MissionContactVolume buildAuthoredReachLocationVolume(
+        String missionId,
+        String locationId,
+        MissionLocationTriggerRegistry.TriggerDef triggerDef,
+        int anchorGridX,
+        int anchorGridY
+    ) {
+        int targetGridX = anchorGridX + triggerDef.roomGridXOffset();
+        int targetGridY = anchorGridY + triggerDef.roomGridYOffset();
+        float roomPxX = LEVEL_COLS * PhysicsConstants.TILE_SIZE;
+        float roomPxY = LEVEL_ROWS * PhysicsConstants.TILE_SIZE;
+        float roomOriginX = (targetGridX - megamapMinGridX) * roomPxX;
+        float roomOriginY = (targetGridY - megamapMinGridY) * roomPxY;
+
+        MissionContactVolume volume = new MissionContactVolume(
+            locationId,
+            roomOriginX + triggerDef.x(),
+            roomOriginY + triggerDef.y(),
+            Math.max(24f, triggerDef.width()),
+            Math.max(24f, triggerDef.height()),
+            "mission_authored");
+
+        if (triggerDef.snapToReachableGround()) {
+            volume = snapMissionVolumeToReachableGround(volume, targetGridX, targetGridY, triggerDef.maxSnapRadiusTiles());
+        }
+        volume = clampVolumeToRoom(volume, targetGridX, targetGridY);
+        log.debug("[Mission] trigger {}:{} @ ({}, {}) size ({}, {}) source={}",
+            normalizeKey(missionId), locationId, volume.x, volume.y, volume.width, volume.height, volume.source);
+        return volume;
+    }
+
+    private MissionContactVolume snapMissionVolumeToReachableGround(
+        MissionContactVolume volume, int roomGridX, int roomGridY, int maxSnapRadiusTiles
+    ) {
+        byte[][] grid = tileGridForRoom(roomGridX, roomGridY);
+        if (grid == null) return volume;
+
+        int tile = PhysicsConstants.TILE_SIZE;
+        float roomPxX = LEVEL_COLS * tile;
+        float roomPxY = LEVEL_ROWS * tile;
+        float roomOriginX = (roomGridX - megamapMinGridX) * roomPxX;
+        float roomOriginY = (roomGridY - megamapMinGridY) * roomPxY;
+
+        float anchorX = clampFloat(volume.x + volume.width * 0.5f, roomOriginX, roomOriginX + roomPxX - 1f);
+        float anchorY = clampFloat(volume.y + volume.height, roomOriginY, roomOriginY + roomPxY - 1f);
+        int anchorCol = clampInt((int) ((anchorX - roomOriginX) / tile), 0, LEVEL_COLS - 1);
+        int anchorRow = clampInt((int) ((anchorY - roomOriginY) / tile), 1, LEVEL_ROWS - 1);
+
+        int[] best = findNearestReachableGroundCell(grid, anchorRow, anchorCol, Math.max(0, maxSnapRadiusTiles));
+        if (best == null) {
+            // Hard guarantee: authored triggers always land on a standable cell if the room has one.
+            best = findNearestReachableGroundCell(grid, anchorRow, anchorCol, Math.max(LEVEL_COLS, LEVEL_ROWS));
+            if (best == null) return volume;
+        }
+
+        int r = best[0];
+        int c = best[1];
+        float snappedX = roomOriginX + c * tile + (tile - volume.width) * 0.5f;
+        float snappedY = roomOriginY + r * tile - volume.height;
+        return new MissionContactVolume(volume.id, snappedX, snappedY, volume.width, volume.height, volume.source + ":snapped");
+    }
+
+    private byte[][] tileGridForRoom(int roomGridX, int roomGridY) {
+        String key = roomGridX + "," + roomGridY;
+        byte[][] cached = cachedTileGrids.get(key);
+        if (cached != null) return cached;
+
+        for (WorldRoomDescriptor room : cachedWorldRooms) {
+            if (room.gridX != roomGridX || room.gridY != roomGridY) continue;
+            byte[][] generated = WorldGenerator.generate(
+                room.seed, LEVEL_COLS, LEVEL_ROWS, room.neighborDirs, room.roomType);
+            cachedTileGrids.put(key, generated);
+            return generated;
         }
         return null;
+    }
+
+    private int[] findNearestReachableGroundCell(byte[][] grid, int anchorRow, int anchorCol, int radiusTiles) {
+        int minRow = clampInt(anchorRow - radiusTiles, 1, LEVEL_ROWS - 1);
+        int maxRow = clampInt(anchorRow + radiusTiles, 1, LEVEL_ROWS - 1);
+        int minCol = clampInt(anchorCol - radiusTiles, 0, LEVEL_COLS - 1);
+        int maxCol = clampInt(anchorCol + radiusTiles, 0, LEVEL_COLS - 1);
+        int bestRow = -1;
+        int bestCol = -1;
+        int bestDistSq = Integer.MAX_VALUE;
+
+        for (int r = minRow; r <= maxRow; r++) {
+            for (int c = minCol; c <= maxCol; c++) {
+                if (!isReachableGroundCell(grid, r, c)) continue;
+                int dr = r - anchorRow;
+                int dc = c - anchorCol;
+                int distSq = dr * dr + dc * dc;
+                if (distSq < bestDistSq) {
+                    bestDistSq = distSq;
+                    bestRow = r;
+                    bestCol = c;
+                }
+            }
+        }
+        return bestRow >= 0 ? new int[] { bestRow, bestCol } : null;
+    }
+
+    private boolean isReachableGroundCell(byte[][] grid, int row, int col) {
+        if (grid == null) return false;
+        if (row <= 0 || row >= LEVEL_ROWS || col < 0 || col >= LEVEL_COLS) return false;
+        byte tile = grid[row][col];
+        byte above = grid[row - 1][col];
+        return isSolidForStanding(tile) && above == WorldGenerator.AIR;
+    }
+
+    private static boolean isSolidForStanding(byte tile) {
+        return tile == WorldGenerator.SOLID
+            || tile == WorldGenerator.PLATFORM
+            || tile == WorldGenerator.ICE
+            || tile == WorldGenerator.LAVA
+            || tile == WorldGenerator.DOOR_LOCKED;
+    }
+
+    private MissionContactVolume clampVolumeToRoom(MissionContactVolume volume, int roomGridX, int roomGridY) {
+        float roomPxX = LEVEL_COLS * PhysicsConstants.TILE_SIZE;
+        float roomPxY = LEVEL_ROWS * PhysicsConstants.TILE_SIZE;
+        float roomOriginX = (roomGridX - megamapMinGridX) * roomPxX;
+        float roomOriginY = (roomGridY - megamapMinGridY) * roomPxY;
+        float maxX = Math.max(roomOriginX, roomOriginX + roomPxX - volume.width);
+        float maxY = Math.max(roomOriginY, roomOriginY + roomPxY - volume.height);
+        float x = clampFloat(volume.x, roomOriginX, maxX);
+        float y = clampFloat(volume.y, roomOriginY, maxY);
+        return new MissionContactVolume(volume.id, x, y, volume.width, volume.height, volume.source);
+    }
+
+    private static int clampInt(int value, int min, int max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    private static float clampFloat(float value, float min, float max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
     }
 
     private static String normalizeKey(String value) {

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,8 +36,12 @@ public final class MissionManager {
     private java.util.function.Consumer<String> onObjectiveComplete;
 
     public MissionManager() {
-        this.definitions = MissionDefinition.loadAll(
-            Gdx.files.internal("data/missions.json"));
+        this(MissionDefinition.loadAll(Gdx.files.internal("data/missions.json")));
+    }
+
+    /** Test-friendly constructor for injecting mission definitions directly. */
+    public MissionManager(Map<String, MissionDefinition> definitions) {
+        this.definitions = new LinkedHashMap<>(definitions);
         // Mark all missions as NOT_STARTED initially; availability resolved on request
         for (String id : definitions.keySet()) states.put(id, MissionState.NOT_STARTED);
     }

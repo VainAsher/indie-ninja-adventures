@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-13 23:38:32 +01:00 | **Codebase version:** v0.11.29 | **Next release target:** v0.11.30 (follow-up enemy traversal + stance-system implementation pass)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 03:07:54 +01:00 | **Codebase version:** v0.11.30 | **Next release target:** v0.11.31 (P0 objective lifecycle hardening and authored reach-location trigger map)
 
 ---
 
@@ -92,6 +92,28 @@ Every implementation cycle must follow this exact order:
 - Follow-up required in next loop:
   - remove temporary `reach_location` exit-alias fallback once authored location volume maps are present per mission
   - add automated objective lifecycle tests (reach/switch/exit-complete)
+
+`2026-04-14 03:07:54 +01:00`
+
+- Implemented `P0-02` / `P0-03` follow-up closure for mission objective runtime mapping:
+  - added authoritative authored trigger map file: `data/mission_location_triggers.json`
+  - added `MissionLocationTriggerRegistry` and wired `GameScreen` to load mission/location keyed trigger defs
+  - removed temporary `reach_location` fallback alias to mission exit volume
+  - added runtime snapping/clamping for authored trigger volumes to reachable in-room ground cells
+  - validated trigger coverage: `15/15` `reach_location` objectives mapped (`missing=0`)
+- Added objective lifecycle regression tests scaffold:
+  - `MissionManager` now supports injected definitions via test-friendly constructor
+  - new `MissionManagerObjectiveLifecycleTest` covers:
+    - mission-tagged `activate_switches` contract
+    - `reach_location` + switch completion unlocking exit
+    - explicit completion call requirement after objective unlock
+- Validation:
+  - `./gradlew :server:test` pass
+  - `./gradlew :client:compileJava` pass
+  - `./gradlew :client:test --tests "*MissionManagerObjectiveLifecycleTest"` blocked in this environment by Gradle cache file lock (`gdx-jnigen-loader-2.3.1.jar` access denied)
+- Next loop:
+  - stabilize client test cache path for reliable `:client:test` execution in CI/local
+  - continue `P0-05` save/load parity hardening after objective lifecycle suite expands
 
 ### Branch and commit format
 
