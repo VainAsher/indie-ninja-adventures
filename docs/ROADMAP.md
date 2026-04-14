@@ -2,7 +2,7 @@
 
 Vain Asher Gaming's: **Shadow Ascent: The Hollowed Ninja**
 
-Last Updated: 2026-04-10 | Version: v0.10.84 | Platform: Java 21 + libGDX + Netty
+Last Updated: 2026-04-14 | Version: v0.11.34 | Platform: Java 21 + libGDX + Netty
 
 ---
 
@@ -14,7 +14,7 @@ Optional co-op overlay once single-player is complete.
 
 ---
 
-## Technology (as of v0.10.84)
+## Technology (as of v0.11.34)
 
 The project completed a full Java rewrite in 6 days (Apr 4–10 2026). The Python prototype (v0.7–v0.9) proved the game loop and is archived. All active development is on the Java stack.
 

@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.10.84** | Status: Milestone 2 in progress | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.11.34** | Status: P0 stabilization in progress | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,7 +17,7 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.10.84
+## What's in v0.11.34
 
 | System | Status |
 | ------ | ------ |
@@ -91,7 +91,8 @@ indie-ninja-adventures/
 - [docs/PLAN_SHADOW_ASCENT.md](docs/PLAN_SHADOW_ASCENT.md) — GDD alignment plan and milestone checklist
 - [docs/ROADMAP.md](docs/ROADMAP.md) — Milestone plan with deliverables
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) — Version history
-- [docs/dev/JAVA_ARCHITECTURE.md](docs/dev/JAVA_ARCHITECTURE.md) — Full codebase reference (v0.10.83+)
+- [docs/RELEASE_VERSION_SYNC_CHECKLIST.md](docs/RELEASE_VERSION_SYNC_CHECKLIST.md) — Release metadata parity gate
+- [docs/dev/JAVA_ARCHITECTURE.md](docs/dev/JAVA_ARCHITECTURE.md) — Full codebase reference (v0.11.34+)
 
 ---
 
@@ -101,9 +102,9 @@ Single source of truth: [`version.json`](version.json)
 
 ```json
 {
-  "version": "0.10.84",
+  "version": "0.11.34",
   "build": "production",
-  "build_date": "2026-04-10",
+  "build_date": "2026-04-14",
   "min_launcher_version": "1.1.0"
 }
 ```

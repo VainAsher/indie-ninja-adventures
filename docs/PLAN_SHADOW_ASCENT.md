@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 07:25:41 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-08 version source-of-truth consolidation)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 07:34:53 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-09 critical integration test suite)
 
 ---
 
@@ -239,6 +239,28 @@ The original workloop is excellent for implementation discipline, but the new di
   - start `P0-08` version/document source-of-truth consolidation (`version.json`, tag policy, release metadata sync)
   - keep `P0-05` stabilization items queued behind release metadata parity closure
 
+`2026-04-14 07:34:53 +01:00`
+
+- Completed `P0-08` version/document source-of-truth consolidation:
+  - added `tools/check_version_sync.py` with `version.json` as authoritative source
+  - validator now checks parity across:
+    - `version.json`
+    - `java/build.gradle.kts`
+    - `README.md` version banner
+    - `docs/ROADMAP.md` metadata line
+    - latest `docs/CHANGELOG.md` heading
+  - added release parity checklist: `docs/RELEASE_VERSION_SYNC_CHECKLIST.md`
+  - wired sync check into CI (`.github/workflows/ci.yml`)
+  - replaced release metadata inline checks with validator call in `.github/workflows/release.yml`
+  - refreshed release docs metadata to `0.11.34` (`README.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`)
+- Validation:
+  - `python tools/check_version_sync.py` pass
+  - `python tools/check_version_sync.py --tag v0.11.34` pass
+  - `./gradlew :server:test :client:compileJava --console=plain --no-daemon` pass
+- Next loop:
+  - start `P0-09` critical integration test suite expansion for campaign loop
+  - continue residual `P0-05` client test-path stabilization in parallel with integration coverage
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -303,7 +325,7 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | [~] | P0-05 | Save/load parity hardening (active mission restore, story-act clamp fix, full liveData restore symmetry) | ENG-CLIENT + ENG-CORE | S2 | P0-03 | Migration rules + roundtrip integrity tests | Preserves tuning experiments across sessions | Save/load roundtrip loses no critical progression fields |
 | [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
 | [x] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
-| [ ] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
+| [x] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
 | [ ] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
 | [ ] | P0-10 | P0 signoff playtest pack and blocker triage | DESIGN + QA + PROD | S4 | P0-09 | Structured playtest report with blocker decisions | Establishes tuning baseline for P1 | No open P0 blockers and approved handoff to P1 |
 

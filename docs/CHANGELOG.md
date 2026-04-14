@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.34] - 2026-04-14 (P0 stabilization baseline)
+
+### Added
+
+- Mission-location trigger map coverage for all authored `reach_location` objectives (`data/mission_location_triggers.json`).
+- Mission lifecycle regression coverage for objective completion, exit lock/unlock behavior, and restore paths.
+- Save/load parity hardening for story context, mission objective progress, and solo runtime rehydrate.
+
+### Changed
+
+- Mission boss contracts normalized to lowercase canonical IDs.
+- Java runtime boss wire catalog aligned with campaign-authored mission `defeat_boss` IDs.
+- Release metadata parity enforcement expanded with `tools/check_version_sync.py` (version.json authoritative).
+
+### Validation
+
+- `.venv\\Scripts\\python.exe tests/test_data_integrity.py` passes including runtime boss compatibility checks.
+- `./gradlew :server:test :client:compileJava --console=plain --no-daemon` passes.
+
+---
+
 ## [0.10.84] - 2026-04-10 (Milestone 1: Foundation Close)
 
 ### Fixed
