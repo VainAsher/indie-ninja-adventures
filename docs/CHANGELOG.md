@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.36] - 2026-04-14 (CI formatting gate fix)
+
+### Fixed
+
+- Applied Black formatting to Python tooling so remote CI `black --check .` passes:
+  - `tools/check_version_sync.py`
+  - `tools/run_p0_regression_suite.py`
+
+### Validation
+
+- `.venv\\Scripts\\python.exe tools/run_p0_regression_suite.py` pass.
+- `./gradlew :server:test :client:compileJava --console=plain --no-daemon` pass.
+- `tools/check_version_sync.py --tag v0.11.36` pass.
+
+---
+
 ## [0.11.35] - 2026-04-14 (P0 regression closure pass)
 
 ### Added

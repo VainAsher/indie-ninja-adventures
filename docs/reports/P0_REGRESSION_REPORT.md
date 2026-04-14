@@ -1,15 +1,15 @@
 # P0 Regression Report
 
-Generated: `2026-04-14 19:00:51 +0100`
+Generated: `2026-04-14 19:35:06 +0100`
 Overall: **PASS**
 
 ## Summary
 
 | Check | Status | Duration (s) |
 |-------|--------|--------------|
-| `Version Sync` | `PASS` | `0.07` |
-| `Data Integrity` | `PASS` | `0.23` |
-| `Java Server/Client Tests` | `PASS` | `27.16` |
+| `Version Sync` | `PASS` | `0.08` |
+| `Data Integrity` | `PASS` | `0.26` |
+| `Java Server/Client Tests` | `PASS` | `28.88` |
 
 ## Details
 
@@ -18,10 +18,10 @@ Overall: **PASS**
 - Command: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\.venv\Scripts\python.exe tools/check_version_sync.py`
 - Working directory: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures`
 - Status: `PASS`
-- Duration: `0.07s`
+- Duration: `0.08s`
 
 ```text
-Version synchronization OK: v0.11.35
+Version synchronization OK: v0.11.36
 ```
 
 ### Data Integrity
@@ -29,7 +29,7 @@ Version synchronization OK: v0.11.35
 - Command: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\.venv\Scripts\python.exe tests/test_data_integrity.py`
 - Working directory: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures`
 - Status: `PASS`
-- Duration: `0.23s`
+- Duration: `0.26s`
 
 ```text
 pygame 2.6.1 (SDL 2.28.4, Python 3.12.0)
@@ -54,7 +54,7 @@ OK
 - Command: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\java\gradlew.bat :server:test :client:test --console=plain --no-daemon`
 - Working directory: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\java`
 - Status: `PASS`
-- Duration: `27.16s`
+- Duration: `28.88s`
 
 ```text
 > Task :core:processResources NO-SOURCE
@@ -74,7 +74,7 @@ OK
 > Task :client:processTestResources NO-SOURCE
 > Task :client:testClasses UP-TO-DATE
 > Task :client:test UP-TO-DATE
-BUILD SUCCESSFUL in 26s
+BUILD SUCCESSFUL in 28s
 10 actionable tasks: 1 executed, 9 up-to-date
 C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\java>endlocal
 ```

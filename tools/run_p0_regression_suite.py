@@ -91,9 +91,7 @@ def _render_report(results: list[CheckResult], generated_at: str) -> str:
     ]
 
     for result in results:
-        lines.append(
-            f"| `{result.name}` | `{result.status}` | `{result.elapsed_seconds:.2f}` |"
-        )
+        lines.append(f"| `{result.name}` | `{result.status}` | `{result.elapsed_seconds:.2f}` |")
 
     lines.extend(["", "## Details", ""])
     for result in results:
@@ -119,9 +117,7 @@ def _render_report(results: list[CheckResult], generated_at: str) -> str:
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    generated_at = dt.datetime.now(dt.timezone.utc).astimezone().strftime(
-        "%Y-%m-%d %H:%M:%S %z"
-    )
+    generated_at = dt.datetime.now(dt.timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
 
     gradle_user_home = str(root / ".gradle-local")
     checks: list[tuple[str, list[str], Path, dict[str, str] | None]] = [
@@ -169,4 +165,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

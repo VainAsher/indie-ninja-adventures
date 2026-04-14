@@ -51,9 +51,7 @@ def _load_authoritative_version(root: Path) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Validate version metadata synchronization."
-    )
+    parser = argparse.ArgumentParser(description="Validate version metadata synchronization.")
     parser.add_argument(
         "--tag",
         default=None,
@@ -76,10 +74,7 @@ def main() -> int:
         tag = args.tag.strip()
         if not re.fullmatch(r"v0\.\d+\.\d+", tag):
             errors.append(
-                (
-                    f"Invalid release tag '{tag}'. "
-                    "Only v0.<minor>.<patch> is allowed pre-alpha."
-                )
+                (f"Invalid release tag '{tag}'. " "Only v0.<minor>.<patch> is allowed pre-alpha.")
             )
         if tag != expected_tag:
             errors.append(f"Tag mismatch: tag={tag} version.json={expected_tag}")
@@ -109,8 +104,7 @@ def main() -> int:
     )
     if readme_version != version:
         errors.append(
-            "README version mismatch: "
-            f"README=v{readme_version} version.json={expected_tag}"
+            "README version mismatch: " f"README=v{readme_version} version.json={expected_tag}"
         )
 
     roadmap_version = _match_or_error(
