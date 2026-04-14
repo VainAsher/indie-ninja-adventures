@@ -23,12 +23,37 @@ from game.trading_system import SHOP_TIER_POOLS
 class TestDataIntegrity(unittest.TestCase):
     """Validate mission data references."""
 
+    DIALOGUE_EVENT_KEYS = {
+        "start_mission",
+        "open_shop",
+        "advance_act",
+        "tutorial_completed",
+        "town_lore_learned",
+        "act2_elder_conversation_complete",
+        "act2_elder_patience_shown",
+        "act3_final_blessing_received",
+        "act3_elder_final_conversation",
+        "open_mission_menu",
+        "switch_activated",
+        "reach_location",
+        "collect_item",
+    }
+
+    DIALOGUE_EVENT_KEYS_REQUIRING_ARG = {
+        "start_mission",
+        "switch_activated",
+        "reach_location",
+        "collect_item",
+    }
+
     @classmethod
     def setUpClass(cls):
         root = Path(__file__).parent.parent
         cls.missions = json.loads((root / "data" / "missions.json").read_text(encoding="utf-8"))
         cls.items = json.loads((root / "data" / "items.json").read_text(encoding="utf-8"))
+        cls.dialogues = json.loads((root / "data" / "dialogues.json").read_text(encoding="utf-8"))
         cls.java_runtime_boss_ids = cls._load_java_runtime_boss_ids(root)
+        cls.dialogue_events = cls._extract_dialogue_events(cls.dialogues)
 
         cls.mission_ids = {mission["mission_id"] for mission in cls.missions.get("missions", [])}
         cls.item_ids = {item["item_id"] for item in cls.items.get("items", [])}
@@ -61,6 +86,32 @@ class TestDataIntegrity(unittest.TestCase):
         if not wire_ids:
             raise AssertionError("Could not parse Java runtime boss IDs from BossType.java")
         return wire_ids
+
+    @staticmethod
+    def _extract_dialogue_events(dialogues: dict) -> list[str]:
+        events: list[str] = []
+        for tree in dialogues.values():
+            if not isinstance(tree, dict):
+                continue
+            nodes = tree.get("nodes", {})
+            if not isinstance(nodes, dict):
+                continue
+            for node in nodes.values():
+                if not isinstance(node, dict):
+                    continue
+                on_exit = node.get("on_exit_event")
+                if on_exit:
+                    events.append(str(on_exit).strip())
+                choices = node.get("choices", [])
+                if not isinstance(choices, list):
+                    continue
+                for choice in choices:
+                    if not isinstance(choice, dict):
+                        continue
+                    on_select = choice.get("on_select_event")
+                    if on_select:
+                        events.append(str(on_select).strip())
+        return events
 
     def test_mission_objective_items_exist(self):
         missing = set()
@@ -165,6 +216,37 @@ class TestDataIntegrity(unittest.TestCase):
             "Legacy mission_system ids mismatch. "
             f"Missing: {sorted(missing_in_legacy)} "
             f"Extra: {sorted(extra_in_legacy)}",
+        )
+
+    def test_dialogue_events_supported_by_runtime_router(self):
+        unsupported = set()
+        for event in self.dialogue_events:
+            if not event:
+                continue
+            key = event.split(":", 1)[0].strip()
+            if key not in self.DIALOGUE_EVENT_KEYS:
+                unsupported.add(key)
+
+        self.assertFalse(
+            unsupported,
+            "Authored dialogue events are not explicitly handled by GameScreen router: "
+            f"{sorted(unsupported)}",
+        )
+
+    def test_dialogue_events_requiring_arguments_include_argument(self):
+        missing_args = set()
+        for event in self.dialogue_events:
+            if not event:
+                continue
+            key, sep, arg = event.partition(":")
+            key = key.strip()
+            if key in self.DIALOGUE_EVENT_KEYS_REQUIRING_ARG and (not sep or not arg.strip()):
+                missing_args.add(event)
+
+        self.assertFalse(
+            missing_args,
+            "Dialogue events requiring arguments are missing argument payloads: "
+            f"{sorted(missing_args)}",
         )
 
 

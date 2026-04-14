@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 07:34:53 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-09 critical integration test suite)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 17:10:17 +01:00 | **Codebase version:** v0.11.34 | **Next release target:** v0.11.35 (P0-09 critical integration suite + CI gating)
 
 ---
 
@@ -261,6 +261,28 @@ The original workloop is excellent for implementation discipline, but the new di
   - start `P0-09` critical integration test suite expansion for campaign loop
   - continue residual `P0-05` client test-path stabilization in parallel with integration coverage
 
+`2026-04-14 17:10:17 +01:00`
+
+- Continued `P0-09` critical campaign integration-suite expansion:
+  - added `CampaignCriticalFlowTest` for mission start/progress/save-load/complete coverage across objective adapters (`activate_switches`, `reach_location`, `collect_items`, `kill_all_enemies`, `defeat_boss`, `time_challenge`)
+  - added `ScriptedLossMessageFlowTest` for client network scripted-loss message handling (`NetworkClientThread` -> `GameStateBuffer`) and one-shot consume behavior
+  - added `GameSimulatorScriptedLossSignalTest` for scripted-loss one-shot drain contract in Java sim
+- Continued `P0-04` dialogue parity hardening:
+  - expanded `tests/test_data_integrity.py` with dialogue-event contract checks:
+    - authored event keys must map to supported runtime router keys
+    - argument-required event keys must include payloads
+- CI hardening for `P0-09` exit gate:
+  - updated `.github/workflows/ci.yml` Java job to run `:server:test` + `:client:test`
+  - expanded Java test artifact upload to include both server and client reports
+- Validation:
+  - `./gradlew :server:test --console=plain --no-daemon` pass
+  - `./gradlew :client:test --console=plain --no-daemon` pass
+  - `.venv\\Scripts\\python.exe tests/test_data_integrity.py` pass
+- Next loop:
+  - close remaining `P0-05` save/load parity items with full-world runtime restore assertions
+  - finish `P0-06` scripted-loss consequence parity checks (story/hub post-overlay transitions)
+  - move `P0-10` playtest pack/blocker triage once `P0-09` CI results confirm stability
+
 ### Branch and commit format
 
 - Branch naming: `feature/shadow-ascent-<phase>-<topic>`
@@ -326,7 +348,7 @@ Goal: make campaign progression complete, testable, and safe to iterate.
 | [~] | P0-06 | Scripted-loss full network pipeline (`GameSimulator` emit -> server broadcast -> client handling -> story/hub consequences) | ENG-NET + ENG-CLIENT | S2 | P0-04, P0-05 | End-to-end scripted-loss flow in MP and solo | Stabilizes narrative boss balancing | Siren sequence completes with consistent state transitions |
 | [x] | P0-07 | Mission/item contract normalization (canonical IDs, reward/item schema checks) | ENG-DATA | S2-S3 | P0-02 | Validation script and cleaned mission data | Prevents fake rewards and invalid progression tuning data | Zero missing mission-referenced item IDs |
 | [x] | P0-08 | Version/document source-of-truth consolidation (`version.json`, build file, README/changelog sync policy) | PROD + ENG-CORE | S3 | P0-01 | Release metadata sync checklist | Keeps test/balance results attributable to exact build | One authoritative version source reflected in all release docs |
-| [ ] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
+| [~] | P0-09 | Critical integration test suite for campaign loop (mission start/progress/complete, save/load, dialogue events, scripted-loss) | QA + ENG-CORE | S3-S4 | P0-06, P0-07 | Regression suite with pass/fail report | Locks in baseline before heavy balance iteration | Green suite in CI for all P0 critical flows |
 | [ ] | P0-10 | P0 signoff playtest pack and blocker triage | DESIGN + QA + PROD | S4 | P0-09 | Structured playtest report with blocker decisions | Establishes tuning baseline for P1 | No open P0 blockers and approved handoff to P1 |
 
 ---

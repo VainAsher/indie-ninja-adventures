@@ -87,10 +87,10 @@ jobs:
           gradle-version: "8.7"
           cache-read-only: false
 
-      - name: Build server JAR + run tests
+      - name: Build jars + run Java regression suites
         working-directory: java
         shell: bash
-        run: gradle :server:test :server:shadowJar :client:shadowJar --no-daemon --stacktrace
+        run: gradle :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon --stacktrace
 
       - name: Upload server JAR
         uses: actions/upload-artifact@v4
@@ -111,7 +111,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-test-reports
-          path: java/server/build/reports/tests/
+          path: |
+            java/server/build/reports/tests/
+            java/client/build/reports/tests/
 
   lint-strict:
     name: Linting (Informational)
