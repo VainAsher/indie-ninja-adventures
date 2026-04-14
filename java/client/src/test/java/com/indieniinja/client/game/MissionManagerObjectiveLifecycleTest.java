@@ -72,6 +72,36 @@ class MissionManagerObjectiveLifecycleTest {
         assertFalse(mgr.isExitLocked());
     }
 
+    @Test
+    void restoreActiveMissionRestoresObjectiveProgressAndExitLock() {
+        MissionDefinition def = missionWithObjectives(
+            "restore_mission",
+            List.of(
+                new MissionObjective(
+                    ObjectiveType.ACTIVATE_SWITCHES, "Switches",
+                    0, null, 2, null, null, 0f),
+                new MissionObjective(
+                    ObjectiveType.REACH_LOCATION, "Reach",
+                    0, null, 0, "checkpoint", null, 0f)
+            )
+        );
+        MissionManager mgr = new MissionManager(Map.of(def.missionId, def));
+        mgr.restoreStates(Map.of(def.missionId, MissionState.IN_PROGRESS));
+        mgr.restoreActiveMission(def.missionId, 11.5f, Map.of(
+            "activate_switches_", 1,
+            "reach_location_checkpoint", 1
+        ));
+        assertEquals(def.missionId, mgr.getActiveMissionId());
+        assertTrue(mgr.isExitLocked());
+        assertEquals(11.5f, mgr.getMissionTimer(), 0.001f);
+
+        mgr.restoreActiveMission(def.missionId, 12f, Map.of(
+            "activate_switches_", 2,
+            "reach_location_checkpoint", 1
+        ));
+        assertFalse(mgr.isExitLocked());
+    }
+
     private static MissionDefinition missionWithObjectives(
         String missionId, List<MissionObjective> objectives
     ) {

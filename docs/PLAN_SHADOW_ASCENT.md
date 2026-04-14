@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 03:19:52 +01:00 | **Codebase version:** v0.11.31 | **Next release target:** v0.11.32 (P0-05 save/load parity hardening pass)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-14 03:35:37 +01:00 | **Codebase version:** v0.11.32 | **Next release target:** v0.11.33 (P0-05 runtime rehydrate continuation)
 
 ---
 
@@ -133,6 +133,26 @@ Every implementation cycle must follow this exact order:
 - Next loop:
   - close remaining `P0-05` parity gaps around full runtime world/player rehydrate-on-load behavior
   - stabilize local client-test cache path to unblock `:client:test` regression execution
+
+`2026-04-14 03:35:37 +01:00`
+
+- Continued `P0-05` runtime rehydrate implementation in `GameScreen`:
+  - extracted solo bootstrapping into `initializeSoloSimulation(...)`
+  - added `restoreSoloRuntimeStateFromSave()` to:
+    - reinitialize solo world from saved `worldSeed` when present
+    - restore visited room fog state (`visitedRoomKeys`)
+    - restore solo player inventory/equipment/abilities and saved hub position
+    - rebuild active mission reach-location one-shot cache from restored objective progress
+  - added save-context refresh after load (`dialogueManager.setStoryContext(...)`) so restored story flags are active immediately
+  - expanded `syncSaveState()` to persist `currentHubId/currentHubX/currentHubY` and fallback world seed from snapshots
+- Added mission restore regression coverage:
+  - `MissionManagerObjectiveLifecycleTest.restoreActiveMissionRestoresObjectiveProgressAndExitLock`
+- Validation:
+  - `./gradlew :server:test :client:compileJava` ✅
+  - targeted `:client:test` remains blocked in this environment (same local cache lock on `gdx-jnigen-loader`; compileTest then fails symbol resolution)
+- Next loop:
+  - continue `P0-05` with direct save/load roundtrip harness assertions for `SaveManager` liveData overlay path
+  - either isolate `:client:test` dependency/cache issue or run client test stage in CI-only validation mode
 
 ### Branch and commit format
 

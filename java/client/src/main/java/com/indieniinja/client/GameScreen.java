@@ -284,30 +284,8 @@ public final class GameScreen implements Screen {
         pauseScreen = new PauseScreen(game, this::resume);
 
         if (soloMode) {
-            // Offline path — build a multi-room WorldGraph and unified layout;
-            // no NetworkClientThread needed.
-            long seed = System.currentTimeMillis();
-            soloSeed       = seed;
-            soloWorldGraph = WorldGraph.generate(seed, 12, WorldGraph.WorldShape.BLOB);
-            WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
-            soloCurrentGridX = startRoom.gridX;
-            soloCurrentGridY = startRoom.gridY;
-            soloRoomType     = startRoom.type.wire();
-            soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
-            LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, "solo_hub");
-            localSim = new GameSimulator(startRoom.seed, "solo_hub", layout);
-            localSim.setDarkArea(true);  // solo dungeon is always dark — lantern decays
-            soloSpawnX = layout.spawnX;
-            soloSpawnY = layout.spawnY;
-            SimPlayer player = new SimPlayer("solo_player", 0, layout.spawnX, layout.spawnY);
-            localSim.addPlayer(player);
-            // Start replay recording if -Dninja.record=true was passed to this JVM.
-            if (Boolean.getBoolean("ninja.record")) soloRecorder.startRecording(soloSeed);
-            // Push an initial full snapshot so GameScreen has something to render immediately.
-            com.indieniinja.network.WorldSnapshot initSnap = localSim.getSnapshot(localFrame++);
-            stampSoloFields(initSnap);
-            stateBuffer.update(initSnap);
-            stateBuffer.markConnected();
+            // Offline path — build local sim world immediately (may be replaced by saved seed below).
+            initializeSoloSimulation(System.currentTimeMillis(), Boolean.getBoolean("ninja.record"));
         } else {
             networkClient = new NetworkClientThread(host, port, stateBuffer);
             networkClient.setGameMode(gameMode);
@@ -344,6 +322,7 @@ public final class GameScreen implements Screen {
         saveManager     = new com.indieniinja.client.game.SaveManager(storyManager, missionManager);
         saveManager.setPreSaveSync(this::syncSaveState);
         saveManager.load();
+        dialogueManager.setStoryContext(storyManager.toConditionContext());
         missionManager.setOnMissionComplete(() -> saveManager.markDirty());
         missionManager.setOnMissionFail(    () -> saveManager.markDirty());
 
@@ -358,26 +337,10 @@ public final class GameScreen implements Screen {
                     java.util.Map.of("recipe_id", recipeId));
         });
         minimapRenderer  = new MinimapRenderer();
-        // Solo mode: GameSimulator.getSnapshot() never populates worldRooms, so
-        // cachedWorldRooms stays empty and the minimap guard blocks rendering.
-        // Build the single-room descriptor now so M-key works immediately.
         if (soloMode) {
-            // Build the full multi-room megamap from the WorldGraph we generated above.
-            java.util.List<WorldRoomDescriptor> soloRooms = new java.util.ArrayList<>();
-            for (WorldGraph.RoomNode r : soloWorldGraph.allRooms()) {
-                WorldRoomDescriptor d = new WorldRoomDescriptor();
-                d.gridX        = r.gridX;
-                d.gridY        = r.gridY;
-                d.seed         = r.seed;
-                d.roomType     = r.type.wire();
-                d.neighborDirs = new java.util.ArrayList<>(r.neighborDirs());
-                d.biomeIndex   = r.biomeIndex;
-                soloRooms.add(d);
-            }
-            buildMegamap(soloRooms);
-            cachedWorldRooms = soloRooms;
-            WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
-            visitedRooms.add(startRoom.gridX + "," + startRoom.gridY);
+            // Build initial minimap data and then rehydrate persisted solo runtime state.
+            refreshSoloWorldRoomCache();
+            restoreSoloRuntimeStateFromSave();
         }
         shopOverlay.setOnTrade(req -> {
             if (networkClient == null) return;
@@ -1161,6 +1124,174 @@ public final class GameScreen implements Screen {
 
     // ── Solo-mode helpers ─────────────────────────────────────────────────────
 
+    private void initializeSoloSimulation(long seed, boolean startRecording) {
+        soloSeed = seed;
+        soloWorldGraph = WorldGraph.generate(seed, 12, WorldGraph.WorldShape.BLOB);
+        WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
+        soloCurrentGridX = startRoom.gridX;
+        soloCurrentGridY = startRoom.gridY;
+        soloRoomType     = startRoom.type.wire();
+        soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
+
+        LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, "solo_hub");
+        localSim = new GameSimulator(startRoom.seed, "solo_hub", layout);
+        localSim.setDarkArea(true);  // solo dungeon is always dark — lantern decays
+        soloSpawnX = layout.spawnX;
+        soloSpawnY = layout.spawnY;
+
+        SimPlayer player = new SimPlayer("solo_player", 0, layout.spawnX, layout.spawnY);
+        localSim.addPlayer(player);
+
+        if (startRecording && Boolean.getBoolean("ninja.record")) {
+            soloRecorder.startRecording(soloSeed);
+        }
+
+        localFrame = 0;
+        loadedSeed = Long.MIN_VALUE;
+        loadedNeighborDirs = java.util.List.of();
+        prevRoomGridX = Integer.MIN_VALUE;
+        prevRoomGridY = Integer.MIN_VALUE;
+        prevEnemyIds.clear();
+        prevBossAlive.clear();
+        prevInventoryTotals.clear();
+        prevLocalAbilities.clear();
+        missionReachedLocations.clear();
+        missionTriggerMissionId = "";
+
+        WorldSnapshot initSnap = localSim.getSnapshot(localFrame++);
+        stampSoloFields(initSnap);
+        stateBuffer.update(initSnap);
+        stateBuffer.markConnected();
+    }
+
+    private void refreshSoloWorldRoomCache() {
+        if (soloWorldGraph == null) return;
+        java.util.List<WorldRoomDescriptor> soloRooms = new java.util.ArrayList<>();
+        for (WorldGraph.RoomNode r : soloWorldGraph.allRooms()) {
+            WorldRoomDescriptor d = new WorldRoomDescriptor();
+            d.gridX        = r.gridX;
+            d.gridY        = r.gridY;
+            d.seed         = r.seed;
+            d.roomType     = r.type.wire();
+            d.neighborDirs = new java.util.ArrayList<>(r.neighborDirs());
+            d.biomeIndex   = r.biomeIndex;
+            soloRooms.add(d);
+        }
+        buildMegamap(soloRooms);
+        cachedWorldRooms = soloRooms;
+        if (visitedRooms.isEmpty()) {
+            WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
+            visitedRooms.add(startRoom.gridX + "," + startRoom.gridY);
+        }
+    }
+
+    private void restoreSoloRuntimeStateFromSave() {
+        if (!soloMode || saveManager == null || !saveManager.hasSave()) return;
+        com.indieniinja.client.game.SaveData save = saveManager.getSaveData();
+        if (save == null) return;
+
+        if (save.worldSeed != 0 && save.worldSeed != soloSeed) {
+            log.info("[Save] restoring solo world seed: {} -> {}", soloSeed, save.worldSeed);
+            initializeSoloSimulation(save.worldSeed, Boolean.getBoolean("ninja.record"));
+            refreshSoloWorldRoomCache();
+        }
+
+        if (save.visitedRoomKeys != null && !save.visitedRoomKeys.isEmpty()) {
+            visitedRooms.clear();
+            for (String key : save.visitedRoomKeys) {
+                if (key == null || key.isBlank()) continue;
+                visitedRooms.add(key.trim());
+            }
+        }
+
+        restoreSoloPlayerFromSave(save);
+        restoreMissionReachProgressFromSave();
+
+        WorldSnapshot snap = localSim.getSnapshot(localFrame++);
+        stampSoloFields(snap);
+        stateBuffer.update(snap);
+    }
+
+    private void restoreSoloPlayerFromSave(com.indieniinja.client.game.SaveData save) {
+        if (localSim == null || save == null) return;
+        SimPlayer sp = localSim.getPlayer(0);
+        if (sp == null) return;
+
+        // Restore inventory totals from save map.
+        for (int i = 0; i < sp.inventory.slots.length; i++) {
+            sp.inventory.slots[i] = null;
+        }
+        sp.inventory.currency = Math.max(0, Math.min(com.indieniinja.sim.SimInventory.MAX_CURRENCY, save.currency));
+        sp.inventory.equippedWeapon = null;
+        sp.inventory.equippedArmor = null;
+        if (save.playerInventory != null) {
+            java.util.List<String> itemIds = new java.util.ArrayList<>(save.playerInventory.keySet());
+            itemIds.sort(String::compareTo);
+            for (String itemId : itemIds) {
+                Integer qty = save.playerInventory.get(itemId);
+                if (itemId == null || itemId.isBlank() || qty == null || qty <= 0) continue;
+                if (!sp.inventory.addItem(itemId, qty)) {
+                    log.warn("[Save] failed to fully restore inventory item {} x{}", itemId, qty);
+                }
+            }
+        }
+        if (save.equippedWeapon != null && !save.equippedWeapon.isBlank()) {
+            sp.inventory.equipItem(save.equippedWeapon);
+        }
+        if (save.equippedArmor != null && !save.equippedArmor.isBlank()) {
+            sp.inventory.equipItem(save.equippedArmor);
+        }
+
+        sp.unlockedAbilities.clear();
+        if (save.unlockedAbilities != null) {
+            for (String ability : save.unlockedAbilities) {
+                if (ability == null || ability.isBlank()) continue;
+                sp.unlockedAbilities.add(ability);
+            }
+        }
+        sp.weaponState = weaponStateFromEquippedItem(sp.inventory.equippedWeapon);
+
+        boolean sameHub = save.currentHubId == null
+            || save.currentHubId.isBlank()
+            || localSim.hubId.equalsIgnoreCase(save.currentHubId);
+        boolean hasSavedPosition = save.currentHubX != 0f || save.currentHubY != 0f;
+        if (sameHub && hasSavedPosition) {
+            float worldPxW = megamapW * PhysicsConstants.TILE_SIZE;
+            float worldPxH = megamapH * PhysicsConstants.TILE_SIZE;
+            float maxX = Math.max(0f, worldPxW - sp.physics.width);
+            float maxY = Math.max(0f, worldPxH - sp.physics.height);
+            sp.physics.x = clampFloat(save.currentHubX, 0f, maxX);
+            sp.physics.y = clampFloat(save.currentHubY, 0f, maxY);
+            sp.physics.vx = 0f;
+            sp.physics.vy = 0f;
+        }
+    }
+
+    private void restoreMissionReachProgressFromSave() {
+        missionReachedLocations.clear();
+        String activeMissionId = missionManager.getActiveMissionId();
+        missionTriggerMissionId = activeMissionId == null ? "" : activeMissionId;
+        if (activeMissionId == null || activeMissionId.isBlank()) return;
+        MissionDefinition def = missionManager.getActiveDefinition();
+        if (def == null) return;
+        java.util.Map<String, Integer> progress = missionManager.getObjectiveProgressSnapshot();
+        for (MissionObjective obj : def.objectives) {
+            if (obj.type != ObjectiveType.REACH_LOCATION || obj.location == null || obj.location.isBlank()) continue;
+            String loc = normalizeKey(obj.location);
+            String key = "reach_location_" + loc;
+            if (progress.getOrDefault(key, 0) > 0) {
+                missionReachedLocations.add(loc);
+            }
+        }
+    }
+
+    private static String weaponStateFromEquippedItem(String equippedWeapon) {
+        if (equippedWeapon == null || equippedWeapon.isBlank()) return "unarmed";
+        String id = equippedWeapon.toLowerCase(java.util.Locale.ROOT);
+        if (id.contains("pistol")) return "pistol";
+        return "sword";
+    }
+
     /**
      * Stamps room-context fields that GameSimulator doesn't track onto a solo snapshot.
      * The single-room tile fallback in render() reads these to generate the tile grid.
@@ -1508,8 +1639,9 @@ public final class GameScreen implements Screen {
         com.indieniinja.client.game.SaveData live = saveManager.getSaveData();
         if (live == null) return;
 
-        // World seed (solo session only; multiplayer seed lives on the server)
+        // World seed
         if (soloSeed != 0) live.worldSeed = soloSeed;
+        else if (prevSnap != null && prevSnap.seed != 0) live.worldSeed = prevSnap.seed;
 
         // Fog-of-war: rooms visited this session
         live.visitedRoomKeys = new java.util.ArrayList<>(visitedRooms);
@@ -1518,6 +1650,9 @@ public final class GameScreen implements Screen {
         if (localSim != null) {
             com.indieniinja.sim.SimPlayer sp = localSim.getPlayer(0);
             if (sp != null) {
+                live.currentHubId     = localSim.hubId;
+                live.currentHubX      = sp.physics.x;
+                live.currentHubY      = sp.physics.y;
                 live.currency       = sp.inventory.currency;
                 live.equippedWeapon = sp.inventory.equippedWeapon;
                 live.equippedArmor  = sp.inventory.equippedArmor;
@@ -1530,6 +1665,14 @@ public final class GameScreen implements Screen {
                         live.playerInventory.merge(slot.itemId(), slot.quantity(), Integer::sum);
                     }
                 }
+            }
+        } else if (prevSnap != null) {
+            PlayerState local = prevSnap.players.stream()
+                .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+            if (local != null) {
+                live.currentHubId = prevSnap.hubId;
+                live.currentHubX  = local.posX;
+                live.currentHubY  = local.posY;
             }
         }
     }
