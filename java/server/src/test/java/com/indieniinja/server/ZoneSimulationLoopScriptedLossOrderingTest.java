@@ -13,6 +13,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ZoneSimulationLoopScriptedLossOrderingTest {
+
+    @Test
+    void immediateBossDefeatQueueAdvancesHubStateInSameTick() throws Exception {
+        TestHarness harness = createHarness();
+        try {
+            assertThat(harness.zone.hubStateMachine.getState()).isEqualTo(HubState.FULL);
+            seedPendingBossDefeat(harness.zone.simulator, "boss_immediate");
+
+            invokeSimulateTick(harness.loop);
+
+            assertThat(harness.zone.hubStateMachine.getState()).isEqualTo(HubState.CORRUPTED);
+            assertThat(harness.zone.simulator.drainPendingBossDefeatIds()).isEmpty();
+        } finally {
+            harness.executor.shutdownNow();
+            harness.channel.close();
+        }
+    }
 
     @Test
     void scriptedLossBroadcastIsEmittedAndSnapshotCarriesCollapsedHubState() throws Exception {
@@ -184,6 +202,13 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         Method trigger = GameSimulator.class.getDeclaredMethod("triggerSirenScriptedLoss");
         trigger.setAccessible(true);
         trigger.invoke(sim);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void seedPendingBossDefeat(GameSimulator sim, String bossId) throws Exception {
+        Field f = GameSimulator.class.getDeclaredField("pendingBossDefeatIds");
+        f.setAccessible(true);
+        ((List<String>) f.get(sim)).add(bossId);
     }
 
     private static void invokeSimulateTick(ZoneSimulationLoop loop) throws Exception {

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.45] - 2026-04-15 (M5 close-out + M6 authored echo trigger slice + M8 evidence pass)
+
+### Added
+
+- Immediate boss-defeat hub-progression path:
+  - `GameSimulator` now queues defeated boss IDs (`drainPendingBossDefeatIds()`).
+  - `ZoneSimulationLoop` drains that queue each tick and applies `HubStateMachine.onBossDefeated(...)` immediately.
+- Authored `ECHO_TRIGGER` puzzle slice:
+  - new `PuzzleType.ECHO_TRIGGER`
+  - planner assignment + guaranteed fallback for at least one echo-trigger puzzle per generated world
+  - post-process stamping and linked `echo_door_<pid>` runtime unlock path
+  - unified layout mapping now exposes echo triggers as interactable NPC markers.
+- Expanded regression coverage:
+  - `GameSimulatorScriptedLossSignalTest.pendingBossDefeatIdsDrainIsSingleUseAfterLootSpawn`
+  - `ZoneSimulationLoopScriptedLossOrderingTest.immediateBossDefeatQueueAdvancesHubStateInSameTick`
+  - `WorldGraphTest.puzzlePlanAlwaysIncludesEchoTriggerAndMapsToInteractableNpcSpawn`
+
+### Changed
+
+- Client scripted-loss readability flow now applies a local collapse animation state window and renderer fallback (`collapse` -> `*_death` keys when missing).
+- Mission lifecycle telemetry now logs mission start/progress/exit-unlock/complete/fail/restore transitions.
+- Startup controls evidence now logs active GDD control preset signature (`[Playtest][Controls] preset=...`).
+- `docs/PLAN_SHADOW_ASCENT.md` and `docs/PLAYER_EXPECTATIONS.md` synced for this milestone-bundle pass.
+- Version parity metadata updated to `0.11.45` across `version.json`, Gradle, README, ROADMAP, and changelog gate.
+
+### Validation
+
+- `./gradlew :server:test` pass.
+- `./gradlew :client:compileJava` pass.
+
+---
+
 ## [0.11.44] - 2026-04-15 (playtest trace logging hardening)
 
 ### Added

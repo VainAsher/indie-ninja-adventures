@@ -1,6 +1,8 @@
 package com.indieniinja.client.game;
 
 import com.badlogic.gdx.Gdx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +20,8 @@ import java.util.Map;
  * Tracks per-mission progress in memory (save/load wired to SaveSystem later).
  */
 public final class MissionManager {
+
+    private static final Logger log = LoggerFactory.getLogger(MissionManager.class);
 
     private final Map<String, MissionDefinition> definitions;
     private final Map<String, MissionState>      states      = new HashMap<>();
@@ -87,6 +91,8 @@ public final class MissionManager {
         objectiveProgress.clear();
         states.put(missionId, MissionState.IN_PROGRESS);
         attempts.merge(missionId, 1, Integer::sum);
+        log.info("[Mission] start id={} name='{}' act={} difficulty={} objectives={} timeLimit={}",
+            missionId, def.missionName, def.act, def.difficulty, def.objectives.size(), def.timeLimit);
     }
 
     /**
@@ -100,9 +106,17 @@ public final class MissionManager {
 
         String key = normalizeObjectiveKey(objectiveKey);
         objectiveProgress.merge(key, delta, Integer::sum);
+        int after = objectiveProgress.getOrDefault(key, 0);
+        log.info("[Mission] progress id={} key={} delta={} total={}",
+            activeMissionId, key, delta, after);
         if (onObjectiveComplete != null) onObjectiveComplete.accept(objectiveKey);
 
         if (checkAllObjectivesMet(def)) {
+            if (exitLocked) {
+                log.info("[Mission] exit unlocked id={} elapsed={}",
+                    activeMissionId,
+                    String.format(java.util.Locale.ROOT, "%.2f", missionTimer));
+            }
             exitLocked = false;
         }
     }
@@ -161,6 +175,10 @@ public final class MissionManager {
         activeMissionId = null;
         exitLocked      = false;
         objectiveProgress.clear();
+        log.info("[Mission] complete id={} bestTime={} attempts={}",
+            id,
+            String.format(java.util.Locale.ROOT, "%.2f", bestTimes.getOrDefault(id, missionTimer)),
+            attempts.getOrDefault(id, 1));
         if (onMissionComplete != null) onMissionComplete.run();
     }
 
@@ -169,10 +187,14 @@ public final class MissionManager {
      */
     public void failMission() {
         if (activeMissionId == null) return;
+        String id = activeMissionId;
         states.put(activeMissionId, MissionState.FAILED);
         activeMissionId = null;
         exitLocked      = false;
         objectiveProgress.clear();
+        log.info("[Mission] fail id={} elapsed={}",
+            id,
+            String.format(java.util.Locale.ROOT, "%.2f", missionTimer));
         if (onMissionFail != null) onMissionFail.run();
     }
 
@@ -185,6 +207,10 @@ public final class MissionManager {
         // Auto-fail on time limit
         MissionDefinition def = definitions.get(activeMissionId);
         if (def != null && def.timeLimit > 0f && missionTimer >= def.timeLimit) {
+            log.info("[Mission] time_limit_exceeded id={} limit={} elapsed={}",
+                activeMissionId,
+                String.format(java.util.Locale.ROOT, "%.2f", def.timeLimit),
+                String.format(java.util.Locale.ROOT, "%.2f", missionTimer));
             failMission();
         }
     }
@@ -238,6 +264,11 @@ public final class MissionManager {
         }
         states.put(missionId, MissionState.IN_PROGRESS);
         exitLocked = !checkAllObjectivesMet(def);
+        log.info("[Mission] restore_active id={} elapsed={} exitLocked={} progressKeys={}",
+            missionId,
+            String.format(java.util.Locale.ROOT, "%.2f", missionTimer),
+            exitLocked,
+            objectiveProgress.size());
     }
 
     public void restoreBestTimes(Map<String, Float> data) {

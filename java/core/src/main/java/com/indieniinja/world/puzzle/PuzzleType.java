@@ -6,11 +6,13 @@ package com.indieniinja.world.puzzle;
  * KEY_DOOR        — key pickup in one room unlocks a DOOR_LOCKED tile in another
  * LEVER_DOOR      — lever entity in an adjacent room opens a DOOR_LOCKED tile
  * BUTTON_SEQUENCE — optional challenge: press N buttons to open a reward door
+ * ECHO_TRIGGER    — interact trigger spawns an echo and unlocks a linked echo door
  * TIMED_PLATFORM  — time-pressure platform sequence (future use)
  */
 public enum PuzzleType {
     KEY_DOOR,
     LEVER_DOOR,
     BUTTON_SEQUENCE,
+    ECHO_TRIGGER,
     TIMED_PLATFORM
 }

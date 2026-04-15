@@ -13,6 +13,11 @@ public final class InputPoller {
 
     private long frameCounter = 0;
 
+    /** One-line controls signature for playtest evidence logging. */
+    public static String controlPresetSummary() {
+        return "move=arrows jump=Z attack=X dash=C stance=A guard=S traversal=D throw=F echo=R interact=E map=TAB";
+    }
+
     /**
      * Sample current keyboard state and return a packed InputCommand.
      * Called once per render frame.

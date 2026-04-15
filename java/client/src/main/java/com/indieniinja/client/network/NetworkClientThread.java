@@ -181,6 +181,7 @@ public final class NetworkClientThread extends Thread {
                 buffer.resetForZoneTransition();
             }
             case MessageType.SCRIPTED_LOSS -> {
+                log.info("[Net] SCRIPTED_LOSS received session_id={} player_id={}", sessionId, playerId);
                 buffer.markScriptedLoss();
             }
             default -> log.debug("[Net] Ignored message type: {}", msg.type());

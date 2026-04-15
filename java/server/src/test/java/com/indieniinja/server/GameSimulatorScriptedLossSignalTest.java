@@ -3,6 +3,8 @@ package com.indieniinja.server;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.sim.SimPlayer;
+import com.indieniinja.sim.SimBoss;
+import com.indieniinja.sim.BossType;
 import com.indieniinja.world.HubState;
 import com.indieniinja.world.HubStateMachine;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,18 @@ import java.lang.reflect.Method;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GameSimulatorScriptedLossSignalTest {
+
+    @Test
+    void pendingBossDefeatIdsDrainIsSingleUseAfterLootSpawn() throws Exception {
+        GameSimulator sim = new GameSimulator(7L, "test_hub", LevelLayout.buildTestLayout(7L));
+
+        Method spawnLoot = GameSimulator.class.getDeclaredMethod("spawnBossLoot", SimBoss.class);
+        spawnLoot.setAccessible(true);
+        spawnLoot.invoke(sim, new SimBoss("boss_siren_test", BossType.SIREN, 320f, 256f));
+
+        assertThat(sim.drainPendingBossDefeatIds()).containsExactly("boss_siren_test");
+        assertThat(sim.drainPendingBossDefeatIds()).isEmpty();
+    }
 
     @Test
     void scriptedLossDrainIsSingleUseAfterTrigger() throws Exception {

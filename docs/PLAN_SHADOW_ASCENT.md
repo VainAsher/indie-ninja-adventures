@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 14:47:10 +01:00 | **Codebase version:** v0.11.44 | **Next release target:** v0.11.45 (P0-10 onboarding/system-guidance follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 15:47:50 +01:00 | **Codebase version:** v0.11.45 | **Next release target:** v0.11.46 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
@@ -86,6 +86,21 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 15:47:50 +01:00`
+
+- Executed milestone bundle pass (`M5 close-out + M8 playtest logging/controls evidence + M6 authored trigger slice`):
+  - `M5`: immediate boss-defeat runtime queue now drains in `ZoneSimulationLoop.simulateTick()` and applies `HubStateMachine.onBossDefeated(...)` in the same tick.
+  - `M5`: client scripted-loss receive path now applies local collapse readability state (`collapse` with renderer fallback to death sheets when needed).
+  - `M6`: added authored `ECHO_TRIGGER` puzzle type, planner allocation/fallback, post-process stamping, unified layout spawn mapping, and runtime interact behavior (`echo_trigger_<pid>` unlocks `echo_door_<pid>` + spawns echo).
+  - `M8`: added playtest evidence logs for controls preset signature and mission lifecycle (`start/progress/exit-unlock/complete/fail/restore`).
+- Added regression coverage:
+  - `GameSimulatorScriptedLossSignalTest.pendingBossDefeatIdsDrainIsSingleUseAfterLootSpawn`
+  - `ZoneSimulationLoopScriptedLossOrderingTest.immediateBossDefeatQueueAdvancesHubStateInSameTick`
+  - `WorldGraphTest.puzzlePlanAlwaysIncludesEchoTriggerAndMapsToInteractableNpcSpawn`
+- Validation:
+  - `./gradlew :server:test` ✅
+  - `./gradlew :client:compileJava` ✅
 
 `2026-04-15 14:47:10 +01:00`
 
@@ -1327,7 +1342,7 @@ The live milestone history accurately records shipping progress, but the new gam
 - [x] Weapon-state animation routing in `EntityRenderer` (`player_sword_*` prefix)
 - [x] 171 player sprite sheets extracted: 81 unarmed, 90 sword (tools/extract_animations.py)
 - [x] `AnimationRegistry.loadUnarmedSheets()` + `loadSwordSheets()` — 130+ animation keys
-- [ ] Siren: scripted loss → Yin/Yang → 0 → hub state → EMPTY (deferred to M5)
+- [x] Siren: scripted loss → Yin/Yang → 0 → hub state → EMPTY
 
 **Deliverable:** Yin/Yang bars and Lantern meter render live. Low Lantern creates oppressive vignette. Fragments spawn in boss/treasure rooms. Full player animation set loaded from template sheets.
 
@@ -1361,10 +1376,10 @@ What remains to be aligned on top of M4:
 - [x] Echo Warden: 30-tick ring buffer mirrors player movement with 0.5 s delay
 - [x] Time Leech Lord: drains Lantern each tick; spawns `time_leech` enemies every 8 s; speed burst at 30% HP
 - [x] Memory Eater: `boss.platformReset` flag set on phase transition; `ZoneSimulationLoop` reads and acts on it
-- [ ] Client collapse animation on `SCRIPTED_LOSS` receive (deferred — needs new anim state in EntityRenderer)
-- [ ] Boss defeat → fragment drop → `HubStateMachine.onBossDefeated()` (fragment wiring deferred to M6)
+- [x] Client collapse animation on `SCRIPTED_LOSS` receive (runtime collapse state + renderer fallback path)
+- [x] Boss defeat → fragment drop → `HubStateMachine.onBossDefeated()` (immediate queue drain in `ZoneSimulationLoop`)
 
-**What shipped:** All 4 psychological patterns are live server-side. Siren scripted loss fires correctly. Echo Warden mirrors movement. Time Leech Lord drains lantern and spawns minions. Memory Eater signals platform reset per phase. Client-side collapse animation and fragment drop wiring are next-session tuning items.
+**What shipped:** All 4 psychological patterns are live server-side. Siren scripted loss fires correctly. Echo Warden mirrors movement. Time Leech Lord drains lantern and spawns minions. Memory Eater signals platform reset per phase. Client collapse readability and immediate boss-defeat hub progression wiring are now integrated and regression-covered.
 
 Loop note (2026-04-13 21:27:17 +01:00): Enemy combat tuning pass shipped after M5:
 slime attack hitbox now lunges one body-length forward, skeleton attack range is
@@ -1395,7 +1410,7 @@ but also for:
 
 - [x] `EchoRecorder` (600-tick ring buffer on `SimPlayer`)
 - [x] `SimEcho` (`ReplayPlayer`-driven, `recallable` flag)
-- [ ] Echo trigger zones placed by `EntityPlanner` in PUZZLE rooms
+- [x] Authored echo trigger puzzle markers placed by `PuzzleLayer` and mapped as interactable NPC markers in unified layout
 - [ ] Puzzle archetype: **Asymmetric Ability Lock** (echo holds position)
 - [ ] Puzzle archetype: **Simultaneous Timing** (echo replicates past actions)
 - [ ] Proof token mechanic (`RoomType.LABYRINTH`, `TOKEN_GATE`)
@@ -1448,6 +1463,7 @@ Echo should not expand into broad systemic complexity until:
 - [ ] Act-based palette shifts and fog density in `ChunkRenderer`
 - [ ] New game+ (remixed hub progression)
 - [ ] Alternate endings based on Yin/Yang balance at Act VII
+- [x] Playtest logging + controls evidence baseline (`[Playtest][*]`, `[Mission]`, controls preset signature in startup logs)
 - [ ] Fix `version.json`, `build.gradle.kts`, and `README.md` in sync after each release
 
 #### Added polish targets from this pivot

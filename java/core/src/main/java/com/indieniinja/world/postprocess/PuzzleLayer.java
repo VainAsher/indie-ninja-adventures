@@ -57,6 +57,7 @@ public final class PuzzleLayer {
                 case KEY_DOOR    -> applyKeyDoor(tiles, puzzle, spawns, rng);
                 case LEVER_DOOR  -> applyLeverDoor(tiles, puzzle, spawns, rng);
                 case BUTTON_SEQUENCE -> applyButtonSequence(tiles, puzzle, spawns, rng);
+                case ECHO_TRIGGER -> applyEchoTrigger(tiles, puzzle, spawns, rng);
                 default -> { /* TIMED_PLATFORM: future use */ }
             }
         }
@@ -170,6 +171,42 @@ public final class PuzzleLayer {
     }
 
     // ── Tile helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * Echo trigger puzzle slice:
+     * - place an interact trigger marker in reachable floor space
+     * - stamp a linked echo-gated door
+     */
+    private static void applyEchoTrigger(
+            byte[][] tiles, Puzzle puzzle,
+            List<RoomContent.PuzzleSpawn> spawns, Random rng) {
+
+        int triggerCol = 12 + rng.nextInt(Math.max(1, COLS - 24));
+        int triggerRow = findFloorBelow(tiles, triggerCol);
+        if (triggerRow < 0) return;
+
+        int doorCol = (triggerCol < COLS / 2)
+            ? triggerCol + 14 + rng.nextInt(8)
+            : triggerCol - 14 - rng.nextInt(8);
+        doorCol = Math.max(4, Math.min(COLS - 5, doorCol));
+        int doorRow = findChokeRow(tiles, doorCol);
+        if (doorRow < 0) return;
+
+        stampDoor(tiles, doorRow, doorCol);
+
+        String triggerId = "echo_trigger_" + puzzle.puzzleId;
+        String doorId = "echo_door_" + puzzle.puzzleId;
+        spawns.add(new RoomContent.PuzzleSpawn(
+            doorId, "door",
+            doorCol * TILE + TILE * 0.5f,
+            doorRow * TILE + TILE * 0.5f,
+            triggerId));
+        spawns.add(new RoomContent.PuzzleSpawn(
+            triggerId, "echo_trigger",
+            triggerCol * TILE + TILE * 0.5f,
+            triggerRow * TILE,
+            doorId));
+    }
 
     /** Stamp a 3-tile-wide DOOR_LOCKED column at (doorRow, doorCol). */
     private static void stampDoor(byte[][] tiles, int doorRow, int doorCol) {

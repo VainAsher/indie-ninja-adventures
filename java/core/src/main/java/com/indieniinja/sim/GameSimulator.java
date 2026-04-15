@@ -131,6 +131,8 @@ public final class GameSimulator {
     /** Set to true when the Siren scripted loss fires; caller should broadcast
      *  MessageType.SCRIPTED_LOSS and then clear this via drainPendingScriptedLoss(). */
     private boolean pendingScriptedLoss = false;
+    /** Boss IDs defeated this tick; drained by ZoneSimulationLoop for immediate hub FSM updates. */
+    private final List<String> pendingBossDefeatIds = new ArrayList<>();
     /** Per-player flow-state transition cache for low-noise playtest tracing. */
     private final Map<Integer, Boolean> loggedFlowBySlot = new HashMap<>();
     /** Per-player lantern band transition cache for low-noise playtest tracing. */
@@ -477,6 +479,17 @@ public final class GameSimulator {
         boolean v = pendingScriptedLoss;
         pendingScriptedLoss = false;
         return v;
+    }
+
+    /**
+     * Drain boss IDs defeated since the last tick.
+     * Used by ZoneSimulationLoop to apply HubStateMachine.onBossDefeated(...) immediately.
+     */
+    public List<String> drainPendingBossDefeatIds() {
+        if (pendingBossDefeatIds.isEmpty()) return java.util.List.of();
+        List<String> drained = new ArrayList<>(pendingBossDefeatIds);
+        pendingBossDefeatIds.clear();
+        return drained;
     }
 
     private void tickLantern() {
@@ -1616,6 +1629,9 @@ public final class GameSimulator {
         pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "yang_fragment",    cx,           cy - 36f));
         pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "lantern_fragment", cx + 16f,     cy - 36f));
         pickups.add(new SimPickup(hubId + "_bloot_" + lootSeq++, "gem",              cx,           cy - 70f));
+        if (boss != null && boss.bossId != null && !boss.bossId.isBlank()) {
+            pendingBossDefeatIds.add(boss.bossId);
+        }
     }
 
     private static int enemyXp(String type) {
@@ -1959,9 +1975,8 @@ public final class GameSimulator {
     }
 
     /**
-     * Check for player lever/button interaction.
-     * Activates when a player presses interact (edge-triggered) within 80 px of a
-     * lever or button NPC whose linked door has not yet been unlocked.
+     * Check for player puzzle interaction.
+     * Activates on fresh interact presses near lever/button/echo-trigger NPC markers.
      */
     private void stepLeverInteraction() {
         for (Map.Entry<Integer, SimPlayer> entry : players.entrySet()) {
@@ -1977,7 +1992,9 @@ public final class GameSimulator {
             float py = p.physics.y + p.physics.height * 0.5f;
             for (SimNPC npc : npcs) {
                 String t = npc.type;
-                if (!t.startsWith("lever_") && !t.startsWith("btn_")) continue;
+                if (!t.startsWith("lever_") && !t.startsWith("btn_") && !t.startsWith("echo_trigger_")) {
+                    continue;
+                }
                 float nx = npc.physics.x + npc.physics.width  * 0.5f;
                 float ny = npc.physics.y + npc.physics.height * 0.5f;
                 float dx = px - nx, dy = py - ny;
@@ -1986,7 +2003,7 @@ public final class GameSimulator {
                 // button NPC type = "btn_<i>_<puzzleId>" — all 3 unique buttons must be pressed
                 if (t.startsWith("lever_")) {
                     unlockDoor(t.substring(6));   // "lever_ld_0" → "ld_0"
-                } else {
+                } else if (t.startsWith("btn_")) {
                     // Prevent re-pressing an already-activated button
                     if (solvedPuzzles.contains(t)) break;
                     solvedPuzzles.add(t);
@@ -2002,6 +2019,13 @@ public final class GameSimulator {
                             if (s.startsWith("btn_") && s.endsWith(suffix)) pressed++;
                         if (pressed >= 3) unlockDoor("reward_" + basePid);
                     }
+                } else {
+                    // Echo trigger puzzle marker: "echo_trigger_<pid>" unlocks "echo_door_<pid>".
+                    if (solvedPuzzles.contains(t)) break;
+                    solvedPuzzles.add(t);
+                    spawnEchoFromPlayer(entry.getKey(), true);
+                    String pid = t.substring("echo_trigger_".length());
+                    if (!pid.isBlank()) unlockDoor("echo_door_" + pid);
                 }
                 break;
             }

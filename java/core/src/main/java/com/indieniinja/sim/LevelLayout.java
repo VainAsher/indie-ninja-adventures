@@ -831,7 +831,7 @@ public final class LevelLayout {
                 switch (z.puzzleType()) {
                     case "key" ->
                         allPickups.add(new PickupSpawn(z.puzzleId(), offX + z.x(), offY + z.y()));
-                    case "lever", "button" -> {
+                    case "lever", "button", "echo_trigger" -> {
                         float px = offX + z.x();
                         // NPC type = puzzleId (already carries the "lever_" / "btn_" prefix)
                         allNpcs.add(new NPCSpawn(z.puzzleId(),

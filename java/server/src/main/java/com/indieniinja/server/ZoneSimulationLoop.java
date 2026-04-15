@@ -322,6 +322,14 @@ public final class ZoneSimulationLoop implements Runnable {
                 "event", "siren_scripted_loss"
             ));
         }
+        if (zone.hubStateMachine != null) {
+            for (String bossId : sim.drainPendingBossDefeatIds()) {
+                zone.hubStateMachine.onBossDefeated(bossId);
+                // Prevent once-per-second fallback diff from double-counting this boss.
+                prevAliveBossIds.remove(bossId);
+                log.info("[Zone {}] boss defeated (immediate): {}", zone.hubId, bossId);
+            }
+        }
 
         // Write authoritative physics results back to PlayerRecords for broadcast
         for (String pid : zone.playerIds) {

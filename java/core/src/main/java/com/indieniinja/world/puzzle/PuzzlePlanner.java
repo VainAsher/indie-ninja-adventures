@@ -130,10 +130,16 @@ public final class PuzzlePlanner {
 
         // ── Step 2: Assign puzzles ────────────────────────────────────────────
         int puzzleCounter = 0;
+        int echoTriggerRooms = 0;
+        List<WorldGraph.RoomNode> echoCandidates = new ArrayList<>();
         for (WorldGraph.RoomNode room : graph.allRooms()) {
             int depth = depths.getOrDefault(
                 PuzzlePlan.roomKey(room.gridX, room.gridY), 0);
             if (depth < 2) continue;
+
+            if (room.type == WorldGraph.RoomType.COMBAT && depth >= 3) {
+                echoCandidates.add(room);
+            }
 
             List<Puzzle> puzzles = new ArrayList<>();
 
@@ -154,10 +160,24 @@ public final class PuzzlePlanner {
                 String id = "bs_" + puzzleCounter++;
                 puzzles.add(new Puzzle(id, PuzzleType.BUTTON_SEQUENCE, null, false));
             }
+            if (room.type == WorldGraph.RoomType.COMBAT && depth >= 3
+                    && rng.nextInt(5) == 0) {
+                String id = "et_" + puzzleCounter++;
+                puzzles.add(new Puzzle(id, PuzzleType.ECHO_TRIGGER, null, false));
+                echoTriggerRooms++;
+            }
 
             if (!puzzles.isEmpty()) {
                 roomPuzzles.put(PuzzlePlan.roomKey(room.gridX, room.gridY), puzzles);
             }
+        }
+
+        // Ensure every generated world has at least one authored echo trigger room.
+        if (echoTriggerRooms == 0 && !echoCandidates.isEmpty()) {
+            WorldGraph.RoomNode room = echoCandidates.get(rng.nextInt(echoCandidates.size()));
+            String roomKey = PuzzlePlan.roomKey(room.gridX, room.gridY);
+            roomPuzzles.computeIfAbsent(roomKey, ignored -> new ArrayList<>())
+                .add(new Puzzle("et_" + puzzleCounter++, PuzzleType.ECHO_TRIGGER, null, false));
         }
 
         return new PuzzlePlan(edgeGates, roomPuzzles, depths);

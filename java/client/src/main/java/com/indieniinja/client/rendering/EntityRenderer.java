@@ -306,7 +306,7 @@ public final class EntityRenderer {
             case "throw", "throw_ground", "throw_air", "throw_crouch",
                  "teleport", "ninjutsu_hand", "ninjutsu_summon"                    -> FPS_THROW;
             case "hurt", "hurt2", "crouch_hurt", "death", "death2",
-                 "prone_death", "prone_hurt"                                        -> FPS_DEATH;
+                 "prone_death", "prone_hurt", "collapse"                             -> FPS_DEATH;
             case "dash"                                                             -> FPS_DASH;
             case "run"                                                              -> FPS_RUN;
             case "walk", "slow_walk", "crouch_walk",
@@ -338,6 +338,11 @@ public final class EntityRenderer {
             if (anims.has(swordKey)) prefix = "player_sword";
         }
         String animKey = prefix + "_" + state;
+        if ("collapse".equals(state) && !anims.has(animKey)) {
+            String fallback = prefix + "_death";
+            animKey = anims.has(fallback) ? fallback : "player_death";
+            state = "death";
+        }
 
         // ── Animation state tracking ──────────────────────────────────────────
         String prevAnim = lastState.get(p.playerId);

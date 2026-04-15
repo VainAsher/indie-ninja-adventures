@@ -108,6 +108,7 @@ public final class GameScreen implements Screen {
     private PauseScreen pauseScreen;
     private boolean     paused = false;
     private boolean     scriptedLossOverlay = false;
+    private float       scriptedLossCollapseTimer = 0f;
 
     // ── Campaign / missions / dialogue / save ─────────────────────────────────
     private StoryManager    storyManager;
@@ -259,6 +260,7 @@ public final class GameScreen implements Screen {
         );
         stateBuffer = new GameStateBuffer();
         inputPoller = new InputPoller();
+        log.info("[Playtest][Controls] preset=GDD-10.3.13 {}", InputPoller.controlPresetSummary());
 
         anims = new AnimationRegistry();
         FileHandle atlasFile    = Gdx.files.internal("assets/characters.atlas");
@@ -404,6 +406,10 @@ public final class GameScreen implements Screen {
         }
         if (stateBuffer.pollScriptedLoss()) {
             scriptedLossOverlay = true;
+            scriptedLossCollapseTimer = Math.max(scriptedLossCollapseTimer, 0.85f);
+            log.info("[Playtest][ScriptedLoss] received hub={} frame={}",
+                prevSnap != null ? prevSnap.hubId : "unknown",
+                prevSnap != null ? prevSnap.frame : -1);
         }
         boolean scriptedLossConsumed = handleScriptedLossOverlayInput();
 
@@ -517,6 +523,7 @@ public final class GameScreen implements Screen {
         }
 
         WorldSnapshot snap = stateBuffer.poll();
+        applyScriptedLossCollapseState(snap, delta);
 
         // ── Mission timer + auto-save ─────────────────────────────────────────
         missionManager.tick(delta);
@@ -916,10 +923,29 @@ public final class GameScreen implements Screen {
                     && hudRenderer.scriptedLossButtonHit(Gdx.input.getX(), Gdx.input.getY()));
         if (continuePressed) {
             scriptedLossOverlay = false;
+            scriptedLossCollapseTimer = 0f;
             storyManager.onVeilMaidenDefeatedAct1();
             dialogueManager.setStoryContext(storyManager.toConditionContext());
+            log.info("[Playtest][ScriptedLoss] continue hub={} act={}",
+                prevSnap != null ? prevSnap.hubId : "unknown",
+                storyManager.currentAct().wire());
         }
         return true;
+    }
+
+    private void applyScriptedLossCollapseState(WorldSnapshot snap, float delta) {
+        if (scriptedLossCollapseTimer > 0f) {
+            scriptedLossCollapseTimer = Math.max(0f, scriptedLossCollapseTimer - Math.max(0f, delta));
+        }
+        if (snap == null || scriptedLossCollapseTimer <= 0f || snap.players == null || snap.players.isEmpty()) {
+            return;
+        }
+        PlayerState local = snap.players.stream()
+            .filter(p -> p.slot == localSlot)
+            .findFirst()
+            .orElse(snap.players.get(0));
+        if (local == null || local.isDead) return;
+        local.animState = "collapse";
     }
 
     private void startMissionFlow(String missionId, String source) {

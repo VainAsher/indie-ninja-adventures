@@ -1,8 +1,8 @@
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.44`
-**Last updated:** `2026-04-15 14:37:00 +01:00`
+**Target build:** `v0.11.45`
+**Last updated:** `2026-04-15 15:47:50 +01:00`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
 **Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
 
@@ -98,9 +98,11 @@ Do not preload mechanical spoilers beyond this.
 |---|---|---|
 | Client log file | Working | `user_data/logs/client.log` rolling daily |
 | Server log file | Working | `user_data/logs/server.log` rolling daily |
-| Mission event logging | Working | Mission start/progress/complete, onboarding dialogue events, and room transitions include hub/room/position context |
+| Mission event logging | Working | Mission start/progress/exit-unlock/complete/fail/restore, onboarding dialogue events, and room transitions include hub/room/position context |
 | Structured event IDs | Working | Runtime traces use stable prefixes: `[Playtest][Stance]`, `[Playtest][Flow]`, `[Playtest][Lantern]`, `[Playtest][Room]`, `[Playtest][Boss]`, `[Playtest][Player]` |
 | Correlation/session IDs | Working | Client sends `session_id` in `CLIENT_HELLO`; server logs join/travel/disconnect with `player_id` + `session_id` |
+| Controls baseline evidence | Working | Startup log emits `[Playtest][Controls] preset=GDD-10.3.13 ...` for each launched session |
+| Scripted loss traceability | Working | Client network/runtime logs emit `[Net] SCRIPTED_LOSS received` plus `[Playtest][ScriptedLoss] received/continue` context |
 
 ### 6.2 Debug tooling status
 
@@ -121,7 +123,7 @@ Do not preload mechanical spoilers beyond this.
 | In-game graphics/audio settings UI | Missing | No full settings menu path in Java client |
 | Per-profile gameplay settings | Missing/partial | Profiles exist in launcher; gameplay settings not fully wired |
 
-Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/flow/lantern/boss/user-session tracing.
+Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/flow/lantern/boss/scripted-loss/user-session tracing.
 
 ---
 
@@ -237,7 +239,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 For every bug, frustration point, or balance note capture:
 
-1. Build version (`v0.11.44` or newer).
+1. Build version (`v0.11.45` or newer).
 2. Mode (`SOLO`, `CAMPAIGN`, `HOST`, `JOIN`).
 3. Area context (`hub`, `room grid`, enemy type, mission id).
 4. Exact player-visible behavior.
@@ -336,7 +338,7 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 
 ```md
 ### Session Summary
-Build: v0.11.44
+Build: v0.11.45
 Mode: SOLO / HOST / JOIN
 Duration: XX min
 
@@ -361,7 +363,7 @@ IDs: UX-___ / BAL-___ / TECH-___
 
 ```md
 ### Bug
-Build: v0.11.44
+Build: v0.11.45
 Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 

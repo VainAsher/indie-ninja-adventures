@@ -1,14 +1,17 @@
 package com.indieniinja.server;
 
+import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
 import com.indieniinja.world.WorldGraph.RoomNode;
 import com.indieniinja.world.WorldGraph.RoomType;
 import com.indieniinja.world.WorldGraph.WorldShape;
 import com.indieniinja.world.puzzle.PuzzlePlan;
 import com.indieniinja.world.puzzle.PuzzlePlanner;
+import com.indieniinja.world.puzzle.PuzzleType;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
@@ -100,6 +103,23 @@ class WorldGraphTest {
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
+
+    @Test
+    void puzzlePlanAlwaysIncludesEchoTriggerAndMapsToInteractableNpcSpawn() {
+        long seed = 4242L;
+        WorldGraph graph = WorldGraph.generate(seed, 15, WorldShape.BLOB);
+        PuzzlePlan plan = PuzzlePlanner.plan(graph, seed);
+
+        long echoTriggers = plan.roomPuzzles.values().stream()
+            .flatMap(List::stream)
+            .filter(p -> p.type == PuzzleType.ECHO_TRIGGER)
+            .count();
+        assertThat(echoTriggers).isGreaterThan(0);
+
+        LevelLayout layout = LevelLayout.buildUnifiedWorldLayoutFromPlan(graph, plan, "central_hub");
+        assertThat(layout.npcSpawns)
+            .anySatisfy(n -> assertThat(n.type()).startsWith("echo_trigger_"));
+    }
 
     private static String roomKey(RoomNode r) {
         return r.gridX + "," + r.gridY;
