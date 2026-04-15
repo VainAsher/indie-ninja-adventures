@@ -69,6 +69,16 @@ public final class GameSimulator {
     private static final float STANCE_SWITCH_BOOST = 0.035f;
     private static final float PARRY_STUN_DURATION = 0.80f;
     private static final float FLOW_LANTERN_RESTORE_PER_SECOND = 0.012f;
+    private static final float YIN_SWIM_HORIZONTAL_CAP = PhysicsConstants.MAX_RUN_SPEED * 0.52f;
+    private static final float YANG_SWIM_HORIZONTAL_CAP = PhysicsConstants.MAX_RUN_SPEED * 0.62f;
+    private static final float YIN_SWIM_DESCEND_CAP = 2.9f;
+    private static final float YANG_SWIM_DESCEND_CAP = 3.4f;
+    private static final float YIN_SWIM_ASCEND_CAP = 8.0f;
+    private static final float YANG_SWIM_ASCEND_CAP = 9.0f;
+    private static final float SWIM_ASCEND_ACCEL = 0.30f;
+    private static final float SWIM_DESCEND_ACCEL = 0.26f;
+    private static final float SWIM_NEUTRAL_DAMP = 0.90f;
+    private static final float SWIM_SURFACE_DESCENT_CAP = 0.45f;
 
     private enum PlayerHitOutcome {
         DAMAGED,
@@ -1118,10 +1128,7 @@ public final class GameSimulator {
             if (!cmd.left && !cmd.right) p.vx *= 0.97f;  // very slow deceleration on ice
         }
         if (p.inWater && !sp.isDashing) {
-            // WATER: 55% speed cap, no dash (dash blocked via isDashing guard above)
-            float cap = PhysicsConstants.MAX_RUN_SPEED * 0.55f;
-            if (p.vx >  cap) p.vx =  cap;
-            if (p.vx < -cap) p.vx = -cap;
+            applyWaterTraversalTuning(sp, cmd, p);
         }
         // LAVA: GameSimulator applies 1 HP damage below (after applyPlayerInput returns).
 
@@ -1272,6 +1279,9 @@ public final class GameSimulator {
                     p.vy = -PhysicsConstants.JUMP_POWER * 0.75f;
                     p.onGround = false;
                     sp.jumpCount = Math.max(sp.jumpCount, 1);
+                    log.info(
+                        "[Playtest][Traversal] player={} slot={} event=water_surface_jump pos=({}, {})",
+                        sp.playerId, sp.slot, (int) p.x, (int) p.y);
                     return true;
                 }
             }
@@ -1416,7 +1426,44 @@ public final class GameSimulator {
                 return true;
             }
         }
+        if (cmd.left || cmd.right || cmd.up || cmd.down) {
+            log.info(
+                "[Playtest][Traversal] player={} slot={} event=water_exit_blocked pos=({}, {})",
+                sp.playerId, sp.slot, (int) p.x, (int) p.y);
+        }
         return false;
+    }
+
+    /**
+     * Swim tuning bridge for Phase 6:
+     * - stance-sensitive horizontal/vertical caps
+     * - predictable ascent/descent acceleration in water
+     * - neutral damping while submerged
+     * - soft descent clamp when at water surface
+     */
+    private static void applyWaterTraversalTuning(SimPlayer sp, InputCommand cmd, PhysicsState p) {
+        boolean yin = "yin".equals(sp.stanceMode);
+        float horizontalCap = yin ? YIN_SWIM_HORIZONTAL_CAP : YANG_SWIM_HORIZONTAL_CAP;
+        float descendCap = yin ? YIN_SWIM_DESCEND_CAP : YANG_SWIM_DESCEND_CAP;
+        float ascendCap = yin ? YIN_SWIM_ASCEND_CAP : YANG_SWIM_ASCEND_CAP;
+
+        if (p.vx > horizontalCap) p.vx = horizontalCap;
+        if (p.vx < -horizontalCap) p.vx = -horizontalCap;
+
+        if (cmd.up && !cmd.down) {
+            p.vy -= SWIM_ASCEND_ACCEL;
+        } else if (cmd.down && !cmd.up) {
+            p.vy += SWIM_DESCEND_ACCEL;
+        } else if (!sp.atWaterSurface) {
+            p.vy *= SWIM_NEUTRAL_DAMP;
+        }
+
+        if (p.vy > descendCap) p.vy = descendCap;
+        if (p.vy < -ascendCap) p.vy = -ascendCap;
+
+        if (sp.atWaterSurface && p.vy > SWIM_SURFACE_DESCENT_CAP) {
+            p.vy = SWIM_SURFACE_DESCENT_CAP;
+        }
     }
 
     private boolean isAtWaterSurface(PhysicsState p) {

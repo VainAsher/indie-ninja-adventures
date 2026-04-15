@@ -3,10 +3,10 @@ doc_type: plan
 status: developing
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.50
+version_anchor: v0.11.51
 ---
 # PLAN â€” Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-15 22:43:18 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.50
+**Created:** 2026-04-11 | **Last updated:** 2026-04-15 23:44:06 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.51
 
 ---
 
@@ -212,7 +212,7 @@ Full ZIP animation â†’ engine filename â†’ animation key table. **This
 | 3 | AnimationRegistry Expansion | Phase 2 | **Done v0.11.6** â€” `loadUnarmedSheets()` + `loadSwordSheets()` (130+ keys) |
 | 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** â€” `player_sword_*` prefix fallthrough routing |
 | 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** â€” climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
-| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.50** â€” corner ledge grab/hang/climb and water-surface + side-bank water exit logic are live in `GameSimulator`; explicit `CLIMBABLE` tagging plus stance-gated wall contact (Yin climb attach, Yang wall slide) are implemented, while full swim-physics tuning remains |
+| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.51** â€” corner ledge grab/hang/climb and water-surface + side-bank water exit logic are live in `GameSimulator`; explicit `CLIMBABLE` tagging plus stance-gated wall contact (Yin climb attach, Yang wall slide) are implemented, with stance-sensitive swim tuning + blocked-bank/surface-jump handling now added |
 | 7 | Interaction Animations | Phase 6 | Not started |
 | 8 | Weapon State System | Phase 4 | **Partial v0.11.48** â€” `weaponState` routing is live and stance-coupled (Yin->unarmed, Yang->armed posture with equipped-weapon fallback); manual hot-swap and combat-chain integration remain |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |
@@ -220,7 +220,7 @@ Full ZIP animation â†’ engine filename â†’ animation key table. **This
 | 11 | Block / Parry System | Phase 9-10 | **Partial v0.11.39** - runtime guard/parry input schema + front-facing block/parry behavior live; hold/toggle rebinding and full combat-state polish still pending |
 | 12 | Social / Emote Animations | Phase 7 | Not started |
 | 13 | Death, Revive & Prone System | Phase 5 | Not started |
-| 14 | Testing & Validation | All | **Partial v0.11.49** â€” dedicated traversal fixtures + regression tests added for climb-tag gating, ledge-grab climb-out, and water-exit snap transitions |
+| 14 | Testing & Validation | All | **Partial v0.11.51** â€” dedicated traversal fixtures + regression tests cover climb-tag gating, stance wall behavior, ledge-grab climb-out, water-exit snap, water-surface jump, and blocked-bank non-snap behavior |
 | 15 | Complete Keybinding Scheme | Phase 8 | **Partial v0.11.39** - runtime map/core action keys align to GDD baseline and `S` guard/parry is schema-wired; full configurable keybinding runtime still pending Phase 16 |
 | 16 | KeyBindings System (Configurable) | Phase 15 | **Partial v0.11.39** - launcher settings exist, but runtime action rebinding parity is incomplete |
 | 17 | Controls Overlay (In-Game HUD) | Phase 16 | **Partial v0.11.39** - `F1` overlay now mirrors GDD core keys, with full action-family parity still in progress |
@@ -306,6 +306,19 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
 - Regression coverage extended:
   - updated `climbOnlyActivatesOnClimbableTaggedWalls` to assert `YIN` stance semantics.
   - added `yangWallContactSlidesInsteadOfClimbing` for explicit `YANG` routing checks.
+
+### Progress update (`2026-04-15 23:44:06 +01:00`)
+
+- Phase 6 swim-tuning bridge pass:
+  - Added stance-sensitive water movement caps/tuning in `GameSimulator` (`YIN` tighter control, `YANG` higher burst allowances).
+  - Added playtest traversal log events for `water_surface_jump` and `water_exit_blocked`.
+  - Added blocked-bank fallback guard so failed side-bank exits do not force invalid top-out placement.
+- Dedicated fixture expansion for traversal edge coverage:
+  - `LevelLayout.buildWaterSurfaceFixtureLayout(...)`
+  - `LevelLayout.buildBlockedWaterExitFixtureLayout(...)`
+- Regression coverage additions:
+  - `waterSurfaceJumpBurstWorksWithoutBankExit`
+  - `blockedWaterExitFallsBackToSurfaceJump`
 
 ### Validation additions for this plan
 

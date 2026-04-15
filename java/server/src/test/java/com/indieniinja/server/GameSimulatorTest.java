@@ -293,6 +293,61 @@ class GameSimulatorTest {
     }
 
     @Test
+    void waterSurfaceJumpBurstWorksWithoutBankExit() {
+        LevelLayout fixture = LevelLayout.buildWaterSurfaceFixtureLayout(885L);
+        GameSimulator sim = new GameSimulator(885L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, fixture.spawnX, fixture.spawnY);
+        sim.addPlayer(player);
+
+        sim.step(Map.of(0, new InputCommand(0))); // establish inWater
+        sim.step(Map.of(0, new InputCommand(1))); // compute atWaterSurface from previous inWater tick
+        assertThat(player.physics.inWater).isTrue();
+        assertThat(player.atWaterSurface).isTrue();
+
+        player.physics.y = 19 * 32f - 20f;
+        float yBeforeJump = player.physics.y;
+        InputCommand jump = new InputCommand(2);
+        jump.jump = true;
+        sim.step(Map.of(0, jump));
+
+        assertThat(player.physics.vy).isLessThan(0f);
+        assertThat(player.physics.y).isLessThanOrEqualTo(yBeforeJump);
+        assertThat(player.physics.onGround).isFalse();
+        assertThat(player.jumpCount).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void blockedWaterExitFallsBackToSurfaceJump() {
+        LevelLayout fixture = LevelLayout.buildBlockedWaterExitFixtureLayout(886L);
+        GameSimulator sim = new GameSimulator(886L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, fixture.spawnX, fixture.spawnY);
+        // Shift player near the water surface so fallback jump path is valid.
+        player.physics.y = 20 * 32f - 20f;
+        sim.addPlayer(player);
+
+        sim.step(Map.of(0, new InputCommand(0))); // establish inWater
+        sim.step(Map.of(0, new InputCommand(1))); // compute atWaterSurface
+        assertThat(player.physics.inWater).isTrue();
+        assertThat(player.atWaterSurface).isTrue();
+
+        player.physics.y = 20 * 32f - 20f;
+        float xBefore = player.physics.x;
+        float yBefore = player.physics.y;
+        InputCommand exitAttempt = new InputCommand(2);
+        exitAttempt.right = true;
+        exitAttempt.jump = true;
+        sim.step(Map.of(0, exitAttempt));
+
+        // Should not snap to bank top-out due blocked headroom.
+        float bankSnapX = 24 * 32f - 28f + 2f;
+        assertThat(Math.abs(player.physics.x - bankSnapX)).isGreaterThan(1.0f);
+        // Bank-blocked attempt may burst upward or remain in-water, but should not
+        // advance into a deeper/farther invalid placement.
+        assertThat(player.physics.y).isLessThanOrEqualTo(yBefore + 32f);
+        assertThat(player.physics.x).isGreaterThanOrEqualTo(xBefore - 2f);
+    }
+
+    @Test
     void timeLeechLordSpawnsTypedCappedMinions() {
         long seed = findBossSeed("time_leech_lord");
         LevelLayout layout = LevelLayout.buildProceduralLayout(

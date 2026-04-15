@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.50
+version_anchor: v0.11.51
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.51] - 2026-04-15 (phase-6 swim tuning + water traversal fixtures)
+
+### Added
+
+- Phase 6 traversal fixtures for deterministic water-context coverage:
+  - `LevelLayout.buildWaterSurfaceFixtureLayout(...)`
+  - `LevelLayout.buildBlockedWaterExitFixtureLayout(...)`
+- New traversal regressions in `GameSimulatorTest`:
+  - `waterSurfaceJumpBurstWorksWithoutBankExit`
+  - `blockedWaterExitFallsBackToSurfaceJump`
+- Playtest traversal events:
+  - `[Playtest][Traversal] ... event=water_surface_jump`
+  - `[Playtest][Traversal] ... event=water_exit_blocked`
+
+### Changed
+
+- Swim runtime tuning in `GameSimulator` now uses stance-sensitive caps/acceleration:
+  - `YIN` keeps tighter horizontal/vertical control.
+  - `YANG` allows slightly higher burst/velocity envelope.
+- Water-context handling now cleanly distinguishes:
+  - bank top-out exit success (`water_exit_bank`)
+  - blocked bank attempt (`water_exit_blocked`)
+  - surface jump burst path (`water_surface_jump`)
+- Version parity metadata updated to `0.11.51` across `version.json`, Gradle, README, ROADMAP, active animation plan, and current-state snapshot.
+
+### Validation
+
+- `cd java && ./gradlew :server:test --tests com.indieniinja.server.GameSimulatorTest --no-daemon` pass.
 
 ---
 

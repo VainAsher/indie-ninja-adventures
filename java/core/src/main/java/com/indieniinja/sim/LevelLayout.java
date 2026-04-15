@@ -272,6 +272,80 @@ public final class LevelLayout {
     }
 
     /**
+     * Deterministic water-surface fixture:
+     * - broad water column with no reachable side-bank within probe distance
+     * Used to assert surface jump burst routing independent of bank exits.
+     */
+    public static LevelLayout buildWaterSurfaceFixtureLayout(long seed) {
+        final int TILE  = 32;
+        final int W     = 64;
+        final int H     = 32;
+
+        SpatialHash hash = new SpatialHash();
+
+        for (int tx = 0; tx < W; tx++) {
+            hash.insert(new TileRect(tx * TILE, (H - 2) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect(tx * TILE, (H - 1) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 0; ty < H; ty++) {
+            hash.insert(new TileRect(0, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect((W - 1) * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+
+        for (int ty = 19; ty <= 29; ty++) {
+            for (int tx = 28; tx <= 36; tx++) {
+                hash.insert(new TileRect(tx * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.WATER));
+            }
+        }
+
+        // Top of player sits above water top, but body still intersects water for at-surface context.
+        float spawnX = 32 * TILE - 14f;
+        float spawnY = 19 * TILE - 20f;
+        return new LevelLayout(seed, W, H, hash,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), spawnX, spawnY, null);
+    }
+
+    /**
+     * Deterministic blocked-bank fixture:
+     * - same water basin as water-exit fixture
+     * - adds a blocking cap over the bank top-out region so bank-exit fails
+     * Used to assert fallback to surface jump behavior.
+     */
+    public static LevelLayout buildBlockedWaterExitFixtureLayout(long seed) {
+        LevelLayout base = buildWaterExitFixtureLayout(seed);
+        SpatialHash hash = new SpatialHash();
+
+        final int TILE = 32;
+        final int W = 64;
+        final int H = 32;
+
+        for (int tx = 0; tx < W; tx++) {
+            hash.insert(new TileRect(tx * TILE, (H - 2) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect(tx * TILE, (H - 1) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 0; ty < H; ty++) {
+            hash.insert(new TileRect(0, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect((W - 1) * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 20; ty <= 29; ty++) {
+            for (int tx = 18; tx <= 23; tx++) {
+                hash.insert(new TileRect(tx * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.WATER));
+            }
+        }
+        for (int ty = 22; ty <= 31; ty++) {
+            hash.insert(new TileRect(24 * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        // Blocking shoulder near bank top-out region. Positioned left of the
+        // bank column so it blocks body placement without becoming the exit target.
+        hash.insert(new TileRect(23 * TILE, 20 * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+
+        return new LevelLayout(seed, W, H, hash,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), base.spawnX, base.spawnY, null);
+    }
+
+    /**
      * Build a procedurally generated layout from a seed.
      *
      * Uses WorldGenerator to create a 128×128 tile grid with layered platforms
