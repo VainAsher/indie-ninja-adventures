@@ -47,6 +47,8 @@ public final class NetworkClientThread extends Thread {
     private static final int    RECONNECT_MAX_MS   = 30_000;
     private static final String PLAYER_ID_PROPERTY = "ninja.playerId";
     private static final String PLAYER_ID_ENV      = "NINJA_PLAYER_ID";
+    private static final String SESSION_ID_PROPERTY = "ninja.sessionId";
+    private static final String SESSION_ID_ENV      = "NINJA_SESSION_ID";
     private static final Path   PLAYER_ID_PATH     =
         Path.of("user_data", "profiles", "client_identity.json");
     private static final Pattern PLAYER_ID_JSON_PATTERN =
@@ -55,6 +57,7 @@ public final class NetworkClientThread extends Thread {
     private final String          host;
     private final int             port;
     private final String          playerId;
+    private final String          sessionId;
     private final GameStateBuffer buffer;
     private volatile String       gameMode = "arcade";
 
@@ -73,6 +76,7 @@ public final class NetworkClientThread extends Thread {
         this.host      = host;
         this.port      = port;
         this.playerId  = resolveStablePlayerId();
+        this.sessionId = resolveClientSessionId();
         this.buffer    = buffer;
     }
 
@@ -126,7 +130,7 @@ public final class NetworkClientThread extends Thread {
                     buffer.markDisconnected();
 
                     sendHello(os);
-                    log.info("[Net] Connected — player_id={}", playerId);
+                    log.info("[Net] Connected — player_id={} session_id={}", playerId, sessionId);
                     backoff = RECONNECT_BASE_MS;  // reset on success
 
                     // Receive loop
@@ -164,7 +168,8 @@ public final class NetworkClientThread extends Thread {
             case MessageType.SERVER_HELLO -> {
                 String ver  = msg.getString("version", "?");
                 int    slot = (int) msg.getLong("slot", 0L);
-                log.info("[Net] SERVER_HELLO version={} slot={}", ver, slot);
+                String serverSession = msg.getString("session_id", "unknown");
+                log.info("[Net] SERVER_HELLO version={} slot={} session_id={}", ver, slot, serverSession);
                 buffer.setPendingLocalSlot(slot);
                 buffer.markConnected();  // HUD goes Online as soon as handshake completes
             }
@@ -187,6 +192,7 @@ public final class NetworkClientThread extends Thread {
     private void sendHello(DataOutputStream os) throws IOException {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("player_id", playerId);
+        payload.put("session_id", sessionId);
         payload.put("version",   MessageType.PROTOCOL_VERSION);  // "2" — matches server
         payload.put("protocol",  MessageType.PROTOCOL_VERSION);
         payload.put("game_mode", gameMode);
@@ -242,6 +248,24 @@ public final class NetworkClientThread extends Thread {
         String generated = UUID.randomUUID().toString();
         persistPlayerId(generated);
         log.info("[Net] player_id source=generated path={} value={}", PLAYER_ID_PATH, generated);
+        return generated;
+    }
+
+    private static String resolveClientSessionId() {
+        String prop = normalizeUuid(System.getProperty(SESSION_ID_PROPERTY));
+        if (prop != null) {
+            log.info("[Net] session_id source=system-property key={} value={}", SESSION_ID_PROPERTY, prop);
+            return prop;
+        }
+
+        String env = normalizeUuid(System.getenv(SESSION_ID_ENV));
+        if (env != null) {
+            log.info("[Net] session_id source=env key={} value={}", SESSION_ID_ENV, env);
+            return env;
+        }
+
+        String generated = UUID.randomUUID().toString();
+        log.info("[Net] session_id source=generated value={}", generated);
         return generated;
     }
 

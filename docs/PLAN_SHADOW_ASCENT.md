@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 04:36:18 +01:00 | **Codebase version:** v0.11.39 | **Next release target:** v0.11.40 (P0-10 playtest blocker follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 14:37:00 +01:00 | **Codebase version:** v0.11.44 | **Next release target:** v0.11.45 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
@@ -86,6 +86,45 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 14:37:00 +01:00`
+
+- Completed dedicated playtest logging hardening pass across client/core/server:
+  - added client/server session correlation via `session_id` wire field on `CLIENT_HELLO` + `SERVER_HELLO`
+  - server join/travel/disconnect logs now include `player_id` + `session_id` for end-to-end traceability
+  - added low-noise runtime transition logs:
+    - `[Playtest][Stance]`
+    - `[Playtest][Flow]`
+    - `[Playtest][Lantern]`
+    - `[Playtest][Room]`
+    - `[Playtest][Boss]`
+    - `[Playtest][Player]`
+  - dialogue event processing now logs key/arg/count for onboarding and authored mission handoff traces
+- Validation:
+  - `./gradlew :server:test` ✅
+  - `./gradlew :client:compileJava` ✅
+- Documentation alignment:
+  - updated `PLAYER_EXPECTATIONS.md` instrumentation audit to reflect session-correlation and transition tracing
+  - updated `GDD.md` with runtime observability contract (`10.4`)
+
+`2026-04-15 14:06:38 +01:00`
+
+- Completed release recovery and metadata parity closure for the Siren onboarding asset pass:
+  - pushed `master` with Siren-first onboarding/dialogue/asset integration
+  - cut and pushed tags `v0.11.42` then `v0.11.43`
+  - resolved release gate mismatch by syncing version metadata in:
+    - `version.json`
+    - `java/build.gradle.kts`
+    - `README.md`
+    - `docs/ROADMAP.md`
+    - `docs/CHANGELOG.md`
+- Remote CI status:
+  - `Release` workflow for `v0.11.43` passed (`24455868898`)
+  - `CI` workflow on `master` passed (`24455833128`)
+- Documentation alignment pass completed:
+  - updated plan metadata and loop trail to `v0.11.43`
+  - updated `PLAYER_EXPECTATIONS.md` controls/onboarding guidance to current runtime
+  - updated `GDD.md` onboarding + mission-scale + lantern/Flow alignment notes
 
 `2026-04-15 04:36:18 +01:00`
 

@@ -20,6 +20,7 @@ import com.indieniinja.network.PortalState;
 import com.indieniinja.physics.TileRect;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -130,6 +131,14 @@ public final class GameSimulator {
     /** Set to true when the Siren scripted loss fires; caller should broadcast
      *  MessageType.SCRIPTED_LOSS and then clear this via drainPendingScriptedLoss(). */
     private boolean pendingScriptedLoss = false;
+    /** Per-player flow-state transition cache for low-noise playtest tracing. */
+    private final Map<Integer, Boolean> loggedFlowBySlot = new HashMap<>();
+    /** Per-player lantern band transition cache for low-noise playtest tracing. */
+    private final Map<Integer, Integer> loggedLanternBandBySlot = new HashMap<>();
+    /** Per-boss phase transition cache for low-noise playtest tracing. */
+    private final Map<String, Integer> loggedBossPhaseById = new HashMap<>();
+    /** Per-boss AI-state transition cache for low-noise playtest tracing. */
+    private final Map<String, BossAIState> loggedBossStateById = new HashMap<>();
 
     // ── Construction ─────────────────────────────────────────────────────────
 
@@ -238,6 +247,8 @@ public final class GameSimulator {
         // Register physics state so PhysicsSystem and CollisionSystem process it
         var entity = entityManager.create(com.indieniinja.core.EntityType.PLAYER, player.physics);
         entity.addTag("player");
+        log.info("[Playtest][Player] joined player={} slot={} hub={} spawn=({}, {})",
+            player.playerId, player.slot, hubId, (int) player.physics.x, (int) player.physics.y);
     }
 
     /** Return the SimPlayer for the given slot, or null if not present. */
@@ -249,7 +260,13 @@ public final class GameSimulator {
      * Remove a player from the simulation (on disconnect / zone leave).
      */
     public void removePlayer(int slot) {
-        players.remove(slot);
+        SimPlayer removed = players.remove(slot);
+        if (removed != null) {
+            loggedFlowBySlot.remove(slot);
+            loggedLanternBandBySlot.remove(slot);
+            log.info("[Playtest][Player] removed player={} slot={} hub={} pos=({}, {})",
+                removed.playerId, removed.slot, hubId, (int) removed.physics.x, (int) removed.physics.y);
+        }
         // Entity removal: find by tag "player" matching slot
         // Simple: clear all player entities and re-add remaining (small N)
         rebuildPlayerEntities();
@@ -421,6 +438,14 @@ public final class GameSimulator {
             } else {
                 p.abilityFlags &= ~PhysicsConstants.ABILITY_YIN_SIGHT;
             }
+            boolean flowNow = yy.isBalanced();
+            Boolean prevFlow = loggedFlowBySlot.put(sp.slot, flowNow);
+            if (prevFlow == null || prevFlow != flowNow) {
+                log.info("[Playtest][Flow] player={} slot={} active={} stance={} yin={} yang={} pos=({}, {})",
+                    sp.playerId, sp.slot, flowNow, sp.stanceMode,
+                    fmt(yy.yin), fmt(yy.yang),
+                    (int) sp.physics.x, (int) sp.physics.y);
+            }
             // yang_surge and flowMode are read by getSnapshot() and sent as PlayerState fields
         }
     }
@@ -464,6 +489,14 @@ public final class GameSimulator {
             lc.decay(DT, inDark);
             if (sp.yinYang != null && sp.yinYang.isBalanced()) {
                 lc.restore(FLOW_LANTERN_RESTORE_PER_SECOND * DT);
+            }
+            int bandNow = lanternBand(lc.value);
+            Integer prevBand = loggedLanternBandBySlot.put(sp.slot, bandNow);
+            if (prevBand == null || prevBand != bandNow) {
+                log.info("[Playtest][Lantern] player={} slot={} band={} value={} dark={} flow={} pos=({}, {})",
+                    sp.playerId, sp.slot, lanternBandLabel(bandNow), fmt(lc.value), inDark,
+                    sp.yinYang != null && sp.yinYang.isBalanced(),
+                    (int) sp.physics.x, (int) sp.physics.y);
             }
             // High lantern bonus — applied via applyPlayerInput on next tick
             // (we set a flag so physics pick it up; actual bonus in applyPlayerInput)
@@ -517,6 +550,7 @@ public final class GameSimulator {
             // Yin/Yang & Lantern (M4)
             ps.yinValue     = p.yinYang.yin;
             ps.yangValue    = p.yinYang.yang;
+            ps.stanceMode   = p.stanceMode;
             ps.flowMode     = p.yinYang.isBalanced();
             ps.lanternValue = p.lantern.value;
             ps.weaponState    = p.weaponState;
@@ -785,12 +819,17 @@ public final class GameSimulator {
 
         // ── Stance switching (P0-A bridge) ───────────────────────────────────
         if (cmd.stanceSwitch) {
+            String prevStance = sp.stanceMode;
             sp.stanceMode = "yin".equals(sp.stanceMode) ? "yang" : "yin";
             if ("yang".equals(sp.stanceMode)) {
                 sp.yinYang.absorbYang(STANCE_SWITCH_BOOST);
             } else {
                 sp.yinYang.absorbYin(STANCE_SWITCH_BOOST);
             }
+            log.info("[Playtest][Stance] player={} slot={} {}->{} yin={} yang={} pos=({}, {})",
+                sp.playerId, sp.slot, prevStance, sp.stanceMode,
+                fmt(sp.yinYang.yin), fmt(sp.yinYang.yang),
+                (int) p.x, (int) p.y);
         }
 
         // Guard/parry: hold block to guard; first window counts as parry.
@@ -1425,6 +1464,8 @@ public final class GameSimulator {
             if (p.respawnTimer < 0f) {
                 // Player just died this tick (or timer not started) — begin countdown
                 p.respawnTimer = RESPAWN_DELAY;
+                log.info("[Playtest][Player] death player={} slot={} hub={} pos=({}, {})",
+                    p.playerId, p.slot, hubId, (int) p.physics.x, (int) p.physics.y);
             } else {
                 p.respawnTimer -= DT;
                 if (p.respawnTimer <= 0f) {
@@ -1440,8 +1481,8 @@ public final class GameSimulator {
                     p.dashTimer           = 0f;
                     p.isAttacking         = false;
                     p.isThrowing          = false;
-                    log.info("Player {} (slot {}) respawned at ({},{})",
-                             p.playerId, p.slot, p.spawnX, p.spawnY);
+                    log.info("[Playtest][Player] respawn player={} slot={} hub={} spawn=({}, {})",
+                             p.playerId, p.slot, hubId, (int) p.spawnX, (int) p.spawnY);
                 }
             }
         }
@@ -1993,6 +2034,7 @@ public final class GameSimulator {
         }
 
         for (SimBoss boss : bosses) {
+            traceBossStateTransition(boss);
             if (!boss.isAlive()) continue;
 
             float bx = boss.physics.x + boss.physics.width  * 0.5f;
@@ -2240,6 +2282,41 @@ public final class GameSimulator {
     // ── Accessors (for testing) ───────────────────────────────────────────────
 
     public Map<Integer, SimPlayer> getPlayers()  { return java.util.Collections.unmodifiableMap(players); }
+
+    private static String fmt(float v) {
+        return String.format(java.util.Locale.ROOT, "%.3f", v);
+    }
+
+    private static int lanternBand(float value) {
+        if (value < 0.20f) return 0;
+        if (value < 0.45f) return 1;
+        if (value < 0.70f) return 2;
+        return 3;
+    }
+
+    private static String lanternBandLabel(int band) {
+        return switch (band) {
+            case 0 -> "critical";
+            case 1 -> "low";
+            case 2 -> "mid";
+            default -> "high";
+        };
+    }
+
+    private void traceBossStateTransition(SimBoss boss) {
+        if (boss == null) return;
+        Integer prevPhase = loggedBossPhaseById.put(boss.bossId, boss.phaseNumber);
+        if (prevPhase == null || prevPhase.intValue() != boss.phaseNumber) {
+            log.info("[Playtest][Boss] phase boss={} type={} phase={} hp={}/{} hub={} pos=({}, {})",
+                boss.bossId, boss.type.wire, boss.phaseNumber, boss.hp, boss.maxHp, hubId,
+                (int) boss.physics.x, (int) boss.physics.y);
+        }
+        BossAIState prevState = loggedBossStateById.put(boss.bossId, boss.aiState);
+        if (prevState == null || prevState != boss.aiState) {
+            log.info("[Playtest][Boss] state boss={} type={} state={} phase={} hp={}/{} hub={}",
+                boss.bossId, boss.type.wire, boss.aiState.wire, boss.phaseNumber, boss.hp, boss.maxHp, hubId);
+        }
+    }
     public List<SimEnemy>          getEnemies()  { return java.util.Collections.unmodifiableList(enemies); }
     public List<SimPickup>         getPickups()  { return java.util.Collections.unmodifiableList(pickups); }
     public List<SimNPC>            getNpcs()     { return java.util.Collections.unmodifiableList(npcs); }

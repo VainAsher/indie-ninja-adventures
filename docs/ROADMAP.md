@@ -2,7 +2,7 @@
 
 Vain Asher Gaming's: **Shadow Ascent: The Hollowed Ninja**
 
-Last Updated: 2026-04-15 | Version: v0.11.43 | Platform: Java 21 + libGDX + Netty
+Last Updated: 2026-04-15 | Version: v0.11.44 | Platform: Java 21 + libGDX + Netty
 
 ---
 

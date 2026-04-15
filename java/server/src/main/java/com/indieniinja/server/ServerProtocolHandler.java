@@ -72,7 +72,8 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        log.info("Client connected: {}", ctx.channel().remoteAddress());
+        log.info("Client connected: remote={} channel={}",
+            ctx.channel().remoteAddress(), ctx.channel().id().asShortText());
     }
 
     @Override
@@ -119,12 +120,13 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     private void handleClientHello(ChannelHandlerContext ctx, WireMessage msg) throws Exception {
         String playerId  = msg.getString("player_id", UUID.randomUUID().toString());
+        String sessionId = normalizeSessionId(msg.getString("session_id", ""));
         String version   = msg.getString("version", "");
         GameMode reqMode = GameMode.fromWire(msg.getString("game_mode", "arcade"));
 
         if (!MessageType.PROTOCOL_VERSION.equals(version)) {
-            log.warn("Protocol version mismatch — client='{}' server='{}'",
-                version, MessageType.PROTOCOL_VERSION);
+            log.warn("Protocol version mismatch — player={} session={} client='{}' server='{}'",
+                playerId, sessionId, version, MessageType.PROTOCOL_VERSION);
         }
 
         int slot = session.claimSlot(playerId);
@@ -135,17 +137,19 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             return;
         }
 
-        PlayerRecord player = new PlayerRecord(playerId, slot, ctx.channel());
+        PlayerRecord player = new PlayerRecord(playerId, sessionId, slot, ctx.channel());
         session.players.put(playerId, player);
         channelToPlayer.put(ctx.channel().id().asShortText(), playerId);
         // First player's requested mode wins for the whole session
         if (slot == 0) session.gameMode = reqMode;
 
-        log.info("Player {} joined as slot {} mode={}", playerId, slot, session.gameMode.wire);
+        log.info("Player joined: player={} session={} slot={} mode={} remote={}",
+            playerId, sessionId, slot, session.gameMode.wire, ctx.channel().remoteAddress());
 
         // SERVER_HELLO
         sendMessage(ctx.channel(), MessageType.SERVER_HELLO, Map.of(
             "player_id",   playerId,
+            "session_id",  sessionId,
             "slot",        slot,
             "frame",       0,
             "seed",        session.worldSeed,
@@ -162,6 +166,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         // PLAYER_JOIN → all
         broadcastAll(MessageType.PLAYER_JOIN, Map.of(
             "player_id", playerId,
+            "session_id", sessionId,
             "slot",      slot
         ));
 
@@ -265,6 +270,8 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         ZoneInstance newZone = getOrCreateStartZone(destHubId);
         player.hubId = newZone.hubId;
         newZone.playerIds.add(pid);
+        log.info("Portal travel: player={} session={} from={} to={}",
+            pid, player.sessionId, oldZone != null ? oldZone.hubId : "none", newZone.hubId);
 
         // Send WORLD_TRANSITION to this player
         try {
@@ -355,7 +362,9 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         PlayerRecord player = session.players.remove(pid);
         if (player == null) return;
 
-        log.info("Player {} (slot {}) disconnected", pid, player.slot);
+        long connectedMs = Math.max(0L, System.currentTimeMillis() - player.connectedAtMs);
+        log.info("Player disconnected: player={} session={} slot={} connected_ms={}",
+            pid, player.sessionId, player.slot, connectedMs);
 
         // Release slot back to pool (player can reclaim it on reconnect)
         session.releaseSlot(pid, player.slot);
@@ -556,5 +565,11 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         } catch (Exception ex) {
             log.error("zone broadcast error ({}): {}", type, ex.getMessage());
         }
+    }
+
+    private static String normalizeSessionId(String raw) {
+        if (raw == null) return "missing";
+        String s = raw.trim();
+        return s.isEmpty() ? "missing" : s;
     }
 }

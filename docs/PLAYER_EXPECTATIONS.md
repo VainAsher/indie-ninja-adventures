@@ -1,8 +1,8 @@
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.37`
-**Last updated:** `2026-04-14 21:52:31 +01:00`
+**Target build:** `v0.11.44`
+**Last updated:** `2026-04-15 14:37:00 +01:00`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
 **Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
 
@@ -50,19 +50,22 @@ Use this as the default expected keyboard map.
 
 | Action | Input |
 |---|---|
-| Move | `A/D` or `Left/Right` |
-| Jump | `Space` |
-| Dash | `Left Shift` or `Right Shift` |
-| Crouch | `Left Ctrl` or `Right Ctrl` |
-| Attack | `J` or left mouse |
-| Throw | `K` |
-| Ninjutsu | `L` |
-| Teleport/phase | `F` or `T` |
-| Interact | `E` or `F` |
-| Inventory | `I` or `Tab` |
+| Move / Aim / Crouch direction | `Arrow Keys` |
+| Run modifier | `Left Shift` |
+| Jump | `Z` |
+| Dash | `C` |
+| Melee attack | `X` |
+| Guard / Parry | `S` |
+| Switch Yin/Yang | `A` |
+| Traversal Art | `D` |
+| Thrown Tool | `F` |
+| Echo Art | `R` |
+| Interact | `E` |
+| Mission board overlay | `O` |
+| Inventory | `I` |
 | Consumable | `Q` |
-| Minimap | `M` |
-| Full map | `N` |
+| Quick map | `Tab` (tap) |
+| Full map | `Tab` (hold) |
 | Pause/back | `Esc` |
 | Hitbox overlay | `H` |
 | Controls overlay | `F1` |
@@ -77,9 +80,11 @@ If control understanding is poor, tag finding with `UX-CONTROLS`.
 Give testers this short framing before first run:
 
 - You are the Hollowed Ninja reclaiming balance.
+- In Act I, the Siren is the explicit first quest giver and mission handoff NPC.
 - The game expresses identity through movement, stance pressure, and recovery loops.
 - Hub progression and scripted loss are intended narrative beats, not random failures.
 - Yin, Yang, Lantern, and Flow are intended to be felt in play, not explained by long text.
+- Early mission worlds are intentionally compact (4-9 rooms) for onboarding readability.
 
 Do not preload mechanical spoilers beyond this.
 
@@ -93,9 +98,9 @@ Do not preload mechanical spoilers beyond this.
 |---|---|---|
 | Client log file | Working | `user_data/logs/client.log` rolling daily |
 | Server log file | Working | `user_data/logs/server.log` rolling daily |
-| Mission event logging | Partial | Includes mission/location events; now includes hub, room, and position on reach/complete |
-| Structured event IDs | Missing | Logs are human-readable but not fully structured telemetry |
-| Correlation/session IDs | Missing | No global session id across client/server traces |
+| Mission event logging | Working | Mission start/progress/complete, onboarding dialogue events, and room transitions include hub/room/position context |
+| Structured event IDs | Working | Runtime traces use stable prefixes: `[Playtest][Stance]`, `[Playtest][Flow]`, `[Playtest][Lantern]`, `[Playtest][Room]`, `[Playtest][Boss]`, `[Playtest][Player]` |
+| Correlation/session IDs | Working | Client sends `session_id` in `CLIENT_HELLO`; server logs join/travel/disconnect with `player_id` + `session_id` |
 
 ### 6.2 Debug tooling status
 
@@ -116,7 +121,7 @@ Do not preload mechanical spoilers beyond this.
 | In-game graphics/audio settings UI | Missing | No full settings menu path in Java client |
 | Per-profile gameplay settings | Missing/partial | Profiles exist in launcher; gameplay settings not fully wired |
 
-Conclusion: logging/debug exist and are useful for playtesting, but not yet full-featured.
+Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/flow/lantern/boss/user-session tracing.
 
 ---
 
@@ -129,10 +134,11 @@ Conclusion: logging/debug exist and are useful for playtesting, but not yet full
 ### Steps
 
 1. Start from launcher and enter `SOLO`.
-2. Reach first enemy encounter.
-3. Open inventory once (`I`) and minimap once (`M`).
-4. Trigger at least one mission objective interaction.
-5. Trigger at least one failure/death and recover.
+2. Find and interact with the Siren (`!` marker) and start first trial (or press `O`).
+3. Confirm onboarding toasts appear (`F1`, mission board, tracker/map cue sequence).
+4. Open inventory once (`I`) and map once (`Tab` tap/hold behavior).
+5. Trigger at least one mission objective interaction and confirm tracker updates.
+6. Trigger at least one failure/death and recover.
 
 ### Record
 
@@ -145,6 +151,7 @@ Conclusion: logging/debug exist and are useful for playtesting, but not yet full
 ### Expected
 
 - Player can progress without external docs.
+- Siren-first mission handoff is readable in under 30 seconds from spawn.
 - UI does not block basic understanding.
 - Death and retry feel readable, not random.
 
@@ -230,7 +237,7 @@ Conclusion: logging/debug exist and are useful for playtesting, but not yet full
 
 For every bug, frustration point, or balance note capture:
 
-1. Build version (`v0.11.37` or newer).
+1. Build version (`v0.11.44` or newer).
 2. Mode (`SOLO`, `CAMPAIGN`, `HOST`, `JOIN`).
 3. Area context (`hub`, `room grid`, enemy type, mission id).
 4. Exact player-visible behavior.
@@ -274,6 +281,7 @@ When reporting spatial bugs include telemetry values:
 - `snapshot.room`
 - `local.pos`
 - `local.player_id`
+- `session_id` (client + server correlation)
 
 ## 9.4 Recommended report attachments
 
@@ -285,17 +293,19 @@ When reporting spatial bugs include telemetry values:
 
 ## 10. Identity and persistence note (important)
 
-Previous builds generated a new multiplayer `player_id` every client launch, which breaks server-side identity continuity.
+Older builds could make identity diagnosis ambiguous when sessions were mixed.
 
 Expected behavior after the current fix:
 
 - Launcher profile now provides stable player identity for Java client sessions.
 - Client also supports persisted fallback identity at `user_data/profiles/client_identity.json`.
+- Every network session now has a generated `session_id` echoed across client/server logs.
 
 Validation check:
 
 1. Connect twice from same launcher profile.
-2. Confirm `server.log` shows same `Player <uuid>` value both sessions.
+2. Confirm `server.log` shows same `player_id` value both sessions.
+3. Confirm each connect/disconnect also includes a `session_id` so one run can be traced end-to-end.
 
 If UUID changes across relaunch with same profile, report as `TECH-STABILITY` blocker.
 
@@ -326,7 +336,7 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 
 ```md
 ### Session Summary
-Build: v0.11.37
+Build: v0.11.44
 Mode: SOLO / HOST / JOIN
 Duration: XX min
 
@@ -351,7 +361,7 @@ IDs: UX-___ / BAL-___ / TECH-___
 
 ```md
 ### Bug
-Build: v0.11.37
+Build: v0.11.44
 Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 

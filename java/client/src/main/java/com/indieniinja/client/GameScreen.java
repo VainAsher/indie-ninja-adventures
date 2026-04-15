@@ -152,6 +152,12 @@ public final class GameScreen implements Screen {
     private final java.util.Map<Integer,String>  prevAnimState = new java.util.HashMap<>();
     /** Previous health per player slot — for hurt/death SFX detection. */
     private final java.util.Map<Integer,Integer> prevHealth    = new java.util.HashMap<>();
+    /** Last local stance logged for playtest trace transitions. */
+    private String lastLoggedStanceMode = null;
+    /** Last local flow state logged for playtest trace transitions. */
+    private Boolean lastLoggedFlowMode = null;
+    /** Last local lantern band logged for playtest trace transitions. */
+    private int lastLoggedLanternBand = Integer.MIN_VALUE;
 
     /** Most recently received snapshot — retained between frames for overlay input. */
     private WorldSnapshot prevSnap = null;
@@ -503,6 +509,9 @@ public final class GameScreen implements Screen {
             cachedPickups  = java.util.List.of();
             cachedTileGrids.clear();
             visitedRooms.clear();
+            lastLoggedStanceMode = null;
+            lastLoggedFlowMode = null;
+            lastLoggedLanternBand = Integer.MIN_VALUE;
             minimapRenderer.clearState();
             chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
         }
@@ -635,8 +644,15 @@ public final class GameScreen implements Screen {
                 cachedPickups = java.util.List.of();
                 // Room entry is a meaningful checkpoint — trigger auto-save
                 if (saveManager != null) saveManager.markDirty();
-                log.debug("[GameScreen] room changed ({},{})→({},{})",
-                    prevRoomGridX, prevRoomGridY, snap.roomGridX, snap.roomGridY);
+                PlayerState lp = snap.players.stream()
+                    .filter(p -> p.slot == localSlot)
+                    .findFirst()
+                    .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
+                float px = lp != null ? lp.posX : 0f;
+                float py = lp != null ? lp.posY : 0f;
+                log.info("[Playtest][Room] changed hub={} ({},{})→({},{}) pos=({}, {})",
+                    snap.hubId, prevRoomGridX, prevRoomGridY, snap.roomGridX, snap.roomGridY,
+                    (int) px, (int) py);
                 // No camera snap needed — entities are already in world-space so the
                 // camera spring-lerp follows the player's continuous position naturally.
             }
@@ -672,6 +688,8 @@ public final class GameScreen implements Screen {
             if (!snap.portals.isEmpty()) {
                 cachedPortals = snap.portals;
             }
+
+            logLocalPlaytestState(snap);
 
             // ── Megamap: build stitched world tilemap when full room list arrives ─
             // Rebuild if: room count changed (new hub) OR stale flag set (zone transition).
@@ -1159,6 +1177,7 @@ public final class GameScreen implements Screen {
             case 2 -> hudRenderer.notifyToast("TRACK OBJECTIVES ON THE TOP-RIGHT PANEL. TAB OPENS MINIMAP.");
             default -> { }
         }
+        log.info("[Onboarding] toast stage={} shown", onboardingToastStage);
         onboardingToastStage++;
         onboardingToastCooldown = 4.0f;
     }
@@ -1845,6 +1864,8 @@ public final class GameScreen implements Screen {
         String key = parts[0];
         String arg = parts.length > 1 ? parts[1] : "";
         dialogueEventCounts.merge(key, 1, Integer::sum);
+        log.info("[Dialogue] event='{}' arg='{}' count={}",
+            key, arg, dialogueEventCounts.getOrDefault(key, 1));
 
         switch (key) {
             case "start_mission" -> {
@@ -1891,6 +1912,62 @@ public final class GameScreen implements Screen {
                     key, value, dialogueEventCounts.getOrDefault(key, 1));
             }
         }
+    }
+
+    private void logLocalPlaytestState(WorldSnapshot snap) {
+        if (snap == null || snap.players == null || snap.players.isEmpty()) return;
+        PlayerState local = snap.players.stream()
+            .filter(p -> p.slot == localSlot)
+            .findFirst()
+            .orElse(snap.players.get(0));
+        if (local == null) return;
+
+        if (lastLoggedStanceMode == null || !lastLoggedStanceMode.equals(local.stanceMode)) {
+            log.info("[Playtest][Stance] local slot={} stance={} yin={} yang={} flow={} hub={} room=({}, {}) pos=({}, {})",
+                local.slot, local.stanceMode,
+                String.format(java.util.Locale.ROOT, "%.3f", local.yinValue),
+                String.format(java.util.Locale.ROOT, "%.3f", local.yangValue),
+                local.flowMode, snap.hubId, snap.roomGridX, snap.roomGridY,
+                (int) local.posX, (int) local.posY);
+            lastLoggedStanceMode = local.stanceMode;
+        }
+
+        if (lastLoggedFlowMode == null || lastLoggedFlowMode != local.flowMode) {
+            log.info("[Playtest][Flow] local slot={} active={} stance={} yin={} yang={} hub={} room=({}, {}) pos=({}, {})",
+                local.slot, local.flowMode, local.stanceMode,
+                String.format(java.util.Locale.ROOT, "%.3f", local.yinValue),
+                String.format(java.util.Locale.ROOT, "%.3f", local.yangValue),
+                snap.hubId, snap.roomGridX, snap.roomGridY,
+                (int) local.posX, (int) local.posY);
+            lastLoggedFlowMode = local.flowMode;
+        }
+
+        int lanternBand = localLanternBand(local.lanternValue);
+        if (lastLoggedLanternBand == Integer.MIN_VALUE || lanternBand != lastLoggedLanternBand) {
+            log.info("[Playtest][Lantern] local slot={} band={} value={} hub={} room=({}, {}) pos=({}, {})",
+                local.slot,
+                localLanternBandLabel(lanternBand),
+                String.format(java.util.Locale.ROOT, "%.3f", local.lanternValue),
+                snap.hubId, snap.roomGridX, snap.roomGridY,
+                (int) local.posX, (int) local.posY);
+            lastLoggedLanternBand = lanternBand;
+        }
+    }
+
+    private static int localLanternBand(float value) {
+        if (value < 0.20f) return 0;
+        if (value < 0.45f) return 1;
+        if (value < 0.70f) return 2;
+        return 3;
+    }
+
+    private static String localLanternBandLabel(int band) {
+        return switch (band) {
+            case 0 -> "critical";
+            case 1 -> "low";
+            case 2 -> "mid";
+            default -> "high";
+        };
     }
 
     // ── Mission objective progress ────────────────────────────────────────────

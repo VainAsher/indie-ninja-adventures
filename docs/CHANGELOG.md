@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.44] - 2026-04-15 (playtest trace logging hardening)
+
+### Added
+
+- Client-to-server session correlation:
+  - `session_id` sent in `CLIENT_HELLO`
+  - `session_id` echoed in `SERVER_HELLO`
+  - server join/travel/disconnect logs now include `player_id` + `session_id`
+- Runtime playtest transition logs across core/client:
+  - `[Playtest][Stance]`
+  - `[Playtest][Flow]`
+  - `[Playtest][Lantern]`
+  - `[Playtest][Room]`
+  - `[Playtest][Boss]`
+  - `[Playtest][Player]`
+- Dialogue event telemetry now logs key/arg/count for onboarding and mission handoff traceability.
+
+### Changed
+
+- `PlayerState` now carries `stance_mode` in wire payloads for runtime observability.
+- Plan/docs alignment updated for the P0 logging hardening pass:
+  - `docs/PLAN_SHADOW_ASCENT.md`
+  - `docs/PLAYER_EXPECTATIONS.md`
+  - `docs/GDD.md` (`10.4` runtime observability contract)
+- Version parity metadata updated to `0.11.44` across `version.json`, Gradle, README, ROADMAP, and changelog gate.
+
+### Validation
+
+- `./gradlew :server:test` pass.
+- `./gradlew :client:compileJava` pass.
+
+---
+
 ## [0.11.43] - 2026-04-15 (siren onboarding asset integration + version sync)
 
 ### Added

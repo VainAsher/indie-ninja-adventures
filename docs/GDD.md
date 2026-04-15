@@ -100,6 +100,20 @@ rewriting narrative structure.
 
 This shifts gameplay from static stat bonuses toward intentional style switching.
 
+### 1.5 Runtime Alignment Addendum (`2026-04-15 14:06:38 +01:00`)
+
+This addendum records currently implemented onboarding/runtime contracts that now
+count as canonical for Act I pacing and playtest expectations.
+
+Implemented alignment points:
+
+* Siren is the explicit first quest giver in Act I onboarding flow.
+* Mission handoff is discoverable via dialogue route and direct mission board overlay.
+* First-session onboarding toasts teach controls and objective tracking.
+* Active mission tracker is always visible during mission play.
+* Flow contributes to Lantern recharge while active (additional mastery reward loop).
+* Reach-location objective triggers are authored per mission and debug-visible.
+
 ---
 
 # 2. CORE GAME LOOP
@@ -107,7 +121,7 @@ This shifts gameplay from static stat bonuses toward intentional style switching
 ### 2.1 Meta loop (hub progression)
 
 1. Enter Hub
-2. Accept mission / access level
+2. Accept mission from Siren or mission board / access level
 3. Complete platforming challenge + boss encounter
 4. Earn fragment (Yin, Yang, or Lantern)
 5. Return to hub
@@ -125,6 +139,15 @@ This shifts gameplay from static stat bonuses toward intentional style switching
 6. Trigger temporary Flow window
 7. Exploit Flow for traversal/combat burst
 8. Return toward neutral and repeat
+
+### 2.3 Act I Onboarding Contract
+
+Act I onboarding must be playable from launcher-only context without hidden paths:
+
+1. Siren interaction introduces first trial and mission board route.
+2. Objective tracker and onboarding toasts provide immediate direction.
+3. Act I/II mission worlds stay compact (`4..9` rooms) to preserve readability.
+4. From Act III onward, mission world scale expands (`12..60` rooms) by authored mission shape and difficulty.
 
 ---
 
@@ -196,6 +219,7 @@ High Lantern:
 * Highest teleport precision and Echo stability
 
 Lantern does not replace stance play; it amplifies successful stance balancing.
+Flow also provides a secondary Lantern restoration avenue while active.
 
 ---
 
@@ -213,6 +237,7 @@ The hub is the emotional center of the game. It evolves to reflect the player’
 
 * Multiple NPCs (vendors, mentors, allies)
 * Bright, stable environment
+* Siren is the canonical first quest giver and onboarding handoff NPC
 
 ### State 2: Corruption
 
@@ -268,17 +293,20 @@ Each boss defeated:
 
 * Training levels
 * Introduces movement and basic mechanics
+* Mission world size target: `4..9` rooms
 
 ## ACT II — The Fall
 
 * Hub corruption
 * Siren influence increases
+* Mission world size target remains onboarding-scaled (`4..9` rooms)
 
 ## ACT III — The Labyrinth Court
 
 * Maze-based levels
 * Unfair systems
 * Proof token mechanic
+* Mission world size target expands to `12..60` rooms (mission-authored)
 
 ## ACT IV — The Break
 
@@ -604,6 +632,17 @@ Each boss represents a psychological or systemic obstacle.
 
 * Visual glow intensity
 * Controller vibration (optional)
+
+### 10.2 Onboarding and Objective Guidance
+
+The campaign onboarding path must expose objective intent in runtime, not only in docs.
+
+Required UX guidance elements:
+
+* Siren-first onboarding dialogue and mission handoff chain.
+* First-session tutorial toasts for controls, mission board, and tracker/map cues.
+* Persistent top-right mission tracker (objective checklist, timer, exit lock status).
+* Mission board overlay reachable from explicit input shortcut and dialogue events.
 
 ### 10.3 Controls Setup Specification
 #### 10.3.1 Controls Philosophy
@@ -1198,6 +1237,7 @@ ability management
 detailed map review
 settings
 Quick Map
+mission board
 
 Quick map access remains available in live play.
 
@@ -1254,6 +1294,7 @@ R	Echo Art
 E	Interact
 Tab (tap)	Quick Map
 Tab (hold)	Full Map
+O	Open Mission Board
 Esc	Pause / Menu
 Keyboard Notes
 movement defaults to walk
@@ -1339,6 +1380,27 @@ Accessibility is required to preserve the intended control feel across a wide ra
 #### 10.3.17 Summary
 
 Shadow Ascent uses a layered control architecture that separates locomotion profile, stance identity, and action families. Locomotion includes grounded, aerial, wall, and swimming movement. Movement profile states control sound, speed, posture, buoyancy handling, and detection. Yin and Yang control tactical expression rather than redefining the control map. Traversal Art and Echo Art serve as the game’s expandable mastery systems. Flow and Lantern amplify play without consuming additional core inputs. Meta-systems such as inventory, crafting, and loadout management are handled through menu layers so that real-time input space remains dedicated to movement, combat, stance switching, traversal, and Echo execution.
+
+### 10.4 Runtime Observability Contract (`2026-04-15 14:37:00 +01:00`)
+
+Playtest readiness requires traceable runtime diagnostics, not only visual debugging.
+
+Required runtime logging contract:
+
+* Every network session must include both `player_id` and `session_id` in connect/disconnect and travel logs.
+* Gameplay state transitions must emit low-noise change logs (not per-frame spam) for:
+  * stance changes
+  * Flow activation/deactivation
+  * Lantern band transitions
+  * room transitions
+  * boss phase/state transitions
+* Mission lifecycle logs must include mission id, objective id/location id where relevant, and spatial context (`hub`, `room`, `pos`).
+* Debug overlays (`F1`, `F3`, `H`) remain tester-facing affordances; logs remain the canonical post-session diagnostic source.
+
+Intent:
+
+* Enable launcher-only test sessions to be reconstructed from logs without IDE access.
+* Keep P0/P1 balancing decisions attributable to reproducible session traces.
 ---
 
 # 11. TECHNICAL CONSIDERATIONS

@@ -40,6 +40,7 @@ public final class PlayerState {
     // ── Yin/Yang & Lantern (M4 — GDD §3.3/§3.4) ─────────────────────────────
     public float   yinValue    = 0.5f;  // 0.0–1.0 Emotion
     public float   yangValue   = 0.5f;  // 0.0–1.0 Discipline
+    public String  stanceMode  = "yin"; // "yin" | "yang"
     public boolean flowMode    = false; // true when |yin−yang| < 0.15
     public float   lanternValue = 0.8f; // 0.0–1.0 Clarity; drives vignette intensity
 
@@ -78,6 +79,7 @@ public final class PlayerState {
         m.put("abilities",            abilities != null ? abilities : java.util.List.of());
         m.put("yin_value",            yinValue);
         m.put("yang_value",           yangValue);
+        m.put("stance_mode",          stanceMode != null ? stanceMode : "yin");
         m.put("flow_mode",            flowMode);
         m.put("lantern_value",        lanternValue);
         m.put("weapon_state",         weaponState != null ? weaponState : "unarmed");
@@ -121,6 +123,7 @@ public final class PlayerState {
             for (Object a : al) s.abilities.add(a.toString());
         s.yinValue     = flt2(m, "yin_value",     0.5f);
         s.yangValue    = flt2(m, "yang_value",    0.5f);
+        s.stanceMode   = str(m,  "stance_mode",   "yin");
         s.flowMode     = bool(m, "flow_mode");
         s.lanternValue = flt2(m, "lantern_value", 0.8f);
         s.weaponState  = str(m,  "weapon_state",  "unarmed");

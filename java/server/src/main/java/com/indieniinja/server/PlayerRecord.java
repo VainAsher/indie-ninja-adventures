@@ -15,8 +15,10 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class PlayerRecord {
 
     public final String  playerId;
+    public final String  sessionId;
     public final int     slot;
     public final Channel channel;
+    public final long    connectedAtMs;
 
     /** Written by Netty I/O thread; read by ZoneSimulationLoop. */
     public final AtomicReference<InputCommand> latestInput = new AtomicReference<>();
@@ -45,11 +47,18 @@ public final class PlayerRecord {
      */
     public volatile boolean explicitSpawnSet = false;
 
-    public PlayerRecord(String playerId, int slot, Channel channel) {
+    public PlayerRecord(String playerId, String sessionId, int slot, Channel channel) {
         this.playerId = playerId;
+        this.sessionId = (sessionId == null || sessionId.isBlank()) ? "unknown" : sessionId;
         this.slot     = slot;
         this.channel  = channel;
+        this.connectedAtMs = System.currentTimeMillis();
         // Neutral input until first packet arrives
         this.latestInput.set(InputCommand.neutral(0));
+    }
+
+    /** Backward-compatible constructor for existing tests/callers without session IDs. */
+    public PlayerRecord(String playerId, int slot, Channel channel) {
+        this(playerId, "unknown", slot, channel);
     }
 }
