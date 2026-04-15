@@ -131,6 +131,17 @@ public final class EntityRenderer {
         return facingRight ? anchorUnflipped : (spriteW - anchorUnflipped);
     }
 
+    /**
+     * Most enemy sheets are authored facing right.
+     * Slime-family sheets are authored facing left and need inverted flip logic.
+     */
+    private static boolean enemySpriteDefaultFacesRight(String enemyType) {
+        return switch (enemyType) {
+            case "slime", "slime_red", "time_leech" -> false;
+            default -> true;
+        };
+    }
+
     // Per-state FPS constants matching Python sprite_manager.py ANIMATION_DEFS exactly
     // idle=8, walk/slow_walk=8-10, run=12, dash=20, attack=15, throw=12, hurt=12, death=12
     private static final float FPS_IDLE       = 8f;
@@ -243,8 +254,8 @@ public final class EntityRenderer {
         // Overflow enemies from adjacent zones visible through door openings
         for (EnemyState    e  : snap.overflowEnemies) renderEnemy(batch, e, deltaTime);
         for (BossState     b  : snap.bosses)          renderBoss(batch, b, deltaTime);
-        for (NPCState      n  : snap.npcs)            renderNpc(batch, n, deltaTime);
-        for (NPCState      n  : snap.overflowNpcs)    renderNpc(batch, n, deltaTime);
+        for (NPCState      n  : snap.npcs)            renderNpc(batch, n, deltaTime, snap.hubState);
+        for (NPCState      n  : snap.overflowNpcs)    renderNpc(batch, n, deltaTime, snap.hubState);
         for (PickupState   p  : snap.pickups)   renderPickup(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderPlayer(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderCompanions(batch, p, deltaTime);
@@ -425,6 +436,10 @@ public final class EntityRenderer {
         // Bottom-anchor: align sprite bottom with physics feet (e.y + physH), then lift.
         // Y-down coords: smaller Y = higher on screen.
         float drawY = e.y + physH - sz[1] * (1f + ENEMY_LIFT);
+        boolean spriteFacingRight = e.facingRight;
+        if (!enemySpriteDefaultFacesRight(typePrefix)) {
+            spriteFacingRight = !spriteFacingRight;
+        }
 
         if (isDead) {
             // Accumulate death timer; clamp frame to last so it holds
@@ -433,7 +448,7 @@ public final class EntityRenderer {
             String deadKey = "enemy_" + animType + "_dead";
             float fps = enemyFps(typePrefix, "dead");
             TextureRegion frame = anims.getFrameClamped(deadKey, elapsed, fps);
-            boolean wantFlip = !e.facingRight;
+            boolean wantFlip = !spriteFacingRight;
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
             batch.draw(frame, drawX, drawY, sz[0], sz[1]);
             if (wantFlip != frame.isFlipX()) frame.flip(true, false);
@@ -447,7 +462,7 @@ public final class EntityRenderer {
         float stateTime = tickStateTime(e.enemyId, animKey, dt);
         TextureRegion frame = anims.getFrame(animKey, stateTime, enemyFps(typePrefix, e.aiState != null ? e.aiState : "idle"));
 
-        boolean wantEnemyFlipX  = !e.facingRight;
+        boolean wantEnemyFlipX  = !spriteFacingRight;
         boolean needEnemyChange = wantEnemyFlipX != frame.isFlipX();
         if (needEnemyChange) frame.flip(true, false);
 
@@ -512,8 +527,8 @@ public final class EntityRenderer {
      *
      * Python parity: entities/npc.py NPC drawing + interaction indicator.
      */
-    private void renderNpc(SpriteBatch batch, NPCState n, float dt) {
-        String typeKey = (n.npcType != null && !n.npcType.isEmpty()) ? n.npcType : "lore";
+    private void renderNpc(SpriteBatch batch, NPCState n, float dt, String hubState) {
+        String typeKey = resolveNpcRenderType(n.npcType, hubState);
         String state   = (n.animState != null && !n.animState.isEmpty()) ? n.animState : "idle";
         String animKey = "npc_" + typeKey + "_" + state;
 
@@ -537,6 +552,21 @@ public final class EntityRenderer {
         }
     }
 
+    private static String resolveNpcRenderType(String npcType, String hubState) {
+        String type = (npcType != null && !npcType.isEmpty()) ? npcType : "lore";
+        if (type.startsWith("siren_phase")) return type;
+        if (!"siren".equals(type)) return type;
+
+        String hs = hubState != null
+            ? hubState.trim().toUpperCase(java.util.Locale.ROOT)
+            : "";
+        return switch (hs) {
+            case "CORRUPTED" -> "siren_phase2";
+            case "EMPTY"     -> "siren_phase3";
+            default          -> "siren_phase1";
+        };
+    }
+
     // ── Bosses ────────────────────────────────────────────────────────────────
 
     /**
@@ -552,24 +582,32 @@ public final class EntityRenderer {
         int bw = 64, bh = 96;      // physics dims (BossType.width/height)
         int dw = bw * 2, dh = bh * 2; // display at 2×
 
-        // Map AI state → animation key fragment
-        String aiKey = switch (boss.aiState) {
-            case "attack_melee", "attack_ranged", "attack_special" -> "attack";
-            case "phase_transition", "vulnerable"                  -> "stunned";
-            case "dead"                                            -> "dead";
-            default                                                -> "idle";
-        };
-        String atlasKey = boss.bossType + "_" + aiKey;
-        float stateTime = tickStateTime(boss.bossId, atlasKey, dt);
-        TextureRegion frame = anims.getFrame(atlasKey, stateTime, 8f);
+        String animKey;
+        if ("boss_siren".equals(boss.bossType)) {
+            int phase = Math.max(1, Math.min(4, boss.phase));
+            animKey = "boss_siren_phase" + phase;
+        } else {
+            // Map AI state → animation key fragment
+            String aiKey = switch (boss.aiState) {
+                case "attack_melee", "attack_ranged", "attack_special" -> "attack";
+                case "phase_transition", "vulnerable"                  -> "stunned";
+                case "dead"                                            -> "dead";
+                default                                                -> "idle";
+            };
+            animKey = boss.bossType + "_" + aiKey;
+        }
+        float stateTime = tickStateTime(boss.bossId, animKey, dt);
+        TextureRegion frame = anims.getFrame(animKey, stateTime, 8f);
 
         // Phase-tinted colour: phase1=white, phase2=yellow, phase3=orange, phase4=red
-        Color tint = switch (boss.phase) {
-            case 2  -> new Color(1f, 0.9f, 0.3f, 1f);
-            case 3  -> new Color(1f, 0.55f, 0.1f, 1f);
-            case 4  -> new Color(1f, 0.2f, 0.2f, 1f);
-            default -> Color.WHITE;
-        };
+        Color tint = "boss_siren".equals(boss.bossType)
+            ? Color.WHITE
+            : switch (boss.phase) {
+                case 2  -> new Color(1f, 0.9f, 0.3f, 1f);
+                case 3  -> new Color(1f, 0.55f, 0.1f, 1f);
+                case 4  -> new Color(1f, 0.2f, 0.2f, 1f);
+                default -> Color.WHITE;
+            };
         batch.setColor(tint);
 
         float drawX = boss.x + bw * 0.5f - dw * 0.5f;

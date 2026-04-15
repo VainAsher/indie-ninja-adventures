@@ -25,7 +25,7 @@ public final class SimNPC {
 
     // ── Fixed identity ────────────────────────────────────────────────────────
     public final String id;
-    public final String type;   // "lore", "shop", "mission_giver", "tutorial"
+    public final String type;   // e.g. "lore", "shop", "mission_giver", "tutorial", "siren"
 
     /**
      * Physics state — position, velocity, collision flags.

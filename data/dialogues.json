@@ -29,7 +29,7 @@
       "tutorial_basics": {
         "node_id": "tutorial_basics",
         "speaker": "Elder Guardian",
-        "text": "Use arrow keys to move, space to jump. Press space again in mid-air for a double jump! Shift unleashes your dash ability.",
+        "text": "Use Arrow Keys to move. Press Z to jump and Left Shift to run. Press C to dash. Open controls anytime with F1.",
         "choices": [
           {
             "choice_text": "What else should I know?",
@@ -48,7 +48,7 @@
       "combat_tips": {
         "node_id": "combat_tips",
         "speaker": "Elder Guardian",
-        "text": "Dash through enemies to strike them! Land on enemies from above for a powerful jump attack. Watch your health hearts!",
+        "text": "Press X for melee, S to guard/parry, and A to switch Yin/Yang stance. Press O to open the mission board if you lose track of objectives.",
         "choices": [
           {
             "choice_text": "Any other advice?",
@@ -142,6 +142,91 @@
         "text": "Your courage is admirable! Seek out the mission givers throughout the hub. They will guide you to your first trials. May fortune favor you!",
         "next_node_id": null,
         "on_exit_event": "tutorial_completed"
+      }
+    }
+  },
+  "siren_first_quest": {
+    "dialogue_id": "siren_first_quest",
+    "root_node_id": "intro",
+    "nodes": {
+      "intro": {
+        "node_id": "intro",
+        "speaker": "Siren of the Veiled Vale",
+        "text": "You stand at the threshold, Hallowed Ninja. I will be your first quest giver. Complete one trial and the mission chain will reveal itself.",
+        "choices": [
+          {
+            "choice_text": "Guide me through the first mission",
+            "next_node_id": "onboarding",
+            "requires": "siren_onboarding_complete:!=:true",
+            "on_select_event": "siren_intro_seen"
+          },
+          {
+            "choice_text": "Review the mission briefing",
+            "next_node_id": "onboarding",
+            "requires": "siren_onboarding_complete:==:true"
+          },
+          {
+            "choice_text": "Start the first trial now",
+            "next_node_id": null,
+            "on_select_event": "siren_start_first_trial"
+          },
+          {
+            "choice_text": "Open mission board",
+            "next_node_id": null,
+            "on_select_event": "siren_open_mission_board"
+          },
+          {
+            "choice_text": "I need a moment",
+            "next_node_id": null
+          }
+        ]
+      },
+      "onboarding": {
+        "node_id": "onboarding",
+        "speaker": "Siren of the Veiled Vale",
+        "text": "Act I is onboarding. Follow mission objectives in the tracker, interact with ! markers, and use O if you lose the chain. Start worlds stay compact so you can learn quickly.",
+        "choices": [
+          {
+            "choice_text": "Launch the first trial",
+            "next_node_id": null,
+            "on_select_event": "siren_start_first_trial"
+          },
+          {
+            "choice_text": "Open mission board instead",
+            "next_node_id": null,
+            "on_select_event": "siren_open_mission_board"
+          },
+          {
+            "choice_text": "Repeat controls and tracking cues",
+            "next_node_id": "control_reminder"
+          },
+          {
+            "choice_text": "Understood. I'll return later",
+            "next_node_id": null,
+            "on_select_event": "siren_onboarding_complete"
+          }
+        ]
+      },
+      "control_reminder": {
+        "node_id": "control_reminder",
+        "speaker": "Siren of the Veiled Vale",
+        "text": "Arrow Keys move, Z jumps, Left Shift runs, C dashes, X attacks, S guards/parries, and A switches Yin/Yang stance. TAB shows the map. F1 opens controls.",
+        "choices": [
+          {
+            "choice_text": "Launch the first trial",
+            "next_node_id": null,
+            "on_select_event": "siren_start_first_trial"
+          },
+          {
+            "choice_text": "Open mission board",
+            "next_node_id": null,
+            "on_select_event": "siren_open_mission_board"
+          },
+          {
+            "choice_text": "Back to briefing",
+            "next_node_id": "onboarding"
+          }
+        ]
       }
     }
   },

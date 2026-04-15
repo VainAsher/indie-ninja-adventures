@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 03:18:26 +01:00 | **Codebase version:** v0.11.39 | **Next release target:** v0.11.40 (P0-10 playtest blocker follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 04:36:18 +01:00 | **Codebase version:** v0.11.39 | **Next release target:** v0.11.40 (P0-10 playtest blocker follow-up)
 
 ---
 
@@ -86,6 +86,65 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 04:36:18 +01:00`
+
+- Imported provided placeholder art into the client resource tree:
+  - generated NPC `idle_spritesheet.png` / `walk_spritesheet.png` for:
+    - `lore`, `shop`, `mission_giver`, `tutorial`
+  - generated `siren_phase1..4` NPC idle/walk sheets from `veiled_siren_phases_transparent.png`
+  - copied Siren boss phase source to `assets/sprites/bosses/siren/phases_spritesheet.png`
+- Extended runtime loading/rendering to consume the imported boss art:
+  - added `AnimationRegistry.loadBossSprites(...)` with `boss_siren_phase1..4` keys
+  - client startup now loads boss sprites from `assets/sprites/bosses`
+  - boss renderer now uses phase-specific keys for Siren (`boss_siren_phase{n}`) instead of AI-state placeholders
+- Result:
+  - Siren NPC onboarding chain now has authored phase visuals
+  - Siren boss now renders authored placeholder phase art directly per phase state
+
+`2026-04-15 04:22:10 +01:00`
+
+- Implemented Siren-first quest-giver pass (onboarding chain + mission handoff + phase readability):
+  - START-room required quest-giver now spawns as `siren` (SHOP retains `mission_giver`)
+  - added dedicated Siren onboarding dialogue tree (`siren_first_quest`) with direct handoff events:
+    - `siren_start_first_trial` → starts `demo_coin_run`
+    - `siren_open_mission_board` → opens mission board overlay
+  - dialogue state flags added for repeat-pass behavior:
+    - `siren_intro_seen`
+    - `siren_onboarding_complete`
+- Implemented Siren phase sprite routing support:
+  - NPC animation registry now loads/aliases `siren_phase1..4` keys
+  - runtime render mapping now resolves `siren` by hub state:
+    - `FULL` → `siren_phase1`
+    - `CORRUPTED` → `siren_phase2`
+    - `EMPTY` → `siren_phase3`
+  - phase-4 keys are registered for transformation path wiring in follow-up boss-transition work
+- Feel-first impact note:
+  - Affects Passive/Aggressive onboarding readability equally (quest entry clarity)
+  - Improves Flow readability indirectly by ensuring stance/mission onboarding is delivered by one canonical NPC path in Act I
+
+`2026-04-15 03:48:50 +01:00`
+
+- Implemented mission onboarding and objective readability hardening pass:
+  - added direct mission board hotkey (`O`) for discoverability without dialogue dependency
+  - added persistent mission tracker panel in HUD (objective checklist + timer + exit lock state)
+  - added onboarding toasts for first-session guidance (`F1` controls, `O` mission board, objective/minimap cues)
+- Implemented mission world-scaling bridge for solo campaign starts:
+  - unified mission start flow (`overlay` + `dialogue_event`) through `startMissionFlow(...)`
+  - solo mission starts now regenerate world using mission-authored shape and act-aware room-count clamps:
+    - Act I/II: clamp to `4..9` rooms
+    - Act III+: clamp to `12..60` rooms
+- Implemented mission affordance visibility upgrades:
+  - minimap now renders active objective markers (reach/switch/exit) from mission contact volumes
+  - tile detail now defaults ON for clearer zoom/readability behavior
+- Implemented gameplay feedback fixes:
+  - guaranteed `mission_giver` NPC spawn in START/SHOP onboarding rooms
+  - slime-family facing corrected via enemy-type sprite orientation override
+  - Flow now restores Lantern over time (`FLOW_LANTERN_RESTORE_PER_SECOND`) as an additional recharge avenue
+  - tutorial dialogue key prompts updated to current control scheme
+- Validation:
+  - `./gradlew :client:compileJava` ✅
+  - `./gradlew :server:test` ✅
 
 `2026-04-13 22:41:01 +01:00`
 

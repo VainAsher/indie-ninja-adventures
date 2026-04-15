@@ -226,17 +226,40 @@ public final class EntityPlanner {
         List<float[]> ground = WorldGenerator.collectGroundPositions(grid, COLS, ROWS, TILE);
         Collections.shuffle(ground, rng);
 
+        String requiredQuestGiverType = switch (room.type) {
+            case START -> "siren";
+            case SHOP  -> "mission_giver";
+            default    -> "";
+        };
+        boolean requireMissionGiver = !requiredQuestGiverType.isBlank();
         String[] baseTypes = {"lore", "shop", "mission_giver"};
-        int numNpcs = 1 + rng.nextInt(2);  // 1-2 base NPCs
+        int numNpcs = requireMissionGiver ? 2 + rng.nextInt(2) : 1 + rng.nextInt(2);  // 2-3 or 1-2
         int offset  = placedEnemies.size() + placedPickups.size();
         float patrol = 2 * TILE;
 
         List<LevelLayout.NPCSpawn> spawns = new ArrayList<>(numNpcs + 1);
-        for (int i = 0; i < numNpcs && (offset + i) < ground.size(); i++) {
+        boolean missionGiverPlaced = false;
+        int i = 0;
+        if (requireMissionGiver && offset < ground.size()) {
+            float[] pos = ground.get(offset);
+            spawns.add(new LevelLayout.NPCSpawn(
+                requiredQuestGiverType, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
+            missionGiverPlaced = true;
+            i = 1;
+        }
+
+        for (; i < numNpcs && (offset + i) < ground.size(); i++) {
             float[] pos = ground.get(offset + i);
-            String type = baseTypes[i % baseTypes.length];
+            String type = baseTypes[(i - (missionGiverPlaced ? 1 : 0)) % baseTypes.length];
+            if ("mission_giver".equals(type)) missionGiverPlaced = true;
             spawns.add(new LevelLayout.NPCSpawn(
                 type, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
+        }
+
+        if (requireMissionGiver && !missionGiverPlaced && !spawns.isEmpty()) {
+            LevelLayout.NPCSpawn s = spawns.get(0);
+            spawns.set(0, new LevelLayout.NPCSpawn(
+                requiredQuestGiverType, s.x(), s.y(), s.patrolMinX(), s.patrolMaxX()));
         }
 
         // Crafter: always in shop/start rooms; 25% chance elsewhere

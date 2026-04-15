@@ -182,12 +182,22 @@ public final class GameScreen implements Screen {
     // ── Ability unlock toasts (Loop 20) ──────────────────────────────────────
     /** Abilities seen last frame for local player — new entries trigger toast notification. */
     private final java.util.Set<String> prevLocalAbilities = new java.util.HashSet<>();
+    /** One-shot onboarding toasts for first-launch guidance. */
+    private int onboardingToastStage = 0;
+    private float onboardingToastCooldown = 1.2f;
+    /** Last mission ID we emitted a "mission started" toast for. */
+    private String lastMissionToastId = "";
 
     /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
     private static String npcDialogueId(String npcType) {
         return switch (npcType != null ? npcType : "lore") {
             case "shop"          -> "shop_keeper";
             case "mission_giver" -> "forest_ranger";
+            case "siren",
+                 "siren_phase1",
+                 "siren_phase2",
+                 "siren_phase3",
+                 "siren_phase4"  -> "siren_first_quest";
             case "tutorial"      -> "tutorial_elder";
             default              -> "tutorial_elder";   // "lore" and unknown
         };
@@ -248,6 +258,7 @@ public final class GameScreen implements Screen {
         FileHandle atlasFile    = Gdx.files.internal("assets/characters.atlas");
         FileHandle playerDir    = Gdx.files.internal("assets/sprites/player");
         FileHandle enemyBaseDir = Gdx.files.internal("assets/sprites/characters");
+        FileHandle bossBaseDir  = Gdx.files.internal("assets/sprites/bosses");
         FileHandle unarmedDir = Gdx.files.internal("assets/sprites/player/unarmed");
         FileHandle swordDir   = Gdx.files.internal("assets/sprites/player/sword");
         if (atlasFile.exists()) {
@@ -270,6 +281,7 @@ public final class GameScreen implements Screen {
         // Load per-NPC-type animations + dot texture for indicators/companions.
         FileHandle npcBaseDir = Gdx.files.internal("assets/sprites/npc");
         anims.loadNpcSprites(npcBaseDir);
+        anims.loadBossSprites(bossBaseDir);
 
         // Try to load the mk_nature blob autotile set.  Falls back to placeholder
         // if the asset files are not present (allows running without full assets).
@@ -317,14 +329,7 @@ public final class GameScreen implements Screen {
         dialogueManager.setEventCallback(this::handleDialogueEvent);
         dialogueOverlay = new DialogueOverlay(dialogueManager);
         missionSelectOverlay = new MissionSelectOverlay(missionManager);
-        missionSelectOverlay.setOnStartMission(missionId -> {
-            missionManager.startMission(missionId);
-            missionReachedLocations.clear();
-            missionActivatedSwitches.clear();
-            missionTriggerMissionId = missionId;
-            if (saveManager != null) saveManager.markDirty();
-            log.info("[Mission] started via overlay: {}", missionId);
-        });
+        missionSelectOverlay.setOnStartMission(missionId -> startMissionFlow(missionId, "overlay"));
         missionSelectOverlay.setOnClose(() -> dialogueManager.setStoryContext(storyManager.toConditionContext()));
         saveManager     = new com.indieniinja.client.game.SaveManager(storyManager, missionManager);
         saveManager.setPreSaveSync(this::syncSaveState);
@@ -422,6 +427,10 @@ public final class GameScreen implements Screen {
                 && Gdx.input.isKeyJustPressed(Input.Keys.I)) {
             inventoryOverlay.toggle();
         }
+        if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
+                && Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            openMissionSelectOverlay("hotkey_o");
+        }
         // ── TAB key: map toggle / map overlay input ───────────────────────────
         if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused) {
             minimapRenderer.handleInput();
@@ -510,6 +519,8 @@ public final class GameScreen implements Screen {
         // ── Mission objective progress (enemy kills, boss defeat) ────────────
         if (snap != null) tickMissionProgress(snap);
         if (snap != null) tickMissionContactVolumes(snap);
+        syncMissionTrackerHud();
+        tickOnboardingToasts(delta, snap);
 
         // ── E-key: interact with nearest interactable NPC or portal ─────────────
         if (!anyOverlay && !paused && snap != null
@@ -815,11 +826,13 @@ public final class GameScreen implements Screen {
             float worldPy = localForMap != null ? localForMap.posY : 0f;
             float lpx = worldPx - (gridX - megamapMinGridX) * roomPx;
             float lpy = worldPy - (gridY - megamapMinGridY) * roomPy;
+            java.util.List<com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker> objectiveMarkers =
+                buildMinimapObjectiveMarkers();
             batch.setProjectionMatrix(hudRenderer.screenProjection());
             // MinimapRenderer manages its own batch.begin/end; do NOT open batch here.
             minimapRenderer.render(batch, cachedWorldRooms, gridX, gridY, lpx, lpy, roomPx, roomPy,
                 cachedTileGrids, visitedRooms, snapForMap,
-                cachedEnemies, cachedPickups, cachedPortals, localSlot);
+                cachedEnemies, cachedPickups, cachedPortals, localSlot, objectiveMarkers);
             batch.setProjectionMatrix(camera.cam.combined);
         }
 
@@ -889,6 +902,57 @@ public final class GameScreen implements Screen {
             dialogueManager.setStoryContext(storyManager.toConditionContext());
         }
         return true;
+    }
+
+    private void startMissionFlow(String missionId, String source) {
+        if (missionId == null || missionId.isBlank()) return;
+        MissionDefinition def = missionManager.getDefinition(missionId);
+        if (def == null) {
+            log.warn("[Mission] start ignored for unknown mission id '{}'", missionId);
+            return;
+        }
+
+        missionManager.startMission(missionId);
+        if (soloMode) {
+            rebuildSoloWorldForMission(def);
+        }
+        missionReachedLocations.clear();
+        missionActivatedSwitches.clear();
+        missionTriggerMissionId = missionId;
+        lastMissionToastId = missionId;
+
+        hudRenderer.notifyToast("MISSION STARTED: " + def.missionName);
+        if (saveManager != null) saveManager.markDirty();
+        log.info("[Mission] started via {}: {} (rooms={}, shape={})",
+            source, missionId, def.roomCount, def.shape);
+    }
+
+    private void rebuildSoloWorldForMission(MissionDefinition def) {
+        if (!soloMode || def == null) return;
+        int targetRooms = targetRoomCountForAct(def);
+        WorldGraph.WorldShape shape = parseWorldShape(def.shape);
+        long seed = System.currentTimeMillis();
+        initializeSoloSimulation(seed, Boolean.getBoolean("ninja.record"), targetRooms, shape);
+        refreshSoloWorldRoomCache();
+        hudRenderer.notifyToast("WORLD BUILT: " + targetRooms + " ROOMS");
+    }
+
+    private int targetRoomCountForAct(MissionDefinition def) {
+        int authored = def != null ? Math.max(1, def.roomCount) : 12;
+        int actWire = storyManager != null ? storyManager.currentAct().wire() : 0;
+        if (actWire <= 1) {
+            return clampInt(authored, 4, 9);   // Act I/II onboarding scale
+        }
+        return clampInt(authored, 12, 60);     // Act III+ expanded mission worlds
+    }
+
+    private static WorldGraph.WorldShape parseWorldShape(String shapeWire) {
+        if (shapeWire == null || shapeWire.isBlank()) return WorldGraph.WorldShape.BLOB;
+        try {
+            return WorldGraph.WorldShape.valueOf(shapeWire.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return WorldGraph.WorldShape.BLOB;
+        }
     }
 
     private void openMissionSelectOverlay(String reason) {
@@ -977,6 +1041,128 @@ public final class GameScreen implements Screen {
         }
     }
 
+    private void syncMissionTrackerHud() {
+        MissionDefinition def = missionManager.getActiveDefinition();
+        if (def == null) {
+            hudRenderer.clearMissionTracker();
+            return;
+        }
+
+        java.util.Map<String, Integer> progress = missionManager.getObjectiveProgressSnapshot();
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        float missionTimer = missionManager.getMissionTimer();
+
+        for (MissionObjective obj : def.objectives) {
+            if (obj == null || obj.type == null) continue;
+            lines.add(formatObjectiveLine(def, obj, progress, missionTimer));
+        }
+
+        hudRenderer.setMissionTracker(def.missionName, lines,
+            missionManager.isExitLocked(), missionTimer);
+    }
+
+    private String formatObjectiveLine(
+        MissionDefinition def,
+        MissionObjective obj,
+        java.util.Map<String, Integer> progress,
+        float missionTimer
+    ) {
+        boolean done = isObjectiveComplete(def, obj, progress, missionTimer);
+        String base = (obj.description != null && !obj.description.isBlank())
+            ? obj.description
+            : switch (obj.type) {
+                case COLLECT_ITEMS -> "Collect " + (obj.item == null ? "items" : obj.item);
+                case KILL_ALL_ENEMIES -> "Defeat enemies";
+                case ACTIVATE_SWITCHES -> "Activate switches";
+                case REACH_LOCATION -> "Reach " + (obj.location == null ? "target" : obj.location);
+                case DEFEAT_BOSS -> "Defeat boss";
+                case TIME_CHALLENGE -> "Beat timer";
+            };
+
+        String suffix = "";
+        if (obj.type == ObjectiveType.TIME_CHALLENGE) {
+            float limit = obj.timeLimit > 0f ? obj.timeLimit : def.timeLimit;
+            float remaining = Math.max(0f, limit - missionTimer);
+            suffix = " (" + formatClock(remaining) + " left)";
+        } else {
+            int target = objectiveTarget(obj);
+            int current = progress.getOrDefault(objectiveKeyForHud(obj), 0);
+            if (obj.type == ObjectiveType.REACH_LOCATION || obj.type == ObjectiveType.DEFEAT_BOSS) {
+                suffix = done ? " (done)" : " (pending)";
+            } else if (target > 1) {
+                suffix = " (" + Math.min(current, target) + "/" + target + ")";
+            }
+        }
+        return (done ? "[x] " : "[ ] ") + base + suffix;
+    }
+
+    private boolean isObjectiveComplete(
+        MissionDefinition def,
+        MissionObjective obj,
+        java.util.Map<String, Integer> progress,
+        float missionTimer
+    ) {
+        if (obj.type == ObjectiveType.TIME_CHALLENGE) {
+            float limit = obj.timeLimit > 0f ? obj.timeLimit : def.timeLimit;
+            return limit <= 0f || missionTimer <= limit;
+        }
+        int current = progress.getOrDefault(objectiveKeyForHud(obj), 0);
+        return current >= objectiveTarget(obj);
+    }
+
+    private int objectiveTarget(MissionObjective obj) {
+        return switch (obj.type) {
+            case COLLECT_ITEMS     -> Math.max(1, obj.count);
+            case KILL_ALL_ENEMIES  -> Math.max(1, obj.target);
+            case ACTIVATE_SWITCHES -> Math.max(1, obj.count > 0 ? obj.count : obj.target);
+            case REACH_LOCATION,
+                 DEFEAT_BOSS,
+                 TIME_CHALLENGE    -> 1;
+        };
+    }
+
+    private String objectiveKeyForHud(MissionObjective obj) {
+        return switch (obj.type) {
+            case COLLECT_ITEMS  -> objectiveKey(obj.type, obj.item);
+            case REACH_LOCATION -> objectiveKey(obj.type, obj.location);
+            case DEFEAT_BOSS    -> objectiveKey(obj.type, obj.boss);
+            default             -> objectiveKey(obj.type, null);
+        };
+    }
+
+    private String objectiveKey(ObjectiveType type, String qualifier) {
+        String q = qualifier == null ? "" : normalizeKey(qualifier);
+        return type.name().toLowerCase(java.util.Locale.ROOT) + "_" + q;
+    }
+
+    private void tickOnboardingToasts(float delta, WorldSnapshot snap) {
+        if (hudRenderer == null || snap == null) return;
+
+        String activeMission = missionManager.getActiveMissionId();
+        if (activeMission == null || activeMission.isBlank()) {
+            lastMissionToastId = "";
+        } else if (!activeMission.equals(lastMissionToastId)) {
+            MissionDefinition def = missionManager.getActiveDefinition();
+            if (def != null) {
+                hudRenderer.notifyToast("MISSION STARTED: " + def.missionName);
+            }
+            lastMissionToastId = activeMission;
+        }
+
+        if (onboardingToastStage >= 3) return;
+        onboardingToastCooldown -= delta;
+        if (onboardingToastCooldown > 0f) return;
+
+        switch (onboardingToastStage) {
+            case 0 -> hudRenderer.notifyToast("ACT I ONBOARDING: PRESS F1 FOR CONTROLS.");
+            case 1 -> hudRenderer.notifyToast("PRESS O TO OPEN MISSION BOARD. NPCS WITH ! ARE INTERACTABLE.");
+            case 2 -> hudRenderer.notifyToast("TRACK OBJECTIVES ON THE TOP-RIGHT PANEL. TAB OPENS MINIMAP.");
+            default -> { }
+        }
+        onboardingToastStage++;
+        onboardingToastCooldown = 4.0f;
+    }
+
     private void buildMissionContactVolumes(WorldSnapshot snap, MissionDefinition def, String activeMissionId) {
         missionContactVolumes.clear();
 
@@ -1012,6 +1198,31 @@ public final class GameScreen implements Screen {
         }
 
         appendFallbackSwitchVolumes(snap, def, activeMissionId);
+    }
+
+    private java.util.List<com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker> buildMinimapObjectiveMarkers() {
+        if (!missionManager.isActive() || missionContactVolumes.isEmpty()) return java.util.List.of();
+        java.util.List<com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker> markers =
+            new java.util.ArrayList<>(missionContactVolumes.size());
+        for (MissionContactVolume v : missionContactVolumes) {
+            if (v == null) continue;
+            String id = normalizeKey(v.id);
+            if ("exit".equals(id) && missionManager.isExitLocked()) {
+                continue; // reduce noise until objective gate opens
+            }
+            if (missionReachedLocations.contains(id)) continue;
+            if (missionActivatedSwitches.contains(id)) continue;
+
+            String markerType;
+            if ("exit".equals(id)) markerType = "exit";
+            else if ("mission_switch_fallback".equals(v.source) || id.contains(":switch_")) markerType = "switch";
+            else markerType = "reach";
+
+            float cx = v.x + v.width * 0.5f;
+            float cy = v.y + v.height * 0.5f;
+            markers.add(new com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker(cx, cy, markerType));
+        }
+        return markers;
     }
 
     private int requiredSwitchActivationCount(MissionDefinition def) {
@@ -1236,6 +1447,13 @@ public final class GameScreen implements Screen {
         return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
+    private static String formatClock(float seconds) {
+        int total = Math.max(0, (int) seconds);
+        int mins = total / 60;
+        int secs = total % 60;
+        return String.format(java.util.Locale.ROOT, "%02d:%02d", mins, secs);
+    }
+
     private boolean isMissionExitPortal(com.indieniinja.network.PortalState portal, WorldSnapshot snap) {
         if (portal == null || snap == null) return false;
         if ("exit".equalsIgnoreCase(snap.roomType)) return true;
@@ -1245,8 +1463,16 @@ public final class GameScreen implements Screen {
     // ── Solo-mode helpers ─────────────────────────────────────────────────────
 
     private void initializeSoloSimulation(long seed, boolean startRecording) {
+        initializeSoloSimulation(seed, startRecording, 12, WorldGraph.WorldShape.BLOB);
+    }
+
+    private void initializeSoloSimulation(
+        long seed, boolean startRecording, int roomCount, WorldGraph.WorldShape worldShape
+    ) {
         soloSeed = seed;
-        soloWorldGraph = WorldGraph.generate(seed, 12, WorldGraph.WorldShape.BLOB);
+        int generatedRoomCount = clampInt(roomCount, 4, 60);
+        WorldGraph.WorldShape shape = worldShape == null ? WorldGraph.WorldShape.BLOB : worldShape;
+        soloWorldGraph = WorldGraph.generate(seed, generatedRoomCount, shape);
         WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
         soloCurrentGridX = startRoom.gridX;
         soloCurrentGridY = startRoom.gridY;
@@ -1623,18 +1849,26 @@ public final class GameScreen implements Screen {
         switch (key) {
             case "start_mission" -> {
                 if (!arg.isBlank()) {
-                    missionManager.startMission(arg);
-                    missionReachedLocations.clear();
-                    missionActivatedSwitches.clear();
-                    missionTriggerMissionId = arg;
-                    if (saveManager != null) saveManager.markDirty();
+                    startMissionFlow(arg, "dialogue_event");
                 }
             }
             case "open_shop"     -> { /* stub — shop UI not yet implemented */ }
             case "advance_act"   -> storyManager.advanceAct();
+            case "siren_start_first_trial" -> {
+                storyManager.setFlag("siren_intro_seen", "true");
+                storyManager.setFlag("siren_onboarding_complete", "true");
+                startMissionFlow("demo_coin_run", "siren_dialogue");
+            }
+            case "siren_open_mission_board" -> {
+                storyManager.setFlag("siren_intro_seen", "true");
+                storyManager.setFlag("siren_onboarding_complete", "true");
+                openMissionSelectOverlay("siren_dialogue");
+            }
             // Known authored narrative events from data/dialogues.json.
             // Preserve them as story flags even when they do not map to an immediate gameplay action.
             case "tutorial_completed",
+                 "siren_intro_seen",
+                 "siren_onboarding_complete",
                  "town_lore_learned",
                  "act2_elder_conversation_complete",
                  "act2_elder_patience_shown",

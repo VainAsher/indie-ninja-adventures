@@ -66,6 +66,7 @@ public final class GameSimulator {
     private static final float STANCE_DRIFT_PER_SECOND = 0.09f;
     private static final float STANCE_SWITCH_BOOST = 0.035f;
     private static final float PARRY_STUN_DURATION = 0.80f;
+    private static final float FLOW_LANTERN_RESTORE_PER_SECOND = 0.012f;
 
     private enum PlayerHitOutcome {
         DAMAGED,
@@ -455,11 +456,15 @@ public final class GameSimulator {
 
     private void tickLantern() {
         for (SimPlayer sp : players.values()) {
+            if (!sp.isAlive()) continue;
             LanternComponent lc = sp.lantern;
             // isDarkArea is updated by caller (GameScreen in solo, ZoneSimulationLoop in server).
             // Fallback: treat non-hub hubIds as dark (multiplayer server path).
             boolean inDark = isDarkArea || !hubId.contains("hub");
             lc.decay(DT, inDark);
+            if (sp.yinYang != null && sp.yinYang.isBalanced()) {
+                lc.restore(FLOW_LANTERN_RESTORE_PER_SECOND * DT);
+            }
             // High lantern bonus — applied via applyPlayerInput on next tick
             // (we set a flag so physics pick it up; actual bonus in applyPlayerInput)
         }

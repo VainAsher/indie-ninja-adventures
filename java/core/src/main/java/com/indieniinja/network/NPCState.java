@@ -15,7 +15,7 @@ import java.util.Map;
 public final class NPCState {
 
     public String  npcId;
-    public String  npcType;        // "lore", "shop", "mission_giver", "tutorial"
+    public String  npcType;        // e.g. "lore", "shop", "mission_giver", "tutorial", "siren"
     public float   x;
     public float   y;
     public int     facing;         // -1 = left, 1 = right

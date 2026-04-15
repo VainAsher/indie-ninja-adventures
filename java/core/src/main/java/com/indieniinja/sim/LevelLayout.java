@@ -104,7 +104,7 @@ public final class LevelLayout {
 
     /**
      * Spawn descriptor for an NPC.
-     * Python: entities/npc.py NPCDefinition — type ∈ {lore, shop, mission_giver, tutorial}.
+     * Python: entities/npc.py NPCDefinition — type ∈ {lore, shop, mission_giver, tutorial, siren}.
      */
     public record NPCSpawn(String type, float x, float y, float patrolMinX, float patrolMaxX) {}
 
@@ -474,13 +474,14 @@ public final class LevelLayout {
         // NPCs — 1-3 per room: base types plus a crafter in crafting/shop rooms.
         // Python: npc_manager.py spawns NPCs per story state; we spawn procedurally here.
         List<NPCSpawn> npcs = new ArrayList<>();
-        // Base NPC rotation: lore, shop, mission_giver
+        // Base NPC rotation: lore, shop, mission_giver.
+        // Start-room onboarding guarantees Siren as the first quest-giver contact.
         String[] baseNpcTypes = {"lore", "shop", "mission_giver"};
         int numNpcs  = 1 + rng.nextInt(2);   // 1-2 base NPCs
         int npcStart = numEnemies + numPickups;
         for (int i = 0; i < numNpcs && (npcStart + i) < groundPos.size(); i++) {
             float[] pos = groundPos.get(npcStart + i);
-            String t    = baseNpcTypes[i % baseNpcTypes.length];
+            String t    = (isStartRoom && i == 0) ? "siren" : baseNpcTypes[i % baseNpcTypes.length];
             float patrol = 2 * TILE;
             npcs.add(new NPCSpawn(t, pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
         }

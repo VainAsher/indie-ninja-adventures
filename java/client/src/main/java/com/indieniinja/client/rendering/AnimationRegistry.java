@@ -544,23 +544,111 @@ public final class AnimationRegistry {
      * Falls back to a violet solid-color placeholder for all NPC types when
      * sheets are absent, so NPCs render visibly before assets are available.
      *
+     * Siren phase support:
+     *   npc_siren_phase1_* .. npc_siren_phase4_* are loaded from matching folders
+     *   when present, otherwise aliased to npc_siren_* to keep key lookups stable.
+     *
      * Also registers the "__dot__" key used for interaction indicators and
      * companion orbs (1×1 white pixel, tinted at draw time via batch.setColor).
      */
     public void loadNpcSprites(FileHandle npcBaseDir) {
         registerDotTexture();
 
-        String[] npcTypes = {"lore", "shop", "mission_giver", "tutorial"};
-        for (String type : npcTypes) {
-            FileHandle typeDir = npcBaseDir.child(type);
-            boolean loadedIdle = tryLoadEnemyAnim(typeDir, "npc_" + type + "_idle", "idle",
-                java.util.Map.of("idle", 2, "walk", 4));
-            boolean loadedWalk = tryLoadEnemyAnim(typeDir, "npc_" + type + "_walk", "walk",
-                java.util.Map.of("idle", 2, "walk", 4));
-            // Violet placeholder for any missing state
-            if (!loadedIdle) registerColoredPlaceholder("npc_" + type + "_idle", 0.6f, 0.2f, 0.9f);
-            if (!loadedWalk) registerColoredPlaceholder("npc_" + type + "_walk", 0.6f, 0.2f, 0.9f);
+        // Core NPC types
+        loadNpcType(npcBaseDir, "lore", null, 0.6f, 0.2f, 0.9f);
+        loadNpcType(npcBaseDir, "shop", null, 0.6f, 0.2f, 0.9f);
+        loadNpcType(npcBaseDir, "mission_giver", null, 0.6f, 0.2f, 0.9f);
+        loadNpcType(npcBaseDir, "tutorial", null, 0.6f, 0.2f, 0.9f);
+        loadNpcType(npcBaseDir, "siren", null, 0.72f, 0.24f, 0.95f);
+
+        // Siren onboarding/boss arc phases. If dedicated phase sheets are absent,
+        // these alias to npc_siren_* so the render keys stay stable.
+        loadNpcType(npcBaseDir, "siren_phase1", "siren", 0.90f, 0.74f, 1.00f);
+        loadNpcType(npcBaseDir, "siren_phase2", "siren", 1.00f, 0.58f, 0.70f);
+        loadNpcType(npcBaseDir, "siren_phase3", "siren", 0.82f, 0.28f, 0.48f);
+        loadNpcType(npcBaseDir, "siren_phase4", "siren", 0.96f, 0.20f, 0.24f);
+    }
+
+    /**
+     * Load boss sprites from assets/sprites/bosses/.
+     *
+     * Current authored support:
+     *   - siren/phases_spritesheet.png (4 horizontal frames: phase1..phase4)
+     *
+     * Registered keys:
+     *   boss_siren_phase1 .. boss_siren_phase4
+     */
+    public void loadBossSprites(FileHandle bossBaseDir) {
+        FileHandle sirenDir = bossBaseDir.child("siren");
+        Texture tex = loadCached(sirenDir, "phases_spritesheet.png");
+        if (tex != null) {
+            TextureRegion[] strip = sliceSheet(tex, 4);
+            for (int i = 0; i < strip.length; i++) {
+                frames.put("boss_siren_phase" + (i + 1), new TextureRegion[]{ strip[i] });
+            }
+            // Backward-compatible fallback keys for any older callers still querying
+            // AI-state boss keys instead of phase keys.
+            frames.putIfAbsent("boss_siren_idle",    new TextureRegion[]{ strip[0] });
+            frames.putIfAbsent("boss_siren_attack",  new TextureRegion[]{ strip[Math.min(1, strip.length - 1)] });
+            frames.putIfAbsent("boss_siren_stunned", new TextureRegion[]{ strip[Math.min(2, strip.length - 1)] });
+            frames.putIfAbsent("boss_siren_dead",    new TextureRegion[]{ strip[Math.min(3, strip.length - 1)] });
+            return;
         }
+
+        // Fallback placeholders so phase-based rendering remains deterministic
+        // even when no boss sheet is available.
+        registerColoredPlaceholder("boss_siren_phase1", 1.00f, 1.00f, 1.00f);
+        registerColoredPlaceholder("boss_siren_phase2", 1.00f, 0.90f, 0.30f);
+        registerColoredPlaceholder("boss_siren_phase3", 1.00f, 0.55f, 0.10f);
+        registerColoredPlaceholder("boss_siren_phase4", 1.00f, 0.20f, 0.20f);
+    }
+
+    private void loadNpcType(
+        FileHandle npcBaseDir,
+        String type,
+        String fallbackType,
+        float placeholderR,
+        float placeholderG,
+        float placeholderB
+    ) {
+        FileHandle typeDir = npcBaseDir.child(type);
+        boolean loadedIdle = tryLoadEnemyAnim(typeDir, "npc_" + type + "_idle", "idle",
+            java.util.Map.of("idle", 2, "walk", 4));
+        boolean loadedWalk = tryLoadEnemyAnim(typeDir, "npc_" + type + "_walk", "walk",
+            java.util.Map.of("idle", 2, "walk", 4));
+
+        if (!loadedIdle) {
+            aliasNpcAnimOrPlaceholder(
+                "npc_" + type + "_idle",
+                fallbackType != null ? "npc_" + fallbackType + "_idle" : null,
+                placeholderR, placeholderG, placeholderB
+            );
+        }
+        if (!loadedWalk) {
+            aliasNpcAnimOrPlaceholder(
+                "npc_" + type + "_walk",
+                fallbackType != null ? "npc_" + fallbackType + "_walk" : null,
+                placeholderR, placeholderG, placeholderB
+            );
+        }
+    }
+
+    private void aliasNpcAnimOrPlaceholder(
+        String key,
+        String fallbackKey,
+        float placeholderR,
+        float placeholderG,
+        float placeholderB
+    ) {
+        if (frames.containsKey(key)) return;
+        if (fallbackKey != null) {
+            TextureRegion[] fallbackFrames = frames.get(fallbackKey);
+            if (fallbackFrames != null && fallbackFrames.length > 0) {
+                frames.put(key, fallbackFrames);
+                return;
+            }
+        }
+        registerColoredPlaceholder(key, placeholderR, placeholderG, placeholderB);
     }
 
     /**

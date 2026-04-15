@@ -83,7 +83,7 @@ public final class MinimapRenderer {
 
     // ── State ─────────────────────────────────────────────────────────────────
     private boolean visible        = false;
-    private boolean showTileDetail = false;
+    private boolean showTileDetail = true;
     private boolean showFog        = true;
     private boolean showEntities   = true;
 
@@ -106,8 +106,14 @@ public final class MinimapRenderer {
     private static final Color COL_PORTAL    = new Color(0.25f, 0.90f, 0.90f, 0.90f);
     private static final Color COL_SELF      = new Color(1f,    1f,    1f,    1f);
     private static final Color COL_OTHER     = new Color(0.25f, 0.55f, 1f,    0.95f);
+    private static final Color COL_OBJECTIVE_REACH  = new Color(1f, 0.88f, 0.18f, 0.95f);
+    private static final Color COL_OBJECTIVE_SWITCH = new Color(1f, 0.30f, 0.30f, 0.95f);
+    private static final Color COL_OBJECTIVE_EXIT   = new Color(0.45f, 0.96f, 0.96f, 0.95f);
     private static final Color COL_ON        = new Color(0.40f, 1f,    0.40f, 1f);
     private static final Color COL_OFF       = new Color(0.50f, 0.50f, 0.50f, 1f);
+
+    /** World-space marker to visualize active mission objective contacts. */
+    public record ObjectiveMarker(float worldX, float worldY, String markerType) {}
 
     public MinimapRenderer() {
         shapes = new ShapeRenderer();
@@ -194,6 +200,7 @@ public final class MinimapRenderer {
      * @param cachedPickups  Stable pickup list.
      * @param cachedPortals  Stable portal list.
      * @param localSlot      Local player slot (for self/other colouring).
+     * @param objectiveMarkers Active mission markers in world-space.
      */
     public void render(SpriteBatch batch,
                        List<WorldRoomDescriptor> rooms,
@@ -206,7 +213,8 @@ public final class MinimapRenderer {
                        List<EnemyState>  cachedEnemies,
                        List<PickupState> cachedPickups,
                        List<PortalState> cachedPortals,
-                       int localSlot) {
+                       int localSlot,
+                       List<ObjectiveMarker> objectiveMarkers) {
         if (!visible || rooms == null || rooms.isEmpty()) return;
 
         float sw = Gdx.graphics.getWidth();
@@ -424,6 +432,34 @@ public final class MinimapRenderer {
             shapes.circle(crx + normX * roomSize,
                           cry + (1f - normY) * roomSize,
                           Math.max(3f, roomSize * 0.13f), 10);
+        }
+
+        // Objective markers are shown regardless of [3] entity toggle so mission guidance
+        // remains readable for onboarding and playtests.
+        if (objectiveMarkers != null && !objectiveMarkers.isEmpty()
+            && roomWidthPx > 0f && roomHeightPx > 0f) {
+            float markR = Math.max(3f, roomSize * 0.09f);
+            for (ObjectiveMarker marker : objectiveMarkers) {
+                if (marker == null) continue;
+                float[] sc = worldToMinimap(marker.worldX(), marker.worldY(), roomWidthPx, roomHeightPx,
+                    minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                if (sc == null) continue;
+                String type = marker.markerType() != null ? marker.markerType() : "reach";
+                if ("switch".equals(type)) {
+                    shapes.setColor(COL_OBJECTIVE_SWITCH);
+                    float half = markR;
+                    shapes.rect(sc[0] - half, sc[1] - half, half * 2f, half * 2f);
+                } else if ("exit".equals(type)) {
+                    shapes.setColor(COL_OBJECTIVE_EXIT);
+                    shapes.circle(sc[0], sc[1], markR * 1.2f, 10);
+                } else {
+                    shapes.setColor(COL_OBJECTIVE_REACH);
+                    shapes.triangle(
+                        sc[0], sc[1] + markR * 1.3f,
+                        sc[0] - markR, sc[1] - markR,
+                        sc[0] + markR, sc[1] - markR);
+                }
+            }
         }
         shapes.end();
 

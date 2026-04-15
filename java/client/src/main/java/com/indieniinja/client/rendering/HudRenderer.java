@@ -59,8 +59,17 @@ public final class HudRenderer {
     // ── Ability unlock toasts ─────────────────────────────────────────────────
     private static final float TOAST_TTL  = 3.0f;
     private static final float TOAST_FADE = 0.8f;   // start fading in final 0.8s
+    private static final Color TRACKER_LOCKED_COLOR   = new Color(1f, 0.78f, 0.30f, 1f);
+    private static final Color TRACKER_UNLOCKED_COLOR = new Color(0.45f, 1f, 0.45f, 1f);
+    private static final Color TRACKER_META_COLOR     = new Color(0.80f, 0.86f, 0.94f, 0.95f);
+    private static final Color TRACKER_DONE_COLOR     = new Color(0.55f, 1f, 0.55f, 0.95f);
     private final java.util.List<String> toastTexts = new java.util.ArrayList<>();
     private final java.util.List<Float>  toastTtls  = new java.util.ArrayList<>();
+    // Active mission tracker (fed by GameScreen each frame).
+    private String missionTrackerTitle = "";
+    private final java.util.List<String> missionTrackerLines = new java.util.ArrayList<>();
+    private boolean missionTrackerExitLocked = false;
+    private float missionTrackerTimerSec = 0f;
     // Scripted-loss splash continue button bounds (screen-space, y-up).
     private float scriptedLossBtnX = 0f;
     private float scriptedLossBtnY = 0f;
@@ -214,6 +223,20 @@ public final class HudRenderer {
         shapes.setColor(connected ? Color.GREEN : Color.RED);
         shapes.circle(sw - 12f, 12f, 6f);
 
+        // Mission tracker panel background (text rendered in SpriteBatch pass).
+        if (!missionTrackerTitle.isBlank()) {
+            float panelW = Math.min(390f, sw * 0.42f);
+            float panelH = Math.min(200f, 46f + missionTrackerLines.size() * 17f);
+            float panelX = sw - panelW - 12f;
+            float panelY = sh - panelH - 70f;
+            shapes.setColor(0f, 0f, 0f, 0.52f);
+            shapes.rect(panelX, panelY, panelW, panelH);
+            shapes.setColor(missionTrackerExitLocked ? 0.95f : 0.35f,
+                missionTrackerExitLocked ? 0.50f : 0.95f,
+                0.20f, 0.86f);
+            shapes.rect(panelX, panelY + panelH - 3f, panelW, 3f);
+        }
+
         shapes.end();
 
         // ── Text pass (SpriteBatch) ───────────────────────────────────────────
@@ -296,6 +319,34 @@ public final class HudRenderer {
             }
         }
 
+        if (!missionTrackerTitle.isBlank()) {
+            float panelW = Math.min(390f, sw * 0.42f);
+            float panelH = Math.min(200f, 46f + missionTrackerLines.size() * 17f);
+            float panelX = sw - panelW - 12f;
+            float panelY = sh - panelH - 70f;
+
+            font.getData().setScale(0.86f);
+            font.setColor(0.90f, 0.95f, 1f, 1f);
+            font.draw(hudBatch, "MISSION: " + missionTrackerTitle, panelX + 10f, panelY + panelH - 10f);
+            font.setColor(missionTrackerExitLocked ? TRACKER_LOCKED_COLOR : TRACKER_UNLOCKED_COLOR);
+            font.draw(hudBatch,
+                missionTrackerExitLocked ? "Exit Locked" : "Exit Unlocked",
+                panelX + panelW - 100f, panelY + panelH - 10f);
+
+            font.setColor(TRACKER_META_COLOR);
+            font.draw(hudBatch, "Time " + formatClock(missionTrackerTimerSec), panelX + 10f, panelY + panelH - 27f);
+            float y = panelY + panelH - 45f;
+            for (String line : missionTrackerLines) {
+                if (line == null || line.isBlank()) continue;
+                font.setColor(line.startsWith("[x]") ? TRACKER_DONE_COLOR : Color.WHITE);
+                font.draw(hudBatch, line, panelX + 10f, y);
+                y -= 16f;
+                if (y < panelY + 10f) break;
+            }
+            font.getData().setScale(1f);
+            font.setColor(Color.WHITE);
+        }
+
         // Frame number (debug)
         if (snap != null) {
             font.draw(hudBatch, "f:" + snap.frame, sw - 60f, 55f);
@@ -311,7 +362,7 @@ public final class HudRenderer {
                     font.setColor(Color.WHITE);
                     // Controls hint
                     font.setColor(0.5f, 0.5f, 0.5f, 1f);
-                    font.draw(hudBatch, "[E]interact [TAB]map [I]inventory", 10f, 60f);
+                    font.draw(hudBatch, "[E]interact [O]missions [TAB]map [I]inventory", 10f, 60f);
                     font.setColor(Color.WHITE);
                     break;
                 }
@@ -361,8 +412,31 @@ public final class HudRenderer {
             case "ninjutsu"    -> "Ninjutsu";
             default            -> abilityName.replace('_', ' ');
         };
-        toastTexts.add("ABILITY UNLOCKED: " + display.toUpperCase());
-        toastTtls .add(TOAST_TTL);
+        notifyToast("ABILITY UNLOCKED: " + display.toUpperCase());
+    }
+
+    /** Queue a generic toast line for onboarding/system guidance. */
+    public void notifyToast(String text) {
+        if (text == null || text.isBlank()) return;
+        toastTexts.add(text);
+        toastTtls.add(TOAST_TTL);
+    }
+
+    /** Update active mission tracker data (empty title hides the panel). */
+    public void setMissionTracker(String title, java.util.List<String> lines,
+                                  boolean exitLocked, float timerSec) {
+        missionTrackerTitle = title == null ? "" : title;
+        missionTrackerLines.clear();
+        if (lines != null) missionTrackerLines.addAll(lines);
+        missionTrackerExitLocked = exitLocked;
+        missionTrackerTimerSec = Math.max(0f, timerSec);
+    }
+
+    public void clearMissionTracker() {
+        missionTrackerTitle = "";
+        missionTrackerLines.clear();
+        missionTrackerExitLocked = false;
+        missionTrackerTimerSec = 0f;
     }
 
     /**
@@ -401,6 +475,13 @@ public final class HudRenderer {
     public void resize(int w, int h) {
         screenCam.setToOrtho(false, w, h);
         screenCam.update();
+    }
+
+    private static String formatClock(float seconds) {
+        int total = Math.max(0, (int) seconds);
+        int mins = total / 60;
+        int secs = total % 60;
+        return String.format(java.util.Locale.ROOT, "%02d:%02d", mins, secs);
     }
 
     /** Screen-space projection matrix — use for overlays rendered over the HUD. */
@@ -588,6 +669,7 @@ public final class HudRenderer {
             "Movement: Arrow Keys  |  Run Modifier: Left Shift  |  Jump: Z  |  Dash: C",
             "Core Actions: X Melee  |  A Switch Yin/Yang  |  S Guard/Parry  |  D Traversal Art",
             "Arts & Utility: F Thrown Tool  |  R Echo Art  |  E Interact",
+            "Mission: O opens mission board  |  Top-right tracker shows active objectives",
             "Map: TAB tap = quick map  |  TAB hold = full map  |  ESC = pause/menu",
             "Debug/Dev: H hitboxes  |  F1 controls  |  F3 telemetry",
             "",
