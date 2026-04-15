@@ -1,30 +1,32 @@
-# What changed
+﻿## What changed
 
-<!-- One sentence summary -->
+<!-- One-sentence summary -->
 
 ## Why
 
-<!-- Problem being solved, or feature being added. Link to issue if applicable: Closes #123 -->
+<!-- Problem or objective. Link issue/plan if available. -->
 
 ## How
 
-<!-- Brief description of the implementation approach -->
+<!-- Implementation approach and important tradeoffs. -->
+
+## Plan linkage
+
+- plan_id: <!-- required when tied to plan work, e.g. P0-10; otherwise n/a -->
+- docs_impact: <!-- required: none | low | medium | high -->
+- archive_action: <!-- required: none | create | update -->
 
 ## Testing done
 
-<!-- What did you test manually? Copy relevant test output below. -->
-
-```
-python run_tests.py
-# paste output here
+```text
+# Include exact commands and relevant output excerpts
 ```
 
 ## Checklist
 
-- [ ] All tests pass (`python run_tests.py`)
-- [ ] No regressions in multiplayer (smoke test if netcode touched)
-- [ ] Replay determinism preserved (if physics/input changed)
-- [ ] `docs/CHANGELOG.md` updated (if user-visible change)
-- [ ] `version.json` bumped (if this is a release PR)
-- [ ] `pyproject.toml` version matches `version.json` (if bumped)
-- [ ] Relevant docs updated (`docs/dev/`, `docs/workflow/`, etc.)
+- [ ] Version parity unaffected or validated (`python tools/check_version_sync.py`)
+- [ ] Docs freshness checked (`python tools/check_docs_freshness.py --emit-report`)
+- [ ] Java tests/build run when Java changed
+- [ ] Python tests run when Python changed
+- [ ] `docs/CHANGELOG.md` updated for user-visible behavior
+- [ ] Active plan document updated for completed work

@@ -1,55 +1,35 @@
+﻿---
+doc_type: workflow
+status: living
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
+
 # Sprint Workflow
 
-Iteration-first workflow for solo development.
+Iteration-first workflow for implementation and documentation upkeep.
 
-Primary references:
+## Cadence
 
-- [ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.md)
-- [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)
+- Monday: triage + plan alignment
+- Tuesday-Thursday: implementation loops
+- Friday: hardening, documentation cleanup, release/reporting
 
-## Weekly Shape
+## Mandatory Implementation Work Loop
 
-```text
-Mon: triage + plan
-Tue-Thu: build/test/release iterations
-Fri: hardening + docs + retro
-```
+1. Review active plan state.
+2. Build a scoped task list for the current phase.
+3. Execute tasks one by one.
+4. Commit after each logical unit.
+5. Update the plan document with completed IDs and next step.
+6. Push branch progress.
+7. Repeat.
 
-## Core Rule
+## Done Criteria Per Loop
 
-Every completed iteration must end in a testable tagged release.
-
-## Iteration Loop
-
-1. Pick one scoped task (feature, fix, balancing, tooling).
-2. Implement in a focused change set.
-3. Run local gates:
-   - Python tests where relevant.
-   - Java test + fat JAR build.
-4. Update version metadata and changelog/docs.
-5. Commit.
-6. Tag in `v0.<minor>.<patch>` format (annotated).
-7. Push `master` and tag.
-8. Confirm CI + Release workflows and downloadable artifacts.
-9. Publish a short iteration report for playtesting.
-
-## Branch Guidance
-
-- Default path: work directly from `master` for fast iteration.
-- Use `feature/*` when the task is risky or large.
-- Merge to `master` before tagging.
-- Use `hotfix/*` for emergency production fixes.
-
-## Definition of Done (Per Iteration)
-
-- [ ] Code change complete for scoped goal
-- [ ] Local tests/builds green
-- [ ] Tagged release created in `v0.<minor>.<patch>`
-- [ ] GitHub Actions passed
-- [ ] Release artifacts are present and testable
-- [ ] Player-facing test notes written
-
-## Capacity Guidance
-
-Keep each iteration small enough to build, test, and release in the same work block.
-
+- [ ] Scoped change implemented
+- [ ] Local validation complete
+- [ ] Plan updated in-place
+- [ ] Commit created with clear scope and reason
+- [ ] Pushed to remote if loop is complete

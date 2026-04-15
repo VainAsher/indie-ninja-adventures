@@ -77,6 +77,17 @@ jobs:
           SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
 
+      - name: Build docs archive ZIP snapshot
+        shell: pwsh
+        run: |
+          $out = python tools/build_docs_archive_zip.py
+          $out | ForEach-Object { Write-Host $_ }
+          $zipLine = ($out | Select-String '^archive_zip=' | Select-Object -First 1).Line
+          if (-not $zipLine) { Write-Error "Missing archive_zip output"; exit 1 }
+          $zipPath = $zipLine.Split('=')[1]
+          if (-not (Test-Path $zipPath)) { Write-Error "Docs archive zip not found: $zipPath"; exit 1 }
+          echo "DOCS_ARCHIVE_ZIP=$zipPath" >> $env:GITHUB_ENV
+
       # Run pyinstaller directly (not via build.py) so both exes land in
       # build/dist/ without the cleanup step wiping the first one.
       - name: Build game exe (production)
@@ -113,7 +124,8 @@ jobs:
           @(
             "build\dist\ninja_dash.exe",
             "build\dist\ninja_dash_launcher.exe",
-            "build\dist\ninja_dash.exe.sha256"
+            "build\dist\ninja_dash.exe.sha256",
+            "$env:DOCS_ARCHIVE_ZIP"
           ) | ForEach-Object {
             if (-not (Test-Path $_)) {
               Write-Error "Missing expected asset: $_"
@@ -135,6 +147,7 @@ jobs:
             "build/dist/ninja_dash.exe" \
             "build/dist/ninja_dash.exe.sha256" \
             "build/dist/ninja_dash_launcher.exe" \
+            "$DOCS_ARCHIVE_ZIP" \
             "$SERVER_JAR" \
             "$CLIENT_JAR"
 

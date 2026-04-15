@@ -1,72 +1,49 @@
+﻿---
+doc_type: workflow
+status: living
+owner: release-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
+
 # Release Checklist
 
-Per-iteration release checklist. Use this for every development loop, not only milestones.
+Reference protocol: [ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.md)
 
-Primary reference: [ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.md)
+## Pre-Tag Gates
 
-## Pre-Tag Gates (Required)
-
-### Local Validation
-
-- [ ] Python tests pass (if touched): `python run_tests.py`
-- [ ] Java build + tests pass:
+- [ ] Version parity passes: `python tools/check_version_sync.py --tag v0.<minor>.<patch>`
+- [ ] Docs freshness baseline generated: `python tools/check_docs_freshness.py --emit-report`
+- [ ] Java tests + build pass:
   - [ ] `cd java`
   - [ ] `gradle :server:test :server:shadowJar :client:shadowJar --no-daemon`
-- [ ] Solo smoke check starts and loads
-- [ ] Multiplayer smoke check (host + join) for network-affecting changes
+- [ ] Python tests pass if Python code/tooling changed: `python run_tests.py`
 
-### Version Discipline
-
-- [ ] Tag format is `v0.<minor>.<patch>`
-- [ ] Tag is final commit of the iteration
-- [ ] `version.json` matches target tag version (without the `v`)
-- [ ] `java/build.gradle.kts` version matches target tag version
-- [ ] `README.md` version/status is updated when player-facing behavior changed
-
-### Documentation
+## Documentation Gate
 
 - [ ] `docs/CHANGELOG.md` updated for user-facing changes
-- [ ] Relevant plan/status docs updated (`docs/PLAN_*.md`, `docs/PLAYER_EXPECTATIONS.md` as applicable)
+- [ ] Active plan updated (usually `docs/plans/implementing/PLAN_SHADOW_ASCENT.md`)
+- [ ] Archive action recorded when retiring docs (`none/create/update`)
 
-## Release Commands (Canonical)
+## Version + Tag Discipline
 
-```bash
-# 1) sync
-git checkout master
-git pull origin master
+- [ ] Tag format `v0.<minor>.<patch>`
+- [ ] Tag points to final iteration commit
+- [ ] `version.json` matches the tag (without `v`)
+- [ ] `README.md` version banner reflects release value
 
-# 2) commit final iteration state
-git add <files>
-git commit -m "fix|feat|docs|test|chore: <summary>"
+## Post-Push Verification
 
-# 3) annotated tag (required style)
-git tag -a v0.<minor>.<patch> -m "v0.<minor>.<patch> - <summary>"
-
-# 4) push commit + tag
-git push origin master
-git push origin v0.<minor>.<patch>
-```
-
-## Post-Push Verification (Required)
-
-- [ ] `CI` workflow succeeded
-- [ ] `Release` workflow succeeded
-- [ ] GitHub release exists for the pushed tag
+- [ ] `CI` workflow passed
+- [ ] `Release` workflow passed
 - [ ] Release includes:
-  - [ ] `ninja_dash.exe`
-  - [ ] `ninja_dash_launcher.exe`
-  - [ ] `ninja_dash.exe.sha256`
-  - [ ] client fat JAR (`*-all.jar`)
-  - [ ] server fat JAR (`*-all.jar`)
+  - [ ] EXE + launcher + checksum
+  - [ ] server/client fat JARs
+  - [ ] docs archive ZIP
 
-## Recovery Path
+## Failure Path
 
-If release workflow fails:
-
-1. Fix the issue on `master`.
-2. Re-run local gates.
-3. Cut next patch tag in `v0.<minor>.<patch>` space.
-4. Push again and re-verify artifacts.
-
-Do not proceed to a new iteration until a testable release is available.
-
+1. Fix on `master`.
+2. Re-run gates.
+3. Cut next patch tag.
+4. Push and verify artifacts again.
