@@ -72,7 +72,7 @@ def main() -> int:
     checksum = sha256(out)
     prune_zips(root, max(args.keep, 1))
 
-    print(f"archive_zip={out.as_posix()}")
+    print(f"archive_zip={out.relative_to(root).as_posix()}")
     print(f"archive_sha256={checksum}")
     return 0
 
