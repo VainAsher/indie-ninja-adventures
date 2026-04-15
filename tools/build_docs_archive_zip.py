@@ -61,7 +61,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build docs archive ZIP snapshot.")
     parser.add_argument("--version", default=None, help="Version override (x.y.z)")
     parser.add_argument("--date", default=None, help="Date override (YYYY-MM-DD)")
-    parser.add_argument("--keep", type=int, default=6, help="How many ZIP snapshots to keep in repo")
+    parser.add_argument(
+        "--keep", type=int, default=6, help="How many ZIP snapshots to keep in repo"
+    )
     args = parser.parse_args()
 
     root = repo_root()

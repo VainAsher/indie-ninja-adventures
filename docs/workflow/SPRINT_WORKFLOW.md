@@ -1,9 +1,9 @@
-﻿---
+---
 doc_type: workflow
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.45
+version_anchor: v0.11.47
 ---
 
 # Sprint Workflow

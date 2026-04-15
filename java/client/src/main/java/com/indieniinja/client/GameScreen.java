@@ -170,6 +170,8 @@ public final class GameScreen implements Screen {
     private final java.util.Map<String, Boolean>  prevBossAlive = new java.util.HashMap<>();
     /** Local player inventory totals from previous frame — diff used for collect_items objectives. */
     private final java.util.Map<String, Integer>  prevInventoryTotals = new java.util.HashMap<>();
+    private int prevInventoryCurrency = 0;
+    private boolean prevInventoryBaselineReady = false;
     /** Dialogue event telemetry: key -> count processed this session. */
     private final java.util.Map<String, Integer>  dialogueEventCounts = new java.util.HashMap<>();
     /** Per-mission reached location ids to avoid replaying one-shot objective triggers. */
@@ -1546,6 +1548,8 @@ public final class GameScreen implements Screen {
         prevEnemyIds.clear();
         prevBossAlive.clear();
         prevInventoryTotals.clear();
+        prevInventoryCurrency = 0;
+        prevInventoryBaselineReady = false;
         prevLocalAbilities.clear();
         missionReachedLocations.clear();
         missionActivatedSwitches.clear();
@@ -2062,16 +2066,30 @@ public final class GameScreen implements Screen {
                 if (itemId == null || itemId.isBlank()) continue;
                 currentTotals.merge(itemId.toLowerCase(java.util.Locale.ROOT), slot.quantity(), Integer::sum);
             }
-            for (var e : currentTotals.entrySet()) {
-                int prevQty = prevInventoryTotals.getOrDefault(e.getKey(), 0);
-                int gained = e.getValue() - prevQty;
-                if (gained > 0) {
-                    missionManager.onItemCollected(e.getKey(), gained);
-                    log.debug("[Mission] item gain {} +{}", e.getKey(), gained);
+
+            int currentCurrency = Math.max(0, localP.inventory.currency);
+            if (prevInventoryBaselineReady) {
+                int currencyGained = currentCurrency - prevInventoryCurrency;
+                if (currencyGained > 0) {
+                    missionManager.onItemCollected("coin", currencyGained);
+                    log.debug("[Mission] currency gain coin +{}", currencyGained);
                 }
+
+                for (var e : currentTotals.entrySet()) {
+                    int prevQty = prevInventoryTotals.getOrDefault(e.getKey(), 0);
+                    int gained = e.getValue() - prevQty;
+                    if (gained > 0) {
+                        missionManager.onItemCollected(e.getKey(), gained);
+                        log.debug("[Mission] item gain {} +{}", e.getKey(), gained);
+                    }
+                }
+            } else {
+                prevInventoryBaselineReady = true;
             }
+
             prevInventoryTotals.clear();
             prevInventoryTotals.putAll(currentTotals);
+            prevInventoryCurrency = currentCurrency;
         }
     }
 

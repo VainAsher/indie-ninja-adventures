@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.46
+version_anchor: v0.11.47
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.47] - 2026-04-15 (mission coin objective parity fix + CI formatting restore)
+
+### Fixed
+
+- `demo_coin_run` objective progression now correctly advances from coin pickups:
+  - `GameScreen.tickMissionProgress(...)` now tracks currency deltas as `collect_items_coin` progress.
+  - inventory/currency mission tracking now uses a baseline guard so first-frame snapshots do not backfill stale progress after load/rebuild.
+
+### Added
+
+- Regression coverage for coin-objective parity in
+  `GameScreenSaveRestoreTest.tickMissionProgressCountsCurrencyGainAsCoinObjectiveProgress`.
+
+### Changed
+
+- Restored Python formatting compliance for CI by applying Black formatting to:
+  - `launcher/launcher.py`
+  - `tools/build_docs_archive_zip.py`
+  - `tools/check_docs_freshness.py`
+- Version parity metadata updated to `0.11.47` across `version.json`, Gradle, README, ROADMAP, and version-anchored docs.
+
+### Validation
+
+- `python tools/check_version_sync.py --tag v0.11.47` pass.
+- `python tools/check_docs_freshness.py --emit-report` pass.
+- `cd java && ./gradlew :client:test --tests com.indieniinja.client.GameScreenSaveRestoreTest --no-daemon` pass.
+- `cd java && ./gradlew :server:test :server:shadowJar :client:shadowJar --no-daemon` pass.
 
 ---
 

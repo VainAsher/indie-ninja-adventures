@@ -3051,7 +3051,11 @@ class LauncherApp:
                     # Non-fatal — JAR download failure doesn't break the exe install
 
             docs_ok, docs_reason = self._sync_player_expectations(tag)
-            docs_note = "PLAYER_EXPECTATIONS synced" if docs_ok else f"PLAYER_EXPECTATIONS sync failed ({docs_reason})"
+            docs_note = (
+                "PLAYER_EXPECTATIONS synced"
+                if docs_ok
+                else f"PLAYER_EXPECTATIONS sync failed ({docs_reason})"
+            )
             self.root.after(0, self._on_download_done, tag, docs_note)
 
         except Exception as exc:
@@ -3122,7 +3126,11 @@ class LauncherApp:
                     pass
 
             docs_ok, docs_reason = self._sync_player_expectations(tag)
-            docs_note = "PLAYER_EXPECTATIONS synced" if docs_ok else f"PLAYER_EXPECTATIONS sync failed ({docs_reason})"
+            docs_note = (
+                "PLAYER_EXPECTATIONS synced"
+                if docs_ok
+                else f"PLAYER_EXPECTATIONS sync failed ({docs_reason})"
+            )
             self.root.after(0, self._on_download_done, tag, docs_note)
 
         except Exception as exc:

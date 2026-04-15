@@ -136,7 +136,9 @@ def check_metadata(root: Path, docs: Iterable[Path], expected_version: str) -> l
         fm = parse_frontmatter(text)
 
         if not fm:
-            findings.append(Finding("warn", "missing_frontmatter", "Missing metadata frontmatter", rel))
+            findings.append(
+                Finding("warn", "missing_frontmatter", "Missing metadata frontmatter", rel)
+            )
             continue
 
         missing = [f for f in REQUIRED_FIELDS if not fm.get(f)]
@@ -157,24 +159,56 @@ def check_metadata(root: Path, docs: Iterable[Path], expected_version: str) -> l
         if "/docs/plans/" in str(path).replace("\\", "/"):
             if status not in PLAN_STATUSES:
                 findings.append(
-                    Finding("warn", "plan_status_invalid", f"Plan status must be one of {sorted(PLAN_STATUSES)}", rel)
+                    Finding(
+                        "warn",
+                        "plan_status_invalid",
+                        f"Plan status must be one of {sorted(PLAN_STATUSES)}",
+                        rel,
+                    )
                 )
 
             normalized = str(rel).replace("\\", "/")
             if "/developing/" in normalized and status != "developing":
-                findings.append(Finding("warn", "plan_folder_status_mismatch", "Plan in developing folder must have status=developing", rel))
+                findings.append(
+                    Finding(
+                        "warn",
+                        "plan_folder_status_mismatch",
+                        "Plan in developing folder must have status=developing",
+                        rel,
+                    )
+                )
             if "/implementing/" in normalized and status != "implementing":
-                findings.append(Finding("warn", "plan_folder_status_mismatch", "Plan in implementing folder must have status=implementing", rel))
+                findings.append(
+                    Finding(
+                        "warn",
+                        "plan_folder_status_mismatch",
+                        "Plan in implementing folder must have status=implementing",
+                        rel,
+                    )
+                )
             if "/completed/" in normalized and status != "completed":
-                findings.append(Finding("warn", "plan_folder_status_mismatch", "Plan in completed folder must have status=completed", rel))
+                findings.append(
+                    Finding(
+                        "warn",
+                        "plan_folder_status_mismatch",
+                        "Plan in completed folder must have status=completed",
+                        rel,
+                    )
+                )
 
         dt = parse_last_updated(fm.get("last_updated", ""))
         if dt is None:
-            findings.append(Finding("warn", "invalid_last_updated", "Unable to parse last_updated", rel))
+            findings.append(
+                Finding("warn", "invalid_last_updated", "Unable to parse last_updated", rel)
+            )
         else:
             age_days = (now - dt.astimezone(timezone.utc)).days
             if age_days > 45:
-                findings.append(Finding("warn", "stale_doc", f"Document appears stale ({age_days} days old)", rel))
+                findings.append(
+                    Finding(
+                        "warn", "stale_doc", f"Document appears stale ({age_days} days old)", rel
+                    )
+                )
 
     canonical = {
         root / "README.md",
@@ -185,14 +219,28 @@ def check_metadata(root: Path, docs: Iterable[Path], expected_version: str) -> l
 
     for path in canonical:
         if not path.exists():
-            findings.append(Finding("warn", "missing_canonical_doc", "Canonical file missing", path.relative_to(root)))
+            findings.append(
+                Finding(
+                    "warn",
+                    "missing_canonical_doc",
+                    "Canonical file missing",
+                    path.relative_to(root),
+                )
+            )
             continue
 
         if path.name == "README.md":
             text = path.read_text(encoding="utf-8", errors="replace")
             match = re.search(r"Version:\s*\*\*v(\d+\.\d+\.\d+)\*\*", text)
             if not match:
-                findings.append(Finding("warn", "readme_version_missing", "README version banner missing", path.relative_to(root)))
+                findings.append(
+                    Finding(
+                        "warn",
+                        "readme_version_missing",
+                        "README version banner missing",
+                        path.relative_to(root),
+                    )
+                )
             elif match.group(1) != expected_version:
                 findings.append(
                     Finding(
@@ -267,7 +315,9 @@ def check_root_plan_files(root: Path) -> list[Finding]:
     return findings
 
 
-def format_report(expected_version: str, findings: list[Finding], checked: list[Path], generated_at: datetime) -> str:
+def format_report(
+    expected_version: str, findings: list[Finding], checked: list[Path], generated_at: datetime
+) -> str:
     warnings = [f for f in findings if f.level == "warn"]
     status = "PASS" if not warnings else "WARN"
 
@@ -297,7 +347,9 @@ def format_report(expected_version: str, findings: list[Finding], checked: list[
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check docs freshness and metadata.")
     parser.add_argument("--strict", action="store_true", help="Return non-zero when warnings exist")
-    parser.add_argument("--emit-report", action="store_true", help="Write docs/reports/docs_freshness_report.md")
+    parser.add_argument(
+        "--emit-report", action="store_true", help="Write docs/reports/docs_freshness_report.md"
+    )
     parser.add_argument("--version", default=None, help="Expected version, e.g. 0.11.45")
     args = parser.parse_args()
 

@@ -1,6 +1,13 @@
 package com.indieniinja.client;
 
+import com.indieniinja.client.game.MissionDefinition;
+import com.indieniinja.client.game.MissionManager;
+import com.indieniinja.client.game.MissionObjective;
+import com.indieniinja.client.game.ObjectiveType;
 import com.indieniinja.client.game.SaveData;
+import com.indieniinja.network.InventoryState;
+import com.indieniinja.network.PlayerState;
+import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.ItemDatabase;
@@ -13,11 +20,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GameScreenSaveRestoreTest {
 
@@ -104,6 +114,23 @@ class GameScreenSaveRestoreTest {
         assertEquals(Set.of("dash", "teleport"), h.player.unlockedAbilities);
     }
 
+    @Test
+    void tickMissionProgressCountsCurrencyGainAsCoinObjectiveProgress() throws Exception {
+        GameScreen screen = new GameScreen(null, "localhost", 7777, "solo");
+        MissionManager missions = getMissionManager(screen);
+        missions.startMission("demo_coin_run");
+
+        invokeTickMissionProgress(screen, snapshotWithCurrency(0));
+        invokeTickMissionProgress(screen, snapshotWithCurrency(3));
+
+        assertEquals(3, missions.getObjectiveProgressSnapshot().getOrDefault("collect_items_coin", 0));
+        assertTrue(missions.isExitLocked());
+
+        invokeTickMissionProgress(screen, snapshotWithCurrency(5));
+        assertEquals(5, missions.getObjectiveProgressSnapshot().getOrDefault("collect_items_coin", 0));
+        assertFalse(missions.isExitLocked());
+    }
+
     private static Harness harness(String hubId, int megamapW, int megamapH) throws Exception {
         GameScreen screen = new GameScreen(null, "localhost", 7777, "solo");
         GameSimulator sim = new GameSimulator(42L, hubId, LevelLayout.buildTestLayout(42L));
@@ -120,6 +147,58 @@ class GameScreenSaveRestoreTest {
         Method restore = GameScreen.class.getDeclaredMethod("restoreSoloPlayerFromSave", SaveData.class);
         restore.setAccessible(true);
         restore.invoke(screen, save);
+    }
+
+    private static void invokeTickMissionProgress(GameScreen screen, WorldSnapshot snap) throws Exception {
+        Method tick = GameScreen.class.getDeclaredMethod("tickMissionProgress", WorldSnapshot.class);
+        tick.setAccessible(true);
+        tick.invoke(screen, snap);
+    }
+
+    private static MissionManager getMissionManager(GameScreen screen) throws Exception {
+        Field f = screen.getClass().getDeclaredField("missionManager");
+        f.setAccessible(true);
+        MissionManager missions = (MissionManager) f.get(screen);
+        if (missions == null) {
+            MissionDefinition demo = new MissionDefinition(
+                "demo_coin_run",
+                "Coin Run",
+                "Collect coins",
+                "forest",
+                1,
+                1,
+                "linear",
+                List.of(new MissionObjective(
+                    ObjectiveType.COLLECT_ITEMS,
+                    "Collect coins",
+                    0,
+                    "coin",
+                    5,
+                    null,
+                    null,
+                    0f
+                )),
+                List.of(),
+                List.of(),
+                0,
+                List.of(),
+                0f,
+                0
+            );
+            missions = new MissionManager(Map.of("demo_coin_run", demo));
+            f.set(screen, missions);
+        }
+        return missions;
+    }
+
+    private static WorldSnapshot snapshotWithCurrency(int currency) {
+        WorldSnapshot snap = new WorldSnapshot();
+        PlayerState local = new PlayerState();
+        local.slot = 0;
+        local.inventory = new InventoryState();
+        local.inventory.currency = currency;
+        snap.players.add(local);
+        return snap;
     }
 
     private static void setField(Object target, String fieldName, Object value) throws Exception {

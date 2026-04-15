@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.46
+version_anchor: v0.11.47
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 17:38:02 +01:00 | **Codebase version:** v0.11.46 | **Next release target:** v0.11.47 (P0-10 onboarding/system-guidance follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 18:48:00 +01:00 | **Codebase version:** v0.11.47 | **Next release target:** v0.11.48 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
@@ -93,6 +93,16 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 18:48:00 +01:00`
+
+- Fresh-test onboarding blocker resolved for `demo_coin_run`:
+  - mission `collect_items: coin` now progresses from `inventory.currency` deltas in `GameScreen.tickMissionProgress(...)`.
+  - added inventory/currency baseline seeding so first snapshot after load/rebuild does not miscount historical totals as newly collected items.
+- Added regression coverage:
+  - `GameScreenSaveRestoreTest.tickMissionProgressCountsCurrencyGainAsCoinObjectiveProgress`.
+- Release loop alignment for this patch:
+  - preparing `v0.11.47` parity/docs updates and CI post-push stability by restoring Black formatting compliance for known failing files.
 
 `2026-04-15 17:38:02 +01:00`
 
