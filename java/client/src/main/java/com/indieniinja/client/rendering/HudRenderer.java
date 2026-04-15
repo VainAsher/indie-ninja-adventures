@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.indieniinja.client.KeyBindings;
 import com.indieniinja.network.PlayerState;
 import com.indieniinja.network.WorldSnapshot;
 
@@ -634,7 +635,7 @@ public final class HudRenderer {
      * Render a launcher-friendly controls reference panel.
      * Intended for first-time users with no external documentation.
      */
-    public void renderControlsOverlay() {
+    public void renderControlsOverlay(KeyBindings keys) {
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
         screenCam.setToOrtho(false, sw, sh);
@@ -668,12 +669,25 @@ public final class HudRenderer {
         font.getData().setScale(1f);
         font.setColor(0.88f, 0.92f, 0.98f, 1f);
         String[] lines = {
-            "Movement: Arrow Keys  |  Run Modifier: Left Shift  |  Jump: Z  |  Dash: C",
-            "Core Actions: X Melee  |  A Switch Yin/Yang  |  S Guard/Parry  |  D Traversal Art",
-            "Arts & Utility: F Thrown Tool  |  R Echo Art  |  E Interact",
-            "Mission: O opens mission board  |  Top-right tracker shows active objectives",
-            "Map: TAB tap = quick map  |  TAB hold = full map  |  ESC = pause/menu",
-            "Debug/Dev: H hitboxes  |  F1 controls  |  F3 telemetry",
+            "Movement: " + bind(keys, "left") + "/" + bind(keys, "right")
+                + "  Jump: " + bind(keys, "jump")
+                + "  Dash: " + bind(keys, "dash")
+                + "  Run: " + bind(keys, "slow_walk"),
+            "Core Actions: " + bind(keys, "attack") + " Melee  |  "
+                + bind(keys, "stance_switch") + " Switch Yin/Yang  |  "
+                + bind(keys, "block") + " Guard/Parry  |  "
+                + bind(keys, "teleport") + " Traversal Art",
+            "Arts & Utility: " + bind(keys, "throw") + " Thrown Tool  |  "
+                + bind(keys, "ninjutsu") + " Echo Art  |  "
+                + bind(keys, "interact") + " Interact",
+            "Mission: " + bind(keys, "mission_menu")
+                + " opens mission board  |  Top-right tracker shows active objectives",
+            "Map: " + bind(keys, "minimap") + " tap = quick map  |  "
+                + bind(keys, "fullmap") + " hold = full map  |  "
+                + bind(keys, "menu_back") + " = pause/menu",
+            "Debug/Dev: " + bind(keys, "toggle_hitboxes") + " hitboxes  |  "
+                + bind(keys, "controls_overlay") + " controls  |  "
+                + bind(keys, "debug_overlay") + " telemetry",
             "",
             "Launcher Tips:",
             "- Start Server + Play for localhost multiplayer in one click.",
@@ -775,6 +789,12 @@ public final class HudRenderer {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static String bind(KeyBindings keys, String action) {
+        if (keys == null) return "UNBOUND";
+        String value = keys.describe(action);
+        return (value == null || value.isBlank()) ? "UNBOUND" : value;
+    }
 
     private static Color healthColor(float ratio) {
         if (ratio > 0.6f) return Color.GREEN;

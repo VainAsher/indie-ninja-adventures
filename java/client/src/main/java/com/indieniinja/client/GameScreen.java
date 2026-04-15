@@ -74,6 +74,7 @@ public final class GameScreen implements Screen {
     private final com.badlogic.gdx.math.Matrix4 entityTransform = new com.badlogic.gdx.math.Matrix4();
     private GameCamera          camera;
     private GameStateBuffer     stateBuffer;
+    private KeyBindings         keyBindings;
     private InputPoller         inputPoller;
     private NetworkClientThread networkClient;
 
@@ -144,6 +145,8 @@ public final class GameScreen implements Screen {
     private float tabKeyHeldSeconds = 0f;
     /** True once full-map hold path has been activated for current TAB press. */
     private boolean fullMapHoldActive = false;
+    /** Whether quick-map and full-map share at least one key (tap/hold behavior). */
+    private boolean sharedMapBinding = true;
 
     // ── Debug ─────────────────────────────────────────────────────────────────
     /** Toggle with H key — draws physics AABB outlines over all entities. */
@@ -268,8 +271,11 @@ public final class GameScreen implements Screen {
             (LEVEL_ROWS - 4) * PhysicsConstants.TILE_SIZE   // near base floor (Y-DOWN)
         );
         stateBuffer = new GameStateBuffer();
-        inputPoller = new InputPoller();
-        log.info("[Playtest][Controls] preset=GDD-10.3.13 {}", InputPoller.controlPresetSummary());
+        FileHandle settingsFile = Gdx.files.local("user_data/settings/settings.json");
+        keyBindings = KeyBindings.load(settingsFile);
+        inputPoller = new InputPoller(keyBindings);
+        sharedMapBinding = keyBindings.sharesAnyKey("minimap", "fullmap");
+        log.info("[Playtest][Controls] preset=GDD-10.3.13 {}", inputPoller.controlPresetSummary());
 
         anims = new AnimationRegistry();
         FileHandle atlasFile    = Gdx.files.internal("assets/characters.atlas");
@@ -445,36 +451,55 @@ public final class GameScreen implements Screen {
 
         // ── I key: toggle inventory (when no other overlay active) ────────────
         if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
-                && Gdx.input.isKeyJustPressed(Input.Keys.I)) {
+                && keyBindings.isJustPressed("inventory")) {
             inventoryOverlay.toggle();
         }
         if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
-                && Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+                && keyBindings.isJustPressed("mission_menu")) {
             openMissionSelectOverlay("hotkey_o");
         }
         // ── TAB key: tap=quick map toggle, hold=full map while held ──────────
         if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused) {
-            boolean tabDown = Gdx.input.isKeyPressed(Input.Keys.TAB);
-            if (tabDown) {
-                tabKeyHeldSeconds = tabKeyDownLastFrame ? (tabKeyHeldSeconds + delta) : 0f;
-                if (!fullMapHoldActive && tabKeyHeldSeconds >= TAB_FULL_MAP_HOLD_SECONDS) {
+            boolean fullMapDown = keyBindings.isHeld("fullmap");
+            if (sharedMapBinding) {
+                if (fullMapDown) {
+                    tabKeyHeldSeconds = tabKeyDownLastFrame ? (tabKeyHeldSeconds + delta) : 0f;
+                    if (!fullMapHoldActive && tabKeyHeldSeconds >= TAB_FULL_MAP_HOLD_SECONDS) {
+                        minimapRenderer.showFull();
+                        fullMapHoldActive = true;
+                        log.info("[Playtest][Map] mode=full trigger=map_hold threshold_ms={}",
+                            (int) (TAB_FULL_MAP_HOLD_SECONDS * 1000f));
+                    }
+                } else if (tabKeyDownLastFrame) {
+                    if (fullMapHoldActive) {
+                        minimapRenderer.hide();
+                        log.info("[Playtest][Map] mode=full trigger=map_release close=true");
+                    } else {
+                        minimapRenderer.toggleQuick();
+                        log.info("[Playtest][Map] mode=quick trigger=map_tap visible={}", minimapRenderer.isVisible());
+                    }
+                    tabKeyHeldSeconds = 0f;
+                    fullMapHoldActive = false;
+                }
+                tabKeyDownLastFrame = fullMapDown;
+            } else {
+                // Separate bindings: quick-map is edge-triggered, full-map is hold-to-show.
+                if (keyBindings.isJustPressed("minimap")) {
+                    minimapRenderer.toggleQuick();
+                    log.info("[Playtest][Map] mode=quick trigger=minimap_key visible={}", minimapRenderer.isVisible());
+                }
+                if (fullMapDown && !tabKeyDownLastFrame) {
                     minimapRenderer.showFull();
                     fullMapHoldActive = true;
-                    log.info("[Playtest][Map] mode=full trigger=tab_hold threshold_ms={}",
-                        (int) (TAB_FULL_MAP_HOLD_SECONDS * 1000f));
-                }
-            } else if (tabKeyDownLastFrame) {
-                if (fullMapHoldActive) {
+                    log.info("[Playtest][Map] mode=full trigger=fullmap_key_down");
+                } else if (!fullMapDown && tabKeyDownLastFrame && fullMapHoldActive) {
                     minimapRenderer.hide();
-                    log.info("[Playtest][Map] mode=full trigger=tab_release close=true");
-                } else {
-                    minimapRenderer.toggleQuick();
-                    log.info("[Playtest][Map] mode=quick trigger=tab_tap visible={}", minimapRenderer.isVisible());
+                    fullMapHoldActive = false;
+                    log.info("[Playtest][Map] mode=full trigger=fullmap_key_up close=true");
                 }
+                tabKeyDownLastFrame = fullMapDown;
                 tabKeyHeldSeconds = 0f;
-                fullMapHoldActive = false;
             }
-            tabKeyDownLastFrame = tabDown;
 
             // In-map controls (zoom/detail/fog/entities/pan/esc).
             minimapRenderer.handleInput();
@@ -489,19 +514,19 @@ public final class GameScreen implements Screen {
             || dialogueConsumed || missionOverlayConsumed;
 
         // ── H key: toggle hitbox debug overlay ───────────────────────────────
-        if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+        if (!anyOverlay && !paused && keyBindings.isJustPressed("toggle_hitboxes")) {
             debugHitboxes = !debugHitboxes;
             log.info("[Debug] hitbox overlay {}", debugHitboxes ? "enabled" : "disabled");
         }
-        if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
+        if (!anyOverlay && !paused && keyBindings.isJustPressed("controls_overlay")) {
             showControlsOverlay = !showControlsOverlay;
             log.info("[Debug] controls overlay {}", showControlsOverlay ? "enabled" : "disabled");
         }
-        if (!anyOverlay && !paused && Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
+        if (!anyOverlay && !paused && keyBindings.isJustPressed("debug_overlay")) {
             showDebugOverlay = !showDebugOverlay;
             log.info("[Debug] telemetry overlay {}", showDebugOverlay ? "enabled" : "disabled");
         }
-        if (!anyOverlay && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (!anyOverlay && keyBindings.isJustPressed("menu_back")) {
             if (paused) resume(); else pause();
         }
 
@@ -576,7 +601,7 @@ public final class GameScreen implements Screen {
 
         // ── E-key: interact with nearest interactable NPC or portal ─────────────
         if (!anyOverlay && !paused && snap != null
-                && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                && keyBindings.isJustPressed("interact")) {
             // Update shop states cache from latest full snapshot
             for (ShopState ss : snap.shopStates) latestShopStates.put(ss.npcId, ss);
 
@@ -935,7 +960,7 @@ public final class GameScreen implements Screen {
             hudRenderer.renderScriptedLossOverlay();
         }
         if (showControlsOverlay) {
-            hudRenderer.renderControlsOverlay();
+            hudRenderer.renderControlsOverlay(keyBindings);
         }
         if (showDebugOverlay) {
             hudRenderer.renderDebugOverlay(snap, localSlot, soloMode || stateBuffer.isConnected(), gameMode);
@@ -953,7 +978,7 @@ public final class GameScreen implements Screen {
     private boolean handleScriptedLossOverlayInput() {
         if (!scriptedLossOverlay) return false;
         boolean continuePressed =
-            Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+            keyBindings.isJustPressed("menu_confirm")
                 || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
                 || (Gdx.input.justTouched()
                     && hudRenderer.scriptedLossButtonHit(Gdx.input.getX(), Gdx.input.getY()));
@@ -1092,8 +1117,8 @@ public final class GameScreen implements Screen {
             }
         }
 
-        boolean interactPressed = Gdx.input.isKeyJustPressed(Input.Keys.E)
-            || Gdx.input.isKeyJustPressed(Input.Keys.F);
+        boolean interactPressed = keyBindings.isJustPressed("interact")
+            || keyBindings.isJustPressed("throw");
         if (interactPressed) {
             int requiredSwitches = requiredSwitchActivationCount(def);
             for (int i = 1; i <= requiredSwitches; i++) {

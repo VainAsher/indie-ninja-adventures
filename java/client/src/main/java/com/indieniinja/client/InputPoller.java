@@ -11,11 +11,16 @@ import com.indieniinja.network.InputCommand;
  */
 public final class InputPoller {
 
+    private final KeyBindings keys;
     private long frameCounter = 0;
 
+    public InputPoller(KeyBindings keys) {
+        this.keys = keys != null ? keys : KeyBindings.defaults();
+    }
+
     /** One-line controls signature for playtest evidence logging. */
-    public static String controlPresetSummary() {
-        return "move=arrows jump=Z attack=X dash=C stance=A guard=S traversal=D throw=F echo=R interact=E map=TAB(tap-quick/hold-full)";
+    public String controlPresetSummary() {
+        return keys.controlPresetSummary();
     }
 
     /**
@@ -25,45 +30,45 @@ public final class InputPoller {
     public InputCommand poll() {
         InputCommand cmd = new InputCommand((int) (frameCounter++ & 0x7FFF_FFFFL));
 
-        // Movement (GDD: Arrow keys)
-        cmd.up = Gdx.input.isKeyPressed(Input.Keys.UP);
-        cmd.down = Gdx.input.isKeyPressed(Input.Keys.DOWN);
-        cmd.left = Gdx.input.isKeyPressed(Input.Keys.LEFT);
-        cmd.right = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        // Movement
+        cmd.up = keys.isHeld("up");
+        cmd.down = keys.isHeld("down");
+        cmd.left = keys.isHeld("left");
+        cmd.right = keys.isHeld("right");
 
-        // Core movement profile (GDD: Z jump, C dash, Shift run modifier)
-        cmd.jump = Gdx.input.isKeyPressed(Input.Keys.Z);
-        cmd.dash = Gdx.input.isKeyPressed(Input.Keys.C);
-        cmd.crouch = cmd.down;
-        cmd.slowWalk = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
-            || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+        // Core movement profile
+        cmd.jump = keys.isHeld("jump");
+        cmd.dash = keys.isHeld("dash");
+        cmd.crouch = keys.isHeld("crouch") || cmd.down;
+        cmd.slowWalk = keys.isHeld("slow_walk");
 
-        // Combat and arts (GDD: X/A/S/D/F/R)
-        cmd.attack = Gdx.input.isKeyPressed(Input.Keys.X);
-        cmd.block = Gdx.input.isKeyPressed(Input.Keys.S);       // Guard / Parry
-        cmd.throwShuriken = Gdx.input.isKeyPressed(Input.Keys.F);
-        cmd.teleport = Gdx.input.isKeyPressed(Input.Keys.D);  // Traversal Art
-        cmd.ninjutsu = Gdx.input.isKeyPressed(Input.Keys.R);  // Echo Art
-        cmd.stanceSwitch = Gdx.input.isKeyJustPressed(Input.Keys.A);
+        // Combat and arts
+        cmd.attack = keys.isHeld("attack")
+            || Gdx.input.isButtonPressed(Input.Buttons.LEFT);
+        cmd.block = keys.isHeld("block");
+        cmd.throwShuriken = keys.isHeld("throw");
+        cmd.teleport = keys.isHeld("teleport");
+        cmd.ninjutsu = keys.isHeld("ninjutsu");
+        cmd.stanceSwitch = keys.isJustPressed("stance_switch");
 
         // Interaction/meta
-        cmd.interact = Gdx.input.isKeyJustPressed(Input.Keys.E);
-        cmd.inventory = Gdx.input.isKeyJustPressed(Input.Keys.I);
-        cmd.consumable = Gdx.input.isKeyJustPressed(Input.Keys.Q);
+        cmd.interact = keys.isJustPressed("interact");
+        cmd.inventory = keys.isJustPressed("inventory");
+        cmd.consumable = keys.isJustPressed("consumable");
 
         // Map and overlays
-        cmd.minimap = Gdx.input.isKeyJustPressed(Input.Keys.TAB);
-        cmd.fullmap = Gdx.input.isKeyPressed(Input.Keys.TAB);
-        cmd.controlsOverlay = Gdx.input.isKeyJustPressed(Input.Keys.F1);
-        cmd.debugOverlay = Gdx.input.isKeyJustPressed(Input.Keys.F3);
+        cmd.minimap = keys.isJustPressed("minimap");
+        cmd.fullmap = keys.isHeld("fullmap");
+        cmd.controlsOverlay = keys.isJustPressed("controls_overlay");
+        cmd.debugOverlay = keys.isJustPressed("debug_overlay");
 
         // Debug camera/dev toggles
-        cmd.cycleCamera = Gdx.input.isKeyJustPressed(Input.Keys.V);
-        cmd.toggleProc = Gdx.input.isKeyJustPressed(Input.Keys.P);
+        cmd.cycleCamera = keys.isJustPressed("cycle_camera");
+        cmd.toggleProc = keys.isJustPressed("toggle_proc");
 
         // Menu
-        cmd.menuConfirm = Gdx.input.isKeyJustPressed(Input.Keys.ENTER);
-        cmd.menuBack = Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE);
+        cmd.menuConfirm = keys.isJustPressed("menu_confirm");
+        cmd.menuBack = keys.isJustPressed("menu_back");
 
         return cmd;
     }

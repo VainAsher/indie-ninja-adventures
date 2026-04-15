@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.51
+version_anchor: v0.11.52
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.52] - 2026-04-15 (configurable keybindings runtime + dynamic controls overlay)
+
+### Added
+
+- New configurable keybinding runtime table:
+  - `java/client/src/main/java/com/indieniinja/client/KeyBindings.java`
+  - loads `user_data/settings/settings.json` `keybindings` overrides
+  - supports legacy fallback keys (`key_left`, `key_right`, `key_jump`, `key_dash`, `key_crouch`)
+- New client regression coverage:
+  - `KeyBindingsTest.defaultsFollowGddKeyboardPreset`
+  - `KeyBindingsTest.keybindingsBlockOverridesDefaults`
+  - `KeyBindingsTest.legacyKeyFieldsStillParse`
+
+### Changed
+
+- `InputPoller` now uses `KeyBindings` instead of hardcoded key constants for movement/combat/map/menu actions.
+- `GameScreen` hotkey paths now consume the same binding table for:
+  - inventory toggle
+  - mission menu open
+  - map quick/full routing
+  - controls/debug/hitbox overlays
+  - pause/back and interaction checks
+- Map behavior now supports both:
+  - shared key tap/hold flow (default)
+  - split quick/full map bindings when authored in settings.
+- `HudRenderer.renderControlsOverlay(...)` now shows active bound keys at runtime instead of static text strings.
+- Version parity metadata updated to `0.11.52` across `version.json`, Gradle, README, ROADMAP, current-state snapshot, and active animation plan.
+
+### Validation
+
+- `cd java && ./gradlew :client:test --tests com.indieniinja.client.KeyBindingsTest --no-daemon` pass.
 
 ---
 

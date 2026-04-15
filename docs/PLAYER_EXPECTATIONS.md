@@ -3,13 +3,13 @@ doc_type: playtest_contract
 status: living
 owner: qa-team
 last_updated: 2026-04-15
-version_anchor: v0.11.48
+version_anchor: v0.11.52
 ---
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.48`
-**Last updated:** `2026-04-15 21:10:00 +01:00`
+**Target build:** `v0.11.52`
+**Last updated:** `2026-04-15 23:58:40 +01:00`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
 **Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
 
@@ -78,6 +78,10 @@ Use this as the default expected keyboard map.
 | Controls overlay | `F1` |
 | Runtime debug overlay | `F3` |
 
+Notes:
+- These are default bindings. Testers can override them via `user_data/settings/settings.json` under `keybindings`.
+- `F1` controls overlay now renders the active live bindings, not only defaults.
+
 If control understanding is poor, tag finding with `UX-CONTROLS`.
 
 ---
@@ -126,7 +130,7 @@ Do not preload mechanical spoilers beyond this.
 | Area | Current status | Gap |
 |---|---|---|
 | Launcher settings (JVM, paths, update behavior) | Working | Launcher-level only |
-| In-game key rebinding | Missing | Input bindings remain hardcoded in client |
+| Runtime keybinding overrides (`settings.json`) | Working/partial | `keybindings` block now drives live input/hotkeys; full in-game keybinding menu UI still pending |
 | In-game graphics/audio settings UI | Missing | No full settings menu path in Java client |
 | Per-profile gameplay settings | Missing/partial | Profiles exist in launcher; gameplay settings not fully wired |
 
@@ -152,7 +156,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 5. Trigger at least one mission objective interaction and confirm tracker updates.
 6. Trigger at least one failure/death and recover.
 
-`v0.11.48` expectation:
+`v0.11.52` expectation:
 - In `demo_coin_run`, each collected coin should increment mission progress (`collect_items_coin`) and unlock exit at 5/5.
 
 ### Record
@@ -255,7 +259,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 For every bug, frustration point, or balance note capture:
 
-1. Build version (`v0.11.48` or newer).
+1. Build version (`v0.11.52` or newer).
 2. Mode (`SOLO`, `CAMPAIGN`, `HOST`, `JOIN`).
 3. Area context (`hub`, `room grid`, enemy type, mission id).
 4. Exact player-visible behavior.
@@ -354,7 +358,7 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 
 ```md
 ### Session Summary
-Build: v0.11.48
+Build: v0.11.52
 Mode: SOLO / HOST / JOIN
 Duration: XX min
 
@@ -379,7 +383,7 @@ IDs: UX-___ / BAL-___ / TECH-___
 
 ```md
 ### Bug
-Build: v0.11.48
+Build: v0.11.52
 Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 

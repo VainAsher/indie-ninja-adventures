@@ -3,10 +3,10 @@ doc_type: plan
 status: developing
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.51
+version_anchor: v0.11.52
 ---
 # PLAN â€” Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-15 23:44:06 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.51
+**Created:** 2026-04-11 | **Last updated:** 2026-04-15 23:58:40 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.52
 
 ---
 
@@ -221,9 +221,9 @@ Full ZIP animation â†’ engine filename â†’ animation key table. **This
 | 12 | Social / Emote Animations | Phase 7 | Not started |
 | 13 | Death, Revive & Prone System | Phase 5 | Not started |
 | 14 | Testing & Validation | All | **Partial v0.11.51** â€” dedicated traversal fixtures + regression tests cover climb-tag gating, stance wall behavior, ledge-grab climb-out, water-exit snap, water-surface jump, and blocked-bank non-snap behavior |
-| 15 | Complete Keybinding Scheme | Phase 8 | **Partial v0.11.39** - runtime map/core action keys align to GDD baseline and `S` guard/parry is schema-wired; full configurable keybinding runtime still pending Phase 16 |
-| 16 | KeyBindings System (Configurable) | Phase 15 | **Partial v0.11.39** - launcher settings exist, but runtime action rebinding parity is incomplete |
-| 17 | Controls Overlay (In-Game HUD) | Phase 16 | **Partial v0.11.39** - `F1` overlay now mirrors GDD core keys, with full action-family parity still in progress |
+| 15 | Complete Keybinding Scheme | Phase 8 | **Partial v0.11.52** - GDD baseline key map is now runtime-authoritative in Java (`KeyBindings` defaults + settings overrides + legacy `key_*` fallback); controller-path and full UI-side rebind surfaces remain |
+| 16 | KeyBindings System (Configurable) | Phase 15 | **Partial v0.11.52** - `KeyBindings` now drives `InputPoller` and gameplay hotkey paths from `user_data/settings/settings.json`; in-game rebind UX and extended action-family wiring still pending |
+| 17 | Controls Overlay (In-Game HUD) | Phase 16 | **Partial v0.11.52** - `F1` controls overlay now renders live bound keys from runtime `KeyBindings`; broader overlay/context parity remains in progress |
 
 ---
 
@@ -319,6 +319,20 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
 - Regression coverage additions:
   - `waterSurfaceJumpBurstWorksWithoutBankExit`
   - `blockedWaterExitFallsBackToSurfaceJump`
+
+### Progress update (`2026-04-15 23:58:40 +01:00`)
+
+- Phase 16 runtime keybinding pass:
+  - Added `KeyBindings` runtime layer in Java client.
+  - `InputPoller` now consumes `KeyBindings` instead of hardcoded key constants.
+  - `KeyBindings` supports both `settings.json` `keybindings` overrides and legacy fallback fields (`key_left`, `key_right`, `key_jump`, `key_dash`, `key_crouch`).
+- Game hotkey integration pass:
+  - `GameScreen` inventory/mission/map/debug/interact/pause routes now use the same binding table as player input polling.
+  - Map routing now supports both shared tap/hold binding and split quick/full map bindings when authored.
+- Phase 17 overlay parity pass:
+  - `HudRenderer.renderControlsOverlay(...)` now renders live bound keys from runtime bindings.
+- Regression coverage:
+  - Added `KeyBindingsTest` for default mapping, override parsing, and legacy fallback parsing.
 
 ### Validation additions for this plan
 
