@@ -1,5 +1,5 @@
 """
-Indie Ninja Adventures — Launcher
+Shadow Ascent: The Hollowed Ninja — Launcher
 
 Checks for updates via the GitHub releases API, downloads and verifies
 new releases, then launches the game.
@@ -53,13 +53,14 @@ GAME_EXE_NAME = "ninja_dash.exe"
 SERVER_JAR_NAME = "ninja-server-all.jar"
 CLIENT_JAR_NAME = "ninja-client-all.jar"
 VERSION_FILE = "version.json"
-LAUNCHER_VERSION = "1.7.0"
+LAUNCHER_VERSION = "1.8.0"
 JAVA_MIN_VERSION = 21
-WINDOW_TITLE = "Indie Ninja Adventures"
+WINDOW_TITLE = "Shadow Ascent: The Hollowed Ninja"
 WINDOW_W = 760
 WINDOW_H = 640
 SPLASH_W = 640  # splash image/text stays fixed at 640; window can be wider
 SPLASH_H = 200  # canvas height — crops the 640×320 scaled image to top portion
+PLAYER_EXPECTATIONS_REL_PATH = Path("docs") / "PLAYER_EXPECTATIONS.md"
 
 # Colours — matched to game's menu_system.py palette
 BG_DARK = "#0a0a14"  # (10, 10, 20)  — game bg_color
@@ -490,23 +491,31 @@ class LauncherApp:
         self._splash_canvas.create_text(
             tx + 2,
             ty + 2,
-            text="INDIE NINJA ADVENTURES",
-            font=("Impact", 18),
+            text="SHADOW ASCENT",
+            font=("Impact", 21),
             fill="#050510",
             anchor="sw",
         )
         self._splash_canvas.create_text(
             tx,
             ty,
-            text="INDIE NINJA ADVENTURES",
-            font=("Impact", 18),
+            text="SHADOW ASCENT",
+            font=("Impact", 21),
             fill=ACCENT,
             anchor="sw",
         )
         self._splash_canvas.create_text(
             tx,
+            ty + 18,
+            text="THE HOLLOWED NINJA",
+            font=("Consolas", 9, "bold"),
+            fill=TEXT_PRIMARY,
+            anchor="sw",
+        )
+        self._splash_canvas.create_text(
+            tx,
             ty - 22,
-            text="Vain Asher Gaming",
+            text="Vain Asher Gaming  |  Code name: Indie Ninja Adventures",
             font=("Consolas", 9),
             fill=TEXT_DIM,
             anchor="sw",
@@ -2876,6 +2885,40 @@ class LauncherApp:
         self._download_cancel.set()
         self._status_var.set("Cancelling…")
 
+    def _sync_player_expectations(self, tag: str) -> tuple[bool, str]:
+        """
+        Download docs/PLAYER_EXPECTATIONS.md for the selected release tag
+        and replace the local live copy.
+
+        Returns:
+            (True, "ok") on success, otherwise (False, reason)
+        """
+        clean_tag = (tag or "").strip()
+        if not clean_tag:
+            return False, "missing release tag"
+
+        url = (
+            f"https://raw.githubusercontent.com/{GAME_REPO}/"
+            f"{clean_tag}/docs/PLAYER_EXPECTATIONS.md"
+        )
+        dest = _get_base_dir() / PLAYER_EXPECTATIONS_REL_PATH
+        tmp = dest.with_suffix(".md.new")
+
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": f"indie-ninja-launcher/{LAUNCHER_VERSION}"},
+            )
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                text = resp.read().decode("utf-8")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            tmp.write_text(text, encoding="utf-8")
+            tmp.replace(dest)
+            return True, "ok"
+        except Exception as exc:
+            tmp.unlink(missing_ok=True)
+            return False, str(exc)
+
     def _download_worker(
         self,
         url: str,
@@ -3007,7 +3050,9 @@ class LauncherApp:
                     jar_dest.unlink(missing_ok=True)
                     # Non-fatal — JAR download failure doesn't break the exe install
 
-            self.root.after(0, self._on_download_done, tag)
+            docs_ok, docs_reason = self._sync_player_expectations(tag)
+            docs_note = "PLAYER_EXPECTATIONS synced" if docs_ok else f"PLAYER_EXPECTATIONS sync failed ({docs_reason})"
+            self.root.after(0, self._on_download_done, tag, docs_note)
 
         except Exception as exc:
             dest.unlink(missing_ok=True)
@@ -3076,17 +3121,22 @@ class LauncherApp:
                 except Exception:
                     pass
 
-            self.root.after(0, self._on_download_done, tag)
+            docs_ok, docs_reason = self._sync_player_expectations(tag)
+            docs_note = "PLAYER_EXPECTATIONS synced" if docs_ok else f"PLAYER_EXPECTATIONS sync failed ({docs_reason})"
+            self.root.after(0, self._on_download_done, tag, docs_note)
 
         except Exception as exc:
             self.root.after(0, self._on_download_error, str(exc))
 
-    def _on_download_done(self, tag: str) -> None:
+    def _on_download_done(self, tag: str, docs_note: str = "") -> None:
         self._downloading = False
         self._cancel_btn.pack_forget()
         self._local_version = tag.lstrip("v")
         self._progress_var.set(100.0)
-        self._status_var.set(f"OK  {tag} installed. Ready to play.")
+        status = f"OK  {tag} installed. Ready to play."
+        if docs_note:
+            status = f"{status}  [{docs_note}]"
+        self._status_var.set(status)
         self._play_btn.configure(state="normal", fg=ACCENT)
         self._installed_label_var.set(f"Installed:  v{self._local_version}")
 

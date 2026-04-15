@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.45
+version_anchor: v0.11.46
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.46] - 2026-04-15 (launcher branding alignment + live expectations sync)
+
+### Added
+
+- Launcher release-sync path now downloads and replaces the live playtest contract file:
+  - `docs/PLAYER_EXPECTATIONS.md` is fetched from the selected release tag on install/update.
+  - sync runs for both exe+jar and jar-only release paths.
+
+### Changed
+
+- Launcher branding aligned to canonical release name:
+  - primary window/splash title is now `Shadow Ascent: The Hollowed Ninja`.
+  - codename `Indie Ninja Adventures` is retained as secondary caption only.
+- Launcher version bumped to `1.8.0`.
+- Version parity metadata updated to `0.11.46` across `version.json`, Gradle, README, ROADMAP, and version-anchored docs.
+
+### Validation
+
+- `python run_tests.py` pass.
+- `python tools/check_docs_freshness.py --emit-report` pass.
+- `python tools/check_version_sync.py --tag v0.11.46` pass.
+- `cd java && ./gradlew :server:test :server:shadowJar :client:shadowJar --no-daemon` pass.
 
 ---
 

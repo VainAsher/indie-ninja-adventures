@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.45
+version_anchor: v0.11.46
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 17:01:30 +01:00 | **Codebase version:** v0.11.45 | **Next release target:** v0.11.46 (P0-10 onboarding/system-guidance follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 17:38:02 +01:00 | **Codebase version:** v0.11.46 | **Next release target:** v0.11.47 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
@@ -93,6 +93,18 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 17:38:02 +01:00`
+
+- Launcher pass aligned to canonical release naming + live playtest contract distribution:
+  - launcher branding now uses `Shadow Ascent: The Hollowed Ninja` as primary window/splash title.
+  - internal codename retained as secondary caption (`Code name: Indie Ninja Adventures`) for dev/internal continuity.
+  - launcher version bumped to `v1.8.0`.
+  - launcher update/install workers now sync `docs/PLAYER_EXPECTATIONS.md` from the selected release tag and replace local live copy.
+- Workflow gates executed per `docs/workflow` before release cut:
+  - `python run_tests.py` ✅
+  - `python tools/check_docs_freshness.py --emit-report` ✅
+  - `python tools/check_version_sync.py` ✅
 
 `2026-04-15 17:01:30 +01:00`
 

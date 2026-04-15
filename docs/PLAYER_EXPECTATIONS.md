@@ -3,12 +3,12 @@ doc_type: playtest_contract
 status: living
 owner: qa-team
 last_updated: 2026-04-15
-version_anchor: v0.11.45
+version_anchor: v0.11.46
 ---
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.45`
+**Target build:** `v0.11.46`
 **Last updated:** `2026-04-15 15:47:50 +01:00`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
 **Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
@@ -246,7 +246,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 For every bug, frustration point, or balance note capture:
 
-1. Build version (`v0.11.45` or newer).
+1. Build version (`v0.11.46` or newer).
 2. Mode (`SOLO`, `CAMPAIGN`, `HOST`, `JOIN`).
 3. Area context (`hub`, `room grid`, enemy type, mission id).
 4. Exact player-visible behavior.
@@ -345,7 +345,7 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 
 ```md
 ### Session Summary
-Build: v0.11.45
+Build: v0.11.46
 Mode: SOLO / HOST / JOIN
 Duration: XX min
 
@@ -370,7 +370,7 @@ IDs: UX-___ / BAL-___ / TECH-___
 
 ```md
 ### Bug
-Build: v0.11.45
+Build: v0.11.46
 Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 

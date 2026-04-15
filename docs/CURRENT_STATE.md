@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.45
+version_anchor: v0.11.46
 replaces: docs/HANDOVER.md
 ---
 
@@ -14,7 +14,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Baseline
 
 - Date baseline: 2026-04-15
-- Version baseline: v0.11.45
+- Version baseline: v0.11.46
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
