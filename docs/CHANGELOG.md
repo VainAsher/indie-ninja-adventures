@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.43] - 2026-04-15 (siren onboarding asset integration + version sync)
+
+### Added
+
+- Integrated Siren placeholder asset sets into runtime resources:
+  - NPC phase sheets (`siren_phase1..4`) for onboarding/hub-state progression.
+  - Siren boss phase sheet under `assets/sprites/bosses/siren/phases_spritesheet.png`.
+- Added generated idle/walk placeholder NPC sheets for core onboarding roles (`tutorial`, `mission_giver`, `shop`, `lore`).
+
+### Changed
+
+- Client animation/bootstrap paths now load and route the new Siren/NPC sprite sets.
+- Dialogue and mission handoff paths were aligned so Siren acts as an explicit early onboarding mission source.
+- Version parity metadata updated to `0.11.43` across `version.json`, Gradle, README, ROADMAP, and changelog gate.
+
+### Validation
+
+- `./gradlew :server:test` pass.
+- `./gradlew :client:compileJava` pass.
+- `python tools/check_version_sync.py --tag v0.11.43` pass.
+
+---
+
 ## [0.11.39] - 2026-04-15 (guard/parry runtime + boss minion stability)
 
 ### Added
