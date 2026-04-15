@@ -13,6 +13,10 @@ import com.indieniinja.physics.PhysicsState;
  * Edge detection prevents them from walking off ledges.
  */
 public final class SimNPC {
+    /** Runtime NPC collision width in world pixels. */
+    public static final int   DEFAULT_WIDTH       = 48;
+    /** Runtime NPC collision height in world pixels. */
+    public static final int   DEFAULT_HEIGHT      = 72;
 
     // ── Python parity constants ───────────────────────────────────────────────
     /** Patrol speed in px/tick (Python: patrol_speed=30 px/s ÷ 60 Hz). */

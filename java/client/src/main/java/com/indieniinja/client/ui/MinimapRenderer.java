@@ -25,7 +25,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Minimap overlay — toggled with TAB key.
+ * Minimap overlay.
+ * GameScreen owns TAB tap/hold routing:
+ *   tap -> quick map toggle
+ *   hold -> full map while held
  *
  * Three toggleable features (press 1/2/3 while minimap is open):
  *   [1] Tile detail  — pixel mask of the actual tile layout per room
@@ -38,8 +41,10 @@ import java.util.Set;
 public final class MinimapRenderer {
 
     // ── Layout ────────────────────────────────────────────────────────────────
-    private static final float MAX_PANEL_W = 860f;
-    private static final float MAX_PANEL_H = 680f;
+    private static final float QUICK_PANEL_W = 720f;
+    private static final float QUICK_PANEL_H = 500f;
+    private static final float FULL_PANEL_W  = 1240f;
+    private static final float FULL_PANEL_H  = 920f;
     private static final float PANEL_PAD   =  20f;
     private static final float ROOM_PAD    =   4f;
     private static final float TITLE_H     =  22f;
@@ -82,7 +87,10 @@ public final class MinimapRenderer {
     }
 
     // ── State ─────────────────────────────────────────────────────────────────
+    public enum MapMode { QUICK, FULL }
+
     private boolean visible        = false;
+    private MapMode mapMode        = MapMode.QUICK;
     private boolean showTileDetail = true;
     private boolean showFog        = true;
     private boolean showEntities   = true;
@@ -122,8 +130,26 @@ public final class MinimapRenderer {
     }
 
     public boolean isVisible() { return visible; }
-    public void    toggle()    { visible = !visible; }
-    public void    hide()      { visible = false; }
+    public MapMode mode() { return mapMode; }
+    public void showQuick() {
+        visible = true;
+        mapMode = MapMode.QUICK;
+    }
+    public void toggleQuick() {
+        if (visible && mapMode == MapMode.QUICK) {
+            visible = false;
+            return;
+        }
+        showQuick();
+    }
+    public void showFull() {
+        visible = true;
+        mapMode = MapMode.FULL;
+    }
+    public void hide() {
+        visible = false;
+        mapMode = MapMode.QUICK;
+    }
 
     /**
      * Call on hub/world transition to discard cached tile textures and visited state.
@@ -135,13 +161,12 @@ public final class MinimapRenderer {
     }
 
     /**
-     * Handle TAB / ESC / 1 / 2 / 3 / + / - / arrow keys.
+     * Handle in-map controls while the map is visible.
      * Returns true if the event was consumed.
      */
     public boolean handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) { toggle(); return true; }
         if (!visible) return false;
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { visible = false; return true; }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { hide(); return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) { showTileDetail = !showTileDetail; return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) { showFog        = !showFog;        return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) { showEntities   = !showEntities;   return true; }
@@ -243,8 +268,12 @@ public final class MinimapRenderer {
         }
 
         // ── Fit room cell size ────────────────────────────────────────────────
-        float innerW    = MAX_PANEL_W - PANEL_PAD * 2f;
-        float innerH    = MAX_PANEL_H - PANEL_PAD * 2f - TITLE_H - FOOTER_H;
+        float modeMaxW = mapMode == MapMode.FULL ? FULL_PANEL_W : QUICK_PANEL_W;
+        float modeMaxH = mapMode == MapMode.FULL ? FULL_PANEL_H : QUICK_PANEL_H;
+        float maxPanelW = Math.min(modeMaxW, sw * 0.94f);
+        float maxPanelH = Math.min(modeMaxH, sh * 0.92f);
+        float innerW    = maxPanelW - PANEL_PAD * 2f;
+        float innerH    = maxPanelH - PANEL_PAD * 2f - TITLE_H - FOOTER_H;
         float roomSizeW = (innerW - (spanW - 1) * ROOM_PAD) / spanW;
         float roomSizeH = (innerH - (spanH - 1) * ROOM_PAD) / spanH;
         float roomSize  = Math.max(12f, Math.min(Math.min(roomSizeW, roomSizeH), 80f));
@@ -502,7 +531,9 @@ public final class MinimapRenderer {
         // ═════════════════════════════════════════════════════════════════════
         batch.begin();
         font.setColor(0.75f, 0.75f, 1f, 1f);
-        font.draw(batch, "MAP  [TAB] toggle  [ESC] close", panelX + PANEL_PAD, panelY + panelH - 5f);
+        String modeLabel = mapMode == MapMode.FULL ? "FULL MAP (HOLD)" : "QUICK MAP (TAP)";
+        String title = modeLabel + "  [TAB tap] quick  [TAB hold] full  [ESC] close";
+        font.draw(batch, title, panelX + PANEL_PAD, panelY + panelH - 5f);
 
         float lx = panelX + PANEL_PAD;
 

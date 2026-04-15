@@ -57,6 +57,7 @@ public final class GameScreen implements Screen {
 
     private static final float PHYSICS_DT     = PhysicsConstants.FIXED_DT;
     private static final float MAX_FRAME_TIME = PhysicsConstants.MAX_FRAME_TIME;
+    private static final float TAB_FULL_MAP_HOLD_SECONDS = 0.28f;
     private static final int   LEVEL_COLS     = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
     private static final int   LEVEL_ROWS     = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
 
@@ -137,6 +138,12 @@ public final class GameScreen implements Screen {
     private final java.util.Map<String, byte[][]> cachedTileGrids = new java.util.HashMap<>();
     /** Rooms the local player has visited (entered at least once). */
     private final java.util.Set<String> visitedRooms = new java.util.HashSet<>();
+    /** Last frame TAB held-state (tap/hold map split). */
+    private boolean tabKeyDownLastFrame = false;
+    /** Accumulated TAB hold duration while held. */
+    private float tabKeyHeldSeconds = 0f;
+    /** True once full-map hold path has been activated for current TAB press. */
+    private boolean fullMapHoldActive = false;
 
     // ── Debug ─────────────────────────────────────────────────────────────────
     /** Toggle with H key — draws physics AABB outlines over all entities. */
@@ -445,9 +452,36 @@ public final class GameScreen implements Screen {
                 && Gdx.input.isKeyJustPressed(Input.Keys.O)) {
             openMissionSelectOverlay("hotkey_o");
         }
-        // ── TAB key: map toggle / map overlay input ───────────────────────────
+        // ── TAB key: tap=quick map toggle, hold=full map while held ──────────
         if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused) {
+            boolean tabDown = Gdx.input.isKeyPressed(Input.Keys.TAB);
+            if (tabDown) {
+                tabKeyHeldSeconds = tabKeyDownLastFrame ? (tabKeyHeldSeconds + delta) : 0f;
+                if (!fullMapHoldActive && tabKeyHeldSeconds >= TAB_FULL_MAP_HOLD_SECONDS) {
+                    minimapRenderer.showFull();
+                    fullMapHoldActive = true;
+                    log.info("[Playtest][Map] mode=full trigger=tab_hold threshold_ms={}",
+                        (int) (TAB_FULL_MAP_HOLD_SECONDS * 1000f));
+                }
+            } else if (tabKeyDownLastFrame) {
+                if (fullMapHoldActive) {
+                    minimapRenderer.hide();
+                    log.info("[Playtest][Map] mode=full trigger=tab_release close=true");
+                } else {
+                    minimapRenderer.toggleQuick();
+                    log.info("[Playtest][Map] mode=quick trigger=tab_tap visible={}", minimapRenderer.isVisible());
+                }
+                tabKeyHeldSeconds = 0f;
+                fullMapHoldActive = false;
+            }
+            tabKeyDownLastFrame = tabDown;
+
+            // In-map controls (zoom/detail/fog/entities/pan/esc).
             minimapRenderer.handleInput();
+        } else {
+            tabKeyDownLastFrame = false;
+            tabKeyHeldSeconds = 0f;
+            fullMapHoldActive = false;
         }
 
         // ── ESC toggles pause (only when no overlay active) ───────────────────
@@ -837,7 +871,7 @@ public final class GameScreen implements Screen {
             batch.setProjectionMatrix(camera.cam.combined);
         }
 
-        // ── Minimap (large centred overlay) ──────────────────────────────────
+        // ── Minimap overlay (quick/full modes) ───────────────────────────────
         if (minimapRenderer.isVisible() && !cachedWorldRooms.isEmpty()) {
             WorldSnapshot snapForMap = snap != null ? snap : prevSnap;
             PlayerState localForMap = snapForMap != null

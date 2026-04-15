@@ -1,15 +1,15 @@
-﻿---
+---
 doc_type: playtest_contract
 status: living
 owner: qa-team
 last_updated: 2026-04-15
-version_anchor: v0.11.47
+version_anchor: v0.11.48
 ---
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.47`
-**Last updated:** `2026-04-15 18:48:00 +01:00`
+**Target build:** `v0.11.48`
+**Last updated:** `2026-04-15 21:10:00 +01:00`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
 **Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
 
@@ -145,11 +145,14 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 1. Start from launcher and enter `SOLO`.
 2. Find and interact with the Siren (`!` marker) and start first trial (or press `O`).
 3. Confirm onboarding toasts appear (`F1`, mission board, tracker/map cue sequence).
-4. Open inventory once (`I`) and map once (`Tab` tap/hold behavior).
+4. Open inventory once (`I`) and validate map modes:
+   - `Tab` tap toggles quick map.
+   - `Tab` hold opens full map and closes when key is released.
+   - verify map header text shows the tap/hold key guidance.
 5. Trigger at least one mission objective interaction and confirm tracker updates.
 6. Trigger at least one failure/death and recover.
 
-`v0.11.47` expectation:
+`v0.11.48` expectation:
 - In `demo_coin_run`, each collected coin should increment mission progress (`collect_items_coin`) and unlock exit at 5/5.
 
 ### Record
@@ -164,6 +167,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 - Player can progress without external docs.
 - Siren-first mission handoff is readable in under 30 seconds from spawn.
+- Map quick/full behavior is visibly different in size and key guidance text.
 - UI does not block basic understanding.
 - Death and retry feel readable, not random.
 
@@ -230,6 +234,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 - Skeleton shield bearer pressure and block readability.
 - Archer spacing and projectile readability.
 - Yin/Yang/Lantern/Flow clarity from player perspective.
+- NPC visual scale vs interact/collision hitbox alignment (use `H` overlay to verify).
 
 ### Record
 
@@ -242,6 +247,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 - Most failures can be explained by player action, not hidden behavior.
 - Systems changes are visible enough to describe in plain language.
+- NPC sprite size and debug hitbox should feel proportionate in live gameplay.
 
 ---
 
@@ -249,7 +255,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 For every bug, frustration point, or balance note capture:
 
-1. Build version (`v0.11.47` or newer).
+1. Build version (`v0.11.48` or newer).
 2. Mode (`SOLO`, `CAMPAIGN`, `HOST`, `JOIN`).
 3. Area context (`hub`, `room grid`, enemy type, mission id).
 4. Exact player-visible behavior.
@@ -348,7 +354,7 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 
 ```md
 ### Session Summary
-Build: v0.11.47
+Build: v0.11.48
 Mode: SOLO / HOST / JOIN
 Duration: XX min
 
@@ -373,7 +379,7 @@ IDs: UX-___ / BAL-___ / TECH-___
 
 ```md
 ### Bug
-Build: v0.11.47
+Build: v0.11.48
 Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 

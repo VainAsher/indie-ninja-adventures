@@ -217,7 +217,7 @@ public final class GameSimulator {
             String npcId = hubId + "_npc_" + npcIdx++;
             SimNPC npc = new SimNPC(
                 npcId, spec.type(), spec.x(), spec.y(),
-                32, 48,   // Python default: width=32, height=48
+                SimNPC.DEFAULT_WIDTH, SimNPC.DEFAULT_HEIGHT,
                 spec.patrolMinX(), spec.patrolMaxX()
             );
             npcs.add(npc);
@@ -645,6 +645,8 @@ public final class GameSimulator {
             ns.npcType        = npc.type;
             ns.x              = npc.physics.x;
             ns.y              = npc.physics.y;
+            ns.width          = npc.physics.width;
+            ns.height         = npc.physics.height;
             ns.facing         = npc.facing;
             ns.animState      = npc.animState;
             ns.isInteractable = npc.isInteractable;

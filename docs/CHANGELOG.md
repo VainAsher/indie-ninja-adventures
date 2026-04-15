@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.47
+version_anchor: v0.11.48
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.48] - 2026-04-15 (NPC scale/hitbox parity + map tap/hold clarity)
+
+### Fixed
+
+- NPC visual sizing and debug hitbox mismatch for onboarding/playtest runs:
+  - runtime NPC dimensions are now authored from simulation (`48x72`) and sent in wire payloads (`NPCState.width/height`).
+  - client NPC rendering and hitbox overlays now consume authoritative width/height values instead of hardcoded `32x48`.
+- Map interaction ambiguity on `Tab`:
+  - input now enforces explicit tap/hold split:
+    - tap `Tab` -> quick map toggle
+    - hold `Tab` (>=280 ms) -> full map while held (closes on key release)
+  - minimap header now displays explicit key guidance for tap vs hold behavior.
+
+### Added
+
+- Core regression coverage for NPC wire dimensions:
+  - `NPCStateTest.toMapFromMapRoundTripKeepsDimensions`
+  - `NPCStateTest.fromMapFallsBackToNewNpcDimensionDefaultsWhenMissing`
+- Playtest telemetry signals for map mode routing:
+  - `[Playtest][Map] mode=quick trigger=tab_tap ...`
+  - `[Playtest][Map] mode=full trigger=tab_hold/tab_release ...`
+
+### Changed
+
+- Version parity metadata updated to `0.11.48` across `version.json`, Gradle, README, ROADMAP, active plan, current-state, workflow docs, and player expectations pack.
+
+### Validation
+
+- `cd java && ./gradlew :client:compileJava :core:compileJava :server:compileJava --no-daemon` pass.
+- `cd java && ./gradlew :core:test --tests com.indieniinja.network.NPCStateTest --no-daemon` pass.
+- `cd java && ./gradlew :server:test :server:shadowJar :client:shadowJar --no-daemon` pass.
 
 ---
 

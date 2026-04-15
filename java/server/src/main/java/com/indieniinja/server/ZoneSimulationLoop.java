@@ -427,7 +427,10 @@ public final class ZoneSimulationLoop implements Runnable {
                 float sx = zone.spawnX + 64f;   // offset slightly from player spawn
                 float sy = zone.spawnY;
                 com.indieniinja.sim.SimNPC npc = new com.indieniinja.sim.SimNPC(
-                    npcId, desiredType, sx, sy, 32, 48, sx - 96f, sx + 96f);
+                    npcId, desiredType, sx, sy,
+                    com.indieniinja.sim.SimNPC.DEFAULT_WIDTH,
+                    com.indieniinja.sim.SimNPC.DEFAULT_HEIGHT,
+                    sx - 96f, sx + 96f);
                 sim.addNpc(npc);
                 log.info("[Zone {}] spawned NPC {} (type={})", zone.hubId, npcId, desiredType);
             }

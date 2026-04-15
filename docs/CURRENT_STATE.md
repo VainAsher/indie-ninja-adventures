@@ -1,9 +1,9 @@
-﻿---
+---
 doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.47
+version_anchor: v0.11.48
 replaces: docs/HANDOVER.md
 ---
 
@@ -14,7 +14,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Baseline
 
 - Date baseline: 2026-04-15
-- Version baseline: v0.11.47
+- Version baseline: v0.11.48
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -31,6 +31,8 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Client rendering/UI loop is on libGDX desktop runtime.
 - Mission lifecycle tracing and session-correlation logging are active.
 - Siren-first onboarding flow and objective/mission affordances are active.
+- NPC runtime dimensions are now authoritative over the wire (`NPCState.width/height`) and used by client render/debug hitbox overlays.
+- Map input now follows explicit tap/hold semantics: `Tab` tap toggles quick map, `Tab` hold opens full map while held.
 - Release/version parity gate is enforced through `tools/check_version_sync.py`.
 
 ## Canonical Documentation Set

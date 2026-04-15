@@ -25,7 +25,7 @@ subprojects {
     apply(plugin = "java")
 
     group   = "com.indieniinja"
-    version = "0.11.47"
+    version = "0.11.48"
 
     repositories {
         mavenCentral()
@@ -47,3 +47,4 @@ subprojects {
         }
     }
 }
+

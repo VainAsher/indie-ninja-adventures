@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.47
+version_anchor: v0.11.48
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 18:48:00 +01:00 | **Codebase version:** v0.11.47 | **Next release target:** v0.11.48 (P0-10 onboarding/system-guidance follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 21:10:00 +01:00 | **Codebase version:** v0.11.48 | **Next release target:** v0.11.49 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
@@ -93,6 +93,20 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 21:10:00 +01:00`
+
+- Completed P0 playtest usability fix pass for solo launcher runs:
+  - NPC runtime dimensions normalized to `48x72` across simulation spawn paths and wire payloads (`NPCState.width/height`) so rendered NPC scale and debug hitboxes no longer depend on stale `32x48` client constants.
+  - client NPC rendering and hitbox overlay now read authoritative `NPCState.width/height` values instead of hardcoded dimensions.
+  - map input behavior hardened to explicit GDD-intended split:
+    - `Tab` tap = quick-map toggle
+    - `Tab` hold (>=280 ms) = full-map mode while held, closes on key release
+  - minimap now surfaces explicit key/mode guidance text so first-run players can understand quick vs full-map paths without external instruction.
+- Added regression coverage:
+  - `NPCStateTest` verifies width/height roundtrip and legacy-map default fallback behavior.
+- Validation:
+  - `./gradlew :client:compileJava :core:compileJava :server:compileJava --no-daemon` ✅
 
 `2026-04-15 18:48:00 +01:00`
 
@@ -1511,6 +1525,8 @@ Echo should not expand into broad systemic complexity until:
 - [ ] New game+ (remixed hub progression)
 - [ ] Alternate endings based on Yin/Yang balance at Act VII
 - [x] Playtest logging + controls evidence baseline (`[Playtest][*]`, `[Mission]`, controls preset signature in startup logs)
+- [x] NPC runtime scale/hitbox parity baseline (`NPCState.width/height` wired end-to-end; removed hardcoded `32x48` client assumptions)
+- [x] Map tap/hold readability baseline (`Tab` tap quick map toggle, `Tab` hold full map while held, explicit on-map key guidance text)
 - [ ] Fix `version.json`, `build.gradle.kts`, and `README.md` in sync after each release
 
 #### Added polish targets from this pivot
@@ -1774,4 +1790,3 @@ Do not treat the gameplay identity sections as optional commentary, because they
 ---
 
 *Living document. Update milestone checkboxes as work progresses. Archive completed milestones to `docs/archive/`.*
-

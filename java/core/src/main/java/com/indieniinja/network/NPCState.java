@@ -18,6 +18,8 @@ public final class NPCState {
     public String  npcType;        // e.g. "lore", "shop", "mission_giver", "tutorial", "siren"
     public float   x;
     public float   y;
+    public int     width;          // physics hitbox width (world px)
+    public int     height;         // physics hitbox height (world px)
     public int     facing;         // -1 = left, 1 = right
     public String  animState;      // "idle", "walk"
     public boolean isInteractable; // true when a player is within INTERACTION_RADIUS
@@ -30,6 +32,8 @@ public final class NPCState {
         n.npcType        = str(m, "npc_type",        "lore");
         n.x              = num(m, "x",               0f);
         n.y              = num(m, "y",               0f);
+        n.width          = (int) num(m, "width",     48f);
+        n.height         = (int) num(m, "height",    72f);
         n.facing         = (int) num(m, "facing",    1f);
         n.animState      = str(m, "anim_state",      "idle");
         n.isInteractable = bool(m, "is_interactable");
@@ -37,11 +41,13 @@ public final class NPCState {
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> m = new LinkedHashMap<>(7);
+        Map<String, Object> m = new LinkedHashMap<>(9);
         m.put("npc_id",          npcId);
         m.put("npc_type",        npcType);
         m.put("x",               x);
         m.put("y",               y);
+        m.put("width",           width);
+        m.put("height",          height);
         m.put("facing",          facing);
         m.put("anim_state",      animState);
         m.put("is_interactable", isInteractable);

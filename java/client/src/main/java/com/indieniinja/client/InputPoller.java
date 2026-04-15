@@ -15,7 +15,7 @@ public final class InputPoller {
 
     /** One-line controls signature for playtest evidence logging. */
     public static String controlPresetSummary() {
-        return "move=arrows jump=Z attack=X dash=C stance=A guard=S traversal=D throw=F echo=R interact=E map=TAB";
+        return "move=arrows jump=Z attack=X dash=C stance=A guard=S traversal=D throw=F echo=R interact=E map=TAB(tap-quick/hold-full)";
     }
 
     /**

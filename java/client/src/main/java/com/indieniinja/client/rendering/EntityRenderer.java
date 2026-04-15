@@ -53,9 +53,9 @@ public final class EntityRenderer {
 
     private static final int PICKUP_SIZE = 20;
 
-    // NPC display size — Python default: width=32, height=48
-    private static final int NPC_W = 32;
-    private static final int NPC_H = 48;
+    // NPC fallback size (runtime width/height now comes from NPCState payload).
+    private static final int NPC_W = 48;
+    private static final int NPC_H = 72;
     // "!" interaction indicator: small square above NPC head
     private static final int INDICATOR_SIZE = 8;
 
@@ -536,6 +536,8 @@ public final class EntityRenderer {
         String typeKey = resolveNpcRenderType(n.npcType, hubState);
         String state   = (n.animState != null && !n.animState.isEmpty()) ? n.animState : "idle";
         String animKey = "npc_" + typeKey + "_" + state;
+        int npcW = n.width > 0 ? n.width : NPC_W;
+        int npcH = n.height > 0 ? n.height : NPC_H;
 
         float stateTime = tickStateTime(n.npcId, animKey, dt);
         float fps       = "walk".equals(state) ? 8f : 6f;
@@ -543,14 +545,14 @@ public final class EntityRenderer {
 
         boolean wantFlipX = (n.facing == -1);
         if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
-        batch.draw(frame, n.x, n.y, NPC_W, NPC_H);
+        batch.draw(frame, n.x, n.y, npcW, npcH);
         if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
 
         // Interaction "!" indicator — yellow square above the NPC head
         if (n.isInteractable) {
             batch.setColor(1f, 0.9f, 0.1f, 1f);
             TextureRegion dot = anims.getFrame("__dot__", 0f, 1f);
-            float ix = n.x + NPC_W * 0.5f - INDICATOR_SIZE * 0.5f;
+            float ix = n.x + npcW * 0.5f - INDICATOR_SIZE * 0.5f;
             float iy = n.y - INDICATOR_SIZE - 4f;
             batch.draw(dot, ix, iy, INDICATOR_SIZE, INDICATOR_SIZE);
             batch.setColor(Color.WHITE);
@@ -817,7 +819,9 @@ public final class EntityRenderer {
         // NPCs — orange
         sr.setColor(1f, 0.55f, 0.05f, 1f);
         for (com.indieniinja.network.NPCState n : snap.npcs) {
-            sr.rect(n.x, n.y, 32, 48);
+            float w = n.width > 0 ? n.width : NPC_W;
+            float h = n.height > 0 ? n.height : NPC_H;
+            sr.rect(n.x, n.y, w, h);
         }
 
         // Pickups — yellow
