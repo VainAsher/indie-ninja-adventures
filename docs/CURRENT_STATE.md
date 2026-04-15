@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.49
+version_anchor: v0.11.50
 replaces: docs/HANDOVER.md
 ---
 
@@ -14,7 +14,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Baseline
 
 - Date baseline: 2026-04-15
-- Version baseline: v0.11.49
+- Version baseline: v0.11.50
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -24,7 +24,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.11.49 (explicit climbable traversal gating + ledge/water transition regressions).
+- Next release candidate: v0.11.50 (stance-gated wall contact: Yin climb attach, Yang wall-slide routing).
 - Latest release verification (`2026-04-15 21:11:43 +01:00`):
   - CI green on `master` (`run_id=24475744315`)
   - Release green on `v0.11.48` (`run_id=24475751960`)

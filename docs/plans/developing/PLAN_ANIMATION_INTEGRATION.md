@@ -3,10 +3,10 @@ doc_type: plan
 status: developing
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.49
+version_anchor: v0.11.50
 ---
 # PLAN â€” Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-15 22:30:17 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.49
+**Created:** 2026-04-11 | **Last updated:** 2026-04-15 22:43:18 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.50
 
 ---
 
@@ -212,7 +212,7 @@ Full ZIP animation â†’ engine filename â†’ animation key table. **This
 | 3 | AnimationRegistry Expansion | Phase 2 | **Done v0.11.6** â€” `loadUnarmedSheets()` + `loadSwordSheets()` (130+ keys) |
 | 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** â€” `player_sword_*` prefix fallthrough routing |
 | 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** â€” climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
-| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.49** â€” corner ledge grab/hang/climb and water-surface + side-bank water exit logic are live in `GameSimulator`; explicit `CLIMBABLE` tagging + climb-only traversal gating are now implemented, while full swim-physics tuning remains |
+| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.50** â€” corner ledge grab/hang/climb and water-surface + side-bank water exit logic are live in `GameSimulator`; explicit `CLIMBABLE` tagging plus stance-gated wall contact (Yin climb attach, Yang wall slide) are implemented, while full swim-physics tuning remains |
 | 7 | Interaction Animations | Phase 6 | Not started |
 | 8 | Weapon State System | Phase 4 | **Partial v0.11.48** â€” `weaponState` routing is live and stance-coupled (Yin->unarmed, Yang->armed posture with equipped-weapon fallback); manual hot-swap and combat-chain integration remain |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |
@@ -297,6 +297,15 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
     - `waterExitSnapsPlayerToSolidBank`
 - Client/debug visibility parity:
   - `CLIMBABLE` tiles now render distinctly in minimap/debug outputs and are treated as solid for standing/contact checks.
+
+### Progress update (`2026-04-15 22:43:18 +01:00`)
+
+- Stance-wall behavior pass completed for traversal readability:
+  - `YIN` wall contact now attaches to climb state on tagged `CLIMBABLE` surfaces and supports up/down traversal.
+  - `YANG` wall contact now routes to wall-slide behavior only (no climb attach).
+- Regression coverage extended:
+  - updated `climbOnlyActivatesOnClimbableTaggedWalls` to assert `YIN` stance semantics.
+  - added `yangWallContactSlidesInsteadOfClimbing` for explicit `YANG` routing checks.
 
 ### Validation additions for this plan
 

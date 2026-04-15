@@ -1285,7 +1285,8 @@ public final class GameSimulator {
 
         int wallProbeDir = p.wallDir != 0 ? p.wallDir : (cmd.right ? 1 : (cmd.left ? -1 : sp.facing));
         boolean onClimbableWall = p.onWall && isTouchingClimbableSurface(p, wallProbeDir);
-        sp.isClimbing = onClimbableWall && (cmd.up || cmd.down) && !sp.isDashing && !sp.teleportPhaseMode;
+        boolean yinWallClimbMode = "yin".equals(sp.stanceMode);
+        sp.isClimbing = yinWallClimbMode && onClimbableWall && !sp.isDashing && !sp.teleportPhaseMode;
         if (sp.isClimbing) {
             p.vx = 0f;
             if (cmd.up && !cmd.down) {
@@ -1478,6 +1479,21 @@ public final class GameSimulator {
      * Called after horizontal/jump logic so p.onWall / p.onGround are already updated.
      */
     private static void applyWallSlide(SimPlayer sp, PhysicsState p) {
+        // Stance-gated wall behavior:
+        // - Yin: climb resolver owns wall contact; do not apply slide/friction.
+        // - Yang: classic wall-slide stamina state machine.
+        if (!"yang".equals(sp.stanceMode)) {
+            sp.isWallSliding = false;
+            sp.awaitGroundAfterExhaust = false;
+            sp.exhaustDetachFrames = 0;
+            if (sp.wallSlideStamina < SimPlayer.WALL_SLIDE_MAX_STAMINA) {
+                sp.wallSlideStamina = Math.min(
+                    SimPlayer.WALL_SLIDE_MAX_STAMINA,
+                    sp.wallSlideStamina + SimPlayer.WALL_SLIDE_REGEN_RATE * DT);
+            }
+            return;
+        }
+
         boolean touchingWall = p.onWall && !p.onGround;
 
         // ── Exhaust detach: nudge off wall for a few ticks after stamina runs out ─

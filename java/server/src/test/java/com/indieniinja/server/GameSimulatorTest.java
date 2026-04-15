@@ -203,27 +203,47 @@ class GameSimulatorTest {
 
         GameSimulator solidWallSim = new GameSimulator(880L, "test_hub", fixture);
         SimPlayer solidWallPlayer = new SimPlayer("p_solid", 0, 14 * 32f - 28f, 18 * 32f);
+        solidWallPlayer.stanceMode = "yin";
         solidWallSim.addPlayer(solidWallPlayer);
         InputCommand intoWall = new InputCommand(0);
         intoWall.right = true;
         solidWallSim.step(Map.of(0, intoWall)); // establish onWall from collision
         InputCommand climbAttempt = new InputCommand(1);
         climbAttempt.right = true;
-        climbAttempt.up = true;
         solidWallSim.step(Map.of(0, climbAttempt));
         assertThat(solidWallPlayer.isClimbing).isFalse();
 
         GameSimulator climbableWallSim = new GameSimulator(881L, "test_hub", fixture);
         SimPlayer climbableWallPlayer = new SimPlayer("p_climbable", 0, 20 * 32f - 28f, 18 * 32f);
+        climbableWallPlayer.stanceMode = "yin";
         climbableWallSim.addPlayer(climbableWallPlayer);
         InputCommand intoClimbable = new InputCommand(0);
         intoClimbable.right = true;
         climbableWallSim.step(Map.of(0, intoClimbable)); // establish onWall from collision
         InputCommand climbOnTag = new InputCommand(1);
         climbOnTag.right = true;
-        climbOnTag.up = true;
         climbableWallSim.step(Map.of(0, climbOnTag));
         assertThat(climbableWallPlayer.isClimbing).isTrue();
+    }
+
+    @Test
+    void yangWallContactSlidesInsteadOfClimbing() {
+        LevelLayout fixture = LevelLayout.buildTraversalLedgeFixtureLayout(884L);
+        GameSimulator sim = new GameSimulator(884L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p_yang", 0, 20 * 32f - 28f, 18 * 32f);
+        player.stanceMode = "yang";
+        sim.addPlayer(player);
+
+        InputCommand intoWall = new InputCommand(0);
+        intoWall.right = true;
+        sim.step(Map.of(0, intoWall)); // establish wall contact
+
+        InputCommand holdWall = new InputCommand(1);
+        holdWall.right = true;
+        sim.step(Map.of(0, holdWall));
+
+        assertThat(player.isClimbing).isFalse();
+        assertThat(player.isWallSliding).isTrue();
     }
 
     @Test

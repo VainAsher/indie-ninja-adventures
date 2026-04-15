@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.49
+version_anchor: v0.11.50
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.50] - 2026-04-15 (stance-gated wall contact: Yin climb, Yang slide)
+
+### Changed
+
+- Wall contact traversal is now stance-gated in `GameSimulator`:
+  - `YIN` stance: touching a `CLIMBABLE` wall now attaches to climb state immediately and supports up/down traversal.
+  - `YANG` stance: wall contact routes to wall-slide behavior only (no climb attach).
+- Updated climb regression expectations to assert stance-aware behavior:
+  - climb-on-tag checks now run under `YIN` stance.
+  - new regression test `yangWallContactSlidesInsteadOfClimbing`.
+- Version parity metadata updated to `0.11.50` across `version.json`, Gradle, README, ROADMAP, and changelog.
+
+### Validation
+
+- `cd java && ./gradlew :server:test --tests com.indieniinja.server.GameSimulatorTest --no-daemon` pass.
 
 ---
 
