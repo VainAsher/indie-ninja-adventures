@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 14:37:00 +01:00 | **Codebase version:** v0.11.44 | **Next release target:** v0.11.45 (P0-10 onboarding/system-guidance follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 14:47:10 +01:00 | **Codebase version:** v0.11.44 | **Next release target:** v0.11.45 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
@@ -86,6 +86,20 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 14:47:10 +01:00`
+
+- Completed release execution for the logging hardening pass:
+  - pushed `master` commit `1360aa9` (`plan_id=P0-10 scope=logging-hardening+release-sync reason=playtest-traceability risk=low`)
+  - cut + pushed tag `v0.11.44`
+  - published release `v0.11.44`: https://github.com/VainAsher/indie-ninja-adventures/releases/tag/v0.11.44
+- Remote CI monitoring results:
+  - `CI` on `master` passed (`24457896928`)
+  - `Release` on `v0.11.44` passed (`24457935321`)
+- Noted non-blocking workflow warnings to backlog:
+  - Node 20 action deprecation notices in release workflow
+  - Gradle cache save/restore service outages during run
+  - launcher-repo notify step annotation (`Parameter token or opts.auth is required`) despite overall green run
 
 `2026-04-15 14:37:00 +01:00`
 
