@@ -65,6 +65,13 @@ public final class GameSimulator {
     private static final float SKELETON_GUARD_RETREAT_SPEED_MULT = 0.35f;
     private static final float STANCE_DRIFT_PER_SECOND = 0.09f;
     private static final float STANCE_SWITCH_BOOST = 0.035f;
+    private static final float PARRY_STUN_DURATION = 0.80f;
+
+    private enum PlayerHitOutcome {
+        DAMAGED,
+        BLOCKED,
+        PARRIED
+    }
 
     // ── Core systems ──────────────────────────────────────────────────────────
     private final EventBus      bus;
@@ -746,6 +753,13 @@ public final class GameSimulator {
             sp.throwCooldown -= DT;
             if (sp.throwCooldown <= 0f) sp.isThrowing = false;
         }
+        if (sp.blockHitTimer > 0f) {
+            sp.blockHitTimer -= DT;
+            if (sp.blockHitTimer <= 0f) {
+                sp.blockHitTimer = 0f;
+                sp.blockHitAnim = "";
+            }
+        }
 
         // ── Dash timers ───────────────────────────────────────────────────────
         if (sp.isDashing) {
@@ -772,6 +786,18 @@ public final class GameSimulator {
             } else {
                 sp.yinYang.absorbYin(STANCE_SWITCH_BOOST);
             }
+        }
+
+        // Guard/parry: hold block to guard; first window counts as parry.
+        boolean blockHeld = cmd.block && !sp.isDashing && !sp.teleportPhaseMode && !sp.isAttacking;
+        if (blockHeld) {
+            sp.blockHeldTime += DT;
+            sp.isBlocking = true;
+            sp.isParrying = sp.blockHeldTime <= SimPlayer.PARRY_WINDOW;
+        } else {
+            sp.blockHeldTime = 0f;
+            sp.isBlocking = false;
+            sp.isParrying = false;
         }
 
         // ── Jump buffer: store a jump press for landing ───────────────────────
@@ -1040,6 +1066,11 @@ public final class GameSimulator {
             sp.animState = "teleport";
         } else if (sp.isDashing) {
             sp.animState = "dash";
+        } else if (sp.blockHitTimer > 0f && sp.blockHitAnim != null && !sp.blockHitAnim.isBlank()) {
+            sp.animState = sp.blockHitAnim;
+        } else if (sp.isBlocking) {
+            if (!p.onGround) sp.animState = "air_block";
+            else sp.animState = cmd.crouch ? "crouch_block" : "block";
         } else if (p.inWater) {
             // Swim states — horizontal movement = swim, stationary = swim_idle
             sp.animState = Math.abs(p.vx) > 0.1f ? "swim" : "swim_idle";
@@ -1433,7 +1464,18 @@ public final class GameSimulator {
                 if (!p.isAlive()) continue;
                 if (aabbOverlap(atk.x, atk.y, atk.w, atk.h,
                                 p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
-                    p.takeDamage(en.baseDamage);
+                    PlayerHitOutcome outcome = applyIncomingDamage(
+                        p,
+                        en.baseDamage,
+                        atk.x + atk.w * 0.5f
+                    );
+                    if (outcome == PlayerHitOutcome.PARRIED) {
+                        en.aiState = EnemyAIState.STUNNED;
+                        en.stunTimer = Math.max(en.stunTimer, PARRY_STUN_DURATION);
+                        en.attackWindupTimer = 0f;
+                        en.attackActiveTimer = 0f;
+                        en.attackRecoveryTimer = 0f;
+                    }
                 }
             }
         }
@@ -1534,6 +1576,7 @@ public final class GameSimulator {
         return switch (type) {
             case "goblin"   -> 10;
             case "slime"    ->  8;
+            case "time_leech" -> 9;
             case "skeleton" -> 12;
             case "spearman" -> 13;
             case "archer"   -> 15;
@@ -1620,21 +1663,36 @@ public final class GameSimulator {
         ));
     }
 
-    private int countAliveEnemiesByType(String type) {
+    private int countAliveEnemiesByTypeInArena(String type, SimBoss boss) {
+        if (boss == null) return 0;
         if (type == null || type.isBlank()) return 0;
         int count = 0;
         for (SimEnemy en : enemies) {
             if (!en.isAlive()) continue;
-            if (type.equals(en.enemyType)) count++;
+            if (!type.equals(en.enemyType)) continue;
+            if (!isEnemyInsideArena(en, boss, 64f)) continue;
+            count++;
         }
         return count;
     }
 
+    private static boolean isEnemyInsideArena(SimEnemy en, SimBoss boss, float padding) {
+        float cx = en.physics.x + en.physics.width * 0.5f;
+        float cy = en.physics.y + en.physics.height * 0.5f;
+        return cx >= boss.arenaMinX - padding && cx <= boss.arenaMaxX + padding
+            && cy >= boss.arenaMinY - padding && cy <= boss.arenaMaxY + padding;
+    }
+
     private void triggerSirenScriptedLoss() {
+        triggerSirenScriptedLoss(null);
+    }
+
+    private void triggerSirenScriptedLoss(SimBoss boss) {
         if (pendingScriptedLoss) return;
         pendingScriptedLoss = true;
         for (SimEnemy en : enemies) {
             if (!"slime_red".equals(en.enemyType)) continue;
+            if (boss != null && !isEnemyInsideArena(en, boss, 64f)) continue;
             en.removed = true;
             en.hp = 0;
             en.aiState = EnemyAIState.DEAD;
@@ -1645,6 +1703,40 @@ public final class GameSimulator {
             p.yinYang.yang = 0f;
         }
         if (hub != null) hub.onSirenDefeated();
+    }
+
+    private PlayerHitOutcome applyIncomingDamage(SimPlayer player, int damage, float attackerCenterX) {
+        if (player == null || !player.isAlive() || damage <= 0) return PlayerHitOutcome.BLOCKED;
+        if (!player.isBlocking) {
+            player.takeDamage(damage);
+            return PlayerHitOutcome.DAMAGED;
+        }
+
+        float playerCenterX = player.physics.x + player.physics.width * 0.5f;
+        boolean attackerInFront = player.facing >= 0
+            ? attackerCenterX >= playerCenterX
+            : attackerCenterX <= playerCenterX;
+        if (!attackerInFront) {
+            player.takeDamage(damage);
+            return PlayerHitOutcome.DAMAGED;
+        }
+
+        if (player.isParrying) {
+            player.blockHitAnim = "block_hit_hard";
+            player.blockHitTimer = SimPlayer.PARRY_HIT_TIME;
+            player.invincibilityTicks = Math.max(player.invincibilityTicks, 8);
+            return PlayerHitOutcome.PARRIED;
+        }
+
+        int reduced = Math.max(0, Math.round(damage * SimPlayer.BLOCK_DAMAGE_MULT));
+        player.blockHitAnim = "block_hit";
+        player.blockHitTimer = SimPlayer.BLOCK_HIT_TIME;
+        if (reduced > 0) {
+            player.takeDamage(reduced);
+            return PlayerHitOutcome.DAMAGED;
+        }
+        player.invincibilityTicks = Math.max(player.invincibilityTicks, 5);
+        return PlayerHitOutcome.BLOCKED;
     }
 
     private void spawnPendingShurikens() {
@@ -1689,7 +1781,11 @@ public final class GameSimulator {
                     if (!p.isAlive()) continue;
                     if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
                                     p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
-                        p.takeDamage(s.damage);
+                        applyIncomingDamage(
+                            p,
+                            s.damage,
+                            s.x + SimShuriken.W * 0.5f
+                        );
                         s.stuck      = true;
                         s.stuckTimer = 0.1f;
                         break;
@@ -1948,7 +2044,11 @@ public final class GameSimulator {
                 float pw = nearestPlayer.physics.width, ph = nearestPlayer.physics.height;
                 if (aabbOverlap(boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height,
                                 px, py, pw, ph)) {
-                    nearestPlayer.takeDamage(boss.type.baseDamage);
+                    applyIncomingDamage(
+                        nearestPlayer,
+                        boss.type.baseDamage,
+                        boss.physics.x + boss.physics.width * 0.5f
+                    );
                 }
             }
 
@@ -1961,13 +2061,14 @@ public final class GameSimulator {
                 float halfH = SimPlayer.MELEE_HEIGHT * 0.5f;
                 float hbX   = sp.facing >= 0 ? cx2 : cx2 - reach;
                 float hbY   = cy2 - halfH;
-                boolean sirenShielded = boss.type == BossType.SIREN && countAliveEnemiesByType("slime_red") > 0;
+                boolean sirenShielded = boss.type == BossType.SIREN
+                    && countAliveEnemiesByTypeInArena("slime_red", boss) > 0;
                 if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
                                 boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height)) {
                     if (sirenShielded) continue;
                     if (boss.takeDamage(SimPlayer.MELEE_DAMAGE)) {
                         if (boss.type == BossType.SIREN) {
-                            triggerSirenScriptedLoss();
+                            triggerSirenScriptedLoss(boss);
                         } else {
                             spawnBossLoot(boss);
                         }
@@ -1978,13 +2079,14 @@ public final class GameSimulator {
             // ── Shuriken → boss ───────────────────────────────────────────────
             for (SimShuriken s : shurikens) {
                 if (!s.alive || s.stuck) continue;
-                boolean sirenShielded = boss.type == BossType.SIREN && countAliveEnemiesByType("slime_red") > 0;
+                boolean sirenShielded = boss.type == BossType.SIREN
+                    && countAliveEnemiesByTypeInArena("slime_red", boss) > 0;
                 if (aabbOverlap(s.x, s.y, SimShuriken.W, SimShuriken.H,
                                 boss.physics.x, boss.physics.y, boss.physics.width, boss.physics.height)) {
                     if (!sirenShielded) {
                         if (boss.takeDamage(SimPlayer.SHURIKEN_DAMAGE)) {
                             if (boss.type == BossType.SIREN) {
-                                triggerSirenScriptedLoss();
+                                triggerSirenScriptedLoss(boss);
                             } else {
                                 spawnBossLoot(boss);
                             }
@@ -2112,8 +2214,8 @@ public final class GameSimulator {
         int idx = enemies.size();
         float patrolHalf = 96f;
         SimEnemy en = switch (type) {
-            case "time_leech" -> new SimEnemy(hubId+"_tl_"+idx, "slime", x, y, 32, 32,
-                                              2, 1, 80f, 160f, 32f,
+            case "time_leech" -> new SimEnemy(hubId+"_tl_"+idx, "time_leech", x, y, 40, 32,
+                                              3, 1, 78f, 170f, 40f,
                                               x - patrolHalf, x + patrolHalf, false);
             case "slime_red" -> new SimEnemy(hubId+"_rs_"+idx, "slime_red", x, y, 40, 32,
                                              5, 2, 68f, 180f, 44f,

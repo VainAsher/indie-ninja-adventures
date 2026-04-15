@@ -16,6 +16,8 @@ public final class InputCommand {
     public boolean jump, dash, crouch;
     public boolean toggleProc, cycleCamera;
     public boolean attack, throwShuriken, teleport, ninjutsu;
+    /** Hold to guard. First ~0.1s after press is parry window. */
+    public boolean block;
     public boolean interact, inventory, consumable;
     public boolean minimap, fullmap, controlsOverlay, debugOverlay;
     public boolean slowWalk, menuConfirm, menuBack;
@@ -53,6 +55,7 @@ public final class InputCommand {
         m.put("throw",            throwShuriken);
         m.put("teleport",         teleport);
         m.put("ninjutsu",         ninjutsu);
+        m.put("block",            block);
         m.put("interact",         interact);
         m.put("inventory",        inventory);
         m.put("consumable",       consumable);
@@ -84,6 +87,7 @@ public final class InputCommand {
         c.throwShuriken   = bool(m, "throw");
         c.teleport        = bool(m, "teleport");
         c.ninjutsu        = bool(m, "ninjutsu");
+        c.block           = bool(m, "block");
         c.interact        = bool(m, "interact");
         c.inventory       = bool(m, "inventory");
         c.consumable      = bool(m, "consumable");

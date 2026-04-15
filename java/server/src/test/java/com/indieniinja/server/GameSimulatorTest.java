@@ -2,8 +2,10 @@ package com.indieniinja.server;
 
 import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.WorldSnapshot;
+import com.indieniinja.sim.EnemyAIState;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.sim.SimEnemy;
 import com.indieniinja.sim.SimPlayer;
 import org.junit.jupiter.api.Test;
 
@@ -163,5 +165,93 @@ class GameSimulatorTest {
         WorldSnapshot snap = sim.getSnapshot(61);
         assertThat(snap.players).hasSize(1);
         assertThat(snap.players.get(0).yangValue).isGreaterThan(snap.players.get(0).yinValue);
+    }
+
+    @Test
+    void guardParryBlocksFrontMeleeAndStunsAttacker() {
+        GameSimulator sim = buildSim(777L);
+        SimPlayer player = new SimPlayer("p1", 0, 300f, 900f);
+        player.facing = -1; // block toward the attacker on the left
+        sim.addPlayer(player);
+
+        SimEnemy attacker = configureSingleMeleeAttacker(sim, 260f, 900f, true);
+
+        InputCommand holdBlock = new InputCommand(0);
+        holdBlock.block = true;
+        sim.step(Map.of(0, holdBlock));
+
+        assertThat(player.health).isEqualTo(player.maxHealth);
+        assertThat(attacker.aiState).isEqualTo(EnemyAIState.STUNNED);
+    }
+
+    @Test
+    void noBlockTakesFrontMeleeDamage() {
+        GameSimulator sim = buildSim(778L);
+        SimPlayer player = new SimPlayer("p1", 0, 300f, 900f);
+        player.facing = -1;
+        sim.addPlayer(player);
+
+        configureSingleMeleeAttacker(sim, 260f, 900f, true);
+        sim.step(Map.of(0, new InputCommand(0)));
+
+        assertThat(player.health).isLessThan(player.maxHealth);
+    }
+
+    @Test
+    void timeLeechLordSpawnsTypedCappedMinions() {
+        long seed = findBossSeed("time_leech_lord");
+        LevelLayout layout = LevelLayout.buildProceduralLayout(
+            seed, java.util.Collections.emptySet(), "boss", "test_hub");
+        GameSimulator sim = new GameSimulator(seed, "test_hub", layout);
+
+        SimPlayer player = new SimPlayer("p1", 0, layout.spawnX + 120f, layout.spawnY);
+        sim.addPlayer(player);
+
+        // > 5 spawn windows at 8s each
+        for (int i = 0; i < 3200; i++) {
+            sim.step(Map.of(0, new InputCommand(i)));
+        }
+
+        long activeLeeches = sim.getEnemies().stream()
+            .filter(SimEnemy::isAlive)
+            .filter(e -> "time_leech".equals(e.enemyType))
+            .count();
+        long mistypedLeeches = sim.getEnemies().stream()
+            .filter(e -> e.enemyId.contains("_tl_"))
+            .filter(e -> "slime".equals(e.enemyType))
+            .count();
+
+        assertThat(activeLeeches).isLessThanOrEqualTo(5);
+        assertThat(mistypedLeeches).isZero();
+    }
+
+    private static SimEnemy configureSingleMeleeAttacker(GameSimulator sim, float x, float y, boolean facingRight) {
+        SimEnemy attacker = sim.getEnemies().get(0);
+        for (SimEnemy en : sim.getEnemies()) {
+            en.removed = true;
+            en.hp = 0;
+            en.aiState = EnemyAIState.DEAD;
+        }
+        attacker.removed = false;
+        attacker.hp = attacker.maxHp;
+        attacker.physics.x = x;
+        attacker.physics.y = y;
+        attacker.facingRight = facingRight;
+        attacker.aiState = EnemyAIState.ATTACK;
+        attacker.attackWindupTimer = 0f;
+        attacker.attackActiveTimer = SimEnemy.ATTACK_ACTIVE_TIME * 0.5f;
+        attacker.attackRecoveryTimer = 0f;
+        return attacker;
+    }
+
+    private static long findBossSeed(String bossWire) {
+        for (long seed = 0; seed < 1024; seed++) {
+            LevelLayout layout = LevelLayout.buildProceduralLayout(
+                seed, java.util.Collections.emptySet(), "boss", "test_hub");
+            if (layout.bossSpawn != null && bossWire.equals(layout.bossSpawn.bossTypeWire())) {
+                return seed;
+            }
+        }
+        throw new AssertionError("No seed found for boss type: " + bossWire);
     }
 }

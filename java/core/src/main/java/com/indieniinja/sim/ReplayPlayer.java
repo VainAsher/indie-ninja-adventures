@@ -128,6 +128,7 @@ public final class ReplayPlayer {
         c.throwShuriken = parseBool(json, "throw");
         c.crouch = parseBool(json, "crouch");
         c.ninjutsu = parseBool(json, "ninjutsu");
+        c.block = parseBool(json, "block");
         c.interact = parseBool(json, "interact");
         c.slowWalk = parseBool(json, "slowWalk");
         c.stanceSwitch = parseBool(json, "stanceSwitch");

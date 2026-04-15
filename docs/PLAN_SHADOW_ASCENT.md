@@ -1,6 +1,6 @@
 # PLAN — Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-14 21:52:31 +01:00 | **Codebase version:** v0.11.37 | **Next release target:** v0.11.38 (P0-10 blocker-triage follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 03:18:26 +01:00 | **Codebase version:** v0.11.39 | **Next release target:** v0.11.40 (P0-10 playtest blocker follow-up)
 
 ---
 
@@ -409,6 +409,28 @@ The original workloop is excellent for implementation discipline, but the new di
 - Next loop:
   - execute first full P0-10 run and log blockers against GDD `10.3` controls requirements
   - start P1 handover only after control baseline and remaining P0 gates are signed off
+
+`2026-04-15 03:18:26 +01:00`
+
+- Continued P0-10 blocker remediation against latest playtest feedback:
+  - implemented runtime guard/parry schema end-to-end:
+    - added `InputCommand.block` wire field with input/replay parity (`InputPoller`, `InputRecorder`, `ReplayPlayer`)
+    - added `SimPlayer` guard/parry runtime state (`isBlocking`, `isParrying`, block-hit reaction timers)
+    - added directional front-facing guard resolution and parry stun path in `GameSimulator` (`applyIncomingDamage(...)`)
+  - fixed Time Leech boss minion stability issues:
+    - `time_leech` now spawns with canonical enemy type wire instead of mistyped slime fallback
+    - capped active Time Leech adds (`MAX_ACTIVE_LEECHES=5`) in boss arena to prevent infinite runaway wave pressure
+    - renderer/geometry mapping now explicitly supports `time_leech` collision and animation routing
+  - hardened Siren shield/add interaction scope:
+    - Siren shield immunity now checks red-slime adds inside arena bounds only
+    - scripted-loss cleanup for spawned red slimes now scopes to the active boss arena
+  - enforced solo campaign runtime mode in local sim startup (`GameScreen.initializeSoloSimulation`)
+- Validation:
+  - `./gradlew :server:test` pass
+  - `./gradlew :client:compileJava` pass
+- Next loop:
+  - cut fresh testable build/tag for this runtime stability pass
+  - execute targeted P0-10 playtest sweep on controls readability + boss fight clarity before P1 handoff gating
 
 ### Branch and commit format
 

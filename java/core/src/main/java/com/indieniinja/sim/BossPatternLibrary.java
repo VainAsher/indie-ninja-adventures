@@ -291,6 +291,7 @@ public final class BossPatternLibrary {
         private static final float SPAWN_INTERVAL   = 8.0f;   // seconds between minion spawns
         private static final float SPEED_BURST_MULT = 2.0f;   // speed multiplier at 30% HP
         private static final float BURST_HP_RATIO   = 0.30f;
+        private static final int   MAX_ACTIVE_LEECHES = 5;
 
         static ServerEvent tick(SimBoss boss, PatternContext ctx, float dt) {
             // Drain all players' Lantern values
@@ -302,10 +303,26 @@ public final class BossPatternLibrary {
             boss.spawnTimer -= dt;
             if (boss.spawnTimer <= 0 && ctx.spawnEnemy != null) {
                 boss.spawnTimer = SPAWN_INTERVAL;
-                float spawnX = boss.physics.x + (boss.facingRight ? 64 : -64);
-                float spawnY = boss.physics.y;
-                ctx.spawnEnemy.spawn("time_leech", spawnX, spawnY);
-                log.debug("[TimeLord] spawned time_leech at ({},{})", spawnX, spawnY);
+                int activeLeeches = 0;
+                for (SimEnemy en : ctx.enemies) {
+                    if (!en.isAlive()) continue;
+                    if (!"time_leech".equals(en.enemyType)) continue;
+                    float cx = en.physics.x + en.physics.width * 0.5f;
+                    float cy = en.physics.y + en.physics.height * 0.5f;
+                    if (cx < boss.arenaMinX - 64f || cx > boss.arenaMaxX + 64f) continue;
+                    if (cy < boss.arenaMinY - 64f || cy > boss.arenaMaxY + 64f) continue;
+                    activeLeeches++;
+                }
+                if (activeLeeches < MAX_ACTIVE_LEECHES) {
+                    float spawnX = boss.physics.x + (boss.facingRight ? 64 : -64);
+                    float spawnY = boss.physics.y;
+                    spawnX = Math.max(boss.arenaMinX, Math.min(boss.arenaMaxX, spawnX));
+                    spawnY = Math.max(boss.arenaMinY, Math.min(boss.arenaMaxY, spawnY));
+                    ctx.spawnEnemy.spawn("time_leech", spawnX, spawnY);
+                    log.debug("[TimeLord] spawned time_leech at ({},{}) [{} active]", spawnX, spawnY, activeLeeches + 1);
+                } else {
+                    log.debug("[TimeLord] spawn skipped; {} active time_leech minions", activeLeeches);
+                }
             }
 
             // Speed burst below 30% HP

@@ -1255,6 +1255,7 @@ public final class GameScreen implements Screen {
 
         LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, "solo_hub");
         localSim = new GameSimulator(startRoom.seed, "solo_hub", layout);
+        localSim.setMode(com.indieniinja.sim.GameMode.CAMPAIGN, 0, 0);
         localSim.setDarkArea(true);  // solo dungeon is always dark — lantern decays
         soloSpawnX = layout.spawnX;
         soloSpawnY = layout.spawnY;

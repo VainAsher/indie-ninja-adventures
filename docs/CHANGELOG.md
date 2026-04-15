@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.11.39] - 2026-04-15 (guard/parry runtime + boss minion stability)
+
+### Added
+
+- Guard/parry command wire and replay parity:
+  - `InputCommand.block`
+  - input log write/read support in `InputRecorder` and `ReplayPlayer`
+- Guard/parry simulation state on player:
+  - `isBlocking`, `isParrying`, block-hit reaction timers and anim routing
+- Regression coverage for:
+  - parry stun behavior against melee attackers
+  - Time Leech Lord minion type/cap stability
+
+### Changed
+
+- Runtime incoming-damage resolution now supports directional front-facing guard checks and parry response.
+- Time Leech Lord add spawns are now arena-capped and correctly typed as `time_leech` (not mistyped slime fallback).
+- Siren shield immunity/add cleanup now scopes to arena-local red-slime adds.
+- Solo local simulation explicitly initializes in campaign mode for parity with campaign objective/state assumptions.
+
+### Validation
+
+- `./gradlew :server:test` pass.
+- `./gradlew :client:compileJava` pass.
+
+---
+
 ## [0.11.38] - 2026-04-14 (GDD keyboard remap + P0 mission/stance affordance pass)
 
 ### Added

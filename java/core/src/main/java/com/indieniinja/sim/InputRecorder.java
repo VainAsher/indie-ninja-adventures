@@ -81,6 +81,7 @@ public final class InputRecorder {
              + ",\"throw\":"     + c.throwShuriken
              + ",\"crouch\":"    + c.crouch
              + ",\"ninjutsu\":"  + c.ninjutsu
+             + ",\"block\":"     + c.block
              + ",\"interact\":"  + c.interact
              + ",\"slowWalk\":"  + c.slowWalk
              + ",\"stanceSwitch\":" + c.stanceSwitch

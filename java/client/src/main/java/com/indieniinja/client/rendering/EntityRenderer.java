@@ -73,7 +73,7 @@ public final class EntityRenderer {
     private static int[] enemySize(String enemyType) {
         return switch (enemyType) {
             case "bat"                 -> new int[]{28, 28};
-            case "slime", "slime_red"  -> new int[]{134, 101};
+            case "slime", "slime_red", "time_leech" -> new int[]{134, 101};
             case "goblin", "swordsman" -> new int[]{134, 101};
             case "skeleton"            -> new int[]{134, 101};
             case "spearman"            -> new int[]{134, 101};
@@ -90,7 +90,7 @@ public final class EntityRenderer {
     private static int enemyPhysicsH(String enemyType) {
         return switch (enemyType) {
             case "bat"                 -> 28;
-            case "slime", "slime_red"  -> 32;
+            case "slime", "slime_red", "time_leech" -> 32;
             case "skeleton"            -> 56;
             case "spearman"            -> 52;
             case "goblin", "swordsman",
@@ -103,7 +103,7 @@ public final class EntityRenderer {
     private static int enemyPhysicsW(String enemyType) {
         return switch (enemyType) {
             case "bat"      -> 28;
-            case "slime", "slime_red" -> 40;
+            case "slime", "slime_red", "time_leech" -> 40;
             case "skeleton" -> 32;
             case "spearman" -> 36;
             case "goblin", "swordsman", "archer" -> 32;
@@ -176,13 +176,15 @@ public final class EntityRenderer {
             case "skeleton.stunned"                           -> 8f;
             case "skeleton.dead"                              -> 8f;
             // slime (multi-hit melee)
-            case "slime.idle", "slime_red.idle"                                              -> 6f;
+            case "slime.idle", "slime_red.idle", "time_leech.idle"                           -> 6f;
             case "slime.patrol", "slime.chase", "slime.flee",
-                 "slime_red.patrol", "slime_red.chase", "slime_red.flee"                     -> 8f;
+                 "slime_red.patrol", "slime_red.chase", "slime_red.flee",
+                 "time_leech.patrol", "time_leech.chase", "time_leech.flee"                  -> 8f;
             case "slime.attack", "slime.attack_b", "slime.attack_c",
-                 "slime_red.attack", "slime_red.attack_b", "slime_red.attack_c"              -> 10f;
-            case "slime.stunned", "slime_red.stunned"                                         -> 8f;
-            case "slime.dead", "slime_red.dead"                                               -> 8f;
+                 "slime_red.attack", "slime_red.attack_b", "slime_red.attack_c",
+                 "time_leech.attack", "time_leech.attack_b", "time_leech.attack_c"           -> 10f;
+            case "slime.stunned", "slime_red.stunned", "time_leech.stunned"                  -> 8f;
+            case "slime.dead", "slime_red.dead", "time_leech.dead"                           -> 8f;
             // spearman (skeleton with spear)
             case "spearman.idle"                             -> 6f;
             case "spearman.patrol"                           -> 8f;
@@ -288,7 +290,8 @@ public final class EntityRenderer {
         return switch (animState) {
             case "attack", "slash1", "slash2", "slash3", "slash_air", "jump_slash",
                  "punch1", "punch2", "kick", "air_punch1", "air_punch2", "air_kick",
-                 "crouch_punch", "crouch_kick", "run_kick"                          -> FPS_ATTACK;
+                 "crouch_punch", "crouch_kick", "run_kick",
+                 "block_hit", "block_hit_hard"                                       -> FPS_ATTACK;
             case "throw", "throw_ground", "throw_air", "throw_crouch",
                  "teleport", "ninjutsu_hand", "ninjutsu_summon"                    -> FPS_THROW;
             case "hurt", "hurt2", "crouch_hurt", "death", "death2",
@@ -407,7 +410,10 @@ public final class EntityRenderer {
         String typePrefix = (e.enemyType != null && !e.enemyType.isEmpty())
             ? e.enemyType
             : derivePrefixFromId(e.enemyId);
-        String animType = "slime_red".equals(typePrefix) ? "slime" : typePrefix;
+        String animType = switch (typePrefix) {
+            case "slime_red", "time_leech" -> "slime";
+            default -> typePrefix;
+        };
 
         boolean isDead = "dead".equals(e.aiState);
 

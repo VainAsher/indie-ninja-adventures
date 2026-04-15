@@ -71,6 +71,12 @@ public final class SimPlayer {
     public float   attackCooldown   = 0f;    // seconds until next attack allowed
     public boolean prevAttack       = false; // rising-edge detection
     public boolean pendingShuriken  = false; // set by applyPlayerInput; consumed by GameSimulator
+    // Guard/parry
+    public boolean isBlocking       = false;
+    public boolean isParrying       = false;
+    public float   blockHeldTime    = 0f;    // seconds continuous hold
+    public float   blockHitTimer    = 0f;    // block/parry reaction animation hold
+    public String  blockHitAnim     = "";    // "block_hit" | "block_hit_hard"
 
     // Shuriken (K key)
     public int     shurikenAmmo     = 5;     // matches Python default ammo count
@@ -89,6 +95,10 @@ public final class SimPlayer {
     public static final int   SHURIKEN_DAMAGE      = 1;
     public static final float SHURIKEN_STUN        = 0.4f;
     public static final int   SHURIKEN_MAX_AMMO    = 5;
+    public static final float PARRY_WINDOW         = 0.10f;
+    public static final float BLOCK_DAMAGE_MULT    = 0.35f;
+    public static final float BLOCK_HIT_TIME       = 0.16f;
+    public static final float PARRY_HIT_TIME       = 0.20f;
 
     // ── Teleport state ───────────────────────────────────────────────────────
     // Hold-to-phase system: hold T → ghost cursor moves with directional input,

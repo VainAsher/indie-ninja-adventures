@@ -35,12 +35,11 @@ public final class InputPoller {
 
         // Combat and arts (GDD: X/A/S/D/F/R)
         cmd.attack = Gdx.input.isKeyPressed(Input.Keys.X);
+        cmd.block = Gdx.input.isKeyPressed(Input.Keys.S);       // Guard / Parry
         cmd.throwShuriken = Gdx.input.isKeyPressed(Input.Keys.F);
         cmd.teleport = Gdx.input.isKeyPressed(Input.Keys.D);  // Traversal Art
         cmd.ninjutsu = Gdx.input.isKeyPressed(Input.Keys.R);  // Echo Art
         cmd.stanceSwitch = Gdx.input.isKeyJustPressed(Input.Keys.A);
-        // NOTE: Guard/Parry (S) is reserved in GDD, but there is no dedicated
-        // player guard input field in the current network command schema yet.
 
         // Interaction/meta
         cmd.interact = Gdx.input.isKeyJustPressed(Input.Keys.E);

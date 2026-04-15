@@ -1,5 +1,5 @@
 # PLAN — Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-14 23:58:00 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.38
+**Created:** 2026-04-11 | **Last updated:** 2026-04-15 03:18:26 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.39
 
 ---
 
@@ -210,13 +210,13 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 | 8 | Weapon State System | Phase 4 | **Partial v0.11.6** — `weaponState` field wired; sword routing live; combo chain not yet |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |
 | 10 | Sword Combat System | Phase 8 | Not started |
-| 11 | Block / Parry System | Phase 9-10 | Not started |
+| 11 | Block / Parry System | Phase 9-10 | **Partial v0.11.39** - runtime guard/parry input schema + front-facing block/parry behavior live; hold/toggle rebinding and full combat-state polish still pending |
 | 12 | Social / Emote Animations | Phase 7 | Not started |
 | 13 | Death, Revive & Prone System | Phase 5 | Not started |
 | 14 | Testing & Validation | All | Not started |
-| 15 | Complete Keybinding Scheme | Phase 8 | **Partial v0.11.38** - runtime map/core action keys now align to GDD baseline, but `S` guard/parry remains schema-pending |
-| 16 | KeyBindings System (Configurable) | Phase 15 | **Partial v0.11.38** - launcher settings exist, but runtime action rebinding parity is incomplete |
-| 17 | Controls Overlay (In-Game HUD) | Phase 16 | **Partial v0.11.38** - `F1` overlay now mirrors GDD core keys, with full action-family parity still in progress |
+| 15 | Complete Keybinding Scheme | Phase 8 | **Partial v0.11.39** - runtime map/core action keys align to GDD baseline and `S` guard/parry is schema-wired; full configurable keybinding runtime still pending Phase 16 |
+| 16 | KeyBindings System (Configurable) | Phase 15 | **Partial v0.11.39** - launcher settings exist, but runtime action rebinding parity is incomplete |
+| 17 | Controls Overlay (In-Game HUD) | Phase 16 | **Partial v0.11.39** - `F1` overlay now mirrors GDD core keys, with full action-family parity still in progress |
 
 ---
 
@@ -246,6 +246,16 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
 | `P0-B` | Mission menu discoverability hardening | ENG-CLIENT | Direct mission-overlay entry path plus dialogue-route fallback | Tester can open mission list and start a mission in under 30 seconds from hub |
 | `P0-C` | Objective interaction affordance pass | ENG-CORE + ENG-CLIENT | Guaranteed switch/objective contact affordances, with debug hitboxes when enabled | `activate_switches` objectives remain completable even when procedural switch NPCs are absent |
 | `P0-D` | Controls matrix sync pass | ENG-CLIENT + DESIGN | Runtime controls table synchronized with GDD `10.3` and overlay labels | `F1` overlay and player expectations doc show the same actionable controls |
+
+### Progress update (`2026-04-15 03:18:26 +01:00`)
+
+- Extended P0 controls/combat runtime bridge:
+  - `InputCommand.block` added and wired through input/replay logging paths.
+  - Guard/parry live behavior added in simulator with directional front-block checks and parry stun response.
+  - Block hit reaction animation states (`block_hit` / `block_hit_hard`) now route through runtime animation selection.
+- Boss-fight stability fixes tied to P0-10 playtest blockers:
+  - Time Leech minions now spawn with canonical type wire (`time_leech`) and active-cap guard.
+  - Siren shield/add checks now scope to arena-local adds to avoid cross-room contamination.
 
 ### Validation additions for this plan
 
