@@ -7,7 +7,7 @@ version_anchor: v0.11.48
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 21:10:00 +01:00 | **Codebase version:** v0.11.48 | **Next release target:** v0.11.49 (P0-10 onboarding/system-guidance follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 21:11:43 +01:00 | **Codebase version:** v0.11.48 | **Next release target:** v0.11.49 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
@@ -93,6 +93,21 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-15 21:11:43 +01:00`
+
+- Closed the `v0.11.48` release workflow end to end after the NPC/map usability fix pass:
+  - verified remote `CI` success on `master` (`run_id=24475744315`)
+  - verified remote `Release` success on tag `v0.11.48` (`run_id=24475751960`)
+  - verified published release assets include:
+    - `ninja_dash.exe`
+    - `ninja_dash_launcher.exe`
+    - `ninja-client-all.jar`
+    - `ninja-server-all.jar`
+    - `docs-archive-2026-04-15-v0.11.48.zip`
+- Plan status impact:
+  - M8 polish evidence pass remains in-progress but now includes closed runtime baselines for NPC scale/hitbox parity and map tap/hold readability.
+  - next implementation target remains `v0.11.49` onboarding/system-guidance follow-up under `P0-10`.
 
 `2026-04-15 21:10:00 +01:00`
 

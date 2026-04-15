@@ -24,6 +24,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
+- Latest release verification (`2026-04-15 21:11:43 +01:00`):
+  - CI green on `master` (`run_id=24475744315`)
+  - Release green on `v0.11.48` (`run_id=24475751960`)
+  - Published release: https://github.com/VainAsher/indie-ninja-adventures/releases/tag/v0.11.48
 
 ## Runtime Reality (Implemented)
 
