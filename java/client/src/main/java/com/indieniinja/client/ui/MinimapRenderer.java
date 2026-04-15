@@ -58,6 +58,7 @@ public final class MinimapRenderer {
 
     // Pixel colours for the tile-detail Pixmap
     private static final int PIX_SOLID    = Color.rgba8888(0.72f, 0.72f, 0.78f, 1f);
+    private static final int PIX_CLIMBABLE= Color.rgba8888(0.42f, 0.82f, 0.58f, 1f);
     private static final int PIX_PLATFORM = Color.rgba8888(0.55f, 0.44f, 0.30f, 1f);
     private static final int PIX_AIR      = 0x00000000;  // transparent
 
@@ -614,8 +615,9 @@ public final class MinimapRenderer {
                 int gc = Math.min(tc * scaleC, GRID_COLS - 1);
                 byte tile = grid[gr][gc];
                 int color;
-                if      (tile == WorldGenerator.SOLID)    color = PIX_SOLID;
-                else if (tile == WorldGenerator.PLATFORM) color = PIX_PLATFORM;
+                if      (tile == WorldGenerator.SOLID)     color = PIX_SOLID;
+                else if (tile == WorldGenerator.CLIMBABLE) color = PIX_CLIMBABLE;
+                else if (tile == WorldGenerator.PLATFORM)  color = PIX_PLATFORM;
                 else                                      color = PIX_AIR;
                 px.drawPixel(tc, tr, color);
             }

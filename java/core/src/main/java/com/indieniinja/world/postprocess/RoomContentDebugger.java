@@ -17,7 +17,7 @@ import java.util.List;
  *
  * <pre>
  * ASCII map legend:
- *   # = SOLID      _ = PLATFORM   ~ = WATER   ^ = LAVA   * = ICE
+ *   # = SOLID      C = CLIMBABLE  _ = PLATFORM   ~ = WATER   ^ = LAVA   * = ICE
  *   D = DOOR_LOCKED  . = AIR
  *   E = enemy      P = pickup     Z = puzzle   B = boss
  * </pre>
@@ -83,6 +83,7 @@ public final class RoomContentDebugger {
             case WorldGenerator.LAVA     -> '^';
             case WorldGenerator.ICE      -> '*';
             case WorldGenerator.DOOR_LOCKED -> 'D';
+            case WorldGenerator.CLIMBABLE -> 'C';
             default                      -> '.';
         };
     }

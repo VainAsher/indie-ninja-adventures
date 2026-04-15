@@ -198,6 +198,81 @@ class GameSimulatorTest {
     }
 
     @Test
+    void climbOnlyActivatesOnClimbableTaggedWalls() {
+        LevelLayout fixture = LevelLayout.buildTraversalLedgeFixtureLayout(880L);
+
+        GameSimulator solidWallSim = new GameSimulator(880L, "test_hub", fixture);
+        SimPlayer solidWallPlayer = new SimPlayer("p_solid", 0, 14 * 32f - 28f, 18 * 32f);
+        solidWallSim.addPlayer(solidWallPlayer);
+        InputCommand intoWall = new InputCommand(0);
+        intoWall.right = true;
+        solidWallSim.step(Map.of(0, intoWall)); // establish onWall from collision
+        InputCommand climbAttempt = new InputCommand(1);
+        climbAttempt.right = true;
+        climbAttempt.up = true;
+        solidWallSim.step(Map.of(0, climbAttempt));
+        assertThat(solidWallPlayer.isClimbing).isFalse();
+
+        GameSimulator climbableWallSim = new GameSimulator(881L, "test_hub", fixture);
+        SimPlayer climbableWallPlayer = new SimPlayer("p_climbable", 0, 20 * 32f - 28f, 18 * 32f);
+        climbableWallSim.addPlayer(climbableWallPlayer);
+        InputCommand intoClimbable = new InputCommand(0);
+        intoClimbable.right = true;
+        climbableWallSim.step(Map.of(0, intoClimbable)); // establish onWall from collision
+        InputCommand climbOnTag = new InputCommand(1);
+        climbOnTag.right = true;
+        climbOnTag.up = true;
+        climbableWallSim.step(Map.of(0, climbOnTag));
+        assertThat(climbableWallPlayer.isClimbing).isTrue();
+    }
+
+    @Test
+    void ledgeGrabTransitionsIntoLedgeClimbAndTopOut() {
+        LevelLayout fixture = LevelLayout.buildTraversalLedgeFixtureLayout(882L);
+        GameSimulator sim = new GameSimulator(882L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, 30 * 32f - 28f, 18 * 32f + 10f);
+        sim.addPlayer(player);
+
+        InputCommand grab = new InputCommand(0);
+        grab.up = true;
+        sim.step(Map.of(0, grab));
+        assertThat(player.isOnLedge).isTrue();
+
+        InputCommand climb = new InputCommand(1);
+        climb.up = true;
+        sim.step(Map.of(0, climb));
+        assertThat(player.isLedgeClimbing).isTrue();
+
+        for (int i = 0; i < 20; i++) {
+            sim.step(Map.of(0, new InputCommand(2 + i)));
+        }
+
+        assertThat(player.isOnLedge).isFalse();
+        assertThat(player.isLedgeClimbing).isFalse();
+        assertThat(player.physics.onGround).isTrue();
+    }
+
+    @Test
+    void waterExitSnapsPlayerToSolidBank() {
+        LevelLayout fixture = LevelLayout.buildWaterExitFixtureLayout(883L);
+        GameSimulator sim = new GameSimulator(883L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, fixture.spawnX, fixture.spawnY);
+        sim.addPlayer(player);
+
+        sim.step(Map.of(0, new InputCommand(0))); // allow collision pass to set inWater flag
+        assertThat(player.physics.inWater).isTrue();
+
+        InputCommand exit = new InputCommand(1);
+        exit.right = true;
+        exit.jump = true;
+        sim.step(Map.of(0, exit));
+
+        float expectedExitX = 24 * 32f - 28f + 2f;
+        assertThat(player.physics.x).isGreaterThanOrEqualTo(expectedExitX - 2f);
+        assertThat(player.physics.y).isLessThan(fixture.spawnY);
+    }
+
+    @Test
     void timeLeechLordSpawnsTypedCappedMinions() {
         long seed = findBossSeed("time_leech_lord");
         LevelLayout layout = LevelLayout.buildProceduralLayout(

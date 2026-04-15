@@ -190,6 +190,88 @@ public final class LevelLayout {
     }
 
     /**
+     * Deterministic traversal fixture:
+     * - one CLIMBABLE wall column (for climb-only logic assertions)
+     * - one plain SOLID wall column (negative control)
+     * - one-way ledge strip for ledge-grab/ledge-climb state transitions
+     */
+    public static LevelLayout buildTraversalLedgeFixtureLayout(long seed) {
+        final int TILE  = 32;
+        final int W     = 64;
+        final int H     = 32;
+
+        SpatialHash hash = new SpatialHash();
+
+        for (int tx = 0; tx < W; tx++) {
+            hash.insert(new TileRect(tx * TILE, (H - 2) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect(tx * TILE, (H - 1) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 0; ty < H; ty++) {
+            hash.insert(new TileRect(0, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect((W - 1) * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+
+        // Non-climbable wall (negative climb control)
+        for (int ty = 14; ty <= 27; ty++) {
+            hash.insert(new TileRect(14 * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        // Climbable wall (positive climb control)
+        for (int ty = 14; ty <= 27; ty++) {
+            hash.insert(new TileRect(20 * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.CLIMBABLE));
+        }
+        // One-way ledge strip for grab/hang/climb transitions
+        for (int tx = 30; tx <= 33; tx++) {
+            hash.insert(new TileRect(tx * TILE, 18 * TILE, TILE, TILE, true, WorldGenerator.PLATFORM));
+        }
+
+        float spawnX = 19 * TILE;
+        float spawnY = 17 * TILE;
+        return new LevelLayout(seed, W, H, hash,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), spawnX, spawnY, null);
+    }
+
+    /**
+     * Deterministic water-exit fixture:
+     * - rectangular water basin
+     * - explicit solid bank on the right side
+     * Used to assert water->solid bank exit transitions.
+     */
+    public static LevelLayout buildWaterExitFixtureLayout(long seed) {
+        final int TILE  = 32;
+        final int W     = 64;
+        final int H     = 32;
+
+        SpatialHash hash = new SpatialHash();
+
+        for (int tx = 0; tx < W; tx++) {
+            hash.insert(new TileRect(tx * TILE, (H - 2) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect(tx * TILE, (H - 1) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 0; ty < H; ty++) {
+            hash.insert(new TileRect(0, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect((W - 1) * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+
+        // Water basin interior.
+        for (int ty = 20; ty <= 29; ty++) {
+            for (int tx = 18; tx <= 23; tx++) {
+                hash.insert(new TileRect(tx * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.WATER));
+            }
+        }
+        // Solid right bank with open headroom to allow body placement on exit.
+        for (int ty = 22; ty <= 31; ty++) {
+            hash.insert(new TileRect(24 * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+
+        float spawnX = 23 * TILE - 18f;
+        float spawnY = 22 * TILE;
+        return new LevelLayout(seed, W, H, hash,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), spawnX, spawnY, null);
+    }
+
+    /**
      * Build a procedurally generated layout from a seed.
      *
      * Uses WorldGenerator to create a 128×128 tile grid with layered platforms

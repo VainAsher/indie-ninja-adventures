@@ -58,11 +58,16 @@ public final class SimPlayer {
     public boolean wasOnGround  = false;
 
     // ── Traverse state (Phase 5/6) ────────────────────────────────────────────
-    // Climb: set by physics when player presses into a climbable surface (ladder/vine).
-    // Detection logic is Phase 6 — flags are wired into the animation FSM now.
+    // Runtime context is computed in GameSimulator each tick (wall-climb intent,
+    // ledge hang/climb, water-surface detection, and side-bank water exits).
     public boolean isClimbing   = false;  // player is actively climbing a surface
     public boolean isOnLedge    = false;  // player is hanging on a ledge grab point
     public boolean isLedgeClimbing = false; // playing ledge-climb-up animation
+    public boolean atWaterSurface = false;  // water contact near surface for swim-surface anims
+    public float ledgeTargetX = 0f;         // resolved top-out X for current ledge context
+    public float ledgeTargetY = 0f;         // resolved top-out Y for current ledge context
+    public float ledgeHangY   = 0f;         // suspended Y while hanging
+    public float ledgeClimbTimer = 0f;      // climb-up animation timer
 
     // ── Combat state ─────────────────────────────────────────────────────────
     // Melee attack (J key / left mouse)
@@ -99,6 +104,9 @@ public final class SimPlayer {
     public static final float BLOCK_DAMAGE_MULT    = 0.35f;
     public static final float BLOCK_HIT_TIME       = 0.16f;
     public static final float PARRY_HIT_TIME       = 0.20f;
+    public static final float CLIMB_SPEED          = 3.0f;
+    public static final float LEDGE_HANG_OFFSET    = 10f;
+    public static final float LEDGE_CLIMB_TIME     = 0.22f;
 
     // ── Teleport state ───────────────────────────────────────────────────────
     // Hold-to-phase system: hold T → ghost cursor moves with directional input,

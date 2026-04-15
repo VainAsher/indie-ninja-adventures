@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.48
+version_anchor: v0.11.49
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.49] - 2026-04-15 (explicit climbable tagging + traversal transition regressions)
+
+### Fixed
+
+- Wall-climb activation is now explicitly constrained to climb-tagged geometry:
+  - added `TileType.CLIMBABLE` (`id=8`) and world-tile constant parity in `WorldGenerator`.
+  - climb-context resolution in `GameSimulator` now requires proximity to `CLIMBABLE` surfaces instead of allowing generic solid-wall latching.
+
+### Added
+
+- Authored traversal fixtures for deterministic regression paths:
+  - `LevelLayout.buildTraversalLedgeFixtureLayout(...)`
+  - `LevelLayout.buildWaterExitFixtureLayout(...)`
+- Targeted traversal regression coverage in `GameSimulatorTest`:
+  - `climbOnlyActivatesOnClimbableTaggedWalls`
+  - `ledgeGrabTransitionsIntoLedgeClimbAndTopOut`
+  - `waterExitSnapsPlayerToSolidBank`
+- World post-process climb-tag pass:
+  - `WorldGenerator.tagClimbableSurfaces(...)` promotes deterministic boundary/interior climb faces.
+
+### Changed
+
+- Client/runtime tile-consumer parity for `CLIMBABLE`:
+  - `ChunkRenderer`/`MinimapRenderer` visualize climb-tag tiles.
+  - `GameScreen` standing-solid checks treat `CLIMBABLE` as solid.
+  - `RoomContentDebugger` now annotates climb tiles.
+- Version parity metadata updated to `0.11.49` across `version.json`, Gradle, README, ROADMAP, active plan, and current-state snapshot.
+
+### Validation
+
+- `cd java && ./gradlew :core:compileJava :client:compileJava --no-daemon` pass.
+- `cd java && ./gradlew :server:test --tests com.indieniinja.server.GameSimulatorTest --no-daemon` pass.
 
 ---
 

@@ -13,6 +13,7 @@ import com.indieniinja.physics.CollisionSystem;
 import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.physics.PhysicsState;
 import com.indieniinja.physics.PhysicsSystem;
+import com.indieniinja.physics.TileType;
 
 import com.indieniinja.network.BossState;
 import com.indieniinja.network.PortalState;
@@ -764,6 +765,7 @@ public final class GameSimulator {
             }
             default -> { return false; }
         }
+        syncWeaponStateForStance(p);
         return true;
     }
 
@@ -846,6 +848,7 @@ public final class GameSimulator {
                 fmt(sp.yinYang.yin), fmt(sp.yinYang.yang),
                 (int) p.x, (int) p.y);
         }
+        syncWeaponStateForStance(sp);
 
         // Guard/parry: hold block to guard; first window counts as parry.
         boolean blockHeld = cmd.block && !sp.isDashing && !sp.teleportPhaseMode && !sp.isAttacking;
@@ -913,8 +916,10 @@ public final class GameSimulator {
         }
 
         // ── Jump logic ────────────────────────────────────────────────────────
+        boolean jumpConsumedByTraversal = updateTraversalContext(sp, cmd, jumpJustPressed);
         boolean canGroundJump = p.onGround || sp.coyoteTimer > 0f;
-        boolean jumpTriggered = jumpJustPressed || (sp.jumpBuffer > 0f && canGroundJump);
+        boolean jumpTriggered = !jumpConsumedByTraversal
+            && (jumpJustPressed || (sp.jumpBuffer > 0f && canGroundJump));
 
         if (canGroundJump && jumpTriggered && sp.jumpCount == 0) {
             // First jump — ground or coyote
@@ -1098,7 +1103,11 @@ public final class GameSimulator {
         }
 
         // ── Wall slide ────────────────────────────────────────────────────────
-        applyWallSlide(sp, p);
+        if (sp.isOnLedge || sp.isLedgeClimbing || sp.isClimbing) {
+            sp.isWallSliding = false;
+        } else {
+            applyWallSlide(sp, p);
+        }
 
         // ── Hazard tile effects ───────────────────────────────────────────────
         // CollisionSystem already set p.onIce / p.inWater / p.onLava flags this tick.
@@ -1131,8 +1140,13 @@ public final class GameSimulator {
             if (!p.onGround) sp.animState = "air_block";
             else sp.animState = cmd.crouch ? "crouch_block" : "block";
         } else if (p.inWater) {
-            // Swim states — horizontal movement = swim, stationary = swim_idle
-            sp.animState = Math.abs(p.vx) > 0.1f ? "swim" : "swim_idle";
+            if (sp.atWaterSurface) {
+                sp.animState = Math.abs(p.vx) > 0.1f ? "swim_surface" : "swim_surface_idle";
+            } else if (Math.abs(p.vy) > 0.15f) {
+                sp.animState = p.vy < 0f ? "swim_up" : "swim_down";
+            } else {
+                sp.animState = Math.abs(p.vx) > 0.1f ? "swim" : "swim_idle";
+            }
         } else if (sp.isAttacking) {
             sp.animState = "attack";
         } else if (sp.isThrowing) {
@@ -1157,6 +1171,305 @@ public final class GameSimulator {
         } else {
             sp.animState = "idle";
         }
+    }
+
+    /**
+     * Keep stance readability deterministic: Yin defaults to unarmed posture,
+     * Yang defaults to armed posture (sword unless an equipped weapon implies pistol).
+     */
+    private static void syncWeaponStateForStance(SimPlayer sp) {
+        String next = preferredWeaponStateForStance(sp);
+        if (!next.equals(sp.weaponState)) {
+            String prev = sp.weaponState;
+            sp.weaponState = next;
+            log.info(
+                "[Playtest][Posture] player={} slot={} stance={} posture={} prevPosture={}",
+                sp.playerId, sp.slot, sp.stanceMode, next, prev);
+        }
+    }
+
+    private static String preferredWeaponStateForStance(SimPlayer sp) {
+        if ("yin".equals(sp.stanceMode)) return "unarmed";
+        String equipped = weaponStateFromEquippedItem(sp.inventory.equippedWeapon);
+        return "unarmed".equals(equipped) ? "sword" : equipped;
+    }
+
+    private static String weaponStateFromEquippedItem(String equippedWeapon) {
+        if (equippedWeapon == null || equippedWeapon.isBlank()) return "unarmed";
+        String id = equippedWeapon.toLowerCase(java.util.Locale.ROOT);
+        return id.contains("pistol") ? "pistol" : "sword";
+    }
+
+    /**
+     * Traversal-context bridge used by the animation integration plan:
+     * - corner ledge detection + hang + climb-up
+     * - water surface detection and side-bank exits to solid ground
+     * - wall-climb context while pressing up/down on a wall
+     *
+     * @return true when this context consumed jump input for this tick.
+     */
+    private boolean updateTraversalContext(SimPlayer sp, InputCommand cmd, boolean jumpJustPressed) {
+        PhysicsState p = sp.physics;
+
+        sp.atWaterSurface = p.inWater && isAtWaterSurface(p);
+
+        if (sp.isLedgeClimbing) {
+            sp.isClimbing = false;
+            p.vx = 0f;
+            p.vy = 0f;
+            sp.ledgeClimbTimer -= DT;
+            if (sp.ledgeClimbTimer <= 0f) {
+                sp.isLedgeClimbing = false;
+                sp.ledgeClimbTimer = 0f;
+                p.x = sp.ledgeTargetX;
+                p.y = sp.ledgeTargetY;
+                p.onGround = true;
+                sp.jumpCount = 0;
+            } else {
+                float t = 1f - (sp.ledgeClimbTimer / SimPlayer.LEDGE_CLIMB_TIME);
+                t = Math.max(0f, Math.min(1f, t));
+                p.x = sp.ledgeTargetX;
+                p.y = sp.ledgeHangY + (sp.ledgeTargetY - sp.ledgeHangY) * t;
+                p.onGround = false;
+            }
+            return true;
+        }
+
+        if (sp.isOnLedge) {
+            p.x = sp.ledgeTargetX;
+            p.y = sp.ledgeHangY;
+            p.vx = 0f;
+            p.vy = 0f;
+            p.onGround = false;
+            p.onWall = false;
+            p.wallDir = 0;
+            sp.isClimbing = false;
+
+            boolean pressAway = (sp.facing > 0 && cmd.left) || (sp.facing < 0 && cmd.right);
+            if (cmd.down || pressAway) {
+                sp.isOnLedge = false;
+                p.vy = Math.max(p.vy, 2f);
+                return false;
+            }
+            if (cmd.up || jumpJustPressed) {
+                beginLedgeClimb(sp, p);
+                return true;
+            }
+            return true;
+        }
+
+        if (p.onGround) {
+            sp.isClimbing = false;
+            sp.isOnLedge = false;
+            return false;
+        }
+
+        if (p.inWater) {
+            sp.isClimbing = false;
+            if (jumpJustPressed) {
+                if (tryExitWaterToSolid(sp, cmd)) return true;
+                if (sp.atWaterSurface) {
+                    p.vy = -PhysicsConstants.JUMP_POWER * 0.75f;
+                    p.onGround = false;
+                    sp.jumpCount = Math.max(sp.jumpCount, 1);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        int ledgeDir = cmd.right ? 1 : (cmd.left ? -1 : sp.facing);
+        if ((cmd.up || jumpJustPressed) && p.vy >= -3.0f && tryStartLedgeGrab(sp, ledgeDir)) {
+            return true;
+        }
+
+        int wallProbeDir = p.wallDir != 0 ? p.wallDir : (cmd.right ? 1 : (cmd.left ? -1 : sp.facing));
+        boolean onClimbableWall = p.onWall && isTouchingClimbableSurface(p, wallProbeDir);
+        sp.isClimbing = onClimbableWall && (cmd.up || cmd.down) && !sp.isDashing && !sp.teleportPhaseMode;
+        if (sp.isClimbing) {
+            p.vx = 0f;
+            if (cmd.up && !cmd.down) {
+                p.vy = -SimPlayer.CLIMB_SPEED;
+            } else if (cmd.down && !cmd.up) {
+                p.vy = SimPlayer.CLIMB_SPEED;
+            } else {
+                p.vy = 0f;
+            }
+        }
+        return false;
+    }
+
+    private static void beginLedgeClimb(SimPlayer sp, PhysicsState p) {
+        sp.isOnLedge = false;
+        sp.isLedgeClimbing = true;
+        sp.ledgeClimbTimer = SimPlayer.LEDGE_CLIMB_TIME;
+        p.vx = 0f;
+        p.vy = 0f;
+        log.info(
+            "[Playtest][Traversal] player={} slot={} event=ledge_climb_begin pos=({}, {}) target=({}, {})",
+            sp.playerId, sp.slot, (int) p.x, (int) p.y, (int) sp.ledgeTargetX, (int) sp.ledgeTargetY);
+    }
+
+    private boolean tryStartLedgeGrab(SimPlayer sp, int dir) {
+        PhysicsState p = sp.physics;
+        if (dir == 0 || p.onGround || sp.isOnLedge || sp.isLedgeClimbing) return false;
+
+        float probeX = dir > 0
+            ? p.x + p.width - 2f
+            : p.x - PhysicsConstants.TILE_SIZE;
+        float probeY = p.y - PhysicsConstants.TILE_SIZE;
+        float probeW = PhysicsConstants.TILE_SIZE + 4f;
+        float probeH = p.height + PhysicsConstants.TILE_SIZE * 2f;
+
+        var tiles = spatialHash.candidates(probeX, probeY, probeW, probeH);
+        for (TileRect tile : tiles) {
+            if (!isSurfaceTile(tile)) continue;
+
+            float sideDist = dir > 0
+                ? tile.x() - (p.x + p.width)
+                : p.x - tile.right();
+            if (sideDist < -4f || sideDist > PhysicsConstants.TILE_SIZE + 4f) continue;
+
+            float verticalDelta = p.y - tile.y();
+            if (verticalDelta < -18f || verticalDelta > p.height - 8f) continue;
+
+            float targetX = dir > 0 ? tile.x() - p.width + 2f : tile.right() - 2f;
+            float targetY = tile.y() - p.height;
+            float hangY = targetY + SimPlayer.LEDGE_HANG_OFFSET;
+
+            if (hasBlockingTileOverlap(targetX, hangY, p.width, p.height)) continue;
+            if (hasBlockingTileOverlap(targetX, targetY, p.width, p.height)) continue;
+
+            sp.ledgeTargetX = targetX;
+            sp.ledgeTargetY = targetY;
+            sp.ledgeHangY = hangY;
+            sp.isOnLedge = true;
+            sp.isLedgeClimbing = false;
+            sp.ledgeClimbTimer = 0f;
+            sp.facing = dir;
+            p.x = targetX;
+            p.y = hangY;
+            p.vx = 0f;
+            p.vy = 0f;
+            p.onGround = false;
+            p.onWall = false;
+            p.wallDir = 0;
+            log.info(
+                "[Playtest][Traversal] player={} slot={} event=ledge_grab dir={} hang=({}, {}) top=({}, {})",
+                sp.playerId, sp.slot, dir, (int) targetX, (int) hangY, (int) targetX, (int) targetY);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean tryExitWaterToSolid(SimPlayer sp, InputCommand cmd) {
+        PhysicsState p = sp.physics;
+        int primaryDir = cmd.right ? 1 : (cmd.left ? -1 : sp.facing);
+        int secondaryDir = -primaryDir;
+        int[] dirs = primaryDir == 0 ? new int[] {1, -1} : new int[] {primaryDir, secondaryDir};
+
+        for (int dir : dirs) {
+            float probeX = dir > 0
+                ? p.x + p.width - 2f
+                : p.x - PhysicsConstants.TILE_SIZE;
+            float probeY = p.y - PhysicsConstants.TILE_SIZE;
+            float probeW = PhysicsConstants.TILE_SIZE + 4f;
+            float probeH = p.height + PhysicsConstants.TILE_SIZE;
+            var tiles = spatialHash.candidates(probeX, probeY, probeW, probeH);
+
+            TileRect best = null;
+            float bestDist = Float.MAX_VALUE;
+            for (TileRect tile : tiles) {
+                if (!isSurfaceTile(tile)) continue;
+                float sideDist = dir > 0
+                    ? tile.x() - (p.x + p.width)
+                    : p.x - tile.right();
+                if (sideDist < -4f || sideDist > PhysicsConstants.TILE_SIZE + 6f) continue;
+                if (tile.y() < p.y - PhysicsConstants.TILE_SIZE || tile.y() > p.y + p.height) continue;
+
+                float targetX = dir > 0 ? tile.x() - p.width + 2f : tile.right() - 2f;
+                float targetY = tile.y() - p.height;
+                if (hasBlockingTileOverlap(targetX, targetY, p.width, p.height)) continue;
+
+                float d = Math.abs(targetY - p.y) + Math.abs(sideDist);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = tile;
+                }
+            }
+
+            if (best != null) {
+                p.x = dir > 0 ? best.x() - p.width + 2f : best.right() - 2f;
+                p.y = best.y() - p.height;
+                p.vx = 0f;
+                p.vy = 0f;
+                p.onGround = true;
+                sp.jumpCount = 0;
+                sp.facing = dir;
+                sp.isOnLedge = false;
+                sp.isLedgeClimbing = false;
+                sp.isClimbing = false;
+                log.info(
+                    "[Playtest][Traversal] player={} slot={} event=water_exit_bank dir={} pos=({}, {})",
+                    sp.playerId, sp.slot, dir, (int) p.x, (int) p.y);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isAtWaterSurface(PhysicsState p) {
+        float inset = 2f;
+        float topX = p.x + inset;
+        float topY = p.y - 1f;
+        float topW = Math.max(4f, p.width - inset * 2f);
+        float topH = Math.max(6f, p.height * 0.35f);
+        var tiles = spatialHash.candidates(topX, topY, topW, topH);
+        for (TileRect tile : tiles) {
+            if (tile.tileTypeEnum() != TileType.WATER) continue;
+            if (tile.overlaps(topX, topY, topW, topH)) return false;
+        }
+        return true;
+    }
+
+    private boolean hasBlockingTileOverlap(float x, float y, float w, float h) {
+        return hasBlockingTileOverlap(x, y, w, h, 2f);
+    }
+
+    private boolean hasBlockingTileOverlap(float x, float y, float w, float h, float bottomClearancePx) {
+        var candidates = spatialHash.candidates(x, y, w, h);
+        float probeH = Math.max(0f, h - Math.max(0f, bottomClearancePx));
+        for (TileRect tile : candidates) {
+            if (!isBlockingTile(tile)) continue;
+            if (tile.overlaps(x, y, w, probeH)) return true;
+        }
+        return false;
+    }
+
+    private boolean isTouchingClimbableSurface(PhysicsState p, int dir) {
+        if (dir == 0) return false;
+        float probeW = 4f;
+        float probeX = dir > 0 ? p.x + p.width - 1f : p.x - probeW + 1f;
+        float probeY = p.y + 2f;
+        float probeH = Math.max(8f, p.height - 4f);
+        var tiles = spatialHash.candidates(probeX, probeY, probeW, probeH);
+        for (TileRect tile : tiles) {
+            if (tile.tileTypeEnum() != TileType.CLIMBABLE) continue;
+            if (tile.overlaps(probeX, probeY, probeW, probeH)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isBlockingTile(TileRect tile) {
+        if (tile.isPlatform()) return false;
+        TileType type = tile.tileTypeEnum();
+        return type != TileType.AIR && type != TileType.WATER && type != TileType.GAS;
+    }
+
+    private static boolean isSurfaceTile(TileRect tile) {
+        if (tile.isPlatform()) return true;
+        TileType type = tile.tileTypeEnum();
+        return type != TileType.AIR && type != TileType.WATER && type != TileType.GAS;
     }
 
     /**

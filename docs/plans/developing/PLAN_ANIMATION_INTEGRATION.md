@@ -3,10 +3,10 @@ doc_type: plan
 status: developing
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.45
+version_anchor: v0.11.49
 ---
 # PLAN â€” Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-15 03:18:26 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.39
+**Created:** 2026-04-11 | **Last updated:** 2026-04-15 22:30:17 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.49
 
 ---
 
@@ -212,15 +212,15 @@ Full ZIP animation â†’ engine filename â†’ animation key table. **This
 | 3 | AnimationRegistry Expansion | Phase 2 | **Done v0.11.6** â€” `loadUnarmedSheets()` + `loadSwordSheets()` (130+ keys) |
 | 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** â€” `player_sword_*` prefix fallthrough routing |
 | 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** â€” climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
-| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.10** â€” animation keys exist; physics detection (ladder/vine tile recognition, ledge grab trigger) not yet built |
+| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.49** â€” corner ledge grab/hang/climb and water-surface + side-bank water exit logic are live in `GameSimulator`; explicit `CLIMBABLE` tagging + climb-only traversal gating are now implemented, while full swim-physics tuning remains |
 | 7 | Interaction Animations | Phase 6 | Not started |
-| 8 | Weapon State System | Phase 4 | **Partial v0.11.6** â€” `weaponState` field wired; sword routing live; combo chain not yet |
+| 8 | Weapon State System | Phase 4 | **Partial v0.11.48** â€” `weaponState` routing is live and stance-coupled (Yin->unarmed, Yang->armed posture with equipped-weapon fallback); manual hot-swap and combat-chain integration remain |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |
 | 10 | Sword Combat System | Phase 8 | Not started |
 | 11 | Block / Parry System | Phase 9-10 | **Partial v0.11.39** - runtime guard/parry input schema + front-facing block/parry behavior live; hold/toggle rebinding and full combat-state polish still pending |
 | 12 | Social / Emote Animations | Phase 7 | Not started |
 | 13 | Death, Revive & Prone System | Phase 5 | Not started |
-| 14 | Testing & Validation | All | Not started |
+| 14 | Testing & Validation | All | **Partial v0.11.49** â€” dedicated traversal fixtures + regression tests added for climb-tag gating, ledge-grab climb-out, and water-exit snap transitions |
 | 15 | Complete Keybinding Scheme | Phase 8 | **Partial v0.11.39** - runtime map/core action keys align to GDD baseline and `S` guard/parry is schema-wired; full configurable keybinding runtime still pending Phase 16 |
 | 16 | KeyBindings System (Configurable) | Phase 15 | **Partial v0.11.39** - launcher settings exist, but runtime action rebinding parity is incomplete |
 | 17 | Controls Overlay (In-Game HUD) | Phase 16 | **Partial v0.11.39** - `F1` overlay now mirrors GDD core keys, with full action-family parity still in progress |
@@ -263,6 +263,40 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
 - Boss-fight stability fixes tied to P0-10 playtest blockers:
   - Time Leech minions now spawn with canonical type wire (`time_leech`) and active-cap guard.
   - Siren shield/add checks now scope to arena-local adds to avoid cross-room contamination.
+
+### Progress update (`2026-04-15 21:40:12 +01:00`)
+
+- Pivot implementation pass aligned to GDD stance-expression goals:
+  - Alignment reference: GDD `§3.3` (Yin/Yang stance model) and `§10.3.5` / `§10.3.5 Jump, Wall Jump, and Swim Input Rules`.
+  - Added deterministic stance-to-posture bridge in `GameSimulator`:
+    - Yin stance now forces `weaponState=unarmed`.
+    - Yang stance defaults to armed posture (`sword` fallback, `pistol` when equipped weapon implies pistol).
+  - Added HUD readability cue in `HudRenderer`:
+    - Lantern panel now shows `STANCE: <...>  POSTURE: <...>` for immediate tester feedback.
+- Traversal-context bridge implemented for climb/swim onboarding readability:
+  - Added corner ledge detection and state flow (`ledge_grab` -> `ledge_idle` -> `ledge_climb`).
+  - Added water-surface detection (`atWaterSurface`) for distinct surface/submerged animation routing.
+  - Added side-bank water exit resolver so jump near a solid bank snaps to reachable solid ground.
+- Playtest logging coverage added:
+  - `[Playtest][Posture]` events on runtime posture changes.
+  - `[Playtest][Traversal]` events for ledge-grab, ledge-climb begin, and water-exit-bank transitions.
+
+### Progress update (`2026-04-15 22:30:17 +01:00`)
+
+- Traversal surface contract hardening (Phase 6 closure slice):
+  - Added canonical `CLIMBABLE` tile id (`TileType.CLIMBABLE` / `WorldGenerator.CLIMBABLE`).
+  - World generation now tags deterministic climb surfaces via `tagClimbableSurfaces(...)`.
+  - Climb activation now requires contact with tagged climbable tiles (no generic solid-wall climb latch).
+- Authored regression fixture pass (Phase 14 test-path stabilization):
+  - Added dedicated layouts for traversal edge-cases:
+    - `LevelLayout.buildTraversalLedgeFixtureLayout(...)`
+    - `LevelLayout.buildWaterExitFixtureLayout(...)`
+  - Added targeted regression tests in `GameSimulatorTest`:
+    - `climbOnlyActivatesOnClimbableTaggedWalls`
+    - `ledgeGrabTransitionsIntoLedgeClimbAndTopOut`
+    - `waterExitSnapsPlayerToSolidBank`
+- Client/debug visibility parity:
+  - `CLIMBABLE` tiles now render distinctly in minimap/debug outputs and are treated as solid for standing/contact checks.
 
 ### Validation additions for this plan
 
@@ -643,18 +677,23 @@ Launch via `python launcher/launcher.py`. Confirm each state visually:
 
 **Goal:** Wire the new climb and swim animation states to physics, since neither exists in the current state machine.
 
-### 6.1 Add `isClimbing`, `isOnLedge`, `isSwimming` to `SimPlayer`
+### 6.1 Add climb/ledge/water-context fields to `SimPlayer`
 
 ```java
-// SimPlayer.java â€” new fields:
+// SimPlayer.java â€” runtime context fields:
 public boolean isClimbing      = false;  // on a climbable surface
 public boolean isOnLedge       = false;  // hanging from ledge edge
-public boolean isSwimming      = false;  // submerged in water
 public boolean atWaterSurface  = false;  // at water surface level
-public int     climbDir        = 0;      // -1 = left/back, 0 = idle, 1 = right/up
+public boolean isLedgeClimbing = false;  // climbing up from a ledge hang
+public float   ledgeTargetX    = 0f;     // target top-out x
+public float   ledgeTargetY    = 0f;     // target top-out y
+public float   ledgeHangY      = 0f;     // suspended y while hanging
+public float   ledgeClimbTimer = 0f;     // climb-up animation timer
 ```
 
-These require hooks in `PhysicsSystem` or `GameSimulator` to detect climbable-tagged tiles and water tiles. The `TileType` system already has tile-type decoupling (per PLAN_SHADOW_ASCENT.md audit fixes) â€” add `CLIMBABLE` and `WATER` tile type flags if not already present.
+Current implementation computes climb/ledge/water context in `GameSimulator` each tick using
+tile probes from `SpatialHash` plus existing `PhysicsState` flags (`inWater`, `onWall`, `onGround`).
+Full authored `CLIMBABLE` tile tagging remains a follow-up.
 
 ### 6.2 Add climb/swim/ledge branches to `stepPlayerAnimationState()`
 
@@ -663,28 +702,27 @@ Insert after wall-slide check and before airborne check:
 ```java
 // LEDGE
 if (sp.isOnLedge) {
-    sp.animState = (sp.climbDir != 0) ? "ledge_climb" : "ledge_idle";
+    sp.animState = "ledge_idle";
+    return;
+}
+if (sp.isLedgeClimbing) {
+    sp.animState = "ledge_climb";
     return;
 }
 
 // CLIMBING
 if (sp.isClimbing) {
-    if (sp.climbDir == 0) {
-        sp.animState = "climb_idle_side";
-    } else {
-        sp.animState = (sp.climbDir > 0) ? "climb_right" : "climb_left";
-    }
+    sp.animState = Math.abs(p.vy) > 0.1f ? "climb" : "climb_idle";
     return;
 }
 
 // SWIMMING
-if (sp.isSwimming) {
+if (p.inWater) {
     if (sp.atWaterSurface) {
-        sp.animState = (Math.abs(p.vx) > 0.5f) ? "swim_surface" : "swim_surface_idle";
+        sp.animState = (Math.abs(p.vx) > 0.1f) ? "swim_surface" : "swim_surface_idle";
     } else {
-        if (p.vy > 0.5f)       sp.animState = "swim_down";
-        else if (p.vy < -0.5f) sp.animState = "swim_up";
-        else                   sp.animState = (Math.abs(p.vx) > 0.5f) ? "swim" : "swim_idle";
+        if (Math.abs(p.vy) > 0.15f) sp.animState = p.vy < 0f ? "swim_up" : "swim_down";
+        else                        sp.animState = Math.abs(p.vx) > 0.1f ? "swim" : "swim_idle";
     }
     return;
 }
@@ -692,12 +730,16 @@ if (sp.isSwimming) {
 
 ### 6.3 Swim physics stub
 
-The existing water code applies drag only. Add buoyancy basics:
-- While `isSwimming`: gravity halved, `maxFallSpeed` = 4 px/tick (was 12)
-- Horizontal speed cap: 5 px/tick (was 8)
-- Jump input while swimming: surfaces the player (transition to `atWaterSurface`)
+Current status:
+- Existing medium physics drag/cap behavior remains authoritative.
+- New runtime bridge adds:
+  - `atWaterSurface` detection for surface animation routing.
+  - jump-at-surface upward burst behavior.
+  - banked water exit snapping to nearby valid solid ground.
 
-This is a minimal stub â€” full hydrodynamics is a future task. Just enough for the animations to trigger and test.
+Follow-up remains open:
+- explicit buoyancy/gravity model for submerged movement tuning.
+- authored water movement constants per stance for final GDD feel pass.
 
 ### 6.4 Test â€” Climb & Swim Checklist
 
@@ -786,38 +828,31 @@ if (sp.isPushIdle) { sp.animState = "push_idle"; return; }
 
 **Goal:** Allow the player to equip/unequip a sword, and have all animations switch to the sword set transparently.
 
-### 8.1 Add `WeaponState` enum to `SimPlayer`
+### 8.1 Runtime posture field in `SimPlayer`
 
 ```java
 // SimPlayer.java
-public enum WeaponState { UNARMED, SWORD, PISTOL }
-public WeaponState weaponState = WeaponState.UNARMED;
+public String weaponState = "unarmed"; // "unarmed" | "sword" | "pistol"
 ```
 
 ### 8.2 Equip logic in `GameSimulator`
 
-When the player picks up a sword (`SimInventory` contains a sword item):
+Current bridge logic is stance-first for readability:
+
 ```java
-sp.weaponState = SimPlayer.WeaponState.SWORD;
+if ("yin".equals(sp.stanceMode)) return "unarmed";
+String equipped = weaponStateFromEquippedItem(sp.inventory.equippedWeapon);
+return "unarmed".equals(equipped) ? "sword" : equipped;
 ```
 
-When dropped or unequipped:
-```java
-sp.weaponState = SimPlayer.WeaponState.UNARMED;
-```
-
-Alternatively, if weapon equip is bound to a hotkey (e.g., `1` = unarmed, `2` = sword):
-```java
-if (cmd.selectWeapon1) sp.weaponState = UNARMED;
-if (cmd.selectWeapon2) sp.weaponState = SWORD;
-```
-Add `selectWeapon1`, `selectWeapon2` to `InputCommand` and wire in `InputPoller` (keys `1`, `2`).
+`syncWeaponStateForStance(sp)` is called during input processing and after equip/unequip actions.
+This gives deterministic posture feedback while preserving equipped-item awareness.
 
 ### 8.3 Propagate to `PlayerState` network schema
 
 ```java
 // In GameSimulator snapshot builder:
-ps.weaponState = sp.weaponState.name().toLowerCase(); // "unarmed" / "sword"
+ps.weaponState = sp.weaponState; // "unarmed" / "sword" / "pistol"
 ```
 
 `PlayerState.weaponState` field added in Phase 4.1.
@@ -825,8 +860,9 @@ ps.weaponState = sp.weaponState.name().toLowerCase(); // "unarmed" / "sword"
 ### 8.4 Test â€” Weapon State Checklist
 
 - [ ] Default spawn: unarmed animations play
-- [ ] Press `2` (or pick up sword): all locomotion animations immediately switch to sword variants (idle, run, crouch, wall-slide)
-- [ ] Press `1`: switch back to unarmed
+- [ ] Switch stance to Yang: posture switches to armed (`sword` fallback or equipped weapon posture)
+- [ ] Switch stance to Yin: posture switches back to unarmed
+- [ ] Equip pistol item while in Yang: posture resolves to pistol
 - [ ] Weapon state persists across death/respawn (check `SaveManager`)
 - [ ] In co-op: each player can have a different weapon state; confirm they render independently
 
@@ -1998,4 +2034,3 @@ The pistol set (from ZIP 002) is extracted to `assets/sprites/player/pistol/` in
 | 2026-04-11 | Pistol staged but not wired | Not in Campaign GDD; reserve for Arcade Mode milestone |
 | 2026-04-11 | Block triggered by `G` key (new `InputCommand.block` field) | `Q` is consumable; `K` is throw; `G` sits between movement and combat clusters with no prior binding |
 | 2026-04-11 | Death variant chosen randomly at death event | Avoids death always looking identical; both variants have matching revive |
-

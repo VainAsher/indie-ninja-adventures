@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-15
-version_anchor: v0.11.48
+version_anchor: v0.11.49
 replaces: docs/HANDOVER.md
 ---
 
@@ -14,7 +14,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Baseline
 
 - Date baseline: 2026-04-15
-- Version baseline: v0.11.48
+- Version baseline: v0.11.49
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -24,6 +24,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
+- Next release candidate: v0.11.49 (explicit climbable traversal gating + ledge/water transition regressions).
 - Latest release verification (`2026-04-15 21:11:43 +01:00`):
   - CI green on `master` (`run_id=24475744315`)
   - Release green on `v0.11.48` (`run_id=24475751960`)
@@ -37,6 +38,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Siren-first onboarding flow and objective/mission affordances are active.
 - NPC runtime dimensions are now authoritative over the wire (`NPCState.width/height`) and used by client render/debug hitbox overlays.
 - Map input now follows explicit tap/hold semantics: `Tab` tap toggles quick map, `Tab` hold opens full map while held.
+- Animation integration pivot is in progress: stance-coupled posture readability (Yin unarmed / Yang armed fallback), ledge corner hang-climb context, and water-bank exit traversal bridge are now implemented with playtest log events.
 - Release/version parity gate is enforced through `tools/check_version_sync.py`.
 
 ## Canonical Documentation Set

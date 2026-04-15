@@ -1494,6 +1494,7 @@ public final class GameScreen implements Screen {
 
     private static boolean isSolidForStanding(byte tile) {
         return tile == WorldGenerator.SOLID
+            || tile == WorldGenerator.CLIMBABLE
             || tile == WorldGenerator.PLATFORM
             || tile == WorldGenerator.ICE
             || tile == WorldGenerator.LAVA

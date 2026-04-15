@@ -282,7 +282,9 @@ public final class HudRenderer {
                 font.setColor(0.95f, 0.7f * p.lanternValue + 0.1f, 0.05f, lanLabelAlpha);
                 font.draw(hudBatch, "\u25ca " + lanPct + "%", LAN_X + LAN_W + 5f, LAN_Y + LAN_H);
                 font.setColor(0.70f, 0.86f, 1f, 0.95f);
-                font.draw(hudBatch, "STANCE: " + stanceLabel(p), LAN_X + LAN_W + 5f, LAN_Y - 6f);
+                font.draw(hudBatch,
+                    "STANCE: " + stanceLabel(p) + "  POSTURE: " + weaponLabel(p),
+                    LAN_X + LAN_W + 5f, LAN_Y - 6f);
                 // Flow Mode indicator near the lantern
                 if (p.flowMode) {
                     font.setColor(0.9f, 1f, 0.7f, 0.9f);
@@ -782,8 +784,22 @@ public final class HudRenderer {
 
     private static String stanceLabel(PlayerState p) {
         if (p == null) return "UNKNOWN";
+        String mode = p.stanceMode == null ? "" : p.stanceMode.trim().toLowerCase(java.util.Locale.ROOT);
+        if ("yin".equals(mode)) return p.flowMode ? "YIN-FLOW" : "YIN";
+        if ("yang".equals(mode)) return p.flowMode ? "YANG-FLOW" : "YANG";
+        if (p.flowMode) return "FLOW";
         float delta = p.yinValue - p.yangValue;
         if (Math.abs(delta) <= 0.03f) return "BALANCED";
         return delta > 0f ? "YIN" : "YANG";
+    }
+
+    private static String weaponLabel(PlayerState p) {
+        if (p == null || p.weaponState == null) return "UNARMED";
+        String mode = p.weaponState.trim().toLowerCase(java.util.Locale.ROOT);
+        return switch (mode) {
+            case "sword" -> "ARMED(SWORD)";
+            case "pistol" -> "ARMED(PISTOL)";
+            default -> "UNARMED";
+        };
     }
 }

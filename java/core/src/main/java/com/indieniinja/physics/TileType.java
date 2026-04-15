@@ -7,7 +7,7 @@ package com.indieniinja.physics;
  * a compile-time dependency on com.indieniinja.world.WorldGenerator (PHYS-1).
  *
  * Values MUST stay in sync with WorldGenerator static byte constants.
- * Byte IDs 0-6 match existing tile constants; 7 = GAS (new, PHYS-2).
+ * Byte IDs 0-8 match existing tile constants (including CLIMBABLE and GAS).
  */
 public enum TileType {
     AIR        ((byte) 0),
@@ -17,7 +17,8 @@ public enum TileType {
     WATER      ((byte) 4),
     LAVA       ((byte) 5),
     DOOR_LOCKED((byte) 6),
-    GAS        ((byte) 7);
+    GAS        ((byte) 7),
+    CLIMBABLE  ((byte) 8);
 
     public final byte id;
 

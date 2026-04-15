@@ -18,6 +18,8 @@ import java.util.Random;
  *   WATER (4)      — passable liquid zone: reduces speed, disables dash, slows fall
  *   LAVA (5)       — solid tile that deals 1 HP damage per tick on contact
  *   DOOR_LOCKED (6)— solid tile stamped by PuzzleLayer; unlocked at runtime by puzzle solve
+ *   GAS (7)        — passable gas zone with mild drag
+ *   CLIMBABLE (8)  — solid climb-tag tile; wall-climb traversal can latch only to this type
  *
  * Coordinate system: Y-DOWN, row 0 = top of world (y = 0).
  * grid[row][col] — row-major.
@@ -39,6 +41,8 @@ public final class WorldGenerator {
      * Excluded from collectGroundPositions() spawn-point scanning.
      */
     public static final byte GAS = 7;
+    /** Solid climb-tag tile. Collision is solid; traversal logic treats this as climb-enabled. */
+    public static final byte CLIMBABLE = 8;
 
     private WorldGenerator() {}
 
@@ -94,7 +98,44 @@ public final class WorldGenerator {
         // ZonePlanner → 16×16 zone grid
         byte[][] zones = ZonePlanner.plan(seed, roomType, neighborDirs);
         // RoomGenerator → 128×128 tile grid (pass roomType for blob-variation scaling)
-        return RoomGenerator.generate(zones, neighborDirs, seed, roomType);
+        byte[][] grid = RoomGenerator.generate(zones, neighborDirs, seed, roomType);
+        tagClimbableSurfaces(grid, cols, rows);
+        return grid;
+    }
+
+    /**
+     * Tag climbable surfaces using explicit tile IDs.
+     *
+     * Rule set:
+     * - Promote boundary wall columns to CLIMBABLE for deterministic onboarding traversal.
+     * - Promote interior SOLID tiles that expose a left/right face to passable space
+     *   and are vertically continuous (avoid converting isolated top caps/floor tops).
+     */
+    static void tagClimbableSurfaces(byte[][] grid, int cols, int rows) {
+        if (grid == null || rows < 4 || cols < 4) return;
+
+        // Boundary wall tagging (inside faces of room borders).
+        for (int r = 2; r < rows - 2; r++) {
+            if (grid[r][1] == SOLID) grid[r][1] = CLIMBABLE;
+            if (grid[r][cols - 2] == SOLID) grid[r][cols - 2] = CLIMBABLE;
+        }
+
+        for (int r = 2; r < rows - 2; r++) {
+            for (int c = 2; c < cols - 2; c++) {
+                if (grid[r][c] != SOLID) continue;
+                if (grid[r + 1][c] == AIR) continue; // likely a top cap / floor lip
+
+                boolean leftExposed  = isPassableForClimbNeighbor(grid[r][c - 1]);
+                boolean rightExposed = isPassableForClimbNeighbor(grid[r][c + 1]);
+                if (leftExposed || rightExposed) {
+                    grid[r][c] = CLIMBABLE;
+                }
+            }
+        }
+    }
+
+    private static boolean isPassableForClimbNeighbor(byte tile) {
+        return tile == AIR || tile == WATER || tile == GAS;
     }
 
     // ── Generation passes ─────────────────────────────────────────────────────

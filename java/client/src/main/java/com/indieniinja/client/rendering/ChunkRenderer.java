@@ -202,7 +202,7 @@ public final class ChunkRenderer {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 byte tile = grid2d[r][c];
-                if (tile == WorldGenerator.SOLID) {
+                if (tile == WorldGenerator.SOLID || tile == WorldGenerator.CLIMBABLE) {
                     int role = AutotileResolver.computeRole(grid2d, r, c, rows, cols);
                     tileMap[r][c] = blobTiles.getFrame(biomeIndex, role);
                 } else if (tile == WorldGenerator.PLATFORM) {
@@ -230,6 +230,7 @@ public final class ChunkRenderer {
             case com.indieniinja.world.WorldGenerator.LAVA     -> placeholderLava;
             case com.indieniinja.world.WorldGenerator.ICE      -> placeholderIce;
             case com.indieniinja.world.WorldGenerator.WATER    -> placeholderWater;
+            case com.indieniinja.world.WorldGenerator.CLIMBABLE -> placeholderSolid;
             default -> null;  // AIR and unknowns
         };
     }
