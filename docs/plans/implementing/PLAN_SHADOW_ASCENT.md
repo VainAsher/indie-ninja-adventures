@@ -1,10 +1,17 @@
-# PLAN — Shadow Ascent: The Hollowed Ninja
+﻿---
+doc_type: plan
+status: implementing
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
+# PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-15 15:47:50 +01:00 | **Codebase version:** v0.11.45 | **Next release target:** v0.11.46 (P0-10 onboarding/system-guidance follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-15 17:01:30 +01:00 | **Codebase version:** v0.11.45 | **Next release target:** v0.11.46 (P0-10 onboarding/system-guidance follow-up)
 
 ---
 
-## PLAN STATUS — UPDATED IN PLACE
+## PLAN STATUS â€” UPDATED IN PLACE
 **Pivot effective from:** 2026-04-14 12:00:00 +01:00  
 **Pivot type:** gameplay identity realignment on top of an existing campaign-first roadmap
 
@@ -12,7 +19,7 @@ This plan remains the active execution roadmap for Shadow Ascent.
 It has been **updated in place**, not replaced.
 
 ### Why this pivot exists
-Since earlier versions of this plan were written, the game’s implemented movement, combat, animation, boss, HUD, and simulation foundations have made the intended player experience much clearer. The campaign-first product direction remains correct, but parts of the gameplay framing in this document still reflect an older Yin/Yang interpretation centered on abstract meter behavior, hidden-platform revelation, and threshold bonuses.
+Since earlier versions of this plan were written, the gameâ€™s implemented movement, combat, animation, boss, HUD, and simulation foundations have made the intended player experience much clearer. The campaign-first product direction remains correct, but parts of the gameplay framing in this document still reflect an older Yin/Yang interpretation centered on abstract meter behavior, hidden-platform revelation, and threshold bonuses.
 
 The current design direction is tighter and more legible:
 
@@ -72,7 +79,7 @@ Every implementation cycle must follow this exact order:
 - Commit messages should include: `plan_id`, `scope`, `reason`, `risk`.
 - Plan updates happen each loop, not only at milestone boundaries.
 - Unknown scope discovered mid-loop becomes a new checklist row, not ad-hoc drift.
-- All plan updates and loop notes must use full timestamps: `YYYY-MM-DD HH:mm:ss ±HH:MM` (not date-only).
+- All plan updates and loop notes must use full timestamps: `YYYY-MM-DD HH:mm:ss Â±HH:MM` (not date-only).
 
 ### Added rule from this pivot
 **Added:** 2026-04-14 12:00:00 +01:00
@@ -87,6 +94,24 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-15 17:01:30 +01:00`
+
+- Documentation cleanup and freshness pipeline reset executed in a dedicated implementation loop:
+  - moved active plan files into `docs/plans/{developing,implementing,completed}` with normalized plan statuses
+  - created canonical `docs/CURRENT_STATE.md`; converted `docs/HANDOVER.md` to redirect; split devlog to rolling `docs/devlog/YYYY-MM.md`
+  - retired first-wave stale docs into `docs/archive/retired/2026-04-15_v0.11.45/` with manifest
+  - introduced freshness/reporting automation:
+    - `tools/check_docs_freshness.py` (`--strict`, `--emit-report`, `--version`)
+    - `tools/build_docs_archive_zip.py` and generated `docs/archive/zips/docs-archive-2026-04-15-v0.11.45.zip`
+  - updated workflow/process contracts:
+    - CI soft gate and report artifact (`.github/workflows/ci.yml`)
+    - scheduled/manual docs audit workflow (`.github/workflows/docs_freshness_audit.yml`)
+    - release docs-archive ZIP asset publish path (`.github/workflows/release.yml`)
+    - PR template contract now includes `docs_impact`, `plan_id`, `archive_action`
+- Validation:
+  - `.\\.venv\\Scripts\\python.exe tools/check_version_sync.py` ✅
+  - `.\\.venv\\Scripts\\python.exe tools/check_docs_freshness.py --emit-report --strict` ✅
+
 `2026-04-15 15:47:50 +01:00`
 
 - Executed milestone bundle pass (`M5 close-out + M8 playtest logging/controls evidence + M6 authored trigger slice`):
@@ -99,8 +124,8 @@ The original workloop is excellent for implementation discipline, but the new di
   - `ZoneSimulationLoopScriptedLossOrderingTest.immediateBossDefeatQueueAdvancesHubStateInSameTick`
   - `WorldGraphTest.puzzlePlanAlwaysIncludesEchoTriggerAndMapsToInteractableNpcSpawn`
 - Validation:
-  - `./gradlew :server:test` ✅
-  - `./gradlew :client:compileJava` ✅
+  - `./gradlew :server:test` âœ…
+  - `./gradlew :client:compileJava` âœ…
 
 `2026-04-15 14:47:10 +01:00`
 
@@ -130,8 +155,8 @@ The original workloop is excellent for implementation discipline, but the new di
     - `[Playtest][Player]`
   - dialogue event processing now logs key/arg/count for onboarding and authored mission handoff traces
 - Validation:
-  - `./gradlew :server:test` ✅
-  - `./gradlew :client:compileJava` ✅
+  - `./gradlew :server:test` âœ…
+  - `./gradlew :client:compileJava` âœ…
 - Documentation alignment:
   - updated `PLAYER_EXPECTATIONS.md` instrumentation audit to reflect session-correlation and transition tracing
   - updated `GDD.md` with runtime observability contract (`10.4`)
@@ -175,17 +200,17 @@ The original workloop is excellent for implementation discipline, but the new di
 - Implemented Siren-first quest-giver pass (onboarding chain + mission handoff + phase readability):
   - START-room required quest-giver now spawns as `siren` (SHOP retains `mission_giver`)
   - added dedicated Siren onboarding dialogue tree (`siren_first_quest`) with direct handoff events:
-    - `siren_start_first_trial` → starts `demo_coin_run`
-    - `siren_open_mission_board` → opens mission board overlay
+    - `siren_start_first_trial` â†’ starts `demo_coin_run`
+    - `siren_open_mission_board` â†’ opens mission board overlay
   - dialogue state flags added for repeat-pass behavior:
     - `siren_intro_seen`
     - `siren_onboarding_complete`
 - Implemented Siren phase sprite routing support:
   - NPC animation registry now loads/aliases `siren_phase1..4` keys
   - runtime render mapping now resolves `siren` by hub state:
-    - `FULL` → `siren_phase1`
-    - `CORRUPTED` → `siren_phase2`
-    - `EMPTY` → `siren_phase3`
+    - `FULL` â†’ `siren_phase1`
+    - `CORRUPTED` â†’ `siren_phase2`
+    - `EMPTY` â†’ `siren_phase3`
   - phase-4 keys are registered for transformation path wiring in follow-up boss-transition work
 - Feel-first impact note:
   - Affects Passive/Aggressive onboarding readability equally (quest entry clarity)
@@ -211,8 +236,8 @@ The original workloop is excellent for implementation discipline, but the new di
   - Flow now restores Lantern over time (`FLOW_LANTERN_RESTORE_PER_SECOND`) as an additional recharge avenue
   - tutorial dialogue key prompts updated to current control scheme
 - Validation:
-  - `./gradlew :client:compileJava` ✅
-  - `./gradlew :server:test` ✅
+  - `./gradlew :client:compileJava` âœ…
+  - `./gradlew :server:test` âœ…
 
 `2026-04-13 22:41:01 +01:00`
 
@@ -269,8 +294,8 @@ The original workloop is excellent for implementation discipline, but the new di
   - new `MissionSelectOverlay` with navigation and mission start callbacks
   - dialogue event `open_mission_menu` now opens the overlay and suspends conflicting overlays
 - Validation:
-  - `./gradlew.bat test` ✅
-  - `./gradlew.bat :server:test :client:compileJava` ✅
+  - `./gradlew.bat test` âœ…
+  - `./gradlew.bat :server:test :client:compileJava` âœ…
 - Follow-up required in next loop:
   - remove temporary `reach_location` exit-alias fallback once authored location volume maps are present per mission
   - add automated objective lifecycle tests (reach/switch/exit-complete)
@@ -310,7 +335,7 @@ The original workloop is excellent for implementation discipline, but the new di
   - `SaveDataParityTest` (story snapshot + active mission restore behavior)
   - `SaveManagerMigrationTest` (act clamp bounds)
 - Validation:
-  - `./gradlew :server:test :client:compileJava` ✅
+  - `./gradlew :server:test :client:compileJava` âœ…
   - `./gradlew :client:test --tests "*SaveDataParityTest" --tests "*SaveManagerMigrationTest"` blocked by existing local Gradle cache lock (`gdx-jnigen-loader-2.3.1.jar` access denied)
 - Next loop:
   - close remaining `P0-05` parity gaps around full runtime world/player rehydrate-on-load behavior
@@ -330,7 +355,7 @@ The original workloop is excellent for implementation discipline, but the new di
 - Added mission restore regression coverage:
   - `MissionManagerObjectiveLifecycleTest.restoreActiveMissionRestoresObjectiveProgressAndExitLock`
 - Validation:
-  - `./gradlew :server:test :client:compileJava` ✅
+  - `./gradlew :server:test :client:compileJava` âœ…
   - targeted `:client:test` remains blocked in this environment (same local cache lock on `gdx-jnigen-loader`; compileTest then fails symbol resolution)
 - Next loop:
   - continue `P0-05` with direct save/load roundtrip harness assertions for `SaveManager` liveData overlay path
@@ -602,7 +627,7 @@ Owner roles:
 
 From this point onward:
 - P0 remains primarily about structural campaign reliability.
-- P1 is no longer only “general balance and content throughput.” It is now also the phase where **core combat feel, stealth readability, stance distinction, and Flow usability are locked**.
+- P1 is no longer only â€œgeneral balance and content throughput.â€ It is now also the phase where **core combat feel, stealth readability, stance distinction, and Flow usability are locked**.
 - P2 should only harden and scale systems whose moment-to-moment identity has already been proven in P1.
 
 **Why added:**  
@@ -706,7 +731,7 @@ Do not let P2 become a hidden design-discovery phase for core combat feel. That 
 - `PLAYTEST_REPORT_<date>.md`: qualitative notes plus quantitative telemetry.
 - `RISK_REGISTER.md`: known risks, mitigations, owner, due sprint.
 
-### Addendum — stance / Flow playtest focus
+### Addendum â€” stance / Flow playtest focus
 **Added:** 2026-04-14 12:00:00 +01:00
 
 All future balance and ideation loops must explicitly track at least these gameplay questions:
@@ -761,16 +786,16 @@ The full 296-commit git history tells a clear story of four technology pivots ov
 |--------|-----------|---------|---------------|
 | Dec 31 2025 | Python/Pygame monolith | v0.4.0-dev | Initial commit |
 | Jan 1 2026 | Python modular | v0.7.0 | Refactor into modules, 85-day silence follows |
-| Mar 27–Apr 3 2026 | Python full-featured | v0.7.x–v0.9.16 | Animation, bosses, multiplayer, launcher, zones, delta encoding — all built in 8 days |
-| Apr 4–10 2026 | Java (Netty + libGDX) | v0.10.0–v0.10.83 | Complete rewrite: server, simulator, client, all features ported, post-audit hardening |
+| Mar 27â€“Apr 3 2026 | Python full-featured | v0.7.xâ€“v0.9.16 | Animation, bosses, multiplayer, launcher, zones, delta encoding â€” all built in 8 days |
+| Apr 4â€“10 2026 | Java (Netty + libGDX) | v0.10.0â€“v0.10.83 | Complete rewrite: server, simulator, client, all features ported, post-audit hardening |
 
-The Java codebase landed on Apr 4 and reached v0.10.83 by Apr 10 — **6 days to rebuild everything**. The Apr 7 sprint alone was 53 commits.
+The Java codebase landed on Apr 4 and reached v0.10.83 by Apr 10 â€” **6 days to rebuild everything**. The Apr 7 sprint alone was 53 commits.
 
-**The fourth pivot is Shadow Ascent.** It exists in the GDD and these planning documents — not yet in a single line of game-specific Java code. The infrastructure is the most complete it has ever been. The game itself has not started.
+**The fourth pivot is Shadow Ascent.** It exists in the GDD and these planning documents â€” not yet in a single line of game-specific Java code. The infrastructure is the most complete it has ever been. The game itself has not started.
 
 ### Current codebase state (v0.11.5)
 
-The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milestones 1–3 shipped. Infrastructure bugs discovered in the first playable sessions and fixed.
+The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milestones 1â€“3 shipped. Infrastructure bugs discovered in the first playable sessions and fixed.
 
 | Area | Resolved | Still open |
 |------|----------|-----------|
@@ -778,16 +803,16 @@ The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milest
 | Physics | TileType decoupling, GAS tile, abilityFlags, dynamicTiles in candidates, raycast API; lava ceiling trigger test; swept non-tunnel test | PHYS-4/6 (documented contracts) |
 | World gen | Back-edges (Metroidvania loops ready), Redis tile cache, PostgreSQL, deterministic biomes | WORLD-5/6/7 (low risk) |
 | Networking | Schema version, frameHash desync detection, Redis zone cache, no boxing; NET-1 spawn default | NET-4/5 (no NPC/inventory delta, low) |
-| Inventory | DB-backed items/recipes, player_inventory persistence, ability type, coin recipe fix, item Redis cache | — |
-| Tests | 13 test files; all gaps closed including lava ceiling trigger + swept non-tunnel | — |
-| Solo mode | In-process GameSimulator; no server required; unified world layout; 12-room megamap | — |
-| Hub system | HubState FSM, HubStateMachine, NPC spawn/despawn, Act.java FSM, player_progress persistence | — |
-| Save state | Full save (currency, inventory, abilities, world seed, visited rooms) via syncSaveState() | — |
-| Logging | logback.xml in shadow JAR (Gradle resource-filter bug fixed); client.log written on disk | — |
-| Replays | Solo InputRecorder wired into GameScreen; .ndjson files in user_data/replays/ | — |
-| Launcher | cwd fixed for server Popen; replay viewer handles .ndjson; record flag wired to -Dninja.record | — |
+| Inventory | DB-backed items/recipes, player_inventory persistence, ability type, coin recipe fix, item Redis cache | â€” |
+| Tests | 13 test files; all gaps closed including lava ceiling trigger + swept non-tunnel | â€” |
+| Solo mode | In-process GameSimulator; no server required; unified world layout; 12-room megamap | â€” |
+| Hub system | HubState FSM, HubStateMachine, NPC spawn/despawn, Act.java FSM, player_progress persistence | â€” |
+| Save state | Full save (currency, inventory, abilities, world seed, visited rooms) via syncSaveState() | â€” |
+| Logging | logback.xml in shadow JAR (Gradle resource-filter bug fixed); client.log written on disk | â€” |
+| Replays | Solo InputRecorder wired into GameScreen; .ndjson files in user_data/replays/ | â€” |
+| Launcher | cwd fixed for server Popen; replay viewer handles .ndjson; record flag wired to -Dninja.record | â€” |
 
-### What shipped since plan was written (v0.11.0 → v0.11.6)
+### What shipped since plan was written (v0.11.0 â†’ v0.11.6)
 
 | Version | What shipped |
 | ------- | ------------ |
@@ -799,16 +824,16 @@ The Phase 0 audit (Apr 9) identified ~30 structural issues. All resolved. Milest
 | v0.11.5 | feat: solo InputRecorder + .ndjson replay files; launcher replay viewer updated |
 | v0.11.6 | M4: YinYangComponent + LanternComponent + vignette + HUD bars + weapon-state animation routing; 171 player sprite sheets extracted |
 | v0.11.7 | fix: vignette in solo mode (setDarkArea flag); crouch_walk + swim animation states; companion orbs scale with Yin/Yang; HUD redesign (merged stamina, lantern bottom-left) |
-| v0.11.8 | fix(vignette): smoother gradient (20 layers, quadratic curve), corner overlap fix, base dim layer; build.gradle.kts version resync (0.10.83 → 0.11.8) |
-| v0.11.9 | fix(vignette): critical GL blend state bug — SpriteBatch.end() disables GL_BLEND; ShapeRenderer did not re-enable it; all vignette rectangles drew as solid opaque black covering the game world. Fix: explicit glEnable(GL_BLEND) before shapes.begin() |
-| v0.11.10 | feat(m5): Shadow Ascent boss AI — BossPatternLibrary (Siren/EchoWarden/TimeLechLord/MemoryEater); SCRIPTED_LOSS MessageType; enemy FLEE+GUARD states; loadEnemySheets() + stitch_enemy_frames.py; climb/ledge animation FSM routing |
+| v0.11.8 | fix(vignette): smoother gradient (20 layers, quadratic curve), corner overlap fix, base dim layer; build.gradle.kts version resync (0.10.83 â†’ 0.11.8) |
+| v0.11.9 | fix(vignette): critical GL blend state bug â€” SpriteBatch.end() disables GL_BLEND; ShapeRenderer did not re-enable it; all vignette rectangles drew as solid opaque black covering the game world. Fix: explicit glEnable(GL_BLEND) before shapes.begin() |
+| v0.11.10 | feat(m5): Shadow Ascent boss AI â€” BossPatternLibrary (Siren/EchoWarden/TimeLechLord/MemoryEater); SCRIPTED_LOSS MessageType; enemy FLEE+GUARD states; loadEnemySheets() + stitch_enemy_frames.py; climb/ledge animation FSM routing |
 | v0.11.11 | fix(m3): hub NPC authority; overlay null-guards |
 | v0.11.12 | fix(m3): skip hub NPC sync at frame 0; fix CME when despawning NPCs |
-| v0.11.13–15 | fix: log files, save-on-exit, save-on-room-entry; launcher black formatting CI fix |
-| v0.11.16 | feat(pickups): PickupSlot respawn system (30–60 s lifetime, 15–30 s cooldown) |
+| v0.11.13â€“15 | fix: log files, save-on-exit, save-on-room-entry; launcher black formatting CI fix |
+| v0.11.16 | feat(pickups): PickupSlot respawn system (30â€“60 s lifetime, 15â€“30 s cooldown) |
 | v0.11.17 | fix(rendering): bottom-anchor enemy sprites to physics feet; ENEMY_LIFT formula |
 | v0.11.18 | fix(dialogue): bundle data/ into fat JAR so NPC dialogues load from classpath |
-| v0.11.19 | feat(minimap): 860×680 panel; zoom 1x/2x/4x (+/-); arrow pan; per-pickup-type colours; room labels when zoomed; hitbox debug overlay (H); terrain density boost; fragments in all loot pools; pickup Y-spawn fix |
+| v0.11.19 | feat(minimap): 860Ã—680 panel; zoom 1x/2x/4x (+/-); arrow pan; per-pickup-type colours; room labels when zoomed; hitbox debug overlay (H); terrain density boost; fragments in all loot pools; pickup Y-spawn fix |
 
 ### What the GDD requires that doesn't exist
 
@@ -816,12 +841,12 @@ Four interlocking pillars define Shadow Ascent. Two are shipped:
 
 | Pillar | GDD section | Status |
 |--------|-------------|--------|
-| Yin/Yang system | §3.3 | **Done** — `YinYangComponent`, decay/sight/surge, bars in HUD (v0.11.6) |
-| Lantern system | §3.4 | **Done** — `LanternComponent`, vignette overlay, lantern meter (v0.11.6) |
-| Hub evolution state machine | §4 | **Done** — `HubState`, `HubStateMachine`, NPC roster sync, `player_progress` (v0.11.1) |
-| Narrative Act FSM | §5 | **Done** — `Act.java` FSM Acts I–VI, `StoryManager` wired to hub state (v0.11.1) |
+| Yin/Yang system | Â§3.3 | **Done** â€” `YinYangComponent`, decay/sight/surge, bars in HUD (v0.11.6) |
+| Lantern system | Â§3.4 | **Done** â€” `LanternComponent`, vignette overlay, lantern meter (v0.11.6) |
+| Hub evolution state machine | Â§4 | **Done** â€” `HubState`, `HubStateMachine`, NPC roster sync, `player_progress` (v0.11.1) |
+| Narrative Act FSM | Â§5 | **Done** â€” `Act.java` FSM Acts Iâ€“VI, `StoryManager` wired to hub state (v0.11.1) |
 
-Secondary systems — boss AI behavioral patterns, Echo mechanic, puzzle archetypes, Act IV depression mechanics — not yet built.
+Secondary systems â€” boss AI behavioral patterns, Echo mechanic, puzzle archetypes, Act IV depression mechanics â€” not yet built.
 
 ### Pivot interpretation update
 **Added:** 2026-04-14 12:00:00 +01:00
@@ -859,7 +884,7 @@ The live plan records shipped systems well, but it does not yet establish the ne
 
 The GDD is single-player first with optional co-op. The codebase is multiplayer first.
 
-**Decision:** Keep the networked architecture. Add an **in-process solo mode** where `GameSimulator` runs locally on the client, no socket required. The same rendering pipeline serves both paths. Multiplayer co-op becomes an optional overlay — Yin/Yang and Lantern work identically in both modes.
+**Decision:** Keep the networked architecture. Add an **in-process solo mode** where `GameSimulator` runs locally on the client, no socket required. The same rendering pipeline serves both paths. Multiplayer co-op becomes an optional overlay â€” Yin/Yang and Lantern work identically in both modes.
 
 ### Three game modes (as of v0.11.3)
 
@@ -867,12 +892,12 @@ The game ships **three distinct modes** with separate loops, tones, and world st
 
 | Mode | Loop | World | Player identity | Status |
 |------|------|-------|-----------------|--------|
-| **Campaign / Solo** | Narrative Metroidvania; hub → portal → mission level | Instanced; procedurally generated interconnected rooms; hub world | The Hallowed Ninja | **Active — this roadmap** |
-| **Arcade** | Roguelike run; no hub; loadout + powerup/modifier builds; death ends run | Per-run generated dungeon; smaller rooms; no persistence | Unnamed Ninja (cosmetic) | Planned — separate Arcade roadmap |
-| **Sandbox** | Open-ended survival/construction; player-set goals; persistent server world | Endless interconnected world; no instancing; destructible | Disciples / Acolytes (NOT the Hallowed Ninja) | Planned — separate Sandbox roadmap |
+| **Campaign / Solo** | Narrative Metroidvania; hub â†’ portal â†’ mission level | Instanced; procedurally generated interconnected rooms; hub world | The Hallowed Ninja | **Active â€” this roadmap** |
+| **Arcade** | Roguelike run; no hub; loadout + powerup/modifier builds; death ends run | Per-run generated dungeon; smaller rooms; no persistence | Unnamed Ninja (cosmetic) | Planned â€” separate Arcade roadmap |
+| **Sandbox** | Open-ended survival/construction; player-set goals; persistent server world | Endless interconnected world; no instancing; destructible | Disciples / Acolytes (NOT the Hallowed Ninja) | Planned â€” separate Sandbox roadmap |
 
 **Key design constraints that follow from this:**
-- Arcade must NOT use the Metroidvania hub system — it is a separate loop entirely
+- Arcade must NOT use the Metroidvania hub system â€” it is a separate loop entirely
 - Sandbox players are not the protagonist; the world is the canvas, not the story
 - Solo/Campaign can share network code with Arcade for co-op lobby, but the world generation, persistence, and narrative systems are campaign-only
 
@@ -905,27 +930,27 @@ The main lesson remains:
 
 **extend and reinterpret; do not rewrite.**
 
-However, “reinterpret” now matters more than earlier versions of this plan acknowledged. Several systems that were previously mapped as abstract GDD equivalents now need to be **re-centered around combat feel, stance clarity, and Flow readability** rather than left in their earlier meter-first framing.
+However, â€œreinterpretâ€ now matters more than earlier versions of this plan acknowledged. Several systems that were previously mapped as abstract GDD equivalents now need to be **re-centered around combat feel, stance clarity, and Flow readability** rather than left in their earlier meter-first framing.
 
 ---
 
 ## 2. Historical lessons that shape the plan
 
-**Lesson 1 — Boss tuning is always iterative.** The Python boss received 5 successive HP/damage commits in a single day (Mar 29) to go from unkillable to playable. Plan for boss AI behavioral patterns to need the same treatment — ship a working loop first, tune in follow-up commits.
+**Lesson 1 â€” Boss tuning is always iterative.** The Python boss received 5 successive HP/damage commits in a single day (Mar 29) to go from unkillable to playable. Plan for boss AI behavioral patterns to need the same treatment â€” ship a working loop first, tune in follow-up commits.
 
-**Lesson 2 — Physics onGround is hard.** It took 5 commits to stabilize Java `onGround` detection (Apr 5–6). The lava-ceiling trigger and swept non-tunnel test gaps are the same class of problem. Close them before building on top of the physics.
+**Lesson 2 â€” Physics onGround is hard.** It took 5 commits to stabilize Java `onGround` detection (Apr 5â€“6). The lava-ceiling trigger and swept non-tunnel test gaps are the same class of problem. Close them before building on top of the physics.
 
-**Lesson 3 — The Apr 7 sprint produced foundations, not designs.** 53 commits built a complete game in a day. The save system, hub registry, crafting, and puzzle system all exist — but they weren't designed for Shadow Ascent. Each needs to be extended, not replaced. The instinct to rewrite will be wrong.
+**Lesson 3 â€” The Apr 7 sprint produced foundations, not designs.** 53 commits built a complete game in a day. The save system, hub registry, crafting, and puzzle system all exist â€” but they weren't designed for Shadow Ascent. Each needs to be extended, not replaced. The instinct to rewrite will be wrong.
 
-**Lesson 4 — Version numbers drift.** `version.json` is at 0.10.70, `build.gradle.kts` is at `0.10.7`, commit messages reference v0.10.83. Fix this immediately and keep it in sync going forward. A single `chore(release)` commit should keep all three in agreement.
+**Lesson 4 â€” Version numbers drift.** `version.json` is at 0.10.70, `build.gradle.kts` is at `0.10.7`, commit messages reference v0.10.83. Fix this immediately and keep it in sync going forward. A single `chore(release)` commit should keep all three in agreement.
 
-**Lesson 5 — The Loop system was an effective sprint tool.** The numbered Loop system (Loop 3, Loop 7, etc.) drove rapid feature delivery during the Java rebuild. For Shadow Ascent milestones, use numbered **Milestone** labels in commit messages (`feat(m3):`, `feat(m4):`) to preserve the same traceability.
+**Lesson 5 â€” The Loop system was an effective sprint tool.** The numbered Loop system (Loop 3, Loop 7, etc.) drove rapid feature delivery during the Java rebuild. For Shadow Ascent milestones, use numbered **Milestone** labels in commit messages (`feat(m3):`, `feat(m4):`) to preserve the same traceability.
 
 ---
 
 ## 3. What to Build New
 
-### Interpretation addendum — what “build new” means now
+### Interpretation addendum â€” what â€œbuild newâ€ means now
 **Added:** 2026-04-14 12:00:00 +01:00
 
 This section now needs to be read in three categories:
@@ -935,7 +960,7 @@ This section now needs to be read in three categories:
 3. systems that are still genuinely new work
 
 **Why added:**  
-The live file still contains several “build new” subsections for systems that are already shipped or substantially wired. That creates confusion and makes the plan look less honest than it really is.
+The live file still contains several â€œbuild newâ€ subsections for systems that are already shipped or substantially wired. That creates confusion and makes the plan look less honest than it really is.
 
 ### 3.1 In-Process Solo Mode (pre-requisite for everything)
 
@@ -947,37 +972,37 @@ No server code changes. Solo and networked clients use identical rendering paths
 
 ---
 
-### 3.2 Yin/Yang System (GDD §3.3)
+### 3.2 Yin/Yang System (GDD Â§3.3)
 
 **Yin (Emotion):** Reveals hidden platforms, slows time, environmental awareness  
 **Yang (Discipline):** Attack strength, movement precision, stamina  
-**Balance (`|yin − yang| < 0.15`):** Flow Mode — smooth animation blending + enhanced traversal + combat
+**Balance (`|yin âˆ’ yang| < 0.15`):** Flow Mode â€” smooth animation blending + enhanced traversal + combat
 
 ```java
 // core/src/main/java/com/indieniinja/sim/YinYangComponent.java
 public final class YinYangComponent extends Component implements SerializableComponent {
-    float yin;   // 0.0 – 1.0
-    float yang;  // 0.0 – 1.0
+    float yin;   // 0.0 â€“ 1.0
+    float yang;  // 0.0 â€“ 1.0
 
     boolean isBalanced()          { return Math.abs(yin - yang) < 0.15f; }
     void absorbYin(float amount)  { yin = Math.min(1.0f, yin + amount); }
     void absorbYang(float amount) { yang = Math.min(1.0f, yang + amount); }
 
     @Override public Map<String, Object> toMap() { return Map.of("yin", yin, "yang", yang); }
-    public static YinYangComponent fromMap(int id, Map<String, Object> m) { … }
+    public static YinYangComponent fromMap(int id, Map<String, Object> m) { â€¦ }
 }
 ```
 
 **Server effects** in `GameSimulator.step()`:
-- `yin > 0.7f` → set `ABILITY_YIN_SIGHT` on `PhysicsState.abilityFlags`; hidden-platform tiles become solid for this entity
-- `yang > 0.7f` → attack damage multiplier 1.5×; dash stamina cost −30%
-- `isBalanced()` → set `FLOW_MODE` flag on `PlayerState`
+- `yin > 0.7f` â†’ set `ABILITY_YIN_SIGHT` on `PhysicsState.abilityFlags`; hidden-platform tiles become solid for this entity
+- `yang > 0.7f` â†’ attack damage multiplier 1.5Ã—; dash stamina cost âˆ’30%
+- `isBalanced()` â†’ set `FLOW_MODE` flag on `PlayerState`
 
 **Client effects** in `GameScreen.render()`:
-- `yin > 0.7f` → `EntityRenderer` renders hidden-platform tiles with alpha ∝ Yin value
-- `yang > 0.7f` → denser hit particles, sharper attack animations
-- `FLOW_MODE` → lerp-based animation state blending
-- `HudRenderer` Yin/Yang bar (currently stubbed — replace)
+- `yin > 0.7f` â†’ `EntityRenderer` renders hidden-platform tiles with alpha âˆ Yin value
+- `yang > 0.7f` â†’ denser hit particles, sharper attack animations
+- `FLOW_MODE` â†’ lerp-based animation state blending
+- `HudRenderer` Yin/Yang bar (currently stubbed â€” replace)
 
 `PlayerState` gains: `yinValue`, `yangValue`, `flowMode`.
 `WorldSnapshot.SCHEMA_VERSION` increments to 2.
@@ -986,7 +1011,7 @@ public final class YinYangComponent extends Component implements SerializableCom
 
 **Files to modify:** `network/PlayerState.java`, `network/WorldSnapshot.java`, `sim/GameSimulator.java`, `physics/CollisionSystem.java`, `physics/PhysicsConstants.java`, `client/rendering/EntityRenderer.java`, `client/rendering/HudRenderer.java`
 
-#### Pivot note — updated interpretation of Yin/Yang
+#### Pivot note â€” updated interpretation of Yin/Yang
 **Added:** 2026-04-14 12:00:00 +01:00
 
 The implementation foundation described below remains valuable, but the player-facing interpretation has evolved.
@@ -1001,31 +1026,31 @@ The earlier meter-first interpretation remains useful as historical implementati
 
 ---
 
-### 3.3 Lantern System (GDD §3.4)
+### 3.3 Lantern System (GDD Â§3.4)
 
-Per-player float (0.0–1.0) persisted to `player_progress`. Global modifier for world clarity and physics.
+Per-player float (0.0â€“1.0) persisted to `player_progress`. Global modifier for world clarity and physics.
 
 ```java
 // core/src/main/java/com/indieniinja/sim/LanternComponent.java
 public final class LanternComponent extends Component implements SerializableComponent {
-    float value;  // 0.0 – 1.0
+    float value;  // 0.0 â€“ 1.0
 
     void decay(float dt)      { value = Math.max(0f, value - 0.01f * dt); }
     void restore(float amount){ value = Math.min(1f, value + amount); }
 
     @Override public Map<String, Object> toMap() { return Map.of("lantern", value); }
-    public static LanternComponent fromMap(int id, Map<String, Object> m) { … }
+    public static LanternComponent fromMap(int id, Map<String, Object> m) { â€¦ }
 }
 ```
 
 | Value | Physics effect | Visual |
 |-------|---------------|--------|
 | < 0.3 | Some PLATFORM tiles treated as SOLID | Full vignette |
-| 0.3–0.7 | Normal | Partial shadow |
-| > 0.7 | Jump height +20%, coyote time 4→8 ticks | Clear, warm |
+| 0.3â€“0.7 | Normal | Partial shadow |
+| > 0.7 | Jump height +20%, coyote time 4â†’8 ticks | Clear, warm |
 
-**Server:** Decay −0.01/s in dark areas or on damage. Restore +0.05 per NPC interaction, +0.2 per Lantern fragment.  
-**Client:** `ChunkRenderer` vignette intensity ∝ `1.0 - lanternValue`. At low Lantern, re-rasterize PLATFORM as SOLID visually (matches server physics).
+**Server:** Decay âˆ’0.01/s in dark areas or on damage. Restore +0.05 per NPC interaction, +0.2 per Lantern fragment.  
+**Client:** `ChunkRenderer` vignette intensity âˆ `1.0 - lanternValue`. At low Lantern, re-rasterize PLATFORM as SOLID visually (matches server physics).
 
 `PlayerState` gains: `lanternValue`.
 
@@ -1033,7 +1058,7 @@ public final class LanternComponent extends Component implements SerializableCom
 
 **Files to modify:** `network/PlayerState.java`, `sim/GameSimulator.java`, `client/rendering/ChunkRenderer.java`, `client/rendering/HudRenderer.java`
 
-#### Pivot note — updated interpretation of Lantern
+#### Pivot note â€” updated interpretation of Lantern
 **Added:** 2026-04-14 12:00:00 +01:00
 
 Lantern remains implemented and valid, but its priority meaning shifts.
@@ -1050,9 +1075,9 @@ It should not replace stance mastery as the main player skill loop.
 ### 3.4 Fragment System
 
 Three new `ItemDef` records in `ItemDatabase` (type `"ability"`, non-stackable):
-- `"yin_fragment"` — calls `YinYangComponent.absorbYin(0.25f)` on pickup
-- `"yang_fragment"` — calls `YinYangComponent.absorbYang(0.25f)` on pickup
-- `"lantern_fragment"` — calls `LanternComponent.restore(0.2f)` on pickup
+- `"yin_fragment"` â€” calls `YinYangComponent.absorbYin(0.25f)` on pickup
+- `"yang_fragment"` â€” calls `YinYangComponent.absorbYang(0.25f)` on pickup
+- `"lantern_fragment"` â€” calls `LanternComponent.restore(0.2f)` on pickup
 
 `EntityPlanner` places fragments in BOSS and TREASURE rooms.  
 Three new `ObjectiveType` values: `COLLECT_YIN_FRAGMENT`, `COLLECT_YANG_FRAGMENT`, `COLLECT_LANTERN_FRAGMENT`.
@@ -1061,7 +1086,7 @@ Three new `ObjectiveType` values: `COLLECT_YIN_FRAGMENT`, `COLLECT_YANG_FRAGMENT
 
 ---
 
-### 3.5 Hub Evolution System (GDD §4)
+### 3.5 Hub Evolution System (GDD Â§4)
 
 ```java
 // core/src/main/java/com/indieniinja/world/HubState.java
@@ -1071,7 +1096,7 @@ public enum HubState {
     EMPTY,      // Act II end: Only Siren remains
     FRACTURED,  // Hub 2 initial state (Chasm of Still Shadows)
     RECOVERING, // Act V: NPCs return one by one
-    WHOLE       // Act VI–VII: Full NPC roster, all abilities
+    WHOLE       // Act VIâ€“VII: Full NPC roster, all abilities
 }
 ```
 
@@ -1088,7 +1113,7 @@ public final class HubStateMachine {
     public List<String> activeNpcIds()             { /* NPC roster for current state */ }
     public List<String> openAreaIds()              { /* accessible areas */ }
     public Map<String, Object> toMap()             { /* for player_progress JSON */ }
-    public static HubStateMachine fromMap(Map<String, Object> m) { … }
+    public static HubStateMachine fromMap(Map<String, Object> m) { â€¦ }
 }
 ```
 
@@ -1109,7 +1134,7 @@ public final class HubStateMachine {
 
 ---
 
-### 3.6 Narrative Act FSM (GDD §5)
+### 3.6 Narrative Act FSM (GDD Â§5)
 
 ```java
 // client/src/main/java/com/indieniinja/client/game/Act.java
@@ -1129,10 +1154,10 @@ public enum Act {
 
 Transitions driven by: boss defeats, fragment milestones, hub state changes.
 
-**Act IV depression mechanics** (GDD §5):
-- `hudAlpha = 0.1f` → near-invisible HUD
-- Gravity multiplier `0.7×` — `PlayerState` carries `gravityMult`; `PhysicsSystem` applies it
-- Dash disabled, jump reduced — gated via `AbilityComponent`
+**Act IV depression mechanics** (GDD Â§5):
+- `hudAlpha = 0.1f` â†’ near-invisible HUD
+- Gravity multiplier `0.7Ã—` â€” `PlayerState` carries `gravityMult`; `PhysicsSystem` applies it
+- Dash disabled, jump reduced â€” gated via `AbilityComponent`
 - Act V: gradual mechanical restoration
 
 **Files to create:** `client/game/Act.java`
@@ -1141,7 +1166,7 @@ Transitions driven by: boss defeats, fragment milestones, hub state changes.
 
 ---
 
-### 3.7 Boss AI — Psychological Patterns (GDD §7)
+### 3.7 Boss AI â€” Psychological Patterns (GDD Â§7)
 
 **Note from history:** Boss tuning required 5 successive commits in the Python phase. Design for iteration, not perfection. Ship a working FSM first, tune in follow-up commits.
 
@@ -1152,7 +1177,7 @@ Transitions driven by: boss defeats, fragment milestones, hub state changes.
 | Time Leech Lord | IV | Burnout | Drains Lantern each tick; spawns `TIME_LEECH` enemies; speed burst at 30% HP |
 | Memory Eater | VI | Identity loss | Resets platform positions each phase; erases DOOR_LOCKED unlocks |
 
-**Siren:** Not a traditional fight. Server sends new `SCRIPTED_LOSS` `MessageType` when Siren's dialogue sequence completes. Server sets `yin = 0`, `yang = 0` on `YinYangComponent`, calls `HubStateMachine.onBossDefeated("siren")` → hub transitions to `EMPTY`.
+**Siren:** Not a traditional fight. Server sends new `SCRIPTED_LOSS` `MessageType` when Siren's dialogue sequence completes. Server sets `yin = 0`, `yang = 0` on `YinYangComponent`, calls `HubStateMachine.onBossDefeated("siren")` â†’ hub transitions to `EMPTY`.
 
 **Files to modify:** `sim/SimBoss.java`, `sim/BossAIState.java`, new `sim/BossPatternLibrary.java`, `network/MessageType.java`
 
@@ -1181,7 +1206,7 @@ Core identity components:
 
 ---
 
-### 3.8 Echo System (GDD §6)
+### 3.8 Echo System (GDD Â§6)
 
 ```java
 // core/src/main/java/com/indieniinja/sim/EchoRecorder.java
@@ -1203,70 +1228,70 @@ public final class EchoRecorder {
 
 ---
 
-### 3.9 Proof Token Mechanic (Act III — GDD §5)
+### 3.9 Proof Token Mechanic (Act III â€” GDD Â§5)
 
 - New item: `"proof_token"` (type `key_item`, non-consumable)
-- New `AbilityGate` variant: `TOKEN_GATE(n)` — requires N tokens
-- New `RoomType.LABYRINTH` — Act III room archetype
-- At `yin < 0.5f`: some PLATFORM tiles rendered as AIR in Act III rooms (intentionally "unfair" — server physics unchanged)
+- New `AbilityGate` variant: `TOKEN_GATE(n)` â€” requires N tokens
+- New `RoomType.LABYRINTH` â€” Act III room archetype
+- At `yin < 0.5f`: some PLATFORM tiles rendered as AIR in Act III rooms (intentionally "unfair" â€” server physics unchanged)
 
 ---
 
 ## 4. File Creation Checklist
 
-Files that must be created (✓ = already exists):
+Files that must be created (âœ“ = already exists):
 
 ```
 core/src/main/java/com/indieniinja/
-├── world/
-│   ├── HubState.java          ✓ (v0.11.1)
-│   └── HubStateMachine.java   ✓ (v0.11.1)
-└── sim/
-    ├── YinYangComponent.java  ✓ (v0.11.6)
-    ├── LanternComponent.java  ✓ (v0.11.6)
-    ├── SimEcho.java           ← M6
-    └── EchoRecorder.java      ← M6
+â”œâ”€â”€ world/
+â”‚   â”œâ”€â”€ HubState.java          âœ“ (v0.11.1)
+â”‚   â””â”€â”€ HubStateMachine.java   âœ“ (v0.11.1)
+â””â”€â”€ sim/
+    â”œâ”€â”€ YinYangComponent.java  âœ“ (v0.11.6)
+    â”œâ”€â”€ LanternComponent.java  âœ“ (v0.11.6)
+    â”œâ”€â”€ SimEcho.java           â† M6
+    â””â”€â”€ EchoRecorder.java      â† M6
 
 client/src/main/java/com/indieniinja/client/game/
-└── Act.java                   ✓ (v0.11.1)
+â””â”€â”€ Act.java                   âœ“ (v0.11.1)
 ```
 
 Files requiring significant modification:
 
 ```
 core/src/main/java/com/indieniinja/
-├── network/
-│   ├── PlayerState.java          ← yinValue, yangValue, lanternValue, flowMode, gravityMult
-│   └── WorldSnapshot.java        ← hubState, echoes; SCHEMA_VERSION → 2
-├── world/
-│   ├── WorldGraph.java           ← RoomType.LABYRINTH
-│   └── HubRegistry.java          ← store HubStateMachine per hub
-├── sim/
-│   ├── GameSimulator.java         ← Yin/Yang, Lantern, Echo ticking, gravityMult
-│   ├── SimBoss.java               ← 4 boss behavioral patterns
-│   └── ItemDatabase.java          ← yin/yang/lantern fragments, proof_token
-└── physics/
-    ├── PhysicsConstants.java      ← ABILITY_YIN_SIGHT flag constant
-    └── CollisionSystem.java       ← ABILITY_YIN_SIGHT hidden platform check
+â”œâ”€â”€ network/
+â”‚   â”œâ”€â”€ PlayerState.java          â† yinValue, yangValue, lanternValue, flowMode, gravityMult
+â”‚   â””â”€â”€ WorldSnapshot.java        â† hubState, echoes; SCHEMA_VERSION â†’ 2
+â”œâ”€â”€ world/
+â”‚   â”œâ”€â”€ WorldGraph.java           â† RoomType.LABYRINTH
+â”‚   â””â”€â”€ HubRegistry.java          â† store HubStateMachine per hub
+â”œâ”€â”€ sim/
+â”‚   â”œâ”€â”€ GameSimulator.java         â† Yin/Yang, Lantern, Echo ticking, gravityMult
+â”‚   â”œâ”€â”€ SimBoss.java               â† 4 boss behavioral patterns
+â”‚   â””â”€â”€ ItemDatabase.java          â† yin/yang/lantern fragments, proof_token
+â””â”€â”€ physics/
+    â”œâ”€â”€ PhysicsConstants.java      â† ABILITY_YIN_SIGHT flag constant
+    â””â”€â”€ CollisionSystem.java       â† ABILITY_YIN_SIGHT hidden platform check
 
 server/src/main/java/com/indieniinja/server/
-├── ZoneSimulationLoop.java       ← hub state machine ticking, NPC spawn/despawn
-├── InventoryRepository.java      ← player_progress table
-└── (WorldGraphRepository — no changes needed)
+â”œâ”€â”€ ZoneSimulationLoop.java       â† hub state machine ticking, NPC spawn/despawn
+â”œâ”€â”€ InventoryRepository.java      â† player_progress table
+â””â”€â”€ (WorldGraphRepository â€” no changes needed)
 
 client/src/main/java/com/indieniinja/client/
-├── GameScreen.java               ← offline/solo mode path
-├── game/StoryManager.java        ← Act FSM
-├── rendering/HudRenderer.java    ← Yin/Yang bar, Lantern meter, act-alpha
-├── rendering/ChunkRenderer.java  ← vignette
-└── rendering/EntityRenderer.java ← hidden platform reveal pass
+â”œâ”€â”€ GameScreen.java               â† offline/solo mode path
+â”œâ”€â”€ game/StoryManager.java        â† Act FSM
+â”œâ”€â”€ rendering/HudRenderer.java    â† Yin/Yang bar, Lantern meter, act-alpha
+â”œâ”€â”€ rendering/ChunkRenderer.java  â† vignette
+â””â”€â”€ rendering/EntityRenderer.java â† hidden platform reveal pass
 ```
 
 ---
 
 ## 5. Milestone Plan
 
-Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. — mirrors the Loop system from the Java rebuild sprint.
+Commit prefix convention: `feat(m1):`, `feat(m2):`, etc. â€” mirrors the Loop system from the Java rebuild sprint.
 
 ### Milestone interpretation update
 **Added:** 2026-04-14 12:00:00 +01:00
@@ -1284,27 +1309,27 @@ Shipped infrastructure milestones must now also be reviewed for:
 - campaign-facing usability
 
 **Why added:**  
-The live milestone history accurately records shipping progress, but the new gameplay direction makes it important to distinguish “implemented” from “fully aligned.”
+The live milestone history accurately records shipping progress, but the new gameplay direction makes it important to distinguish â€œimplementedâ€ from â€œfully aligned.â€
 
 ---
 
-### Milestone 1 — Foundation Close (v0.11.0)
+### Milestone 1 â€” Foundation Close (v0.11.0)
 *Fix the two remaining test gaps and the version chaos before anything else.*
 
 - [x] `CollisionEdgeCaseTest`: `lava_upwardContactSetsOnLavaFlag` (`lavaCeilingSetsOnLavaFlag`)
 - [x] `CollisionEdgeCaseTest`: `dash_speed_doesNotTunnelThinWall` (`wallStopsEntityAtDashSpeed`)
-- [x] Fix `version.json` → `0.10.83`, `build.gradle.kts` → `0.10.83`
+- [x] Fix `version.json` â†’ `0.10.83`, `build.gradle.kts` â†’ `0.10.83`
 - [x] Fix `NET-1`: remove `zone.spawnX != 0` fallback in `ZoneSimulationLoop` (grid-0,0 spawn was silently wrong)
 
 **Deliverable:** Physics is regression-proof. Version numbers are honest. No known correctness bugs.
 
 ---
 
-### Milestone 2 — In-Process Solo Mode (v0.11.0, same release)
+### Milestone 2 â€” In-Process Solo Mode (v0.11.0, same release)
 *The entire game must be playable without a running server.*
 
 - [x] `ModeSelectScreen`: add "Solo" option (4th card, purple, passes `"solo"` gameMode)
-- [x] `GameScreen`: offline path — local `GameSimulator`, no `NetworkClientThread`
+- [x] `GameScreen`: offline path â€” local `GameSimulator`, no `NetworkClientThread`
 - [x] Input fed directly to local sim via `sim.step(Map.of(0, cmd))`; `WorldSnapshot` pushed to `GameStateBuffer`
 - [x] Solo and multiplayer share the same rendering pipeline (single-room tile fallback + `stampSoloFields`)
 
@@ -1312,37 +1337,37 @@ The live milestone history accurately records shipping progress, but the new gam
 
 ---
 
-### Milestone 3 — Hub Evolution (v0.11.1)
-*The hub breathes. NPCs appear and disappear. Acts I–II are playable.*
+### Milestone 3 â€” Hub Evolution (v0.11.1)
+*The hub breathes. NPCs appear and disappear. Acts Iâ€“II are playable.*
 
 - [x] `HubState.java` + `HubStateMachine.java`
 - [x] `HubStateMachine` stored per `ZoneInstance`; server ticks FSM at 1 Hz in `ZoneSimulationLoop`
 - [x] `SimNPC` spawned/despawned via `GameSimulator.addNpc/removeNpc` driven by `activeNpcTypes()`
 - [x] `WorldSnapshot.hubState` field
-- [x] `Act.java` FSM — Acts I–VI wired (hub state transition triggers act change)
-- [x] `StoryManager` reads `hubState` → drives act FSM; `GameScreen` wires it on every snapshot
+- [x] `Act.java` FSM â€” Acts Iâ€“VI wired (hub state transition triggers act change)
+- [x] `StoryManager` reads `hubState` â†’ drives act FSM; `GameScreen` wires it on every snapshot
 - [x] Hub 1 (Bamboo Courtyard): FULL / CORRUPTED / EMPTY roster; Hub 2: FRACTURED / RECOVERING / WHOLE
 - [x] `player_progress` table with `hub_state JSONB` column (persisted on zone leave)
 
-**Deliverable:** Playable Acts I–II. Enter full hub, watch it corrupt, Siren trigger, hub collapses.
+**Deliverable:** Playable Acts Iâ€“II. Enter full hub, watch it corrupt, Siren trigger, hub collapses.
 
 ---
 
-### Milestone 4 — Yin/Yang & Lantern (v0.11.6) ✓ SHIPPED
+### Milestone 4 â€” Yin/Yang & Lantern (v0.11.6) âœ“ SHIPPED
 
 *The core emotional mechanics are functional and visible.*
 
 - [x] `YinYangComponent` (server tick: decay, yin_sight flag, balanced check)
 - [x] `LanternComponent` (server decay/restore, dark-room check, jump bonus)
-- [x] `PlayerState` + `WorldSnapshot` updated (SCHEMA_VERSION → 2, 5 new fields)
+- [x] `PlayerState` + `WorldSnapshot` updated (SCHEMA_VERSION â†’ 2, 5 new fields)
 - [x] `HudRenderer` Yin/Yang bars + Lantern meter (glow states, Flow Mode indicator)
 - [x] `ChunkRenderer` vignette (12-layer screen-edge overlay, red-tint at low lantern)
 - [x] `ABILITY_YIN_SIGHT` bitmask in `PhysicsConstants`; set/cleared in `GameSimulator.tickYinYang()`
 - [x] Fragment items in `ItemDatabase` + placed by `EntityPlanner` in BOSS/TREASURE rooms
 - [x] Weapon-state animation routing in `EntityRenderer` (`player_sword_*` prefix)
 - [x] 171 player sprite sheets extracted: 81 unarmed, 90 sword (tools/extract_animations.py)
-- [x] `AnimationRegistry.loadUnarmedSheets()` + `loadSwordSheets()` — 130+ animation keys
-- [x] Siren: scripted loss → Yin/Yang → 0 → hub state → EMPTY
+- [x] `AnimationRegistry.loadUnarmedSheets()` + `loadSwordSheets()` â€” 130+ animation keys
+- [x] Siren: scripted loss â†’ Yin/Yang â†’ 0 â†’ hub state â†’ EMPTY
 
 **Deliverable:** Yin/Yang bars and Lantern meter render live. Low Lantern creates oppressive vignette. Fragments spawn in boss/treasure rooms. Full player animation set loaded from template sheets.
 
@@ -1364,20 +1389,20 @@ What remains to be aligned on top of M4:
 
 ---
 
-### Milestone 5 — Boss AI (v0.11.10) ✓ SHIPPED
+### Milestone 5 â€” Boss AI (v0.11.10) âœ“ SHIPPED
 
 *Four bosses, each with a distinct psychological pattern. Ship working FSMs first, tune after.*
 
 - [x] Shadow Ascent `BossType` values: SIREN, ECHO_WARDEN, TIME_LEECH_LORD, MEMORY_EATER
-- [x] `BossPatternLibrary.java` — 4 psychological patterns (ScriptedLoss, EchoMirror, LanternDrain, PhaseReset)
+- [x] `BossPatternLibrary.java` â€” 4 psychological patterns (ScriptedLoss, EchoMirror, LanternDrain, PhaseReset)
 - [x] `SCRIPTED_LOSS` `MessageType` added; `GameSimulator.drainPendingScriptedLoss()` poll method
 - [x] `GameSimulator.setHub()` injection point; narrative patterns wired in `stepBosses()`
-- [x] Siren: invincible; after 6 s song sequence → zero all Yin/Yang → `hub.onSirenDefeated()` → `SCRIPTED_LOSS`
+- [x] Siren: invincible; after 6 s song sequence â†’ zero all Yin/Yang â†’ `hub.onSirenDefeated()` â†’ `SCRIPTED_LOSS`
 - [x] Echo Warden: 30-tick ring buffer mirrors player movement with 0.5 s delay
 - [x] Time Leech Lord: drains Lantern each tick; spawns `time_leech` enemies every 8 s; speed burst at 30% HP
 - [x] Memory Eater: `boss.platformReset` flag set on phase transition; `ZoneSimulationLoop` reads and acts on it
 - [x] Client collapse animation on `SCRIPTED_LOSS` receive (runtime collapse state + renderer fallback path)
-- [x] Boss defeat → fragment drop → `HubStateMachine.onBossDefeated()` (immediate queue drain in `ZoneSimulationLoop`)
+- [x] Boss defeat â†’ fragment drop â†’ `HubStateMachine.onBossDefeated()` (immediate queue drain in `ZoneSimulationLoop`)
 
 **What shipped:** All 4 psychological patterns are live server-side. Siren scripted loss fires correctly. Echo Warden mirrors movement. Time Leech Lord drains lantern and spawns minions. Memory Eater signals platform reset per phase. Client collapse readability and immediate boss-defeat hub progression wiring are now integrated and regression-covered.
 
@@ -1385,7 +1410,7 @@ Loop note (2026-04-13 21:27:17 +01:00): Enemy combat tuning pass shipped after M
 slime attack hitbox now lunges one body-length forward, skeleton attack range is
 extended by 15%, and archers now fire projectile attacks that damage players.
 
-**Note:** Boss tuning (HP, timings, difficulty) will need iteration after first playtests — Lesson 1 from project history.
+**Note:** Boss tuning (HP, timings, difficulty) will need iteration after first playtests â€” Lesson 1 from project history.
 
 #### Pivot tuning note
 **Added:** 2026-04-14 12:00:00 +01:00
@@ -1404,7 +1429,7 @@ but also for:
 
 ---
 
-### Milestone 6 — Echo System & Puzzles (v0.11.11)
+### Milestone 6 â€” Echo System & Puzzles (v0.11.11)
 
 *Solo play feels co-op through echoes. Puzzle rooms are distinct.*
 
@@ -1440,23 +1465,23 @@ Echo should not expand into broad systemic complexity until:
 
 ---
 
-### Milestone 7 — Act IV & Narrative Arc (v0.11.12)
+### Milestone 7 â€” Act IV & Narrative Arc (v0.11.12)
 
 *The 7-act emotional arc is playable end-to-end.*
 
-- [ ] Full `Act.java` FSM — all 7 acts with `hudAlpha` and `lanternDefault`
-- [ ] `HudRenderer` alpha driven by `currentAct.hudAlpha` (Act IV → 0.1)
-- [ ] `gravityMult` on `PlayerState`; `PhysicsSystem` applies it (Act IV → 0.7×)
+- [ ] Full `Act.java` FSM â€” all 7 acts with `hudAlpha` and `lanternDefault`
+- [ ] `HudRenderer` alpha driven by `currentAct.hudAlpha` (Act IV â†’ 0.1)
+- [ ] `gravityMult` on `PlayerState`; `PhysicsSystem` applies it (Act IV â†’ 0.7Ã—)
 - [ ] Dash/jump restricted in Act IV
 - [ ] Act V: gradual mechanical restoration per tick
 - [ ] Act VII: full abilities, full HUD, complete hub
-- [ ] Hub 2 (Chasm of Still Shadows): FRACTURED → RECOVERING → WHOLE wired
+- [ ] Hub 2 (Chasm of Still Shadows): FRACTURED â†’ RECOVERING â†’ WHOLE wired
 
 **Deliverable:** A player can experience the full emotional arc from Act I through Act VII in one session.
 
 ---
 
-### Milestone 8 — Polish (v0.11.13+)
+### Milestone 8 â€” Polish (v0.11.13+)
 
 - [ ] Music / BGM hooks (Lantern-dynamic music system)
 - [ ] Gamepad support (`InputPoller` extension)
@@ -1487,7 +1512,7 @@ Echo should not expand into broad systemic complexity until:
 | Act III hidden platforms | Server treats tiles as PLATFORM (authoritative). Client hides sprite when `yin < 0.5f`. Intentional. |
 | Echo moral tension | `recallable` flag. Recalling before completion fails the puzzle. Player chooses. |
 | SCHEMA_VERSION timing | Increment to 2 when Milestone 4 fields land. Bundle all new `PlayerState` fields in one bump. |
-| Commit prefix | `feat(m1):`, `feat(m2):` etc. — mirrors Loop system, maintains git traceability. |
+| Commit prefix | `feat(m1):`, `feat(m2):` etc. â€” mirrors Loop system, maintains git traceability. |
 | Version discipline | After every milestone release: `version.json`, `build.gradle.kts`, and `README.md` must match. |
 
 ### Design decisions added by pivot
@@ -1512,7 +1537,7 @@ The earlier co-op Yin/Yang framing should now be read more flexibly:
 
 - Each player maintains their own local balance state.
 - Flow should remain primarily readable and earnable at the per-player level.
-- Co-op design should reward Passive/Aggressive synergy, but one player’s imbalance should not trivially hard-lock another player’s ability to understand or access their own Flow.
+- Co-op design should reward Passive/Aggressive synergy, but one playerâ€™s imbalance should not trivially hard-lock another playerâ€™s ability to understand or access their own Flow.
 - Shared team-level modifiers may still exist where appropriate, but local readability must come first.
 
 ---
@@ -1524,7 +1549,7 @@ The earlier co-op Yin/Yang framing should now be read more flexibly:
 
 In addition to the structural campaign criteria already listed below, this plan now also succeeds when the following are true:
 
-1. A player can read the game’s identity quickly:
+1. A player can read the gameâ€™s identity quickly:
    - Passive feels stealthy/control-oriented
    - Aggressive feels forceful/pressure-oriented
 
@@ -1562,10 +1587,10 @@ Complete when a player can, in a single session:
 
 1. Start solo mode with no server
 2. Play Act I in the Bamboo Courtyard with the full NPC roster
-3. Collect a Yin fragment — watch hidden platforms materialise
-4. Collect a Yang fragment — watch attack strength increase
+3. Collect a Yin fragment â€” watch hidden platforms materialise
+4. Collect a Yang fragment â€” watch attack strength increase
 5. Encounter the Siren, lose in a scripted sequence, watch the hub collapse
-6. Enter Hub 2 (Chasm of Still Shadows) and watch NPCs return through Acts III–V
+6. Enter Hub 2 (Chasm of Still Shadows) and watch NPCs return through Acts IIIâ€“V
 7. Solve a puzzle room using an echo of their own past movement
 8. Collect enough fragments in Act VI to trigger Flow Mode
 9. Reach Act VII with full abilities, a populated final hub
@@ -1576,7 +1601,7 @@ Complete when a player can, in a single session:
 ## Current Priority Order From Pivot Date
 **Added:** 2026-04-14 12:00:00 +01:00
 
-### Priority 1 — Campaign structural reliability
+### Priority 1 â€” Campaign structural reliability
 Includes:
 - mission lifecycle
 - save/load parity
@@ -1584,7 +1609,7 @@ Includes:
 - hub progression correctness
 - solo and co-op campaign stability
 
-### Priority 2 — Stance / Flow gameplay identity lock
+### Priority 2 â€” Stance / Flow gameplay identity lock
 Includes:
 - Passive vs Aggressive distinction
 - Roll vs Dash feel
@@ -1595,10 +1620,10 @@ Includes:
 - balance indicator usability
 - Flow readability and satisfaction
 
-### Priority 3 — Trials integration under the new gameplay language
+### Priority 3 â€” Trials integration under the new gameplay language
 Trials should be replayable mastery spaces built from the same stance/Flow language.
 
-### Priority 4 — Content throughput and authored depth
+### Priority 4 â€” Content throughput and authored depth
 Includes:
 - mission breadth
 - puzzle breadth
@@ -1607,7 +1632,7 @@ Includes:
 - Echo-authored content
 - advanced traversal/combat integration
 
-### Priority 5 — Raids and late prestige challenge content
+### Priority 5 â€” Raids and late prestige challenge content
 Keep this late and subordinate.
 
 ---
@@ -1633,7 +1658,7 @@ Roll and Dash must remain clearly differentiated in:
 - audio/visual feedback
 
 ### Do not regress combat clarity
-The game’s combat language should remain simple to understand and deep to master.
+The gameâ€™s combat language should remain simple to understand and deep to master.
 
 Shared:
 - block
@@ -1668,7 +1693,7 @@ Trials, Raids, Echo complexity, and advanced systems must not destabilize:
 ## Plan Maintenance Rule After Pivot
 **Added:** 2026-04-14 12:00:00 +01:00
 
-Any future update to `docs/PLAN_SHADOW_ASCENT.md` that changes:
+Any future update to `docs/plans/implementing/PLAN_SHADOW_ASCENT.md` that changes:
 - stance interpretation
 - Flow interpretation
 - combat identity
@@ -1727,3 +1752,4 @@ Do not treat the gameplay identity sections as optional commentary, because they
 ---
 
 *Living document. Update milestone checkboxes as work progresses. Archive completed milestones to `docs/archive/`.*
+

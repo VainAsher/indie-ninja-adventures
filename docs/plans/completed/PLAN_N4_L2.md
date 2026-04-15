@@ -1,4 +1,11 @@
-# Implementation Plan — N4 Remote Players + L2 Lobby
+﻿---
+doc_type: plan
+status: completed
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
+# Implementation Plan â€” N4 Remote Players + L2 Lobby
 
 **Date:** 2026-03-29
 **Status:** In progress
@@ -8,25 +15,25 @@
 
 ## Context
 
-Phase 1 (N1–N3) is complete and working:
+Phase 1 (N1â€“N3) is complete and working:
 - Server relays inputs and broadcasts `MultiplayerSnapshot` at 60 Hz
 - Client sends per-frame `InputCommand` and receives snapshots
-- `poll_state()` returns the snapshot dict each frame — **but it is currently discarded**
+- `poll_state()` returns the snapshot dict each frame â€” **but it is currently discarded**
 
 The two goals for this session:
-1. **N4** — Render the remote player on each client using the snapshot data
-2. **L2** — Lobby screen so both players are in sync before the game starts
+1. **N4** â€” Render the remote player on each client using the snapshot data
+2. **L2** â€” Lobby screen so both players are in sync before the game starts
 
 ---
 
-## Phase N4 — Remote Player Rendering
+## Phase N4 â€” Remote Player Rendering
 
 ### What we're building
 
 - A lightweight `RemotePlayer` entity (no physics engine, just state holder)
 - A ghost renderer: colored silhouette + directional arrow + health bar + slot label
 - Linear interpolation between received positions to smooth 60 Hz network jitter
-- Wired into `demo_game.py`: parse snapshot → update entities → render after local player
+- Wired into `demo_game.py`: parse snapshot â†’ update entities â†’ render after local player
 
 ### Why ghost not full sprite
 
@@ -72,14 +79,14 @@ def interpolated_pos(rp: RemotePlayer, now_ms: float, tick_ms: float = 16.67):
 ### Ghost renderer
 
 Draw order per remote player:
-1. Semi-transparent body rect (28×56, matching local player hitbox)
+1. Semi-transparent body rect (28Ã—56, matching local player hitbox)
 2. Direction arrow (small triangle pointing left or right inside rect)
 3. Health bar (above head, same style as game HUD)
 4. Slot label "P2" above health bar
 
 Colours:
-- Alive body fill: `(80, 160, 255, 160)` — blue tint to distinguish from local player
-- Dead body fill: `(100, 100, 100, 80)` — grey ghost
+- Alive body fill: `(80, 160, 255, 160)` â€” blue tint to distinguish from local player
+- Dead body fill: `(100, 100, 100, 80)` â€” grey ghost
 - Health bar: green/red as normal
 
 ### demo_game.py wiring
@@ -111,37 +118,37 @@ for _rp in _remote_players.values():
 ```
 
 Cleanup: remove remote players from `_remote_players` when `PLAYER_LEAVE` message
-received — monitor `_net_client.last_leave_slot` (new small field on NetworkClient).
+received â€” monitor `_net_client.last_leave_slot` (new small field on NetworkClient).
 
 ---
 
-## Phase L2 — Lobby Screen
+## Phase L2 â€” Lobby Screen
 
 ### What we're building
 
 A simple pre-game lobby that keeps all players in sync before gameplay starts:
 - **Server (host)**: game waits at lobby overlay; sees "1/2 connected"; presses ENTER to start
-- **Client (joiner)**: sees "Connected — waiting for host..."; game starts when host sends signal
+- **Client (joiner)**: sees "Connected â€” waiting for host..."; game starts when host sends signal
 - Auto-cancels if client disconnects before start
 
 ### New message types
 
 Add to `network/protocol.py`:
-- `LOBBY_UPDATE` — server → clients: current player count `{"connected": 1, "max": 2}`
-- `GAME_START` — server → clients: game begins `{"seed": 12345}`
+- `LOBBY_UPDATE` â€” server â†’ clients: current player count `{"connected": 1, "max": 2}`
+- `GAME_START` â€” server â†’ clients: game begins `{"seed": 12345}`
 
 ### Server changes (`network/server.py`)
 
 1. Add `GameSession.game_started: bool = False`
-2. `GameServer` exposes `session.start_game()` — broadcasts `GAME_START`
+2. `GameServer` exposes `session.start_game()` â€” broadcasts `GAME_START`
 3. On each player join/leave, broadcast `LOBBY_UPDATE`
 4. `_client_loop` queues inputs only after `game_started`; before that, hold in lobby
 
 ### Client changes (`network/client.py`)
 
 1. Add `NetworkClient.game_started: threading.Event`
-2. `_recv_loop` handles `LOBBY_UPDATE` → expose `connected_count` property
-3. `_recv_loop` handles `GAME_START` → sets `game_started` event + stores seed
+2. `_recv_loop` handles `LOBBY_UPDATE` â†’ expose `connected_count` property
+3. `_recv_loop` handles `GAME_START` â†’ sets `game_started` event + stores seed
 
 ### demo_game.py lobby flow
 
@@ -176,14 +183,14 @@ Lobby overlay:
 
 ---
 
-## Sequence — what to implement first
+## Sequence â€” what to implement first
 
-1. `entities/remote_player.py` — dataclass + lerp
-2. `rendering/remote_player_renderer.py` — ghost renderer
-3. Wire N4 into `demo_game.py` — parse snapshot + render
+1. `entities/remote_player.py` â€” dataclass + lerp
+2. `rendering/remote_player_renderer.py` â€” ghost renderer
+3. Wire N4 into `demo_game.py` â€” parse snapshot + render
 4. Add LOBBY_UPDATE + GAME_START to `network/protocol.py`
-5. Update `network/server.py` — lobby state + start_game
-6. Update `network/client.py` — handle lobby messages
+5. Update `network/server.py` â€” lobby state + start_game
+6. Update `network/client.py` â€” handle lobby messages
 7. Wire L2 lobby into `demo_game.py`
 8. Update CHANGELOG + TASK_LIST
 9. Commit + push + tag v0.7.5
@@ -197,3 +204,4 @@ Lobby overlay:
 - Reconnect mid-session (N5)
 - More than 2 players
 - Mod browser (L3)
+

@@ -1,7 +1,14 @@
+﻿---
+doc_type: plan
+status: developing
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
 # Render Gap Investigation & Test Suite Fix
 Branch: `perf/render-gap-phase6`
 Parent: `feature/animation-pipeline`
-Target: ≥60 FPS on perf_run2.json (currently avg=44.6), all tests green
+Target: â‰¥60 FPS on perf_run2.json (currently avg=44.6), all tests green
 
 ---
 
@@ -16,20 +23,20 @@ Target: ≥60 FPS on perf_run2.json (currently avg=44.6), all tests green
 | render_tiles | 3.30ms | 3.68ms |
 | render_enemies | 0.06ms | 0.07ms |
 | render_hud | 1.29ms | 3.27ms |
-| **untracked gap** | **17.68ms** | — |
+| **untracked gap** | **17.68ms** | â€” |
 
-Untracked gap = render(22.33) − tiles(3.30) − enemies(0.06) − hud(1.29) = **17.68ms**
+Untracked gap = render(22.33) âˆ’ tiles(3.30) âˆ’ enemies(0.06) âˆ’ hud(1.29) = **17.68ms**
 
 Candidates in render loop between line 2866 and 3140:
 - NPCs (`draw_npc_char`)
-- Player sprite (`pygame.transform.scale` every frame — **prime suspect**)
+- Player sprite (`pygame.transform.scale` every frame â€” **prime suspect**)
 - Companion orbs (update + render)
 - Shuriken projectiles (`rotozoom` per projectile per frame)
 - Exit marker + objective compass (math + sorting per frame)
 
 ---
 
-## PHASE A — ADD SUB-SECTION PROFILING ✅
+## PHASE A â€” ADD SUB-SECTION PROFILING âœ…
 
 **Goal:** Quantify each untracked segment precisely.
 
@@ -37,22 +44,22 @@ Candidates in render loop between line 2866 and 3140:
 
 | Key | Lines covered |
 | --- | --- |
-| `render_npcs` | 2868–2876 |
-| `render_player` | 2878–2948 |
-| `render_companions` | 2950–2967 |
-| `render_projectiles` | 2969–2993 |
+| `render_npcs` | 2868â€“2876 |
+| `render_player` | 2878â€“2948 |
+| `render_companions` | 2950â€“2967 |
+| `render_projectiles` | 2969â€“2993 |
 
 **Output:** New profiler run on perf_run2.json
 
 ---
 
-## PHASE B — BOTTLENECK FIXES
+## PHASE B â€” BOTTLENECK FIXES
 
 _(Populated after Phase A run)_
 
 ---
 
-## PHASE C — TEST SUITE FIXES
+## PHASE C â€” TEST SUITE FIXES
 
 **Stale assertions (update expected values):**
 
@@ -81,10 +88,10 @@ _(Populated after Phase A run)_
 
 ---
 
-## PHASE D — VALIDATION
+## PHASE D â€” VALIDATION
 
 - Run full test suite: all green (or document any accepted skip)
-- Re-run perf_run2.json replay: avg FPS ≥ 60
+- Re-run perf_run2.json replay: avg FPS â‰¥ 60
 - Commit + push
 
 ---
@@ -94,3 +101,4 @@ _(Populated after Phase A run)_
 | Date | Decision | Reason |
 | --- | --- | --- |
 | 2026-03-27 | Branch from feature/animation-pipeline | Includes all perf O1-O9 and animation pipeline changes |
+

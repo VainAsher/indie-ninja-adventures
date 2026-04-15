@@ -1,3 +1,10 @@
+﻿---
+doc_type: roadmap
+status: living
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
 # Development Roadmap
 
 Vain Asher Gaming's: **Shadow Ascent: The Hollowed Ninja**
@@ -14,9 +21,9 @@ Optional co-op overlay once single-player is complete.
 
 ---
 
-## Technology (as of v0.11.34)
+## Technology (as of v0.11.45)
 
-The project completed a full Java rewrite in 6 days (Apr 4–10 2026). The Python prototype (v0.7–v0.9) proved the game loop and is archived. All active development is on the Java stack.
+The project completed a full Java rewrite in 6 days (Apr 4â€“10 2026). The Python prototype (v0.7â€“v0.9) proved the game loop and is archived. All active development is on the Java stack.
 
 | Component | Choice |
 | --------- | ------ |
@@ -35,7 +42,7 @@ Architecture reference: [docs/dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md
 
 ---
 
-## Milestone 1 — Foundation Close (v0.10.84) ✅ COMPLETE
+## Milestone 1 â€” Foundation Close (v0.10.84) âœ… COMPLETE
 
 *Physics regression-proof. Version numbers honest. No known correctness bugs.*
 
@@ -45,12 +52,12 @@ Architecture reference: [docs/dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md
 
 ---
 
-## Milestone 2 — In-Process Solo Mode (v0.11.0) 🔶 NEXT
+## Milestone 2 â€” In-Process Solo Mode (v0.11.0) ðŸ”¶ NEXT
 
 *Entire game playable without a running server.*
 
 - [ ] `ModeSelectScreen`: add "Solo" option
-- [ ] `GameScreen`: offline path — local `GameSimulator`, no `NetworkClientThread`
+- [ ] `GameScreen`: offline path â€” local `GameSimulator`, no `NetworkClientThread`
 - [ ] Input feeds directly to local `sim.step()` each render frame
 - [ ] `WorldSnapshot` assembled locally; same rendering pipeline as multiplayer
 
@@ -58,19 +65,19 @@ Architecture reference: [docs/dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md
 
 ---
 
-## Milestone 3 — Hub Evolution (v0.11.1)
+## Milestone 3 â€” Hub Evolution (v0.11.1)
 
-*The hub breathes. NPCs appear and disappear. Acts I–II playable.*
+*The hub breathes. NPCs appear and disappear. Acts Iâ€“II playable.*
 
 - [ ] `HubState.java` + `HubStateMachine.java`
 - [ ] `HubRegistry` stores `HubStateMachine` per hub; NPC presence driven by `activeNpcIds()`
-- [ ] `WorldSnapshot.hubState` field; `Act.java` FSM (Acts I–II)
+- [ ] `WorldSnapshot.hubState` field; `Act.java` FSM (Acts Iâ€“II)
 - [ ] Hub 1 (Bamboo Courtyard): FULL / CORRUPTED / EMPTY with NPC rosters
 - [ ] `player_progress` table with `hub_state JSONB`
 
 ---
 
-## Milestone 4 — Yin/Yang & Lantern (v0.11.2)
+## Milestone 4 â€” Yin/Yang & Lantern (v0.11.2)
 
 *Core emotional mechanics functional and visible.*
 
@@ -81,18 +88,18 @@ Architecture reference: [docs/dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md
 
 ---
 
-## Milestone 5 — Boss AI (v0.11.3)
+## Milestone 5 â€” Boss AI (v0.11.3)
 
 *Four bosses with distinct psychological patterns.*
 
-- [ ] Siren of the Veiled Vale: `SCRIPTED_LOSS` → Yin/Yang → 0 → hub EMPTY
+- [ ] Siren of the Veiled Vale: `SCRIPTED_LOSS` â†’ Yin/Yang â†’ 0 â†’ hub EMPTY
 - [ ] Echo Warden: mirror movement 0.5 s delay
 - [ ] Time Leech Lord: Lantern drain + speed burst
 - [ ] Memory Eater: platform reset + door unlock erasure
 
 ---
 
-## Milestone 6 — Echo System & Puzzles (v0.11.4)
+## Milestone 6 â€” Echo System & Puzzles (v0.11.4)
 
 *Solo play feels co-op through echoes.*
 
@@ -102,18 +109,18 @@ Architecture reference: [docs/dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md
 
 ---
 
-## Milestone 7 — Full Narrative Arc (v0.11.5)
+## Milestone 7 â€” Full Narrative Arc (v0.11.5)
 
 *7-act emotional arc playable end-to-end.*
 
-- [ ] Full `Act.java` FSM — all 7 acts with `hudAlpha` and `lanternDefault`
-- [ ] Act IV: near-invisible HUD, 0.7× gravity, restricted movement
+- [ ] Full `Act.java` FSM â€” all 7 acts with `hudAlpha` and `lanternDefault`
+- [ ] Act IV: near-invisible HUD, 0.7Ã— gravity, restricted movement
 - [ ] Act V: gradual mechanical restoration
-- [ ] Hub 2 (Chasm of Still Shadows): FRACTURED → RECOVERING → WHOLE
+- [ ] Hub 2 (Chasm of Still Shadows): FRACTURED â†’ RECOVERING â†’ WHOLE
 
 ---
 
-## Milestone 8 — Polish (v0.11.6+)
+## Milestone 8 â€” Polish (v0.11.6+)
 
 - [ ] Music / BGM (Lantern-dynamic)
 - [ ] Gamepad support (`InputPoller` extension)
@@ -129,12 +136,13 @@ A player can, in a single session:
 
 1. Start solo mode with no server
 2. Play Act I in the Bamboo Courtyard (full NPC roster)
-3. Collect a Yin fragment — hidden platforms materialise
-4. Encounter the Siren — scripted loss, hub collapses
+3. Collect a Yin fragment â€” hidden platforms materialise
+4. Encounter the Siren â€” scripted loss, hub collapses
 5. Solve a puzzle room using an echo of their past movement
 6. Reach Act VII with full abilities and a populated final hub
 7. Receive a narrative resolution that was felt, not told
 
 ---
 
-Full GDD alignment plan: [docs/PLAN_SHADOW_ASCENT.md](PLAN_SHADOW_ASCENT.md)
+Full GDD alignment plan: [docs/plans/implementing/PLAN_SHADOW_ASCENT.md](plans/implementing/PLAN_SHADOW_ASCENT.md)
+

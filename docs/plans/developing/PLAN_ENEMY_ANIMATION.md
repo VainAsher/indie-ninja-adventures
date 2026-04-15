@@ -1,4 +1,11 @@
-# PLAN — Enemy Animation & AI Overhaul
+﻿---
+doc_type: plan
+status: developing
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
+# PLAN â€” Enemy Animation & AI Overhaul
 ## Replace Placeholder Shapes with Animated Stateful Enemy Sprites
 **Created:** 2026-04-12 | **Last updated:** 2026-04-12 | **Codebase version:** v0.11.12 | **Target release:** v0.12.x
 
@@ -10,19 +17,19 @@
 
 Phases 2 and 3 are fully implemented:
 
-- **`AnimationRegistry.loadEnemySheets(FileHandle baseDir)`** — reads `assets/sprites/enemies/<type>/`,
+- **`AnimationRegistry.loadEnemySheets(FileHandle baseDir)`** â€” reads `assets/sprites/enemies/<type>/`,
   registers `enemy_<type>_<state>` keys for all 8 AI states. Silently skips missing files.
   "goblin" alias registered pointing to swordsman art for backward compat.
-- **`EnemyAIState`** — expanded with `FLEE` (`"flee"`) and `GUARD` (`"guard"`)
-- **`SimEnemy`** — `fleeTimer`, `guardTimer`, `FLEE_DURATION = 3.0f`, `GUARD_DURATION = 2.0f`,
+- **`EnemyAIState`** â€” expanded with `FLEE` (`"flee"`) and `GUARD` (`"guard"`)
+- **`SimEnemy`** â€” `fleeTimer`, `guardTimer`, `FLEE_DURATION = 3.0f`, `GUARD_DURATION = 2.0f`,
   `FLEE_HP_THRESHOLD = 0.25f`. `takeDamage()` sets `fleeTimer` when HP drops below threshold.
-- **`GameSimulator.stepEnemyAI()`** — rewritten: FLEE moves enemy away from player at 1.2× speed;
+- **`GameSimulator.stepEnemyAI()`** â€” rewritten: FLEE moves enemy away from player at 1.2Ã— speed;
   GUARD (skeleton only) holds the shield frame and sets `blockCooldown`; STUNNED transitions to
   FLEE if `fleeTimer > 0`; `blockCooldown` ticked each frame.
-- **`stepCombat()`** — `if (en.aiState == EnemyAIState.GUARD) continue;` blocks melee on guarding skeleton
-- **`EntityRenderer.enemyFps()`** — all type+state entries including FLEE/GUARD FPS
-- **`EntityRenderer.enemySize()`** — swordsman/goblin→48×64, grunt/spearman→32×56
-- **`GameScreen`** — wires `anims.loadEnemySheets(enemySheetDir)` on startup
+- **`stepCombat()`** â€” `if (en.aiState == EnemyAIState.GUARD) continue;` blocks melee on guarding skeleton
+- **`EntityRenderer.enemyFps()`** â€” all type+state entries including FLEE/GUARD FPS
+- **`EntityRenderer.enemySize()`** â€” swordsman/goblinâ†’48Ã—64, grunt/spearmanâ†’32Ã—56
+- **`GameScreen`** â€” wires `anims.loadEnemySheets(enemySheetDir)` on startup
 
 ### What exists (as of v0.11.10)
 
@@ -33,7 +40,7 @@ that resolves animation keys in the form `"enemy_<type>_<aiState>"`.
 `AnimationRegistry.loadEnemySheets()` is implemented and wired in `GameScreen`. Spritesheets
 will load automatically once the stitch script (Phase 1) has been run against the source ZIP.
 
-**Current enemy rendering:** falls back to a 1×1 magenta placeholder until Phase 1 stitch
+**Current enemy rendering:** falls back to a 1Ã—1 magenta placeholder until Phase 1 stitch
 script populates `assets/sprites/enemies/<type>/`.
 
 **Current enemy AI states:** `IDLE`, `PATROL`, `CHASE`, `ATTACK`, `FLEE`, `GUARD`, `STUNNED`, `DEAD`
@@ -44,15 +51,15 @@ script populates `assets/sprites/enemies/<type>/`.
 
 `"enemy placeholder animations. single frame per png.zip"` contains **5 enemy folders** with
 individual-frame PNGs already extracted from PSD layers. No spritesheet stitching has been
-done yet — the frames are named `idle-1.png`, `walk-2.png`, `attack-A3.png`, etc.
+done yet â€” the frames are named `idle-1.png`, `walk-2.png`, `attack-A3.png`, etc.
 
 | Folder | Enemy type | Actual frame counts (confirmed 2026-04-12) |
 |--------|------------|-------------------------------------------|
-| `1 Enemy` | swordsman | idle(4), walk(6), attack-A(8)+attack-B(11), dead(4), hit(3), jump(6) — 42 total |
-| `2 Enemy` | skeleton | idle(4), walk(6), attack-A(12)+attack-B(7), dead(4), hit(3), jump(5), shield-block(2) — 43 total |
-| `3 Enemy` | slime | idle(4), walk(4), attack-A(10)+attack-B(11)+attack-C(8), dead(5), hit(3) — 45 total, no jump |
-| `4 Enemy` | spearman | idle(2), walk(6), attack-A(6)+attack-B(10), dead(4), hit(3), jump(5) — 36 total |
-| `5 Enemy` | archer | idle(2), run(12), attack-A(6)+attack-B(6), dead(4), hit(4), jump(6) — 40 total |
+| `1 Enemy` | swordsman | idle(4), walk(6), attack-A(8)+attack-B(11), dead(4), hit(3), jump(6) â€” 42 total |
+| `2 Enemy` | skeleton | idle(4), walk(6), attack-A(12)+attack-B(7), dead(4), hit(3), jump(5), shield-block(2) â€” 43 total |
+| `3 Enemy` | slime | idle(4), walk(4), attack-A(10)+attack-B(11)+attack-C(8), dead(5), hit(3) â€” 45 total, no jump |
+| `4 Enemy` | spearman | idle(2), walk(6), attack-A(6)+attack-B(10), dead(4), hit(3), jump(5) â€” 36 total |
+| `5 Enemy` | archer | idle(2), run(12), attack-A(6)+attack-B(6), dead(4), hit(4), jump(6) â€” 40 total |
 
 ### Enemy-to-art mapping
 
@@ -65,18 +72,18 @@ done yet — the frames are named `idle-1.png`, `walk-2.png`, `attack-A3.png`, e
 | archer     | `5 Enemy`  | **bow**        |
 | bat        | *(none)*   | contact        |
 
-- **swordsman** — Greatsword skeleton; attack-A is the raise/windup (6 frames), attack-B is the overhead smash down (10 frames); slow but very high damage; replaces `swordsman` type name
-- **skeleton** — Shield skeleton; shield-block frames are unique; blocks attacks and counter-attacks
-- **slime** — Three attack variants (A/B/C) suit slow multi-hit style; no jump (ground-only)
-- **spearman** — Longer reach melee; attack-A/B are thrust variants; jump confirms airborne spear
-- **archer** — 12-frame run for kiting; attack frames are draw+release; fires `SimArrow` projectiles
-- **bat** — Flying art not in ZIP; keep magenta placeholder; dedicated flying art is backlog
+- **swordsman** â€” Greatsword skeleton; attack-A is the raise/windup (6 frames), attack-B is the overhead smash down (10 frames); slow but very high damage; replaces `swordsman` type name
+- **skeleton** â€” Shield skeleton; shield-block frames are unique; blocks attacks and counter-attacks
+- **slime** â€” Three attack variants (A/B/C) suit slow multi-hit style; no jump (ground-only)
+- **spearman** â€” Longer reach melee; attack-A/B are thrust variants; jump confirms airborne spear
+- **archer** â€” 12-frame run for kiting; attack frames are draw+release; fires `SimArrow` projectiles
+- **bat** â€” Flying art not in ZIP; keep magenta placeholder; dedicated flying art is backlog
 
 > **Design note:** The ZIP does not contain flying-enemy frames. `bat` retains the placeholder
-> until dedicated art arrives. `spearman` and `archer` are introduced as new types — both
+> until dedicated art arrives. `spearman` and `archer` are introduced as new types â€” both
 > require one-line additions to `buildEnemy()` in `GameSimulator`.
 >
-> **Archer AI is fundamentally different from all other enemies** — it kites, not chases.
+> **Archer AI is fundamentally different from all other enemies** â€” it kites, not chases.
 > It fires `SimArrow` projectiles (built on the existing `SimShuriken` infrastructure).
 > The run animation is used for lateral repositioning, not pursuit.
 
@@ -86,32 +93,32 @@ done yet — the frames are named `idle-1.png`, `walk-2.png`, `attack-A3.png`, e
 
 ```
 ZIP (individual PNGs)
-        │
-        ▼
-tools/stitch_enemy_frames.py          ← Phase 1
-        │  produces
-        ▼
+        â”‚
+        â–¼
+tools/stitch_enemy_frames.py          â† Phase 1
+        â”‚  produces
+        â–¼
 assets/sprites/enemies/
   swordsman/   idle.png  walk.png  attack_a.png  attack_b.png  hit.png  dead.png  jump.png
   skeleton/ idle.png  walk.png  attack_a.png  attack_b.png  hit.png  dead.png  jump.png  shield_block.png
   slime/    idle.png  walk.png  attack_a.png  attack_b.png  attack_c.png  hit.png  dead.png
   grunt/    idle.png  walk.png  attack_a.png  attack_b.png  hit.png  dead.png  jump.png
   wolf/     idle.png  run.png   attack_a.png  attack_b.png  hit.png  dead.png  jump.png
-        │
-        ▼
-AnimationRegistry.loadEnemySheets()   ← Phase 2
-        │  registers keys
-        ▼
+        â”‚
+        â–¼
+AnimationRegistry.loadEnemySheets()   â† Phase 2
+        â”‚  registers keys
+        â–¼
   enemy_swordsman_idle, enemy_swordsman_patrol, enemy_swordsman_chase,
   enemy_swordsman_attack, enemy_swordsman_attack_b, enemy_swordsman_stunned, enemy_swordsman_dead
   (same pattern for skeleton, slime, grunt, wolf)
-  enemy_skeleton_guard  (shield-block — unique to skeleton)
-        │
-        ▼
-EntityRenderer.renderEnemy()          ← Phase 5 (routing only)
-  already uses "enemy_<type>_<aiState>" — just needs FLEE/GUARD routing added
+  enemy_skeleton_guard  (shield-block â€” unique to skeleton)
+        â”‚
+        â–¼
+EntityRenderer.renderEnemy()          â† Phase 5 (routing only)
+  already uses "enemy_<type>_<aiState>" â€” just needs FLEE/GUARD routing added
 
-GameSimulator.stepEnemyAI()           ← Phase 3
+GameSimulator.stepEnemyAI()           â† Phase 3
   adds: FLEE state, GUARD state (skeleton), ledge detection
 ```
 
@@ -122,15 +129,15 @@ GameSimulator.stepEnemyAI()           ← Phase 3
 | System | Why it stays |
 |--------|-------------|
 | `EnemyState` wire format | Add only optional fields; existing `aiState` string covers all new states |
-| `renderEnemy()` dispatch | Already resolves `"enemy_<type>_<aiState>"` — just needs fallback routes for new states |
+| `renderEnemy()` dispatch | Already resolves `"enemy_<type>_<aiState>"` â€” just needs fallback routes for new states |
 | `AnimationRegistry.sliceAndRegister()` | Exact same mechanism as player sheets |
-| `SimEnemy` physics fields | Patrol bounds, timers, `facingRight` — all reused |
+| `SimEnemy` physics fields | Patrol bounds, timers, `facingRight` â€” all reused |
 | `enemyFps()` in `EntityRenderer` | Extend, not replace; add new type+state combinations |
 | `enemySize()` in `EntityRenderer` | Update display dims per artwork; keep physics dims separate |
 
 ---
 
-## Phase 1 — Asset Pipeline: Stitch Individual Frames into Spritesheets
+## Phase 1 â€” Asset Pipeline: Stitch Individual Frames into Spritesheets
 
 **Goal:** Turn the individual PNGs in the ZIP into horizontal spritesheets that
 `AnimationRegistry.sliceAndRegister()` can consume.
@@ -166,19 +173,19 @@ Usage:
 
 | Output filename        | Source frames              | Notes |
 |------------------------|----------------------------|-------|
-| `idle.png`             | `idle-1.png` … `idle-N.png` | All idle frames in order |
-| `walk.png`             | `walk-1.png` … `walk-N.png` | Patrol/slow movement |
-| `run.png`              | `run-1.png` … `run-N.png`   | Wolf only; others copy walk |
-| `attack_a.png`         | `attack-A1.png` … `attack-AN.png` | Primary attack |
-| `attack_b.png`         | `attack-B1.png` … `attack-BN.png` | Combo / alt attack |
-| `attack_c.png`         | `attack-C1.png` … `attack-CN.png` | Slime only |
-| `hit.png`              | `hit-1.png` … `hit-N.png`   | Stun reaction |
-| `dead.png`             | `dead-1.png` … `dead-N.png` | Death animation (play once) |
-| `jump.png`             | `jump-1.png` … `jump-N.png` | Airborne; skip for slime/bat |
-| `shield_block.png`     | `shield-block-1.png` …      | Skeleton only |
+| `idle.png`             | `idle-1.png` â€¦ `idle-N.png` | All idle frames in order |
+| `walk.png`             | `walk-1.png` â€¦ `walk-N.png` | Patrol/slow movement |
+| `run.png`              | `run-1.png` â€¦ `run-N.png`   | Wolf only; others copy walk |
+| `attack_a.png`         | `attack-A1.png` â€¦ `attack-AN.png` | Primary attack |
+| `attack_b.png`         | `attack-B1.png` â€¦ `attack-BN.png` | Combo / alt attack |
+| `attack_c.png`         | `attack-C1.png` â€¦ `attack-CN.png` | Slime only |
+| `hit.png`              | `hit-1.png` â€¦ `hit-N.png`   | Stun reaction |
+| `dead.png`             | `dead-1.png` â€¦ `dead-N.png` | Death animation (play once) |
+| `jump.png`             | `jump-1.png` â€¦ `jump-N.png` | Airborne; skip for slime/bat |
+| `shield_block.png`     | `shield-block-1.png` â€¦      | Skeleton only |
 
 **Frame ordering:** frames are sorted alphanumerically by the number suffix
-(A1 < A2 < … < A12 using zero-padded sort key to avoid A10 < A2).
+(A1 < A2 < â€¦ < A12 using zero-padded sort key to avoid A10 < A2).
 
 **Output format:** all frames stitched left-to-right into a single horizontal PNG;
 frame dimensions preserved from source (script reads actual image width/height).
@@ -206,7 +213,7 @@ confirm before registering frame counts in the registry.
 
 ---
 
-## Phase 2 — AnimationRegistry: `loadEnemySheets()`
+## Phase 2 â€” AnimationRegistry: `loadEnemySheets()`
 
 **Goal:** Register all enemy animation keys so `EntityRenderer.renderEnemy()` resolves
 real frames instead of the magenta fallback.
@@ -219,7 +226,7 @@ real frames instead of the magenta fallback.
 /**
  * Load all enemy animations from per-type subdirectories under baseDir.
  * Expected structure: baseDir/<type>/idle.png, walk.png, attack_a.png, etc.
- * Keys registered: "enemy_<type>_<state>" — consumed by EntityRenderer.renderEnemy().
+ * Keys registered: "enemy_<type>_<state>" â€” consumed by EntityRenderer.renderEnemy().
  *
  * Missing files are silently skipped; the magenta fallback remains for that key.
  */
@@ -246,7 +253,7 @@ private static final Map<String,Integer> GOBLIN_FRAME_COUNTS = Map.of(
     "jump",     5
 );
 
-// Skeleton (Enemy 2) — includes shield_block
+// Skeleton (Enemy 2) â€” includes shield_block
 private static final Map<String,Integer> SKELETON_FRAME_COUNTS = Map.of(
     "idle",         4,
     "walk",         6,
@@ -258,7 +265,7 @@ private static final Map<String,Integer> SKELETON_FRAME_COUNTS = Map.of(
     "shield_block", 2
 );
 
-// Slime (Enemy 3) — no jump
+// Slime (Enemy 3) â€” no jump
 private static final Map<String,Integer> SLIME_FRAME_COUNTS = Map.of(
     "idle",     4,
     "walk",     4,
@@ -269,7 +276,7 @@ private static final Map<String,Integer> SLIME_FRAME_COUNTS = Map.of(
     "dead",     5
 );
 
-// Grunt (Enemy 4) — same structure as swordsman
+// Grunt (Enemy 4) â€” same structure as swordsman
 private static final Map<String,Integer> GRUNT_FRAME_COUNTS = Map.of(
     "idle",     4,
     "walk",     6,
@@ -280,7 +287,7 @@ private static final Map<String,Integer> GRUNT_FRAME_COUNTS = Map.of(
     "jump",     5
 );
 
-// Wolf (Enemy 5) — run not walk
+// Wolf (Enemy 5) â€” run not walk
 private static final Map<String,Integer> WOLF_FRAME_COUNTS = Map.of(
     "idle",     2,
     "run",      12,
@@ -292,7 +299,7 @@ private static final Map<String,Integer> WOLF_FRAME_COUNTS = Map.of(
 );
 ```
 
-### 2.2 AI-state → sheet-name mapping
+### 2.2 AI-state â†’ sheet-name mapping
 
 `loadEnemyType()` registers keys for each AI state using the right sheet:
 
@@ -300,21 +307,21 @@ private static final Map<String,Integer> WOLF_FRAME_COUNTS = Map.of(
 private void loadEnemyType(FileHandle baseDir, String type, Map<String,Integer> counts) {
     FileHandle dir = baseDir.child(type);
 
-    // idle → "enemy_<type>_idle"
+    // idle â†’ "enemy_<type>_idle"
     loadIfPresent(dir, "enemy_"+type+"_idle",      "idle.png",     counts.get("idle"));
 
-    // patrol (slow walk) → walk sheet
+    // patrol (slow walk) â†’ walk sheet
     loadIfPresent(dir, "enemy_"+type+"_patrol",    "walk.png",     counts.get("walk"));
 
-    // chase (fast) → run sheet if present, else walk
+    // chase (fast) â†’ run sheet if present, else walk
     String chaseSheet = dir.child("run.png").exists() ? "run.png" : "walk.png";
     int    chaseFrames = counts.containsKey("run") ? counts.get("run") : counts.get("walk");
     loadIfPresent(dir, "enemy_"+type+"_chase",     chaseSheet,     chaseFrames);
 
-    // flee (moving away) — same sheet as chase; direction handled by facingRight flip
+    // flee (moving away) â€” same sheet as chase; direction handled by facingRight flip
     loadIfPresent(dir, "enemy_"+type+"_flee",      chaseSheet,     chaseFrames);
 
-    // attack → primary attack sheet
+    // attack â†’ primary attack sheet
     loadIfPresent(dir, "enemy_"+type+"_attack",    "attack_a.png", counts.get("attack_a"));
     loadIfPresent(dir, "enemy_"+type+"_attack_b",  "attack_b.png", counts.getOrDefault("attack_b", 0));
     loadIfPresent(dir, "enemy_"+type+"_attack_c",  "attack_c.png", counts.getOrDefault("attack_c", 0));
@@ -322,13 +329,13 @@ private void loadEnemyType(FileHandle baseDir, String type, Map<String,Integer> 
     // guard (skeleton shield block)
     loadIfPresent(dir, "enemy_"+type+"_guard",     "shield_block.png", counts.getOrDefault("shield_block", 0));
 
-    // stunned → hit reaction sheet
+    // stunned â†’ hit reaction sheet
     loadIfPresent(dir, "enemy_"+type+"_stunned",   "hit.png",      counts.get("hit"));
 
-    // dead → death sheet (play-once; renderer holds last frame after completion)
+    // dead â†’ death sheet (play-once; renderer holds last frame after completion)
     loadIfPresent(dir, "enemy_"+type+"_dead",      "dead.png",     counts.get("dead"));
 
-    // jump (airborne) — used when enemy is mid-air
+    // jump (airborne) â€” used when enemy is mid-air
     if (counts.containsKey("jump"))
         loadIfPresent(dir, "enemy_"+type+"_jump",  "jump.png",     counts.get("jump"));
 }
@@ -339,7 +346,7 @@ private void loadEnemyType(FileHandle baseDir, String type, Map<String,Integer> 
 After the existing `anims.loadUnarmedSheets()` / `anims.loadSwordSheets()` calls:
 
 ```java
-// GameScreen.java — inside createAnimationRegistry() or equivalent init block
+// GameScreen.java â€” inside createAnimationRegistry() or equivalent init block
 FileHandle enemyBase = Gdx.files.internal("sprites/enemies");
 anims.loadEnemySheets(enemyBase);
 ```
@@ -349,7 +356,7 @@ anims.loadEnemySheets(enemyBase);
 Add new type+state entries matching actual frame rates for each artwork:
 
 ```java
-// EntityRenderer.java — enemyFps()
+// EntityRenderer.java â€” enemyFps()
 case "swordsman.idle"              -> 6f;
 case "swordsman.patrol"            -> 7f;
 case "swordsman.chase"             -> 8f;   // slow heavy walk
@@ -388,13 +395,13 @@ case "wolf.dead"                -> 10f;
 ```
 
 **Files to modify:**
-- `java/client/src/main/java/com/indieniinja/client/rendering/AnimationRegistry.java` — add `loadEnemySheets()`
-- `java/client/src/main/java/com/indieniinja/client/GameScreen.java` — wire up call
-- `java/client/src/main/java/com/indieniinja/client/rendering/EntityRenderer.java` — extend `enemyFps()`, update `enemySize()`
+- `java/client/src/main/java/com/indieniinja/client/rendering/AnimationRegistry.java` â€” add `loadEnemySheets()`
+- `java/client/src/main/java/com/indieniinja/client/GameScreen.java` â€” wire up call
+- `java/client/src/main/java/com/indieniinja/client/rendering/EntityRenderer.java` â€” extend `enemyFps()`, update `enemySize()`
 
 ---
 
-## Phase 3 — AI State Expansion: FLEE, GUARD, Ledge Detection
+## Phase 3 â€” AI State Expansion: FLEE, GUARD, Ledge Detection
 
 **Goal:** Give each enemy behaviorally distinct movement and reaction logic.
 Ship working FSMs first; tune timing in follow-up commits (same lesson as boss tuning).
@@ -409,8 +416,8 @@ public enum EnemyAIState {
     PATROL   ("patrol"),
     CHASE    ("chase"),
     ATTACK   ("attack"),
-    GUARD    ("guard"),    // NEW — skeleton only: raise shield, absorb hit
-    FLEE     ("flee"),     // NEW — cowardly enemies below HP threshold
+    GUARD    ("guard"),    // NEW â€” skeleton only: raise shield, absorb hit
+    FLEE     ("flee"),     // NEW â€” cowardly enemies below HP threshold
     STUNNED  ("stunned"),
     DEAD     ("dead");
 
@@ -424,14 +431,14 @@ public enum EnemyAIState {
 **File:** `java/core/src/main/java/com/indieniinja/sim/SimEnemy.java`
 
 ```java
-// ── Behavioral config (set by buildEnemy) ─────────────────────────────────
+// â”€â”€ Behavioral config (set by buildEnemy) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 public float  fleeHpThreshold    = 0f;    // 0 = never flees; 0.25 = flee at 25% HP
 public boolean canBlock           = false; // true for skeleton: may enter GUARD
 public boolean canJump            = true;  // false for slime: no jump AI
 public float   blockCooldown      = 0f;   // seconds remaining until next block allowed
 public float   attackWindupDuration = ATTACK_WINDUP_TIME; // per-type override; swordsman = 1.2f
 
-// ── GUARD sub-state ───────────────────────────────────────────────────────
+// â”€â”€ GUARD sub-state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 public float  guardTimer = 0f;         // how long guard is held
 public static final float GUARD_DURATION   = 0.8f;
 public static final float GUARD_COOLDOWN   = 3.0f;
@@ -441,11 +448,11 @@ public static final float GUARD_CHANCE     = 0.35f;  // probability per attack w
 ### 3.3 Extend `buildEnemy()` in `GameSimulator`
 
 ```java
-// GameSimulator.java — buildEnemy()
+// GameSimulator.java â€” buildEnemy()
 case "swordsman" -> {
     // Heavy armoured skeleton: slow, high-damage overhead greatsword smash
     // Stats: low speed (55 px/s), high damage (4), long attack range (80px for greatsword reach)
-    // Long windup (1.2s) telegraphs the smash — player can dodge or stagger first
+    // Long windup (1.2s) telegraphs the smash â€” player can dodge or stagger first
     SimEnemy e = new SimEnemy(hubId+"_swordsman_"+idx, "swordsman",
                     spec.x(), spec.y(), 40, 64,
                     5+hpBonus, 4, 55f*speedMult, 200f, 80f,
@@ -479,12 +486,12 @@ Full updated state machine replacing the current `switch` at line ~1111:
 
 ```java
 private void stepEnemyAI(SimEnemy en, float[] nearest, List<float[]> players) {
-    // Flying enemies have their own movement path — skip ground AI
+    // Flying enemies have their own movement path â€” skip ground AI
     if (en.canFly) { applyFlyingEnemyMovement(en); return; }
 
     float dist = en.distanceTo(nearest[0], nearest[1]);
 
-    // ── Global: flee check (overrides other states when HP is critical) ──────
+    // â”€â”€ Global: flee check (overrides other states when HP is critical) â”€â”€â”€â”€â”€â”€
     if (en.fleeHpThreshold > 0f
             && en.hp > 0
             && (float) en.hp / en.maxHp < en.fleeHpThreshold
@@ -611,23 +618,23 @@ private boolean groundExistsAt(float x, float y) {
 
 ### 3.6 Reduced damage during GUARD
 
-**File:** `java/core/src/main/java/com/indieniinja/sim/GameSimulator.java` — `stepCombat()`
+**File:** `java/core/src/main/java/com/indieniinja/sim/GameSimulator.java` â€” `stepCombat()`
 
 ```java
-// In player-melee → enemy damage section:
+// In player-melee â†’ enemy damage section:
 int finalDmg = dmg;
 if (en.aiState == EnemyAIState.GUARD) finalDmg = Math.max(1, dmg / 3);  // block absorbs 66%
 en.takeDamage(finalDmg);
 ```
 
 **Files to modify (Phase 3):**
-- `java/core/src/main/java/com/indieniinja/sim/EnemyAIState.java` — add FLEE, GUARD
-- `java/core/src/main/java/com/indieniinja/sim/SimEnemy.java` — add behavioral fields
-- `java/core/src/main/java/com/indieniinja/sim/GameSimulator.java` — rewrite `stepEnemyAI()`, add `groundExistsAt()`, update `buildEnemy()`, update combat
+- `java/core/src/main/java/com/indieniinja/sim/EnemyAIState.java` â€” add FLEE, GUARD
+- `java/core/src/main/java/com/indieniinja/sim/SimEnemy.java` â€” add behavioral fields
+- `java/core/src/main/java/com/indieniinja/sim/GameSimulator.java` â€” rewrite `stepEnemyAI()`, add `groundExistsAt()`, update `buildEnemy()`, update combat
 
 ---
 
-## Phase 4 — EnemyState Wire: `grunt` type & new state propagation
+## Phase 4 â€” EnemyState Wire: `grunt` type & new state propagation
 
 **Goal:** Ensure new types and states round-trip correctly over the network wire.
 
@@ -640,7 +647,7 @@ en.takeDamage(finalDmg);
 // Grunts spawn in COMBAT rooms as mid-tier ground enemies
 ```
 
-### 4.2 EnemyState serialization — no changes needed
+### 4.2 EnemyState serialization â€” no changes needed
 
 `EnemyState.aiState` is already a plain String. `"flee"` and `"guard"` serialize
 automatically through the existing `EnemyAIState.wire` field. No `SCHEMA_VERSION` bump
@@ -660,16 +667,16 @@ case "grunt" -> 11;
 ```
 
 **Files to modify (Phase 4):**
-- `java/core/src/main/java/com/indieniinja/sim/GameSimulator.java` — `buildEnemy()`, `enemyXp()`
-- `java/core/src/main/java/com/indieniinja/world/postprocess/EntityPlanner.java` — grunt spawn slots
+- `java/core/src/main/java/com/indieniinja/sim/GameSimulator.java` â€” `buildEnemy()`, `enemyXp()`
+- `java/core/src/main/java/com/indieniinja/world/postprocess/EntityPlanner.java` â€” grunt spawn slots
 
 ---
 
-## Phase 5 — EntityRenderer: Routing, Death Hold, Size Tuning
+## Phase 5 â€” EntityRenderer: Routing, Death Hold, Size Tuning
 
 **Goal:** Correct rendering for all 8 AI states across all enemy types.
 
-### 5.1 Update `renderEnemy()` — state routing
+### 5.1 Update `renderEnemy()` â€” state routing
 
 **File:** `java/client/src/main/java/com/indieniinja/client/rendering/EntityRenderer.java`
 
@@ -681,7 +688,7 @@ private void renderEnemy(SpriteBatch batch, EnemyState e, float dt) {
     String typePrefix = (e.enemyType != null && !e.enemyType.isEmpty())
         ? e.enemyType : derivePrefixFromId(e.enemyId);
 
-    // Map wire state → animation key
+    // Map wire state â†’ animation key
     String animState = switch (e.aiState != null ? e.aiState : "idle") {
         case "flee"   -> "flee";     // registered = walk/run sheet
         case "guard"  -> "guard";    // registered = shield_block sheet (skeleton only)
@@ -718,11 +725,11 @@ snapshot once the server marks it removed, but the renderer should hold the last
 frame visible until the death animation finishes, then skip drawing.
 
 ```java
-// EntityRenderer — new field
+// EntityRenderer â€” new field
 private final java.util.HashMap<String, Float> deathTimers = new java.util.HashMap<>();
 
 private boolean isDeathComplete(String enemyId, String type) {
-    // We know dead anim FPS and frame count — check if total duration has elapsed
+    // We know dead anim FPS and frame count â€” check if total duration has elapsed
     float fps    = enemyFps(type, "dead");
     int   frames = enemyDeadFrameCount(type);   // lookup from a small static map
     float dur    = frames / fps;
@@ -741,7 +748,7 @@ update the display dimensions. Physics dimensions stay unchanged (hitbox is sepa
 from sprite visual bounds).
 
 ```java
-// EntityRenderer.enemySize() — update display dims to match actual art
+// EntityRenderer.enemySize() â€” update display dims to match actual art
 // (values TBD from Phase 1 frame audit; these are initial guesses)
 case "swordsman"   -> new int[]{48, 64};   // art taller than physics box
 case "skeleton" -> new int[]{48, 72};
@@ -756,7 +763,7 @@ case "bat"      -> new int[]{28, 28};   // unchanged (placeholder)
 
 ---
 
-## Phase 6 — Integration Verification
+## Phase 6 â€” Integration Verification
 
 **Goal:** Every enemy type is visually correct in every AI state before calling this done.
 
@@ -764,15 +771,15 @@ case "bat"      -> new int[]{28, 28};   // unchanged (placeholder)
 
 For each enemy type (swordsman, skeleton, slime, grunt, wolf):
 
-- [ ] **PATROL** — walks along patrol range; reverses at ledge and waypoint
-- [ ] **CHASE** — switches to fast animation when pursuing player; correct facing
-- [ ] **ATTACK** — telegraphed windup visible in animation; hit spark on player
-- [ ] **FLEE** — triggers at HP threshold; moves away; animation plays (not T-pose)
-- [ ] **STUNNED** — hit reaction animation plays; returns to PATROL after duration
-- [ ] **DEAD** — death animation plays to completion; entity disappears on final frame
-- [ ] **GUARD** (skeleton only) — shield-block frame holds during guard window; reduced damage
-- [ ] **Flip** — enemy correctly faces the direction it moves in all states
-- [ ] **Size** — sprite aligns with physics hitbox (use debug overlay)
+- [ ] **PATROL** â€” walks along patrol range; reverses at ledge and waypoint
+- [ ] **CHASE** â€” switches to fast animation when pursuing player; correct facing
+- [ ] **ATTACK** â€” telegraphed windup visible in animation; hit spark on player
+- [ ] **FLEE** â€” triggers at HP threshold; moves away; animation plays (not T-pose)
+- [ ] **STUNNED** â€” hit reaction animation plays; returns to PATROL after duration
+- [ ] **DEAD** â€” death animation plays to completion; entity disappears on final frame
+- [ ] **GUARD** (skeleton only) â€” shield-block frame holds during guard window; reduced damage
+- [ ] **Flip** â€” enemy correctly faces the direction it moves in all states
+- [ ] **Size** â€” sprite aligns with physics hitbox (use debug overlay)
 
 ### 6.2 Per-type behavioral tests
 
@@ -782,13 +789,13 @@ For each enemy type (swordsman, skeleton, slime, grunt, wolf):
 | skeleton | Blocks ~35% of the time on approach; blocked hit does 1/3 damage |
 | slime | Never jumps (stays on ground level); three attack variants rotate |
 | grunt | No flee, no block; high damage trading; straightforward aggression |
-| wolf | Chase animation runs at 16 FPS (12 run frames × speed); retreat/reposition loop |
+| wolf | Chase animation runs at 16 FPS (12 run frames Ã— speed); retreat/reposition loop |
 | bat | Retains sinusoidal hover; magenta placeholder acceptable until dedicated art |
 
 ### 6.3 Regression checks
 
 - Existing player animation still loads and plays (no AnimationRegistry breakage)
-- Multiplayer: EnemyState round-trips with new states (`flee`, `guard`) — verify via server log
+- Multiplayer: EnemyState round-trips with new states (`flee`, `guard`) â€” verify via server log
 - Solo mode: `GameSimulator` enemy AI ticks at correct 60 Hz in-process
 
 ---
@@ -808,68 +815,68 @@ assets/sprites/enemies/wolf/idle.png, run.png, attack_a.png, attack_b.png, hit.p
 ### Files to modify
 ```
 java/core/src/main/java/com/indieniinja/sim/EnemyAIState.java
-    → add FLEE, GUARD
+    â†’ add FLEE, GUARD
 
 java/core/src/main/java/com/indieniinja/sim/SimEnemy.java
-    → add fleeHpThreshold, canBlock, canJump, blockCooldown, guardTimer
+    â†’ add fleeHpThreshold, canBlock, canJump, blockCooldown, guardTimer
 
 java/core/src/main/java/com/indieniinja/sim/GameSimulator.java
-    → rewrite stepEnemyAI(), add groundExistsAt(), update buildEnemy(), update combat
+    â†’ rewrite stepEnemyAI(), add groundExistsAt(), update buildEnemy(), update combat
 
 java/client/src/main/java/com/indieniinja/client/rendering/AnimationRegistry.java
-    → add loadEnemySheets(), loadEnemyType(), loadIfPresent()
+    â†’ add loadEnemySheets(), loadEnemyType(), loadIfPresent()
 
 java/client/src/main/java/com/indieniinja/client/GameScreen.java
-    → wire anims.loadEnemySheets(...)
+    â†’ wire anims.loadEnemySheets(...)
 
 java/client/src/main/java/com/indieniinja/client/rendering/EntityRenderer.java
-    → extend enemyFps(), update enemySize(), update renderEnemy(), add death hold
+    â†’ extend enemyFps(), update enemySize(), update renderEnemy(), add death hold
 
 java/core/src/main/java/com/indieniinja/world/postprocess/EntityPlanner.java
-    → add grunt spawn slots
+    â†’ add grunt spawn slots
 ```
 
 ---
 
 ## 6. Milestone Checkboxes
 
-### Phase 1 — Asset Pipeline
-- [x] Write `tools/stitch_enemy_frames.py` (v0.11.10) — ZIP path: Desktop/New folder (4)/enemy placeholder animations...zip
-- [x] Run script → all 5 enemy type directories populated (v0.11.11) — 37 spritesheets, 128×96 px/frame
-- [x] Frame dimensions confirmed: 128×96 px per frame (4:3 landscape); `enemySize()` updated to 64×48 world px
+### Phase 1 â€” Asset Pipeline
+- [x] Write `tools/stitch_enemy_frames.py` (v0.11.10) â€” ZIP path: Desktop/New folder (4)/enemy placeholder animations...zip
+- [x] Run script â†’ all 5 enemy type directories populated (v0.11.11) â€” 37 spritesheets, 128Ã—96 px/frame
+- [x] Frame dimensions confirmed: 128Ã—96 px per frame (4:3 landscape); `enemySize()` updated to 64Ã—48 world px
 - [x] Commit: `feat(enemy-art): stitch enemy placeholder frames into spritesheets` (v0.11.11)
 
-### Phase 2 — AnimationRegistry
+### Phase 2 â€” AnimationRegistry
 - [x] Add `loadEnemySheets()` + `loadEnemySheetType()` to `AnimationRegistry` (v0.11.10)
 - [x] Update `enemyFps()` with all type+state entries incl. FLEE/GUARD (v0.11.10)
-- [x] Frame counts corrected from stitch script audit (v0.11.11) — swordsman/grunt/wolf counts adjusted
-- [x] Update `enemySize()` to 64×48 world px matching 128×96 art 4:3 ratio (v0.11.11)
-- [x] Wire in `GameScreen` — loads from `assets/sprites/enemies/` if directory exists (v0.11.10)
+- [x] Frame counts corrected from stitch script audit (v0.11.11) â€” swordsman/grunt/wolf counts adjusted
+- [x] Update `enemySize()` to 64Ã—48 world px matching 128Ã—96 art 4:3 ratio (v0.11.11)
+- [x] Wire in `GameScreen` â€” loads from `assets/sprites/enemies/` if directory exists (v0.11.10)
 - [ ] Verify in-game: colored placeholders replaced by real sprites (first launcher run post-v0.11.11)
 
-### Phase 3 — AI Expansion
+### Phase 3 â€” AI Expansion
 - [x] Add FLEE + GUARD to `EnemyAIState` (v0.11.10)
 - [x] Add `fleeTimer`, `guardTimer`, `FLEE_DURATION`, `GUARD_DURATION`, `FLEE_HP_THRESHOLD` to `SimEnemy` (v0.11.10)
 - [x] Rewrite `stepEnemyAI()` with FLEE, GUARD, skeleton counter-attack (v0.11.10)
-- [x] Update `stepCombat()` — skeleton GUARD blocks melee damage (v0.11.10)
-- [ ] Ledge detection in patrol (detect floor drop-offs) — deferred to Phase 3 follow-up
+- [x] Update `stepCombat()` â€” skeleton GUARD blocks melee damage (v0.11.10)
+- [ ] Ledge detection in patrol (detect floor drop-offs) â€” deferred to Phase 3 follow-up
 
-### Phase 4 — Wire & Planner
-- [x] Corrected type names: `grunt`→`spearman`, `wolf`→`archer` across stitch script, registry, renderer, simulator (v0.11.12)
-- [x] Add `spearman` type to `buildEnemy()` (36×52 hitbox, 80px reach) and `enemyXp()` (13 XP) (v0.11.12)
-- [x] Add `archer` type to `buildEnemy()` (32×48 hitbox, 320px detection, 200px range) and `enemyXp()` (15 XP) (v0.11.12)
-- [x] Update `EntityPlanner.enemyPool()` — spearman at depth ≥3, archer at depth ≥6 and heavy rooms (v0.11.12)
+### Phase 4 â€” Wire & Planner
+- [x] Corrected type names: `grunt`â†’`spearman`, `wolf`â†’`archer` across stitch script, registry, renderer, simulator (v0.11.12)
+- [x] Add `spearman` type to `buildEnemy()` (36Ã—52 hitbox, 80px reach) and `enemyXp()` (13 XP) (v0.11.12)
+- [x] Add `archer` type to `buildEnemy()` (32Ã—48 hitbox, 320px detection, 200px range) and `enemyXp()` (15 XP) (v0.11.12)
+- [x] Update `EntityPlanner.enemyPool()` â€” spearman at depth â‰¥3, archer at depth â‰¥6 and heavy rooms (v0.11.12)
 
-### Phase 5 — Renderer Polish
-- [x] FLEE/GUARD routing in `renderEnemy()` — automatic via `e.aiState` key lookup (v0.11.10)
-- [x] Death animation hold-until-complete — `deathTimers` map + `getFrameClamped()` (v0.11.12)
-- [x] `enemySize()` updated to 64×48 world px matching 4:3 art; slime 48×36 (v0.11.11)
+### Phase 5 â€” Renderer Polish
+- [x] FLEE/GUARD routing in `renderEnemy()` â€” automatic via `e.aiState` key lookup (v0.11.10)
+- [x] Death animation hold-until-complete â€” `deathTimers` map + `getFrameClamped()` (v0.11.12)
+- [x] `enemySize()` updated to 64Ã—48 world px matching 4:3 art; slime 48Ã—36 (v0.11.11)
 - [ ] Tune per-type display dimensions in Phase 6 QA playtest
 
-### Phase 6 — Integration QA
+### Phase 6 â€” Integration QA
 - [ ] Run through full per-type checklist in solo mode
 - [ ] Regression: player animation still works; solo mode stable
-- [ ] Commit: `fix(enemy-art): QA pass — timing/size fixes from first playtest (m-ea5)`
+- [ ] Commit: `fix(enemy-art): QA pass â€” timing/size fixes from first playtest (m-ea5)`
 
 ---
 
@@ -878,15 +885,16 @@ java/core/src/main/java/com/indieniinja/world/postprocess/EntityPlanner.java
 | Question | Decision |
 |----------|----------|
 | Bat art | Not in ZIP; retain magenta placeholder; dedicated flying spritesheet is a separate backlog item |
-| Enemy type names | Confirmed v0.11.12: `4 Enemy`→`spearman`, `5 Enemy`→`archer`; old `grunt`/`wolf` labels were incorrect |
-| Attack variants (B/C) | Register as separate keys (`attack_b`, `attack_c`); server picks variant by random sub-state — not wired in Phase 3, backlog |
-| FLEE direction | Handled purely by `facingRight` flip in renderer — no new wire field needed |
-| GUARD wire field | Uses existing `aiState` string `"guard"` — no protocol change |
+| Enemy type names | Confirmed v0.11.12: `4 Enemy`â†’`spearman`, `5 Enemy`â†’`archer`; old `grunt`/`wolf` labels were incorrect |
+| Attack variants (B/C) | Register as separate keys (`attack_b`, `attack_c`); server picks variant by random sub-state â€” not wired in Phase 3, backlog |
+| FLEE direction | Handled purely by `facingRight` flip in renderer â€” no new wire field needed |
+| GUARD wire field | Uses existing `aiState` string `"guard"` â€” no protocol change |
 | Death anim hold | Client-only; server already removes entity; renderer tracks elapsed time |
-| Ledge detection | Simple downward tile query — not a raycast; avoids physics budget cost |
-| Commit prefix | `feat(enemy-art):` and `feat(enemy-ai):` with milestone suffixes `(m-ea1)` … `(m-ea5)` |
+| Ledge detection | Simple downward tile query â€” not a raycast; avoids physics budget cost |
+| Commit prefix | `feat(enemy-art):` and `feat(enemy-ai):` with milestone suffixes `(m-ea1)` â€¦ `(m-ea5)` |
 
 ---
 
-*Living document. Start with Phase 1 (asset pipeline) — no code changes until spritesheets exist.
+*Living document. Start with Phase 1 (asset pipeline) â€” no code changes until spritesheets exist.
 Update checkboxes as work progresses.*
+

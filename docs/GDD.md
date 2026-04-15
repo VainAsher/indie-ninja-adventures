@@ -1,3 +1,10 @@
+﻿---
+doc_type: gdd
+status: living
+owner: design-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
 # SHADOW ASCENT: THE HOLLOWED NINJA
 
 ## Full Game Design Document (GDD)
@@ -18,8 +25,8 @@ Indie Ninja Adventures ships three discrete modes. Each has its own loop, tone, 
 * **Pacing:** Deliberate; story-driven
 * **World:** Instanced hub + mission levels; procedurally generated interconnected rooms
 * **Portal system:** Hub world connects to level zones via portals; players travel back and forth
-* **Co-op:** Drop-in / drop-out (1–4 players); Yin/Yang balance tracked per player
-* **Narrative:** Full 7-act emotional arc (Sections 1–7 of this document describe this mode)
+* **Co-op:** Drop-in / drop-out (1â€“4 players); Yin/Yang balance tracked per player
+* **Narrative:** Full 7-act emotional arc (Sections 1â€“7 of this document describe this mode)
 * **Player identity:** The Hallowed Ninja
 * **Persistence:** Full save file (abilities, story flags, hub state, visited rooms)
 
@@ -227,11 +234,11 @@ Flow also provides a secondary Lantern restoration avenue while active.
 
 ## 4.1 Hub Philosophy
 
-The hub is the emotional center of the game. It evolves to reflect the player’s internal state.
+The hub is the emotional center of the game. It evolves to reflect the playerâ€™s internal state.
 
 ---
 
-## 4.2 HUB 1 — Bamboo Courtyard
+## 4.2 HUB 1 â€” Bamboo Courtyard
 
 ### State 1: Full
 
@@ -262,7 +269,7 @@ The hub is the emotional center of the game. It evolves to reflect the player’
 
 ---
 
-## 4.4 HUB 2 — Chasm of Still Shadows
+## 4.4 HUB 2 â€” Chasm of Still Shadows
 
 ### Initial State
 
@@ -289,42 +296,42 @@ Each boss defeated:
 
 # 5. WORLD STRUCTURE
 
-## ACT I — The Rise (Tutorial)
+## ACT I â€” The Rise (Tutorial)
 
 * Training levels
 * Introduces movement and basic mechanics
 * Mission world size target: `4..9` rooms
 
-## ACT II — The Fall
+## ACT II â€” The Fall
 
 * Hub corruption
 * Siren influence increases
 * Mission world size target remains onboarding-scaled (`4..9` rooms)
 
-## ACT III — The Labyrinth Court
+## ACT III â€” The Labyrinth Court
 
 * Maze-based levels
 * Unfair systems
 * Proof token mechanic
 * Mission world size target expands to `12..60` rooms (mission-authored)
 
-## ACT IV — The Break
+## ACT IV â€” The Break
 
 * Minimal UI
 * Slowed gameplay
 * Depression mechanics
 
-## ACT V — The Hearth Mountain
+## ACT V â€” The Hearth Mountain
 
 * Recovery mechanics introduced
 * Community-based traversal
 
-## ACT VI — The Ascent
+## ACT VI â€” The Ascent
 
 * Climbing-focused levels
 * Yin/Yang reintegration
 
-## ACT VII — The Upper Peaks
+## ACT VII â€” The Upper Peaks
 
 * Final hub
 * Full ability access
@@ -349,7 +356,7 @@ Core principles:
 
 ## 6.2 Puzzle Archetypes (Integrated Systems)
 
-### 🧩 Asymmetric Ability Locks
+### ðŸ§© Asymmetric Ability Locks
 
 Players (or player + echoes) have different abilities.
 
@@ -361,7 +368,7 @@ Examples:
 
 Design Use:
 
-* Introduce “Echo Forms” in solo play that mimic co-op roles
+* Introduce â€œEcho Formsâ€ in solo play that mimic co-op roles
 * In co-op mode, players take distinct roles
 
 Twists:
@@ -371,13 +378,13 @@ Twists:
 
 ---
 
-### 🔁 Chain-Reaction Mechanisms
+### ðŸ” Chain-Reaction Mechanisms
 
 Actions ripple through the level.
 
 Examples:
 
-* Lever → water flow → platform rise → hidden switch
+* Lever â†’ water flow â†’ platform rise â†’ hidden switch
 
 Design Use:
 
@@ -390,7 +397,7 @@ Twists:
 
 ---
 
-### ⏳ Simultaneous Timing Challenges
+### â³ Simultaneous Timing Challenges
 
 Examples:
 
@@ -408,7 +415,7 @@ Twists:
 
 ---
 
-### 👁️ Information Asymmetry
+### ðŸ‘ï¸ Information Asymmetry
 
 Examples:
 
@@ -427,7 +434,7 @@ Twists:
 
 ---
 
-### 🌊 Environmental State Manipulation
+### ðŸŒŠ Environmental State Manipulation
 
 Examples:
 
@@ -445,7 +452,7 @@ Twists:
 
 ---
 
-### 🧠 Memory & Pattern Recognition
+### ðŸ§  Memory & Pattern Recognition
 
 Examples:
 
@@ -463,7 +470,7 @@ Twists:
 
 ---
 
-### 🧲 Physics-Based Interaction
+### ðŸ§² Physics-Based Interaction
 
 Examples:
 
@@ -480,7 +487,7 @@ Twists:
 
 ---
 
-### 🔐 Human Key Mechanics
+### ðŸ” Human Key Mechanics
 
 Examples:
 
@@ -488,7 +495,7 @@ Examples:
 
 Design Use:
 
-* Echo projections can “stand in” temporarily
+* Echo projections can â€œstand inâ€ temporarily
 
 Twists:
 
@@ -496,11 +503,11 @@ Twists:
 
 ---
 
-### 🧬 Ability Evolution Puzzles
+### ðŸ§¬ Ability Evolution Puzzles
 
 Examples:
 
-* Unlock ability → revisit area → new solution
+* Unlock ability â†’ revisit area â†’ new solution
 
 Design Use:
 
@@ -512,7 +519,7 @@ Twists:
 
 ---
 
-### 🧭 Split-Path Coordination
+### ðŸ§­ Split-Path Coordination
 
 Examples:
 
@@ -528,7 +535,7 @@ Twists:
 
 ---
 
-## 6.3 Signature System — “The Living Dungeon”
+## 6.3 Signature System â€” â€œThe Living Dungeonâ€
 
 Hybrid puzzle encounters combining:
 
@@ -827,7 +834,7 @@ lowest detection profile
 strongest stealth utility
 Design Rationale
 
-Grounded locomotion expresses the player’s physical presence in the world. It directly supports stealth, pacing, and readable movement risk.
+Grounded locomotion expresses the playerâ€™s physical presence in the world. It directly supports stealth, pacing, and readable movement risk.
 
 ##### 10.3.4.B Aerial Locomotion
 
@@ -1015,7 +1022,7 @@ lowest detection profile
 strongest stealth utility
 Design Rationale
 
-Movement profile expresses the player’s physical presence in the world. It determines how visible, audible, and committed the player is, and is therefore central to stealth, traversal tension, and encounter pacing.
+Movement profile expresses the playerâ€™s physical presence in the world. It determines how visible, audible, and committed the player is, and is therefore central to stealth, traversal tension, and encounter pacing.
 
 #### 10.3.5 Stance System
 
@@ -1171,7 +1178,7 @@ break-through positioning
 more aggressive entry and exit states
 Design Rationale
 
-Traversal Art is intended to be one of the game’s core mastery systems. It must therefore have a dedicated live input and enough design space to grow through upgrades without expanding button count.
+Traversal Art is intended to be one of the gameâ€™s core mastery systems. It must therefore have a dedicated live input and enough design space to grow through upgrades without expanding button count.
 
 #### 10.3.9 Echo Art Family
 
@@ -1379,7 +1386,7 @@ Accessibility is required to preserve the intended control feel across a wide ra
 
 #### 10.3.17 Summary
 
-Shadow Ascent uses a layered control architecture that separates locomotion profile, stance identity, and action families. Locomotion includes grounded, aerial, wall, and swimming movement. Movement profile states control sound, speed, posture, buoyancy handling, and detection. Yin and Yang control tactical expression rather than redefining the control map. Traversal Art and Echo Art serve as the game’s expandable mastery systems. Flow and Lantern amplify play without consuming additional core inputs. Meta-systems such as inventory, crafting, and loadout management are handled through menu layers so that real-time input space remains dedicated to movement, combat, stance switching, traversal, and Echo execution.
+Shadow Ascent uses a layered control architecture that separates locomotion profile, stance identity, and action families. Locomotion includes grounded, aerial, wall, and swimming movement. Movement profile states control sound, speed, posture, buoyancy handling, and detection. Yin and Yang control tactical expression rather than redefining the control map. Traversal Art and Echo Art serve as the gameâ€™s expandable mastery systems. Flow and Lantern amplify play without consuming additional core inputs. Meta-systems such as inventory, crafting, and loadout management are handled through menu layers so that real-time input space remains dedicated to movement, combat, stance switching, traversal, and Echo execution.
 
 ### 10.4 Runtime Observability Contract (`2026-04-15 14:37:00 +01:00`)
 
@@ -1445,3 +1452,4 @@ They become whole, stable, and ready for whatever comes.
 ---
 
 # END OF DOCUMENT
+

@@ -1,3 +1,10 @@
+﻿---
+doc_type: playtest_contract
+status: living
+owner: qa-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
@@ -426,3 +433,4 @@ Update this file every release candidate with:
 - newly discovered must-test regressions
 
 This document is a release artifact, not just internal notes.
+

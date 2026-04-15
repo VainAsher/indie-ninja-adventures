@@ -1,78 +1,70 @@
+﻿---
+doc_type: index
+status: living
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+replaces: docs/INDEX.md (2026-03-28)
+---
+
 # Documentation Index
 
-Vain Asher Gaming's: Indie Ninja Adventures — v0.7.1
+This index tracks only the active documentation system for the Java v0.11.x line.
 
-Last updated: 2026-03-28
+## Core Canonical
 
----
+- [CURRENT_STATE.md](CURRENT_STATE.md)
+- [ROADMAP.md](ROADMAP.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [GDD.md](GDD.md)
+- [PLAYER_EXPECTATIONS.md](PLAYER_EXPECTATIONS.md)
+- [RELEASE_VERSION_SYNC_CHECKLIST.md](RELEASE_VERSION_SYNC_CHECKLIST.md)
 
-## Start here
+## Plans
 
-| Document | Purpose |
-| --- | --- |
-| [OVERVIEW.md](OVERVIEW.md) | Project vision, modes, controls, tech stack, architecture summary |
-| [TASK_LIST.md](TASK_LIST.md) | **Living task list** — what to work on now, next, and backlog |
-| [ROADMAP.md](ROADMAP.md) | Milestone definitions and completion status |
-| [HANDOVER.md](HANDOVER.md) | Full handover for someone new to the project |
-| [CHANGELOG.md](CHANGELOG.md) | Version history |
-| [QUICK_START.md](QUICK_START.md) | Concise play guide and controls |
+- Developing:
+  - [plans/developing/PLAN_ANIMATION_INTEGRATION.md](plans/developing/PLAN_ANIMATION_INTEGRATION.md)
+  - [plans/developing/PLAN_ENEMY_ANIMATION.md](plans/developing/PLAN_ENEMY_ANIMATION.md)
+  - [plans/developing/animation_pipeline_plan.md](plans/developing/animation_pipeline_plan.md)
+  - [plans/developing/perf_optimisation_plan.md](plans/developing/perf_optimisation_plan.md)
+  - [plans/developing/perf_render_gap_plan.md](plans/developing/perf_render_gap_plan.md)
+- Implementing:
+  - [plans/implementing/PLAN_SHADOW_ASCENT.md](plans/implementing/PLAN_SHADOW_ASCENT.md)
+- Completed:
+  - [plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md](plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md)
+  - [plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md](plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md)
+  - [plans/completed/PLAN_N4_L2.md](plans/completed/PLAN_N4_L2.md)
+  - [plans/completed/launcher-enhancement-plan.md](plans/completed/launcher-enhancement-plan.md)
+  - [plans/completed/remote_player_anim_sync_plan.md](plans/completed/remote_player_anim_sync_plan.md)
+  - [plans/completed/remote_ghost_smoothing_v2_plan.md](plans/completed/remote_ghost_smoothing_v2_plan.md)
 
----
+## Workflow and Operations
 
-## System documentation
+- [workflow/ITERATION_RELEASE_PROTOCOL.md](workflow/ITERATION_RELEASE_PROTOCOL.md)
+- [workflow/RELEASE_CHECKLIST.md](workflow/RELEASE_CHECKLIST.md)
+- [workflow/SPRINT_WORKFLOW.md](workflow/SPRINT_WORKFLOW.md)
+- [operations/CI_CD_PLAN.md](operations/CI_CD_PLAN.md)
 
-Each file covers a single system: rationale, architecture, key classes, usage, and how to extend it.
+## Developer Documentation
 
-| Document | System |
-| --- | --- |
-| [systems/AUDIO.md](systems/AUDIO.md) | AudioManager, SFX events, volume wiring, how to add sounds |
-| [systems/CAMPAIGN.md](systems/CAMPAIGN.md) | Regions, missions, ability gates, portal placement, save/load |
-| [systems/COMPANIONS.md](systems/COMPANIONS.md) | Yin & Yang orbital orbs — story presence, visual design, API |
-| [systems/ENDINGS.md](systems/ENDINGS.md) | Moral choice (SAVE/DESTROY), ending state machine, hub final state |
-| [systems/LOOT.md](systems/LOOT.md) | Drop tables, rarity tiers, deterministic seeded generation |
-| [systems/MECHANICS.md](systems/MECHANICS.md) | All player mechanics — tuning values, gating, interactions |
-| [systems/MODDING.md](systems/MODDING.md) | Plugin API — ModInterface, GameContext, custom entities/components |
-| [systems/PERFORMANCE.md](systems/PERFORMANCE.md) | O1–O10 optimizations, spatial hash, surface caching, guidelines |
-| [systems/RENDERING.md](systems/RENDERING.md) | Camera, animation, sprites, particles, HUD, render order |
-| [systems/REPLAY.md](systems/REPLAY.md) | Input pipeline — live/record/replay, file format, determinism |
-| [systems/SETTINGS.md](systems/SETTINGS.md) | All settings keys, wiring status, how to add a setting |
-| [systems/WORLD_GEN.md](systems/WORLD_GEN.md) | Procedural generation hierarchy, biomes, zones, autotiling |
+- [dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md)
+- [dev/JAVA_SETUP.md](dev/JAVA_SETUP.md)
+- [dev/SETUP.md](dev/SETUP.md)
 
----
+## Reviews and Audits
 
-## Reference
+- [reviews/2026-03-25/ROADMAP_AND_PLAN.md](reviews/2026-03-25/ROADMAP_AND_PLAN.md)
+- [archive/audits/](archive/audits/)
 
-| Document | Purpose |
-| --- | --- |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Design principles, event-driven pattern, component ECS |
-| [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) | Full API reference for all systems |
-| [WORLD_GENERATION.md](WORLD_GENERATION.md) | Extended world generation reference |
+## Templates
 
----
+- [templates/BUG_REPORT.md](templates/BUG_REPORT.md)
+- [templates/ISSUE_TEMPLATE.md](templates/ISSUE_TEMPLATE.md)
+- [templates/PLAYTEST_REPORT.md](templates/PLAYTEST_REPORT.md)
 
-## Operations
+## Archives
 
-| Document | Purpose |
-| --- | --- |
-| [workflow/ITERATION_RELEASE_PROTOCOL.md](workflow/ITERATION_RELEASE_PROTOCOL.md) | Canonical commit/push/tag/release loop for per-iteration testable releases |
-| [UAT_SUITE.md](UAT_SUITE.md) | User acceptance test checklist (result columns need filling) |
-| [operations/CI_CD_PLAN.md](operations/CI_CD_PLAN.md) | CI/CD pipeline |
-| [operations/BUG_BACKLOG.md](operations/BUG_BACKLOG.md) | Bug tracking |
-| [operations/DELIVERY_CHECKLIST.md](operations/DELIVERY_CHECKLIST.md) | Release checklist |
-
----
-
-## Reviews and planning
-
-| Document | Purpose |
-| --- | --- |
-| [PLAN_2026-03-28.md](PLAN_2026-03-28.md) | 2026-03-28 gap analysis and approved work plan (Phases 0–5) |
-| [reviews/2026-03-25/](reviews/2026-03-25/) | March 2025 deep-dive review, issues, and risks |
-
----
-
-## Notes
-
-- Wall slide is **active** — light always-on vy clamp when touching a wall. Some older docs incorrectly say it is disabled.
-- Boss system is wired into the mission flow but boss AI behaviour is not implemented.
-- F9 opens the debug ability toggle menu in-game (password: `devmode`).
+- [archive/retired/](archive/retired/)
+- [archive/zips/INDEX.md](archive/zips/INDEX.md)
+- [HANDOVER.md](HANDOVER.md) (redirect)
+- [DEVLOG.md](DEVLOG.md) (rolling index)

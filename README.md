@@ -75,7 +75,9 @@ indie-ninja-adventures/
 │   ├── server/     Netty authoritative server, zone sim loop, persistence
 │   └── client/     libGDX desktop client, rendering, UI, dialogue, missions
 ├── docs/
-│   ├── PLAN_SHADOW_ASCENT.md   GDD alignment + milestone checklist
+│   ├── CURRENT_STATE.md         Canonical runtime/handover state
+│   ├── INDEX.md                 Canonical documentation index
+│   ├── plans/implementing/PLAN_SHADOW_ASCENT.md   Active implementation plan
 │   ├── ROADMAP.md              Milestone plan
 │   ├── CHANGELOG.md            Version history
 │   └── dev/
@@ -88,7 +90,9 @@ indie-ninja-adventures/
 
 ## Documentation
 
-- [docs/PLAN_SHADOW_ASCENT.md](docs/PLAN_SHADOW_ASCENT.md) — GDD alignment plan and milestone checklist
+- [docs/INDEX.md](docs/INDEX.md) — canonical documentation routing
+- [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) — runtime/handover truth
+- [docs/plans/implementing/PLAN_SHADOW_ASCENT.md](docs/plans/implementing/PLAN_SHADOW_ASCENT.md) — GDD alignment plan and milestone checklist
 - [docs/ROADMAP.md](docs/ROADMAP.md) — Milestone plan with deliverables
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) — Version history
 - [docs/RELEASE_VERSION_SYNC_CHECKLIST.md](docs/RELEASE_VERSION_SYNC_CHECKLIST.md) — Release metadata parity gate

@@ -1,4 +1,11 @@
-# PLAN — Animation Integration: Full Moveset Implementation
+﻿---
+doc_type: plan
+status: developing
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
+# PLAN â€” Animation Integration: Full Moveset Implementation
 **Created:** 2026-04-11 | **Last updated:** 2026-04-15 03:18:26 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.39
 
 ---
@@ -9,28 +16,28 @@
 
 | Layer | Current state |
 |-------|--------------|
-| Engine | Java / libGDX client-server. `AnimationRegistry` loads 80×80 px horizontal-strip PNGs, slices them, and serves frames via `anims.getFrame(key, stateTime, fps)` |
+| Engine | Java / libGDX client-server. `AnimationRegistry` loads 80Ã—80 px horizontal-strip PNGs, slices them, and serves frames via `anims.getFrame(key, stateTime, fps)` |
 | Animation keys | `EntityRenderer` constructs keys as `"player_" + animState`. Currently ~18 keys wired (idle, run, dash, jump, fall, wall_slide, crouch, crouch_walk, attack/slash1-3, throw, teleport, hurt, death) |
-| Player state machine | `GameSimulator.stepPlayerAnimationState()` sets `animState` string via priority chain: teleport → dash → attack → throw → wall_slide → jump/fall → crouch → run → idle |
+| Player state machine | `GameSimulator.stepPlayerAnimationState()` sets `animState` string via priority chain: teleport â†’ dash â†’ attack â†’ throw â†’ wall_slide â†’ jump/fall â†’ crouch â†’ run â†’ idle |
 | Combat | Single-hit melee: `isAttacking` bool, 8-tick active window, 0.4 s cooldown. No combo chain, no weapon state |
 | Traversal | Dash, double-jump, wall-slide, wall-jump, crouch all implemented in `SimPlayer`. **No** climb, swim, prone, roll, or slide states |
-| Assets | All player sheets are **placeholder** — engine runs but looks wrong |
+| Assets | All player sheets are **placeholder** â€” engine runs but looks wrong |
 
 ### What we have from the ZIPs
 
 Two ZIPs (unarmed + sword) provide **fully production-ready sprite sheets** already in the engine's native format: 80 px tall, RGBA, horizontal strips. Confirmed by dimension check:
 ```
-001-Standing Idle-Sheet.png  →  640×80 px  =  8 frames × 80 px  ✅ exact match
-001-Run-Sheet.png            →  640×80 px  =  8 frames × 80 px  ✅ exact match
-001-Jump-Sheet.png           →  800×80 px  = 10 frames × 80 px  ✅ exact match
+001-Standing Idle-Sheet.png  â†’  640Ã—80 px  =  8 frames Ã— 80 px  âœ… exact match
+001-Run-Sheet.png            â†’  640Ã—80 px  =  8 frames Ã— 80 px  âœ… exact match
+001-Jump-Sheet.png           â†’  800Ã—80 px  = 10 frames Ã— 80 px  âœ… exact match
 ```
 **No pixel conversion is needed.** Extract, rename, drop into assets.
 
 ### ZIP bonus content
 `002 Player Template Moves - Sword.zip` contains three complete weapon sets:
-1. Unarmed (re-export of ZIP 001 — ignore duplicates)
+1. Unarmed (re-export of ZIP 001 â€” ignore duplicates)
 2. **Sword** (fully re-animated for all states, plus sword-specific `Dash Attack`)
-3. **Pistol** (bonus — not in GDD; reserve for Arcade Mode loadout system)
+3. **Pistol** (bonus â€” not in GDD; reserve for Arcade Mode loadout system)
 
 ---
 
@@ -48,9 +55,9 @@ Two ZIPs (unarmed + sword) provide **fully production-ready sprite sheets** alre
 
 ## 0.2 Asset Name Mapping Reference
 
-Full ZIP animation → engine filename → animation key table. **This is the contract for the extraction script.**
+Full ZIP animation â†’ engine filename â†’ animation key table. **This is the contract for the extraction script.**
 
-### Unarmed — `assets/sprites/player/unarmed/`
+### Unarmed â€” `assets/sprites/player/unarmed/`
 
 | ZIP name | Engine filename | Key(s) registered | Frames | FPS | Loop |
 |----------|----------------|-------------------|--------|-----|------|
@@ -136,7 +143,7 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 | Drink | `drink_spritesheet.png` | `player_drink` | 19 | 8 | no |
 | Dance Twerk | `dance_spritesheet.png` | `player_dance` | 12 | 10 | yes |
 
-### Sword — `assets/sprites/player/sword/`
+### Sword â€” `assets/sprites/player/sword/`
 
 | ZIP name | Engine filename | Key(s) registered | Frames | FPS |
 |----------|----------------|-------------------|--------|-----|
@@ -180,8 +187,8 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 | Prone Hit - Sword | `prone_hurt_spritesheet.png` | `player_sword_prone_hurt` | 4 | 12 |
 | Prone Death - Sword | `prone_death_spritesheet.png` | `player_sword_prone_death` | 5 | 12 |
 | Prone Death Waking Up - Sword | `prone_revive_spritesheet.png` | `player_sword_prone_revive` | 5 | 12 |
-| All Climb/Ledge - Sword (12 anims) | Same filenames under `sword/` | `player_sword_climb_*`, `player_sword_ledge_*` | (same as unarmed) | — |
-| All Swim - Sword (6 anims) | Same filenames under `sword/` | `player_sword_swim_*` | (same as unarmed) | — |
+| All Climb/Ledge - Sword (12 anims) | Same filenames under `sword/` | `player_sword_climb_*`, `player_sword_ledge_*` | (same as unarmed) | â€” |
+| All Swim - Sword (6 anims) | Same filenames under `sword/` | `player_sword_swim_*` | (same as unarmed) | â€” |
 | Push-Pull Idle/Push/Pull - Sword | `push_idle / push / pull_spritesheet.png` | `player_sword_push_idle`, etc. | 8 | 8/10 |
 | Door Enter/Exit - Sword | `door_enter / door_exit_spritesheet.png` | `player_sword_door_enter`, etc. | 9/10 | 12 |
 | Push Button Back - Sword | `button_back_spritesheet.png` | `player_sword_button_back` | 4 | 12 |
@@ -190,7 +197,7 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 | Pickup Standing/Crouch - Sword | `pickup / pickup_crouch_spritesheet.png` | `player_sword_pickup`, `player_sword_pickup_crouch` | 5/4 | 12 |
 | Open Chest Back/Side - Sword | `chest_back / chest_side_spritesheet.png` | `player_sword_chest_back`, `player_sword_chest_side` | 6/5 | 10 |
 | Rope Idle/Swing - Sword | `rope_idle / rope_swing_spritesheet.png` | `player_sword_rope`, `player_sword_rope_swing` | 4/7 | 6/10 |
-| Sitting/Asleep/Talking/Victory/Drink - Sword | (same filenames under `sword/`) | `player_sword_sit`, etc. | (same counts) | — |
+| Sitting/Asleep/Talking/Victory/Drink - Sword | (same filenames under `sword/`) | `player_sword_sit`, etc. | (same counts) | â€” |
 
 > **Pistol set** (present in ZIP 002 but not assigned here): stage to `assets/sprites/player/pistol/` now; wire to engine in the Arcade Mode milestone.
 
@@ -200,14 +207,14 @@ Full ZIP animation → engine filename → animation key table. **This is the co
 
 | Phase | Title | Dependencies | Status |
 |-------|-------|-------------|--------|
-| 1 | Asset Extraction & Folder Setup | None | **Done v0.11.6** — 81 unarmed + 90 sword sheets extracted |
-| 2 | Sprite Sheet Spec Update | Phase 1 | **Done v0.11.6** — frame counts verified (80×80 px uniform) |
-| 3 | AnimationRegistry Expansion | Phase 2 | **Done v0.11.6** — `loadUnarmedSheets()` + `loadSwordSheets()` (130+ keys) |
-| 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** — `player_sword_*` prefix fallthrough routing |
-| 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** — climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
-| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.10** — animation keys exist; physics detection (ladder/vine tile recognition, ledge grab trigger) not yet built |
+| 1 | Asset Extraction & Folder Setup | None | **Done v0.11.6** â€” 81 unarmed + 90 sword sheets extracted |
+| 2 | Sprite Sheet Spec Update | Phase 1 | **Done v0.11.6** â€” frame counts verified (80Ã—80 px uniform) |
+| 3 | AnimationRegistry Expansion | Phase 2 | **Done v0.11.6** â€” `loadUnarmedSheets()` + `loadSwordSheets()` (130+ keys) |
+| 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** â€” `player_sword_*` prefix fallthrough routing |
+| 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** â€” climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
+| 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.10** â€” animation keys exist; physics detection (ladder/vine tile recognition, ledge grab trigger) not yet built |
 | 7 | Interaction Animations | Phase 6 | Not started |
-| 8 | Weapon State System | Phase 4 | **Partial v0.11.6** — `weaponState` field wired; sword routing live; combo chain not yet |
+| 8 | Weapon State System | Phase 4 | **Partial v0.11.6** â€” `weaponState` field wired; sword routing live; combo chain not yet |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |
 | 10 | Sword Combat System | Phase 8 | Not started |
 | 11 | Block / Parry System | Phase 9-10 | **Partial v0.11.39** - runtime guard/parry input schema + front-facing block/parry behavior live; hold/toggle rebinding and full combat-state polish still pending |
@@ -269,7 +276,7 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
 
 ---
 
-## PHASE 1 — Asset Extraction & Folder Setup
+## PHASE 1 â€” Asset Extraction & Folder Setup
 
 **Goal:** Get all sprite sheets out of the ZIPs and into the engine asset tree with correct names.
 
@@ -277,9 +284,9 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
 
 ```
 java/client/src/main/resources/assets/sprites/player/
-├── unarmed/          ← all unarmed sheets (renamed per §0.2 table)
-├── sword/            ← all sword sheets (renamed per §0.2 table)
-└── pistol/           ← extracted but not yet wired (Arcade Mode later)
+â”œâ”€â”€ unarmed/          â† all unarmed sheets (renamed per Â§0.2 table)
+â”œâ”€â”€ sword/            â† all sword sheets (renamed per Â§0.2 table)
+â””â”€â”€ pistol/           â† extracted but not yet wired (Arcade Mode later)
 ```
 
 ### 1.2 Write extraction script
@@ -287,9 +294,9 @@ java/client/src/main/resources/assets/sprites/player/
 Create `tools/extract_animations.py`. This script:
 - Opens both ZIPs
 - Iterates over all `*-Sheet.png` entries
-- Applies the mapping table (§0.2) to rename each file
+- Applies the mapping table (Â§0.2) to rename each file
 - Writes to `java/client/src/main/resources/assets/sprites/player/unarmed/` or `/sword/` or `/pistol/`
-- Skips duplicate sheets (ZIP 002 re-exports all unarmed sheets — skip if unarmed/ already populated)
+- Skips duplicate sheets (ZIP 002 re-exports all unarmed sheets â€” skip if unarmed/ already populated)
 - Prints a report: total extracted, skipped, unmapped
 
 **Key mappings the script must handle:**
@@ -402,19 +409,19 @@ python launcher/launcher.py
 ```
 - Launch the game
 - Confirm no crash on startup (AnimationRegistry loads all sheets)
-- Confirm placeholder fallback still active (sheets are in place but not registered yet — engine uses magenta dot)
+- Confirm placeholder fallback still active (sheets are in place but not registered yet â€” engine uses magenta dot)
 
 ---
 
-## PHASE 2 — Sprite Sheet Spec Update
+## PHASE 2 â€” Sprite Sheet Spec Update
 
 **Goal:** Update `docs/sprite_sheet_spec.md` to be the authoritative contract for all new animations.
 
 ### Changes to `docs/sprite_sheet_spec.md`
 
-1. **Update frame sizes table** — Player canvas is confirmed `80×80 px` (consistent with existing spec, confirmed by ZIP dimension check). No change needed to the format rules.
+1. **Update frame sizes table** â€” Player canvas is confirmed `80Ã—80 px` (consistent with existing spec, confirmed by ZIP dimension check). No change needed to the format rules.
 
-2. **Replace the Player animations table** with the full table from §0.2 of this plan. This is the source of truth for:
+2. **Replace the Player animations table** with the full table from Â§0.2 of this plan. This is the source of truth for:
    - File path
    - Frame count
    - FPS
@@ -423,20 +430,20 @@ python launcher/launcher.py
 3. **Add weapon subfolder layout:**
 ```
 assets/sprites/player/
-├── unarmed/          (79 sheets)
-├── sword/            (74 sheets)
-└── pistol/           (reserved — Arcade Mode)
+â”œâ”€â”€ unarmed/          (79 sheets)
+â”œâ”€â”€ sword/            (74 sheets)
+â””â”€â”€ pistol/           (reserved â€” Arcade Mode)
 ```
 
-4. **Add a `jumpfall_spritesheet.png` split note** — 10-frame sheet: frames 0-4 = jump arc, frames 5-9 = fall arc. `registerJumpFall()` in `AnimationRegistry` handles the slice.
+4. **Add a `jumpfall_spritesheet.png` split note** â€” 10-frame sheet: frames 0-4 = jump arc, frames 5-9 = fall arc. `registerJumpFall()` in `AnimationRegistry` handles the slice.
 
-5. **Add combo sheet note** — Standing Attack Combo (sword) is 8 sub-sheets × 35 frames each. Registered as separate directional keys `player_sword_attack` through `player_sword_attack_d7`.
+5. **Add combo sheet note** â€” Standing Attack Combo (sword) is 8 sub-sheets Ã— 35 frames each. Registered as separate directional keys `player_sword_attack` through `player_sword_attack_d7`.
 
-No code changes in this phase — documentation only.
+No code changes in this phase â€” documentation only.
 
 ---
 
-## PHASE 3 — AnimationRegistry Expansion
+## PHASE 3 â€” AnimationRegistry Expansion
 
 **Goal:** Register all new animation keys so the engine can serve any frame on request.
 
@@ -448,7 +455,7 @@ This replaces/extends the existing `loadSpriteSheets()`. It registers all 79 una
 
 Critical registrations:
 ```java
-// Jump/Fall — split the 10-frame sheet at frame boundary 5
+// Jump/Fall â€” split the 10-frame sheet at frame boundary 5
 sliceSubsetAndRegister(unarmedDir, "player_jump", "jumpfall_spritesheet.png", 10, 0, 5);
 sliceSubsetAndRegister(unarmedDir, "player_fall", "jumpfall_spritesheet.png", 10, 5, 5);
 
@@ -458,11 +465,11 @@ frames.put("player_wall_hang",    frames.get("player_climb_idle_side"));
 frames.put("player_air_spin",     frames.get("player_flip"));
 ```
 
-All 79 keys from the unarmed section of §0.2 must be explicitly registered. Missing sheets still fall through to the magenta placeholder.
+All 79 keys from the unarmed section of Â§0.2 must be explicitly registered. Missing sheets still fall through to the magenta placeholder.
 
 ### 3.2 Add `loadSwordSheets(FileHandle swordDir)` method
 
-Registers all 74 sword keys from the sword section of §0.2.
+Registers all 74 sword keys from the sword section of Â§0.2.
 
 Critical: the 8 combo sub-sheets for `Standing Attack Combo` and the 5 sub-sheets for air/crouch combos. Each is a separate 35-frame (or 17-frame) PNG:
 ```java
@@ -487,7 +494,7 @@ frames.put("player_sword_wall_hang",   frames.get("player_sword_climb_idle_side"
 
 ### 3.3 Update `playerFps()` in `EntityRenderer`
 
-`EntityRenderer.playerFps(String animState)` maps state strings to FPS. Add all new states from §0.2 (climb, swim, prone, roll, slide, block, combo attacks, interactions, emotes). The method is a `switch` — add a case per state.
+`EntityRenderer.playerFps(String animState)` maps state strings to FPS. Add all new states from Â§0.2 (climb, swim, prone, roll, slide, block, combo attacks, interactions, emotes). The method is a `switch` â€” add a case per state.
 
 ### 3.4 Update startup call in `GameScreen`
 
@@ -509,7 +516,7 @@ Expected: ~160 keys (79 unarmed + 74 sword + ~7 shared/existing). Confirm count 
 
 ---
 
-## PHASE 4 — EntityRenderer Key Routing
+## PHASE 4 â€” EntityRenderer Key Routing
 
 **Goal:** Make `EntityRenderer` select the correct key based on weapon state, without changing any state machine logic.
 
@@ -551,35 +558,35 @@ public boolean hasKey(String key) {
 }
 ```
 
-This makes the weapon state transparent to the animation state machine — the state machine only sets `animState = "idle"`, `"run"`, etc. The renderer prepends the weapon prefix. No state machine changes required in this phase.
+This makes the weapon state transparent to the animation state machine â€” the state machine only sets `animState = "idle"`, `"run"`, etc. The renderer prepends the weapon prefix. No state machine changes required in this phase.
 
 ### 4.3 Test
 
-- [ ] Launch game, move player — confirm all locomotion states render unarmed sprites (sword key falls through to unarmed until Phase 8 wires weaponState)
+- [ ] Launch game, move player â€” confirm all locomotion states render unarmed sprites (sword key falls through to unarmed until Phase 8 wires weaponState)
 - [ ] No NPE or missing key crash
 - [ ] Facing flip still works (check left/right movement)
 - [ ] Particle effects (run dust, jump puff, land puff) still fire at correct positions
 
 ---
 
-## PHASE 5 — Locomotion & Traversal Animations
+## PHASE 5 â€” Locomotion & Traversal Animations
 
 **Goal:** Replace all placeholder locomotion sprites with real ones and verify they sync correctly with physics states.
 
 ### 5.1 Animations to verify in this phase
 
-These states already exist in `stepPlayerAnimationState()` — just confirm the new sheets render correctly:
+These states already exist in `stepPlayerAnimationState()` â€” just confirm the new sheets render correctly:
 
 | State string | Key | New sheet | Notes |
 |---|---|---|---|
 | `idle` | `player_idle` | `idle_spritesheet.png` | 8f at 8 fps |
 | `run` | `player_run` | `run_spritesheet.png` | 8f at 12 fps |
-| `slow_walk` | `player_slow_walk` | (alias of walk) | — |
-| `dash` | `player_dash` | `dash_spritesheet.png` | 11f at 20 fps — was 7f, now 11f, update frame count |
+| `slow_walk` | `player_slow_walk` | (alias of walk) | â€” |
+| `dash` | `player_dash` | `dash_spritesheet.png` | 11f at 20 fps â€” was 7f, now 11f, update frame count |
 | `jump` | `player_jump` | `jumpfall_spritesheet.png` f0-4 | New split logic |
-| `fall` | `player_fall` | `jumpfall_spritesheet.png` f5-9 | New state — currently "jump" handles both |
+| `fall` | `player_fall` | `jumpfall_spritesheet.png` f5-9 | New state â€” currently "jump" handles both |
 | `wall_slide` | `player_wall_slide` | `wall_slide_spritesheet.png` | 4f, same count |
-| `crouch` | `player_crouch` | `crouch_idle_spritesheet.png` | 9f — was reusing idle, now dedicated |
+| `crouch` | `player_crouch` | `crouch_idle_spritesheet.png` | 9f â€” was reusing idle, now dedicated |
 | `crouch_walk` | `player_crouch_walk` | `crouch_walk_spritesheet.png` | 8f |
 
 ### 5.2 Add `fall` as a distinct state
@@ -599,7 +606,7 @@ case "fall" -> 10f;
 
 ### 5.3 Add new locomotion states not currently in state machine
 
-Add to `stepPlayerAnimationState()` (in priority order — these sit between existing checks):
+Add to `stepPlayerAnimationState()` (in priority order â€” these sit between existing checks):
 
 ```java
 // After wall_slide check, before jump/fall:
@@ -614,7 +621,7 @@ if (sp.animState.equals("idle") && sp.prevAnimState.equals("run") && !cmd.left &
 
 Add `isRolling` and `isSliding` booleans to `SimPlayer` (see Phase 6 for full movement wiring).
 
-### 5.4 Test — Locomotion Checklist
+### 5.4 Test â€” Locomotion Checklist
 
 Launch via `python launcher/launcher.py`. Confirm each state visually:
 
@@ -622,9 +629,9 @@ Launch via `python launcher/launcher.py`. Confirm each state visually:
 - [ ] Walk left/right: 8-frame loop, correct facing flip
 - [ ] Run (hold opposite direction briefly to test): skid animation fires (4 frames, then transition)
 - [ ] Run stop: 3-frame non-looping animation plays on decelerate
-- [ ] Dash: 11-frame non-looping burst — confirm it does not loop
+- [ ] Dash: 11-frame non-looping burst â€” confirm it does not loop
 - [ ] Jump ascent: frames 0-4 of jumpfall sheet
-- [ ] Jump descent (apex → fall): transitions to frames 5-9 of jumpfall sheet
+- [ ] Jump descent (apex â†’ fall): transitions to frames 5-9 of jumpfall sheet
 - [ ] Crouch: 9-frame idle while crouched
 - [ ] Crouch walk: 8-frame loop while moving crouched
 - [ ] Wall slide: 4-frame loop against wall
@@ -632,14 +639,14 @@ Launch via `python launcher/launcher.py`. Confirm each state visually:
 
 ---
 
-## PHASE 6 — Climb & Swim State Machine
+## PHASE 6 â€” Climb & Swim State Machine
 
 **Goal:** Wire the new climb and swim animation states to physics, since neither exists in the current state machine.
 
 ### 6.1 Add `isClimbing`, `isOnLedge`, `isSwimming` to `SimPlayer`
 
 ```java
-// SimPlayer.java — new fields:
+// SimPlayer.java â€” new fields:
 public boolean isClimbing      = false;  // on a climbable surface
 public boolean isOnLedge       = false;  // hanging from ledge edge
 public boolean isSwimming      = false;  // submerged in water
@@ -647,7 +654,7 @@ public boolean atWaterSurface  = false;  // at water surface level
 public int     climbDir        = 0;      // -1 = left/back, 0 = idle, 1 = right/up
 ```
 
-These require hooks in `PhysicsSystem` or `GameSimulator` to detect climbable-tagged tiles and water tiles. The `TileType` system already has tile-type decoupling (per PLAN_SHADOW_ASCENT.md audit fixes) — add `CLIMBABLE` and `WATER` tile type flags if not already present.
+These require hooks in `PhysicsSystem` or `GameSimulator` to detect climbable-tagged tiles and water tiles. The `TileType` system already has tile-type decoupling (per PLAN_SHADOW_ASCENT.md audit fixes) â€” add `CLIMBABLE` and `WATER` tile type flags if not already present.
 
 ### 6.2 Add climb/swim/ledge branches to `stepPlayerAnimationState()`
 
@@ -690,14 +697,14 @@ The existing water code applies drag only. Add buoyancy basics:
 - Horizontal speed cap: 5 px/tick (was 8)
 - Jump input while swimming: surfaces the player (transition to `atWaterSurface`)
 
-This is a minimal stub — full hydrodynamics is a future task. Just enough for the animations to trigger and test.
+This is a minimal stub â€” full hydrodynamics is a future task. Just enough for the animations to trigger and test.
 
-### 6.4 Test — Climb & Swim Checklist
+### 6.4 Test â€” Climb & Swim Checklist
 
 - [ ] Approach climbable wall: `climb_idle_side` animation plays
 - [ ] Press up on climbable wall: `climb_side` animation plays (6f loop)
 - [ ] Press left/right on climbable wall: `climb_left` / `climb_right` plays
-- [ ] Reach top of wall: `ledge_grab` → `ledge_idle` → `ledge_climb` (pull-up) sequence
+- [ ] Reach top of wall: `ledge_grab` â†’ `ledge_idle` â†’ `ledge_climb` (pull-up) sequence
 - [ ] Walk into water: transition to `swim_surface_idle`
 - [ ] Move in water: `swim_surface` plays
 - [ ] Dive: `swim_idle` plays
@@ -708,7 +715,7 @@ This is a minimal stub — full hydrodynamics is a future task. Just enough for 
 
 ---
 
-## PHASE 7 — Interaction Animations
+## PHASE 7 â€” Interaction Animations
 
 **Goal:** Play interaction animations when the player uses E on interactive objects (doors, levers, chests, buttons, pickups).
 
@@ -732,19 +739,19 @@ sp.interactionTimer = getInteractionDuration(sp.interactionState);
 
 Helper tables:
 ```
-door_enter  →  19 frames / 12 fps = 1.58 s
-door_exit   →  17 frames / 12 fps = 1.42 s
-lever       →  18 frames / 12 fps = 1.50 s
-button      →   9 frames / 12 fps = 0.75 s
-chest_back  →  12 frames / 10 fps = 1.20 s
-chest_side  →  11 frames / 10 fps = 1.10 s
-pickup      →   5 frames / 12 fps = 0.42 s
-pickup_crouch → 4 frames / 12 fps = 0.33 s
+door_enter  â†’  19 frames / 12 fps = 1.58 s
+door_exit   â†’  17 frames / 12 fps = 1.42 s
+lever       â†’  18 frames / 12 fps = 1.50 s
+button      â†’   9 frames / 12 fps = 0.75 s
+chest_back  â†’  12 frames / 10 fps = 1.20 s
+chest_side  â†’  11 frames / 10 fps = 1.10 s
+pickup      â†’   5 frames / 12 fps = 0.42 s
+pickup_crouch â†’ 4 frames / 12 fps = 0.33 s
 ```
 
 ### 7.3 Push/pull states
 
-`push_idle`, `push`, `pull` are looping — they remain active while the player holds against a pushable object. These are controlled by physics contact, not a timer.
+`push_idle`, `push`, `pull` are looping â€” they remain active while the player holds against a pushable object. These are controlled by physics contact, not a timer.
 
 ### 7.4 Add interaction states to `stepPlayerAnimationState()`
 
@@ -761,7 +768,7 @@ if (sp.isPulling) { sp.animState = "pull"; return; }
 if (sp.isPushIdle) { sp.animState = "push_idle"; return; }
 ```
 
-### 7.5 Test — Interaction Checklist
+### 7.5 Test â€” Interaction Checklist
 
 - [ ] Walk through a door: `door_enter` plays full 19 frames, then room transition fires
 - [ ] Exit door: `door_exit` plays 17 frames
@@ -771,11 +778,11 @@ if (sp.isPushIdle) { sp.animState = "push_idle"; return; }
 - [ ] Open chest facing back: `chest_back` plays 12 frames
 - [ ] Pick up item standing: `pickup` plays 5 frames, item added to inventory
 - [ ] Pick up item crouching: `pickup_crouch` plays 4 frames
-- [ ] Push crate (hold into it): `push_idle` → `push` loop
+- [ ] Push crate (hold into it): `push_idle` â†’ `push` loop
 
 ---
 
-## PHASE 8 — Weapon State System
+## PHASE 8 â€” Weapon State System
 
 **Goal:** Allow the player to equip/unequip a sword, and have all animations switch to the sword set transparently.
 
@@ -815,7 +822,7 @@ ps.weaponState = sp.weaponState.name().toLowerCase(); // "unarmed" / "sword"
 
 `PlayerState.weaponState` field added in Phase 4.1.
 
-### 8.4 Test — Weapon State Checklist
+### 8.4 Test â€” Weapon State Checklist
 
 - [ ] Default spawn: unarmed animations play
 - [ ] Press `2` (or pick up sword): all locomotion animations immediately switch to sword variants (idle, run, crouch, wall-slide)
@@ -825,7 +832,7 @@ ps.weaponState = sp.weaponState.name().toLowerCase(); // "unarmed" / "sword"
 
 ---
 
-## PHASE 9 — Unarmed Combo Chain
+## PHASE 9 â€” Unarmed Combo Chain
 
 **Goal:** Replace the single-hit `isAttacking` system with a full 3-hit ground combo, 3-hit air combo, and 2-hit crouch combo.
 
@@ -841,7 +848,7 @@ public float blockTimer      = 0f;
 
 Constants (add to `PhysicsConstants`):
 ```java
-public static final float COMBO_WINDOW     = 0.22f;  // 13 ticks — input window after each hit
+public static final float COMBO_WINDOW     = 0.22f;  // 13 ticks â€” input window after each hit
 public static final float COMBO_HIT1_DUR   = 6f / 15f;   // 6 frames @ 15 fps = 0.40 s
 public static final float COMBO_HIT2_DUR   = 8f / 15f;   // 8 frames @ 15 fps = 0.53 s
 public static final float COMBO_HIT3_DUR   = 6f / 15f;   // 6 frames @ 15 fps = 0.40 s
@@ -889,14 +896,14 @@ private void startComboHit(SimPlayer sp, PhysicsState p, int step) {
         case 3 -> COMBO_HIT3_DUR;
         default -> 0f;
     };
-    // Hitbox: same 48×40 px reach as before; step 3 (kick) gets +8 px vertical
+    // Hitbox: same 48Ã—40 px reach as before; step 3 (kick) gets +8 px vertical
     applyMeleeHitbox(sp, p, step);
 }
 ```
 
 ### 9.3 Map combo steps to animation states
 
-Update `stepPlayerAnimationState()` — in the `isAttacking` branch:
+Update `stepPlayerAnimationState()` â€” in the `isAttacking` branch:
 ```java
 if (sp.isAttacking) {
     boolean inAir    = !p.onGround;
@@ -922,22 +929,22 @@ if (sp.isAttacking) {
 | Crouch Punch (step 1) | 36 px | 28 px | Low reach |
 | Crouch Kick (step 2) | 48 px | 30 px | Sweep |
 
-### 9.5 Test — Unarmed Combo Checklist
+### 9.5 Test â€” Unarmed Combo Checklist
 
 - [ ] Press attack once: `punch1` plays (6 frames), hitbox active frames 2-5
 - [ ] Press attack during combo window after hit 1: `punch2` plays (8 frames), hitbox active frames 2-6
 - [ ] Press attack during combo window after hit 2: `kick` plays (6 frames), hitbox active frames 2-5
 - [ ] No press during combo window: combo resets to step 0 after window expires
 - [ ] Press attack during attack animation (not window): input buffered, fires when window opens
-- [ ] Combo while airborne: `air_punch1` → `air_punch2` → `air_kick` sequence
-- [ ] Combo while crouched: `crouch_punch` → `crouch_kick` (2-hit only)
+- [ ] Combo while airborne: `air_punch1` â†’ `air_punch2` â†’ `air_kick` sequence
+- [ ] Combo while crouched: `crouch_punch` â†’ `crouch_kick` (2-hit only)
 - [ ] Run + attack: `run_kick` plays as standalone (no combo, single hit)
 - [ ] Enemy takes correct damage per hit (1 HP each)
 - [ ] Stun on hit 3 is longer than on hit 1 (3-hit combo ends with a knockback kick)
 
 ---
 
-## PHASE 10 — Sword Combat System
+## PHASE 10 â€” Sword Combat System
 
 **Goal:** Implement the sword combat system using the new sword animation set. Three attack configurations: ground (8-direction combo + stab), air (5-direction + air stab), crouch (5-direction + crouch stab). Plus the sword-exclusive `Dash Attack`.
 
@@ -973,14 +980,14 @@ For finisher (stab), trigger when: `cmd.attack` + !`cmd.left` + !`cmd.right` + `
 
 ### 10.3 Sword Dash Attack
 
-The Dash Attack is unique to the sword — only fires when the player is actively dashing and presses attack:
+The Dash Attack is unique to the sword â€” only fires when the player is actively dashing and presses attack:
 ```java
 if (sp.isDashing && attackJustPressed && sp.weaponState == SWORD) {
     sp.isAttacking     = true;
     sp.attackAnimTimer = 11f / 15f;  // 11 frames @ 15 fps
     sp.comboStep       = 99;         // special step for dash attack
     sp.animState       = "sword_dash_attack";
-    // Hitbox: extends full dash reach (16 px/tick × 0.16 s = ~80 px forward)
+    // Hitbox: extends full dash reach (16 px/tick Ã— 0.16 s = ~80 px forward)
     applyMeleeHitbox(sp, p, 99);
 }
 ```
@@ -997,7 +1004,7 @@ if (sp.isDashing && attackJustPressed && sp.weaponState == SWORD) {
 | Stab | 72 px | 28 px | Long narrow thrust |
 | Dash attack | 80 px | 40 px | Full dash length |
 
-### 10.5 Test — Sword Combat Checklist
+### 10.5 Test â€” Sword Combat Checklist
 
 - [ ] Equip sword (Phase 8), then attack: `player_sword_attack` (35-frame sheet) plays
 - [ ] Attack + up: `player_sword_attack_d1` plays (upward slash direction)
@@ -1005,13 +1012,13 @@ if (sp.isDashing && attackJustPressed && sp.weaponState == SWORD) {
 - [ ] Air sword attack: `player_sword_air_attack` plays (17-frame sheet)
 - [ ] Crouch sword attack: `player_sword_crouch_attack` plays (17-frame sheet)
 - [ ] Down + attack (stationary, grounded): `player_sword_stab` plays (5 frames)
-- [ ] Dash → attack (sword): `player_sword_dash_attack` plays (11 frames) with extended hitbox
+- [ ] Dash â†’ attack (sword): `player_sword_dash_attack` plays (11 frames) with extended hitbox
 - [ ] Enemy hit by sword takes 1 HP damage
 - [ ] All 8 directional sub-sheets are visually distinct (open an image viewer to confirm before code test)
 
 ---
 
-## PHASE 11 — Block / Parry System
+## PHASE 11 â€” Block / Parry System
 
 **Goal:** Wire the existing block animations to a defensive mechanic with a parry window.
 
@@ -1024,7 +1031,7 @@ public boolean isParrying    = false;
 public float   parryWindow   = 0f;   // short invincible parry flash (0.1 s)
 ```
 
-Block is held with a new key — assign to `cmd.block` (add to `InputCommand` and wire to `InputPoller` key `G`). See Phase 15 for the full keybinding rationale; `Q` is reserved for consumables.
+Block is held with a new key â€” assign to `cmd.block` (add to `InputCommand` and wire to `InputPoller` key `G`). See Phase 15 for the full keybinding rationale; `Q` is reserved for consumables.
 
 ### 11.2 Block logic in `GameSimulator`
 
@@ -1070,7 +1077,7 @@ if (sp.isBlocking) {
 
 Hit reactions during block are set by the damage handler, not the state machine.
 
-### 11.4 Test — Block / Parry Checklist
+### 11.4 Test â€” Block / Parry Checklist
 
 - [ ] Hold `Q`: `player_block` (8-frame loop) plays
 - [ ] Take hit while blocking: `player_block_hit` (3 frames) plays, damage halved
@@ -1082,7 +1089,7 @@ Hit reactions during block are set by the damage handler, not the state machine.
 
 ---
 
-## PHASE 12 — Social / Emote Animations
+## PHASE 12 â€” Social / Emote Animations
 
 **Goal:** Wire the hub-social animations (sitting, sleeping, talking, victory, drink) to NPC interaction events and hub logic.
 
@@ -1098,7 +1105,7 @@ public float  emoteTimer = 0f;     // -1 = looping until cancelled
 | Emote | Trigger | Duration |
 |-------|---------|----------|
 | `sit` | Player presses E near a bench/chair | Loop until E pressed again |
-| `sleep` | Player stands idle in bed area | Loop — auto-triggers after 3 s idle in rest zone |
+| `sleep` | Player stands idle in bed area | Loop â€” auto-triggers after 3 s idle in rest zone |
 | `talk` | NPC dialogue is open | Loop during dialogue sequence |
 | `victory` | Level complete event fires | 10 frames, play once |
 | `drink` | Player uses consumable item | 19 frames, play once |
@@ -1106,7 +1113,7 @@ public float  emoteTimer = 0f;     // -1 = looping until cancelled
 
 ### 12.3 Animation state priority
 
-Emotes sit at low priority — they can be cancelled by any movement input:
+Emotes sit at low priority â€” they can be cancelled by any movement input:
 ```java
 // Bottom of stepPlayerAnimationState(), after idle:
 if (!sp.emoteState.isEmpty() && sp.emoteTimer != 0f) {
@@ -1126,7 +1133,7 @@ if (cmd.left || cmd.right || cmd.jump || cmd.dash || cmd.attack) {
 }
 ```
 
-### 12.4 Test — Social Animation Checklist
+### 12.4 Test â€” Social Animation Checklist
 
 - [ ] Sit near bench (E): `player_sit` loops
 - [ ] Press E again: returns to idle
@@ -1138,7 +1145,7 @@ if (cmd.left || cmd.right || cmd.jump || cmd.dash || cmd.attack) {
 
 ---
 
-## PHASE 13 — Death, Revive & Prone System
+## PHASE 13 â€” Death, Revive & Prone System
 
 **Goal:** Replace the single `player_death` state with the full two-variant death system plus the prone subsystem for stealth/knockdown.
 
@@ -1182,7 +1189,7 @@ if (sp.isProne) {
 
 Prone-death and prone-revive are triggered by the same death handler when `sp.isProne == true`.
 
-### 13.3 Test — Death & Revive Checklist
+### 13.3 Test â€” Death & Revive Checklist
 
 - [ ] Player dies: either `player_death` or `player_death2` plays (random)
 - [ ] Respawn: matching `player_revive` or `player_revive2` plays before control is returned
@@ -1191,11 +1198,11 @@ Prone-death and prone-revive are triggered by the same death handler when `sp.is
 - [ ] Hold S+Ctrl: player enters prone state, `player_prone` (9-frame loop) plays
 - [ ] Move while prone: `player_prone_walk` (8-frame loop) plays
 - [ ] Take hit while prone: `player_prone_hurt` (4 frames) plays
-- [ ] Stand up from prone: transition to `idle` is instant (no stand-up anim — use `revive` as a workaround or accept snap)
+- [ ] Stand up from prone: transition to `idle` is instant (no stand-up anim â€” use `revive` as a workaround or accept snap)
 
 ---
 
-## PHASE 14 — Testing & Validation
+## PHASE 14 â€” Testing & Validation
 
 **Goal:** Confirm all systems are integrated, performant, and do not regress existing gameplay.
 
@@ -1204,7 +1211,7 @@ Prone-death and prone-revive are triggered by the same death handler when `sp.is
 Create `AnimationIntegrationTest.java` in `client/src/test/`. This test:
 1. Instantiates `AnimationRegistry`
 2. Calls `loadUnarmedSheets()` and `loadSwordSheets()` with real asset paths
-3. Asserts that every key in the §0.2 mapping table returns a non-null frame array
+3. Asserts that every key in the Â§0.2 mapping table returns a non-null frame array
 4. Asserts frame array length matches the expected frame count
 
 ```java
@@ -1254,7 +1261,7 @@ In `EntityRenderer.renderPlayer()`, stateTime is already tracked per-entity via 
 
 Add assertion in test:
 ```java
-// Transition idle → attack → idle: stateTime should reset to 0 at each transition
+// Transition idle â†’ attack â†’ idle: stateTime should reset to 0 at each transition
 ```
 
 ### 14.4 Performance validation
@@ -1265,7 +1272,7 @@ python launcher/launcher.py --headless --record perf_run_post_anim.json
 ```
 
 Compare against `docs/perf_baseline.csv`. Accept if:
-- `frame_total` p95 ≤ 16 ms (60 fps budget)
+- `frame_total` p95 â‰¤ 16 ms (60 fps budget)
 - `render` section did not increase by more than 0.5 ms median
 - No GC spikes (AnimationRegistry must not allocate per-frame)
 
@@ -1305,33 +1312,33 @@ cd java && ./gradlew test
 ```
 
 All pre-existing tests must pass. Pay special attention to:
-- `CollisionEdgeCaseTest` — physics must be unaffected
-- `PhysicsSystemTest` — no velocity/hitbox regressions
-- `GameSimulatorTest` — attack hitbox timings must not change for existing tests
+- `CollisionEdgeCaseTest` â€” physics must be unaffected
+- `PhysicsSystemTest` â€” no velocity/hitbox regressions
+- `GameSimulatorTest` â€” attack hitbox timings must not change for existing tests
 
 ---
 
-## Appendix A — Workarounds for Missing Animations
+## Appendix A â€” Workarounds for Missing Animations
 
 | Missing | Required for | Workaround |
 |---------|-------------|------------|
-| Charged attack wind-up | Yang system (§3.2) | Freeze frame 0 of `player_sword_attack` + pulsing VFX shader; release fires combo from frame 1 |
-| Phase Shift teleport body | Phase through walls (§6.2) | VFX dissolve only; body holds `idle` pose during cursor mode |
+| Charged attack wind-up | Yang system (Â§3.2) | Freeze frame 0 of `player_sword_attack` + pulsing VFX shader; release fires combo from frame 1 |
+| Phase Shift teleport body | Phase through walls (Â§6.2) | VFX dissolve only; body holds `idle` pose during cursor mode |
 | Stand-to-prone transition | Stealth entry | Tween physics AABB height 0.15 s; animation snaps to `prone` on arrival |
 | Prone-to-stand | Stealth exit | Play `prone_revive` reversed (5 frames played backward via negative stateTime delta) |
 | Water entry dive | Swimming entry | Hard-cut to `swim_surface_idle` at water threshold + splash VFX; no body animation |
 | Water exit | Swimming exit | `ledge_climb_back` if wall present; snap to `idle` + VFX drip otherwise |
-| Grapple throw | Rope mechanic (§3.1) | VFX hook projectile; body plays first 3 frames of `air_punch1` as throw gesture |
+| Grapple throw | Rope mechanic (Â§3.1) | VFX hook projectile; body plays first 3 frames of `air_punch1` as throw gesture |
 | Wall-hang idle (looping) | Wall jump system | Freeze last frame of `wall_slide` + 1-pixel breathing offset in code |
-| Backstep / evade | Parry window | `roll` played at 1.5× speed toward `facing == -1` direction reads as a backstep |
+| Backstep / evade | Parry window | `roll` played at 1.5Ã— speed toward `facing == -1` direction reads as a backstep |
 
 ---
 
 ---
 
-## PHASE 15 — Complete Keybinding Scheme
+## PHASE 15 â€” Complete Keybinding Scheme
 
-**Goal:** Define the authoritative default control scheme covering all actions — existing, new (block, weapon select, emote, prone), and UI. This phase is documentation and design; code changes happen in Phase 16.
+**Goal:** Define the authoritative default control scheme covering all actions â€” existing, new (block, weapon select, emote, prone), and UI. This phase is documentation and design; code changes happen in Phase 16.
 
 ### 15.1 Existing state audit
 
@@ -1339,25 +1346,25 @@ Two problems exist before any new bindings are added:
 
 | Problem | Detail |
 |---------|--------|
-| `settings.json` / `InputPoller` disconnect | `settings.json` has `key_left`, `key_right`, `key_jump`, `key_dash`, `key_crouch` but `InputPoller.java` never reads them — all bindings are hardcoded. The settings fields are dead. |
+| `settings.json` / `InputPoller` disconnect | `settings.json` has `key_left`, `key_right`, `key_jump`, `key_dash`, `key_crouch` but `InputPoller.java` never reads them â€” all bindings are hardcoded. The settings fields are dead. |
 | `key_crouch` mismatch | `settings.json` says `"key_crouch": "down"` (arrow key); `InputPoller` uses `CTRL`. These disagree. |
 | Missing new-action fields | `block`, `selectWeapon1`, `selectWeapon2`, `emote`, `prone` do not exist in `InputCommand` yet. |
 
 Phase 16 resolves all three. This phase establishes what the correct values should be.
 
-### 15.2 Default Keybinding Scheme — Keyboard
+### 15.2 Default Keybinding Scheme â€” Keyboard
 
 #### Movement group
 
 | Action | `InputCommand` field | Primary key | Secondary key | Notes |
 | ------ | ------------------- | ----------- | ------------- | ----- |
-| Move left | `left` | `A` | `←` | |
-| Move right | `right` | `D` | `→` | |
-| Move up (climb / swim / aim) | `up` | `W` | `↑` | |
-| Move down (crouch / swim / aim) | `down` | `S` | `↓` | |
-| Jump | `jump` | `SPACE` | — | Double-jump, wall-jump reuse same field |
+| Move left | `left` | `A` | `â†` | |
+| Move right | `right` | `D` | `â†’` | |
+| Move up (climb / swim / aim) | `up` | `W` | `â†‘` | |
+| Move down (crouch / swim / aim) | `down` | `S` | `â†“` | |
+| Jump | `jump` | `SPACE` | â€” | Double-jump, wall-jump reuse same field |
 | Dash | `dash` | `LEFT SHIFT` | `RIGHT SHIFT` | Held; unlockable ability |
-| Slow walk | `slowWalk` | `LEFT ALT` | — | Hold for precision movement |
+| Slow walk | `slowWalk` | `LEFT ALT` | â€” | Hold for precision movement |
 | Crouch | `crouch` | `LEFT CTRL` | `RIGHT CTRL` | Hold; fixes the `settings.json` mismatch (was "down") |
 
 #### Combat group
@@ -1365,12 +1372,12 @@ Phase 16 resolves all three. This phase establishes what the correct values shou
 | Action | `InputCommand` field | Primary key | Secondary key | Notes |
 | ------ | ------------------- | ----------- | ------------- | ----- |
 | Attack (combo) | `attack` | `J` | `Left Mouse` | Directional with WASD held |
-| Block (hold) | `block` *(new)* | `G` | — | First 0.1 s = parry window; see Phase 11 |
-| Throw projectile | `throwShuriken` | `K` | — | Existing |
+| Block (hold) | `block` *(new)* | `G` | â€” | First 0.1 s = parry window; see Phase 11 |
+| Throw projectile | `throwShuriken` | `K` | â€” | Existing |
 | Teleport (hold to aim) | `teleport` | `F` | `T` | Hold; release warps; existing |
-| Ninjutsu (hold to cast) | `ninjutsu` | `L` | — | Hold; existing |
+| Ninjutsu (hold to cast) | `ninjutsu` | `L` | â€” | Hold; existing |
 
-**Why `G` for block:** `G` sits one key right of the left-hand movement cluster — reachable by the left index finger without leaving WASD. `Q` is consumable. `K` is throw. No existing binding occupied `G`.
+**Why `G` for block:** `G` sits one key right of the left-hand movement cluster â€” reachable by the left index finger without leaving WASD. `Q` is consumable. `K` is throw. No existing binding occupied `G`.
 
 #### Weapon select group *(all new)*
 
@@ -1387,14 +1394,14 @@ Number row weapon switching is the universal game convention (`1`/`2`/`3`). Wire
 | ------ | ------------------- | ----------- | ----- |
 | Enter / exit prone | `prone` *(new)* | `Z` | `Z` is menu-confirm but only in menu contexts; safe during gameplay |
 
-`Z` is currently bound to `menuConfirm` via `isKeyJustPressed`. That only fires on the menu screen. During gameplay `Z` is idle — safe to reuse for prone without context conflict.
+`Z` is currently bound to `menuConfirm` via `isKeyJustPressed`. That only fires on the menu screen. During gameplay `Z` is idle â€” safe to reuse for prone without context conflict.
 
 #### Interaction group
 
 | Action | `InputCommand` field | Primary key | Secondary key | Notes |
 | ------ | ------------------- | ----------- | ------------- | ----- |
-| Interact / use | `interact` | `E` | — | Existing; triggers door, lever, chest, NPC |
-| Consumable | `consumable` | `Q` | — | Existing; keep as-is |
+| Interact / use | `interact` | `E` | â€” | Existing; triggers door, lever, chest, NPC |
+| Consumable | `consumable` | `Q` | â€” | Existing; keep as-is |
 | Inventory | `inventory` | `I` | `TAB` | Existing |
 
 #### Social / emote group *(new)*
@@ -1407,12 +1414,12 @@ Number row weapon switching is the universal game convention (`1`/`2`/`3`). Wire
 
 | Action | `InputCommand` field | Primary key | Secondary key | Notes |
 | ------ | ------------------- | ----------- | ------------- | ----- |
-| Minimap toggle | `minimap` | `M` | — | Existing |
-| Full map | `fullmap` | `N` | — | Existing |
-| Controls overlay | `controlsOverlay` | `F1` | — | Existing field; overlay rendering added Phase 17 |
-| Debug overlay | `debugOverlay` | `F3` | — | Existing |
-| Camera cycle | `cycleCamera` | `C` | — | Existing |
-| Procedural toggle | `toggleProc` | `P` | — | Existing; dev tool |
+| Minimap toggle | `minimap` | `M` | â€” | Existing |
+| Full map | `fullmap` | `N` | â€” | Existing |
+| Controls overlay | `controlsOverlay` | `F1` | â€” | Existing field; overlay rendering added Phase 17 |
+| Debug overlay | `debugOverlay` | `F3` | â€” | Existing |
+| Camera cycle | `cycleCamera` | `C` | â€” | Existing |
+| Procedural toggle | `toggleProc` | `P` | â€” | Existing; dev tool |
 | Pause / menu back | `menuBack` | `ESC` | `X` | Existing |
 | Menu confirm | `menuConfirm` | `ENTER` | `Z` | Existing; `Z` is menu-context only |
 
@@ -1468,9 +1475,9 @@ The settings file gains a full `keybindings` block. This replaces the loose top-
 }
 ```
 
-Key string values match libGDX `Input.Keys` constant names exactly — `KeyBindings.java` (Phase 16) resolves them via `Input.Keys.valueOf(name)`.
+Key string values match libGDX `Input.Keys` constant names exactly â€” `KeyBindings.java` (Phase 16) resolves them via `Input.Keys.valueOf(name)`.
 
-### 15.4 Gamepad stub (future — not in this phase)
+### 15.4 Gamepad stub (future â€” not in this phase)
 
 No gamepad implementation in this phase. Reserve the following layout for when controller support is added:
 
@@ -1490,9 +1497,9 @@ No gamepad implementation in this phase. Reserve the following layout for when c
 
 Add a `"gamepad_bindings": {}` block to `settings.json` as a reserved empty object now, so the schema is forward-compatible.
 
-### 15.5 Test — Scheme completeness checklist
+### 15.5 Test â€” Scheme completeness checklist
 
-No code yet — verify the scheme design only:
+No code yet â€” verify the scheme design only:
 
 - [ ] Every `InputCommand` field (existing + new) has an entry in the scheme table
 - [ ] No two in-gameplay actions share the same key in the same context
@@ -1502,7 +1509,7 @@ No code yet — verify the scheme design only:
 
 ---
 
-## PHASE 16 — KeyBindings System
+## PHASE 16 â€” KeyBindings System
 
 **Goal:** Replace `InputPoller`'s hardcoded bindings with a loaded, configurable `KeyBindings` class. Wire all new `InputCommand` fields. Fix the `settings.json` disconnect.
 
@@ -1519,7 +1526,7 @@ public boolean prone;          // enter / exit prone
 public boolean emote;          // toggle emote
 ```
 
-Update `toMap()` — append in the correct protocol order:
+Update `toMap()` â€” append in the correct protocol order:
 ```java
 m.put("block",          block);
 m.put("select_weapon_1",selectWeapon1);
@@ -1528,7 +1535,7 @@ m.put("prone",          prone);
 m.put("emote",          emote);
 ```
 
-Update `fromMap()` — add corresponding reads:
+Update `fromMap()` â€” add corresponding reads:
 ```java
 c.block          = bool(m, "block");
 c.selectWeapon1  = bool(m, "select_weapon_1");
@@ -1563,7 +1570,7 @@ import java.util.*;
 public final class KeyBindings {
     
 
-    /** Action name → list of resolved libGDX key codes. */
+    /** Action name â†’ list of resolved libGDX key codes. */
     private final Map<String, int[]> bindings = new HashMap<>();
 
     /** Defaults matching the scheme in Phase 15. Applied when no file is present. */
@@ -1627,7 +1634,7 @@ public final class KeyBindings {
             }
         } catch (Exception ex) {
             System.err.println("[KeyBindings] Failed to load: " + ex.getMessage()
-                + " — using defaults");
+                + " â€” using defaults");
         }
     }
 
@@ -1662,7 +1669,7 @@ public final class KeyBindings {
                 codes.add(code);
             } else {
                 System.err.println("[KeyBindings] Unknown key name '" + name
-                    + "' for action '" + action + "' — skipped");
+                    + "' for action '" + action + "' â€” skipped");
             }
         }
         if (!codes.isEmpty())
@@ -1700,7 +1707,7 @@ public final class InputPoller {
         cmd.crouch = keys.isHeld("crouch");
         cmd.slowWalk = keys.isHeld("slow_walk");
 
-        // Combat (held — server uses edge-detection)
+        // Combat (held â€” server uses edge-detection)
         cmd.attack        = keys.isHeld("attack")
                          || Gdx.input.isButtonPressed(Input.Buttons.LEFT);
         cmd.block         = keys.isHeld("block");
@@ -1757,56 +1764,56 @@ inputPoller = new InputPoller(keyBindings);
 **File:** `user_data/settings/settings.json`
 
 - Remove the old top-level `key_left`, `key_right`, `key_jump`, `key_dash`, `key_crouch` fields
-- Add the full `keybindings` block from §15.3
+- Add the full `keybindings` block from Â§15.3
 - Add `"gamepad_bindings": {}` as a reserved stub
 
-### 16.6 Test — KeyBindings System Checklist
+### 16.6 Test â€” KeyBindings System Checklist
 
-- [ ] Launch via `python launcher/launcher.py` — game starts, no crash, bindings load from file
-- [ ] Delete `keybindings` block from `settings.json`, restart — defaults apply, game still playable
-- [ ] Manually edit `settings.json` to swap attack to `"U"` — in-game attack now fires on `U`
-- [ ] Enter an invalid key name (e.g. `"ZZZZ"`) in settings — logged warning, action falls back to default, no crash
+- [ ] Launch via `python launcher/launcher.py` â€” game starts, no crash, bindings load from file
+- [ ] Delete `keybindings` block from `settings.json`, restart â€” defaults apply, game still playable
+- [ ] Manually edit `settings.json` to swap attack to `"U"` â€” in-game attack now fires on `U`
+- [ ] Enter an invalid key name (e.g. `"ZZZZ"`) in settings â€” logged warning, action falls back to default, no crash
 - [ ] Confirm `key_left` / `key_right` (old fields) are gone from `settings.json` without breaking anything
 - [ ] All five new `InputCommand` fields (`block`, `selectWeapon1`, `selectWeapon2`, `prone`, `emote`) transmit over the wire: add a temporary server-side log confirming receipt
-- [ ] Hold `G` → `cmd.block` is `true` in server log
-- [ ] Press `1` → `cmd.selectWeapon1` is `true` for exactly one tick
-- [ ] Press `2` → `cmd.selectWeapon2` is `true` for exactly one tick
-- [ ] Press `V` → `cmd.emote` is `true` for exactly one tick
-- [ ] Press `Z` → `cmd.prone` is `true` for exactly one tick (and `Z` does not fire `menuConfirm` during gameplay)
+- [ ] Hold `G` â†’ `cmd.block` is `true` in server log
+- [ ] Press `1` â†’ `cmd.selectWeapon1` is `true` for exactly one tick
+- [ ] Press `2` â†’ `cmd.selectWeapon2` is `true` for exactly one tick
+- [ ] Press `V` â†’ `cmd.emote` is `true` for exactly one tick
+- [ ] Press `Z` â†’ `cmd.prone` is `true` for exactly one tick (and `Z` does not fire `menuConfirm` during gameplay)
 
 ---
 
-## PHASE 17 — Controls Overlay (In-Game HUD)
+## PHASE 17 â€” Controls Overlay (In-Game HUD)
 
 **Goal:** Render a readable in-game controls reference overlay, triggered by `F1`. It reads live from `KeyBindings` so it always reflects the player's current configuration.
 
 ### 17.1 Design
 
-The overlay is a semi-transparent dark panel rendered over the game world, listing all gameplay bindings in two columns. It does not pause the game — the player can read controls while still moving.
+The overlay is a semi-transparent dark panel rendered over the game world, listing all gameplay bindings in two columns. It does not pause the game â€” the player can read controls while still moving.
 
 ```
-┌──────────────────────────────────────────────────────┐
-│            CONTROLS  (F1 to close)                   │
-├──────────────────────┬───────────────────────────────┤
-│  MOVEMENT            │  COMBAT                       │
-│  Move        A / D   │  Attack        J              │
-│  Jump        SPACE   │  Block (hold)  G              │
-│  Dash        SHIFT   │  Throw         K              │
-│  Crouch      CTRL    │  Teleport      F / T          │
-│  Slow Walk   ALT     │  Ninjutsu      L              │
-│                      │                               │
-│  TRAVERSAL           │  WEAPON SELECT                │
-│  Prone       Z       │  Unarmed       1              │
-│                      │  Sword         2              │
-│  INTERACTION         │                               │
-│  Use / Talk  E       │  SOCIAL                       │
-│  Item        Q       │  Emote         V              │
-│  Inventory   I / TAB │                               │
-│                      │  UI                           │
-│                      │  Map           M              │
-│                      │  Full Map      N              │
-│                      │  Controls      F1             │
-└──────────────────────┴───────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚            CONTROLS  (F1 to close)                   â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  MOVEMENT            â”‚  COMBAT                       â”‚
+â”‚  Move        A / D   â”‚  Attack        J              â”‚
+â”‚  Jump        SPACE   â”‚  Block (hold)  G              â”‚
+â”‚  Dash        SHIFT   â”‚  Throw         K              â”‚
+â”‚  Crouch      CTRL    â”‚  Teleport      F / T          â”‚
+â”‚  Slow Walk   ALT     â”‚  Ninjutsu      L              â”‚
+â”‚                      â”‚                               â”‚
+â”‚  TRAVERSAL           â”‚  WEAPON SELECT                â”‚
+â”‚  Prone       Z       â”‚  Unarmed       1              â”‚
+â”‚                      â”‚  Sword         2              â”‚
+â”‚  INTERACTION         â”‚                               â”‚
+â”‚  Use / Talk  E       â”‚  SOCIAL                       â”‚
+â”‚  Item        Q       â”‚  Emote         V              â”‚
+â”‚  Inventory   I / TAB â”‚                               â”‚
+â”‚                      â”‚  UI                           â”‚
+â”‚                      â”‚  Map           M              â”‚
+â”‚                      â”‚  Full Map      N              â”‚
+â”‚                      â”‚  Controls      F1             â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### 17.2 State management
@@ -1827,7 +1834,7 @@ Pass `showControlsOverlay` to `HudRenderer.render()` as a new parameter.
 
 **File:** `java/client/src/main/java/com/indieniinja/client/rendering/HudRenderer.java`
 
-Add `renderControlsOverlay(SpriteBatch batch, KeyBindings keys)` method. The renderer already has `BitmapFont font` and `SpriteBatch hudBatch` — no new rendering infrastructure needed.
+Add `renderControlsOverlay(SpriteBatch batch, KeyBindings keys)` method. The renderer already has `BitmapFont font` and `SpriteBatch hudBatch` â€” no new rendering infrastructure needed.
 
 ```java
 public void renderControlsOverlay(KeyBindings keys) {
@@ -1916,12 +1923,12 @@ private static final String[][] UI_ENTRIES = {
 ### 17.4 Key name formatting helper
 
 ```java
-/** Convert KeyBindings action to a human-readable key string, e.g. "SHIFT_LEFT" → "SHIFT" */
+/** Convert KeyBindings action to a human-readable key string, e.g. "SHIFT_LEFT" â†’ "SHIFT" */
 private String formatKeys(KeyBindings keys, String action) {
     // KeyBindings exposes a getNames(action) method (add this to KeyBindings):
     //   returns String[] of libGDX key names for the action
     String[] names = keys.getNames(action);
-    if (names == null || names.length == 0) return "—";
+    if (names == null || names.length == 0) return "â€”";
     // Prettify common names
     return Arrays.stream(names)
         .map(HudRenderer::prettifyKeyName)
@@ -1955,39 +1962,40 @@ public String[] getNames(String action) {
 }
 ```
 
-### 17.5 Test — Controls Overlay Checklist
+### 17.5 Test â€” Controls Overlay Checklist
 
 - [ ] Press `F1` in-game: overlay appears, game continues running behind it
 - [ ] Press `F1` again: overlay dismisses
 - [ ] Every action in the Phase 15 scheme appears in the overlay with correct key labels
-- [ ] Manually rebind attack to `"U"` in `settings.json`, restart — overlay shows `U`, not `J`
-- [ ] Overlay is readable at 1920×1080 and at 1280×720 (test both resolutions)
-- [ ] Overlay does not block input — player can still move and jump while it is open
+- [ ] Manually rebind attack to `"U"` in `settings.json`, restart â€” overlay shows `U`, not `J`
+- [ ] Overlay is readable at 1920Ã—1080 and at 1280Ã—720 (test both resolutions)
+- [ ] Overlay does not block input â€” player can still move and jump while it is open
 - [ ] `ESC` while overlay is open: overlay closes first (handle `menuBack` with overlay-close priority before pause)
 - [ ] Launch via `python launcher/launcher.py` and confirm F1 functions from the launcher path
 
 ---
 
-## Appendix B — Pistol Staging (Arcade Mode)
+## Appendix B â€” Pistol Staging (Arcade Mode)
 
 The pistol set (from ZIP 002) is extracted to `assets/sprites/player/pistol/` in Phase 1 but not registered. When Arcade Mode integration begins:
 
-1. Add `loadPistolSheets(FileHandle pistolDir)` to `AnimationRegistry` — same pattern as sword
+1. Add `loadPistolSheets(FileHandle pistolDir)` to `AnimationRegistry` â€” same pattern as sword
 2. Add `WeaponState.PISTOL` to the enum
 3. The pistol set contains 5 directional shooting sub-sheets (standing, run, jump, crouch, prone). Map these to:
    - `player_pistol_shoot_d0` through `player_pistol_shoot_d4`
-4. The pistol has no melee combo — `punch1` still fires as a kick/butt-strike
+4. The pistol has no melee combo â€” `punch1` still fires as a kick/butt-strike
 
 ---
 
-## Appendix C — Decision Log
+## Appendix C â€” Decision Log
 
 | Date | Decision | Reason |
 |------|----------|--------|
-| 2026-04-11 | No pixel conversion needed | ZIP sheets already 80×80 px — confirmed by dimension check |
+| 2026-04-11 | No pixel conversion needed | ZIP sheets already 80Ã—80 px â€” confirmed by dimension check |
 | 2026-04-11 | Weapon prefix injected at EntityRenderer, not state machine | State machine stays weapon-agnostic; cleaner separation |
 | 2026-04-11 | `jumpfall_spritesheet.png` split at frame 5 | Same approach as existing `registerJumpFall()` method |
 | 2026-04-11 | 8 attack combo sub-sheets registered as separate directional keys | Enables directional attack system without a new combo architecture |
 | 2026-04-11 | Pistol staged but not wired | Not in Campaign GDD; reserve for Arcade Mode milestone |
 | 2026-04-11 | Block triggered by `G` key (new `InputCommand.block` field) | `Q` is consumable; `K` is throw; `G` sits between movement and combat clusters with no prior binding |
 | 2026-04-11 | Death variant chosen randomly at death event | Avoids death always looking identical; both variants have matching revive |
+

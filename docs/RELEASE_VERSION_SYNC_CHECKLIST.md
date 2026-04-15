@@ -1,3 +1,10 @@
+﻿---
+doc_type: release_gate
+status: living
+owner: release-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
 # Release Version Sync Checklist
 
 Authoritative version source: [`version.json`](../version.json)
@@ -29,3 +36,4 @@ python tools/check_version_sync.py --tag v0.<minor>.<patch>
 - Do not create/push release tags unless this check passes.
 - Keep versions below `1.0.0` until alpha release is explicitly authorized.
 - Any version bump must update all parity targets in the same commit.
+

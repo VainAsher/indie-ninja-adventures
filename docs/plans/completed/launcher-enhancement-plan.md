@@ -1,3 +1,10 @@
+﻿---
+doc_type: plan
+status: completed
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
 <!-- markdownlint-disable MD031 MD032 MD040 MD060 -->
 # Launcher Enhancement Plan
 
@@ -6,7 +13,7 @@
 **Launcher current version:** v1.1.0
 **Game current version:** v0.9.5
 
-> **Note — stale `version.json`:** The repository `version.json` still reads `"version": "0.8.4"` because the hotfix branches (v0.8.5 → v0.9.5) did not bump the file. The canonical version is v0.9.5 per git history and `CHANGELOG.md`. `version.json` should be updated to `"0.9.5"` before the next release build.
+> **Note â€” stale `version.json`:** The repository `version.json` still reads `"version": "0.8.4"` because the hotfix branches (v0.8.5 â†’ v0.9.5) did not bump the file. The canonical version is v0.9.5 per git history and `CHANGELOG.md`. `version.json` should be updated to `"0.9.5"` before the next release build.
 
 ---
 
@@ -24,16 +31,16 @@ The launcher (`launcher/launcher.py`, 1,526 lines) is a stdlib-only tkinter appl
 | **Report** | Pre-filled GitHub issue URLs (Bug, Feedback, Performance, Crash) with auto-filled version/OS/Python, optional log tail |
 | **Dev Tools** | Profiler (10s headless benchmark, CSV parse, per-section timing), Log viewer (20 most recent), Replay launcher (20 most recent) |
 
-**Game changes since the plan was first written (v0.8.4 → v0.9.5):**
+**Game changes since the plan was first written (v0.8.4 â†’ v0.9.5):**
 
 | Version | Change | Launcher relevance |
 | --- | --- | --- |
 | v0.8.5 | Cross-machine world desync fix (hub seed sync) | None |
 | v0.8.6 | TCP_NODELAY + non-blocking send loop (lag fix) | None |
 | v0.8.7 | Encode-once broadcast, smart INPUT rate limiter | None |
-| v0.8.8 | JSON → msgpack wire protocol (PROTOCOL_VERSION 2) | **Version parity now critical** — mismatched builds disconnect immediately |
+| v0.8.8 | JSON â†’ msgpack wire protocol (PROTOCOL_VERSION 2) | **Version parity now critical** â€” mismatched builds disconnect immediately |
 | v0.8.9 | WORLD_STATE delta encoding (~60% bandwidth reduction) | Profiler CSV may have new bandwidth columns |
-| v0.9.0 | **Instanced zones** — per-hub simulation, portal travel, ZONE_PRESENCE | Multiplayer UI should surface zone/hub state |
+| v0.9.0 | **Instanced zones** â€” per-hub simulation, portal travel, ZONE_PRESENCE | Multiplayer UI should surface zone/hub state |
 | v0.9.1 | Fix visibility regression (ConnectedPlayer.hub_id not set on join) | None |
 | v0.9.2 | Fix seed mismatch (derive_region_seed not called for initial zone) | None |
 | v0.9.3 | **Phase 3b** server-authoritative combat + 84 new regression tests | Crash reports now carry server-side HP state |
@@ -42,7 +49,7 @@ The launcher (`launcher/launcher.py`, 1,526 lines) is a stdlib-only tkinter appl
 
 ### Existing Systems Available for Surfacing
 
-The following game systems produce data the launcher can read without importing any game code — pure JSON/CSV on disk:
+The following game systems produce data the launcher can read without importing any game code â€” pure JSON/CSV on disk:
 
 | System | File Location | Key Data |
 | --- | --- | --- |
@@ -54,10 +61,10 @@ The following game systems produce data the launcher can read without importing 
 
 ### Architecture Constraints
 
-- **Stdlib only** — no pip dependencies in launcher (urllib, json, hmac, hashlib, zipfile, socket, shutil, threading — all stdlib)
-- **tkinter** — Python 3.11 bundled tk 8.6
-- **PyInstaller onefile** — spec at `build/ninja_dash_launcher.spec`
-- **No game imports** — launcher reads files directly; never imports `systems`, `core`, or `game` modules
+- **Stdlib only** â€” no pip dependencies in launcher (urllib, json, hmac, hashlib, zipfile, socket, shutil, threading â€” all stdlib)
+- **tkinter** â€” Python 3.11 bundled tk 8.6
+- **PyInstaller onefile** â€” spec at `build/ninja_dash_launcher.spec`
+- **No game imports** â€” launcher reads files directly; never imports `systems`, `core`, or `game` modules
 
 ---
 
@@ -94,7 +101,7 @@ Update `WINDOW_W` and `WINDOW_H` constants and any hard-coded canvas widths in t
 
 ### A3. Shared Data Helpers
 
-Add a block of pure-function helpers in `launcher.py` alongside the existing helpers (currently around lines 90–240). These are called from multiple new tabs:
+Add a block of pure-function helpers in `launcher.py` alongside the existing helpers (currently around lines 90â€“240). These are called from multiple new tabs:
 
 ```python
 def _get_user_data_dir() -> Path:
@@ -152,11 +159,11 @@ Any launcher operation that writes or deletes a save file must:
 
 ---
 
-## 3. Phase 1 — Quick Wins
+## 3. Phase 1 â€” Quick Wins
 
 **Scope:** No new tabs. Enhancements to existing Play tab and Dev Tools tab.
-**Effort:** 2–4 days
-**Risk:** Low — no file mutations except profile JSON creation
+**Effort:** 2â€“4 days
+**Risk:** Low â€” no file mutations except profile JSON creation
 
 ---
 
@@ -167,15 +174,15 @@ Any launcher operation that writes or deletes a save file must:
 **UI Addition (Play tab):**
 
 ```text
-  Profile: [ Player1 ▼ ]   [ + New Profile ]
+  Profile: [ Player1 â–¼ ]   [ + New Profile ]
 ```
 
 **Behaviour:**
 
 - On startup: `_read_profiles()` loads `profiles.json`, creates default `"Player1"` if absent
 - `ttk.Combobox` bound to `self._profile_var = tk.StringVar()`
-- Selecting a profile calls `_on_profile_selected()` → updates `active_profile` → writes `profiles.json`
-- "New Profile" opens `tk.simpledialog.askstring("New Profile", "Profile name:")` → validates (non-empty, unique) → writes `profiles.json` → refreshes combobox
+- Selecting a profile calls `_on_profile_selected()` â†’ updates `active_profile` â†’ writes `profiles.json`
+- "New Profile" opens `tk.simpledialog.askstring("New Profile", "Profile name:")` â†’ validates (non-empty, unique) â†’ writes `profiles.json` â†’ refreshes combobox
 - All `_launch_with_args()` calls append `["--profile", self._profile_var.get()]` automatically
 
 **New methods:** `_read_profiles()`, `_write_profiles(data)`, `_build_profile_row(parent)`, `_on_profile_selected()`, `_on_new_profile()`
@@ -191,7 +198,7 @@ Any launcher operation that writes or deletes a save file must:
 **UI Addition (Dev Tools, replays section):**
 
 ```text
-  [ perf_run4.json ▼ ]  [Launch]  [Delete]  [Refresh]
+  [ perf_run4.json â–¼ ]  [Launch]  [Delete]  [Refresh]
   Mode: playtest  |  Hub: central_hub  |  Frames: 4,241
   World seed: 2008173233  |  Date: 2026-03-29
 ```
@@ -200,7 +207,7 @@ Any launcher operation that writes or deletes a save file must:
 
 - On `<<ComboboxSelected>>`: read the replay JSON (`json.loads(path.read_text())`), extract `metadata` dict
 - Populate a two-line `tk.Label` (using `self._replay_meta_var = tk.StringVar()`)
-- "Delete": `messagebox.askyesno` confirmation → `path.unlink()` → refresh list
+- "Delete": `messagebox.askyesno` confirmation â†’ `path.unlink()` â†’ refresh list
 - If `metadata` key is absent (old format): show "No metadata"
 
 **New methods:** `_read_replay_metadata(path: Path) -> dict`, `_on_replay_selected()`, `_delete_selected_replay_devtools()`
@@ -214,7 +221,7 @@ Any launcher operation that writes or deletes a save file must:
 **UI Enhancement (Dev Tools, profiler section):**
 
 ```text
-  [Run 10s Benchmark]  [Save as Baseline]  Baseline: [ perf_baseline_20260329.csv ▼ ]  [Compare]
+  [Run 10s Benchmark]  [Save as Baseline]  Baseline: [ perf_baseline_20260329.csv â–¼ ]  [Compare]
 
   Frames: 600  |  FPS avg=79.4  p5=68.1  min=42.0
 
@@ -252,8 +259,8 @@ Any launcher operation that writes or deletes a save file must:
 **UI Addition (inside the log popup Toplevel):**
 
 ```text
-  Filter: [ ALL ▼ ]   Search: [____________________]  [Find Next]
-  ─────────────────────────────────────────────────────────────────
+  Filter: [ ALL â–¼ ]   Search: [____________________]  [Find Next]
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ...log content with WARNING lines in yellow, ERROR lines in red...
 ```
 
@@ -276,7 +283,7 @@ Any launcher operation that writes or deletes a save file must:
 
 ```text
   Downloading ninja_dash_v0.8.4.exe...
-  [████████████████░░░░]  62%   3.2 MB / 5.1 MB   1.1 MB/s   ETA: 2s
+  [â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–‘â–‘â–‘â–‘]  62%   3.2 MB / 5.1 MB   1.1 MB/s   ETA: 2s
   [Cancel Download]
 ```
 
@@ -299,40 +306,40 @@ Any launcher operation that writes or deletes a save file must:
 **UI Flow:**
 
 ```text
-  ╔══════════════════════════════════════════╗
-  ║  Game exited with code -1073740791       ║
-  ║  (EXCEPTION_STACK_OVERFLOW)              ║
-  ║                                          ║
-  ║  Last 20 lines of log:                   ║
-  ║  [ERROR] physics: stack overflow in...   ║
-  ║                                          ║
-  ║  [Open Crash Report]  [Copy to Clipboard]║
-  ║  [Ignore]                                ║
-  ╚══════════════════════════════════════════╝
+  â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+  â•‘  Game exited with code -1073740791       â•‘
+  â•‘  (EXCEPTION_STACK_OVERFLOW)              â•‘
+  â•‘                                          â•‘
+  â•‘  Last 20 lines of log:                   â•‘
+  â•‘  [ERROR] physics: stack overflow in...   â•‘
+  â•‘                                          â•‘
+  â•‘  [Open Crash Report]  [Copy to Clipboard]â•‘
+  â•‘  [Ignore]                                â•‘
+  â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ```
 
 **Behaviour:**
 
-- Background watcher thread: `proc.wait()` → check `proc.returncode`
+- Background watcher thread: `proc.wait()` â†’ check `proc.returncode`
 - Non-zero exit: read last 30 lines of most recent log, format a GitHub issue URL (same pattern as Report tab) with crash context pre-filled: version, OS, exit code, log tail, world seed from most recent replay metadata
 - "Open Crash Report" opens the pre-filled URL in browser
 - "Copy to Clipboard": `root.clipboard_clear(); root.clipboard_append(crash_text)`
-- Exit code mapping: common Windows NTSTATUS codes decoded to human-readable names (e.g., `0xC0000005` → `ACCESS_VIOLATION`)
+- Exit code mapping: common Windows NTSTATUS codes decoded to human-readable names (e.g., `0xC0000005` â†’ `ACCESS_VIOLATION`)
 - On clean exit (code 0): restore launcher window silently
 
 **New methods:** `_watch_game_process(proc)`, `_on_game_exited(returncode)`, `_build_crash_dialog(returncode, log_tail)`, `_decode_exit_code(code) -> str`
 
 **Note:** This also enables the "stay alive after launch" pattern needed for P3-F4 multi-slot saves. The process watcher thread is the shared foundation.
 
-**v0.9.3 note:** Since Phase 3b, player HP is server-authoritative. Crash reports in multiplayer sessions should also capture the last known `WorldSnapshot` health values from the most recent log line — these are now the ground-truth HP values, not the local client's.
+**v0.9.3 note:** Since Phase 3b, player HP is server-authoritative. Crash reports in multiplayer sessions should also capture the last known `WorldSnapshot` health values from the most recent log line â€” these are now the ground-truth HP values, not the local client's.
 
 ---
 
-## 4. Phase 2 — Core Features
+## 4. Phase 2 â€” Core Features
 
-**Scope:** Four new tabs — Saves, Mods, Settings, Replays
-**Effort:** 1–2 weeks
-**Window change:** Resize to 760×640, `resizable(True, True)`
+**Scope:** Four new tabs â€” Saves, Mods, Settings, Replays
+**Effort:** 1â€“2 weeks
+**Window change:** Resize to 760Ã—640, `resizable(True, True)`
 
 ---
 
@@ -344,10 +351,10 @@ Any launcher operation that writes or deletes a save file must:
 
 ```text
 TAB: Saves
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   SAVE SLOT                                   [Backup Now]
 
-  savegame.json (active)                     Status: ★ Verified
+  savegame.json (active)                     Status: â˜… Verified
   Version: 0.7.0  |  Saved: 2026-03-30 00:20
 
   CAMPAIGN           STATISTICS
@@ -358,7 +365,7 @@ TAB: Saves
 
   [Backup Now]   [Restore Backup]   [Delete Save]
 
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   BACKUPS                                     [Refresh]
 
   savegame_20260330_001902.json    2026-03-30 00:19   [Restore]
@@ -369,16 +376,16 @@ TAB: Saves
 **Data Flow:**
 
 1. `_read_save_file()` reads `user_data/saves/savegame.json`, strips `"signature"` and `"version"` outer keys, returns inner `"data"` dict
-2. `_verify_save_signature(data_str, signature)` — inline HMAC check using `hmac.new(SAVE_KEY, data_bytes, "sha256").hexdigest()`. `SAVE_KEY = b"ninja_dash_v0_3_save_integrity_key_2025"` (duplicated from `systems/save_system.py` — see risks)
+2. `_verify_save_signature(data_str, signature)` â€” inline HMAC check using `hmac.new(SAVE_KEY, data_bytes, "sha256").hexdigest()`. `SAVE_KEY = b"ninja_dash_v0_3_save_integrity_key_2025"` (duplicated from `systems/save_system.py` â€” see risks)
 3. Display all fields read-only in two columns using `ttk.Frame` grid layout
 4. **Backup Now**: `shutil.copy2(saves_dir/"savegame.json", backups_dir/f"savegame_{timestamp}.json")`
-5. **Restore Backup**: `messagebox.askyesno` → backup current → atomic copy backup → refresh display
-6. **Delete Save**: `messagebox.askyesno` ("Also delete backups? [Yes/No/Cancel]") → `path.unlink()`
+5. **Restore Backup**: `messagebox.askyesno` â†’ backup current â†’ atomic copy backup â†’ refresh display
+6. **Delete Save**: `messagebox.askyesno` ("Also delete backups? [Yes/No/Cancel]") â†’ `path.unlink()`
 7. Backup list: `ttk.Treeview` with columns (filename, date); `sorted(backups_dir.glob("*.json"), key=mtime, reverse=True)`
 
 **New methods:** `_build_saves_tab(parent)`, `_refresh_saves_display()`, `_verify_save_signature(data_str, sig) -> bool`, `_backup_save_now()`, `_restore_backup(path)`, `_delete_save()`, `_refresh_backups_list()`
 
-**Risk — HMAC key duplication:** The integrity key is defined in `systems/save_system.py`. The launcher must duplicate it or display "unverifiable" without it. Preferred fix: extract the key to a shared location (e.g., `config/integrity_key.txt` or `version.json`) that both the game and launcher read. Until then, duplicate the constant with a comment pointing to the source. If the keys diverge, the launcher will show "TAMPERED" on valid saves — a cosmetic issue, not a data risk.
+**Risk â€” HMAC key duplication:** The integrity key is defined in `systems/save_system.py`. The launcher must duplicate it or display "unverifiable" without it. Preferred fix: extract the key to a shared location (e.g., `config/integrity_key.txt` or `version.json`) that both the game and launcher read. Until then, duplicate the constant with a comment pointing to the source. If the keys diverge, the launcher will show "TAMPERED" on valid saves â€” a cosmetic issue, not a data risk.
 
 ---
 
@@ -390,27 +397,27 @@ TAB: Saves
 
 ```text
 TAB: Mods
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   INSTALLED MODS                              [Open Mods Folder]  [Refresh]
 
-  ┌────┬───────────────────┬─────────┬──────────┬────────────────┐
-  │ EN │ Name              │ Version │ Author   │ Status         │
-  ├────┼───────────────────┼─────────┼──────────┼────────────────┤
-  │ ☑  │ Example Mod       │ 1.0.0   │ Dev      │ OK             │
-  │ ☐  │ Another Mod       │ 0.2.1   │ Someone  │ Missing: xyz   │
-  └────┴───────────────────┴─────────┴──────────┴────────────────┘
+  â”Œâ”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚ EN â”‚ Name              â”‚ Version â”‚ Author   â”‚ Status         â”‚
+  â”œâ”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+  â”‚ â˜‘  â”‚ Example Mod       â”‚ 1.0.0   â”‚ Dev      â”‚ OK             â”‚
+  â”‚ â˜  â”‚ Another Mod       â”‚ 0.2.1   â”‚ Someone  â”‚ Missing: xyz   â”‚
+  â””â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
   Selected mod: Example Mod
-  ┌────────────────────────────────────────────────────────────┐
-  │  ID: example_mod                                           │
-  │  Description: Demonstrates the mod API                    │
-  │  Entry: main.py  |  Dependencies: none                     │
-  │  Path: user_data/mods/example_mod/                         │
-  │                                                            │
-  │  [Reveal in Explorer]        [Delete Mod]                  │
-  └────────────────────────────────────────────────────────────┘
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚  ID: example_mod                                           â”‚
+  â”‚  Description: Demonstrates the mod API                    â”‚
+  â”‚  Entry: main.py  |  Dependencies: none                     â”‚
+  â”‚  Path: user_data/mods/example_mod/                         â”‚
+  â”‚                                                            â”‚
+  â”‚  [Reveal in Explorer]        [Delete Mod]                  â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   INSTALL MOD
   From ZIP:  [Browse...]                    [Install from ZIP]
   From URL:  [________________________________]  [Download & Install]
@@ -418,14 +425,14 @@ TAB: Mods
 
 **Data Flow:**
 
-1. `_read_mod_manifests()` — `list(mods_dir.glob("*/mod.json"))`, parse each, return list of dicts
-2. `_read_enabled_mods()` — load `user_data/mods/enabled_mods.json`, return `set[str]` of enabled mod IDs. Create file with all discovered mods enabled if absent
-3. `ttk.Treeview` columns: `("en", "name", "version", "author", "status")` — `en` column shows `"☑"` or `"☐"`
-4. **Toggle enable/disable:** Bind `<ButtonRelease-1>` on treeview; if click x-coord is within column 0 bounds, call `_toggle_mod_enabled(mod_id)` → update `enabled_mods.json` → refresh list
+1. `_read_mod_manifests()` â€” `list(mods_dir.glob("*/mod.json"))`, parse each, return list of dicts
+2. `_read_enabled_mods()` â€” load `user_data/mods/enabled_mods.json`, return `set[str]` of enabled mod IDs. Create file with all discovered mods enabled if absent
+3. `ttk.Treeview` columns: `("en", "name", "version", "author", "status")` â€” `en` column shows `"â˜‘"` or `"â˜"`
+4. **Toggle enable/disable:** Bind `<ButtonRelease-1>` on treeview; if click x-coord is within column 0 bounds, call `_toggle_mod_enabled(mod_id)` â†’ update `enabled_mods.json` â†’ refresh list
 5. **Dependency check (display-only):** For each mod, check if its `dependencies` list items are present in the discovered mod IDs. Show "Missing: X" in Status column if not
-6. **Install from ZIP:** `filedialog.askopenfilename(filetypes=[("ZIP files", "*.zip")])` → `_install_mod_zip(path)` → extract to `mods/<mod_id>/` (reads `mod.json` from ZIP to determine `mod_id`) → verify `mod.json` exists → refresh list
-7. **Install from URL:** Validate URL is a `.zip` link → `urllib.request.urlretrieve` in thread → same extraction
-8. **Delete:** `messagebox.askyesno` → `shutil.rmtree(mod_dir)` → update `enabled_mods.json` → refresh list
+6. **Install from ZIP:** `filedialog.askopenfilename(filetypes=[("ZIP files", "*.zip")])` â†’ `_install_mod_zip(path)` â†’ extract to `mods/<mod_id>/` (reads `mod.json` from ZIP to determine `mod_id`) â†’ verify `mod.json` exists â†’ refresh list
+7. **Install from URL:** Validate URL is a `.zip` link â†’ `urllib.request.urlretrieve` in thread â†’ same extraction
+8. **Delete:** `messagebox.askyesno` â†’ `shutil.rmtree(mod_dir)` â†’ update `enabled_mods.json` â†’ refresh list
 9. **Reveal:** `os.startfile(mod_dir)` (Windows)
 
 **New methods:** `_build_mods_tab(parent)`, `_read_mod_manifests() -> list[dict]`, `_read_enabled_mods() -> set[str]`, `_write_enabled_mods(enabled: set[str])`, `_refresh_mods_list()`, `_on_mod_tree_click(event)`, `_toggle_mod_enabled(mod_id: str)`, `_on_mod_selected(event)`, `_install_mod_zip(zip_path: Path)`, `_install_mod_url(url: str)`, `_delete_mod(mod_id: str)`, `_reveal_mod_folder(mod_id: str)`
@@ -444,29 +451,29 @@ TAB: Mods
 
 ```text
 TAB: Settings
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   AUDIO
     Master Volume   [==========|--]  1.0
     Music  Volume   [=======|-----]  0.7
     SFX    Volume   [=============]  0.8
 
   DISPLAY
-    Fullscreen [ ]     VSync [✓]     Show FPS [ ]
-    Resolution [1280x720 ▼]          (requires restart)
+    Fullscreen [ ]     VSync [âœ“]     Show FPS [ ]
+    Resolution [1280x720 â–¼]          (requires restart)
 
   GAMEPLAY
-    Screen Shake [✓]    Particles [✓]
+    Screen Shake [âœ“]    Particles [âœ“]
     Camera Smoothing  [======|------]  0.1
 
-  CONTROLS (key bindings — read-only; use P3-F2 to enable rebinding)
+  CONTROLS (key bindings â€” read-only; use P3-F2 to enable rebinding)
     Left: left    Right: right    Jump: space
     Dash: shift   Crouch: down
 
   DEVELOPER
-    Show Hitboxes [ ]    Log Level [INFO ▼]
+    Show Hitboxes [ ]    Log Level [INFO â–¼]
 
   [Save Settings]    [Reset to Defaults]    [Open Settings File]
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 **Data Flow:**
@@ -475,10 +482,10 @@ TAB: Settings
 2. Each setting bound to a `tk.Variable` subclass: `tk.DoubleVar` (float), `tk.BooleanVar` (bool), `tk.StringVar` (string/enum)
 3. Volume sliders: `ttk.Scale(from_=0.0, to=1.0, orient="horizontal")` with live label showing current value
 4. Resolution options: `["1280x720", "1920x1080", "2560x1440", "800x600"]`; split on `"x"` when writing
-5. **Save Settings:** `_write_settings_safe(data)` — atomic temp+rename write to `settings.json`. The game's `HotReloadWatcher` in `dev_tools/hot_reload.py` detects the change and reloads if the game is running
-6. **Reset to Defaults:** `messagebox.askyesno` → write DEFAULT_SETTINGS → reload UI
+5. **Save Settings:** `_write_settings_safe(data)` â€” atomic temp+rename write to `settings.json`. The game's `HotReloadWatcher` in `dev_tools/hot_reload.py` detects the change and reloads if the game is running
+6. **Reset to Defaults:** `messagebox.askyesno` â†’ write DEFAULT_SETTINGS â†’ reload UI
 7. **Open Settings File:** `os.startfile(settings_path)` (Windows)
-8. Scroll container: `tk.Canvas` + `tk.Scrollbar` with an inner `tk.Frame` — the standard tkinter scrollable frame pattern
+8. Scroll container: `tk.Canvas` + `tk.Scrollbar` with an inner `tk.Frame` â€” the standard tkinter scrollable frame pattern
 
 **Settings that require game restart:** Fullscreen, resolution. Label these `"(requires restart)"`.
 
@@ -488,33 +495,33 @@ TAB: Settings
 
 ### P2-F4: Replays Tab
 
-**New tab:** "Replays" (split out of Dev Tools — Dev Tools retains Profiler and Logs)
+**New tab:** "Replays" (split out of Dev Tools â€” Dev Tools retains Profiler and Logs)
 
 **UI Layout:**
 
 ```text
 TAB: Replays
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   REPLAY LIBRARY                                       [Refresh]
 
-  ┌──────────────────┬───────────┬──────────────┬────────┬───────┐
-  │ Name             │ Mode      │ Hub          │ Frames │ Date  │
-  ├──────────────────┼───────────┼──────────────┼────────┼───────┤
-  │ perf_run4        │ playtest  │ central_hub  │ 4,241  │ 03-29 │
-  │ session_01       │ campaign  │ forest_hub   │ 18,420 │ 03-28 │
-  └──────────────────┴───────────┴──────────────┴────────┴───────┘
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚ Name             â”‚ Mode      â”‚ Hub          â”‚ Frames â”‚ Date  â”‚
+  â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”¤
+  â”‚ perf_run4        â”‚ playtest  â”‚ central_hub  â”‚ 4,241  â”‚ 03-29 â”‚
+  â”‚ session_01       â”‚ campaign  â”‚ forest_hub   â”‚ 18,420 â”‚ 03-28 â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”˜
 
   Selected: perf_run4.json
-  ┌──────────────────────────────────────────────────────────────┐
-  │  Mode: playtest  |  World seed: 2008173233                   │
-  │  Hub: central_hub  |  Mission: None                          │
-  │  Total frames: 4241  |  Game-start frame: 424                │
-  │  File: user_data/replays/perf_run4.json                      │
-  │                                                              │
-  │  [▶ Launch Replay]   [Delete]   [Rename]   [Reveal]          │
-  └──────────────────────────────────────────────────────────────┘
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚  Mode: playtest  |  World seed: 2008173233                   â”‚
+  â”‚  Hub: central_hub  |  Mission: None                          â”‚
+  â”‚  Total frames: 4241  |  Game-start frame: 424                â”‚
+  â”‚  File: user_data/replays/perf_run4.json                      â”‚
+  â”‚                                                              â”‚
+  â”‚  [â–¶ Launch Replay]   [Delete]   [Rename]   [Reveal]          â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
-────────────────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   RECORD NEW REPLAY
   Name: [____________________]   [Record on Next Launch]
   (Launches with --record <name>; replay is saved when session ends)
@@ -525,8 +532,8 @@ TAB: Replays
 1. `ttk.Treeview` with columns `("name", "mode", "hub", "frames", "date")`; populated by scanning `user_data/replays/`
 2. Metadata loaded from each replay JSON's `"metadata"` key; `frames` = `len(commands)` if no `terminated_frame`
 3. **Launch Replay:** `self._launch_with_args("--replay", stem, "--show-replay")`
-4. **Delete:** `messagebox.askyesno` → `path.unlink()` → refresh
-5. **Rename:** `tk.simpledialog.askstring` → validate new name not empty/not taken → `path.rename(new_path)` → refresh
+4. **Delete:** `messagebox.askyesno` â†’ `path.unlink()` â†’ refresh
+5. **Rename:** `tk.simpledialog.askstring` â†’ validate new name not empty/not taken â†’ `path.rename(new_path)` â†’ refresh
 6. **Reveal:** `os.startfile(replays_dir)`
 7. **Record on Next Launch:** Sets `self._pending_record = name_entry.get().strip()`. `_launch_with_args()` appends `["--record", self._pending_record]` then clears `self._pending_record` after launch
 
@@ -534,9 +541,9 @@ TAB: Replays
 
 ---
 
-## 5. Phase 3 — Advanced Features
+## 5. Phase 3 â€” Advanced Features
 
-**Effort:** 2–4 weeks (individual features are independent; pick any order)
+**Effort:** 2â€“4 weeks (individual features are independent; pick any order)
 
 ---
 
@@ -548,14 +555,14 @@ TAB: Replays
 
 ```text
   LIFETIME STATISTICS
-  ┌──────────┬──────────┬──────────┬──────────┐
-  │ Deaths   │  Jumps   │  Dashes  │ Playtime │
-  │    42    │  1,337   │   892    │  4h 12m  │
-  └──────────┴──────────┴──────────┴──────────┘
-  ┌──────────┬──────────┬──────────┬──────────┐
-  │  Coins   │ Missions │  Bosses  │ Perf Runs│
-  │   420    │  7 / 30  │    2     │    1     │
-  └──────────┴──────────┴──────────┴──────────┘
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚ Deaths   â”‚  Jumps   â”‚  Dashes  â”‚ Playtime â”‚
+  â”‚    42    â”‚  1,337   â”‚   892    â”‚  4h 12m  â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚  Coins   â”‚ Missions â”‚  Bosses  â”‚ Perf Runsâ”‚
+  â”‚   420    â”‚  7 / 30  â”‚    2     â”‚    1     â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 Purely reads `statistics` and `campaign` sections from the save JSON. No game-side changes.
@@ -571,7 +578,7 @@ Purely reads `statistics` and `campaign` sections from the save JSON. No game-si
 ```text
   CONTROLS
   Action        Bound Key            [Reset Controls]
-  Move Left     [ left        ] ← click to rebind, then press any key
+  Move Left     [ left        ] â† click to rebind, then press any key
   Move Right    [ right       ]
   Jump          [ space       ]
   Dash          [ lshift      ]
@@ -596,13 +603,13 @@ Purely reads `statistics` and `campaign` sections from the save JSON. No game-si
 **UI Addition:**
 
 ```text
-  LATEST — v0.8.4  (2026-03-31)
-  ┌──────────────────────────────────────────────────────┐
-  │  What's new:                                         │
-  │  • Fixed hub transition crash                        │
-  │  • Improved enemy AI in forest zone                  │
-  │  • New mission: The Bamboo Gauntlet                  │
-  └──────────────────────────────────────────────────────┘
+  LATEST â€” v0.8.4  (2026-03-31)
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚  What's new:                                         â”‚
+  â”‚  â€¢ Fixed hub transition crash                        â”‚
+  â”‚  â€¢ Improved enemy AI in forest zone                  â”‚
+  â”‚  â€¢ New mission: The Bamboo Gauntlet                  â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 **Behaviour:**
@@ -623,15 +630,15 @@ Purely reads `statistics` and `campaign` sections from the save JSON. No game-si
 
 ```text
 _pre_launch_save_swap()
-    → backup current savegame.json
-    → copy profiles/<active>/saves/savegame.json → saves/savegame.json
+    â†’ backup current savegame.json
+    â†’ copy profiles/<active>/saves/savegame.json â†’ saves/savegame.json
 
 subprocess.Popen([game_exe, ...])  # non-blocking
 _watch_game_process(proc)  # background thread
-    → proc.wait()
-    → _post_launch_save_restore()
-        → copy saves/savegame.json → profiles/<active>/saves/savegame.json
-        → restore launcher window
+    â†’ proc.wait()
+    â†’ _post_launch_save_restore()
+        â†’ copy saves/savegame.json â†’ profiles/<active>/saves/savegame.json
+        â†’ restore launcher window
 ```
 
 **Risk:** If the game crashes during a save write, `savegame.json` may be partial. The pre-swap backup is the recovery path. The `_post_launch_save_restore()` must run even on non-zero exit. **Implement this last** when the profile system is stable.
@@ -647,8 +654,8 @@ _watch_game_process(proc)  # background thread
 **UI Addition:**
 
 ```text
-  [Join Game]  [ Ping ]  →  42ms  (or "Unreachable")
-  Active zones: 2  (reported by server on connect handshake — future)
+  [Join Game]  [ Ping ]  â†’  42ms  (or "Unreachable")
+  Active zones: 2  (reported by server on connect handshake â€” future)
 ```
 
 **Implementation:**
@@ -678,23 +685,23 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 **UI Addition:**
 
 ```text
-  [Table View]  [Chart View]    ← toggle buttons
+  [Table View]  [Chart View]    â† toggle buttons
 
-  render      ████████████████████  7.2ms avg
-  update      ████████████         3.4ms avg
-  frame_total ████████████████████████████  12.6ms avg
-  collision   ████                 0.4ms avg
-  physics     █                    0.1ms avg
+  render      â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ  7.2ms avg
+  update      â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ         3.4ms avg
+  frame_total â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ  12.6ms avg
+  collision   â–ˆâ–ˆâ–ˆâ–ˆ                 0.4ms avg
+  physics     â–ˆ                    0.1ms avg
 ```
 
 **Implementation:** Pure `tk.Canvas` drawing with `canvas.create_rectangle()` and `canvas.create_text()`. Bar width = `(avg_ms / max_avg_ms) * canvas_width`. Color: green < 8ms, yellow < 16ms, red >= 16ms. No matplotlib needed.
 
 ---
 
-## 6. Phase 4 — Professional Polish
+## 6. Phase 4 â€” Professional Polish
 
 **Scope:** Industry-standard launcher features found in Steam, GOG Galaxy, and Battle.net. All stdlib-only.
-**Effort:** 4–8 weeks (features are independent; prioritise based on player demand)
+**Effort:** 4â€“8 weeks (features are independent; prioritise based on player demand)
 
 ---
 
@@ -706,8 +713,8 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 
 ```text
   [Verify Game Files]
-  → Checking ninja_dash.exe...        ✓ File OK  (SHA256 matches v0.8.4)
-  → Checking ninja_dash_launcher.exe... ✗ MISMATCH — [Reinstall]
+  â†’ Checking ninja_dash.exe...        âœ“ File OK  (SHA256 matches v0.8.4)
+  â†’ Checking ninja_dash_launcher.exe... âœ— MISMATCH â€” [Reinstall]
 ```
 
 **Behaviour:**
@@ -724,18 +731,18 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 
 ### P4-F2: Quick Launch Presets
 
-**What:** Save named launch configurations — a combination of game mode, multiplayer settings, mods enabled, and custom CLI args — as one-click presets. Useful for developers and streamers with fixed setups.
+**What:** Save named launch configurations â€” a combination of game mode, multiplayer settings, mods enabled, and custom CLI args â€” as one-click presets. Useful for developers and streamers with fixed setups.
 
 **UI (Play tab sub-panel):**
 
 ```text
   LAUNCH PRESETS                    [+ New Preset]  [Edit]  [Delete]
-  ┌───────────────────────────────────────────────────────────────┐
-  │ ▶ Solo Campaign (default)    — solo, no mods                  │
-  │ ▶ 4P Host - LAN              — host:7777, 4 players           │
-  │ ▶ Dev: Headless Bench        — --headless --profile dev       │
-  │ ▶ Streamer Mode              — solo, mod: hud_overlay enabled  │
-  └───────────────────────────────────────────────────────────────┘
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚ â–¶ Solo Campaign (default)    â€” solo, no mods                  â”‚
+  â”‚ â–¶ 4P Host - LAN              â€” host:7777, 4 players           â”‚
+  â”‚ â–¶ Dev: Headless Bench        â€” --headless --profile dev       â”‚
+  â”‚ â–¶ Streamer Mode              â€” solo, mod: hud_overlay enabled  â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 **Preset Format** (stored in `user_data/presets.json`):
@@ -758,7 +765,7 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 
 **Behaviour:**
 
-- Each preset row has a single "▶ Launch" button
+- Each preset row has a single "â–¶ Launch" button
 - "New Preset" opens a `tk.Toplevel` form with fields for each setting
 - Preset mods override the global enabled mods for that launch (passed via `--mod-override <id,...>` arg, or applied by the file-swap approach)
 - Presets are profile-independent by default; optionally bind to a specific profile
@@ -775,12 +782,12 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 
 ```text
   SYSTEM CHECK
-  ✓ Python 3.11.x detected
-  ✓ pygame 2.6.1 installed
-  ✓ Disk space: 142 MB free of 10 MB required
-  ✗ RAM: 1.8 GB free — game recommends 2 GB
-  ✓ Display: 1920x1080 @ 60Hz (minimum 1280x720)
-  ✓ Windows 10/11 detected
+  âœ“ Python 3.11.x detected
+  âœ“ pygame 2.6.1 installed
+  âœ“ Disk space: 142 MB free of 10 MB required
+  âœ— RAM: 1.8 GB free â€” game recommends 2 GB
+  âœ“ Display: 1920x1080 @ 60Hz (minimum 1280x720)
+  âœ“ Windows 10/11 detected
 
   [Dismiss]   [Don't show again]
 ```
@@ -807,7 +814,7 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 **UI (Play tab profile row extension):**
 
 ```text
-  Profile: [ Player1 ▼ ]   [ + New ]   Total: 14h 32m  |  Last session: 47m
+  Profile: [ Player1 â–¼ ]   [ + New ]   Total: 14h 32m  |  Last session: 47m
 ```
 
 **Storage** (appended to `profiles.json`):
@@ -844,7 +851,7 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 **UI (Play tab, version row addition):**
 
 ```text
-  Channel: [ Stable ▼ ]    ← options: Stable, Beta, Dev
+  Channel: [ Stable â–¼ ]    â† options: Stable, Beta, Dev
   Version:  v0.9.5  [latest]   Protocol: v2 (msgpack)
 ```
 
@@ -852,12 +859,12 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 
 - "Stable": only non-prerelease GitHub releases (`"prerelease": false`)
 - "Beta": include prereleases (`"prerelease": true`)
-- "Dev": also show draft releases (requires a PAT — show warning if not configured)
+- "Dev": also show draft releases (requires a PAT â€” show warning if not configured)
 - Channel stored in `user_data/launcher_state.json` as `"update_channel": "stable"`
 - `_fetch_releases()` filters the release list based on selected channel before version comparison
 - Warn when switching from Stable to Beta: "Beta builds may contain bugs and incomplete features."
 
-**v0.8.8 note — protocol version parity is now critical.** Since v0.8.8 the game uses msgpack binary frames (`PROTOCOL_VERSION = "2"`). A client running v0.8.7 or earlier connecting to a v0.8.8+ server will immediately disconnect with a decode error — there is no graceful fallback. The launcher should display the installed protocol version alongside the game version and warn the user if the host address they are joining is known to be running a different protocol version. The update channel selector is the natural enforcement point: switching channels should warn "Multiplayer requires all players to run the same version."
+**v0.8.8 note â€” protocol version parity is now critical.** Since v0.8.8 the game uses msgpack binary frames (`PROTOCOL_VERSION = "2"`). A client running v0.8.7 or earlier connecting to a v0.8.8+ server will immediately disconnect with a decode error â€” there is no graceful fallback. The launcher should display the installed protocol version alongside the game version and warn the user if the host address they are joining is known to be running a different protocol version. The update channel selector is the natural enforcement point: switching channels should warn "Multiplayer requires all players to run the same version."
 
 **New methods:** `_build_channel_selector(parent)`, `_on_channel_changed()`, `_filter_releases_by_channel(releases, channel) -> list`
 
@@ -871,11 +878,11 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 
 ```text
   SCREENSHOTS                              [Open Folder]  [Refresh]
-  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
-  │      │ │      │ │      │ │      │
-  │ img  │ │ img  │ │ img  │ │ img  │
-  │      │ │      │ │      │ │      │
-  └──────┘ └──────┘ └──────┘ └──────┘
+  â”Œâ”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”
+  â”‚      â”‚ â”‚      â”‚ â”‚      â”‚ â”‚      â”‚
+  â”‚ img  â”‚ â”‚ img  â”‚ â”‚ img  â”‚ â”‚ img  â”‚
+  â”‚      â”‚ â”‚      â”‚ â”‚      â”‚ â”‚      â”‚
+  â””â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”˜
   2026-03-30  2026-03-30  2026-03-29  ...
 
   Click to open full-size in default viewer
@@ -883,8 +890,8 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 
 **Implementation:**
 
-- `tk.PhotoImage` can load PNG natively (tkinter 8.6+) — no Pillow needed for thumbnails
-- Scale thumbnails to ~120×68px using `PhotoImage.subsample(n)` (integer downscale only; accept nearest power-of-2 subsample)
+- `tk.PhotoImage` can load PNG natively (tkinter 8.6+) â€” no Pillow needed for thumbnails
+- Scale thumbnails to ~120Ã—68px using `PhotoImage.subsample(n)` (integer downscale only; accept nearest power-of-2 subsample)
 - Layout: `tk.Canvas` with dynamically placed image items in a wrapping grid pattern (recalculate on window resize via `<Configure>` event)
 - Click thumbnail: `os.startfile(path)` opens in Windows Photos
 - "Open Folder": `os.startfile(screenshots_dir)`
@@ -902,7 +909,7 @@ Run in a thread; display result in a `tk.Label` next to the Join button. Green i
 **UI Enhancement (Report tab):**
 
 ```text
-  [✓] Attach system info:
+  [âœ“] Attach system info:
       OS: Windows 11 Home 10.0.26200
       CPU: AMD Ryzen 7 5800X   RAM: 16 GB
       GPU: NVIDIA RTX 3070 (via registry)
@@ -928,15 +935,15 @@ Embed as a collapsible `<details>` HTML block in the GitHub issue body (GitHub i
 
 ### P4-F8: Accessibility Options
 
-**What:** Make the launcher itself more accessible — font size scaling, high-contrast mode, and reduced-motion mode for animated elements.
+**What:** Make the launcher itself more accessible â€” font size scaling, high-contrast mode, and reduced-motion mode for animated elements.
 
 **UI (Settings tab, new LAUNCHER section):**
 
 ```text
   LAUNCHER APPEARANCE
-    Theme:      [ Dark ▼ ]  (Dark / High Contrast / Light)
-    Font Size:  [ Normal ▼ ]  (Small / Normal / Large / Extra Large)
-    Animations: [✓]  (uncheck to disable splash animation, progress pulse)
+    Theme:      [ Dark â–¼ ]  (Dark / High Contrast / Light)
+    Font Size:  [ Normal â–¼ ]  (Small / Normal / Large / Extra Large)
+    Animations: [âœ“]  (uncheck to disable splash animation, progress pulse)
 ```
 
 **Behaviour:**
@@ -959,22 +966,22 @@ Embed as a collapsible `<details>` HTML block in the GitHub issue body (GitHub i
 
 ```text
   COMMUNITY
-  ┌─────────────────────────────────────────┐
-  │  Indie Ninja Adventures                 │
-  │  by Vain Asher Gaming                   │
-  │                                         │
-  │  [Discord]  [GitHub]  [itch.io]         │
-  │  [Bug Reports]  [Feature Requests]      │
-  │                                         │
-  │  Latest community post:                 │
-  │  "v0.8.4 balance patch notes"  03-31    │
-  └─────────────────────────────────────────┘
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚  Indie Ninja Adventures                 â”‚
+  â”‚  by Vain Asher Gaming                   â”‚
+  â”‚                                         â”‚
+  â”‚  [Discord]  [GitHub]  [itch.io]         â”‚
+  â”‚  [Bug Reports]  [Feature Requests]      â”‚
+  â”‚                                         â”‚
+  â”‚  Latest community post:                 â”‚
+  â”‚  "v0.8.4 balance patch notes"  03-31    â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 **Behaviour:**
 
 - All links open via `webbrowser.open(url)` (stdlib)
-- "Latest community post": fetch the most recent open issue title from `VainAsher/indie-ninja-feedback` via GitHub API (`/repos/owner/repo/issues?state=open&per_page=1`) — same auth-free approach as the existing releases fetch
+- "Latest community post": fetch the most recent open issue title from `VainAsher/indie-ninja-feedback` via GitHub API (`/repos/owner/repo/issues?state=open&per_page=1`) â€” same auth-free approach as the existing releases fetch
 - Cache result in `user_data/launcher_state.json` with a 1-hour TTL to avoid hammering the API
 - Links are configurable via a `COMMUNITY_LINKS` dict constant in the launcher for easy maintenance
 
@@ -989,10 +996,10 @@ Embed as a collapsible `<details>` HTML block in the GitHub issue body (GitHub i
 **UI (Play tab, collapsed by default):**
 
 ```text
-  ▶ Advanced Launch Options
-  ────────────────────────────────────────────────────────────
+  â–¶ Advanced Launch Options
+  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Extra args: [--debug-zones --skip-intro --max-enemies 10  ]
-  [✓] Record replay as:  [session_20260331                  ]
+  [âœ“] Record replay as:  [session_20260331                  ]
   [ ] Force world seed:  [_________________________         ]
   [ ] Skip hub intro cutscene
   [ ] Enable debug overlay
@@ -1002,7 +1009,7 @@ Embed as a collapsible `<details>` HTML block in the GitHub issue body (GitHub i
 **Behaviour:**
 
 - `ttk.Frame` with a toggle button that shows/hides the panel (`frame.pack_forget()` / `frame.pack()`)
-- Free-text args entry appended verbatim to the launch command — with a warning: "Invalid args may crash the game"
+- Free-text args entry appended verbatim to the launch command â€” with a warning: "Invalid args may crash the game"
 - Checkboxes for the most common power-user flags: `--skip-intro`, `--debug-overlay`, `--force-seed <n>`
 - Force world seed: pass `--seed <n>` to the game (requires game-side support of `--seed` arg; document as future)
 - Persisted as `user_data/launcher_state.json` key `"last_extra_args"` so they survive launcher restarts
@@ -1019,8 +1026,8 @@ Embed as a collapsible `<details>` HTML block in the GitHub issue body (GitHub i
 
 ```text
   IMPORT / EXPORT
-  [Export Save Archive...]   → Creates saves_Player1_20260331.zip
-  [Import Save Archive...]   → Validates and restores from ZIP
+  [Export Save Archive...]   â†’ Creates saves_Player1_20260331.zip
+  [Import Save Archive...]   â†’ Validates and restores from ZIP
 ```
 
 **Export ZIP contents:**
@@ -1033,14 +1040,14 @@ saves_Player1_20260331.zip
     ...
   settings/settings.json
   profiles/profiles.json
-  export_manifest.json        ← version, profile, export_date, file hashes
+  export_manifest.json        â† version, profile, export_date, file hashes
 ```
 
 **Behaviour:**
 
 - `zipfile.ZipFile` (stdlib) for both create and extract
-- Export: `filedialog.asksaveasfilename(defaultextension=".zip")` → write all files → write `export_manifest.json` with SHA256 of each included file
-- Import: `filedialog.askopenfilename` → read `export_manifest.json` → verify hashes → confirm "This will replace your current save" → backup current → extract
+- Export: `filedialog.asksaveasfilename(defaultextension=".zip")` â†’ write all files â†’ write `export_manifest.json` with SHA256 of each included file
+- Import: `filedialog.askopenfilename` â†’ read `export_manifest.json` â†’ verify hashes â†’ confirm "This will replace your current save" â†’ backup current â†’ extract
 - Version compatibility check: warn if `export_manifest["game_version"]` differs from current
 
 **New methods:** `_export_save_archive()`, `_import_save_archive()`, `_write_export_manifest(zf, files: list[Path])`, `_verify_import_manifest(zf) -> bool`
@@ -1051,7 +1058,7 @@ saves_Player1_20260331.zip
 
 | Risk | Severity | Mitigation |
 | --- | --- | --- |
-| **Protocol version mismatch causes silent disconnect** (v0.8.8+) | **High** | Launcher must display installed protocol version; warn before joining if mismatched. `PROTOCOL_VERSION = "2"` (msgpack) is incompatible with any v0.8.7 or earlier build — no graceful fallback. |
+| **Protocol version mismatch causes silent disconnect** (v0.8.8+) | **High** | Launcher must display installed protocol version; warn before joining if mismatched. `PROTOCOL_VERSION = "2"` (msgpack) is incompatible with any v0.8.7 or earlier build â€” no graceful fallback. |
 | HMAC key duplicated in launcher | Medium | Extract key to a shared constants file (e.g., `config/integrity.py`); both game and launcher import from it. Until then, duplicate with a comment. |
 | `version.json` is stale (currently reads 0.8.4, code is 0.9.5) | Medium | Update `version.json` to `"0.9.5"` before the next release build; add a CI check that `version.json` matches the latest git tag. |
 | Save file corruption during restore | High | Atomic write (`.tmp` + `rename`); pre-operation timestamped backup; confirm before restore |
@@ -1059,7 +1066,7 @@ saves_Player1_20260331.zip
 | Mod ZIP install executes untrusted code | High | Prominent unsigned-mod warning dialog before every install; future: signature verification |
 | `enabled_mods.json` not respected by game | Medium | Show "pending restart" badge; document the contract in `core/mod_system.py` |
 | Launcher window grows too large | Medium | Extract to `launcher/tabs/` when any tab build method exceeds ~400 lines |
-| tkinter Treeview has no native checkbox | Low | Unicode ☑/☐ text in column 0, toggled on click — functionally equivalent |
+| tkinter Treeview has no native checkbox | Low | Unicode â˜‘/â˜ text in column 0, toggled on click â€” functionally equivalent |
 | Settings write races with game's hot-reload | Low | Atomic temp+rename; watcher only fires after rename completes |
 | Key rebinder captures modifier keys | Low | Filter out pure modifier keysyms (Shift_L, Control_L, etc.) in capture handler |
 | `filedialog.askopenfilename` unavailable headless | Low | Only called from button click; never in headless/benchmark mode |
@@ -1070,7 +1077,7 @@ saves_Player1_20260331.zip
 
 ## 8. Implementation Order (Recommended)
 
-Ordered by value/risk ratio — highest value, lowest risk first:
+Ordered by value/risk ratio â€” highest value, lowest risk first:
 
 | # | Feature | Phase | Why This Order |
 | --- | --- | --- | --- |
@@ -1156,16 +1163,17 @@ No pip dependencies are introduced at any phase. All features use stdlib modules
 | File | Role |
 | --- | --- |
 | `launcher/launcher.py` | Primary implementation target |
-| `version.json` | Version source of truth — **currently stale at 0.8.4; update to 0.9.5** |
+| `version.json` | Version source of truth â€” **currently stale at 0.8.4; update to 0.9.5** |
 | `systems/save_system.py` | HMAC key constant, save data schema |
-| `core/mod_system.py` | ModLoader — needs `enabled_mods.json` support (P2-F2) |
-| `config/settings.py` | DEFAULT_SETTINGS dict — copy into launcher constants |
+| `core/mod_system.py` | ModLoader â€” needs `enabled_mods.json` support (P2-F2) |
+| `config/settings.py` | DEFAULT_SETTINGS dict â€” copy into launcher constants |
 | `network/input_pipeline.py` | Replay JSON format and metadata schema |
-| `network/protocol.py` | `PROTOCOL_VERSION`, `CLIENT_VERSION`, `SERVER_VERSION` — surface in launcher for version parity check |
+| `network/protocol.py` | `PROTOCOL_VERSION`, `CLIENT_VERSION`, `SERVER_VERSION` â€” surface in launcher for version parity check |
 | `network/server.py` | Instanced zone architecture (v0.9.0+); `_ZoneInstance` registry for future zone status display |
-| `network/client.py` | `_EntityCache`, `current_hub_id`, `poll_transition()` — zone-aware state for multiplayer UI |
-| `game/game_simulator.py` | Phase 3b combat mechanics (v0.9.3+) — server-authoritative HP relevant to crash reports |
+| `network/client.py` | `_EntityCache`, `current_hub_id`, `poll_transition()` â€” zone-aware state for multiplayer UI |
+| `game/game_simulator.py` | Phase 3b combat mechanics (v0.9.3+) â€” server-authoritative HP relevant to crash reports |
 | `dev_tools/hot_reload.py` | Settings hot-reload (confirms settings write is compatible) |
-| `build/ninja_dash_launcher.spec` | PyInstaller spec — verify no new data files need adding |
-| `docs/CHANGELOG.md` | Authoritative version history — launcher news feed should pull from GitHub releases body |
+| `build/ninja_dash_launcher.spec` | PyInstaller spec â€” verify no new data files need adding |
+| `docs/CHANGELOG.md` | Authoritative version history â€” launcher news feed should pull from GitHub releases body |
 | `demo_game.py` | Add `--profile`, `--seed`, `--skip-intro` args; F12 screenshot capture |
+

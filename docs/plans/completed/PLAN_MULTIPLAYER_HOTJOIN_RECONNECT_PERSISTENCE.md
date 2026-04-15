@@ -1,3 +1,10 @@
+﻿---
+doc_type: plan
+status: completed
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
 # Multiplayer Hot-Join + Leave/Rejoin + Persistent Profiles (Server-Hosted)
 
 **Date:** 2026-04-02  
@@ -13,17 +20,17 @@
 Build a **dedicated server** that can run with **0 clients**, and supports:
 
 1. **Hot-join**: clients can connect at any time (before or after gameplay started).
-2. **Hot-leave**: clients can disconnect any time without leaving “ghosts” or stuck simulation.
+2. **Hot-leave**: clients can disconnect any time without leaving â€œghostsâ€ or stuck simulation.
 3. **Reconnect grace**: on disconnect, the server **reserves the slot** for *N seconds*; after that slot becomes available for new joiners.
 4. **Server-hosted player profiles** (persisted to disk, per server instance):
    - Inventory **slot layout** + equipped items + currency
    - Abilities/progression (missions, story, defeated bosses, etc.)
    - NPC state (dialogue seen, shop stock, quest flags)
    - Gate/portal state (per hub)
-   - Unlocked/visited hubs and other “locations”
+   - Unlocked/visited hubs and other â€œlocationsâ€
 5. **Reconnect spawn**: player always respawns at **hub spawn** (not last x/y), in either:
    - server default hub, or
-   - the player’s last hub visited on that server.
+   - the playerâ€™s last hub visited on that server.
 
 This plan is **incremental**: ship hot-join first (small fix), then add persistent profiles, then expand NPC/gate/location state.
 
@@ -31,48 +38,48 @@ This plan is **incremental**: ship hot-join first (small fix), then add persiste
 
 ## 1) Current Code Reality (Deep-Dive Findings)
 
-### 1.1 Why remote players can’t join mid-session today
+### 1.1 Why remote players canâ€™t join mid-session today
 
 **Client** waits in a lobby loop until it receives `GAME_START`:
-- `demo_game.py` holds until `_net_client.game_started.is_set()` (see the “L2: Multiplayer lobby” block).
+- `demo_game.py` holds until `_net_client.game_started.is_set()` (see the â€œL2: Multiplayer lobbyâ€ block).
 - `NetworkClient` sets that event only when it receives `MessageType.GAME_START` (`network/client.py`).
 
 **Server** only sends `GAME_START` once, when lobby is full:
 - In `network/server.py`, `_handle_client()` broadcasts `LOBBY_UPDATE` and, if lobby becomes full and `game_started == False`, calls `start_game()` and broadcasts `GAME_START`.
-- There is **no** “late-join bootstrap”: if a client connects after `game_started=True`, it never receives `GAME_START`, so it stays stuck in lobby.
+- There is **no** â€œlate-join bootstrapâ€: if a client connects after `game_started=True`, it never receives `GAME_START`, so it stays stuck in lobby.
 
 ### 1.2 Multiplayer architecture constraints that matter for persistence
 
-The server’s headless simulation (Phase 3) currently focuses on:
+The serverâ€™s headless simulation (Phase 3) currently focuses on:
 - physics + collision
 - enemies + pickups + hazards
 - authoritative `WORLD_STATE` broadcast
-- instanced “zones” (`hub_id`) with `WORLD_TRANSITION` and zone presence notifications
+- instanced â€œzonesâ€ (`hub_id`) with `WORLD_TRANSITION` and zone presence notifications
 
 It **does not** currently simulate campaign progression, dialogue, trading, or inventory systems. Therefore:
-- Server-authoritative “progression logic” is a large follow-up project.
+- Server-authoritative â€œprogression logicâ€ is a large follow-up project.
 - For this feature set, the server acts as a **persistence + synchronization** authority:
   - It stores profiles and returns them on join/rejoin.
   - It applies sanity checks/validation to client-supplied profile updates.
 
 ### 1.3 Why leave/rejoin does not work today (even if hot-join is fixed)
 
-Even after the “late joiners need GAME_START” bug is fixed, true rejoin still fails because:
+Even after the â€œlate joiners need GAME_STARTâ€ bug is fixed, true rejoin still fails because:
 
 - **Player identity is not stable**
   - `demo_game.py` uses random `player_id` values for both `--connect` and `--host`.
-  - Result: reconnecting after a disconnect looks like a brand-new player to the server, so it can’t restore anything.
+  - Result: reconnecting after a disconnect looks like a brand-new player to the server, so it canâ€™t restore anything.
 - **No slot reservation / reconnect grace**
   - `network/server.py` assigns `slot = session.next_slot()` and immediately frees it on disconnect.
   - Result: even if the same player reconnects quickly, they usually get a different slot and (currently) no restored state.
-- **“Sticky input” in the authoritative simulator can create ghost movement**
-  - `game/game_simulator.py::GameSimulator.step()` explicitly says absent slots “hold last known command”.
+- **â€œSticky inputâ€ in the authoritative simulator can create ghost movement**
+  - `game/game_simulator.py::GameSimulator.step()` explicitly says absent slots â€œhold last known commandâ€.
   - `network/server.py::_zone_simulation_loop` only forwards inputs from currently connected players.
   - Result: if a player disconnects while holding movement, the server sim keeps that last input until explicitly neutralized.
 
 ### 1.4 How hubs/zones work right now (what we can leverage)
 
-The project already has the core mechanics needed for “hub as entry point”:
+The project already has the core mechanics needed for â€œhub as entry pointâ€:
 
 - **Zone creation is deterministic**: `network/server.py::_get_or_create_zone(hub_id)`
   - Uses `SeedDerivation.derive_region_seed(world_seed, hub_id)` so hub worlds match between server and clients.
@@ -82,11 +89,11 @@ The project already has the core mechanics needed for “hub as entry point”:
   - Server moves zone membership, then sends `WORLD_TRANSITION` including `spawn_x/spawn_y` (`network/server.py::_handle_portal_travel`).
   - Client rebuilds world on `poll_transition()` and `_apply_world_transition(...)` (`demo_game.py`).
 
-Implication for reconnect: the server can pick an `entry_hub_id`, create that zone if needed, and spawn the player at that hub’s spawn.
+Implication for reconnect: the server can pick an `entry_hub_id`, create that zone if needed, and spawn the player at that hubâ€™s spawn.
 
 ### 1.5 Existing persistence primitives you can reuse (and their gaps)
 
-Useful “already exists” pieces:
+Useful â€œalready existsâ€ pieces:
 
 - **Inventory layout serializer**: `game/inventory_system.py::Inventory.to_dict()/from_dict()`
   - This is the exact format needed to preserve slot layout, equipped flags, and currency.
@@ -101,10 +108,10 @@ Known gaps you must plan around:
 - **Campaign save inventory format is not slot-based**
   - `systems/save_system.py` stores `CampaignSaveData.player_inventory` as `{item_id: quantity}`.
   - Slot layout is collapsed in `game/game_helpers.py::persist_player_inventory()`.
-  - Multiplayer profile persistence must use `Inventory.to_dict()` (see §9).
+  - Multiplayer profile persistence must use `Inventory.to_dict()` (see Â§9).
 - **Dialogue persistence does not exist**
   - `game/dialogue_system.py::DialogueManager` tracks only the *current* dialogue and a transient `history` list.
-  - You need a persistent structure for “dialogue seen / choices made” (see §10.2).
+  - You need a persistent structure for â€œdialogue seen / choices madeâ€ (see Â§10.2).
 
 ---
 
@@ -112,8 +119,8 @@ Known gaps you must plan around:
 
 - **Server instance**: one running dedicated server process, with its own persistent storage directory and `server_uid`.
 - **Session**: the runtime in-memory state of a server instance (connected players, zones, simulators).
-- **Zone**: server “world instance” keyed by `hub_id` (already implemented); may represent hubs and (eventually) missions.
-- **Hub**: a safe “hub world” (e.g., `central_hub`, `forest_hub`), defined by `HubManager`. Reconnect always places the player into a hub.
+- **Zone**: server â€œworld instanceâ€ keyed by `hub_id` (already implemented); may represent hubs and (eventually) missions.
+- **Hub**: a safe â€œhub worldâ€ (e.g., `central_hub`, `forest_hub`), defined by `HubManager`. Reconnect always places the player into a hub.
 - **Player profile**: persistent per-player data (inventory layout, progression, NPC state, gate state, unlocked hubs/locations).
 - **Registry**: server-wide persisted index mapping `player_id` to profile metadata + slot reservation state.
 
@@ -124,10 +131,10 @@ Known gaps you must plan around:
 ### 3.1 Goals (must-have)
 
 - Dedicated server can run without clients and accept connections at any time.
-- Late-joining client successfully transitions from lobby → gameplay when joining a running session.
+- Late-joining client successfully transitions from lobby â†’ gameplay when joining a running session.
 - Disconnecting removes the player cleanly:
-  - no “ghost remote player”
-  - no “stuck input” continuing to move in server sim
+  - no â€œghost remote playerâ€
+  - no â€œstuck inputâ€ continuing to move in server sim
 - Reconnect within grace:
   - reuses reserved slot (if available)
   - restores profile (inventory layout + progression + NPC/gate state)
@@ -157,9 +164,9 @@ Known gaps you must plan around:
 ### 3.4 Acceptance criteria (automated)
 
 - Integration test that starts a server in-process and simulates:
-  - connect A → receive `GAME_START`
-  - connect B after start → still receive `GAME_START`
-  - disconnect/reconnect B → registry reservation logic works
+  - connect A â†’ receive `GAME_START`
+  - connect B after start â†’ still receive `GAME_START`
+  - disconnect/reconnect B â†’ registry reservation logic works
 
 ---
 
@@ -177,7 +184,7 @@ Treat `GAME_START` as **bootstrap info** that can be sent:
 - as a broadcast when the session starts, and
 - as a unicast to any late joiner.
 
-This avoids coupling gameplay start to a “full lobby”.
+This avoids coupling gameplay start to a â€œfull lobbyâ€.
 
 ### 4.3 Reconnect grace principle
 
@@ -198,27 +205,27 @@ For this milestone, use **client-reported profile updates** with server validati
 Later upgrade path:
 - make server authoritative for currency from pickups, mission completion, etc.
 
-### 4.5 Authority model (explicit) — what is authoritative for this milestone
+### 4.5 Authority model (explicit) â€” what is authoritative for this milestone
 
-Ship this feature by making the server authoritative for **identity, admission, and persistence**, while the client remains authoritative for “progression logic” for now.
+Ship this feature by making the server authoritative for **identity, admission, and persistence**, while the client remains authoritative for â€œprogression logicâ€ for now.
 
 | Domain | Authority now (this plan) | Notes / upgrade path |
 |---|---|---|
 | Connection, slots, grace reservations | **Server** | Required for fairness and stability |
 | Zone membership (`hub_id`) | **Server** | Already server-controlled via `WORLD_TRANSITION` |
 | Physics + enemies + pickups + hazards | **Server** | Already Phase 3+ in `network/server.py` |
-| Inventory + currency + abilities + story progression | **Client → server persisted** | Client reports; server validates + stores; later server can become authoritative |
-| NPC dialogue flags + shop stock | **Client → server persisted** | Best as per-player for now |
-| Gate state | Mixed | Derived gates from abilities (recompute). Stateful gates require persistence (see §10.3). |
+| Inventory + currency + abilities + story progression | **Client â†’ server persisted** | Client reports; server validates + stores; later server can become authoritative |
+| NPC dialogue flags + shop stock | **Client â†’ server persisted** | Best as per-player for now |
+| Gate state | Mixed | Derived gates from abilities (recompute). Stateful gates require persistence (see Â§10.3). |
 
 ### 4.6 Shared-world vs per-player state (recommendations)
 
-Decide what is “shared” between players and what is personal progression. For this milestone, recommend:
+Decide what is â€œsharedâ€ between players and what is personal progression. For this milestone, recommend:
 
 - **Per-player**: inventory, currency, abilities, mission completion, story, dialogue flags, shop stock.
 - **Shared world (already happens)**: enemy/pickup/hazard state inside a currently running zone simulation (not persisted across zone teardown or server restarts).
 
-If you later want “co-op shared campaign progression”, move more logic server-side and treat the profile as shared group state.
+If you later want â€œco-op shared campaign progressionâ€, move more logic server-side and treat the profile as shared group state.
 
 ---
 
@@ -226,7 +233,7 @@ If you later want “co-op shared campaign progression”, move more logic serve
 
 ### 5.1 On-disk directory layout (recommended)
 
-Inside the server’s user data root (configurable env `NINJADASH_USER_DATA` already exists for settings):
+Inside the serverâ€™s user data root (configurable env `NINJADASH_USER_DATA` already exists for settings):
 
 ```
 user_data/
@@ -278,7 +285,7 @@ Top-level:
 - `last_safe_hub_id`
 - `visited_hubs`: list[str]
 - `unlocked_hubs`: list[str]
-- `unlocked_locations`: list[str] (implementation-defined, see §10.4)
+- `unlocked_locations`: list[str] (implementation-defined, see Â§10.4)
 
 Inventory (preserve **slot layout**):
 - `inventory_layout`: exactly `Inventory.to_dict()` shape (`game/inventory_system.py`)
@@ -296,16 +303,16 @@ Progression:
 
 NPC state:
 - `shops`: dict (use `TradingManager.save_shops()` output; *per-player shop stock*)
-- `dialogue`: dict (new; see §10.2)
+- `dialogue`: dict (new; see Â§10.2)
 - `npc_flags`: dict (extensible; quest flags, tutorial dismissed, etc.)
 
 Gate/portal state:
-- `gate_state`: dict (hub_id -> per-gate state, see §10.3)
+- `gate_state`: dict (hub_id -> per-gate state, see Â§10.3)
 - `portal_state`: dict (portal_id -> lock/unlock or discovery state; optional)
 
 ### 5.5 Example JSON (copy/paste templates)
 
-These are intentionally minimal “known-good shapes” a developer can start from.
+These are intentionally minimal â€œknown-good shapesâ€ a developer can start from.
 
 **`server.json`**
 ```json
@@ -371,7 +378,7 @@ These are intentionally minimal “known-good shapes” a developer can start fr
 }
 ```
 
-### 5.6 Schema evolution rules (so you don’t brick saves)
+### 5.6 Schema evolution rules (so you donâ€™t brick saves)
 
 - Every persisted file has a `schema_version`.
 - When loading:
@@ -403,7 +410,7 @@ Current:
 
 Add:
 - `client_instance_id`: optional UUID (debugging)
-- `requested_profile_rev`: int | null (allows “only send profile if newer”)
+- `requested_profile_rev`: int | null (allows â€œonly send profile if newerâ€)
 
 ### 6.3 Extend `server_hello` payload
 
@@ -412,7 +419,7 @@ Add:
 - `session_started`: bool
 - `reconnect_grace_seconds`
 
-### 6.4 New message: `player_profile` (server → client)
+### 6.4 New message: `player_profile` (server â†’ client)
 
 Sent:
 - immediately after handshake (`server_hello`)
@@ -423,7 +430,7 @@ Payload:
 - `profile_rev`
 - `profile`: PlayerProfile object (or a subset if large)
 
-### 6.5 New message: `profile_update` (client → server)
+### 6.5 New message: `profile_update` (client â†’ server)
 
 Two options:
 
@@ -439,7 +446,7 @@ Two options:
 
 Recommendation for milestone: start with Option A, then optimize to patches once stable.
 
-### 6.6 New message: `profile_ack` (server → client)
+### 6.6 New message: `profile_ack` (server â†’ client)
 
 Payload:
 - `player_id`
@@ -449,28 +456,28 @@ Payload:
 
 ### 6.7 Bootstrap message ordering (exact sequences)
 
-This is the concrete wire-level order that prevents lobby hangs and avoids “spawn flash” in the wrong hub.
+This is the concrete wire-level order that prevents lobby hangs and avoids â€œspawn flashâ€ in the wrong hub.
 
 **Case A: First player joins and session is not started yet (`start_mode=first_join`)**
-1. C→S: `client_hello {player_id, version, ...}`
-2. S→C: `server_hello {player_id, slot, ..., server_uid, session_started:false, ...}`
-3. S→C: `player_profile {player_id, profile_rev, profile}`
+1. Câ†’S: `client_hello {player_id, version, ...}`
+2. Sâ†’C: `server_hello {player_id, slot, ..., server_uid, session_started:false, ...}`
+3. Sâ†’C: `player_profile {player_id, profile_rev, profile}`
 4. S: start session (initial zone sim init)
-5. S→All: `game_start {seed, shape, rooms, hub_id:default_hub_id, world_seed}`
-6. If entry hub ≠ default hub: S→C: `world_transition {hub_id:entry_hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}`
+5. Sâ†’All: `game_start {seed, shape, rooms, hub_id:default_hub_id, world_seed}`
+6. If entry hub â‰  default hub: Sâ†’C: `world_transition {hub_id:entry_hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}`
 
 **Case B: Late joiner connects after session started**
-1. C→S: `client_hello {...}`
-2. S→C: `server_hello {..., session_started:true}`
-3. S→C: `player_profile {...}`
-4. S→C: `game_start {...}` (unicast; same payload as broadcast would have been)
-5. If entry hub ≠ default hub: S→C: `world_transition {...}`
+1. Câ†’S: `client_hello {...}`
+2. Sâ†’C: `server_hello {..., session_started:true}`
+3. Sâ†’C: `player_profile {...}`
+4. Sâ†’C: `game_start {...}` (unicast; same payload as broadcast would have been)
+5. If entry hub â‰  default hub: Sâ†’C: `world_transition {...}`
 
 **Case C: Reconnect within grace**
-Same as Case B, but the server picks the reserved slot and treats this as “rejoin”, not “new join”.
+Same as Case B, but the server picks the reserved slot and treats this as â€œrejoinâ€, not â€œnew joinâ€.
 
 Client-side requirement for zero-flash:
-- keep the “LOBBY/CONNECTING” overlay up until:
+- keep the â€œLOBBY/CONNECTINGâ€ overlay up until:
   - `game_start` received, and
   - `player_profile` received and applied, and
   - any initial `world_transition` needed for entry hub is applied.
@@ -523,7 +530,7 @@ Algorithm:
 2. Else:
    - compute `reserved_slots = {slot | reservation unexpired}`
    - compute `used_slots = {slot | currently connected}`
-   - choose the smallest slot in `[0..max_players-1]` not in `reserved_slots ∪ used_slots`
+   - choose the smallest slot in `[0..max_players-1]` not in `reserved_slots âˆª used_slots`
 3. If none available: reject with `error {code: session_full}`
 
 ### 7.3 Connection flow (new join or reconnect)
@@ -552,8 +559,8 @@ On `_handle_client()`:
 On disconnect:
 1. Remove player from session + zone membership.
 2. Broadcast leave events (`player_leave`, `zone_presence departed`).
-3. Prevent “sticky input”:
-   - clear that player’s `latest_input`
+3. Prevent â€œsticky inputâ€:
+   - clear that playerâ€™s `latest_input`
    - optionally reset the sim Player for that slot to neutral state
 4. Start reservation timer in registry:
    - `reserved_slot = slot`
@@ -574,7 +581,7 @@ Decide and implement one policy (recommendation: **kick old connection**):
   - close the old writer (server-initiated disconnect)
   - proceed with the new connection and keep the slot
 
-This prevents “two clients controlling one profile” and avoids split-brain updates.
+This prevents â€œtwo clients controlling one profileâ€ and avoids split-brain updates.
 
 ### 7.7 Simulator player lifecycle (spawn/reset rules)
 
@@ -582,10 +589,10 @@ Because the server simulation pre-creates one Player per slot, you must reset a 
 
 Rules:
 
-- On **new join** → reset sim player to hub spawn.
-- On **reconnect** → reset sim player to hub spawn (requirement: reconnect spawn at hub spawn).
-- On **slot reused by a different player** → reset sim player to hub spawn.
-- On **disconnect** → neutralize immediately to stop “sticky input”.
+- On **new join** â†’ reset sim player to hub spawn.
+- On **reconnect** â†’ reset sim player to hub spawn (requirement: reconnect spawn at hub spawn).
+- On **slot reused by a different player** â†’ reset sim player to hub spawn.
+- On **disconnect** â†’ neutralize immediately to stop â€œsticky inputâ€.
 
 Implementation outline:
 
@@ -602,11 +609,11 @@ Update and persist `last_safe_hub_id` whenever the server accepts a hub change:
 
 - In `network/server.py::_handle_portal_travel(...)`:
   - after successful move, set `registry[player_id].last_safe_hub_id = new_hub_id`
-  - update the player’s profile `last_safe_hub_id = new_hub_id`
+  - update the playerâ€™s profile `last_safe_hub_id = new_hub_id`
   - persist registry (and optionally profile) immediately or via debounce
 
 If you later add missions/non-hub zones:
-- define “safe hubs” as a whitelist (e.g., hubs known by `HubManager`)
+- define â€œsafe hubsâ€ as a whitelist (e.g., hubs known by `HubManager`)
 - only overwrite `last_safe_hub_id` when entering a hub, not a mission
 
 ---
@@ -630,23 +637,23 @@ Required changes:
 - Exit the lobby/bootstrap phase only when all required bootstrap data is ready:
   - `GAME_START` received (broadcast or unicast), AND
   - `PLAYER_PROFILE` received and applied, AND
-  - if reconnecting into a non-default hub, the initial `WORLD_TRANSITION` is applied (so there is no “spawn flash” in the default hub)
+  - if reconnecting into a non-default hub, the initial `WORLD_TRANSITION` is applied (so there is no â€œspawn flashâ€ in the default hub)
 
 ### 8.3 Applying the profile
 
 When `PLAYER_PROFILE` arrives:
 - Replace local runtime state with server profile:
-  - `player_inventory` ← `Inventory.from_dict(profile.inventory_layout)`
-  - `campaign_data.unlocked_abilities` ← profile
-  - `campaign_data.completed_missions` ← profile
-  - `campaign_data.currency` ← profile inventory currency (pick one canonical source)
-  - `story_manager` ← `StoryManager.from_dict(profile.story_state)`
+  - `player_inventory` â† `Inventory.from_dict(profile.inventory_layout)`
+  - `campaign_data.unlocked_abilities` â† profile
+  - `campaign_data.completed_missions` â† profile
+  - `campaign_data.currency` â† profile inventory currency (pick one canonical source)
+  - `story_manager` â† `StoryManager.from_dict(profile.story_state)`
   - `trading_manager.load_shops(profile.shops)`
   - `dialogue_manager` restore state from `profile.dialogue` (requires new persistence hooks)
-  - gate/portal states restored after hub regen (see §10.3)
+  - gate/portal states restored after hub regen (see Â§10.3)
 - Call `sync_player_abilities(...)` so mechanics are enabled immediately.
 
-### 8.4 Profile updates (client → server)
+### 8.4 Profile updates (client â†’ server)
 
 Maintain a `profile_dirty` flag and a debounced flush:
 - On any meaningful state change, mark dirty:
@@ -665,7 +672,7 @@ Maintain a `profile_dirty` flag and a debounced flush:
 
 ### 8.5 How to detect changes (practical dirty-marking)
 
-You don’t need perfect event coverage on day 1, but you do need to catch the state the user explicitly cares about:
+You donâ€™t need perfect event coverage on day 1, but you do need to catch the state the user explicitly cares about:
 
 - **Inventory layout**: mark dirty on:
   - item add/remove
@@ -679,7 +686,7 @@ You don’t need perfect event coverage on day 1, but you do need to catch the s
   - story state transitions (act progression, endings, etc.)
 - **NPC state**: mark dirty on:
   - trade/buy/sell (`game/trading_system.py` emits `TradeEvent`)
-  - dialogue start/choice/advance/end (you will add these hooks in §10.2)
+  - dialogue start/choice/advance/end (you will add these hooks in Â§10.2)
 - **Hub/location state**: mark dirty on:
   - successful `WORLD_TRANSITION` (hub visited/unlocked updates)
 
@@ -701,10 +708,10 @@ Do not ignore concurrency, even in a small co-op game.
 Server behavior:
 - If `base_profile_rev` != current, either:
   - reject (`profile_rev_conflict`) and send the latest profile back, or
-  - accept as “overwrite” (simpler but can lose updates)
+  - accept as â€œoverwriteâ€ (simpler but can lose updates)
 
 Recommended for milestone:
-- accept overwrite but **log warnings**; treat rev mismatch as “client stale”
+- accept overwrite but **log warnings**; treat rev mismatch as â€œclient staleâ€
 - later move to reject + resync once stable
 
 Client behavior:
@@ -735,7 +742,7 @@ This plan assumes Approach 1 for minimal risk.
 
 ---
 
-## 10) Persisting “NPC State”, “Gate State”, and “Locations”
+## 10) Persisting â€œNPC Stateâ€, â€œGate Stateâ€, and â€œLocationsâ€
 
 ### 10.1 NPC state scope
 
@@ -743,15 +750,15 @@ Persist NPC state **per player profile** (not global world), unless you explicit
 
 At minimum:
 - **Shop stock** per NPC: use `TradingManager.save_shops()` / `load_shops()`.
-- **Dialogue flags**: track “dialogue seen” and “choices made”.
+- **Dialogue flags**: track â€œdialogue seenâ€ and â€œchoices madeâ€.
 
 ### 10.2 Dialogue persistence (new work)
 
 `DialogueManager` currently holds only the active dialogue + history for the current conversation.
 
 Add:
-- `DialogueManager.get_persistent_state()` → dict
-- `DialogueManager.apply_persistent_state(state)` → None
+- `DialogueManager.get_persistent_state()` â†’ dict
+- `DialogueManager.apply_persistent_state(state)` â†’ None
 
 Suggested persisted fields:
 - `seen_dialogues`: set[str] (dialogue_id)
@@ -787,7 +794,7 @@ Implementation steps:
 - When generating gates during hub regen, use the same stable IDs each time.
 - After regen, apply persisted `unlocked` flags from profile.
 
-### 10.4 Unlocked/visited hubs and “locations”
+### 10.4 Unlocked/visited hubs and â€œlocationsâ€
 
 Define two explicit sets in the profile:
 - `visited_hubs`: hubs the player has physically entered at least once
@@ -803,7 +810,7 @@ Update rules:
 - On successful hub transition, add to `visited_hubs` and (optionally) `unlocked_hubs`.
 - On story/mission milestones, add additional location flags.
 
-### 10.5 Player abilities, currencies, and progression — exact fields to preserve
+### 10.5 Player abilities, currencies, and progression â€” exact fields to preserve
 
 The user explicitly requested these to persist across reconnect:
 
@@ -839,29 +846,29 @@ The user explicitly requested these to persist across reconnect:
 
 ## 11) Implementation Breakdown (PR-by-PR)
 
-This is written as PRs so it’s easy to review and so you can ship value early.
+This is written as PRs so itâ€™s easy to review and so you can ship value early.
 
-### PR 1 — Hot-join fix (unblocks late joiners immediately)
+### PR 1 â€” Hot-join fix (unblocks late joiners immediately)
 
-**Goal:** Fix “remote players can’t join mid-session” with the smallest change set.
+**Goal:** Fix â€œremote players canâ€™t join mid-sessionâ€ with the smallest change set.
 
 **Key server changes** (`network/server.py`)
 - After sending `SERVER_HELLO`, if `session.game_started` is already true, send `GAME_START` **unicast** to the newly joined client (same payload used in `session.start_game()`).
-- Replace “auto-start only when lobby is full” with:
+- Replace â€œauto-start only when lobby is fullâ€ with:
   - `start_mode=first_join` (recommended default): call `start_game()` when the first player connects, OR
   - `start_mode=immediate`: call `start_game()` at server boot.
 
 **Key client changes** (`demo_game.py`)
-- Lobby overlay must not assume “game only starts when lobby is full”.
+- Lobby overlay must not assume â€œgame only starts when lobby is fullâ€.
 - Exit lobby when `NetworkClient.game_started.is_set()` is true (works for both broadcast and unicast GAME_START).
 
 **Acceptance tests**
 - Start host with `max_players=4`. With only host connected, the game starts.
 - Connect client B after host is already playing; B enters gameplay (no lobby hang).
 
-**Estimated effort:** 0.5–1 day
+**Estimated effort:** 0.5â€“1 day
 
-### PR 2 — Dedicated server entrypoint (server runs without a client)
+### PR 2 â€” Dedicated server entrypoint (server runs without a client)
 
 **Goal:** Run the server as a standalone process that can sit idle awaiting connections.
 
@@ -876,9 +883,9 @@ This is written as PRs so it’s easy to review and so you can ship value early.
 - Start server process with 0 clients; it stays alive.
 - Client connects later and receives `SERVER_HELLO` + `GAME_START` and enters gameplay.
 
-**Estimated effort:** 0.5–1 day
+**Estimated effort:** 0.5â€“1 day
 
-### PR 3 — Stable player identity (required for “rejoin restores profile”)
+### PR 3 â€” Stable player identity (required for â€œrejoin restores profileâ€)
 
 **Goal:** Reconnect uses the same `player_id` every time from the same client machine.
 
@@ -892,7 +899,7 @@ This is written as PRs so it’s easy to review and so you can ship value early.
 
 **Estimated effort:** 0.5 day
 
-### PR 4 — ServerRegistry + reconnect grace (persisted)
+### PR 4 â€” ServerRegistry + reconnect grace (persisted)
 
 **Goal:** Preserve a slot for a disconnected player for N seconds and persist the registry on disk.
 
@@ -904,17 +911,17 @@ This is written as PRs so it’s easy to review and so you can ship value early.
 
 **Server changes** (`network/server.py`)
 - Create/load `server.json` + `registry.json` under `user_data/server_sessions/<server_uid>/`.
-- Replace `session.next_slot()` with reservation-aware slot selection (§7.2).
+- Replace `session.next_slot()` with reservation-aware slot selection (Â§7.2).
 - On disconnect: write reservation into registry (reserved_slot + reserved_until) and persist.
 - Background reaper clears expired reservations and persists.
 
 **Acceptance tests**
-- Disconnect, reconnect within grace → same slot.
+- Disconnect, reconnect within grace â†’ same slot.
 - Disconnect, wait past grace, new joiner can use freed slot.
 
-**Estimated effort:** 1–2 days
+**Estimated effort:** 1â€“2 days
 
-### PR 5 — PlayerProfile persistence + join bootstrap (inventory/progression restored)
+### PR 5 â€” PlayerProfile persistence + join bootstrap (inventory/progression restored)
 
 **Goal:** Server stores per-player profiles; client receives them on join and applies them.
 
@@ -928,7 +935,7 @@ This is written as PRs so it’s easy to review and so you can ship value early.
 - Ensure late joiners get `game_start` unicast.
 - Determine `entry_hub_id = profile.last_safe_hub_id or default_hub_id`.
   - If `entry_hub_id != default_hub_id`, send an immediate `world_transition` to the new client so they spawn in the correct hub.
-- Reset the server sim player for the slot (spawn at hub spawn) on join/rejoin (§7.7).
+- Reset the server sim player for the slot (spawn at hub spawn) on join/rejoin (Â§7.7).
 - Accept `profile_update` messages:
   - validate
   - persist
@@ -956,12 +963,12 @@ This is written as PRs so it’s easy to review and so you can ship value early.
   - every 10s if dirty, or immediately on key state changes
 
 **Acceptance tests**
-- Join → inventory layout preserved (slot order + equipped items).
-- Disconnect/reconnect → profile restored, spawn at hub spawn, and slot reservation works.
+- Join â†’ inventory layout preserved (slot order + equipped items).
+- Disconnect/reconnect â†’ profile restored, spawn at hub spawn, and slot reservation works.
 
-**Estimated effort:** 2–4 days
+**Estimated effort:** 2â€“4 days
 
-### PR 6 — NPC dialogue persistence (seen/choices persist)
+### PR 6 â€” NPC dialogue persistence (seen/choices persist)
 
 **Goal:** Keep dialogue progress and related NPC flags across reconnect.
 
@@ -971,21 +978,21 @@ This is written as PRs so it’s easy to review and so you can ship value early.
   - Update persistent state in `start_dialogue`, `select_choice`, `advance`, `end_dialogue`
 - Profile snapshot now includes `dialogue` and `npc_flags`.
 
-**Estimated effort:** 1–2 days
+**Estimated effort:** 1â€“2 days
 
-### PR 7 — Gate state persistence (optional if only derived gates exist today)
+### PR 7 â€” Gate state persistence (optional if only derived gates exist today)
 
 **Goal:** Persist and re-apply stateful gates/doors using stable IDs.
 
 - If gates are purely derived from abilities (current portal gating): you can defer this PR.
-- If you add real “doors/switches”:
+- If you add real â€œdoors/switchesâ€:
   - Add stable IDs to gate creation (do not use incrementing `gate_0`, `gate_1`)
   - Persist `{hub_id -> gate_id -> state}` in profile
   - Apply persisted state after hub regen
 
-**Estimated effort:** 2–5 days (depends on how many gate types exist in-world)
+**Estimated effort:** 2â€“5 days (depends on how many gate types exist in-world)
 
-### PR 8 — Tests, docs, and tooling
+### PR 8 â€” Tests, docs, and tooling
 
 **Goal:** Make the system safe to change.
 
@@ -993,14 +1000,14 @@ This is written as PRs so it’s easy to review and so you can ship value early.
 - Add registry/profile unit tests (schema + atomic write + migration).
 - Update docs: QUICK_START + multiplayer notes + reconnect grace semantics.
 
-**Estimated effort:** 1–2 days
+**Estimated effort:** 1â€“2 days
 
 ### Overall estimate (rough)
 
-- Minimum “late join fix” (PR 1): 0.5–1 day
-- Full persistence + rejoin grace (PR 1–5): ~5–10 days
-- Dialogue + gates (PR 6–7): +3–7 days
-- Tests/docs (PR 8): +1–2 days
+- Minimum â€œlate join fixâ€ (PR 1): 0.5â€“1 day
+- Full persistence + rejoin grace (PR 1â€“5): ~5â€“10 days
+- Dialogue + gates (PR 6â€“7): +3â€“7 days
+- Tests/docs (PR 8): +1â€“2 days
 
 ---
 
@@ -1070,7 +1077,7 @@ If validation rejects fields:
 ## 15) Open Questions (Decide Before Coding)
 
 1. Should shop stock be **per-player** (profile-based) or **shared world** (zone-based)?
-2. What counts as a “hub” for reconnect?
+2. What counts as a â€œhubâ€ for reconnect?
    - Only hubs known by `HubManager`?
    - If player disconnects in a mission, always restore to last safe hub?
 3. Should the server allow multiple simultaneous connections with the same `player_id`?
@@ -1094,3 +1101,4 @@ If validation rejects fields:
 - [ ] Duplicate `player_id` connections handled (kick old or reject).
 - [ ] Gate IDs are stable; persisted gate state re-applied on hub regen.
 - [ ] NPC shop + dialogue state persists across reconnect.
+

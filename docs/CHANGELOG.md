@@ -1,9 +1,18 @@
-# Changelog — Shadow Ascent: The Hollowed Ninja
+﻿---
+doc_type: changelog
+status: living
+owner: core-team
+last_updated: 2026-04-15
+version_anchor: v0.11.45
+---
+# Changelog â€” Shadow Ascent: The Hollowed Ninja
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
 
@@ -29,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Client scripted-loss readability flow now applies a local collapse animation state window and renderer fallback (`collapse` -> `*_death` keys when missing).
 - Mission lifecycle telemetry now logs mission start/progress/exit-unlock/complete/fail/restore transitions.
 - Startup controls evidence now logs active GDD control preset signature (`[Playtest][Controls] preset=...`).
-- `docs/PLAN_SHADOW_ASCENT.md` and `docs/PLAYER_EXPECTATIONS.md` synced for this milestone-bundle pass.
+- `docs/plans/implementing/PLAN_SHADOW_ASCENT.md` and `docs/PLAYER_EXPECTATIONS.md` synced for this milestone-bundle pass.
 - Version parity metadata updated to `0.11.45` across `version.json`, Gradle, README, ROADMAP, and changelog gate.
 
 ### Validation
@@ -60,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `PlayerState` now carries `stance_mode` in wire payloads for runtime observability.
 - Plan/docs alignment updated for the P0 logging hardening pass:
-  - `docs/PLAN_SHADOW_ASCENT.md`
+  - `docs/plans/implementing/PLAN_SHADOW_ASCENT.md`
   - `docs/PLAYER_EXPECTATIONS.md`
   - `docs/GDD.md` (`10.4` runtime observability contract)
 - Version parity metadata updated to `0.11.44` across `version.json`, Gradle, README, ROADMAP, and changelog gate.
@@ -169,7 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated `docs/PLAYER_EXPECTATIONS.md` to a launcher-only end-to-end solo and multiplayer pack with explicit logging/debug capture guidance.
-- Updated `docs/PLAN_SHADOW_ASCENT.md` P0-10 scope to require GDD 10.3 controls-spec traceability before P1 handoff.
+- Updated `docs/plans/implementing/PLAN_SHADOW_ASCENT.md` P0-10 scope to require GDD 10.3 controls-spec traceability before P1 handoff.
 
 ### Validation
 
@@ -249,45 +258,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`ZoneSimulationLoop`** — Removed `zone.spawnX != 0` fallback guard for fresh-join spawn position. Rooms at world-grid (0,0) previously spawned players at the `PlayerRecord` default (0,0 px) instead of the layout-detected safe spawn. `initSimulator()` always sets `zone.spawnX/Y` before the tick loop starts, so the fallback was both incorrect and unnecessary. (NET-1)
-- **`version.json`** — Updated to `0.10.83`; `build_date` corrected to `2026-04-10`.
-- **`build.gradle.kts`** — Updated `version` from stale `0.10.7` to `0.10.83`.
+- **`ZoneSimulationLoop`** â€” Removed `zone.spawnX != 0` fallback guard for fresh-join spawn position. Rooms at world-grid (0,0) previously spawned players at the `PlayerRecord` default (0,0 px) instead of the layout-detected safe spawn. `initSimulator()` always sets `zone.spawnX/Y` before the tick loop starts, so the fallback was both incorrect and unnecessary. (NET-1)
+- **`version.json`** â€” Updated to `0.10.83`; `build_date` corrected to `2026-04-10`.
+- **`build.gradle.kts`** â€” Updated `version` from stale `0.10.7` to `0.10.83`.
 
 ### Tests
 
-- `CollisionEdgeCaseTest.lavaCeilingSetsOnLavaFlag` — Entity jumping into a lava ceiling now sets `onLava = true`. (PHYS-5 gap closed)
-- `CollisionEdgeCaseTest.wallStopsEntityAtDashSpeed` — Swept sub-step prevents tunnelling at full dash velocity (16 px/tick). (PHYS-1 gap confirmed)
+- `CollisionEdgeCaseTest.lavaCeilingSetsOnLavaFlag` â€” Entity jumping into a lava ceiling now sets `onLava = true`. (PHYS-5 gap closed)
+- `CollisionEdgeCaseTest.wallStopsEntityAtDashSpeed` â€” Swept sub-step prevents tunnelling at full dash velocity (16 px/tick). (PHYS-1 gap confirmed)
 
 ---
 
-## [0.10.83] - 2026-04-10 (Post-audit hardening pass — v0.10.76–v0.10.83)
+## [0.10.83] - 2026-04-10 (Post-audit hardening pass â€” v0.10.76â€“v0.10.83)
 
 ### Added
 
-- **`EntityLifecycleListener`** — Observer extension point on `EntityManager.create()`/`destroy()` for Redis invalidation without touching ECS core. (ECS-1)
-- **`SerializableComponent`** interface — `toMap()`/`fromMap()` contract on components enabling generic DB serialization. (ECS-2)
-- **Auto-tag index** — `Entity.addTag()` now calls back to `EntityManager.indexTag()` automatically. (ECS-3)
-- **`TileType` decoupling** — `CollisionSystem` no longer imports `WorldGenerator` directly; tile-type constants moved to a shared enum. (PHYS-1)
-- **GAS tile type** — New `TileType.GAS` for mist/smoke/wind zones. (PHYS-2)
-- **`abilityFlags` bitmask** on `PhysicsState` — Per-entity medium-effect gating. (PHYS-3)
-- **`SpatialHash.raycast()`** API — Line-of-sight for boss AI and projectile traces. (PHYS-7)
-- **`dynamicTiles` in `SpatialHash.candidates()`** — Moving/falling platforms now included in the single source of truth for collision candidates. (PHYS-5)
-- **WorldGraph back-edges** — Metroidvania loops ready; graph is no longer a strict DAG. (WORLD-1)
-- **Deterministic biomes** — Biome assignment seeded from `(worldSeed, gridX, gridY)`. (WORLD-4)
-- **Redis tile cache** (`RoomTileCache`) — Room spatial hashes cached by `(roomSeed, neighborDirs)`. (WORLD-2)
-- **PostgreSQL WorldGraph persistence** (`WorldGraphRepository`) — JDBC-backed save/load. (WORLD-3)
-- **Schema versioning** on `WorldSnapshot` — `SCHEMA_VERSION` field; mismatched clients log a warning. (NET-2)
-- **`frameHash` desync detection** — Server and client both hash physics state; mismatch triggers resync. (NET-4)
-- **Redis zone state cache** (`ZoneStateCache`) — Late joiners receive immediate world state. (NET-6/7)
-- **No boxing on hot path** — Replaced `Map<Integer, Object>` slots with primitive arrays in `ZoneSimulationLoop`. (NET-8)
-- **`InventoryRepository`** — PostgreSQL-backed inventory persistence (`player_inventory` table, HikariCP). (INV-1..4)
-- **`ItemCache`** — Redis-backed item definition cache. (INV-5)
+- **`EntityLifecycleListener`** â€” Observer extension point on `EntityManager.create()`/`destroy()` for Redis invalidation without touching ECS core. (ECS-1)
+- **`SerializableComponent`** interface â€” `toMap()`/`fromMap()` contract on components enabling generic DB serialization. (ECS-2)
+- **Auto-tag index** â€” `Entity.addTag()` now calls back to `EntityManager.indexTag()` automatically. (ECS-3)
+- **`TileType` decoupling** â€” `CollisionSystem` no longer imports `WorldGenerator` directly; tile-type constants moved to a shared enum. (PHYS-1)
+- **GAS tile type** â€” New `TileType.GAS` for mist/smoke/wind zones. (PHYS-2)
+- **`abilityFlags` bitmask** on `PhysicsState` â€” Per-entity medium-effect gating. (PHYS-3)
+- **`SpatialHash.raycast()`** API â€” Line-of-sight for boss AI and projectile traces. (PHYS-7)
+- **`dynamicTiles` in `SpatialHash.candidates()`** â€” Moving/falling platforms now included in the single source of truth for collision candidates. (PHYS-5)
+- **WorldGraph back-edges** â€” Metroidvania loops ready; graph is no longer a strict DAG. (WORLD-1)
+- **Deterministic biomes** â€” Biome assignment seeded from `(worldSeed, gridX, gridY)`. (WORLD-4)
+- **Redis tile cache** (`RoomTileCache`) â€” Room spatial hashes cached by `(roomSeed, neighborDirs)`. (WORLD-2)
+- **PostgreSQL WorldGraph persistence** (`WorldGraphRepository`) â€” JDBC-backed save/load. (WORLD-3)
+- **Schema versioning** on `WorldSnapshot` â€” `SCHEMA_VERSION` field; mismatched clients log a warning. (NET-2)
+- **`frameHash` desync detection** â€” Server and client both hash physics state; mismatch triggers resync. (NET-4)
+- **Redis zone state cache** (`ZoneStateCache`) â€” Late joiners receive immediate world state. (NET-6/7)
+- **No boxing on hot path** â€” Replaced `Map<Integer, Object>` slots with primitive arrays in `ZoneSimulationLoop`. (NET-8)
+- **`InventoryRepository`** â€” PostgreSQL-backed inventory persistence (`player_inventory` table, HikariCP). (INV-1..4)
+- **`ItemCache`** â€” Redis-backed item definition cache. (INV-5)
 - **Ability item type** + coin recipe fix in `ItemDatabase`. (INV-6)
 - **SpatialHash multi-chunk contract test** + snapshot broadcast schedule test. (PHYS-4/6, NET-6/7)
 
 ---
 
-## [0.10.0–0.10.75] - 2026-04-04 to 2026-04-09 (Java rewrite sprint)
+## [0.10.0â€“0.10.75] - 2026-04-04 to 2026-04-09 (Java rewrite sprint)
 
 ### Added
 
@@ -312,18 +321,18 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ### Fixed
 
-- **`network/server.py`** — Reverted the v0.9.10 60 Hz player-only broadcast back
+- **`network/server.py`** â€” Reverted the v0.9.10 60 Hz player-only broadcast back
   to 20 Hz (`BROADCAST_EVERY_N_TICKS = 3`).  Since v0.9.11 made movement fully
   client-authoritative, the broadcast rate no longer affects remote player
-  responsiveness — only ghost position and health sync.  The 60 Hz path was
+  responsiveness â€” only ghost position and health sync.  The 60 Hz path was
   causing GIL contention in the remote client's `recv_loop`, which slowed the
   main game-loop thread and allowed the `GameClock` fixed-timestep accumulator
-  to fire 2–3 `TickEvent`s per frame.
-- **`demo_game.py`** — Added a network-mode accumulator clamp immediately before
+  to fire 2â€“3 `TickEvent`s per frame.
+- **`demo_game.py`** â€” Added a network-mode accumulator clamp immediately before
   `game_clock.tick()`.  Root cause of exaggerated input: `process_input(keys)`
   is called once per game-loop frame (outside the `TickEvent` loop) so all
-  2–3 physics ticks in a slow frame applied the same key-state, multiplying
-  movement distance 2–3× per visible frame and eliminating fine control.
+  2â€“3 physics ticks in a slow frame applied the same key-state, multiplying
+  movement distance 2â€“3Ã— per visible frame and eliminating fine control.
   The clamp caps the accumulator at exactly one `PHYSICS_DT` when a network
   client is connected, guaranteeing one physics tick per game-loop frame at the
   cost of a small amount of physics accuracy under load (acceptable for the
@@ -335,7 +344,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ### Fixed
 
-- **`demo_game.py`** — Removed the rubber-band lerp correction entirely.  The
+- **`demo_game.py`** â€” Removed the rubber-band lerp correction entirely.  The
   remote player's local physics is now fully client-authoritative (matching the
   v0.7.0 architecture): small server/client divergences (< 128 px) are ignored
   so no external force ever fights the physics engine.  Hard snap is kept for
@@ -343,33 +352,33 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
   Root cause of animation lag: the lerp was pushing the player's position into
   collision geometry each frame, causing the collision system to fire a recovery
   response, which made `on_ground` / velocity state flicker and the animation
-  state machine oscillate between idle↔walk on every correction tick.
-- **`entities/remote_player.py`** — `_infer_anim_state()` now uses
+  state machine oscillate between idleâ†”walk on every correction tick.
+- **`entities/remote_player.py`** â€” `_infer_anim_state()` now uses
   `max(abs(vx), abs(x - prev_x))` as the speed signal instead of `vx` alone.
   Since `smooth_factor = 1.0` collapses server-side `vx` to 0 in one tick,
   the ghost previously snapped to "idle" while `interpolated_pos()` was still
-  visually sliding to the stopped position — disconnecting animation from
+  visually sliding to the stopped position â€” disconnecting animation from
   movement.  The positional-delta fallback keeps the animation in "run"/"walk"
   for as long as the ghost is actually moving on screen.
 
 ---
 
-## [0.9.10] - 2026-03-30 (Hotfix: remote player 3× over-travel / no responsiveness)
+## [0.9.10] - 2026-03-30 (Hotfix: remote player 3Ã— over-travel / no responsiveness)
 
 ### Fixed
 
-- **`network/server.py`** — Server now broadcasts player positions at **60 Hz**
+- **`network/server.py`** â€” Server now broadcasts player positions at **60 Hz**
   (every simulation tick) via a new lightweight `_build_player_only_payload()`
   path.  Full entity delta (enemies, pickups, platforms) still broadcasts at
   20 Hz.  Root cause: `BROADCAST_EVERY_N_TICKS = 3` meant the rubber-band
   correction only fired once per 3 ticks, letting 3 frames of physics drift
-  accumulate — producing exactly the 3× over-travel observed in playtesting.
-- **`network/client.py`** — Changed `INPUT_HOLD_INTERVAL` from 3 → 1.  The
+  accumulate â€” producing exactly the 3Ã— over-travel observed in playtesting.
+- **`network/client.py`** â€” Changed `INPUT_HOLD_INTERVAL` from 3 â†’ 1.  The
   server's `latest_input` is now always the freshest frame so it never runs
   extra physics ticks on a stale held input, eliminating exaggerated movement
   for both the remote player (own view) and the host (ghost view).
-- **`demo_game.py`** — Reduced rubber-band lerp factor from 0.6 → 0.2 to
-  compensate for 3× more frequent corrections at 60 Hz.  At 60 Hz updates,
+- **`demo_game.py`** â€” Reduced rubber-band lerp factor from 0.6 â†’ 0.2 to
+  compensate for 3Ã— more frequent corrections at 60 Hz.  At 60 Hz updates,
   factor 0.2 converges 97 % of drift within ~150 ms while keeping each
   per-frame nudge small enough not to amplify short-tap travel distance.
 
@@ -379,11 +388,11 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ### Fixed
 
-- **`demo_game.py`** — Replaced the v0.9.4 dead-zone rubber-band (all-or-nothing
+- **`demo_game.py`** â€” Replaced the v0.9.4 dead-zone rubber-band (all-or-nothing
   32 px threshold) with a two-tier correction:
   - **Hard snap** when discrepancy > 128 px (genuine OOB / respawn / collision
-    fix) — snaps both position and velocity.
-  - **Smooth lerp** (factor 0.6) for discrepancies ≤ 128 px — nudges position
+    fix) â€” snaps both position and velocity.
+  - **Smooth lerp** (factor 0.6) for discrepancies â‰¤ 128 px â€” nudges position
     60 % toward server each update without touching velocity.
   Velocity is intentionally never overwritten during lerp corrections so local
   physics continues driving movement and input stays fully responsive.  At the
@@ -396,25 +405,25 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ### Fixed
 
-- **`network/server.py`** — Decoupled simulation rate from broadcast rate.
+- **`network/server.py`** â€” Decoupled simulation rate from broadcast rate.
   Physics still advances at 60 Hz (`TICK_RATE = 60`) for accuracy, but
   `WORLD_STATE` is serialised and broadcast every `BROADCAST_EVERY_N_TICKS = 3`
-  simulation ticks (≈ 20 Hz).  This reduces serialisation/msgpack/TCP work on
-  the server thread by 3×, releasing the GIL more often for the client's main
+  simulation ticks (â‰ˆ 20 Hz).  This reduces serialisation/msgpack/TCP work on
+  the server thread by 3Ã—, releasing the GIL more often for the client's main
   game loop and eliminating host-side FPS drops.  `FULL_SNAPSHOT_INTERVAL`
   adjusted from 180 to 60 broadcasts to preserve the 3-second full-refresh
   cadence for late-joining clients.
 
-- **`demo_game.py`** — Rubber-band position correction now applies a 32-pixel
+- **`demo_game.py`** â€” Rubber-band position correction now applies a 32-pixel
   dead zone: the server-authoritative position is only snapped when the
   client/server discrepancy exceeds 32 px (squared distance > 1024).  Within
   the dead zone local physics runs uninterrupted, eliminating the sticky/lagged
   input feel for remote clients caused by per-frame position overwrites at
   1 RTT of latency.  Health remains always-authoritative.
 
-- **`network/client.py`** — `_send_loop` idle sleep raised from 100 µs to 2 ms
-  (0.0001 → 0.002).  The loop still polls at 500 Hz — 8× the game's 60 Hz
-  input rate — while generating 50× fewer asyncio event-loop wake-ups, giving
+- **`network/client.py`** â€” `_send_loop` idle sleep raised from 100 Âµs to 2 ms
+  (0.0001 â†’ 0.002).  The loop still polls at 500 Hz â€” 8Ã— the game's 60 Hz
+  input rate â€” while generating 50Ã— fewer asyncio event-loop wake-ups, giving
   `_recv_loop` and `_handle_client` more CPU time.
 
 ---
@@ -423,42 +432,42 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ### Added
 
-- **`game/game_simulator.py`** — `GameSimulator.__init__` accepts a new
+- **`game/game_simulator.py`** â€” `GameSimulator.__init__` accepts a new
   `combat_mechanics: dict[int, object] | None` parameter (default `None`).
   `step()` now calls `check_enemy_collisions(p.state, enemy_manager, dt)` for
   each alive player slot that has a registered `CombatMechanic` and applies
   returned damage via `p.state.health_state.take_damage(damage, defense=0)`.
   Runs after `enemy_manager.update()` so AI positions are current.
 
-- **`network/server.py`** — `_init_zone_simulator()` creates one
-  `CombatMechanic` per player slot (server is headless — no
+- **`network/server.py`** â€” `_init_zone_simulator()` creates one
+  `CombatMechanic` per player slot (server is headless â€” no
   `CameraEffectsHandler`) and passes the dict to `GameSimulator` as
   `combat_mechanics=`. Player health in `WorldSnapshot` is now authoritative.
 
-- **`demo_game.py`** — Rubber-band block applies
+- **`demo_game.py`** â€” Rubber-band block applies
   `player.state.health_state.current_hp = _ps.health` from the server
-  snapshot, completing the server → client HP sync loop introduced in Phase 3b.
+  snapshot, completing the server â†’ client HP sync loop introduced in Phase 3b.
 
-- **`tests/unit/test_network_protocol.py`** — 13 tests covering
+- **`tests/unit/test_network_protocol.py`** â€” 13 tests covering
   `Message.encode/decode`, `encode_message`, `read_message` (oversized + malformed
   guards), `write_message`, and `MessageType` constant invariants.
 
-- **`tests/unit/test_network_snapshots.py`** — 24 tests covering round-trip
+- **`tests/unit/test_network_snapshots.py`** â€” 24 tests covering round-trip
   serialization of all six snapshot dataclasses (`Snapshot`, `PlayerState`,
   `MultiplayerSnapshot`, `EnemyState`, `PickupState`, `PlatformState`,
   `WorldSnapshot`) including missing-key defaults and hub_id propagation.
 
-- **`tests/unit/test_entity_cache.py`** — 18 tests covering `_EntityCache`
+- **`tests/unit/test_entity_cache.py`** â€” 18 tests covering `_EntityCache`
   full-snapshot replacement, delta add/update/remove for enemies, pickups and
   platforms, `reset()`, and the reconstructed-full return shape.
 
-- **`tests/unit/test_game_simulator.py`** — 16 tests covering `GameSimulator`
+- **`tests/unit/test_game_simulator.py`** â€” 16 tests covering `GameSimulator`
   tick stepping, `get_snapshot()` output, and Phase 3b combat integration
   (mechanic called for alive slots, skipped for dead slots, damage applied,
   reflected in snapshot).
 
-- **`tests/integration/test_network_multiplayer.py`** — 13 integration tests
-  covering the full server→cache→client pipeline: player slot visibility,
+- **`tests/integration/test_network_multiplayer.py`** â€” 13 integration tests
+  covering the full serverâ†’cacheâ†’client pipeline: player slot visibility,
   dead-player flags, Phase 3b health propagation, enemy state in snapshots,
   `_EntityCache` full + delta end-to-end, and `hub_id` preservation.
 
@@ -468,7 +477,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ### Bug fixes
 
-- **`network/server.py` — initial zone seed diverged from client world seed**:
+- **`network/server.py` â€” initial zone seed diverged from client world seed**:
   `_get_or_create_zone` used `self._world_seed` directly as the zone seed for
   the initial hub. Clients regenerate the world via `regenerate_world_state`,
   which always derives the effective seed as
@@ -482,7 +491,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
   Fixed by always calling `derive_region_seed` in `_get_or_create_zone` for
   every hub including the initial one, matching the client derivation exactly.
 
-- **`network/server.py` — hub definition shape/rooms not applied for initial zone**:
+- **`network/server.py` â€” hub definition shape/rooms not applied for initial zone**:
   The same function also did not consult `hub_def.world_shape` /
   `hub_def.room_count` for the initial hub, while `regenerate_world_state`
   overrides shape and rooms from the hub definition when one exists. Fixed by
@@ -495,16 +504,16 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ### Bug fixes
 
-- **`network/server.py` — `ConnectedPlayer.hub_id` not set on join**:
+- **`network/server.py` â€” `ConnectedPlayer.hub_id` not set on join**:
   All connecting players were initialized with `hub_id="central_hub"` (the
   default field value) instead of the actual initial zone. `_broadcast_to_zone`
   filters writers by `p.hub_id == zone.hub_id`, so when the server's initial
   zone was any hub other than `"central_hub"` the filter produced an empty set
-  and no `WORLD_STATE` frames were delivered — making every player invisible to
+  and no `WORLD_STATE` frames were delivered â€” making every player invisible to
   every other player. Fixed by passing `hub_id=self._world_hub_id` when
   constructing `ConnectedPlayer` in `_handle_client`.
 
-- **`demo_game.py` — stale-frame guard discarded valid `WORLD_STATE` frames**:
+- **`demo_game.py` â€” stale-frame guard discarded valid `WORLD_STATE` frames**:
   The guard `if _ws_dict.get("hub_id") and _ws_dict["hub_id"] != current_hub_id`
   fired when `current_hub_id` was still `None` (before `GAME_START` was
   processed), silently dropping every frame the server sent. Fixed by adding
@@ -513,7 +522,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ---
 
-## [0.9.0] - 2026-03-30 (Instanced zones — independent multiplayer worlds)
+## [0.9.0] - 2026-03-30 (Instanced zones â€” independent multiplayer worlds)
 
 ### Multiplayer
 
@@ -528,7 +537,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
   any non-initial hub via `SeedDerivation.derive_region_seed()` + `HubManager`.
 
 - **`_handle_portal_travel(player, destination_id, portal_id)`**: Moves a player
-  between zones atomically — removes from old zone, initializes destination zone
+  between zones atomically â€” removes from old zone, initializes destination zone
   if this is its first arrival, sends `WORLD_TRANSITION` to the traveling player,
   and sends `ZONE_PRESENCE` to both old and new zone occupants.
 
@@ -540,25 +549,25 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
   remaining occupants.
 
 - **New protocol messages** (`network/protocol.py`):
-  - `PORTAL_TRAVEL` (client → server): `{destination_id, portal_id}`
-  - `WORLD_TRANSITION` (server → client): `{hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}`
-  - `ZONE_PRESENCE` (server → zone): `{player_id, slot, hub_id, action: "arrived"|"departed"}`
+  - `PORTAL_TRAVEL` (client â†’ server): `{destination_id, portal_id}`
+  - `WORLD_TRANSITION` (server â†’ client): `{hub_id, seed, shape, rooms, world_seed, spawn_x, spawn_y}`
+  - `ZONE_PRESENCE` (server â†’ zone): `{player_id, slot, hub_id, action: "arrived"|"departed"}`
 
 - **`WorldSnapshot.hub_id`** (`network/snapshots.py`): Optional field (default
-  `""`) identifying which zone a snapshot belongs to. Backward-compatible — old
+  `""`) identifying which zone a snapshot belongs to. Backward-compatible â€” old
   clients/servers that omit this field continue to work.
 
 - **Client zone API** (`network/client.py`):
-  - `poll_transition()` — returns next `WORLD_TRANSITION` payload or `None`
-  - `poll_zone_presence()` — returns all pending `ZONE_PRESENCE` events
-  - `send_portal_travel(destination_id, portal_id)` — queues a portal travel request
-  - `_EntityCache.reset()` — clears cached entity state on zone transition
-  - `current_hub_id` — tracks the zone the client is currently in
+  - `poll_transition()` â€” returns next `WORLD_TRANSITION` payload or `None`
+  - `poll_zone_presence()` â€” returns all pending `ZONE_PRESENCE` events
+  - `send_portal_travel(destination_id, portal_id)` â€” queues a portal travel request
+  - `_EntityCache.reset()` â€” clears cached entity state on zone transition
+  - `current_hub_id` â€” tracks the zone the client is currently in
 
 ### Game
 
 - **Portal travel multiplayer intercept** (`demo_game.py`):
-  `on_portal_travel()` now checks `_net_client.is_connected` — if so, sends
+  `on_portal_travel()` now checks `_net_client.is_connected` â€” if so, sends
   `PORTAL_TRAVEL` to the server and returns without rebuilding the world locally.
   World rebuild is deferred until `WORLD_TRANSITION` arrives from the server.
 
@@ -581,14 +590,14 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 - **Server-side delta encoding** (`network/server.py`):
   `GameServer._build_world_state_payload()` tracks per-entity state hashes
   (enemies, pickups, platform states) and emits a delta frame containing only
-  changed/removed entities for each of the FULL_SNAPSHOT_INTERVAL − 1 frames
+  changed/removed entities for each of the FULL_SNAPSHOT_INTERVAL âˆ’ 1 frames
   between full snapshots. A full snapshot (`is_delta=False`) is broadcast every
   180 frames (3 s at 60 Hz) to prevent drift from accumulating.
 
 - **Client-side delta reconstruction** (`network/client.py`):
   `_EntityCache` applies incoming full/delta frames and reconstructs complete
   world state before placing it in the receive queue. `poll_world_state()` and
-  all downstream code in `demo_game.py` are unaffected — they always receive a
+  all downstream code in `demo_game.py` are unaffected â€” they always receive a
   fully-populated dict identical in shape to `WorldSnapshot.to_dict()`.
 
 - **~60% downstream bandwidth reduction**: Players sent every frame (small,
@@ -598,7 +607,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 ---
 
-## [0.8.8] - 2026-03-30 (Wire protocol: JSON → msgpack)
+## [0.8.8] - 2026-03-30 (Wire protocol: JSON â†’ msgpack)
 
 ### Added / Changed
 
@@ -616,25 +625,25 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 
 - **Improved decode error handling** (`network/protocol.py`):
   `read_message()` now catches `msgpack.UnpackException`, `msgpack.UnpackValueError`,
-  `KeyError`, `TypeError`, and `ValueError` — surfacing all as a descriptive
+  `KeyError`, `TypeError`, and `ValueError` â€” surfacing all as a descriptive
   `ValueError` with byte-count context instead of unhandled crashes.
 
 - **`msgpack>=1.0.0`** added to `[project.dependencies]` in `pyproject.toml`.
 
 ---
 
-## [0.8.7] - 2026-03-30 (Multiplayer network performance — deep audit fixes)
+## [0.8.7] - 2026-03-30 (Multiplayer network performance â€” deep audit fixes)
 
 ### Fixed / Improved
 
 - **Encode-once broadcast** (`network/protocol.py`, `network/server.py`):
-  `json.dumps()` was called once per connected client per broadcast tick — with 4 clients
+  `json.dumps()` was called once per connected client per broadcast tick â€” with 4 clients
   and WORLD_STATE at 60 Hz that was 240 JSON serialisations/sec of the same payload.
   Added `encode_message()` and `write_encoded()` helpers. `GameSession.broadcast()` now
   encodes the payload once and passes raw bytes to every writer.
 
 - **Concurrent broadcast** (`network/server.py`):
-  Writers were sent to sequentially — a slow or lagging client stalled delivery to all
+  Writers were sent to sequentially â€” a slow or lagging client stalled delivery to all
   others. `broadcast()` now fires all writers concurrently with `asyncio.gather()`.
 
 - **Smart INPUT rate limiter** (`network/client.py`):
@@ -644,7 +653,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
   during idle/hold reduces by ~66 %; new inputs are never delayed.
 
 - **Tighter send-loop sleep** (`network/client.py`):
-  Empty-queue sleep reduced from 1 ms to 100 µs — `_recv_loop` gets 10× more
+  Empty-queue sleep reduced from 1 ms to 100 Âµs â€” `_recv_loop` gets 10Ã— more
   opportunities to process inbound data between send attempts.
 
 - **Protocol decode error handling** (`network/protocol.py`):
@@ -665,7 +674,7 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
   socket creation eliminates this delay on both ends.
 - **Non-blocking send loop** (`network/client.py`):
   `_send_loop` was using `run_in_executor(None, queue.get, True, 0.016)` to wait for
-  outbound input — this blocked the asyncio event loop for up to 16ms on each empty-queue
+  outbound input â€” this blocked the asyncio event loop for up to 16ms on each empty-queue
   poll, preventing `_recv_loop` from processing inbound server state during that window.
   Replaced with `get_nowait()` + `await asyncio.sleep(0.001)`, which yields control to
   the event loop every 1ms and sends immediately when data is available.
@@ -679,8 +688,8 @@ Complete rewrite from Python/Pygame to Java 21 + libGDX + Netty in 6 days (53 co
 - **Cross-machine world desync** (`network/server.py`, `network/client.py`, `demo_game.py`):
   Remote clients now generate an identical tile layout and collision geometry to the host.
   Root cause: `regenerate_world_state()` derives the actual seed via
-  `SeedDerivation.derive_region_seed(hub_manager.world_seed, hub_id)` — ignoring the passed
-  `seed` — so if `hub_manager.world_seed` differed between machines (loaded from different local
+  `SeedDerivation.derive_region_seed(hub_manager.world_seed, hub_id)` â€” ignoring the passed
+  `seed` â€” so if `hub_manager.world_seed` differed between machines (loaded from different local
   saves) the derived seed differed and layouts diverged.  Fix: host broadcasts its
   `hub_manager.world_seed` as `"world_seed"` in the `GAME_START` message; remote clients apply
   it to their `hub_manager.world_seed` before calling `regenerate_world_state()`.
@@ -720,15 +729,15 @@ architecture with a structured feedback workloop pipeline.
 
 ### Changed
 
-- **`pyproject.toml`**: version bumped from 0.7.0 → 0.8.0 (now consistent with `version.json`).
-- **`README.md`**: Full rewrite — v0.8.0, 4-repo architecture diagram, accurate feature table,
+- **`pyproject.toml`**: version bumped from 0.7.0 â†’ 0.8.0 (now consistent with `version.json`).
+- **`README.md`**: Full rewrite â€” v0.8.0, 4-repo architecture diagram, accurate feature table,
   multi-repo links, cleaned Quick Start.
 - **`version.json`**: `min_launcher_version` set to `"1.1.0"`.
 
 ### Infrastructure
 
 - Multi-repo architecture documented and scaffolded (see `docs/repo-scaffolds/`)
-- Feedback workloop: Player → Feedback → Triage → Plan → Build → Test → Release → Document → Repeat
+- Feedback workloop: Player â†’ Feedback â†’ Triage â†’ Plan â†’ Build â†’ Test â†’ Release â†’ Document â†’ Repeat
 
 ---
 
@@ -736,14 +745,14 @@ architecture with a structured feedback workloop pipeline.
 
 ### Summary
 
-Pickup collections and enemy kills are now broadcast to all connected clients via `ENTITY_EVENT` so entity state stays in sync across machines. The host can select the maximum number of players (1–4) both in the launcher UI and via `--max-players N`. The lobby display now shows the actual configured maximum.
+Pickup collections and enemy kills are now broadcast to all connected clients via `ENTITY_EVENT` so entity state stays in sync across machines. The host can select the maximum number of players (1â€“4) both in the launcher UI and via `--max-players N`. The lobby display now shows the actual configured maximum.
 
 ### Added
 
-- **Entity event wiring — pickups** (`entities/pickups.py`, `demo_game.py`): `BasePickup` gains a stable `pickup_id` (`"pickup_X_Y"`). When the local player collects a pickup, `send_entity_event("pickup_collect", pickup_id)` is called. `PickupManager.suppress_by_id()` silently removes the matching pickup on all remote clients.
-- **Entity event wiring — enemies** (`entities/enemy_manager.py`, `demo_game.py`): `EnemyManager` tracks `recently_killed_ids` per update tick (populated in `_handle_enemy_death`, cleared at the top of each `update()`). After each physics tick, any kills are broadcast as `send_entity_event("enemy_kill", enemy_id)`. `EnemyManager.suppress_enemy()` silently removes the enemy on all remote clients (no loot/events).
-- **`--max-players N` CLI arg** (`demo_game.py`): Integer 1–4, default 4. Passed to `run_server()` when hosting. Lobby display uses actual configured value instead of hardcoded "4".
-- **Max players selector in launcher** (`launcher/launcher.py`): Readonly spinbox (1–4, default 4) next to the port field in the Host section. Value is passed as `--max-players N` when launching a hosted game.
+- **Entity event wiring â€” pickups** (`entities/pickups.py`, `demo_game.py`): `BasePickup` gains a stable `pickup_id` (`"pickup_X_Y"`). When the local player collects a pickup, `send_entity_event("pickup_collect", pickup_id)` is called. `PickupManager.suppress_by_id()` silently removes the matching pickup on all remote clients.
+- **Entity event wiring â€” enemies** (`entities/enemy_manager.py`, `demo_game.py`): `EnemyManager` tracks `recently_killed_ids` per update tick (populated in `_handle_enemy_death`, cleared at the top of each `update()`). After each physics tick, any kills are broadcast as `send_entity_event("enemy_kill", enemy_id)`. `EnemyManager.suppress_enemy()` silently removes the enemy on all remote clients (no loot/events).
+- **`--max-players N` CLI arg** (`demo_game.py`): Integer 1â€“4, default 4. Passed to `run_server()` when hosting. Lobby display uses actual configured value instead of hardcoded "4".
+- **Max players selector in launcher** (`launcher/launcher.py`): Readonly spinbox (1â€“4, default 4) next to the port field in the Host section. Value is passed as `--max-players N` when launching a hosted game.
 
 ### Changed
 
@@ -752,7 +761,7 @@ Pickup collections and enemy kills are now broadcast to all connected clients vi
 
 ### Notes
 
-Entity sync covers the two highest-divergence events: pickup collection and enemy death. Enemy AI still runs independently on each client (Phase 1) — the AI's use of local player position still causes minor positional divergence between frames, but entities are now removed in sync. Full server-authoritative simulation remains Phase 3.
+Entity sync covers the two highest-divergence events: pickup collection and enemy death. Enemy AI still runs independently on each client (Phase 1) â€” the AI's use of local player position still causes minor positional divergence between frames, but entities are now removed in sync. Full server-authoritative simulation remains Phase 3.
 
 ---
 
@@ -760,23 +769,23 @@ Entity sync covers the two highest-divergence events: pickup collection and enem
 
 ### Summary
 
-Network logs now flow into the game's rotating log file. `ENTITY_EVENT` message type added as the Phase 2.5 foundation for syncing entity mutations (pickup collection, enemy kills, platform triggers) across clients. Entity sync itself is not yet wired to game systems — see Phase 2.5 in the plan.
+Network logs now flow into the game's rotating log file. `ENTITY_EVENT` message type added as the Phase 2.5 foundation for syncing entity mutations (pickup collection, enemy kills, platform triggers) across clients. Entity sync itself is not yet wired to game systems â€” see Phase 2.5 in the plan.
 
 ### Added
 
-- **`ENTITY_EVENT` message type** (`network/protocol.py`): Client → server message carrying `{etype, entity_id, slot, data?}`. Server rebroadcasts to all other clients. Client exposes `send_entity_event(etype, entity_id, **data)` and `poll_entity_events() -> list[dict]` for game-loop integration.
-- **Outbound/inbound entity event queues** (`network/client.py`): `_entity_send_queue` (local → server) and `_entity_event_queue` (remote → local). `_send_loop` drains the send queue after each INPUT frame. `_recv_loop` routes received events to the inbound queue, ignoring echoes from the same slot.
+- **`ENTITY_EVENT` message type** (`network/protocol.py`): Client â†’ server message carrying `{etype, entity_id, slot, data?}`. Server rebroadcasts to all other clients. Client exposes `send_entity_event(etype, entity_id, **data)` and `poll_entity_events() -> list[dict]` for game-loop integration.
+- **Outbound/inbound entity event queues** (`network/client.py`): `_entity_send_queue` (local â†’ server) and `_entity_event_queue` (remote â†’ local). `_send_loop` drains the send queue after each INPUT frame. `_recv_loop` routes received events to the inbound queue, ignoring echoes from the same slot.
 
 ### Changed
 
 - **Network logger hierarchy** (`network/client.py`, `network/server.py`): Loggers renamed from `"network.client"` / `"network.server"` to `"ninja_dash.network.client"` / `"ninja_dash.network.server"`. They now inherit from the game's `GameLogger` root (`"ninja_dash"`) and are written to the rotating session log file in `user_data/logs/`.
-- **Structured logging** — client: connect/handshake outcome, PLAYER_JOIN/LEAVE, GAME_START, per-300-frame throughput counters. Server: incoming connections, handshake details, GAME_START with player list, relay throughput, disconnect cleanup.
+- **Structured logging** â€” client: connect/handshake outcome, PLAYER_JOIN/LEAVE, GAME_START, per-300-frame throughput counters. Server: incoming connections, handshake details, GAME_START with player list, relay throughput, disconnect cleanup.
 
 ### Known Limitation (entity sync)
 
 Enemies, collectibles, and falling platforms are simulated independently on each client (Phase 1 design). They will diverge because:
-1. Enemy AI chase/attack decisions use the **local** player's position — each client's remote-player position lags behind by network RTT.
-2. Pickup collection events are not broadcast — each client tracks its own pickup state.
+1. Enemy AI chase/attack decisions use the **local** player's position â€” each client's remote-player position lags behind by network RTT.
+2. Pickup collection events are not broadcast â€” each client tracks its own pickup state.
 3. Falling platform triggers are not broadcast.
 
 **Phase 2.5 plan**: wire `send_entity_event` calls into `pickup_manager` (on collect), `enemy_manager` (on kill), and the platform `TickEvent` handler (on trigger). Wire `poll_entity_events` in the game loop to suppress the matching local entity. Full server-authoritative simulation is Phase 3.
@@ -793,13 +802,13 @@ Remote players now render as actual ninja sprites color-tinted by slot (slot 0 =
 
 - **Colored remote-player sprites** (`rendering/remote_player_renderer.py`, `entities/remote_player.py`): Remote peers now use the same spritesheets as the local player via `AnimationStateMachine`, tinted per slot with `pygame.BLEND_RGB_MULT`. Slot 0 = default ninja, slot 1 = red `(220,80,80)`, slot 2 = green `(80,200,80)`, slot 3 = purple `(180,80,220)`. Ghost silhouette retained as fallback.
 - **Animation inference for remote players** (`entities/remote_player.py`): `_infer_anim_state()` maps velocity + dead flag to idle/walk/run/jump/fall/death. `apply_state()` calls `anim_sm.transition()` automatically on every network update. `anim_sm` retried each frame until non-None so timing issues on join are self-healing.
-- **Launcher multiplayer modes** (`launcher/launcher.py`): Three launch buttons — `>> Solo Play` (no args), `[H] Host Game` (port entry + `--host PORT`), `-> Join Game` (server entry + `--connect HOST:PORT`). Port validated 1–65535. Address defaults to port 7777 if only hostname given. Placeholder text with focus in/out handling. Window height increased to 460px.
+- **Launcher multiplayer modes** (`launcher/launcher.py`): Three launch buttons â€” `>> Solo Play` (no args), `[H] Host Game` (port entry + `--host PORT`), `-> Join Game` (server entry + `--connect HOST:PORT`). Port validated 1â€“65535. Address defaults to port 7777 if only hostname given. Placeholder text with focus in/out handling. Window height increased to 460px.
 
 ### Changed
 
 - **`network/server.py`**: `MAX_PLAYERS` raised from 2 to 4.
 - **`demo_game.py`**: Lobby strings updated from "2 players" to "4 players". `anim_sm` assignment moved to a per-frame retry block so it self-heals if the registry wasn't loaded at first snapshot.
-- **`launcher/launcher.py`**: Refactored launch path into `_launch_with_args(*extra)` helper used by all three launch modes. "▶ PLAY" renamed ">> Solo Play" for clarity.
+- **`launcher/launcher.py`**: Refactored launch path into `_launch_with_args(*extra)` helper used by all three launch modes. "â–¶ PLAY" renamed ">> Solo Play" for clarity.
 
 ---
 
@@ -807,12 +816,12 @@ Remote players now render as actual ninja sprites color-tinted by slot (slot 0 =
 
 ### Summary
 
-Remote peer players are now visible in-game as blue ghost silhouettes with health bars and slot labels. A lobby overlay holds both players at a "Waiting…" screen before the game starts; the server auto-starts when the second player connects.
+Remote peer players are now visible in-game as blue ghost silhouettes with health bars and slot labels. A lobby overlay holds both players at a "Waitingâ€¦" screen before the game starts; the server auto-starts when the second player connects.
 
 ### Added
 
 - **Remote player entity** (`entities/remote_player.py`): `RemotePlayer` dataclass holds networked peer state (pos, vel, health, facing, is_dead). Linear interpolation (`interpolated_pos`) smooths position between 60 Hz server ticks.
-- **Ghost renderer** (`rendering/remote_player_renderer.py`): Draws a blue semi-transparent silhouette with directional arrow, health bar, and "P2" slot label. Dead players render as a grey ghost. All drawing uses `pygame.draw` primitives — no sprite sheet dependency.
+- **Ghost renderer** (`rendering/remote_player_renderer.py`): Draws a blue semi-transparent silhouette with directional arrow, health bar, and "P2" slot label. Dead players render as a grey ghost. All drawing uses `pygame.draw` primitives â€” no sprite sheet dependency.
 - **Lobby overlay** (`demo_game.py`): When launched with `--host` or `--connect`, a gold-bordered panel shows connected player count and waits for `GAME_START`. ESC cancels. Game auto-skips the main menu and starts immediately on start signal.
 - **`LOBBY_UPDATE` message** (`network/protocol.py`, `network/server.py`, `network/client.py`): Server broadcasts connected player count + player list on every join/leave. Client exposes `connected_count` property.
 - **`GAME_START` message**: Server auto-fires when lobby is full (`MAX_PLAYERS` connected). Client sets `game_started` threading.Event and updates `server_seed`. Lobby overlay exits on receipt.
@@ -837,18 +846,18 @@ Three major workstreams landed together: a standalone tkinter launcher with GitH
   - Standalone tkinter GUI (`console=False`, onefile PyInstaller exe via `python build.py --launcher`).
   - Dark theme (`#0f0f1a` bg, `#e94560` accent). Shows installed version read from bundled `version.json`.
   - Background thread checks GitHub Releases API for newer version; shows "Up to date" or "Update available".
-  - Download worker: `urllib.request.urlretrieve` with live progress bar, SHA256 verification, atomic rename (`.new` → `.exe`, old → `.bak`).
+  - Download worker: `urllib.request.urlretrieve` with live progress bar, SHA256 verification, atomic rename (`.new` â†’ `.exe`, old â†’ `.bak`).
   - Launch button: `subprocess.Popen([ninja_dash.exe])` then closes launcher. Dev mode launches `demo_game.py` directly.
   - `version.json` added to repo root: `{"version": "0.7.3", "build": "production", "build_date": "2026-03-29", "min_launcher_version": "1.0.0"}`.
 
-- **Multiplayer Phase 1 — input relay** (`network/`):
+- **Multiplayer Phase 1 â€” input relay** (`network/`):
   - `network/protocol.py`: `MessageType` constants, `Message` dataclass, `read_message`/`write_message` (4-byte big-endian length prefix + UTF-8 JSON body).
-  - `network/server.py`: `GameServer` + `GameSession` — asyncio TCP server, handshake (`CLIENT_HELLO`/`SERVER_HELLO`), per-client input loop, `MultiplayerSnapshot` broadcast at 60 Hz.
-  - `network/client.py`: `NetworkClient` — asyncio I/O in daemon thread, `queue.Queue` bridge to pygame main loop. `send_input()` / `poll_state()` are non-blocking.
+  - `network/server.py`: `GameServer` + `GameSession` â€” asyncio TCP server, handshake (`CLIENT_HELLO`/`SERVER_HELLO`), per-client input loop, `MultiplayerSnapshot` broadcast at 60 Hz.
+  - `network/client.py`: `NetworkClient` â€” asyncio I/O in daemon thread, `queue.Queue` bridge to pygame main loop. `send_input()` / `poll_state()` are non-blocking.
   - `network/snapshots.py`: `PlayerState` and `MultiplayerSnapshot` dataclasses added (existing `Snapshot` unchanged).
   - `demo_game.py`: `--host PORT` starts embedded server thread; `--connect HOST:PORT` connects as client. Per-frame `send_input` + `poll_state` wired after `input_pipeline.next()`.
 
-- **Boss health pickups** (`systems/pickup_spawner.py`, `game/world_builder.py`): Boss/champion levels now spawn 3× more health pickups. Rooms with no health config get a guaranteed `(1, 3)` range.
+- **Boss health pickups** (`systems/pickup_spawner.py`, `game/world_builder.py`): Boss/champion levels now spawn 3Ã— more health pickups. Rooms with no health config get a guaranteed `(1, 3)` range.
 
 ### Fixed
 
@@ -856,10 +865,10 @@ Three major workstreams landed together: a standalone tkinter launcher with GitH
 
 ### Changed
 
-- **Boss damage tuning** (`entities/boss_manager.py`, `entities/boss_ai.py`): All base damage scaled to 1 (was 3–5) to match player's 5 HP pool. Attack cooldown raised 1.5 → 2.5 s. Vulnerable window extended 1.5 → 2.5 s. Phase 3 speed and attack-speed multipliers softened.
+- **Boss damage tuning** (`entities/boss_manager.py`, `entities/boss_ai.py`): All base damage scaled to 1 (was 3â€“5) to match player's 5 HP pool. Attack cooldown raised 1.5 â†’ 2.5 s. Vulnerable window extended 1.5 â†’ 2.5 s. Phase 3 speed and attack-speed multipliers softened.
 - **Boss HP** (`entities/boss_manager.py`): SHADOW_LORD 25, FIRE_DEMON 30, NECROMANCER 20, VEIL_MAIDEN 40, ICE_QUEEN 28, DRAGON 35 (scaled down from previous values).
 - **Boss contact damage** (`entities/boss_manager.py`): Contact damage now only applies when boss AI state is `SPECIAL_ATTACK` (was always-on during combat).
-- **Projectile deflection** (`entities/boss_manager.py`, `demo_game.py`): Player sword swing now calls `boss_manager.destroy_projectiles_in_rect()` — any boss projectile overlapping the attack rect is removed.
+- **Projectile deflection** (`entities/boss_manager.py`, `demo_game.py`): Player sword swing now calls `boss_manager.destroy_projectiles_in_rect()` â€” any boss projectile overlapping the attack rect is removed.
 
 ---
 
@@ -872,12 +881,12 @@ All 6 bosses now have functional AI: they chase the player, execute type-specifi
 ### Added
 
 - **Boss movement** (`entities/boss_ai.py`): `_chase_player()` drives `boss.velocity_x` each tick based on signed distance to player. Position is integrated in `BossManager.update()` with linear friction.
-- **Ranged attacks** (`entities/boss_manager.py`): `_execute_ranged_attack()` dispatches per boss type — FIRE_DEMON fires `fireball`, SHADOW_LORD fires `shadow_bolt`, ICE_QUEEN fires `ice_shard`, NECROMANCER fires `death_bolt`, DRAGON fires `fire_ball`, VEIL_MAIDEN fires `veil_bolt`.
-- **Type-specific specials** (`entities/boss_manager.py`): All 6 bosses have 3–4 special attacks fully wired: FIRE_DEMON (`fireball_barrage`, `flame_breath`, `meteor_strike`), SHADOW_LORD (`shadow_strike`, `dark_wave`, `void_portal`), ICE_QUEEN (`blizzard`, `ice_spike`, `freeze_ray`), NECROMANCER (`death_ray`, `soul_drain`, `bone_cage`), DRAGON (`fire_breath`, `wing_slam`, `tail_sweep`), VEIL_MAIDEN (`veil_strike`, `isolation_field`, `light_drain`, `shadow_step`).
-- **Projectile–player collision** (`entities/boss_manager.py`): `_check_projectile_player_collision()` tests all active boss projectiles against player AABB each tick and returns total damage to apply.
+- **Ranged attacks** (`entities/boss_manager.py`): `_execute_ranged_attack()` dispatches per boss type â€” FIRE_DEMON fires `fireball`, SHADOW_LORD fires `shadow_bolt`, ICE_QUEEN fires `ice_shard`, NECROMANCER fires `death_bolt`, DRAGON fires `fire_ball`, VEIL_MAIDEN fires `veil_bolt`.
+- **Type-specific specials** (`entities/boss_manager.py`): All 6 bosses have 3â€“4 special attacks fully wired: FIRE_DEMON (`fireball_barrage`, `flame_breath`, `meteor_strike`), SHADOW_LORD (`shadow_strike`, `dark_wave`, `void_portal`), ICE_QUEEN (`blizzard`, `ice_spike`, `freeze_ray`), NECROMANCER (`death_ray`, `soul_drain`, `bone_cage`), DRAGON (`fire_breath`, `wing_slam`, `tail_sweep`), VEIL_MAIDEN (`veil_strike`, `isolation_field`, `light_drain`, `shadow_step`).
+- **Projectileâ€“player collision** (`entities/boss_manager.py`): `_check_projectile_player_collision()` tests all active boss projectiles against player AABB each tick and returns total damage to apply.
 - **Contact damage** (`entities/boss_manager.py`): Boss body AABB vs player AABB checked during active combat states; returns damage_to_player.
 - **Champion system** (`entities/boss_manager.py`, `demo_game.py`, `systems/save_system.py`):
-  - `CampaignSaveData.defeated_bosses: set[str]` — persisted set of BossType name strings of bosses killed at least once.
+  - `CampaignSaveData.defeated_bosses: set[str]` â€” persisted set of BossType name strings of bosses killed at least once.
   - `Boss.is_champion: bool` flag; `spawn_boss(champion=True)` spawns at 50% HP, 75% hitbox.
   - `_maybe_spawn_boss()`: if boss type already in `defeated_bosses`, 40% chance to spawn champion instead of full boss.
   - Defeated boss type recorded to `campaign.defeated_bosses` at mission completion.
@@ -890,7 +899,7 @@ All 6 bosses now have functional AI: they chase the player, execute type-specifi
 
 ---
 
-## [0.7.1] - 2026-03-28 (Phases 2–5: Boss, Audio, Settings, Ability Gates)
+## [0.7.1] - 2026-03-28 (Phases 2â€“5: Boss, Audio, Settings, Ability Gates)
 
 ### Summary
 
@@ -901,12 +910,12 @@ Campaign loop stabilized; boss integration, SFX audio, settings wiring, and abil
 - **Boss integration** (`entities/boss_manager.py`): BossManager wired into game loop. 6 boss missions added to `data/missions.json`. `GateManager` created; `_rebuild_hub_gates()` places ability gates in hub on campaign load and after each unlock.
 - **Audio system** (`audio/audio_manager.py`): `AudioManager` wraps `pygame.mixer.Sound`. 12 named SFX slots with silent fallback if files missing. `initialize_audio()` added to `game/game_initialization.py`. SFX hooks wired: swing, hit_enemy, player_hurt, player_death, jump, land, dash, pickup_coin, pickup_item, menu_select, menu_confirm, inventory_open.
 - **Placeholder SFX** (`assets/audio/sfx/`): 12 WAV files generated via `tools/gen_placeholder_sfx.py` using stdlib only. Replace with real audio assets.
-- **Settings wiring**: `Player.set_key_bindings(dict)` added. `_build_key_bindings()` in `demo_game.py` maps settings string names → pygame constants. `apply_runtime_settings()` wires sfx_volume → `audio_manager.set_volume()`, fullscreen → `pygame.display.toggle_fullscreen()` + `camera.handle_resize()`, show_hitboxes → `show_debug_overlay`, key_* → `player.set_key_bindings()`.
+- **Settings wiring**: `Player.set_key_bindings(dict)` added. `_build_key_bindings()` in `demo_game.py` maps settings string names â†’ pygame constants. `apply_runtime_settings()` wires sfx_volume â†’ `audio_manager.set_volume()`, fullscreen â†’ `pygame.display.toggle_fullscreen()` + `camera.handle_resize()`, show_hitboxes â†’ `show_debug_overlay`, key_* â†’ `player.set_key_bindings()`.
 - **SettingsMenu items**: SFX Volume (cycles Off/25/50/75/100%) and Fullscreen toggle added to `ui/menu_system.py`.
 - **Ability sync**: `sync_player_abilities(unlocked_abilities)` closure syncs `player.feature_flags` and `JumpMechanic.double_jump_enabled` / `wall_jump_enabled`. Called at campaign start and after every ability unlock.
 - **Portal height gating** (`game/hub_manager.py`): Forest portal at `ROOM_PIXEL_CENTER_Y + 200` (floor level, basic jump reachable). Town portal at `ROOM_PIXEL_CENTER_Y - 200` (elevated, double_jump required). Physical placement IS the gate.
 - **F9 Debug ability menu** (`ui/menu_system.py:DebugAbilityMenu`): Password-protected overlay (password: `devmode`). Arrow keys + SPACE to toggle any ability live. Gates rebuild on each toggle.
-- **Tests**: `tests/test_ability_gates.py` (7 tests), `tests/test_phase4_settings_wiring.py` (12 tests) — all passing.
+- **Tests**: `tests/test_ability_gates.py` (7 tests), `tests/test_phase4_settings_wiring.py` (12 tests) â€” all passing.
 
 ### Fixed
 
@@ -930,14 +939,14 @@ Campaign loop stabilized; boss integration, SFX audio, settings wiring, and abil
 - **Removed Technical Debt Markers**: Cleaned up backup files and outdated references
 
 #### Documentation Overhaul
-- **Reduced Documentation Files**: 80+ markdown files → 28 core files (65% reduction)
+- **Reduced Documentation Files**: 80+ markdown files â†’ 28 core files (65% reduction)
 - **Created FEATURES_V0_7.md**: Comprehensive feature documentation
 - **Archived Historical Docs**: Moved 70+ files to `docs/archive/` (sessions, phases, audits, summaries)
 - **Updated Core Docs**: README, ROADMAP, CHANGELOG, ARCHITECTURE now reflect v0.7.0 reality
 - **Documented Boss AI Gap**: Prominently noted that boss framework exists but boss AI is not implemented
 
 #### Version Consistency
-- **Updated ALL Version References**: v0.4.0-dev → v0.7.0 across 25+ files
+- **Updated ALL Version References**: v0.4.0-dev â†’ v0.7.0 across 25+ files
 - **Version String Updates**: UI menu system, documentation, build configs
 
 ### What's Actually in v0.7.0 (Documentation Finally Accurate)
@@ -965,7 +974,7 @@ This release doesn't add new features - it documents what was already implemente
 #### Code Refactoring (Phases 3-6 Completed)
 
 **Phase 3: demo_game.py Refactoring**
-- **Reduced demo_game.py**: 3,496 → 2,607 lines (25.4% reduction, -889 lines)
+- **Reduced demo_game.py**: 3,496 â†’ 2,607 lines (25.4% reduction, -889 lines)
 - **Created 4 new modular files**:
   - `game/game_initialization.py` (430 lines) - System initialization
   - `game/level_factory.py` (377 lines) - Level creation
@@ -981,18 +990,18 @@ This release doesn't add new features - it documents what was already implemente
   - Updated CameraEffectsHandler with cleanup() method
   - Prevents memory leaks from recreated entities
 - **Verified Save System Security**: HMAC-SHA256 signature and validation confirmed working
-- **Skipped**: PlayerState refactoring (43 fields → 9) deferred to future release due to complexity
+- **Skipped**: PlayerState refactoring (43 fields â†’ 9) deferred to future release due to complexity
 
 **Phase 5: Code Quality Enforcement**
 - **Black Formatting**: 170 files formatted to consistent style (100% compliance)
-- **Ruff Linting**: 2,084 → 115 errors (94.5% reduction)
+- **Ruff Linting**: 2,084 â†’ 115 errors (94.5% reduction)
   - 1,969 auto-fixed issues
   - Modern Python 3.10+ type syntax (`str | None` instead of `Optional[str]`)
   - Sorted imports, removed f-string placeholders
 - **Type Hints Added**:
   - Core modules: 98% type coverage improvement
   - Fixed callable type hints, dataclass fields, event inheritance
-  - mypy errors: 251 → 240 (core/ modules down to 2 minor issues)
+  - mypy errors: 251 â†’ 240 (core/ modules down to 2 minor issues)
 
 **Phase 6: Testing & Finalization**
 - **Test Suite Verified**: All 16/17 tests passing (94.1% pass rate)
@@ -1452,3 +1461,5 @@ None - all changes are internal refactoring and code organization improvements.
 **Last Updated**: 2025-12-12
 **Current Version**: 0.7.0
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures
+
+
