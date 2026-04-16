@@ -25,10 +25,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
 - Next release candidate: v0.11.55 (animation/combat continuation after Phase 8 runtime hot-swap closure slice).
-- Latest release verification (`2026-04-16 00:31:49 +01:00`):
-  - CI green on `master` (`run_id=24483440092`)
-  - Release green on `v0.11.52` (`run_id=24483571008`)
-  - Published release: https://github.com/VainAsher/indie-ninja-adventures/releases/tag/v0.11.52
+- Latest release verification (`2026-04-16 07:05:46 +01:00`):
+  - CI green on `master` (`run_id=24486309460`)
+  - Release green on `v0.11.54` (`run_id=24495729709`)
+  - Published release: https://github.com/VainAsher/indie-ninja-adventures/releases/tag/v0.11.54
 
 ## Runtime Reality (Implemented)
 
