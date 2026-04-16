@@ -2,11 +2,11 @@
 doc_type: plan
 status: developing
 owner: core-team
-last_updated: 2026-04-15
-version_anchor: v0.11.52
+last_updated: 2026-04-16
+version_anchor: v0.11.53
 ---
 # PLAN â€” Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-15 23:58:40 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.52
+**Created:** 2026-04-11 | **Last updated:** 2026-04-16 00:53:55 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.53
 
 ---
 
@@ -213,7 +213,7 @@ Full ZIP animation â†’ engine filename â†’ animation key table. **This
 | 4 | EntityRenderer Key Routing | Phase 3 | **Done v0.11.6** â€” `player_sword_*` prefix fallthrough routing |
 | 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** â€” climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
 | 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.51** â€” corner ledge grab/hang/climb and water-surface + side-bank water exit logic are live in `GameSimulator`; explicit `CLIMBABLE` tagging plus stance-gated wall contact (Yin climb attach, Yang wall slide) are implemented, with stance-sensitive swim tuning + blocked-bank/surface-jump handling now added |
-| 7 | Interaction Animations | Phase 6 | Not started |
+| 7 | Interaction Animations | Phase 6 | **Partial v0.11.53** - runtime interaction animation bridge added for puzzle/objective markers (`lever`, `button`, `echo_trigger`) and pickup feedback, with deterministic fixture + regression coverage; broader door/chest/push-pull state families still pending |
 | 8 | Weapon State System | Phase 4 | **Partial v0.11.48** â€” `weaponState` routing is live and stance-coupled (Yin->unarmed, Yang->armed posture with equipped-weapon fallback); manual hot-swap and combat-chain integration remain |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |
 | 10 | Sword Combat System | Phase 8 | Not started |
@@ -333,6 +333,24 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
   - `HudRenderer.renderControlsOverlay(...)` now renders live bound keys from runtime bindings.
 - Regression coverage:
   - Added `KeyBindingsTest` for default mapping, override parsing, and legacy fallback parsing.
+
+### Progress update (`2026-04-16 00:53:55 +01:00`)
+
+- Phase 7 interaction readability bridge pass:
+  - Added `SimPlayer` interaction state timers (`interactionState` / `interactionTimer`) and deterministic duration constants.
+  - `GameSimulator` now queues interaction animations on objective affordance actions:
+    - lever markers (`lever_*`) -> `lever`
+    - button markers (`btn_*`) and echo-trigger markers (`echo_trigger_*`) -> `button`
+    - pickup collection -> `pickup`
+  - Interaction state now applies immediate same-tick animation readability and logs:
+    - `[Playtest][Interaction] ... type=lever|button|echo_trigger`
+- Fixture/test-path stabilization:
+  - Added `LevelLayout.buildInteractionMarkerFixtureLayout(...)`.
+  - Added `GameSimulatorTest` regressions:
+    - `leverInteractionQueuesLeverAnimationFeedback`
+    - `buttonInteractionQueuesButtonAnimationFeedback`
+- Renderer pacing parity:
+  - Added explicit interaction FPS routing in `EntityRenderer.playerFps(...)` for `lever`/`button`/`pickup` and related interaction keys.
 
 ### Validation additions for this plan
 

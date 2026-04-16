@@ -305,6 +305,8 @@ public final class EntityRenderer {
                  "block_hit", "block_hit_hard"                                       -> FPS_ATTACK;
             case "throw", "throw_ground", "throw_air", "throw_crouch",
                  "teleport", "ninjutsu_hand", "ninjutsu_summon"                    -> FPS_THROW;
+            case "button", "lever", "pickup", "pickup_crouch",
+                 "door_enter", "door_exit", "chest_side", "chest_back"             -> 12f;
             case "hurt", "hurt2", "crouch_hurt", "death", "death2",
                  "prone_death", "prone_hurt", "collapse"                             -> FPS_DEATH;
             case "dash"                                                             -> FPS_DASH;

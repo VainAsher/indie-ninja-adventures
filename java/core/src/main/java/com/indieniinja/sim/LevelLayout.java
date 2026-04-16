@@ -346,6 +346,42 @@ public final class LevelLayout {
     }
 
     /**
+     * Deterministic interaction fixture:
+     * - flat room with a single interactable puzzle marker NPC near spawn.
+     * - markerType should be one of: "lever_<id>", "btn_<index>_<id>", "echo_trigger_<id>".
+     */
+    public static LevelLayout buildInteractionMarkerFixtureLayout(long seed, String markerType) {
+        final int TILE  = 32;
+        final int W     = 32;
+        final int H     = 24;
+
+        SpatialHash hash = new SpatialHash();
+
+        for (int tx = 0; tx < W; tx++) {
+            hash.insert(new TileRect(tx * TILE, (H - 2) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect(tx * TILE, (H - 1) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 0; ty < H; ty++) {
+            hash.insert(new TileRect(0, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect((W - 1) * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+
+        float spawnX = 8 * TILE;
+        float spawnY = (H - 2) * TILE - 56f;
+        String marker = (markerType == null || markerType.isBlank()) ? "lever_fixture_0" : markerType;
+        float markerX = spawnX + 36f;
+        float markerY = (H - 2) * TILE - SimNPC.DEFAULT_HEIGHT;
+
+        List<NPCSpawn> npcs = java.util.List.of(
+            new NPCSpawn(marker, markerX, markerY, markerX - 4f, markerX + 4f)
+        );
+
+        return new LevelLayout(seed, W, H, hash,
+            new ArrayList<>(), new ArrayList<>(), npcs, null,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), spawnX, spawnY, null);
+    }
+
+    /**
      * Build a procedurally generated layout from a seed.
      *
      * Uses WorldGenerator to create a 128×128 tile grid with layered platforms

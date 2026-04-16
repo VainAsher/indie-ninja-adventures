@@ -89,6 +89,11 @@ public final class SimPlayer {
     public boolean isThrowing       = false; // for "throw" anim state
     public boolean prevThrow        = false; // rising-edge detection
 
+    // Context interaction animation bridge (Phase 7 start):
+    // brief animation override window used for readable lever/button/pickup feedback.
+    public String  interactionState = "";
+    public float   interactionTimer = 0f;
+
     // Combat constants (match Python combat_mechanic.py / shuriken.py)
     public static final int   MELEE_DAMAGE         = 1;
     public static final int   MELEE_ACTIVE_TICKS   = 8;    // frames hitbox is live
@@ -104,6 +109,9 @@ public final class SimPlayer {
     public static final float BLOCK_DAMAGE_MULT    = 0.35f;
     public static final float BLOCK_HIT_TIME       = 0.16f;
     public static final float PARRY_HIT_TIME       = 0.20f;
+    public static final float INTERACT_LEVER_TIME  = 0.45f;
+    public static final float INTERACT_BUTTON_TIME = 0.32f;
+    public static final float INTERACT_PICKUP_TIME = 0.22f;
     public static final float CLIMB_SPEED          = 3.0f;
     public static final float LEDGE_HANG_OFFSET    = 10f;
     public static final float LEDGE_CLIMB_TIME     = 0.22f;

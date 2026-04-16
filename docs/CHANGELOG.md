@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-15
-version_anchor: v0.11.52
+last_updated: 2026-04-16
+version_anchor: v0.11.53
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.53] - 2026-04-16 (interaction animation feedback bridge + fixture coverage)
+
+### Added
+
+- New deterministic interaction fixture in `LevelLayout`:
+  - `buildInteractionMarkerFixtureLayout(...)`
+  - supports regression markers for `lever_*`, `btn_*`, and `echo_trigger_*`.
+- New simulator regression coverage:
+  - `GameSimulatorTest.leverInteractionQueuesLeverAnimationFeedback`
+  - `GameSimulatorTest.buttonInteractionQueuesButtonAnimationFeedback`
+- New playtest interaction log events:
+  - `[Playtest][Interaction] ... type=lever|button|echo_trigger`
+
+### Changed
+
+- Added player interaction animation bridge in simulator runtime:
+  - `SimPlayer` now tracks `interactionState`/`interactionTimer`.
+  - lever/button/pickup events now queue short readable animation windows.
+  - interaction animation state is emitted immediately for same-tick snapshot readability.
+- `EntityRenderer.playerFps(...)` now includes interaction animation keys
+  (`lever`, `button`, `pickup`, `door_enter`, `door_exit`, `chest_*`) at explicit interaction FPS.
+- Version parity metadata updated to `0.11.53` across `version.json`, Gradle, README, ROADMAP, changelog, and active animation plan.
+
+### Validation
+
+- `cd java && ./gradlew :server:test --tests com.indieniinja.server.GameSimulatorTest --no-daemon` pass.
+- `cd java && ./gradlew :core:compileJava :client:compileJava --no-daemon` pass.
 
 ---
 

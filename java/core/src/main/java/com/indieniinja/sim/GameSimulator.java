@@ -1133,6 +1133,14 @@ public final class GameSimulator {
         // LAVA: GameSimulator applies 1 HP damage below (after applyPlayerInput returns).
 
         // ── Animation state ───────────────────────────────────────────────────
+        if (sp.interactionTimer > 0f) {
+            sp.interactionTimer -= DT;
+            if (sp.interactionTimer <= 0f) {
+                sp.interactionTimer = 0f;
+                sp.interactionState = "";
+            }
+        }
+
         if (sp.ninjutsuCasting) {
             sp.animState = sp.ninjutsuHeld ? "ninjutsu_hand" : "ninjutsu_summon";
         } else if (sp.teleportPhaseMode) {
@@ -1146,6 +1154,8 @@ public final class GameSimulator {
         } else if (sp.isBlocking) {
             if (!p.onGround) sp.animState = "air_block";
             else sp.animState = cmd.crouch ? "crouch_block" : "block";
+        } else if (sp.interactionTimer > 0f && sp.interactionState != null && !sp.interactionState.isBlank()) {
+            sp.animState = sp.interactionState;
         } else if (p.inWater) {
             if (sp.atWaterSurface) {
                 sp.animState = Math.abs(p.vx) > 0.1f ? "swim_surface" : "swim_surface_idle";
@@ -1205,6 +1215,16 @@ public final class GameSimulator {
         if (equippedWeapon == null || equippedWeapon.isBlank()) return "unarmed";
         String id = equippedWeapon.toLowerCase(java.util.Locale.ROOT);
         return id.contains("pistol") ? "pistol" : "sword";
+    }
+
+    private static void queueInteractionAnimation(SimPlayer sp, String animState, float durationSec) {
+        if (sp == null) return;
+        if (animState == null || animState.isBlank()) return;
+        if (durationSec <= 0f) return;
+        sp.interactionState = animState;
+        sp.interactionTimer = durationSec;
+        // Immediate readability cue for this same tick's snapshot.
+        sp.animState = animState;
     }
 
     /**
@@ -1872,6 +1892,8 @@ public final class GameSimulator {
                     p.dashTimer           = 0f;
                     p.isAttacking         = false;
                     p.isThrowing          = false;
+                    p.interactionState    = "";
+                    p.interactionTimer    = 0f;
                     log.info("[Playtest][Player] respawn player={} slot={} hub={} spawn=({}, {})",
                              p.playerId, p.slot, hubId, (int) p.spawnX, (int) p.spawnY);
                 }
@@ -2298,6 +2320,7 @@ public final class GameSimulator {
 
     /** Apply a collected pickup to a player — health, currency, item, or M4 fragment. */
     private void applyPickup(SimPlayer p, String type) {
+        queueInteractionAnimation(p, "pickup", SimPlayer.INTERACT_PICKUP_TIME);
         switch (type != null ? type : "") {
             case "coin"         -> p.inventory.addCurrency(1);
             case "health_potion"-> {
@@ -2381,10 +2404,16 @@ public final class GameSimulator {
                 // button NPC type = "btn_<i>_<puzzleId>" — all 3 unique buttons must be pressed
                 if (t.startsWith("lever_")) {
                     unlockDoor(t.substring(6));   // "lever_ld_0" → "ld_0"
+                    queueInteractionAnimation(p, "lever", SimPlayer.INTERACT_LEVER_TIME);
+                    log.info("[Playtest][Interaction] player={} slot={} type=lever marker={}",
+                        p.playerId, p.slot, t);
                 } else if (t.startsWith("btn_")) {
                     // Prevent re-pressing an already-activated button
                     if (solvedPuzzles.contains(t)) break;
                     solvedPuzzles.add(t);
+                    queueInteractionAnimation(p, "button", SimPlayer.INTERACT_BUTTON_TIME);
+                    log.info("[Playtest][Interaction] player={} slot={} type=button marker={}",
+                        p.playerId, p.slot, t);
                     // Extract base puzzleId after the 2nd underscore: "btn_0_bs_0" → "bs_0"
                     int first  = t.indexOf('_');
                     int second = t.indexOf('_', first + 1);
@@ -2401,6 +2430,9 @@ public final class GameSimulator {
                     // Echo trigger puzzle marker: "echo_trigger_<pid>" unlocks "echo_door_<pid>".
                     if (solvedPuzzles.contains(t)) break;
                     solvedPuzzles.add(t);
+                    queueInteractionAnimation(p, "button", SimPlayer.INTERACT_BUTTON_TIME);
+                    log.info("[Playtest][Interaction] player={} slot={} type=echo_trigger marker={}",
+                        p.playerId, p.slot, t);
                     spawnEchoFromPlayer(entry.getKey(), true);
                     String pid = t.substring("echo_trigger_".length());
                     if (!pid.isBlank()) unlockDoor("echo_door_" + pid);

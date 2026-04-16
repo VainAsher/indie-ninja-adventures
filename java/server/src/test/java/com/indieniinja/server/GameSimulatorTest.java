@@ -348,6 +348,44 @@ class GameSimulatorTest {
     }
 
     @Test
+    void leverInteractionQueuesLeverAnimationFeedback() {
+        LevelLayout fixture = LevelLayout.buildInteractionMarkerFixtureLayout(887L, "lever_fx_0");
+        GameSimulator sim = new GameSimulator(887L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, fixture.spawnX, fixture.spawnY);
+        sim.addPlayer(player);
+
+        InputCommand interact = new InputCommand(0);
+        interact.interact = true;
+        sim.step(Map.of(0, interact));
+
+        assertThat(player.interactionState).isEqualTo("lever");
+        assertThat(player.interactionTimer).isGreaterThan(0f);
+        assertThat(player.animState).isEqualTo("lever");
+
+        for (int i = 0; i < 60; i++) {
+            sim.step(Map.of(0, new InputCommand(1 + i)));
+        }
+        assertThat(player.interactionState).isBlank();
+        assertThat(player.interactionTimer).isEqualTo(0f);
+    }
+
+    @Test
+    void buttonInteractionQueuesButtonAnimationFeedback() {
+        LevelLayout fixture = LevelLayout.buildInteractionMarkerFixtureLayout(888L, "btn_0_fx_0");
+        GameSimulator sim = new GameSimulator(888L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, fixture.spawnX, fixture.spawnY);
+        sim.addPlayer(player);
+
+        InputCommand interact = new InputCommand(0);
+        interact.interact = true;
+        sim.step(Map.of(0, interact));
+
+        assertThat(player.interactionState).isEqualTo("button");
+        assertThat(player.interactionTimer).isGreaterThan(0f);
+        assertThat(player.animState).isEqualTo("button");
+    }
+
+    @Test
     void timeLeechLordSpawnsTypedCappedMinions() {
         long seed = findBossSeed("time_leech_lord");
         LevelLayout layout = LevelLayout.buildProceduralLayout(

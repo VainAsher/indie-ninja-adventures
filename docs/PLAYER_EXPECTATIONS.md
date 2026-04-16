@@ -2,14 +2,14 @@
 doc_type: playtest_contract
 status: living
 owner: qa-team
-last_updated: 2026-04-15
-version_anchor: v0.11.52
+last_updated: 2026-04-16
+version_anchor: v0.11.53
 ---
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.52`
-**Last updated:** `2026-04-15 23:58:40 +01:00`
+**Target build:** `v0.11.53`
+**Last updated:** `2026-04-16 00:53:55 +01:00`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
 **Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
 
@@ -110,7 +110,7 @@ Do not preload mechanical spoilers beyond this.
 | Client log file | Working | `user_data/logs/client.log` rolling daily |
 | Server log file | Working | `user_data/logs/server.log` rolling daily |
 | Mission event logging | Working | Mission start/progress/exit-unlock/complete/fail/restore, onboarding dialogue events, and room transitions include hub/room/position context |
-| Structured event IDs | Working | Runtime traces use stable prefixes: `[Playtest][Stance]`, `[Playtest][Flow]`, `[Playtest][Lantern]`, `[Playtest][Room]`, `[Playtest][Boss]`, `[Playtest][Player]` |
+| Structured event IDs | Working | Runtime traces use stable prefixes: `[Playtest][Stance]`, `[Playtest][Flow]`, `[Playtest][Lantern]`, `[Playtest][Room]`, `[Playtest][Boss]`, `[Playtest][Player]`, `[Playtest][Interaction]` |
 | Correlation/session IDs | Working | Client sends `session_id` in `CLIENT_HELLO`; server logs join/travel/disconnect with `player_id` + `session_id` |
 | Controls baseline evidence | Working | Startup log emits `[Playtest][Controls] preset=GDD-10.3.13 ...` for each launched session |
 | Scripted loss traceability | Working | Client network/runtime logs emit `[Net] SCRIPTED_LOSS received` plus `[Playtest][ScriptedLoss] received/continue` context |
@@ -154,9 +154,10 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
    - `Tab` hold opens full map and closes when key is released.
    - verify map header text shows the tap/hold key guidance.
 5. Trigger at least one mission objective interaction and confirm tracker updates.
+   - expectation: objective interactions now show a short explicit player animation cue (`lever`/`button`) instead of silent state change.
 6. Trigger at least one failure/death and recover.
 
-`v0.11.52` expectation:
+`v0.11.53` expectation:
 - In `demo_coin_run`, each collected coin should increment mission progress (`collect_items_coin`) and unlock exit at 5/5.
 
 ### Record
