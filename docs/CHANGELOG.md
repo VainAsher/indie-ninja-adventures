@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-16
-version_anchor: v0.11.53
+version_anchor: v0.11.54
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.54] - 2026-04-16 (phase-8 runtime posture hot-swap + stance guardrails)
+
+### Added
+
+- Additive input-wire fields for runtime posture hot-swap:
+  - `InputCommand.selectWeapon1` (`select_weapon_1`)
+  - `InputCommand.selectWeapon2` (`select_weapon_2`)
+- New core/network regression:
+  - `InputCommandTest` roundtrip coverage for new additive input fields.
+- New simulator regressions:
+  - `GameSimulatorTest.weaponHotSwapInputPersistsAcrossYangTicks`
+  - `GameSimulatorTest.yinStanceStillForcesUnarmedUntilStanceSwitchBackToYang`
+
+### Changed
+
+- `InputPoller` now emits posture-select actions from runtime bindings (`select_weapon_1` / `select_weapon_2`).
+- `KeyBindings` now includes default `1`/`2` posture bindings and exposes them in controls preset summaries.
+- `GameSimulator` posture resolution now supports persistent Yang preference:
+  - direct hot-swap input writes `SimPlayer.yangPreferredWeaponState`
+  - Yin stance still hard-locks posture to unarmed
+  - inventory equip/unequip clears temporary Yang posture overrides.
+- `HudRenderer` controls overlay now lists posture-select bindings.
+- Version parity metadata updated to `0.11.54` across `version.json`, Gradle, README, ROADMAP, changelog, current-state snapshot, and active animation plan.
+
+### Validation
+
+- `cd java && ./gradlew :core:test --tests com.indieniinja.network.InputCommandTest :client:test --tests com.indieniinja.client.KeyBindingsTest :server:test --tests com.indieniinja.server.GameSimulatorTest` pass.
 
 ---
 

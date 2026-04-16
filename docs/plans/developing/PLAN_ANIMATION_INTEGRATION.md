@@ -3,10 +3,10 @@ doc_type: plan
 status: developing
 owner: core-team
 last_updated: 2026-04-16
-version_anchor: v0.11.53
+version_anchor: v0.11.54
 ---
 # PLAN â€” Animation Integration: Full Moveset Implementation
-**Created:** 2026-04-11 | **Last updated:** 2026-04-16 00:53:55 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.53
+**Created:** 2026-04-11 | **Last updated:** 2026-04-16 01:36:22 +01:00 | **Base version:** v0.11.4 | **Current version:** v0.11.54
 
 ---
 
@@ -214,7 +214,7 @@ Full ZIP animation â†’ engine filename â†’ animation key table. **This
 | 5 | Locomotion & Traversal Animations | Phase 4 | **Done v0.11.10** â€” climb/ledge/climb_idle states wired; `isClimbing`/`isOnLedge` flags on SimPlayer; detection logic is Phase 6 |
 | 6 | Climb & Swim State Machine | Phase 5 | **Partial v0.11.51** â€” corner ledge grab/hang/climb and water-surface + side-bank water exit logic are live in `GameSimulator`; explicit `CLIMBABLE` tagging plus stance-gated wall contact (Yin climb attach, Yang wall slide) are implemented, with stance-sensitive swim tuning + blocked-bank/surface-jump handling now added |
 | 7 | Interaction Animations | Phase 6 | **Partial v0.11.53** - runtime interaction animation bridge added for puzzle/objective markers (`lever`, `button`, `echo_trigger`) and pickup feedback, with deterministic fixture + regression coverage; broader door/chest/push-pull state families still pending |
-| 8 | Weapon State System | Phase 4 | **Partial v0.11.48** â€” `weaponState` routing is live and stance-coupled (Yin->unarmed, Yang->armed posture with equipped-weapon fallback); manual hot-swap and combat-chain integration remain |
+| 8 | Weapon State System | Phase 4 | **Partial v0.11.54** â€” `weaponState` routing remains stance-coupled and now supports explicit runtime hot-swap input (`select_weapon_1`/`select_weapon_2`) with persistent Yang posture preference; combo-chain/combat-state integration remains |
 | 9 | Unarmed Combo Chain | Phase 8 | Not started |
 | 10 | Sword Combat System | Phase 8 | Not started |
 | 11 | Block / Parry System | Phase 9-10 | **Partial v0.11.39** - runtime guard/parry input schema + front-facing block/parry behavior live; hold/toggle rebinding and full combat-state polish still pending |
@@ -351,6 +351,21 @@ This plan now explicitly supports `P0-10` blocker closure, not only asset/movese
     - `buttonInteractionQueuesButtonAnimationFeedback`
 - Renderer pacing parity:
   - Added explicit interaction FPS routing in `EntityRenderer.playerFps(...)` for `lever`/`button`/`pickup` and related interaction keys.
+
+### Progress update (`2026-04-16 01:36:22 +01:00`)
+
+- Phase 8 runtime hot-swap closure slice:
+  - Added additive wire fields to `InputCommand`: `select_weapon_1` and `select_weapon_2`.
+  - `InputPoller` now emits posture hot-swap input from `KeyBindings` actions.
+  - `KeyBindings` defaults now include `1`/`2` posture bindings and expose them in controls preset summaries.
+- Stance/posture behavior hardening:
+  - Added `SimPlayer.yangPreferredWeaponState` so Yang posture preference persists across ticks and stance cycles.
+  - `GameSimulator` now applies direct posture select input with `[Playtest][PostureInput]` traces while preserving Yin hard-lock to unarmed posture.
+  - Inventory equip/unequip now clears temporary Yang posture override to avoid stale posture state.
+- Readability + regression updates:
+  - `F1` controls overlay now includes posture select bindings.
+  - Added regression tests for Yang hot-swap persistence and Yin-lock behavior.
+  - Added `InputCommandTest` roundtrip coverage for new additive input fields.
 
 ### Validation additions for this plan
 

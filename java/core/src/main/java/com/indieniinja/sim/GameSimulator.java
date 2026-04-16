@@ -768,6 +768,8 @@ public final class GameSimulator {
             case "weapon" -> {
                 if (itemId.equals(p.inventory.equippedWeapon)) p.inventory.unequipItem(itemId);
                 else p.inventory.equipItem(itemId);
+                // Inventory equip changes should reset temporary Yang posture overrides.
+                p.yangPreferredWeaponState = "";
             }
             case "armor"  -> {
                 if (itemId.equals(p.inventory.equippedArmor)) p.inventory.unequipItem(itemId);
@@ -857,6 +859,15 @@ public final class GameSimulator {
                 sp.playerId, sp.slot, prevStance, sp.stanceMode,
                 fmt(sp.yinYang.yin), fmt(sp.yinYang.yang),
                 (int) p.x, (int) p.y);
+        }
+        if (cmd.selectWeapon1) {
+            sp.yangPreferredWeaponState = "unarmed";
+            log.info("[Playtest][PostureInput] player={} slot={} select=1 preferredYang={}",
+                sp.playerId, sp.slot, sp.yangPreferredWeaponState);
+        } else if (cmd.selectWeapon2) {
+            sp.yangPreferredWeaponState = resolveArmedWeaponState(sp);
+            log.info("[Playtest][PostureInput] player={} slot={} select=2 preferredYang={}",
+                sp.playerId, sp.slot, sp.yangPreferredWeaponState);
         }
         syncWeaponStateForStance(sp);
 
@@ -1207,8 +1218,25 @@ public final class GameSimulator {
 
     private static String preferredWeaponStateForStance(SimPlayer sp) {
         if ("yin".equals(sp.stanceMode)) return "unarmed";
+        String override = normalizeWeaponState(sp.yangPreferredWeaponState);
+        if (!override.isBlank()) {
+            return "unarmed".equals(override) ? "unarmed" : override;
+        }
         String equipped = weaponStateFromEquippedItem(sp.inventory.equippedWeapon);
         return "unarmed".equals(equipped) ? "sword" : equipped;
+    }
+
+    private static String resolveArmedWeaponState(SimPlayer sp) {
+        String equipped = weaponStateFromEquippedItem(sp.inventory.equippedWeapon);
+        return "unarmed".equals(equipped) ? "sword" : equipped;
+    }
+
+    private static String normalizeWeaponState(String value) {
+        if (value == null || value.isBlank()) return "";
+        return switch (value.toLowerCase(java.util.Locale.ROOT)) {
+            case "unarmed", "sword", "pistol" -> value.toLowerCase(java.util.Locale.ROOT);
+            default -> "";
+        };
     }
 
     private static String weaponStateFromEquippedItem(String equippedWeapon) {

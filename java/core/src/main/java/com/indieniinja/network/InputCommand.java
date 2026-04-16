@@ -23,6 +23,8 @@ public final class InputCommand {
     public boolean slowWalk, menuConfirm, menuBack;
     /** Toggle Yin/Yang stance (client just-pressed key). */
     public boolean stanceSwitch;
+    /** Explicit runtime posture select (hot-swap): 1=unarmed, 2=armed. */
+    public boolean selectWeapon1, selectWeapon2;
 
     public InputCommand() {}
 
@@ -40,7 +42,7 @@ public final class InputCommand {
      * Used when building WORLD_STATE player entries.
      */
     public Map<String, Object> toMap() {
-        Map<String, Object> m = new LinkedHashMap<>(32);
+        Map<String, Object> m = new LinkedHashMap<>(34);
         m.put("frame",            frame);
         m.put("up",               up);
         m.put("down",             down);
@@ -67,6 +69,8 @@ public final class InputCommand {
         m.put("menu_confirm",     menuConfirm);
         m.put("menu_back",        menuBack);
         m.put("stance_switch",    stanceSwitch);
+        m.put("select_weapon_1",  selectWeapon1);
+        m.put("select_weapon_2",  selectWeapon2);
         return m;
     }
 
@@ -99,6 +103,8 @@ public final class InputCommand {
         c.menuConfirm     = bool(m, "menu_confirm");
         c.menuBack        = bool(m, "menu_back");
         c.stanceSwitch    = bool(m, "stance_switch");
+        c.selectWeapon1   = bool(m, "select_weapon_1");
+        c.selectWeapon2   = bool(m, "select_weapon_2");
         return c;
     }
 

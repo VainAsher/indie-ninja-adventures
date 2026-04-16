@@ -50,6 +50,8 @@ public final class InputPoller {
         cmd.teleport = keys.isHeld("teleport");
         cmd.ninjutsu = keys.isHeld("ninjutsu");
         cmd.stanceSwitch = keys.isJustPressed("stance_switch");
+        cmd.selectWeapon1 = keys.isJustPressed("select_weapon_1");
+        cmd.selectWeapon2 = keys.isJustPressed("select_weapon_2");
 
         // Interaction/meta
         cmd.interact = keys.isJustPressed("interact");

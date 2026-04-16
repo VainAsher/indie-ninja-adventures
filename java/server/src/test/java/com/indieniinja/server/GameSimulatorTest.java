@@ -168,6 +168,49 @@ class GameSimulatorTest {
     }
 
     @Test
+    void weaponHotSwapInputPersistsAcrossYangTicks() {
+        GameSimulator sim = buildSim(541L);
+        SimPlayer player = new SimPlayer("p1", 0, 200f, 800f);
+        player.stanceMode = "yang";
+        sim.addPlayer(player);
+
+        sim.step(Map.of(0, new InputCommand(0)));
+        assertThat(player.weaponState).isEqualTo("sword");
+
+        InputCommand selectUnarmed = new InputCommand(1);
+        selectUnarmed.selectWeapon1 = true;
+        sim.step(Map.of(0, selectUnarmed));
+        assertThat(player.weaponState).isEqualTo("unarmed");
+
+        sim.step(Map.of(0, new InputCommand(2)));
+        assertThat(player.weaponState).isEqualTo("unarmed");
+
+        InputCommand selectArmed = new InputCommand(3);
+        selectArmed.selectWeapon2 = true;
+        sim.step(Map.of(0, selectArmed));
+        assertThat(player.weaponState).isEqualTo("sword");
+    }
+
+    @Test
+    void yinStanceStillForcesUnarmedUntilStanceSwitchBackToYang() {
+        GameSimulator sim = buildSim(542L);
+        SimPlayer player = new SimPlayer("p1", 0, 200f, 800f);
+        player.stanceMode = "yin";
+        sim.addPlayer(player);
+
+        InputCommand selectArmed = new InputCommand(0);
+        selectArmed.selectWeapon2 = true;
+        sim.step(Map.of(0, selectArmed));
+        assertThat(player.weaponState).isEqualTo("unarmed");
+
+        InputCommand toggleToYang = new InputCommand(1);
+        toggleToYang.stanceSwitch = true;
+        sim.step(Map.of(0, toggleToYang));
+        assertThat(player.stanceMode).isEqualTo("yang");
+        assertThat(player.weaponState).isEqualTo("sword");
+    }
+
+    @Test
     void guardParryBlocksFrontMeleeAndStunsAttacker() {
         GameSimulator sim = buildSim(777L);
         SimPlayer player = new SimPlayer("p1", 0, 300f, 900f);

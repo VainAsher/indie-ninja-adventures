@@ -250,6 +250,8 @@ public final class SimPlayer {
     /** Current weapon set wire string: "unarmed" | "sword" | "pistol".
      *  Drives animation key prefix in EntityRenderer (animation Phase 4). */
     public String weaponState = "unarmed";
+    /** Optional Yang posture override from direct hot-swap input ("1"/"2"). */
+    public String yangPreferredWeaponState = "";
 
     // ── Inventory ─────────────────────────────────────────────────────────────
     public final SimInventory inventory = new SimInventory();

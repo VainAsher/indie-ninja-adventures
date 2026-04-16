@@ -16,6 +16,8 @@ class KeyBindingsTest {
         assertEquals("Z", keys.describe("jump"));
         assertEquals("X", keys.describe("attack"));
         assertEquals("A", keys.describe("stance_switch"));
+        assertEquals("1", keys.describe("select_weapon_1"));
+        assertEquals("2", keys.describe("select_weapon_2"));
         assertEquals("S", keys.describe("block"));
         assertEquals("D", keys.describe("teleport"));
         assertEquals("F", keys.describe("throw"));
@@ -31,6 +33,7 @@ class KeyBindingsTest {
               "keybindings": {
                 "attack": ["U"],
                 "mission_menu": ["M"],
+                "select_weapon_2": ["Y"],
                 "minimap": ["Q"],
                 "fullmap": ["N"]
               }
@@ -39,6 +42,7 @@ class KeyBindingsTest {
         KeyBindings keys = KeyBindings.fromJsonString(json);
         assertEquals("U", keys.describe("attack"));
         assertEquals("M", keys.describe("mission_menu"));
+        assertEquals("Y", keys.describe("select_weapon_2"));
         assertEquals("Q", keys.describe("minimap"));
         assertEquals("N", keys.describe("fullmap"));
         assertFalse(keys.sharesAnyKey("minimap", "fullmap"));
@@ -61,4 +65,3 @@ class KeyBindingsTest {
         assertEquals("DOWN", keys.describe("crouch"));
     }
 }
-

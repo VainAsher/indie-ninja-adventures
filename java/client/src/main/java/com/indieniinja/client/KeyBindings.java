@@ -43,6 +43,8 @@ public final class KeyBindings {
     private static final String ACTION_TRAVERSAL = "teleport";
     private static final String ACTION_ECHO = "ninjutsu";
     private static final String ACTION_STANCE = "stance_switch";
+    private static final String ACTION_SELECT_WEAPON_1 = "select_weapon_1";
+    private static final String ACTION_SELECT_WEAPON_2 = "select_weapon_2";
     private static final String ACTION_INTERACT = "interact";
     private static final String ACTION_INVENTORY = "inventory";
     private static final String ACTION_CONSUMABLE = "consumable";
@@ -141,6 +143,7 @@ public final class KeyBindings {
             + " traversal=" + describe(ACTION_TRAVERSAL)
             + " throw=" + describe(ACTION_THROW)
             + " echo=" + describe(ACTION_ECHO)
+            + " posture=" + describe(ACTION_SELECT_WEAPON_1) + "/" + describe(ACTION_SELECT_WEAPON_2)
             + " interact=" + describe(ACTION_INTERACT)
             + " map=" + describe(ACTION_MINIMAP) + "(tap-quick/hold-full)";
     }
@@ -160,6 +163,8 @@ public final class KeyBindings {
         bind(ACTION_TRAVERSAL, "D");
         bind(ACTION_ECHO, "R");
         bind(ACTION_STANCE, "A");
+        bind(ACTION_SELECT_WEAPON_1, "1");
+        bind(ACTION_SELECT_WEAPON_2, "2");
         bind(ACTION_INTERACT, "E");
         bind(ACTION_INVENTORY, "I");
         bind(ACTION_CONSUMABLE, "Q");
@@ -301,6 +306,16 @@ public final class KeyBindings {
             case "LEFT ALT", "RIGHT ALT", "L-ALT", "R-ALT" -> "ALT";
             case "PAGE UP" -> "PGUP";
             case "PAGE DOWN" -> "PGDN";
+            case "NUM 0", "NUM_0" -> "0";
+            case "NUM 1", "NUM_1" -> "1";
+            case "NUM 2", "NUM_2" -> "2";
+            case "NUM 3", "NUM_3" -> "3";
+            case "NUM 4", "NUM_4" -> "4";
+            case "NUM 5", "NUM_5" -> "5";
+            case "NUM 6", "NUM_6" -> "6";
+            case "NUM 7", "NUM_7" -> "7";
+            case "NUM 8", "NUM_8" -> "8";
+            case "NUM 9", "NUM_9" -> "9";
             case "UP", "DOWN", "LEFT", "RIGHT", "SPACE", "TAB", "ENTER" -> upper;
             default -> upper;
         };

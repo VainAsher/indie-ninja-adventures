@@ -677,6 +677,8 @@ public final class HudRenderer {
                 + bind(keys, "stance_switch") + " Switch Yin/Yang  |  "
                 + bind(keys, "block") + " Guard/Parry  |  "
                 + bind(keys, "teleport") + " Traversal Art",
+            "Posture Select: " + bind(keys, "select_weapon_1") + " Unarmed  |  "
+                + bind(keys, "select_weapon_2") + " Armed (Yang preference)",
             "Arts & Utility: " + bind(keys, "throw") + " Thrown Tool  |  "
                 + bind(keys, "ninjutsu") + " Echo Art  |  "
                 + bind(keys, "interact") + " Interact",

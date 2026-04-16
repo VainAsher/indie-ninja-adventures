@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-16
-version_anchor: v0.11.53
+version_anchor: v0.11.54
 replaces: docs/HANDOVER.md
 ---
 
@@ -14,7 +14,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Baseline
 
 - Date baseline: 2026-04-16
-- Version baseline: v0.11.53
+- Version baseline: v0.11.54
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -24,7 +24,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.11.54 (animation/combat continuation after Phase 7 interaction-readability bridge pass).
+- Next release candidate: v0.11.55 (animation/combat continuation after Phase 8 runtime hot-swap closure slice).
 - Latest release verification (`2026-04-16 00:31:49 +01:00`):
   - CI green on `master` (`run_id=24483440092`)
   - Release green on `v0.11.52` (`run_id=24483571008`)
@@ -40,6 +40,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Map input now follows explicit tap/hold semantics: `Tab` tap toggles quick map, `Tab` hold opens full map while held.
 - Animation integration pivot is in progress: stance-coupled posture readability (Yin unarmed / Yang armed fallback), ledge corner hang-climb context, and water-bank exit traversal bridge are now implemented with playtest log events.
 - Runtime keybinding ingestion is now live from `user_data/settings/settings.json` (`keybindings` block plus legacy `key_*` fallback), and map/debug/mission hotkeys consume the same binding table as input polling.
+- Direct posture hot-swap input is now active (`select_weapon_1` / `select_weapon_2`, default `1`/`2`) with Yin-lock to unarmed and persistent Yang posture preference for runtime readability testing.
 - `F1` controls overlay now renders active live bindings instead of a static key legend.
 - Interaction affordance readability bridge is now active: lever/button/echo-trigger and pickup interactions queue short explicit animation feedback with `[Playtest][Interaction]` traces.
 - Release/version parity gate is enforced through `tools/check_version_sync.py`.
