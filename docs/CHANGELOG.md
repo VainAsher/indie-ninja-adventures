@@ -16,6 +16,12 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.59] - 2026-04-17 (trials.json scaffolding + trial room type)
+
+### Added
+- `data/trials.json`: 5 trial definitions — `samson_brothers_trial`, `marcel_forge_deep_trial`, `hazel_woven_root_trial`, `sophia_star_ink_trial`, `ember_monastery_gauntlet`; each has wave/objective data, unlock requirements, proof-token rewards, hub_impact, and linked mission ID
+- `ZonePlanner`: `"trial"` room type added to all three switch branches — save+loot feature placement, 7–10 fill obstacles with lava/ice hazard weighting, high platform probability (55%) for skill-room feel
+
 ## [0.11.58] - 2026-04-17 (VeilMaidenBossPattern — illusion and gaslighting)
 
 ### Added

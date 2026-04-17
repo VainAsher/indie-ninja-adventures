@@ -1,0 +1,184 @@
+{
+  "version": "0.11.59",
+  "description": "Optional high-skill challenge rooms. Completion awards proof tokens gating side-quest rewards.",
+  "trials": [
+    {
+      "trial_id": "samson_brothers_trial",
+      "trial_name": "Brothers in Arms",
+      "room_type": "trial",
+      "difficulty": 4,
+      "room_count": 6,
+      "shape": "linear",
+      "region": "hollow_depths",
+      "description": "Samson fights at your side through five waves of escalating enemies. The trial ends when the last wave is cleared or either combatant falls.",
+      "objectives": [
+        {
+          "type": "survive_waves",
+          "description": "Survive 5 waves with Samson",
+          "waves": 5,
+          "ally": "samson_npc"
+        }
+      ],
+      "required_abilities": ["basic_movement", "jump", "melee_attack", "dash"],
+      "enemy_waves": [
+        {"wave": 1, "enemies": ["shade", "shade"], "time_limit": 30},
+        {"wave": 2, "enemies": ["shade_warrior", "shade", "shade"], "time_limit": 40},
+        {"wave": 3, "enemies": ["shade_warrior", "shade_warrior", "guilt_wraith"], "time_limit": 45},
+        {"wave": 4, "enemies": ["hollow_knight", "shade_warrior", "shade"], "time_limit": 50},
+        {"wave": 5, "enemies": ["hollow_knight", "hollow_knight", "guilt_wraith", "shade_warrior"], "time_limit": 60}
+      ],
+      "unlock_requirements": ["samson_q2_complete"],
+      "rewards": {
+        "token_id": "samson_proof_token",
+        "items": [{"item_id": "samson_passive_bond", "quantity": 1}],
+        "currency": 80
+      },
+      "linked_mission": "samson_q3_return",
+      "hub_impact": {"npc_added": "samson", "npc_trust": {"samson": 3}},
+      "story_trigger": "samson_q3_complete"
+    },
+    {
+      "trial_id": "marcel_forge_deep_trial",
+      "trial_name": "The Deep Vein",
+      "room_type": "trial",
+      "difficulty": 4,
+      "room_count": 5,
+      "shape": "linear",
+      "region": "hollow_depths",
+      "description": "A narrow mining shaft descends into unstable rock. Navigate hazardous terrain, defeat the vein guardians, and retrieve the Hearthstone ore deposit.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the ore deposit",
+          "location": "hearthstone_vein"
+        },
+        {
+          "type": "defeat_enemy",
+          "description": "Defeat the Vein Golem",
+          "enemy": "deep_golem",
+          "count": 1
+        },
+        {
+          "type": "collect_items",
+          "description": "Mine Hearthstone ore",
+          "item": "hearthstone_ore",
+          "count": 1
+        }
+      ],
+      "required_abilities": ["basic_movement", "jump", "melee_attack", "dash", "double_jump"],
+      "hazards": ["lava", "void_crack", "collapsed_floor"],
+      "unlock_requirements": ["marcel_q2_complete"],
+      "rewards": {
+        "token_id": "marcel_proof_token",
+        "items": [{"item_id": "hearthstone_ore", "quantity": 1}],
+        "currency": 100
+      },
+      "linked_mission": "marcel_q3_reforge",
+      "hub_impact": {"npc_added": "marcel", "npc_trust": {"marcel": 3}},
+      "story_trigger": "marcel_q3_complete"
+    },
+    {
+      "trial_id": "hazel_woven_root_trial",
+      "trial_name": "The Tethered Grove",
+      "room_type": "trial",
+      "difficulty": 5,
+      "room_count": 7,
+      "shape": "ring",
+      "region": "castle",
+      "description": "A sky-high grove accessible only by precise aerial movement. The woven-root grows only at the apex. The trial tests mastery of the full movement kit.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Ascend to the grove apex",
+          "location": "grove_apex"
+        },
+        {
+          "type": "collect_items",
+          "description": "Retrieve the woven-root",
+          "item": "woven_root",
+          "count": 1
+        }
+      ],
+      "required_abilities": ["basic_movement", "jump", "double_jump", "dash", "wall_jump", "air_dodge"],
+      "hazards": ["wind_shear", "void_crack"],
+      "unlock_requirements": ["hazel_q2_complete"],
+      "rewards": {
+        "token_id": "hazel_proof_token",
+        "items": [{"item_id": "woven_root", "quantity": 1}],
+        "currency": 120
+      },
+      "linked_mission": "hazel_q3_beacon",
+      "hub_impact": {"npc_added": "hazel", "npc_trust": {"hazel": 3}, "beacon_lantern_lit": true},
+      "story_trigger": "hazel_q3_complete"
+    },
+    {
+      "trial_id": "sophia_star_ink_trial",
+      "trial_name": "The Skyroad Archive",
+      "room_type": "trial",
+      "difficulty": 4,
+      "room_count": 6,
+      "shape": "ring",
+      "region": "castle",
+      "description": "A crumbling archive tower on the Skyroad. Star Ink is sealed at the top by a wind sentinel. Navigate shifting platforms and silence the guardian.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the archive apex",
+          "location": "archive_apex"
+        },
+        {
+          "type": "defeat_enemy",
+          "description": "Defeat the Wind Sentinel",
+          "enemy": "sky_sentinel",
+          "count": 1
+        },
+        {
+          "type": "collect_items",
+          "description": "Retrieve Star Ink",
+          "item": "star_ink",
+          "count": 1
+        }
+      ],
+      "required_abilities": ["basic_movement", "jump", "double_jump", "dash"],
+      "hazards": ["wind_shear"],
+      "unlock_requirements": ["sophia_q2_complete"],
+      "rewards": {
+        "token_id": "sophia_proof_token",
+        "items": [{"item_id": "star_ink", "quantity": 1}],
+        "currency": 90
+      },
+      "linked_mission": "sophia_q3_skyroad",
+      "hub_impact": {"npc_added": "sophia_traveller", "npc_trust": {"sophia": 3}},
+      "story_trigger": "sophia_q3_complete"
+    },
+    {
+      "trial_id": "ember_monastery_gauntlet",
+      "trial_name": "The Monastery Gauntlet",
+      "room_type": "trial",
+      "difficulty": 5,
+      "room_count": 8,
+      "shape": "linear",
+      "region": "hollow_depths",
+      "description": "The Hearth Brothers test Aen's full combat mastery before the final ascent. Twelve minutes. No checkpoints. All abilities required.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the gauntlet exit",
+          "location": "gauntlet_exit"
+        }
+      ],
+      "required_abilities": ["basic_movement", "jump", "double_jump", "dash", "wall_jump", "melee_attack", "air_dodge"],
+      "hazards": ["lava", "void_crack", "wind_shear"],
+      "time_limit": 720,
+      "unlock_requirements": ["hollow_4_complete"],
+      "rewards": {
+        "token_id": "gauntlet_proof_token",
+        "items": [{"item_id": "ascent_blessing", "quantity": 1}],
+        "currency": 150
+      },
+      "linked_mission": null,
+      "hub_impact": {"gauntlet_complete": true},
+      "story_trigger": "gauntlet_complete"
+    }
+  ]
+}

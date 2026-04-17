@@ -144,6 +144,12 @@ public final class ZonePlanner {
             case "exit" -> {
                 z[cy][cx] = LOOT;  features.add(new int[]{cx, cy});
             }
+            case "trial" -> {
+                // Save point at centre (mid-trial checkpoint); proof-token loot at far corner
+                z[cy][cx] = SAVE;  features.add(new int[]{cx, cy});
+                int[] corner = farCorner(doorZones, rng);
+                z[corner[1]][corner[0]] = LOOT;  features.add(corner);
+            }
             default -> {
                 // Random loot 25% chance
                 if (rng.nextFloat() < 0.25f) {
@@ -269,6 +275,7 @@ public final class ZonePlanner {
             case "platform" -> fillCount =  8 + rng.nextInt(6);  // 8-13  (multi-level obstacles)
             case "treasure" -> fillCount = 12 + rng.nextInt(5);  // 12-16 (maze-like)
             case "boss"     -> fillCount =  5 + rng.nextInt(4);  // 5-8   (arena, moderate clutter)
+            case "trial"    -> fillCount =  7 + rng.nextInt(4);  // 7-10  (skill room, open lanes)
             case "shop", "start", "exit" -> fillCount = 3 + rng.nextInt(3);  // 3-5 (navigable but not empty)
             default         -> fillCount =  8 + rng.nextInt(5);  // 8-12
         }
@@ -293,6 +300,7 @@ public final class ZonePlanner {
             case "platform" -> { lavaChance = 0.10f; iceChance = 0.25f; waterChance = 0.15f; }
             case "boss"     -> { lavaChance = 0.35f; iceChance = 0.10f; waterChance = 0.05f; }
             case "treasure" -> { lavaChance = 0.05f; iceChance = 0.15f; waterChance = 0.20f; }
+            case "trial"    -> { lavaChance = 0.25f; iceChance = 0.20f; waterChance = 0.10f; }
             default         -> { lavaChance = 0.10f; iceChance = 0.10f; waterChance = 0.10f; }
         }
 
@@ -332,6 +340,7 @@ public final class ZonePlanner {
             case "combat"   -> { fillProb = 0.38f; platProb = 0.38f; walkProb = 0.14f; }
             case "treasure" -> { fillProb = 0.45f; platProb = 0.22f; walkProb = 0.15f; }
             case "boss"     -> { fillProb = 0.18f; platProb = 0.30f; walkProb = 0.22f; }
+            case "trial"    -> { fillProb = 0.20f; platProb = 0.55f; walkProb = 0.15f; }
             case "shop", "start", "exit" -> { fillProb = 0.12f; platProb = 0.28f; walkProb = 0.30f; }
             default         -> { fillProb = 0.25f; platProb = 0.30f; walkProb = 0.20f; }
         }
