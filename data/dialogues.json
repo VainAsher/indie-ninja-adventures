@@ -1193,5 +1193,848 @@
         "on_exit_event": "act3_elder_final_conversation"
       }
     }
+  },
+  "samson_act0": {
+    "dialogue_id": "samson_act0",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Samson",
+        "text": "Aen. Good to see you standing. Most who come through here don't last a week. Walk with me.",
+        "choices": [
+          {
+            "choice_text": "What do you want?",
+            "next_node_id": "sparring_pitch"
+          },
+          {
+            "choice_text": "How long have you been here?",
+            "next_node_id": "backstory"
+          },
+          {
+            "choice_text": "Later.",
+            "next_node_id": null
+          }
+        ]
+      },
+      "sparring_pitch": {
+        "node_id": "sparring_pitch",
+        "speaker": "Samson",
+        "text": "Nothing serious. A sparring match. The body remembers what the mind tries to forget — and yours looks like it's forgetting fast.",
+        "choices": [
+          {
+            "choice_text": "Fine. Where?",
+            "next_node_id": "sparring_accept",
+            "on_select_event": "samson_q1_accepted"
+          },
+          {
+            "choice_text": "I don't have time for games.",
+            "next_node_id": "sparring_refuse"
+          }
+        ]
+      },
+      "backstory": {
+        "node_id": "backstory",
+        "speaker": "Samson",
+        "text": "Long enough to know who belongs here and who's just passing through. You belong here. That's not a compliment. It means you've got work to do.",
+        "choices": [
+          {
+            "choice_text": "What kind of work?",
+            "next_node_id": "sparring_pitch"
+          },
+          {
+            "choice_text": "I'll manage on my own.",
+            "next_node_id": null
+          }
+        ]
+      },
+      "sparring_accept": {
+        "node_id": "sparring_accept",
+        "speaker": "Samson",
+        "text": "Good. The dojo. Sundown. Don't be late — and don't hold back. I want to see what you're actually made of.",
+        "choices": [
+          {
+            "choice_text": "Understood.",
+            "next_node_id": null
+          }
+        ]
+      },
+      "sparring_refuse": {
+        "node_id": "sparring_refuse",
+        "speaker": "Samson",
+        "text": "Suit yourself. But you'll need sharper instincts than that when it counts. Find me when you're ready.",
+        "choices": [
+          {
+            "choice_text": "Alright. Maybe later.",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "samson_act2": {
+    "dialogue_id": "samson_act2",
+    "root_node_id": "echo_greeting",
+    "nodes": {
+      "echo_greeting": {
+        "node_id": "echo_greeting",
+        "speaker": "Samson (Echo)",
+        "text": "You still move. Good. That's more than I dared hope, back then.",
+        "choices": [
+          {
+            "choice_text": "Samson? How are you here?",
+            "next_node_id": "how_here"
+          },
+          {
+            "choice_text": "...",
+            "next_node_id": "drift_acknowledge"
+          }
+        ]
+      },
+      "how_here": {
+        "node_id": "how_here",
+        "speaker": "Samson (Echo)",
+        "text": "Memory leaves echoes in dark places. You carved a deep enough groove in mine.",
+        "choices": [
+          {
+            "choice_text": "I'm sorry I drifted.",
+            "next_node_id": "drift_acknowledge"
+          }
+        ]
+      },
+      "drift_acknowledge": {
+        "node_id": "drift_acknowledge",
+        "speaker": "Samson (Echo)",
+        "text": "I'm not angry. I never was. She made it so you couldn't see straight. I know that now. You didn't choose to disappear — you were made to.",
+        "choices": [
+          {
+            "choice_text": "I should have fought harder.",
+            "next_node_id": "strength_find"
+          },
+          {
+            "choice_text": "I still feel the shame.",
+            "next_node_id": "shame_response"
+          }
+        ]
+      },
+      "shame_response": {
+        "node_id": "shame_response",
+        "speaker": "Samson (Echo)",
+        "text": "That shame kept you decent. Don't throw it away — but don't let it bury you either. Use it.",
+        "choices": [
+          {
+            "choice_text": "I'll try.",
+            "next_node_id": "strength_find"
+          }
+        ]
+      },
+      "strength_find": {
+        "node_id": "strength_find",
+        "speaker": "Samson (Echo)",
+        "text": "Every step you take through this dark — that's me, at your back. Always was. Always will be. Now keep moving.",
+        "choices": [
+          {
+            "choice_text": "Thank you, Samson.",
+            "next_node_id": null,
+            "on_select_event": "samson_q2_echo_complete"
+          }
+        ]
+      }
+    }
+  },
+  "samson_act3": {
+    "dialogue_id": "samson_act3",
+    "root_node_id": "reunion",
+    "nodes": {
+      "reunion": {
+        "node_id": "reunion",
+        "speaker": "Samson",
+        "text": "You came back. I knew you would. Took long enough.",
+        "choices": [
+          {
+            "choice_text": "You waited?",
+            "next_node_id": "waited"
+          },
+          {
+            "choice_text": "I wasn't sure I would.",
+            "next_node_id": "doubt_response"
+          }
+        ]
+      },
+      "waited": {
+        "node_id": "waited",
+        "speaker": "Samson",
+        "text": "I'd have waited longer. That's what brothers do.",
+        "choices": [
+          {
+            "choice_text": "Fight with me.",
+            "next_node_id": "fight_together"
+          }
+        ]
+      },
+      "doubt_response": {
+        "node_id": "doubt_response",
+        "speaker": "Samson",
+        "text": "But you did. That's the part that matters. The rest is just road.",
+        "choices": [
+          {
+            "choice_text": "Then let's finish this together.",
+            "next_node_id": "fight_together"
+          }
+        ]
+      },
+      "fight_together": {
+        "node_id": "fight_together",
+        "speaker": "Samson",
+        "text": "Say the word. We do this side by side. Like it was always supposed to be.",
+        "choices": [
+          {
+            "choice_text": "Let's go.",
+            "next_node_id": null,
+            "on_select_event": "samson_q3_accepted"
+          }
+        ]
+      }
+    }
+  },
+  "sophia_act0": {
+    "dialogue_id": "sophia_act0",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Sophia",
+        "text": "You're new. I've been mapping these paths for months and something keeps... resetting the cartography. The old routes refuse to stay fixed.",
+        "choices": [
+          {
+            "choice_text": "That sounds strange.",
+            "next_node_id": "map_lore"
+          },
+          {
+            "choice_text": "Can I help?",
+            "next_node_id": "map_request"
+          }
+        ]
+      },
+      "map_lore": {
+        "node_id": "map_lore",
+        "speaker": "Sophia",
+        "text": "This place has layers. Whatever happened here wasn't random. Someone — or something — doesn't want the true routes remembered.",
+        "choices": [
+          {
+            "choice_text": "What do you need from me?",
+            "next_node_id": "map_request"
+          }
+        ]
+      },
+      "map_request": {
+        "node_id": "map_request",
+        "speaker": "Sophia",
+        "text": "If you're heading out anyway — keep your eyes open for old map shards. Stone-pressed ones, pre-corruption. They hold the true routes.",
+        "choices": [
+          {
+            "choice_text": "I'll look for them.",
+            "next_node_id": "grateful",
+            "on_select_event": "sophia_q1_accepted"
+          },
+          {
+            "choice_text": "I'll see what I find.",
+            "next_node_id": null
+          }
+        ]
+      },
+      "grateful": {
+        "node_id": "grateful",
+        "speaker": "Sophia",
+        "text": "Thank you. Three to five shards — enough to reconstruct the primary route. They're older than anything else down here. You'll know them.",
+        "choices": [
+          {
+            "choice_text": "Understood.",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "sophia_act1_farewell": {
+    "dialogue_id": "sophia_act1_farewell",
+    "root_node_id": "farewell",
+    "nodes": {
+      "farewell": {
+        "node_id": "farewell",
+        "speaker": "Sophia",
+        "text": "I have to go, Aen. I know you've heard things about me recently. Most of it came from one source.",
+        "choices": [
+          {
+            "choice_text": "I don't believe it.",
+            "next_node_id": "explain"
+          },
+          {
+            "choice_text": "I heard. I'm sorry.",
+            "next_node_id": "explain"
+          }
+        ]
+      },
+      "explain": {
+        "node_id": "explain",
+        "speaker": "Sophia",
+        "text": "She speaks first, loudly, to those who trust her. I won't win that argument by staying. But I want you to know — I chose to leave. For me. Not because of her. That distinction matters.",
+        "choices": [
+          {
+            "choice_text": "Will I see you again?",
+            "next_node_id": "maybe"
+          },
+          {
+            "choice_text": "I understand.",
+            "next_node_id": "letter"
+          }
+        ]
+      },
+      "maybe": {
+        "node_id": "maybe",
+        "speaker": "Sophia",
+        "text": "If you get far enough. Keep climbing. I'll know if you do.",
+        "choices": [
+          {
+            "choice_text": "I will.",
+            "next_node_id": "letter"
+          }
+        ]
+      },
+      "letter": {
+        "node_id": "letter",
+        "speaker": "Sophia",
+        "text": "Here. Read it when you're ready. It says what I couldn't say aloud.",
+        "choices": [
+          {
+            "choice_text": "Thank you, Sophia.",
+            "next_node_id": null,
+            "on_select_event": "receive_sophia_letter"
+          }
+        ]
+      }
+    }
+  },
+  "sophia_act3": {
+    "dialogue_id": "sophia_act3",
+    "root_node_id": "return",
+    "nodes": {
+      "return": {
+        "node_id": "return",
+        "speaker": "Sophia",
+        "text": "Still standing. I wasn't sure I'd see you again — not after what the Hollow Depths does to people.",
+        "choices": [
+          {
+            "choice_text": "I almost didn't make it.",
+            "next_node_id": "almost"
+          },
+          {
+            "choice_text": "I kept going.",
+            "next_node_id": "star_ink"
+          }
+        ]
+      },
+      "almost": {
+        "node_id": "almost",
+        "speaker": "Sophia",
+        "text": "I know. But almost isn't the same as didn't. You're here. That's what the map shows.",
+        "choices": [
+          {
+            "choice_text": "You still have a request?",
+            "next_node_id": "star_ink"
+          }
+        ]
+      },
+      "star_ink": {
+        "node_id": "star_ink",
+        "speaker": "Sophia",
+        "text": "One last thing. I need Star Ink from the high Skyroad. A map I'm finishing — for you, actually. The route you'll need for the final ascent.",
+        "choices": [
+          {
+            "choice_text": "I'll get it.",
+            "next_node_id": null,
+            "on_select_event": "sophia_q3_accepted"
+          },
+          {
+            "choice_text": "What does the map show?",
+            "next_node_id": "map_preview"
+          }
+        ]
+      },
+      "map_preview": {
+        "node_id": "map_preview",
+        "speaker": "Sophia",
+        "text": "Where the light comes from. And where you need to be when it does.",
+        "choices": [
+          {
+            "choice_text": "I'll bring the ink.",
+            "next_node_id": null,
+            "on_select_event": "sophia_q3_accepted"
+          }
+        ]
+      }
+    }
+  },
+  "marcel_act0": {
+    "dialogue_id": "marcel_act0",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Marcel",
+        "text": "Aen. You look like you've been dragged backwards through a ruin. Perfect. I need someone who can take a hit.",
+        "choices": [
+          {
+            "choice_text": "What for?",
+            "next_node_id": "forge_guard"
+          },
+          {
+            "choice_text": "That's reassuring.",
+            "next_node_id": "forge_guard"
+          }
+        ]
+      },
+      "forge_guard": {
+        "node_id": "forge_guard",
+        "speaker": "Marcel",
+        "text": "Jenro and I need to gather materials outside the perimeter. The forge can't be unguarded — someone already tried to take the bellows last week. I'm asking you specifically.",
+        "choices": [
+          {
+            "choice_text": "I'll hold the line.",
+            "next_node_id": "accept",
+            "on_select_event": "marcel_q1_accepted"
+          },
+          {
+            "choice_text": "What's in it for me?",
+            "next_node_id": "payment"
+          }
+        ]
+      },
+      "payment": {
+        "node_id": "payment",
+        "speaker": "Marcel",
+        "text": "Your first weapon enhancement. I don't offer that to anyone who hasn't earned it. You'll earn it.",
+        "choices": [
+          {
+            "choice_text": "Deal.",
+            "next_node_id": "accept",
+            "on_select_event": "marcel_q1_accepted"
+          }
+        ]
+      },
+      "accept": {
+        "node_id": "accept",
+        "speaker": "Marcel",
+        "text": "Then it's settled. Defend what's ours. I'll be back before sundown.",
+        "choices": [
+          {
+            "choice_text": "Go. I've got it.",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "marcel_act2": {
+    "dialogue_id": "marcel_act2",
+    "root_node_id": "echo_hammer",
+    "nodes": {
+      "echo_hammer": {
+        "node_id": "echo_hammer",
+        "speaker": "Marcel (Echo)",
+        "text": "That hammer. I left it there on purpose. Hoped it would find its way to someone who needed a reminder of what it means to keep working.",
+        "choices": [
+          {
+            "choice_text": "It made it this far.",
+            "next_node_id": "broken"
+          },
+          {
+            "choice_text": "I found it in the dark.",
+            "next_node_id": "broken"
+          }
+        ]
+      },
+      "broken": {
+        "node_id": "broken",
+        "speaker": "Marcel (Echo)",
+        "text": "Broken doesn't mean finished. Some things have to break before they get stronger. The iron knows that. You should too.",
+        "choices": [
+          {
+            "choice_text": "I feel like I've been breaking for years.",
+            "next_node_id": "unbroken_will"
+          },
+          {
+            "choice_text": "You sound certain of that.",
+            "next_node_id": "unbroken_will"
+          }
+        ]
+      },
+      "unbroken_will": {
+        "node_id": "unbroken_will",
+        "speaker": "Marcel (Echo)",
+        "text": "The will doesn't break, Aen. Not if you don't let it. And yours hasn't. I can see that from here.",
+        "choices": [
+          {
+            "choice_text": "I'll bring the fragments back.",
+            "next_node_id": null,
+            "on_select_event": "marcel_q2_echo_complete"
+          }
+        ]
+      }
+    }
+  },
+  "marcel_act3": {
+    "dialogue_id": "marcel_act3",
+    "root_node_id": "smith_greeting",
+    "nodes": {
+      "smith_greeting": {
+        "node_id": "smith_greeting",
+        "speaker": "Marcel",
+        "text": "You made it to the Monastery. Took your time. Now — bring me ore.",
+        "choices": [
+          {
+            "choice_text": "No greeting?",
+            "next_node_id": "greeting_response"
+          },
+          {
+            "choice_text": "What ore?",
+            "next_node_id": "reforge"
+          }
+        ]
+      },
+      "greeting_response": {
+        "node_id": "greeting_response",
+        "speaker": "Marcel",
+        "text": "You're alive. That IS the greeting. Now bring me ore.",
+        "choices": [
+          {
+            "choice_text": "What ore?",
+            "next_node_id": "reforge"
+          }
+        ]
+      },
+      "reforge": {
+        "node_id": "reforge",
+        "speaker": "Marcel",
+        "text": "That old blade of yours has carried you far. It deserves better. So do you. Hearthstone ore — from the deep side-level. One load. I'll turn it into something worth carrying to the top.",
+        "choices": [
+          {
+            "choice_text": "I'll get it.",
+            "next_node_id": null,
+            "on_select_event": "marcel_q3_accepted"
+          },
+          {
+            "choice_text": "Will it be ready in time?",
+            "next_node_id": "in_time"
+          }
+        ]
+      },
+      "in_time": {
+        "node_id": "in_time",
+        "speaker": "Marcel",
+        "text": "I haven't missed a deadline in thirty years. Get the ore.",
+        "choices": [
+          {
+            "choice_text": "On it.",
+            "next_node_id": null,
+            "on_select_event": "marcel_q3_accepted"
+          }
+        ]
+      }
+    }
+  },
+  "hazel_act0": {
+    "dialogue_id": "hazel_act0",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Hazel",
+        "text": "Hello. You look cold. Are you cold? It doesn't matter — I can help either way.",
+        "choices": [
+          {
+            "choice_text": "What are you working on?",
+            "next_node_id": "lantern_work"
+          },
+          {
+            "choice_text": "I'm fine.",
+            "next_node_id": "gentle_persist"
+          }
+        ]
+      },
+      "gentle_persist": {
+        "node_id": "gentle_persist",
+        "speaker": "Hazel",
+        "text": "You don't have to be 'fine' here. That's the point of this place. What do you actually need?",
+        "choices": [
+          {
+            "choice_text": "What are you making?",
+            "next_node_id": "lantern_work"
+          }
+        ]
+      },
+      "lantern_work": {
+        "node_id": "lantern_work",
+        "speaker": "Hazel",
+        "text": "Lantern cloth. It distributes warmth gently, slows things down a little. I have enough for a small weave — but I need silk-thread moss and cloud reed. Low-threat gathering. Nothing dangerous.",
+        "choices": [
+          {
+            "choice_text": "I'll gather them.",
+            "next_node_id": "grateful",
+            "on_select_event": "hazel_q1_accepted"
+          },
+          {
+            "choice_text": "Not right now.",
+            "next_node_id": null
+          }
+        ]
+      },
+      "grateful": {
+        "node_id": "grateful",
+        "speaker": "Hazel",
+        "text": "Thank you. You carry enough weight already — let me carry a little of yours for a change.",
+        "choices": [
+          {
+            "choice_text": "I'll be back soon.",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "hazel_act2": {
+    "dialogue_id": "hazel_act2",
+    "root_node_id": "cloth_echo",
+    "nodes": {
+      "cloth_echo": {
+        "node_id": "cloth_echo",
+        "speaker": "Hazel (Echo)",
+        "text": "That piece of cloth. I left it in a place where someone who needed it would find it. I'm glad it was you.",
+        "choices": [
+          {
+            "choice_text": "It was in the darkest part.",
+            "next_node_id": "fade"
+          },
+          {
+            "choice_text": "Why did you leave it here?",
+            "next_node_id": "fade"
+          }
+        ]
+      },
+      "fade": {
+        "node_id": "fade",
+        "speaker": "Hazel (Echo)",
+        "text": "I couldn't stay in the Heights. She made the air there... difficult. But leaving wasn't abandoning you. I hope you understand that. I had to choose myself.",
+        "choices": [
+          {
+            "choice_text": "I understand now.",
+            "next_node_id": "worth"
+          },
+          {
+            "choice_text": "I didn't understand then. I do now.",
+            "next_node_id": "worth"
+          }
+        ]
+      },
+      "worth": {
+        "node_id": "worth",
+        "speaker": "Hazel (Echo)",
+        "text": "You never stopped being worth saving. I want you to hear that clearly. From me. Not as an echo — as a fact.",
+        "choices": [
+          {
+            "choice_text": "Thank you, Hazel.",
+            "next_node_id": null,
+            "on_select_event": "hazel_q2_echo_complete"
+          }
+        ]
+      }
+    }
+  },
+  "hazel_act3": {
+    "dialogue_id": "hazel_act3",
+    "root_node_id": "final_lantern",
+    "nodes": {
+      "final_lantern": {
+        "node_id": "final_lantern",
+        "speaker": "Hazel",
+        "text": "I've been working on this one for a long time. It's not for light — not really. It's for remembering. That you were here. That you kept going.",
+        "choices": [
+          {
+            "choice_text": "Is it finished?",
+            "next_node_id": "almost_done"
+          },
+          {
+            "choice_text": "What's it called?",
+            "next_node_id": "name_it"
+          }
+        ]
+      },
+      "name_it": {
+        "node_id": "name_it",
+        "speaker": "Hazel",
+        "text": "I haven't named it yet. I thought you might want to.",
+        "choices": [
+          {
+            "choice_text": "One more material needed?",
+            "next_node_id": "almost_done"
+          }
+        ]
+      },
+      "almost_done": {
+        "node_id": "almost_done",
+        "speaker": "Hazel",
+        "text": "Almost. There's a rare woven-root in the high challenge level — only one place it grows. Bring it back and I'll finish the Beacon Lantern before you ascend.",
+        "choices": [
+          {
+            "choice_text": "I'll get it.",
+            "next_node_id": null,
+            "on_select_event": "hazel_q3_accepted"
+          },
+          {
+            "choice_text": "I'll be careful.",
+            "next_node_id": "be_careful"
+          }
+        ]
+      },
+      "be_careful": {
+        "node_id": "be_careful",
+        "speaker": "Hazel",
+        "text": "Please be. You've come too far to lose yourself now.",
+        "choices": [
+          {
+            "choice_text": "I won't.",
+            "next_node_id": null,
+            "on_select_event": "hazel_q3_accepted"
+          }
+        ]
+      }
+    }
+  },
+  "linzi_hub_early": {
+    "dialogue_id": "linzi_hub_early",
+    "root_node_id": "greeting",
+    "nodes": {
+      "greeting": {
+        "node_id": "greeting",
+        "speaker": "Linzi",
+        "text": "You've come far, wanderer. The Veiled Vale has use for those who persist. I can make this easier for you.",
+        "choices": [
+          {
+            "choice_text": "What do you want?",
+            "next_node_id": "offer"
+          },
+          {
+            "choice_text": "I don't need help.",
+            "next_node_id": "soft_warning"
+          }
+        ]
+      },
+      "offer": {
+        "node_id": "offer",
+        "speaker": "Linzi",
+        "text": "Only to guide you. The paths here are treacherous — they shift, they lie. Without someone who knows the Vale, you'll wander until you're hollow.",
+        "choices": [
+          {
+            "choice_text": "I'll take the offer.",
+            "next_node_id": "accept_guide",
+            "on_select_event": "linzi_guide_accepted"
+          },
+          {
+            "choice_text": "I'll find my own way.",
+            "next_node_id": "soft_warning"
+          }
+        ]
+      },
+      "accept_guide": {
+        "node_id": "accept_guide",
+        "speaker": "Linzi",
+        "text": "Good. Stay close. Don't ask too many questions. The Vale rewards trust.",
+        "choices": [
+          {
+            "choice_text": "Lead on.",
+            "next_node_id": null
+          }
+        ]
+      },
+      "soft_warning": {
+        "node_id": "soft_warning",
+        "speaker": "Linzi",
+        "text": "Those who wander alone here tend to become... lost. Remember this choice. I'm always here when you reconsider.",
+        "choices": [
+          {
+            "choice_text": "I'll keep that in mind.",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "shadow_echo_samson": {
+    "dialogue_id": "shadow_echo_samson",
+    "root_node_id": "echo",
+    "nodes": {
+      "echo": {
+        "node_id": "echo",
+        "speaker": "Shadow Echo",
+        "text": "You weren't alone... why did you walk away? I couldn't reach you.",
+        "choices": [
+          {
+            "choice_text": "...",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "shadow_echo_sophia": {
+    "dialogue_id": "shadow_echo_sophia",
+    "root_node_id": "echo",
+    "nodes": {
+      "echo": {
+        "node_id": "echo",
+        "speaker": "Shadow Echo",
+        "text": "I wanted to help... but she turned your eyes from me.",
+        "choices": [
+          {
+            "choice_text": "...",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "shadow_echo_marcel": {
+    "dialogue_id": "shadow_echo_marcel",
+    "root_node_id": "echo",
+    "nodes": {
+      "echo": {
+        "node_id": "echo",
+        "speaker": "Shadow Echo",
+        "text": "You pushed so hard... until you broke. But the will doesn't have to.",
+        "choices": [
+          {
+            "choice_text": "...",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
+  },
+  "shadow_echo_hazel": {
+    "dialogue_id": "shadow_echo_hazel",
+    "root_node_id": "echo",
+    "nodes": {
+      "echo": {
+        "node_id": "echo",
+        "speaker": "Shadow Echo",
+        "text": "You never stopped being worth saving.",
+        "choices": [
+          {
+            "choice_text": "...",
+            "next_node_id": null
+          }
+        ]
+      }
+    }
   }
 }

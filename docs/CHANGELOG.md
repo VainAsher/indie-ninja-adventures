@@ -16,6 +16,16 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.56] - 2026-04-17 (Lantern NPC dialogue chains + mission wiring)
+
+### Added
+- `data/dialogues.json`: full three-act dialogue trees for Samson, Sophia, Marcel, and Hazel (12 new dialogue IDs covering Act 0 greeting, Act 2 Hollow Depths echo encounter, Act 3 Ember Monastery reunion)
+- `data/dialogues.json`: Linzi hub NPC early-game dialogue (`linzi_hub_early`) — warm guiding voice before Veil Maiden reveal
+- `data/dialogues.json`: four shadow-echo dialogue fragments (`shadow_echo_samson/sophia/marcel/hazel`) triggered by proximity in Hollow Depths — each mourns, none condemns
+- `data/missions.json`: 13 new NPC side-quest missions covering all four Lantern NPC quest chains (samson_q1–q3, sophia_q1–q3, marcel_q1–q3, hazel_q1–q3) plus `linzi_hub_arrival`
+- `hub_impact` fields for NPC disappearance (`sophia_q2_slander`), NPC restoration (`*_q3_*`), and Linzi shadow seed
+- `MissionAuthoringProgressionCoverageTest`: expected mission count updated from 30 → 43
+
 ## [0.11.55] - 2026-04-17 (echo wire protocol + pistol animation routing)
 
 ### Added

@@ -1688,6 +1688,665 @@
         "hub_restored": true
       },
       "boss": "veil_maiden"
+    },
+    {
+      "mission_id": "linzi_hub_arrival",
+      "mission_name": "A Guiding Voice",
+      "region": "town",
+      "difficulty": 1,
+      "room_count": 4,
+      "shape": "linear",
+      "description": "A stranger offers guidance through the Veiled Vale. Her voice is warm. Her eyes are careful.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the vale waypoint",
+          "location": "vale_waypoint"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 20,
+        "items": []
+      },
+      "enemy_types": [
+        "shade"
+      ],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 0,
+      "story_trigger": "linzi_hub_appears",
+      "hub_impact": {
+        "npc_added": "linzi",
+        "hub_shadow_seed": 1
+      }
+    },
+    {
+      "mission_id": "samson_q1_dojo",
+      "mission_name": "Unfinished Sparring Match",
+      "region": "forest",
+      "difficulty": 1,
+      "room_count": 3,
+      "shape": "linear",
+      "description": "Samson challenges Aen to a training bout. The body remembers what the mind tries to forget.",
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat Samson's training ghost",
+          "target": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "melee_attack"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 30,
+        "items": [
+          {
+            "item_id": "poise_token",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "samson_ghost"
+      ],
+      "hazards": [],
+      "time_limit": 120,
+      "unlock_requirements": [
+        "samson_q1_accepted"
+      ],
+      "act": 0,
+      "story_trigger": "samson_q1_complete",
+      "hub_impact": {
+        "npc_trust": {
+          "samson": 1
+        }
+      }
+    },
+    {
+      "mission_id": "samson_q2_echoes",
+      "mission_name": "Echoes in the Dark",
+      "region": "hollow_depths",
+      "difficulty": 3,
+      "room_count": 6,
+      "shape": "ring",
+      "description": "Aen hears Samson's echo more clearly. A Guilt Wraith has taken Samson's voice to taunt him.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Follow echo waypoints",
+          "location": "samson_echo_site"
+        },
+        {
+          "type": "kill_all_enemies",
+          "description": "Defeat the Guilt Wraith",
+          "target": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "melee_attack"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 60,
+        "items": [
+          {
+            "item_id": "samson_charm",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "guilt_wraith",
+        "shade"
+      ],
+      "hazards": [
+        "void",
+        "echo_distortion"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "samson_q1_complete",
+        "hollow_1_complete"
+      ],
+      "act": 2,
+      "story_trigger": "samson_q2_complete",
+      "hub_impact": {
+        "npc_trust": {
+          "samson": 2
+        }
+      }
+    },
+    {
+      "mission_id": "samson_q3_return",
+      "mission_name": "The Brother Returns",
+      "region": "hollow_depths",
+      "difficulty": 4,
+      "room_count": 8,
+      "shape": "grid",
+      "description": "Full reunion. Samson fights at Aen's side through an optional co-op trial.",
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Clear the trial with Samson",
+          "target": 25
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "melee_attack",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 80,
+        "items": [
+          {
+            "item_id": "samson_passive_bond",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "shade_warrior",
+        "wraith_guard",
+        "hollow_knight"
+      ],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": [
+        "samson_q2_complete",
+        "hollow_4_complete"
+      ],
+      "act": 3,
+      "story_trigger": "samson_q3_complete",
+      "hub_impact": {
+        "npc_added": "samson",
+        "npc_trust": {
+          "samson": 3
+        }
+      }
+    },
+    {
+      "mission_id": "sophia_q1_cartography",
+      "mission_name": "Lantern Cartography",
+      "region": "forest",
+      "difficulty": 1,
+      "room_count": 5,
+      "shape": "grid",
+      "description": "Sophia needs old map shards from the pre-corruption paths. They hold routes the current maps refuse to show.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Collect ancient map shards",
+          "item": "map_shard",
+          "count": 3
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump"
+      ],
+      "unlock_abilities": [
+        "minimap_upgrade"
+      ],
+      "rewards": {
+        "currency": 25,
+        "items": [
+          {
+            "item_id": "minimap_upgrade_token",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "shade",
+        "forest_wraith"
+      ],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": [
+        "sophia_q1_accepted"
+      ],
+      "act": 0,
+      "story_trigger": "sophia_q1_complete",
+      "hub_impact": {
+        "npc_trust": {
+          "sophia": 1
+        }
+      }
+    },
+    {
+      "mission_id": "sophia_q2_slander",
+      "mission_name": "Slander and Silence",
+      "region": "town",
+      "difficulty": 2,
+      "room_count": 4,
+      "shape": "linear",
+      "description": "Whispers about Sophia spread through the hub. Aen hears the rumours from minor NPCs. Then Sophia says goodbye.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Overhear hub rumours",
+          "location": "rumour_npc"
+        },
+        {
+          "type": "reach_location",
+          "description": "Speak with Sophia before she leaves",
+          "location": "sophia"
+        }
+      ],
+      "required_abilities": [
+        "basic_movement"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 0,
+        "items": [
+          {
+            "item_id": "sophias_letter",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": [
+        "sophia_q1_complete"
+      ],
+      "act": 1,
+      "story_trigger": "sophia_farewell",
+      "hub_impact": {
+        "npc_removed": "sophia",
+        "hub_whispers_increase": 1
+      }
+    },
+    {
+      "mission_id": "sophia_q3_skyroad",
+      "mission_name": "Map to the Skyroad",
+      "region": "castle",
+      "difficulty": 4,
+      "room_count": 7,
+      "shape": "ring",
+      "description": "Sophia returns as a traveller. She needs Star Ink from a rare high-altitude location to finish a map for Aen.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Retrieve Star Ink",
+          "item": "star_ink",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash"
+      ],
+      "unlock_abilities": [
+        "skyroad_map"
+      ],
+      "rewards": {
+        "currency": 90,
+        "items": [
+          {
+            "item_id": "skyroad_map_fragment",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "sky_sentinel",
+        "wraith_guard"
+      ],
+      "hazards": [
+        "wind_shear",
+        "void_crack"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "sophia_q2_complete",
+        "castle_3_complete"
+      ],
+      "act": 3,
+      "story_trigger": "sophia_q3_complete",
+      "hub_impact": {
+        "npc_added": "sophia_traveller",
+        "npc_trust": {
+          "sophia": 3
+        }
+      }
+    },
+    {
+      "mission_id": "marcel_q1_forge",
+      "mission_name": "Guard the Forge",
+      "region": "forest",
+      "difficulty": 2,
+      "room_count": 4,
+      "shape": "linear",
+      "description": "Marcel needs the forge defended while he gathers materials. Hold the line against incoming waves.",
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Defend the forge",
+          "target": 20
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "melee_attack"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 40,
+        "items": [
+          {
+            "item_id": "weapon_enhancement_tier1",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "shade",
+        "forge_raider"
+      ],
+      "hazards": [
+        "lava"
+      ],
+      "time_limit": 180,
+      "unlock_requirements": [
+        "marcel_q1_accepted"
+      ],
+      "act": 0,
+      "story_trigger": "marcel_q1_complete",
+      "hub_impact": {
+        "npc_trust": {
+          "marcel": 1
+        }
+      }
+    },
+    {
+      "mission_id": "marcel_q2_hammer",
+      "mission_name": "Broken Steel, Unbroken Will",
+      "region": "hollow_depths",
+      "difficulty": 3,
+      "room_count": 5,
+      "shape": "linear",
+      "description": "Aen finds a broken hammer bearing Marcel's sigil. Retrieving its fragments leads through a dangerous side path.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Retrieve hammer fragments",
+          "item": "hammer_fragment",
+          "count": 3
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "melee_attack",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 65,
+        "items": [
+          {
+            "item_id": "marcels_hammer_charm",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "shade_warrior",
+        "hollow_wraith"
+      ],
+      "hazards": [
+        "void",
+        "collapsed_floor"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "marcel_q1_complete",
+        "hollow_1_complete"
+      ],
+      "act": 2,
+      "story_trigger": "marcel_q2_complete",
+      "hub_impact": {
+        "npc_trust": {
+          "marcel": 2
+        }
+      }
+    },
+    {
+      "mission_id": "marcel_q3_reforge",
+      "mission_name": "Reforging the Self",
+      "region": "hollow_depths",
+      "difficulty": 4,
+      "room_count": 6,
+      "shape": "grid",
+      "description": "Marcel has joined the Ember Monastery as a smith. He needs rare Hearthstone ore from a deep side-level to finish Aen's blade.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Mine Hearthstone ore",
+          "item": "hearthstone_ore",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "melee_attack",
+        "dash",
+        "double_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 100,
+        "items": [
+          {
+            "item_id": "ember_forged_blade",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "deep_golem",
+        "vein_wraith"
+      ],
+      "hazards": [
+        "lava",
+        "void_crack"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "marcel_q2_complete",
+        "hollow_4_complete"
+      ],
+      "act": 3,
+      "story_trigger": "marcel_q3_complete",
+      "hub_impact": {
+        "npc_added": "marcel",
+        "npc_trust": {
+          "marcel": 3
+        }
+      }
+    },
+    {
+      "mission_id": "hazel_q1_gentle",
+      "mission_name": "A Gentle Glow",
+      "region": "forest",
+      "difficulty": 1,
+      "room_count": 4,
+      "shape": "grid",
+      "description": "Hazel weaves lantern cloth but needs soft materials — silk-thread moss and cloud reed from low-threat creatures and plants.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Gather silk-thread moss",
+          "item": "silk_thread_moss",
+          "count": 2
+        },
+        {
+          "type": "collect_items",
+          "description": "Gather cloud reed",
+          "item": "cloud_reed",
+          "count": 2
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 20,
+        "items": [
+          {
+            "item_id": "lantern_cloth_buff",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "forest_wisp"
+      ],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": [
+        "hazel_q1_accepted"
+      ],
+      "act": 0,
+      "story_trigger": "hazel_q1_complete",
+      "hub_impact": {
+        "npc_trust": {
+          "hazel": 1
+        }
+      }
+    },
+    {
+      "mission_id": "hazel_q2_shreds",
+      "mission_name": "Shreds in the Dark",
+      "region": "hollow_depths",
+      "difficulty": 3,
+      "room_count": 5,
+      "shape": "linear",
+      "description": "A torn piece of Hazel's lantern cloth has appeared deep in the Hollow Depths. Retrieving it leads through a dangerous zone.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Retrieve Hazel's lantern cloth",
+          "item": "hazels_cloth",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "dash"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 55,
+        "items": [
+          {
+            "item_id": "lantern_skin_glow",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "void_stalker",
+        "shadow_husk"
+      ],
+      "hazards": [
+        "void",
+        "pitch_dark"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "hazel_q1_complete",
+        "hollow_2_complete"
+      ],
+      "act": 2,
+      "story_trigger": "hazel_q2_complete",
+      "hub_impact": {
+        "npc_trust": {
+          "hazel": 2
+        }
+      }
+    },
+    {
+      "mission_id": "hazel_q3_beacon",
+      "mission_name": "Lantern for Tomorrow",
+      "region": "castle",
+      "difficulty": 5,
+      "room_count": 7,
+      "shape": "ring",
+      "description": "Hazel is finishing the Beacon Lantern in the Ember Monastery. One rare material remains — woven-root, from a high-skill challenge area.",
+      "objectives": [
+        {
+          "type": "collect_items",
+          "description": "Retrieve woven-root",
+          "item": "woven_root",
+          "count": 1
+        }
+      ],
+      "required_abilities": [
+        "basic_movement",
+        "jump",
+        "double_jump",
+        "dash",
+        "wall_jump"
+      ],
+      "unlock_abilities": [],
+      "rewards": {
+        "currency": 120,
+        "items": [
+          {
+            "item_id": "beacon_lantern",
+            "quantity": 1
+          }
+        ]
+      },
+      "enemy_types": [
+        "sky_sentinel",
+        "deep_guardian",
+        "hollow_knight"
+      ],
+      "hazards": [
+        "wind_shear",
+        "void_crack",
+        "lava"
+      ],
+      "time_limit": null,
+      "unlock_requirements": [
+        "hazel_q2_complete",
+        "castle_5_complete"
+      ],
+      "act": 3,
+      "story_trigger": "hazel_q3_complete",
+      "hub_impact": {
+        "npc_added": "hazel",
+        "npc_trust": {
+          "hazel": 3
+        },
+        "beacon_lantern_lit": true
+      }
     }
   ]
 }
