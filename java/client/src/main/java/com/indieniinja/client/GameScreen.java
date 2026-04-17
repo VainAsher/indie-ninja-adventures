@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.indieniinja.client.audio.AudioManager;
+import com.indieniinja.client.audio.MusicManager;
 import com.indieniinja.client.game.DialogueManager;
 import com.indieniinja.client.game.MissionDefinition;
 import com.indieniinja.client.game.MissionLocationTriggerRegistry;
@@ -159,6 +160,7 @@ public final class GameScreen implements Screen {
 
     // ── Audio ─────────────────────────────────────────────────────────────────
     private AudioManager audioManager;
+    private MusicManager musicManager;
     /** Previous animState per player slot — for state-transition SFX detection. */
     private final java.util.Map<Integer,String>  prevAnimState = new java.util.HashMap<>();
     /** Previous health per player slot — for hurt/death SFX detection. */
@@ -407,6 +409,8 @@ public final class GameScreen implements Screen {
         // Audio
         audioManager = new AudioManager(0.8f);
         audioManager.loadSounds(Gdx.files.internal("assets/audio/sfx"));
+        musicManager = new MusicManager();
+        musicManager.loadTracks(Gdx.files.internal("assets/audio/music"));
 
         Gdx.input.setInputProcessor(null);  // InputPoller polls directly; ESC handled in render
     }
@@ -414,6 +418,7 @@ public final class GameScreen implements Screen {
     @Override
     public void render(float delta) {
         delta = Math.min(delta, MAX_FRAME_TIME);
+        if (musicManager != null) musicManager.update(delta);
 
         // ── Consume slot assignment from SERVER_HELLO ─────────────────────────
         int pendingSlot = stateBuffer.pollPendingLocalSlot();
@@ -747,6 +752,13 @@ public final class GameScreen implements Screen {
             if (snap.hubState != null && !snap.hubState.isEmpty()) {
                 storyManager.onHubStateUpdate(snap.hubState);
                 dialogueManager.setStoryContext(storyManager.toConditionContext());
+            }
+
+            // ── Zone BGM: trigger cross-fade on hub or act change ─────────────
+            if (musicManager != null) {
+                String snapHub = snap.hubId != null ? snap.hubId : "";
+                int    snapAct = storyManager != null ? storyManager.currentAct().wire() : 0;
+                musicManager.playZone(snapHub, snapAct);
             }
 
             // ── Cache world rooms from full snapshots (empty on delta frames) ──
@@ -2239,6 +2251,7 @@ public final class GameScreen implements Screen {
         if (saveManager    != null) { syncSaveState(); saveManager.save(); }
         flushSoloReplay();
         if (audioManager   != null) audioManager.dispose();
+        if (musicManager   != null) musicManager.dispose();
         if (networkClient  != null) networkClient.shutdown();
         if (batch          != null) batch.dispose();
         if (anims          != null) anims.dispose();

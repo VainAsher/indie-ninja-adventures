@@ -16,6 +16,12 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.57] - 2026-04-17 (MusicManager zone-based BGM with cross-fade)
+
+### Added
+- `MusicManager.java` (`client.audio`): zone-based BGM manager with 1.5 s linear cross-fade; resolves act-specific track variants (`{zoneId}_act{N}`) before falling back to generic zone track; silent fallback when audio directory or files are absent
+- `GameScreen`: `musicManager` field wired — loaded from `assets/audio/music/`, updated each render frame, triggered on hub/act state updates; disposed on screen exit
+
 ## [0.11.56] - 2026-04-17 (Lantern NPC dialogue chains + mission wiring)
 
 ### Added
