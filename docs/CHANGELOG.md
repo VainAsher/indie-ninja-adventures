@@ -16,6 +16,11 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.60] - 2026-04-17 (PLAYER_EXPECTATIONS updated to v0.11.60)
+
+### Changed
+- `docs/PLAYER_EXPECTATIONS.md`: version anchor and target build bumped to v0.11.60; lore primer extended with Lantern NPC, Linzi, shadow-echo, music, and trial context; instrumentation table updated with `[Playtest][NPC/Trial/Echo]` prefixes; Pack D extended with Veil Maiden and music focus checks; Pack E (NPC dialogue chain) and Pack F (trial room) added; feedback IDs `UX-NPC`, `UX-AUDIO`, `BAL-BOSS-VEIL`, `BAL-TRIAL`, `TECH-AUDIO` added; exit criteria updated with NPC/trial/boss/audio coverage requirements
+
 ## [0.11.59] - 2026-04-17 (trials.json scaffolding + trial room type)
 
 ### Added
