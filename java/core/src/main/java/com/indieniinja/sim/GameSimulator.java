@@ -306,7 +306,8 @@ public final class GameSimulator {
             owner.physics.x,
             owner.physics.y,
             replay,
-            recallable
+            recallable,
+            owner.weaponState
         );
         echoes.add(echo);
         return echo;
@@ -678,6 +679,21 @@ public final class GameSimulator {
             bs.facingRight = boss.facingRight;
             bs.alive       = boss.isAlive();
             snap.bosses.add(bs);
+        }
+
+        // Echo replay entities (M6) — always included; cleared from list once inactive
+        echoes.removeIf(e -> !e.active && e.completed);
+        for (SimEcho echo : echoes) {
+            com.indieniinja.network.EchoState es = new com.indieniinja.network.EchoState();
+            es.echoId      = echo.echoId;
+            es.ownerSlot   = echo.ownerSlot;
+            es.x           = echo.x;
+            es.y           = echo.y;
+            es.facing      = echo.facing;
+            es.animState   = echo.animState != null ? echo.animState : "idle";
+            es.weaponState = echo.weaponState != null ? echo.weaponState : "unarmed";
+            es.active      = echo.active;
+            snap.echoes.add(es);
         }
 
         // Portals — always included on full snapshots (WorldSnapshot.toMap() skips on deltas)

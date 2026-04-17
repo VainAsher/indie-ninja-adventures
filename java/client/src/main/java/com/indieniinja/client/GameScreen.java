@@ -284,6 +284,7 @@ public final class GameScreen implements Screen {
         FileHandle bossBaseDir  = Gdx.files.internal("assets/sprites/bosses");
         FileHandle unarmedDir = Gdx.files.internal("assets/sprites/player/unarmed");
         FileHandle swordDir   = Gdx.files.internal("assets/sprites/player/sword");
+        FileHandle pistolDir  = Gdx.files.internal("assets/sprites/player/pistol");
         if (atlasFile.exists()) {
             anims.loadAtlas(new TextureAtlas(atlasFile));
         } else if (playerDir.exists()) {
@@ -294,6 +295,7 @@ public final class GameScreen implements Screen {
         // Load extracted template sheets (override legacy flat-dir mappings when present).
         if (unarmedDir.exists()) anims.loadUnarmedSheets(unarmedDir);  // animation Phase 3
         if (swordDir.exists())   anims.loadSwordSheets(swordDir);      // animation Phase 3
+        if (pistolDir.exists())  anims.loadPistolSheets(pistolDir);    // Arcade mode reserved
         // Load per-enemy-type animations (falls back to colored placeholders if
         // assets/sprites/characters/{type}/ does not exist).
         anims.loadEnemySprites(enemyBaseDir);

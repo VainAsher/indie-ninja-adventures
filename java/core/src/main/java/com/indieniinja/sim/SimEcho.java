@@ -21,6 +21,11 @@ public final class SimEcho {
     public float y;
     public int facing = 1;
 
+    /** Animation state string derived from replayed input — used by EntityRenderer. */
+    public String animState   = "idle";
+    /** Weapon state captured from spawning player — drives sprite prefix. */
+    public String weaponState = "unarmed";
+
     /** If false, recalling before playback completes fails the puzzle. */
     public final boolean recallable;
 
@@ -35,13 +40,14 @@ public final class SimEcho {
     private InputCommand currentInput = InputCommand.neutral(0);
 
     public SimEcho(String echoId, int ownerSlot, float startX, float startY,
-                   ReplayPlayer replay, boolean recallable) {
-        this.echoId = echoId;
-        this.ownerSlot = ownerSlot;
-        this.x = startX;
-        this.y = startY;
-        this.replay = replay;
-        this.recallable = recallable;
+                   ReplayPlayer replay, boolean recallable, String weaponState) {
+        this.echoId      = echoId;
+        this.ownerSlot   = ownerSlot;
+        this.x           = startX;
+        this.y           = startY;
+        this.replay      = replay;
+        this.recallable  = recallable;
+        this.weaponState = weaponState != null ? weaponState : "unarmed";
     }
 
     /** Advance replay by one tick. */
@@ -59,6 +65,12 @@ public final class SimEcho {
             currentInput = InputCommand.fromMap(cmd.toMap());
             if (currentInput.left && !currentInput.right) facing = -1;
             if (currentInput.right && !currentInput.left) facing = 1;
+            // Derive a simple anim state for rendering (full physics not re-simulated)
+            if (currentInput.jump)  animState = "jump";
+            else if (currentInput.dash) animState = "dash";
+            else if (currentInput.attack) animState = "attack";
+            else if (currentInput.left || currentInput.right) animState = "run";
+            else animState = "idle";
         }
 
         tickCursor++;

@@ -322,6 +322,28 @@ public final class AnimationRegistry {
     }
 
     /**
+     * Pistol weapon set — Arcade mode loadout (reserved; not used in Campaign).
+     * Mirrors loadSwordSheets() structure so EntityRenderer pistol routing works
+     * as soon as artist sheets are dropped into assets/sprites/player/pistol/.
+     * Missing files degrade silently to unarmed fallbacks.
+     */
+    public void loadPistolSheets(FileHandle d) {
+        sliceAndRegister(d, "player_pistol_idle",        "idle_spritesheet.png",       8);
+        sliceAndRegister(d, "player_pistol_combat_idle", "combat_idle_spritesheet.png",8);
+        sliceAndRegister(d, "player_pistol_walk",        "walk_spritesheet.png",       8);
+        sliceAndRegister(d, "player_pistol_slow_walk",   "walk_spritesheet.png",       8);
+        sliceAndRegister(d, "player_pistol_run",         "run_spritesheet.png",        8);
+        sliceAndRegister(d, "player_pistol_dash",        "dash_spritesheet.png",       7);
+        registerJumpFallPrefixed(d, "jumpfall_spritesheet.png", "player_pistol");
+        sliceAndRegister(d, "player_pistol_crouch",      "crouch_idle_spritesheet.png",9);
+        sliceAndRegister(d, "player_pistol_crouch_walk", "crouch_walk_spritesheet.png",8);
+        sliceAndRegister(d, "player_pistol_attack",      "attack_combo_d0_spritesheet.png", 4);
+        sliceAndRegister(d, "player_pistol_slash1",      "attack_combo_d0_spritesheet.png", 4);
+        sliceAndRegister(d, "player_pistol_hurt",        "hurt_upper_spritesheet.png", 4);
+        sliceAndRegister(d, "player_pistol_death",       "death_spritesheet.png",      7);
+    }
+
+    /**
      * Variant of registerJumpFall that writes to "{prefix}_jump" / "{prefix}_fall"
      * keys instead of always "player_jump" / "player_fall".
      */

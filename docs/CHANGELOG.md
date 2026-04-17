@@ -16,6 +16,18 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.55] - 2026-04-17 (echo wire protocol + pistol animation routing)
+
+### Added
+- `EchoState` network class: wire-format for M6 echo replay entities (echoId, ownerSlot, x, y, facing, animState, weaponState, active)
+- `WorldSnapshot.echoes` list: echo entities now serialized and broadcast each tick alongside shurikens/NPCs
+- `GameSimulator`: serializes active `SimEcho` entities into snapshot; stale completed echoes pruned before broadcast
+- `SimEcho`: added `animState` (derived from replayed input each tick) and `weaponState` (captured at spawn) fields
+- `EntityRenderer.renderEcho()`: ghost render pass for echo entities — 35% alpha cyan tint, mirrors player weapon-state prefix routing
+- `EntityRenderer`: pistol weapon-state routing (`player_pistol_*` keys) added alongside sword routing
+- `AnimationRegistry.loadPistolSheets()`: registers all pistol animation keys (fallback-safe — silently skips missing sheets)
+- `GameScreen`: pistol sprite directory wired into startup asset load chain
+
 ## [0.11.54] - 2026-04-16 (phase-8 runtime posture hot-swap + stance guardrails)
 
 ### Added

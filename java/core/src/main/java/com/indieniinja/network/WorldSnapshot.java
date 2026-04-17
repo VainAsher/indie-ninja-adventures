@@ -72,6 +72,9 @@ public final class WorldSnapshot {
     /** Moving platforms — always sent every frame (position changes every tick). */
     public List<MovingPlatformState> movingPlatforms = new ArrayList<>();
 
+    /** Active echo replay entities (M6 — always full list, not delta-encoded). */
+    public List<EchoState> echoes = new ArrayList<>();
+
     /**
      * Overflow entities from adjacent zones that are within camera-view distance
      * of the current room's boundaries (visible through door openings).
@@ -207,6 +210,11 @@ public final class WorldSnapshot {
         for (Object r : list(m, "moving_platforms"))
             if (r instanceof java.util.Map<?,?> rm)
                 s.movingPlatforms.add(MovingPlatformState.fromMap((java.util.Map<String,Object>) rm));
+        // Echo replay entities (M6) — always full list.
+        for (Object e : list(m, "echoes")) {
+            EchoState es = EchoState.fromMap(e);
+            if (es != null) s.echoes.add(es);
+        }
         // Overflow entities from adjacent zones.
         for (Object e : list(m, "overflow_enemies"))
             if (e instanceof java.util.Map<?,?> em)
@@ -271,6 +279,8 @@ public final class WorldSnapshot {
         m.put("portals", isDelta ? java.util.List.of() : portalList());
         // Moving platforms — always included (position changes every tick).
         m.put("moving_platforms", movingPlatformList());
+        // Echo replay entities (M6) — always included (short-lived, not delta-encoded).
+        m.put("echoes", echoList());
         // Overflow entities from adjacent zones (visible through door openings).
         m.put("overflow_enemies", overflowEnemyList());
         m.put("overflow_npcs",    overflowNpcList());
@@ -344,6 +354,12 @@ public final class WorldSnapshot {
     private List<Map<String, Object>> overflowNpcList() {
         List<Map<String, Object>> out = new ArrayList<>(overflowNpcs.size());
         for (NPCState n : overflowNpcs) out.add(n.toMap());
+        return out;
+    }
+
+    private List<Map<String, Object>> echoList() {
+        List<Map<String, Object>> out = new ArrayList<>(echoes.size());
+        for (EchoState e : echoes) out.add(e.toMap());
         return out;
     }
 

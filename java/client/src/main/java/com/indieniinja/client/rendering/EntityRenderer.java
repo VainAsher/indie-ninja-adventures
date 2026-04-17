@@ -259,6 +259,7 @@ public final class EntityRenderer {
         for (PickupState   p  : snap.pickups)   renderPickup(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderPlayer(batch, p, deltaTime);
         for (PlayerState   p  : snap.players)   renderCompanions(batch, p, deltaTime);
+        for (com.indieniinja.network.EchoState e : snap.echoes) if (e.active) renderEcho(batch, e, deltaTime);
     }
 
     // ── Moving platforms ──────────────────────────────────────────────────────
@@ -338,6 +339,9 @@ public final class EntityRenderer {
         if ("sword".equals(p.weaponState)) {
             String swordKey = "player_sword_" + state;
             if (anims.has(swordKey)) prefix = "player_sword";
+        } else if ("pistol".equals(p.weaponState)) {
+            String pistolKey = "player_pistol_" + state;
+            if (anims.has(pistolKey)) prefix = "player_pistol";
         }
         String animKey = prefix + "_" + state;
         if ("collapse".equals(state) && !anims.has(animKey)) {
@@ -419,6 +423,39 @@ public final class EntityRenderer {
             prevTeleport.put(p.playerId, p.teleportPhaseMode);
             prevVelY.put(p.playerId, p.velY);
         }
+    }
+
+    // ── Echo replay ghosts (M6) ───────────────────────────────────────────────
+
+    private void renderEcho(SpriteBatch batch, com.indieniinja.network.EchoState echo, float dt) {
+        String state = (echo.animState != null && !echo.animState.isEmpty()) ? echo.animState : "idle";
+
+        // Weapon-state prefix routing — mirrors renderPlayer logic
+        String prefix = "player";
+        if ("sword".equals(echo.weaponState)) {
+            String swordKey = "player_sword_" + state;
+            if (anims.has(swordKey)) prefix = "player_sword";
+        } else if ("pistol".equals(echo.weaponState)) {
+            String pistolKey = "player_pistol_" + state;
+            if (anims.has(pistolKey)) prefix = "player_pistol";
+        }
+        String animKey = prefix + "_" + state;
+
+        float stateTime = tickStateTime("echo_" + echo.echoId, animKey, dt);
+        TextureRegion frame = anims.getFrame(animKey, stateTime, playerFps(state));
+
+        boolean wantFlipX = (echo.facing == -1);
+        if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
+
+        float drawX = echo.x + SPRITE_OX;
+        float drawY = echo.y + (PH - SDH + FEET_PAD);
+
+        // Render as a semi-transparent ghost (35% alpha, slight cyan tint)
+        batch.setColor(0.7f, 0.9f, 1f, 0.35f);
+        batch.draw(frame, drawX, drawY, SDW, SDH);
+        batch.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+
+        if (wantFlipX != frame.isFlipX()) frame.flip(true, false);
     }
 
     // ── Enemies ───────────────────────────────────────────────────────────────
