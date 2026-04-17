@@ -3,11 +3,11 @@ doc_type: plan
 status: developing
 owner: core-team
 last_updated: 2026-04-17
-version_anchor: v0.11.54
+version_anchor: v0.11.59
 ---
 
 # PLAN — Development Continuation: v0.11.55 Onwards
-**Created:** 2026-04-17 | **Last updated:** 2026-04-17 | **Base version:** v0.11.54
+**Created:** 2026-04-17 | **Last updated:** 2026-04-17 | **Base version:** v0.11.59
 
 This plan tracks the next development threads after the v0.11.54 closure. It is a **developing** document — items here are planned, scoped, and ready to be promoted into the active implementing plan (`PLAN_SHADOW_ASCENT.md`) as each thread becomes the active implementation focus.
 
@@ -271,20 +271,29 @@ Based on current v0.11.54 state and the P0-10 workloop direction:
 
 ## 4. Version Targets
 
+### Delivered (v0.11.55–v0.11.59)
+
+| Version | Delivered |
+|---------|-----------|
+| v0.11.55 ✅ | Thread A/B: `EchoState` wire protocol, `WorldSnapshot.echoes`, `SimEcho` animState/weaponState, `EntityRenderer.renderEcho()` ghost pass, pistol animation routing, `AnimationRegistry.loadPistolSheets()` |
+| v0.11.56 ✅ | Thread F: Samson/Sophia/Marcel/Hazel three-act dialogue trees (12 IDs), shadow-echo fragments (4 IDs), Linzi hub NPC dialogue, 13 NPC side-quest missions with hub_impact, NPC disappearance wired |
+| v0.11.57 ✅ | Thread C: `MusicManager` zone-based BGM with 1.5 s cross-fade, act-specific track variant resolution, `GameScreen` wiring |
+| v0.11.58 ✅ | Thread D: `VeilMaidenPattern` — illusion wave spawning, invincibility-while-illusions-live, distortion projectile spread, final form at 25% HP; `SimBoss.forceInvincible()` |
+| v0.11.59 ✅ | Thread E: `data/trials.json` — 5 trial definitions (samson_brothers, marcel_forge_deep, hazel_woven_root, sophia_star_ink, ember_monastery_gauntlet); `ZonePlanner` trial room type |
+
+### Upcoming
+
 | Version | Scope |
 |---------|-------|
-| v0.11.55 | Thread A: Sprite extraction pass (A1) |
-| v0.11.56 | Thread A: AnimationRegistry wiring + EntityRenderer routing (A2–A3) |
-| v0.11.57 | Thread A: Full moveset animation state coverage (A4) |
-| v0.11.58 | Thread B: Echo recorder foundation + playback simulation (B1–B2) |
-| v0.11.59 | Thread B: Echo render pass + puzzle integration (B3–B4) |
-| v0.11.60 | Thread C: SFX event bus + ambient layer (C1–C2) |
-| v0.11.61 | Thread C: Music transitions (C3) |
-| v0.11.62 | Thread D: Siren phase 4 + vulnerability windows (D1–D2) |
-| v0.11.63 | Thread D: Add-wave pacing (D3) |
-| v0.11.64 | Thread E: Trials scaffolding (E1–E2) |
-| v0.11.65 | Thread E: Trial unlock flow (E3) |
-| v0.12.0 | Thread F: Act II content (F1–F3) + milestone boundary |
+| v0.11.60 | Thread A: Sprite extraction pass (A1) — extract player unarmed + sword sheets |
+| v0.11.61 | Thread A: AnimationRegistry full wiring + EntityRenderer weapon-state routing (A2–A3) |
+| v0.11.62 | Thread B: EchoRecorder ring buffer + replay slice API (B1) |
+| v0.11.63 | Thread B: Echo playback simulation + puzzle integration (B2–B4) |
+| v0.11.64 | Thread D: Siren phase 4 pattern + vulnerability window system (D1–D2) |
+| v0.11.65 | Thread D: Add-wave pacing (D3) |
+| v0.11.66 | Thread E: Trial runtime loop with timer, wave lock, reward delivery (E2) |
+| v0.11.67 | Thread E: Trial unlock flow via Siren dialogue (E3) |
+| v0.12.0  | Thread F: Act II content — second hub, Act II missions, Siren phase 4 presence (F1–F3) |
 
 These are targets, not hard commitments. Each version may shift by ±1 patch based on gate results and playtest feedback.
 
