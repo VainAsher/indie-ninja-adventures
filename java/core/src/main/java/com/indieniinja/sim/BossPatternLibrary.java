@@ -45,6 +45,7 @@ public final class BossPatternLibrary {
             case ECHO_WARDEN     -> EchoMirrorPattern.tick(boss, ctx, dt);
             case TIME_LEECH_LORD -> LanternDrainPattern.tick(boss, ctx, dt);
             case MEMORY_EATER    -> PhaseResetPattern.tick(boss, ctx, dt);
+            case VEIL_MAIDEN     -> VeilMaidenPattern.tick(boss, ctx, dt);
             default              -> null;
         };
     }
@@ -397,6 +398,159 @@ public final class BossPatternLibrary {
             }
 
             return null;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Pattern 5 — Veil Maiden: Illusion and Gaslighting (Act V / final boss)
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * The Veil Maiden never fights directly while her illusions live.
+     * She spawns illusory copies of herself ("illusion_maiden") that mirror her
+     * movement. The boss is invincible until all arena illusions are destroyed.
+     * Once cleared, a vulnerability window opens — she fires distortion
+     * projectiles and repositions before the next illusion wave.
+     *
+     * Phase 4 (below 25% HP): final form — no illusions, fully exposed,
+     * desperate high-speed aggression. "She stops pretending."
+     *
+     * Psychological theme: manipulation and gaslighting — she distorts reality,
+     * forces you to doubt what you see, and hides behind false versions of herself.
+     */
+    private static final class VeilMaidenPattern {
+
+        private static final float ILLUSION_SPAWN_INTERVAL = 6.0f;
+        private static final float PROJECTILE_SPEED        = SimPlayer.SHURIKEN_SPEED * 0.85f;
+        private static final float REPOSITION_JUMP         = 160f;
+        private static final float REPOSITION_COOLDOWN     = 2.5f;
+        private static final float FINAL_FORM_HP_RATIO     = 0.25f;
+
+        static ServerEvent tick(SimBoss boss, PatternContext ctx, float dt) {
+            boss.tickInvincibility();
+            if (boss.attackCooldown > 0f)          boss.attackCooldown -= dt;
+            if (boss.veilMaidenIllusionTimer > 0f) boss.veilMaidenIllusionTimer -= dt;
+            if (boss.sirenTeleportCooldown > 0f)   boss.sirenTeleportCooldown -= dt;
+
+            // Activate final form below 25% HP
+            if (!boss.veilMaidenFinalForm
+                    && (float) boss.hp / boss.maxHp <= FINAL_FORM_HP_RATIO) {
+                boss.veilMaidenFinalForm = true;
+                log.info("[VeilMaiden] final form activated at {}% HP",
+                         (int)(100f * boss.hp / boss.maxHp));
+            }
+
+            SimPlayer target = nearestAlivePlayer(boss, ctx);
+            if (target == null) return null;
+
+            float tx    = target.physics.x + target.physics.width  * 0.5f;
+            float ty    = target.physics.y + target.physics.height * 0.5f;
+            float bossCx = boss.physics.x  + boss.physics.width    * 0.5f;
+            float bossCy = boss.physics.y  + boss.physics.height   * 0.5f;
+
+            // ── Final form: raw aggression, no illusions ──────────────────────
+            if (boss.veilMaidenFinalForm) {
+                float speed = boss.type.moveSpeed * 1.6f * dt;
+                if (tx > bossCx) { boss.physics.x += speed; boss.facingRight = true; }
+                else             { boss.physics.x -= speed; boss.facingRight = false; }
+                boss.clampToArena();
+
+                if (boss.attackCooldown <= 0f && ctx.fireProjectile != null) {
+                    ctx.fireProjectile.fire(boss, tx, ty, PROJECTILE_SPEED * 1.3f,
+                                            boss.type.baseDamage + 3);
+                    boss.attackCooldown = 0.9f;
+                    boss.aiState = BossAIState.ATTACK_RANGED;
+                } else {
+                    boss.aiState = BossAIState.MOVE;
+                }
+                return null;
+            }
+
+            // ── Normal phases: count live illusions in the arena ──────────────
+            int liveIllusions = countArenaIllusions(boss, ctx);
+            int phase = Math.max(1, Math.min(3, boss.phaseNumber));
+
+            // Spawn first illusion wave for this phase if not yet done
+            if (boss.veilMaidenIllusionPhaseSpawned < phase) {
+                spawnIllusionWave(boss, ctx, phase);
+                boss.veilMaidenIllusionPhaseSpawned = phase;
+                boss.veilMaidenIllusionTimer = ILLUSION_SPAWN_INTERVAL;
+                liveIllusions = phase + 1;
+            }
+
+            // Respawn illusion wave after interval if all cleared
+            if (liveIllusions == 0 && boss.veilMaidenIllusionTimer <= 0f) {
+                spawnIllusionWave(boss, ctx, phase);
+                boss.veilMaidenIllusionTimer = ILLUSION_SPAWN_INTERVAL;
+                liveIllusions = phase + 1;
+            }
+
+            // While illusions are alive: boss is invincible and repositions
+            if (liveIllusions > 0) {
+                boss.forceInvincible(3);
+                // Drift away from player — let the illusions do the pressure
+                float driftSpeed = boss.type.moveSpeed * 0.4f * dt;
+                if (tx > bossCx) { boss.physics.x -= driftSpeed; boss.facingRight = false; }
+                else             { boss.physics.x += driftSpeed; boss.facingRight = true; }
+                boss.clampToArena();
+                boss.aiState = BossAIState.MOVE;
+                return null;
+            }
+
+            // Vulnerability window: illusions cleared — fire distortion shot then reposition
+            if (boss.attackCooldown <= 0f && ctx.fireProjectile != null) {
+                ctx.fireProjectile.fire(boss, tx, ty, PROJECTILE_SPEED, boss.type.baseDamage + phase);
+                if (phase >= 2) {
+                    // Phase 2+: spread shot
+                    ctx.fireProjectile.fire(boss, tx + 40f, ty, PROJECTILE_SPEED, boss.type.baseDamage);
+                    ctx.fireProjectile.fire(boss, tx - 40f, ty, PROJECTILE_SPEED, boss.type.baseDamage);
+                }
+                boss.attackCooldown = 1.4f - (phase * 0.2f);
+                boss.aiState = BossAIState.ATTACK_RANGED;
+            }
+
+            // Reposition with a quick jump to the opposite side of the player
+            if (boss.sirenTeleportCooldown <= 0f) {
+                float dir = tx > bossCx ? -1f : 1f;
+                float dst = boss.physics.x + dir * REPOSITION_JUMP * (1f + phase * 0.3f);
+                boss.physics.x = Math.max(boss.arenaMinX, Math.min(boss.arenaMaxX, dst));
+                boss.sirenTeleportCooldown = REPOSITION_COOLDOWN;
+                log.debug("[VeilMaiden] reposition phase={} dir={}", phase, dir > 0 ? "right" : "left");
+            }
+
+            boss.clampToArena();
+            if (boss.aiState != BossAIState.ATTACK_RANGED) boss.aiState = BossAIState.MOVE;
+            return null;
+        }
+
+        private static void spawnIllusionWave(SimBoss boss, PatternContext ctx, int phase) {
+            if (ctx.spawnEnemy == null) return;
+            int count = phase + 1;
+            float cx = boss.physics.x + boss.physics.width  * 0.5f;
+            float cy = boss.physics.y + boss.physics.height * 0.5f;
+            for (int i = 0; i < count; i++) {
+                double a = (Math.PI * 2.0 * i) / Math.max(1, count);
+                float r  = 80f + i * 24f;
+                float sx = cx + (float) Math.cos(a) * r;
+                float sy = cy + (float) Math.sin(a) * (r * 0.3f);
+                sx = Math.max(boss.arenaMinX, Math.min(boss.arenaMaxX, sx));
+                sy = Math.max(boss.arenaMinY, Math.min(boss.arenaMaxY, sy));
+                ctx.spawnEnemy.spawn("illusion_maiden", sx, sy);
+            }
+            log.info("[VeilMaiden] phase {} illusion wave: {} copies", phase, count);
+        }
+
+        private static int countArenaIllusions(SimBoss boss, PatternContext ctx) {
+            int count = 0;
+            for (SimEnemy en : ctx.enemies) {
+                if (!en.isAlive()) continue;
+                if (!"illusion_maiden".equals(en.enemyType)) continue;
+                float cx = en.physics.x + en.physics.width  * 0.5f;
+                float cy = en.physics.y + en.physics.height * 0.5f;
+                if (cx < boss.arenaMinX - 64f || cx > boss.arenaMaxX + 64f) continue;
+                if (cy < boss.arenaMinY - 64f || cy > boss.arenaMaxY + 64f) continue;
+                count++;
+            }
+            return count;
         }
     }
 

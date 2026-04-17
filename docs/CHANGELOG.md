@@ -16,6 +16,14 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.58] - 2026-04-17 (VeilMaidenBossPattern — illusion and gaslighting)
+
+### Added
+- `VeilMaidenPattern` inner class in `BossPatternLibrary`: illusion-based boss pattern for the VEIL_MAIDEN boss type — spawns `illusion_maiden` add waves per phase, boss is invincible while any illusion lives in the arena, fires distortion projectile spread during vulnerability window, phase-2+ spread shot, repositions via quick jump; Phase 4 (below 25% HP) final form drops all illusions and becomes raw high-speed aggression
+- `SimBoss.forceInvincible(int ticks)`: public helper for pattern-driven invincibility (used by VeilMaidenPattern while illusions are alive)
+- `SimBoss`: three new Veil Maiden-specific fields — `veilMaidenIllusionTimer`, `veilMaidenIllusionPhaseSpawned`, `veilMaidenFinalForm`
+- `BossPatternLibrary.tick()`: VEIL_MAIDEN case wired into dispatch switch
+
 ## [0.11.57] - 2026-04-17 (MusicManager zone-based BGM with cross-fade)
 
 ### Added

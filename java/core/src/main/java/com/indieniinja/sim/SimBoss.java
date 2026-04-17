@@ -93,6 +93,13 @@ public final class SimBoss {
     /** Memory Eater: set to true when a phase change triggers platform reset. */
     public boolean platformReset = false;
 
+    /** Veil Maiden: countdown until next illusion wave spawns. */
+    public float   veilMaidenIllusionTimer = 0f;
+    /** Veil Maiden: last phase whose illusion wave has already spawned. */
+    public int     veilMaidenIllusionPhaseSpawned = 0;
+    /** Veil Maiden: true once HP drops below 25% and final form activates. */
+    public boolean veilMaidenFinalForm = false;
+
     // Boss-room confinement bounds (world-space AABB origin limits for this boss body).
     public final float arenaMinX;
     public final float arenaMaxX;
@@ -161,6 +168,11 @@ public final class SimBoss {
         // Check phase thresholds
         checkPhaseTransition();
         return false;
+    }
+
+    /** Keep the boss invincible for at least {@code ticks} more ticks (pattern use only). */
+    public void forceInvincible(int ticks) {
+        if (ticks > invincibilityTicks) invincibilityTicks = ticks;
     }
 
     public void tickInvincibility() {
