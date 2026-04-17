@@ -11,6 +11,23 @@ version_anchor: v0.11.45
 
 ---
 
+# NARRATIVE ORIGIN
+
+**Read this first.**
+
+This game is a personal story told through mechanics. The developer had children young, lost access to them following a relationship that isolated him from his support network, fell into depression, and rebuilt himself through community — to become someone his children could find when they are ready. His children are now 17 and 18. He has not seen them in eight years. He made this game because he and his kids used to play video games together.
+
+**Yin and Yang are his children.** They are not game systems. They are the reason everything else in this document exists.
+
+The game ends with Yin and Yang still absent. The ninja stands whole on the pinnacle of the world, lights a beacon, and waits. That ending is not a design compromise — it is the truth of where the story is right now.
+
+**Full narrative foundation:** [`docs/GDD_NARRATIVE_FOUNDATION.md`](GDD_NARRATIVE_FOUNDATION.md)
+**Full game script:** [`docs/narrative/GAME_SCRIPT.md`](narrative/GAME_SCRIPT.md)
+
+All mechanical design decisions in this document serve the intentions recorded in those files.
+
+---
+
 # 0. GAME MODES OVERVIEW
 
 Indie Ninja Adventures ships three discrete modes. Each has its own loop, tone, and target player. They share the same engine, art, and ability set but differ in narrative, pacing, and world structure.
