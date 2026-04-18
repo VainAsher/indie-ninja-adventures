@@ -94,6 +94,30 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-18 12:00:00 +01:00`
+
+- Solo/multiplayer campaign unification (v0.11.64):
+  - **Portal unification**: `GameScreen.handleSoloPortalTravel()` replaced. Solo portal travel now applies the same ability-gate + zone-migration logic as `ServerProtocolHandler.handlePortalTravel()`. Player state (health, level, xp, currency, inventory, abilities) is snapshotted, hub seed derived via `HubRegistry.hubSeed()`, simulation re-initialised for destination hub, state restored. `stateBuffer.resetForZoneTransition()` triggers megamap rebuild. Save marked dirty on travel.
+  - **Hub ID threading**: `initializeSoloSimulation()` 5-param overload added; `localSim.hubId` is now correct per hub for save/restore and zone tracking.
+  - **Versus/race mode**: Registered as backlog idea `P1-11` (concept only, no implementation).
+  - **Test added**: `SoloPortalTravelTest` — ability gate denial, open-hub entry, player state preservation, hub seed uniqueness.
+- Animation posture readability pass (same release):
+  - **Task A — Yin/Yang sprite prefix routing**: `EntityRenderer.renderPlayer()` routes from `stanceMode` (GDD §3.3).
+  - **Task C — Minimap compass**: Pass 5d directional arrows + waypoint diamond POI.
+  - **Task B — Combo system (backlog only)**: `P1-03B` registered, no implementation.
+- Docs updated: `CHANGELOG.md`, `CURRENT_STATE.md`, plan loop note.
+- Validation: `./gradlew test` — BUILD SUCCESSFUL.
+
+`2026-04-18 00:00:00 +01:00`
+
+- Animation posture readability pass (v0.11.64 prep):
+  - **Task A — Yin/Yang sprite prefix routing**: `EntityRenderer.renderPlayer()` now routes animation key prefix from `stanceMode` (GDD §3.3 identity signal) instead of `weaponState` alone. Yin always renders unarmed prefix; Yang or unset renders sword prefix when sheets registered; pistol path unchanged. Client re-enforces the server-side stance lock so offline/desync players also read correctly.
+  - **Task C — Minimap compass edge indicators**: `MinimapRenderer.render()` new Pass 5d: directional triangle arrows appear on minimap panel border when an active objective's room is outside the current zoom window. Arrows are colour-coded per marker type (reach=gold, switch=red, exit=cyan). Waypoint POI type added (diamond shape) to ObjectiveMarker Pass 4.
+  - **Task B — Combo system (backlog only)**: 5-hit combo chains registered as `P1-03B` in plan. Assets are in `AnimationRegistry` (all slash/punch/kick keys loaded). No implementation started — `COMPATIBILITY_AND_MIGRATION_WORKFLOW` pre-flight required before any code change (InputCommand + SimPlayer + replay risk).
+- Docs updated: `CHANGELOG.md`, `CURRENT_STATE.md`, plan loop note.
+- Validation:
+  - `./gradlew :client:compileJava` — BUILD SUCCESSFUL
+
 `2026-04-15 21:11:43 +01:00`
 
 - Closed the `v0.11.48` release workflow end to end after the NPC/map usability fix pass:
@@ -728,6 +752,7 @@ P1 is now the phase where the following must be explicitly proven:
 | [ ] | P1-02 | Telemetry instrumentation (mission fail reasons, death causes, DPS in/out, completion times, economy curves) | ENG-CORE + ENG-CLIENT | S5 | P1-01 | Session telemetry logs and aggregation scripts | Quantifies tuning changes | Every playtest produces comparable metrics bundle |
 | [ ] | P1-03 | Balance dashboard and target bands | DESIGN + QA | S5-S6 | P1-02 | KPI sheet with min/max target bands | Converts feel goals into measurable thresholds | Targets defined for TTK, fail-rate, mission duration, resource pressure |
 | [ ] | P1-03A | Stance/Flow combat-feel lock (Roll vs Dash tuning, Passive/Aggressive readability, block/parry/combo feel, balance indicator clarity, Flow usability) | DESIGN + ENG-CORE + ENG-CLIENT + QA | S5-S7 | P1-01, P1-02 | Locked stance/combat/Flow tuning notes and validated playtest results | Converts broad combat/stealth goals into a shippable gameplay identity | Playtesters can distinguish stances, understand Flow pursuit, and report tighter combat feel consistently |
+| [ ] | P1-03B | Weapon combo chain system: `ComboManager`, 5-hit unarmed (punch/kick) and sword (slash1→slash2→slash3 + aerial/crouch/dash) chains, `InputCommand` wire extension, `SimPlayer` combo-window state, `EntityRenderer` per-hit key routing. **Requires COMPATIBILITY_AND_MIGRATION_WORKFLOW pre-flight before any implementation** (touches InputCommand, SimPlayer persistence, replay determinism). | ENG-CORE + ENG-CLIENT | S5-S6 | P1-03A | `ComboManager` class, `InputCommand.comboTrigger` wire field, `SimPlayer.comboHit` state, per-hit anim routing | Enables lethal/non-lethal combo feel differentiation per GDD §3.3 | Player can chain 5-hit standing, aerial, crouch, and dash combos; unarmed = non-lethal, sword = lethal |
 | [ ] | P1-04 | Weekly balance loop (hypothesis -> change -> playtest -> metrics review -> decision log) | DESIGN + ENG-CORE | S6-S9 (recurring) | P1-03 | Weekly balance notes linked to commits | Structured ideation and tuning rhythm | 4 consecutive loops completed with logged decisions |
 | [ ] | P1-05 | Story pacing pass (mission unlock cadence, act transition timing, hub evolution rhythm) | DESIGN + ENG-DATA | S6-S7 | P1-02 | Progression pacing matrix | Supports narrative ideation against measurable flow | No dead-end progression in scripted path tests |
 | [ ] | P1-06 | Enemy and boss tuning pass (difficulty curves by act and mission tier) | DESIGN + ENG-CORE | S7-S8 | P1-04 | Tuning table per archetype and phase | Core combat feel iteration | Difficulty spikes within target fail-rate bands |
@@ -735,6 +760,7 @@ P1 is now the phase where the following must be explicitly proven:
 | [ ] | P1-08 | Content authoring guardrails (mission lint, dialogue event lint, schema CI) | ENG-DATA + QA | S8-S9 | P0-07 | CI content validation gates | Enables safe ideation at higher throughput | Invalid mission/dialogue content blocked pre-merge |
 | [ ] | P1-09 | Client integration tests for gameplay-facing systems | QA + ENG-CLIENT | S9 | P1-08 | Expanded automated regression tests | Prevents tuning regressions from UI/client side | Critical client gameplay regressions detected in CI |
 | [ ] | P1-10 | P1 signoff and release candidate criteria lock | PROD + DESIGN + QA | S9 | P1-09 | Approved P2 entry criteria | Freezes design pillars before hardening | P1 targets met and signed off by leads |
+| [ ] | P1-11 | **[BACKLOG IDEA]** Versus / Race multiplayer mode: up to 4 players racing to objectives or to the zone exit. Separate mode from campaign co-op — no shared story progression. Potential variants: race-to-exit (fastest to clear a generated dungeon), objective-race (compete for POI captures), kill-race (score via enemies defeated). Requires dedicated server-side mode flag, score/ranking state, timeout/finish conditions, and UX flows (lobby, result screen). Full COMPATIBILITY_AND_MIGRATION_WORKFLOW pre-flight required (protocol, SimPlayer mode state, replay). **No implementation scheduled — concept only.** | ENG-CORE + ENG-CLIENT + DESIGN | TBD | P1 campaign stability | Mode design, protocol spec, lobby UX | Adds competitive replayability orthogonal to the campaign | Player can enter a versus lobby, complete a timed run against peers, and see a ranked result screen |
 
 ---
 

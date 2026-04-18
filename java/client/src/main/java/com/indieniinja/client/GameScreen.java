@@ -96,6 +96,8 @@ public final class GameScreen implements Screen {
     /** World-space spawn position for solo mode — used by portal travel to warp back to start. */
     private float                  soloSpawnX       = 0f;
     private float                  soloSpawnY       = 0f;
+    /** Hub the solo player is currently in — mirrors SaveData.currentHubId for in-session tracking. */
+    private String                 soloCurrentHubId = "central_hub";
     /** Records per-frame inputs in solo mode when -Dninja.record=true is set. */
     private final com.indieniinja.sim.InputRecorder soloRecorder = new com.indieniinja.sim.InputRecorder();
     /** Non-null during replay playback — drives inputs instead of the keyboard. */
@@ -1613,13 +1615,20 @@ public final class GameScreen implements Screen {
     // ── Solo-mode helpers ─────────────────────────────────────────────────────
 
     private void initializeSoloSimulation(long seed, boolean startRecording) {
-        initializeSoloSimulation(seed, startRecording, 12, WorldGraph.WorldShape.BLOB);
+        initializeSoloSimulation(seed, startRecording, 12, WorldGraph.WorldShape.BLOB, "central_hub");
     }
 
     private void initializeSoloSimulation(
         long seed, boolean startRecording, int roomCount, WorldGraph.WorldShape worldShape
     ) {
+        initializeSoloSimulation(seed, startRecording, roomCount, worldShape, "central_hub");
+    }
+
+    private void initializeSoloSimulation(
+        long seed, boolean startRecording, int roomCount, WorldGraph.WorldShape worldShape, String hubId
+    ) {
         soloSeed = seed;
+        String resolvedHubId = (hubId == null || hubId.isBlank()) ? "central_hub" : hubId;
         int generatedRoomCount = clampInt(roomCount, 4, 60);
         WorldGraph.WorldShape shape = worldShape == null ? WorldGraph.WorldShape.BLOB : worldShape;
         soloWorldGraph = WorldGraph.generate(seed, generatedRoomCount, shape);
@@ -1629,8 +1638,8 @@ public final class GameScreen implements Screen {
         soloRoomType     = startRoom.type.wire();
         soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
 
-        LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, "solo_hub");
-        localSim = new GameSimulator(startRoom.seed, "solo_hub", layout);
+        LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, resolvedHubId);
+        localSim = new GameSimulator(startRoom.seed, resolvedHubId, layout);
         localSim.setMode(com.indieniinja.sim.GameMode.CAMPAIGN, 0, 0);
         localSim.setDarkArea(true);  // solo dungeon is always dark — lantern decays
         soloSpawnX = layout.spawnX;
@@ -1660,12 +1669,14 @@ public final class GameScreen implements Screen {
 
         WorldSnapshot initSnap = localSim.getSnapshot(localFrame++);
         stampSoloFields(initSnap);
-        stateBuffer.update(initSnap);
-        stateBuffer.markConnected();
+        if (stateBuffer != null) {
+            stateBuffer.update(initSnap);
+            stateBuffer.markConnected();
+        }
     }
 
     private void refreshSoloWorldRoomCache() {
-        if (soloWorldGraph == null) return;
+        if (soloWorldGraph == null || chunkRenderer == null) return;
         java.util.List<WorldRoomDescriptor> soloRooms = new java.util.ArrayList<>();
         for (WorldGraph.RoomNode r : soloWorldGraph.allRooms()) {
             WorldRoomDescriptor d = new WorldRoomDescriptor();
@@ -1837,29 +1848,77 @@ public final class GameScreen implements Screen {
      * Handles portal interaction in solo mode by warping the player directly to
      * the start room's spawn point within the unified world layout.
      * <p>
-     * In multiplayer, PORTAL_TRAVEL is a server-side zone transition; in solo mode
-     * there are no separate zones — the whole world is a single unified layout —
-     * so we treat every portal as a shortcut back to the START room (which acts as
-     * the hub in solo play).
+     * Solo portal travel mirrors the server-side handlePortalTravel() flow: ability
+     * gate check, player state snapshot, hub re-initialisation, state restore, zone
+     * transition signal, and save mark — so the campaign experience is identical
+     * whether played alone or with friends.
      */
     private void handleSoloPortalTravel(String destinationId) {
         if (localSim == null) return;
         com.indieniinja.sim.SimPlayer sp = localSim.getPlayer(0);
         if (sp == null) return;
-        // Warp to the start-room spawn saved when the solo session was initialised.
-        sp.physics.x  = soloSpawnX;
-        sp.physics.y  = soloSpawnY;
-        sp.physics.vx = 0f;
-        sp.physics.vy = 0f;
-        // Reset room tracking so stampSoloFields picks up the new position next frame.
-        if (soloWorldGraph != null) {
-            com.indieniinja.world.WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
-            soloCurrentGridX = startRoom.gridX;
-            soloCurrentGridY = startRoom.gridY;
-            soloRoomType     = startRoom.type.wire();
-            soloNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
+
+        com.indieniinja.world.HubRegistry.HubDef hubDef =
+            com.indieniinja.world.HubRegistry.get(destinationId);
+
+        // Ability gate — mirrors ServerProtocolHandler.handlePortalTravel() check.
+        if (!hubDef.isAccessible(sp.unlockedAbilities)) {
+            String req = hubDef.requiredAbility().replace('_', ' ').toUpperCase();
+            if (hudRenderer != null) hudRenderer.notifyToast("PORTAL LOCKED: REQUIRES " + req);
+            log.info("[GameScreen][Playtest][Portal] solo portal denied hub={} requiredAbility={}",
+                destinationId, hubDef.requiredAbility());
+            return;
         }
-        log.info("[GameScreen] solo portal travel → start room ({})", destinationId);
+
+        // Snapshot player state before re-initialising the simulation.
+        int   snapHealth         = sp.health;
+        int   snapMaxHealth      = sp.maxHealth;
+        int   snapLevel          = sp.level;
+        int   snapXp             = sp.experience;
+        int   snapCurrency       = sp.inventory.currency;
+        String snapEquippedWeapon = sp.inventory.equippedWeapon;
+        String snapEquippedArmor  = sp.inventory.equippedArmor;
+        java.util.Set<String> snapAbilities = new java.util.LinkedHashSet<>(sp.unlockedAbilities);
+        java.util.Map<String, Integer> snapItems = new java.util.LinkedHashMap<>();
+        for (com.indieniinja.sim.SimInventory.Slot slot : sp.inventory.slots) {
+            if (slot == null || slot.itemId() == null) continue;
+            snapItems.merge(slot.itemId(), slot.quantity(), Integer::sum);
+        }
+
+        // Derive hub-specific seed and reinitialise the simulation for the destination hub.
+        long hubSeed = com.indieniinja.world.HubRegistry.hubSeed(soloSeed, hubDef.id());
+        WorldGraph.WorldShape shape = WorldGraph.WorldShape.valueOf(hubDef.graphShape());
+        initializeSoloSimulation(hubSeed, false, hubDef.roomCount(), shape, hubDef.id());
+
+        // Restore player state to the freshly created SimPlayer.
+        com.indieniinja.sim.SimPlayer newSp = localSim.getPlayer(0);
+        if (newSp != null) {
+            newSp.health    = Math.min(snapHealth, snapMaxHealth);
+            newSp.maxHealth = snapMaxHealth;
+            newSp.level     = snapLevel;
+            newSp.experience = snapXp;
+            newSp.inventory.currency = snapCurrency;
+            newSp.unlockedAbilities.clear();
+            newSp.unlockedAbilities.addAll(snapAbilities);
+            for (java.util.Map.Entry<String, Integer> e : snapItems.entrySet()) {
+                if (!newSp.inventory.addItem(e.getKey(), e.getValue())) {
+                    log.warn("[GameScreen] portal transit: failed to restore item {} x{}",
+                        e.getKey(), e.getValue());
+                }
+            }
+            if (snapEquippedWeapon != null) newSp.inventory.equipItem(snapEquippedWeapon);
+            if (snapEquippedArmor  != null) newSp.inventory.equipItem(snapEquippedArmor);
+            newSp.weaponState = weaponStateFromEquippedItem(newSp.inventory.equippedWeapon);
+        }
+
+        if (stateBuffer != null) stateBuffer.resetForZoneTransition();
+        refreshSoloWorldRoomCache();
+        String fromHubId = soloCurrentHubId;
+        soloCurrentHubId = hubDef.id();
+        if (saveManager != null) saveManager.markDirty();
+        if (hudRenderer != null) hudRenderer.notifyToast("ENTERING: " + hubDef.displayName().toUpperCase());
+        log.info("[GameScreen][Playtest][Portal] solo portal travel {} → {} seed={}",
+            fromHubId, hubDef.id(), hubSeed);
     }
 
     // ── Megamap construction ──────────────────────────────────────────────────

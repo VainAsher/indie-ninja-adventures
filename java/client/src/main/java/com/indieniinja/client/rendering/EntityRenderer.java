@@ -333,15 +333,18 @@ public final class EntityRenderer {
         String state  = (p.animState != null && !p.animState.isEmpty()) ? p.animState : "idle";
 
         // ── Weapon-state key routing (animation Phase 4) ──────────────────────
-        // EntityRenderer prepends the weapon prefix ("player_sword_") when the
-        // sword key is registered.  Falls through to unarmed if not registered.
+        // stanceMode is the identity signal: yin=unarmed, yang=armed (GDD §3.3).
+        // Yin forces unarmed prefix even if weaponState="sword" (client re-enforcement
+        // of the server's stance lock — keeps offline/desync cases readable).
+        // Pistol bypasses stance routing entirely (Arcade mode loadout).
         String prefix = "player";
-        if ("sword".equals(p.weaponState)) {
-            String swordKey = "player_sword_" + state;
-            if (anims.has(swordKey)) prefix = "player_sword";
-        } else if ("pistol".equals(p.weaponState)) {
+        if ("pistol".equals(p.weaponState)) {
             String pistolKey = "player_pistol_" + state;
             if (anims.has(pistolKey)) prefix = "player_pistol";
+        } else if (!"yin".equals(p.stanceMode)) {
+            // Yang or unset → prefer armed (sword) prefix when sheets are registered.
+            String swordKey = "player_sword_" + state;
+            if (anims.has(swordKey)) prefix = "player_sword";
         }
         String animKey = prefix + "_" + state;
         if ("collapse".equals(state) && !anims.has(animKey)) {

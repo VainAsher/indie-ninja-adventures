@@ -16,14 +16,31 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
-## [Unreleased] - replay playback fix
+## [0.11.64] - 2026-04-18 (solo/multiplayer campaign unification, stance posture readability, minimap compass)
 
-### Fixed (replay routing)
+### Changed
+
+- `GameScreen.handleSoloPortalTravel()`: solo portal travel now mirrors the server-side `handlePortalTravel()` flow. Presses E near a portal: (1) ability-gate check via `HubRegistry` — locked hubs show a toast and block entry; (2) player state snapshot (health, level, xp, currency, inventory, abilities); (3) hub-specific seed derived via `HubRegistry.hubSeed()`; (4) simulation re-initialised for the destination hub; (5) player state restored to the new `SimPlayer`; (6) `stateBuffer.resetForZoneTransition()` triggers megamap rebuild; (7) save marked dirty. Campaign experience is now identical whether played solo or co-op multiplayer (drop-in/drop-out up to 4 players).
+- `GameScreen.initializeSoloSimulation()`: new 5-param overload accepts `hubId` so `localSim.hubId` is set correctly for save/restore and zone-transition tracking. Existing 2- and 4-param callers default to `"central_hub"`.
+- `EntityRenderer.renderPlayer()`: animation key prefix is now driven by `stanceMode` (GDD §3.3 identity signal) rather than `weaponState` alone. Yin stance always renders unarmed prefix across all animation states; Yang or unset stance prefers sword prefix when sheets are registered. Pistol path unchanged. Client re-enforces server-side stance lock so offline and desync cases also read correctly.
+- `MinimapRenderer`: added Pass 5d — compass directional arrows on the minimap panel border when an active objective's room is outside the current zoom window (colour-coded: gold=reach/waypoint, red=switch, cyan=exit). Only fires when `zoomLevel > 1` so the compass is silent in full-map mode.
+- `MinimapRenderer.ObjectiveMarker`: added `"waypoint"` POI type rendered as a diamond shape (two back-to-back triangles).
+
+### Added
+
+- `SoloPortalTravelTest`: verifies ability-gate denial, open-hub entry, player state preservation across zone transition, and hub seed uniqueness.
+
+### Fixed (replay routing — landed in this release)
 
 - Launcher no longer routes replay playback through `ninja_dash.exe` / `demo_game.py`; both call sites (`_launch_replay` in Dev Tools and `_launch_selected_replay` in the Replays tab) now invoke `_launch_java_replay()`, which launches `ninja-client-all.jar` with `-Dninja.replayPath=<absolute_path>`
 - `DesktopLauncher`: reads `ninja.replayPath` system property and passes it to `NinjaGameClient`
 - `NinjaGameClient`: when `replayPath` is set, skips `MainMenuScreen` and opens `GameScreen` directly in solo+replay mode
 - `GameScreen`: loads `.ndjson` via `ReplayPlayer.load(Path)`, seeds the solo sim from the recording header, drives per-tick inputs from the replay instead of the keyboard, and pauses on completion; does not write a save or start a new recording during playback
+
+### Planned (backlog — P1-03B, requires compatibility pre-flight)
+
+- Weapon combo chain system: 5-hit unarmed (punch/kick) and sword chains. `InputCommand`, `SimPlayer`, and replay determinism impact must be resolved before implementation.
+- Versus / Race multiplayer mode (P1-11, concept only): players race to objectives or exit. No implementation scheduled.
 
 ## [0.11.63] - 2026-04-18 (playtest balance: enemy health, unarmed KO, armed lethality)
 

@@ -480,6 +480,12 @@ public final class MinimapRenderer {
                 } else if ("exit".equals(type)) {
                     shapes.setColor(COL_OBJECTIVE_EXIT);
                     shapes.circle(sc[0], sc[1], markR * 1.2f, 10);
+                } else if ("waypoint".equals(type)) {
+                    // Diamond shape: two triangles sharing a horizontal mid-line
+                    shapes.setColor(COL_OBJECTIVE_REACH);
+                    float r = markR * 1.1f;
+                    shapes.triangle(sc[0], sc[1] + r, sc[0] - r, sc[1], sc[0] + r, sc[1]);  // top half
+                    shapes.triangle(sc[0], sc[1] - r, sc[0] - r, sc[1], sc[0] + r, sc[1]);  // bottom half
                 } else {
                     shapes.setColor(COL_OBJECTIVE_REACH);
                     shapes.triangle(
@@ -499,6 +505,60 @@ public final class MinimapRenderer {
             shapes.begin(ShapeRenderer.ShapeType.Line);
             shapes.setColor(1f, 1f, 1f, 1f);
             shapes.rect(crx - 1.5f, cry - 1.5f, roomSize + 3f, roomSize + 3f);
+            shapes.end();
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // Pass 5d — compass arrows: directional edge indicators for objectives
+        // outside the current zoom window.  Only fires when zoomLevel > 1 (when
+        // zoom=1 the full world is visible so all markers show in Pass 4).
+        // Arrows are placed on the panel border, colour-coded per marker type.
+        // ═════════════════════════════════════════════════════════════════════
+        if (objectiveMarkers != null && !objectiveMarkers.isEmpty()
+                && roomWidthPx > 0f && roomHeightPx > 0f) {
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            final float arrowSz  = 7f;
+            final float arrowIn  = 14f;   // inset from panel edge to arrow tip
+            final float panelCX  = panelX + panelW * 0.5f;
+            final float panelCY  = panelY + panelH * 0.5f;
+            final float halfW    = panelW * 0.5f - arrowIn;
+            final float halfH    = panelH * 0.5f - arrowIn;
+            for (ObjectiveMarker marker : objectiveMarkers) {
+                if (marker == null) continue;
+                // Grid cell of the objective (same formula as worldToMinimap)
+                int objGX = (int) Math.floor(marker.worldX() / roomWidthPx) + minGX;
+                int objGY = (int) Math.floor(marker.worldY() / roomHeightPx) + minGY;
+                // Only draw compass when objective is outside the visible window
+                if (objGX >= minGX && objGX <= maxGX && objGY >= minGY && objGY <= maxGY) continue;
+                // Direction in screen space (libGDX Y-up; higher gridY = lower on screen)
+                float dxG = objGX - currentGridX;
+                float dyG = objGY - currentGridY;
+                float len = (float) Math.sqrt(dxG * dxG + dyG * dyG);
+                if (len < 0.001f) continue;
+                float nxS =  dxG / len;   // right on screen = positive
+                float nyS = -dyG / len;   // Y inverted: higher gridY = lower on screen
+                // Clamp direction ray to panel border rectangle
+                float t = Float.MAX_VALUE;
+                if (Math.abs(nxS) > 0.001f) t = Math.min(t, halfW / Math.abs(nxS));
+                if (Math.abs(nyS) > 0.001f) t = Math.min(t, halfH / Math.abs(nyS));
+                float ax = panelCX + nxS * t;
+                float ay = panelCY + nyS * t;
+                // Colour per marker type
+                String mtype = marker.markerType() != null ? marker.markerType() : "reach";
+                if ("switch".equals(mtype))        shapes.setColor(COL_OBJECTIVE_SWITCH);
+                else if ("exit".equals(mtype))     shapes.setColor(COL_OBJECTIVE_EXIT);
+                else                               shapes.setColor(COL_OBJECTIVE_REACH);
+                // Small triangle arrow pointing in (nxS, nyS) direction
+                float perpX = -nyS * arrowSz * 0.6f;
+                float perpY =  nxS * arrowSz * 0.6f;
+                float bx = ax - nxS * arrowSz;
+                float by = ay - nyS * arrowSz;
+                shapes.triangle(
+                    ax + nxS * arrowSz, ay + nyS * arrowSz,   // tip
+                    bx + perpX, by + perpY,                    // base left
+                    bx - perpX, by - perpY                     // base right
+                );
+            }
             shapes.end();
         }
 
