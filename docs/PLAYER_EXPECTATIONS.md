@@ -2,14 +2,14 @@
 doc_type: playtest_contract
 status: living
 owner: qa-team
-last_updated: 2026-04-17
-version_anchor: v0.11.60
+last_updated: 2026-04-18
+version_anchor: v0.11.64
 ---
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.60`
-**Last updated:** `2026-04-17`
+**Target build:** `v0.11.64`
+**Last updated:** `2026-04-18`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
 **Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
 
@@ -115,7 +115,8 @@ Do not preload mechanical spoilers beyond this.
 | Client log file | Working | `user_data/logs/client.log` rolling daily |
 | Server log file | Working | `user_data/logs/server.log` rolling daily |
 | Mission event logging | Working | Mission start/progress/exit-unlock/complete/fail/restore, onboarding dialogue events, and room transitions include hub/room/position context |
-| Structured event IDs | Working | Runtime traces use stable prefixes: `[Playtest][Stance]`, `[Playtest][Flow]`, `[Playtest][Lantern]`, `[Playtest][Room]`, `[Playtest][Boss]`, `[Playtest][Player]`, `[Playtest][Interaction]`, `[Playtest][NPC]`, `[Playtest][Trial]`, `[Playtest][Echo]` |
+| Structured event IDs | Working | Runtime traces use stable prefixes: `[Playtest][Stance]`, `[Playtest][Flow]`, `[Playtest][Lantern]`, `[Playtest][Room]`, `[Playtest][Boss]`, `[Playtest][Player]`, `[Playtest][Interaction]`, `[Playtest][NPC]`, `[Playtest][Trial]`, `[Playtest][Echo]`, `[Playtest][Portal]` |
+| Portal travel logging | Working | `[Playtest][Portal]` traces emit on both gate denial (`solo portal denied hub=X requiredAbility=Y`) and successful transition (`solo portal travel A → B seed=N`) |
 | Correlation/session IDs | Working | Client sends `session_id` in `CLIENT_HELLO`; server logs join/travel/disconnect with `player_id` + `session_id` |
 | Controls baseline evidence | Working | Startup log emits `[Playtest][Controls] preset=GDD-10.3.13 ...` for each launched session |
 | Scripted loss traceability | Working | Client network/runtime logs emit `[Net] SCRIPTED_LOSS received` plus `[Playtest][ScriptedLoss] received/continue` context |
@@ -162,7 +163,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
    - expectation: objective interactions now show a short explicit player animation cue (`lever`/`button`) instead of silent state change.
 6. Trigger at least one failure/death and recover.
 
-`v0.11.53` expectation:
+`v0.11.64` expectation:
 - In `demo_coin_run`, each collected coin should increment mission progress (`collect_items_coin`) and unlock exit at 5/5.
 
 ### Record
@@ -296,6 +297,70 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 ---
 
+## Pack G: Portal travel and hub navigation — v0.11.64 focus (20 to 30 min)
+
+**Goal:** Verify the solo/multiplayer campaign unification — hub portal travel now uses the same ability-gate and zone-migration flow as co-op. This is the primary new system in v0.11.64 and the highest-priority test target for this session.
+
+### New in v0.11.64 — what changed
+
+- Pressing `E` near a portal now checks your abilities before allowing entry (same logic as multiplayer).
+- Locked portals show a toast: `PORTAL LOCKED: REQUIRES <ABILITY>`.
+- On successful travel: simulation resets for the destination hub, player state (health, level, inventory, abilities) is preserved, and the megamap rebuilds.
+- Entry confirmation toast: `ENTERING: <HUB NAME>`.
+- Yin/Yang stance now drives the player sprite prefix directly — Yin always shows unarmed posture, Yang always shows sword posture, regardless of inventory.
+- Minimap compass arrows appear on the panel border when an active objective is in a room outside the current zoom window (colour-coded: gold = reach/waypoint, red = switch, cyan = exit).
+
+### Steps
+
+1. **Open portal (no ability required):**
+   - Launch solo from the launcher. Locate any portal (glowing E-interact prompt).
+   - Press `E`. Confirm the game transitions to `forest_hub`.
+   - Expected: `ENTERING: FOREST` toast appears. World visibly regenerates. Player retains health/inventory.
+
+2. **Locked portal gate:**
+   - Without unlocking the `dash` ability, locate and press `E` on a `cave_hub` portal.
+   - Expected: `PORTAL LOCKED: REQUIRES DASH` toast. No zone transition occurs.
+   - If you cannot locate a cave portal quickly, check the full map (`Tab` hold) for portal icons.
+
+3. **Stance posture readability:**
+   - Press `A` to switch between Yin and Yang.
+   - In Yin stance: player sprite should show empty hands / unarmed posture across all movement and idle states.
+   - In Yang stance: player sprite should show sword / armed posture.
+   - Enter combat in both stances and confirm the visual difference is readable without the `H` hitbox overlay.
+   - Tag any sprite flicker or wrong-posture frame as `TECH-ANIM`.
+
+4. **Minimap compass:**
+   - With an active mission objective (check mission tracker `O`), open quick map (`Tab` tap).
+   - Move to a room that is far from the objective — the objective should be off the minimap zoom window.
+   - Expected: a coloured directional arrow appears on the minimap panel border pointing toward the objective room.
+   - Confirm the arrow disappears when you enter the objective's room.
+   - Tag absence of arrows as `UX-MAP`.
+
+### Record
+
+- `portal_travel_success_yes_no`
+- `portal_lock_toast_visible_yes_no`
+- `player_state_preserved_after_travel_yes_no` (health, inventory intact)
+- `yin_posture_readable_yes_no`
+- `yang_posture_readable_yes_no`
+- `compass_arrow_visible_yes_no`
+- `any_sprint_or_crash_on_portal_travel`
+
+### Expected
+
+- Portal travel completes without crash or softlock.
+- Player state (health, inventory, abilities) is identical before and after hub transition.
+- Locked portal does not transition — toast is the only feedback.
+- Yin/Yang stance sprite difference is visible to a first-time tester without explanation.
+- Compass arrow appears within 1–2 seconds of the objective leaving the minimap window.
+
+### Known limitations (do not file as bugs)
+
+- Hub worlds are procedurally generated — room layout will differ from the source hub. This is correct behaviour.
+- Not all hubs are reachable in early game without the required ability unlock. Central Hub and Forest Hub are always open.
+
+---
+
 ## Pack F: Trial room entry and completion (25 to 35 min)
 
 **Goal:** Verify trial rooms are discoverable, readable as optional challenge areas, and completable.
@@ -418,6 +483,9 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 | `UX-NARRATIVE` | Story/hub emotional pacing |
 | `UX-NPC` | NPC dialogue clarity, quest handoff readability, character tone |
 | `UX-AUDIO` | Music cross-fade transitions, SFX presence or absence |
+| `UX-HUB` | Portal travel readability, hub transition feel, locked-portal messaging |
+| `TECH-ANIM` | Wrong stance sprite, posture flicker, incorrect animation prefix routing |
+| `UX-MAP` | Minimap compass arrow missing, wrong direction, wrong colour coding |
 | `BAL-ENEMY` | Enemy and boss tuning |
 | `BAL-BOSS-VEIL` | Veil Maiden illusion mechanic clarity and difficulty |
 | `BAL-TRIAL` | Trial room difficulty, hazard legibility, reward balance |
@@ -435,7 +503,7 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 
 ```md
 ### Session Summary
-Build: v0.11.60
+Build: v0.11.64
 Mode: SOLO / HOST / JOIN
 Duration: XX min
 
@@ -460,7 +528,7 @@ IDs: UX-___ / BAL-___ / TECH-___
 
 ```md
 ### Bug
-Build: v0.11.60
+Build: v0.11.64
 Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 
@@ -514,6 +582,9 @@ The playtest pack phase is complete when all are true:
 7. At least one trial room (Pack F) completed and `BAL-TRIAL` findings filed.
 8. Veil Maiden illusion mechanic legibility note filed under `BAL-BOSS-VEIL` (even if not reached in every session).
 9. Music cross-fade behaviour noted for at least one hub transition (`UX-AUDIO` or `TECH-AUDIO`).
+10. **v0.11.64 gate:** Pack G portal travel test completed — at least one successful hub transition and one locked-portal denial observed from launcher. `UX-HUB` filed or marked clean.
+11. **v0.11.64 gate:** Yin/Yang stance posture visibly readable in live play — `TECH-ANIM` filed or marked clean.
+12. **v0.11.64 gate:** Minimap compass arrows observed during at least one off-screen objective — `UX-MAP` filed or marked clean.
 
 ---
 
