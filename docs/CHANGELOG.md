@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-18
-version_anchor: v0.11.65
+version_anchor: v0.11.66
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.66] - 2026-04-18 (workflow system, golden paths, CI gate enforcement, surface-specific done criteria)
+
+### Added
+
+- **Workflow system (22 docs)**: SESSION_START/END, PRE_COMMIT_GATES, READY_DONE, DEBUG_EVIDENCE, COMPATIBILITY, REPLAY_DESYNC, DAILY_SMOKE, PLAYTEST_PACKET, GOLDEN_PATH_REGRESSION, FEEDBACK_TRIAGE, CROSS_REPO, DECISION_RECORD, DEVLOG, ARCH_SPEC_SYNC, TASK_INTAKE, PR_REVIEW — full living-doc workflow suite installed at `docs/workflow/`.
+- **CLAUDE.md**: Project operating context for all Claude sessions. Establishes 4-repo boundaries, session start/end protocol, escalation defaults, and preferred agent chains.
+- **GOLDEN_PATH_REGRESSION**: 8 concrete golden paths G1–G8 covering hub onboarding, mission (coin run), movement mastery, stance posture (all 5 movement states × 2 stances), hub portal travel (6-item checklist), save/quit/reload, replay playback, and network connect/drop. Known-Regression Smoke Pairs table wires system touches directly to required goldens.
+- **READY_DONE_WORKFLOW — Rule 5**: "Partial-state verification is not done." Testing one state of a multi-state system is not evidence the system is correct. Every state must be named and checked.
+- **READY_DONE_WORKFLOW — Surface-Specific Done Criteria**: Animation/Rendering/Stance (5-state × 2-stance matrix), Hub Travel/Zone Migration (6-item checklist), Notification/Toast System (dedup checks), Version/Docs Parity (`check_version_sync.py` gate).
+- **ITERATION_RELEASE_PROTOCOL — CI monitoring gate**: Step 8 now mandates `gh run list` CI check before session close. Do not tag if CI is pending or failing.
+- **SESSION_END_WORKFLOW — Rule 6**: Do not close session if CI is pending or failing; `gh run list` is step 1 of the canonical close loop.
+- **PLAYTEST_PACKET_WORKFLOW — Known Regression Surfaces**: Table mapping system touches to required golden path checks before any playtest build ships.
+- **WORKFLOW_AND_SKILLS_GUIDE.md**: Full tutorial covering all 22 workflows, 14 skills, 6 agents, Codex integration, and Quick Reference Card.
 
 ---
 
