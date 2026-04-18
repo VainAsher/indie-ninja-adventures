@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-18
-version_anchor: v0.11.54
+version_anchor: v0.11.65
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 

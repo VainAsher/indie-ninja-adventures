@@ -2,8 +2,8 @@
 doc_type: workflow
 status: living
 owner: release-team
-last_updated: 2026-04-15
-version_anchor: v0.11.48
+last_updated: 2026-04-18
+version_anchor: v0.11.65
 ---
 
 # Iteration Release Protocol
@@ -31,7 +31,14 @@ Single source of truth for commit, tag, push, and release behavior.
 5. Commit.
 6. Tag: `git tag -a v0.<minor>.<patch> -m "v0.<minor>.<patch> - <summary>"`
 7. Push commit + tag.
-8. Verify `CI` and `Release` workflows.
+8. **Monitor CI and Release — do not close the session until both are green:**
+
+   ```bash
+   gh run list --limit 3 --json status,conclusion,name,headSha
+   ```
+
+   Wait for both `CI` and `Release` to show `"conclusion":"success"`.
+   If either shows `"conclusion":"failure"`: open the failure URL, diagnose, fix on `master`, cut the next patch tag, and re-run the release loop.
 9. Confirm release assets include game artifacts and docs archive ZIP.
 
 ## Release Assets Minimum

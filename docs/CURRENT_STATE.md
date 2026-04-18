@@ -13,8 +13,8 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Baseline
 
-- Date baseline: 2026-04-16
-- Version baseline: v0.11.54
+- Date baseline: 2026-04-18
+- Version baseline: v0.11.65
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`

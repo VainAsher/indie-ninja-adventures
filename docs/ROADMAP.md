@@ -2,14 +2,14 @@
 doc_type: roadmap
 status: living
 owner: core-team
-last_updated: 2026-04-15
-version_anchor: v0.11.64
+last_updated: 2026-04-18
+version_anchor: v0.11.65
 ---
 # Development Roadmap
 
 Vain Asher Gaming's: **Shadow Ascent: The Hollowed Ninja**
 
-Last Updated: 2026-04-18 | Version: v0.11.64 | Platform: Java 21 + libGDX + Netty
+Last Updated: 2026-04-18 | Version: v0.11.65 | Platform: Java 21 + libGDX + Netty
 
 ---
 
@@ -21,7 +21,7 @@ Optional co-op overlay once single-player is complete.
 
 ---
 
-## Technology (as of v0.11.64)
+## Technology (as of v0.11.65)
 
 The project completed a full Java rewrite in 6 days (Apr 4â€“10 2026). The Python prototype (v0.7â€“v0.9) proved the game loop and is archived. All active development is on the Java stack.
 
