@@ -736,6 +736,13 @@ public final class AnimationRegistry {
         return frames.containsKey(key);
     }
 
+    public boolean hasAnyWithPrefix(String prefix) {
+        for (String key : frames.keySet()) {
+            if (key.startsWith(prefix)) return true;
+        }
+        return false;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**

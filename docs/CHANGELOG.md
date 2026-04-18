@@ -16,6 +16,21 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.65] - 2026-04-18 (playtest blocker fixes: portal travel, stance animation, ability toasts, mode select)
+
+### Fixed
+
+- **[P0] Portal travel self-loop**: `LevelLayout` no longer places portals in start rooms. Start-room portals linked back to the current hub via `HubRegistry.get(masterHubId)`, causing “ENTERING: CENTRAL HUB” followed by the same hub reloading with a misaligned camera. Exit rooms are the only valid portal hosts.
+- **[P0] World not rendering after portal travel**: `GameScreen.pollZoneTransition()` was clearing `cachedWorldRooms` AFTER `handleSoloPortalTravel()` had already called `refreshSoloWorldRoomCache()`, wiping the newly-built megamap. The render loop now calls `refreshSoloWorldRoomCache()` and `camera.snapTo(soloSpawnX, soloSpawnY)` inside the `pollZoneTransition` handler for solo mode, after the clear.
+- **[P1] Stance animation only changed for attack states**: `EntityRenderer` previously checked `anims.has(“player_sword_<state>”)` per state, which returned false for missing locomotion sheets (idle/walk/jump/crouch not on disk), keeping the prefix as “player” (unarmed). Yang now uses `anims.hasAnyWithPrefix(“player_sword_”)` — if any sword sheet is registered, the sword prefix is applied for all states; `AnimationRegistry` falls back gracefully at the per-key level.
+- **[P1] All abilities show as new unlocks after portal travel**: `initializeSoloSimulation()` cleared `prevLocalAbilities`, causing all restored abilities to appear as new on the next render frame (spurious toasts). `handleSoloPortalTravel()` now repopulates `prevLocalAbilities` from `snapAbilities` before calling `stateBuffer.resetForZoneTransition()`.
+- **[P2] Mode select shows retired Sandbox**: Sandbox mode removed. CAMPAIGN maps to “solo” mode ID (spawns a world). DEVELOPER replaces the old solo-direct card (raw sim, all systems accessible). All hardcoded card-count references updated to `MODE_COUNT = 3`.
+
+### Added
+
+- **[P3] F9 debug ability toggle** (solo mode only): pressing F9 cycles all abilities on → all abilities off. Useful for fast playtest iteration without editing save files. Granted/removed state is reflected in HUD toast and log. No effect in multiplayer.
+- `AnimationRegistry.hasAnyWithPrefix(String)`: returns true if any registered animation key starts with the given prefix. Used by `EntityRenderer` for Yang stance fallback routing.
+
 ## [0.11.64] - 2026-04-18 (solo/multiplayer campaign unification, stance posture readability, minimap compass)
 
 ### Changed

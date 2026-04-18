@@ -94,6 +94,17 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-18 14:00:00 +01:00`
+
+- Playtest blocker fixes (v0.11.65):
+  - **[P0] Portal travel**: start-room portals removed from `LevelLayout` (exit-rooms only). Render-loop race condition fixed — `pollZoneTransition()` now calls `refreshSoloWorldRoomCache()` + `camera.snapTo()` after clearing the megamap. Portal travel is stable.
+  - **[P1] Stance animation**: `EntityRenderer` now uses `hasAnyWithPrefix("player_sword_")` for Yang — all locomotion states (idle/walk/jump/crouch) display armed posture when sword sheets are registered. `AnimationRegistry.hasAnyWithPrefix()` added.
+  - **[P1] Spurious ability toasts**: `handleSoloPortalTravel()` now restores `prevLocalAbilities` from `snapAbilities` before zone transition so no spurious "new unlock" toasts appear after portal travel.
+  - **[P2] Mode select**: Sandbox retired, CAMPAIGN maps to "solo" ID (spawns world), DEVELOPER replaces old solo card. All hardcoded card-count references updated to `MODE_COUNT = 3`.
+  - **[P3] F9 debug ability toggle**: solo mode only — cycles all abilities granted/cleared; HUD toast feedback; no effect in multiplayer.
+- Validation: `./gradlew buildAll test` — BUILD SUCCESSFUL, all tests green.
+- Docs updated: `CHANGELOG.md`, `CURRENT_STATE.md`, `README.md`, `version.json`, `build.gradle.kts`.
+
 `2026-04-18 12:00:00 +01:00`
 
 - Solo/multiplayer campaign unification (v0.11.64):

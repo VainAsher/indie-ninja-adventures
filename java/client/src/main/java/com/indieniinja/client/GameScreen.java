@@ -557,6 +557,10 @@ public final class GameScreen implements Screen {
             showDebugOverlay = !showDebugOverlay;
             log.info("[Debug] telemetry overlay {}", showDebugOverlay ? "enabled" : "disabled");
         }
+        // F9: toggle all abilities on/off (solo mode only — playtest helper)
+        if (!anyOverlay && !paused && soloMode && Gdx.input.isKeyJustPressed(Input.Keys.F9)) {
+            toggleDebugAbilities();
+        }
         if (!anyOverlay && keyBindings.isJustPressed("menu_back")) {
             if (paused) resume(); else pause();
         }
@@ -619,6 +623,12 @@ public final class GameScreen implements Screen {
             lastLoggedLanternBand = Integer.MIN_VALUE;
             minimapRenderer.clearState();
             chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
+            // Solo: rebuild megamap immediately from the new world graph and snap camera.
+            // Must happen AFTER the clear above so cachedWorldRooms is repopulated (not wiped).
+            if (soloMode && soloWorldGraph != null) {
+                refreshSoloWorldRoomCache();
+                if (camera != null) camera.snapTo(soloSpawnX, soloSpawnY);
+            }
         }
 
         WorldSnapshot snap = stateBuffer.poll();
@@ -1853,6 +1863,31 @@ public final class GameScreen implements Screen {
      * transition signal, and save mark — so the campaign experience is identical
      * whether played alone or with friends.
      */
+
+    // ── Debug helpers ─────────────────────────────────────────────────────────
+
+    private static final java.util.List<String> ALL_ABILITIES = java.util.List.of(
+        "double_jump", "dash", "wall_jump", "shuriken", "teleport", "ninjutsu"
+    );
+
+    /** F9: cycles through all-abilities-on → all-abilities-off for fast playtest iteration. */
+    private void toggleDebugAbilities() {
+        if (localSim == null) return;
+        com.indieniinja.sim.SimPlayer sp = localSim.getPlayer(0);
+        if (sp == null) return;
+        boolean allUnlocked = sp.unlockedAbilities.containsAll(ALL_ABILITIES);
+        if (allUnlocked) {
+            sp.unlockedAbilities.clear();
+            prevLocalAbilities.clear();
+            hudRenderer.notifyToast("[F9] All abilities removed");
+            log.info("[Debug][F9] abilities cleared");
+        } else {
+            sp.unlockedAbilities.addAll(ALL_ABILITIES);
+            prevLocalAbilities.addAll(ALL_ABILITIES);
+            hudRenderer.notifyToast("[F9] All abilities granted");
+            log.info("[Debug][F9] abilities granted: {}", ALL_ABILITIES);
+        }
+    }
     private void handleSoloPortalTravel(String destinationId) {
         if (localSim == null) return;
         com.indieniinja.sim.SimPlayer sp = localSim.getPlayer(0);
@@ -1911,8 +1946,14 @@ public final class GameScreen implements Screen {
             newSp.weaponState = weaponStateFromEquippedItem(newSp.inventory.equippedWeapon);
         }
 
+        // Restore prevLocalAbilities before the zone transition so the render loop
+        // does not re-fire ability-unlock toasts for abilities the player already had.
+        prevLocalAbilities.clear();
+        prevLocalAbilities.addAll(snapAbilities);
+
+        // resetForZoneTransition signals the render loop to clear per-zone state and
+        // then call refreshSoloWorldRoomCache() + camera.snapTo() for solo mode.
         if (stateBuffer != null) stateBuffer.resetForZoneTransition();
-        refreshSoloWorldRoomCache();
         String fromHubId = soloCurrentHubId;
         soloCurrentHubId = hubDef.id();
         if (saveManager != null) saveManager.markDirty();

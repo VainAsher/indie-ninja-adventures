@@ -708,13 +708,12 @@ public final class LevelLayout {
             npcs.add(new NPCSpawn("crafter", pos[0], pos[1], pos[0] - patrol, pos[0] + patrol));
         }
 
-        // Portals — placed in exit/start rooms on a valid floor tile near the right edge.
-        // Scan groundPos (already shuffled) for the rightmost solid-floor position that:
-        //   - is not inside a wall (x > 4*TILE from edges)
-        //   - has air above (guaranteed by collectGroundPositions)
-        //   - prefers x >= COLS*TILE*0.6f (right 40% of room)
+        // Portals — placed only in exit rooms. Start rooms have no portal: the player
+        // arrives there from the previous hub's exit portal, and the spawn point IS the
+        // "entry" anchor. A start-room portal previously caused a self-loop (re-entered
+        // the current hub) and confused testers who pressed E near spawn.
         List<PortalSpawn> portals = new ArrayList<>();
-        if ("exit".equals(roomType) || "start".equals(roomType)) {
+        if ("exit".equals(roomType)) {
             float portalW   = 64f;
             float portalH   = 96f;
             float minX      = 4 * TILE;
@@ -728,7 +727,6 @@ public final class LevelLayout {
                 float gx = pos[0];
                 float gy = pos[1] - portalH;   // portal top = floor − portalH
                 if (gx < minX || gx > maxX) continue;
-                // Prefer positions to the right; penalise left positions
                 float distFromPref = Math.abs(gx - prefX);
                 if (gx < prefX) distFromPref *= 2f;
                 if (distFromPref < bestPortalScore) {
@@ -738,11 +736,8 @@ public final class LevelLayout {
                 }
             }
 
-            // Destination: next hub in the HubRegistry chain (Loop 15).
-            // Exit rooms link forward; start rooms link back to previous hub.
-            HubRegistry.HubDef dest = "exit".equals(roomType)
-                ? HubRegistry.nextHub(masterHubId)
-                : HubRegistry.get(masterHubId);  // start room portal re-enters this hub
+            // Exit rooms always link forward to the next hub in the registry chain.
+            HubRegistry.HubDef dest = HubRegistry.nextHub(masterHubId);
             String gate = dest.requiredAbility();
             portals.add(new PortalSpawn("hub", dest.id(), portalX, portalY, gate));
         }

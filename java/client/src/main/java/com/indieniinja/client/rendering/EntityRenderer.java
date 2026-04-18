@@ -342,9 +342,11 @@ public final class EntityRenderer {
             String pistolKey = "player_pistol_" + state;
             if (anims.has(pistolKey)) prefix = "player_pistol";
         } else if (!"yin".equals(p.stanceMode)) {
-            // Yang or unset → prefer armed (sword) prefix when sheets are registered.
-            String swordKey = "player_sword_" + state;
-            if (anims.has(swordKey)) prefix = "player_sword";
+            // Yang or unset → always use sword prefix so posture is visible in every
+            // animation state (idle, walk, jump, crouch, attack).  AnimationRegistry
+            // falls back to the unarmed frame when a specific sword sheet is absent,
+            // so missing assets degrade gracefully rather than blocking the signal.
+            if (anims.hasAnyWithPrefix("player_sword_")) prefix = "player_sword";
         }
         String animKey = prefix + "_" + state;
         if ("collapse".equals(state) && !anims.has(animKey)) {

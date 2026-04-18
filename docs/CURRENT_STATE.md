@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-18
-version_anchor: v0.11.64
+version_anchor: v0.11.65
 replaces: docs/HANDOVER.md
 ---
 
@@ -24,10 +24,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.11.65 (combat feel / balance iteration).
+- Next release candidate: v0.11.66 (combat feel / balance iteration).
 - Latest release verification (`2026-04-18`):
   - Tests green locally (BUILD SUCCESSFUL — all modules)
-  - Tag target: v0.11.64
+  - Tag target: v0.11.65
 
 ## Runtime Reality (Implemented)
 
@@ -39,6 +39,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Map input now follows explicit tap/hold semantics: `Tab` tap toggles quick map, `Tab` hold opens full map while held.
 - Animation integration: stance-coupled posture readability (Yin unarmed / Yang armed) is enforced client-side — `EntityRenderer` routes animation key prefix from `stanceMode` directly (GDD §3.3), so Yin always renders unarmed and Yang always renders armed regardless of desync or offline state. Ledge corner hang-climb context and water-bank exit traversal bridge are also implemented with playtest log events.
 - Solo/multiplayer campaign unification is live: `handleSoloPortalTravel()` now applies the same ability-gate + zone-migration logic as the server's `handlePortalTravel()`. Player state (health, level, xp, currency, inventory, abilities) is preserved across hub transitions; hub seeds are derived deterministically from the session seed via `HubRegistry.hubSeed()`. Campaign experience is identical whether played solo or co-op (drop-in/drop-out up to 4 players).
+- Portal travel blocker fixes (v0.11.65): start-room portals removed from `LevelLayout` (exit-rooms only), render-loop race condition fixed (`refreshSoloWorldRoomCache` + `camera.snapTo` now called in `pollZoneTransition` handler). Portal travel is now stable.
+- Stance animation fix (v0.11.65): `EntityRenderer` uses `hasAnyWithPrefix("player_sword_")` for Yang so all locomotion states (idle/walk/jump/crouch) display correct armed posture when sword sheets are registered.
+- F9 debug ability toggle active (v0.11.65): solo mode only — cycles all abilities granted/cleared; HUD toast feedback.
+- Mode select updated (v0.11.65): Sandbox retired, CAMPAIGN maps to solo ID, DEVELOPER replaces old solo card.
 - Runtime keybinding ingestion is now live from `user_data/settings/settings.json` (`keybindings` block plus legacy `key_*` fallback), and map/debug/mission hotkeys consume the same binding table as input polling.
 - Direct posture hot-swap input is now active (`select_weapon_1` / `select_weapon_2`, default `1`/`2`) with Yin-lock to unarmed and persistent Yang posture preference for runtime readability testing.
 - `F1` controls overlay now renders active live bindings instead of a static key legend.
