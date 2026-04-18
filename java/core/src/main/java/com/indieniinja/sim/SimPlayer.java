@@ -95,7 +95,8 @@ public final class SimPlayer {
     public float   interactionTimer = 0f;
 
     // Combat constants (match Python combat_mechanic.py / shuriken.py)
-    public static final int   MELEE_DAMAGE         = 1;
+    public static final int   MELEE_DAMAGE         = 1;   // unarmed hit (KO, non-lethal)
+    public static final int   ARMED_MELEE_DAMAGE   = 2;   // armed hit (lethal, drops loot)
     public static final int   MELEE_ACTIVE_TICKS   = 8;    // frames hitbox is live
     public static final float MELEE_COOLDOWN       = 0.4f; // seconds
     public static final float MELEE_REACH          = 48f;  // px forward from player center

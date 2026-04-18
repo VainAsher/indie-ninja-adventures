@@ -51,6 +51,10 @@ public final class SimEnemy {
     // Respawn tracking
     public boolean removed = false;
 
+    // KO state (unarmed knockdown — revives after KNOCKOUT_DURATION)
+    public boolean knockedOut     = false;
+    public float   knockoutTimer  = 0f;
+
     // ── Constants (from Python ENEMY_DEFINITIONS) ─────────────────────────────
     public static final float ATTACK_WINDUP_TIME   = 0.6f;
     public static final float ATTACK_ACTIVE_TIME   = 0.15f;
@@ -58,7 +62,8 @@ public final class SimEnemy {
     public static final float STUN_DURATION        = 0.5f;
     public static final float FLEE_DURATION        = 3.0f;   // seconds enemy flees before patrolling
     public static final float GUARD_DURATION       = 2.0f;   // seconds skeleton holds guard stance
-    public static final float FLEE_HP_THRESHOLD    = 0.25f;  // flee when HP falls below 25%
+    public static final float FLEE_HP_THRESHOLD    = 0.40f;  // flee when HP falls below 40%
+    public static final float KNOCKOUT_DURATION    = 180f;   // unarmed KO: revives after 3 minutes
 
     public SimEnemy(
             String enemyId, String enemyType,
@@ -87,7 +92,7 @@ public final class SimEnemy {
         this.physics.vx = 0f;
     }
 
-    public boolean isAlive() { return hp > 0 && !removed; }
+    public boolean isAlive() { return hp > 0 && !removed && !knockedOut; }
 
     /**
      * Apply damage and transition to STUNNED state.
@@ -109,6 +114,28 @@ public final class SimEnemy {
         aiState    = EnemyAIState.STUNNED;
         stunTimer  = STUN_DURATION;
         return false;
+    }
+
+    /**
+     * Unarmed hit: reduce HP; at 0, enter KO state instead of dying.
+     * KO enemies collapse (aiState=DEAD), revive after KNOCKOUT_DURATION seconds.
+     * No loot is dropped — the entity is not removed from the simulation.
+     */
+    public void knockDown(int dmg) {
+        if (!isAlive()) return;
+        hp = Math.max(0, hp - dmg);
+        if (hp <= 0) {
+            knockedOut    = true;
+            knockoutTimer = KNOCKOUT_DURATION;
+            hp            = maxHp;            // restore HP for the revive
+            aiState       = EnemyAIState.DEAD;
+            stunTimer     = 0f;
+            fleeTimer     = 0f;
+        } else {
+            if ((float) hp / maxHp <= FLEE_HP_THRESHOLD) fleeTimer = FLEE_DURATION;
+            aiState   = EnemyAIState.STUNNED;
+            stunTimer = STUN_DURATION;
+        }
     }
 
     /** Distance to a point (e.g. nearest player). */

@@ -1741,6 +1741,15 @@ public final class GameSimulator {
         if (playerCenters.isEmpty()) return;
 
         for (SimEnemy en : enemies) {
+            // KO countdown: knocked-out enemies revive after KNOCKOUT_DURATION
+            if (en.knockedOut) {
+                en.knockoutTimer -= DT;
+                if (en.knockoutTimer <= 0f) {
+                    en.knockedOut = false;
+                    en.aiState    = EnemyAIState.PATROL;
+                }
+                continue;
+            }
             if (!en.isAlive()) continue;
             float[] nearest = nearestPlayerCenter(en, playerCenters);
             stepEnemyAI(en, nearest);
@@ -1990,7 +1999,8 @@ public final class GameSimulator {
         // ── Player melee → enemy damage ───────────────────────────────────────
         for (SimPlayer sp : players.values()) {
             if (!sp.isAlive() || !sp.isAttacking) continue;
-            // Melee hitbox: extends forward from player center in facing direction
+            boolean armed   = !"unarmed".equals(sp.weaponState);
+            int     dmg     = armed ? SimPlayer.ARMED_MELEE_DAMAGE : SimPlayer.MELEE_DAMAGE;
             float cx      = sp.physics.x + sp.physics.width * 0.5f;
             float cy      = sp.physics.y + sp.physics.height * 0.5f;
             float reach   = SimPlayer.MELEE_REACH;
@@ -2006,12 +2016,37 @@ public final class GameSimulator {
                 );
                 if (aabbOverlap(hbX, hbY, reach, SimPlayer.MELEE_HEIGHT,
                                 hurt.x, hurt.y, hurt.w, hurt.h)) {
-                    // Skeleton guard is directional: front-side attacks are blocked.
                     if (isBlockedBySkeletonGuard(en, sp.physics.x + sp.physics.width * 0.5f)) {
                         continue;
                     }
-                    if (en.takeDamage(SimPlayer.MELEE_DAMAGE)) spawnLoot(en);
+                    if (armed) {
+                        // Armed: lethal — enemy dies, drops loot; nearby enemies flee
+                        if (en.takeDamage(dmg)) {
+                            spawnLoot(en);
+                            triggerNearbyFlee(en);
+                        }
+                    } else {
+                        // Unarmed: non-lethal KO — enemy collapses, revives after 3 minutes; no loot
+                        en.knockDown(dmg);
+                    }
                 }
+            }
+        }
+    }
+
+    /** When an armed kill occurs, push nearby enemies into FLEE state. */
+    private void triggerNearbyFlee(SimEnemy killed) {
+        float kx = killed.physics.x + killed.physics.width  * 0.5f;
+        float ky = killed.physics.y + killed.physics.height * 0.5f;
+        float fleeRadius = 320f;
+        for (SimEnemy en : enemies) {
+            if (!en.isAlive()) continue;
+            if (en == killed) continue;
+            float dx = (en.physics.x + en.physics.width  * 0.5f) - kx;
+            float dy = (en.physics.y + en.physics.height * 0.5f) - ky;
+            if (dx * dx + dy * dy <= fleeRadius * fleeRadius) {
+                en.fleeTimer = SimEnemy.FLEE_DURATION * 2f;  // longer panic flee on nearby kill
+                en.aiState   = EnemyAIState.FLEE;
             }
         }
     }
@@ -2725,13 +2760,13 @@ public final class GameSimulator {
         float speedMult = (gameMode == GameMode.ARCADE && arcadeDepth > 0) ? 1f + (arcadeDepth / 3) * 0.05f : 1f;
         // Stats from Python ENEMY_DEFINITIONS (entities/enemy.py)
         return switch (spec.type()) {
-            case "goblin"   -> new SimEnemy(hubId+"_goblin_"+idx,   "goblin",   spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 2+hpBonus, 1, 90f *speedMult, 180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
-            case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 40, 32, 4+hpBonus, 2, 60f *speedMult, 160f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 3+hpBonus, 1, 60f *speedMult, 200f, 64f * SKELETON_RANGE_MULT, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "spearman" -> new SimEnemy(hubId+"_spearman_"+idx, "spearman", spec.x(), spec.y(), 36, 52, 4+hpBonus, 2, 65f *speedMult, 190f, 80f, spec.patrolMinX(), spec.patrolMaxX(), false);
-            case "archer"   -> new SimEnemy(hubId+"_archer_"+idx,   "archer",   spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 90f *speedMult, 320f, 200f,spec.patrolMinX(), spec.patrolMaxX(), false);
-            default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 3+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "goblin"   -> new SimEnemy(hubId+"_goblin_"+idx,   "goblin",   spec.x(), spec.y(), 32, 48, 5+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 3+hpBonus, 1, 90f *speedMult, 180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
+            case "slime"    -> new SimEnemy(hubId+"_slime_"+idx,    "slime",    spec.x(), spec.y(), 40, 32, 7+hpBonus, 2, 60f *speedMult, 160f, 40f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "skeleton" -> new SimEnemy(hubId+"_skeleton_"+idx, "skeleton", spec.x(), spec.y(), 32, 56, 5+hpBonus, 1, 60f *speedMult, 200f, 64f * SKELETON_RANGE_MULT, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "spearman" -> new SimEnemy(hubId+"_spearman_"+idx, "spearman", spec.x(), spec.y(), 36, 52, 6+hpBonus, 2, 65f *speedMult, 190f, 80f, spec.patrolMinX(), spec.patrolMaxX(), false);
+            case "archer"   -> new SimEnemy(hubId+"_archer_"+idx,   "archer",   spec.x(), spec.y(), 32, 48, 5+hpBonus, 1, 90f *speedMult, 320f, 200f,spec.patrolMinX(), spec.patrolMaxX(), false);
+            default         -> new SimEnemy(hubId+"_enemy_"+idx,    spec.type(),spec.x(), spec.y(), 32, 48, 5+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
         };
     }
 

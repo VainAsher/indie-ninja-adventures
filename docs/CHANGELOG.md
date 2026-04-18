@@ -16,6 +16,17 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.63] - 2026-04-18 (playtest balance: enemy health, unarmed KO, armed lethality)
+
+### Changed
+- `SimEnemy`: base HP increased across all types (goblin 3→5, bat 2→3, slime 4→7, skeleton 3→5, spearman 4→6, archer/default 3→5); flee threshold raised 25%→40% HP
+- `SimPlayer`: added `ARMED_MELEE_DAMAGE = 2` constant (unarmed stays at 1)
+- `GameSimulator`: melee now branches on `weaponState` — unarmed hits call `knockDown()` (non-lethal KO, 180 s revive, no loot); armed hits deal 2 damage, kill permanently, drop loot; armed kills trigger a 640 px proximity FLEE burst on nearby enemies
+
+### Added
+- `SimEnemy.knockDown()`: reduces HP; at 0 collapses enemy into 180-second KO (aiState=DEAD, revives to full HP); no `removed` flag so entity stays in simulation
+- `SimEnemy.KNOCKOUT_DURATION = 180f` and `knockedOut/knockoutTimer` fields; KO timer ticked in `stepEnemies()`
+
 ## [0.11.62] - 2026-04-18 (playtest bugfixes: spawn edge, hub boss, Yin climb judder)
 
 ### Fixed
