@@ -15,8 +15,9 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 public final class DesktopLauncher {
 
     public static void main(String[] args) {
-        String host = args.length > 0 ? args[0] : "127.0.0.1";
-        int    port = args.length > 1 ? Integer.parseInt(args[1]) : 7777;
+        String host       = args.length > 0 ? args[0] : "127.0.0.1";
+        int    port       = args.length > 1 ? Integer.parseInt(args[1]) : 7777;
+        String replayPath = System.getProperty("ninja.replayPath");
 
         Lwjgl3ApplicationConfiguration cfg = new Lwjgl3ApplicationConfiguration();
         cfg.setTitle("Indie Ninja Adventures");
@@ -30,6 +31,6 @@ public final class DesktopLauncher {
             cfg.setWindowIcon("icon.png");
         }
 
-        new Lwjgl3Application(new NinjaGameClient(host, port), cfg);
+        new Lwjgl3Application(new NinjaGameClient(host, port, replayPath), cfg);
     }
 }

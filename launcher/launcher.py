@@ -1755,7 +1755,7 @@ class LauncherApp:
                 "No Replay Selected", "Select a replay in the list first.", parent=self.root
             )
             return
-        self._launch_with_args("--replay", Path(sel[0]).name, "--show-replay")
+        self._launch_java_replay(Path(sel[0]))
 
     def _delete_selected_replay(self) -> None:
         sel = self._replay_tree.selection()
@@ -2658,7 +2658,7 @@ class LauncherApp:
         name = self._replay_var.get()
         if not name or name == "(no replays found)":
             return
-        self._launch_with_args("--replay", name, "--show-replay")
+        self._launch_java_replay(_get_user_data_dir() / "replays" / name)
 
     # ── Release list fetch + periodic re-check ───────────────────────────────
 
@@ -3421,6 +3421,51 @@ class LauncherApp:
             threading.Thread(
                 target=self._watch_java_process,
                 args=(proc, "Java Client"),
+                daemon=True,
+            ).start()
+        except Exception as exc:
+            messagebox.showerror("Launch Error", str(exc), parent=self.root)
+
+    def _launch_java_replay(self, replay_path: Path) -> None:
+        """Launch the Java client in replay-playback mode for the given .ndjson file."""
+        java = _find_java_exe()
+        if not java:
+            messagebox.showerror(
+                "Java Not Found",
+                f"Java {JAVA_MIN_VERSION}+ is required to watch replays.\n"
+                "Download it from adoptium.net",
+                parent=self.root,
+            )
+            return
+        jar = _get_client_jar()
+        if not jar.exists():
+            messagebox.showerror(
+                "Client JAR Not Found",
+                f"Could not find:\n{jar}\n\nPlease install the latest version first.",
+                parent=self.root,
+            )
+            return
+        cfg = _read_launcher_config()
+        xms = cfg.get("jvm_client_xms", 128)
+        xmx = cfg.get("jvm_client_xmx", 512)
+        extra = cfg.get("jvm_extra_args", "").split()
+        cmd = [
+            java,
+            "-XX:+UseZGC",
+            f"-Xms{xms}m",
+            f"-Xmx{xmx}m",
+            f"-Dninja.replayPath={replay_path}",
+            *extra,
+            "-jar",
+            str(jar),
+        ]
+        try:
+            proc = subprocess.Popen(cmd, cwd=str(_get_base_dir()))
+            self._status_var.set(f"Replay Running…  ({replay_path.name})")
+            self.root.iconify()
+            threading.Thread(
+                target=self._watch_java_process,
+                args=(proc, "Replay"),
                 daemon=True,
             ).start()
         except Exception as exc:

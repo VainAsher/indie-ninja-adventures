@@ -16,6 +16,15 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [Unreleased] - replay playback fix
+
+### Fixed (replay routing)
+
+- Launcher no longer routes replay playback through `ninja_dash.exe` / `demo_game.py`; both call sites (`_launch_replay` in Dev Tools and `_launch_selected_replay` in the Replays tab) now invoke `_launch_java_replay()`, which launches `ninja-client-all.jar` with `-Dninja.replayPath=<absolute_path>`
+- `DesktopLauncher`: reads `ninja.replayPath` system property and passes it to `NinjaGameClient`
+- `NinjaGameClient`: when `replayPath` is set, skips `MainMenuScreen` and opens `GameScreen` directly in solo+replay mode
+- `GameScreen`: loads `.ndjson` via `ReplayPlayer.load(Path)`, seeds the solo sim from the recording header, drives per-tick inputs from the replay instead of the keyboard, and pauses on completion; does not write a save or start a new recording during playback
+
 ## [0.11.63] - 2026-04-18 (playtest balance: enemy health, unarmed KO, armed lethality)
 
 ### Changed

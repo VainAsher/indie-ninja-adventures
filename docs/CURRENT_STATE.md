@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-16
-version_anchor: v0.11.54
+last_updated: 2026-04-18
+version_anchor: v0.11.63
 replaces: docs/HANDOVER.md
 ---
 
@@ -44,6 +44,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - `F1` controls overlay now renders active live bindings instead of a static key legend.
 - Interaction affordance readability bridge is now active: lever/button/echo-trigger and pickup interactions queue short explicit animation feedback with `[Playtest][Interaction]` traces.
 - Release/version parity gate is enforced through `tools/check_version_sync.py`.
+- Solo replay playback is now routed through the Java client (`ninja-client-all.jar`) via `-Dninja.replayPath`; `ninja_dash.exe` / `demo_game.py` is no longer invoked for any launcher-initiated game operation.
 
 ## Canonical Documentation Set
 

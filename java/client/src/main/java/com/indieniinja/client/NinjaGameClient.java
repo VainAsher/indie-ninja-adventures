@@ -17,15 +17,25 @@ public final class NinjaGameClient extends Game {
 
     private final String host;
     private final int    port;
+    private final String replayPath;
 
     public NinjaGameClient(String host, int port) {
-        this.host = host;
-        this.port = port;
+        this(host, port, null);
+    }
+
+    public NinjaGameClient(String host, int port, String replayPath) {
+        this.host       = host;
+        this.port       = port;
+        this.replayPath = replayPath;
     }
 
     @Override
     public void create() {
-        setScreen(new MainMenuScreen(this, host, port));
+        if (replayPath != null) {
+            setScreen(new GameScreen(this, host, port, "solo", replayPath));
+        } else {
+            setScreen(new MainMenuScreen(this, host, port));
+        }
     }
 
     // ── Accessors used by PauseScreen to navigate back to the menu ────────────

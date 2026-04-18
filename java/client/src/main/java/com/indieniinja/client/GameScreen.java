@@ -98,6 +98,10 @@ public final class GameScreen implements Screen {
     private float                  soloSpawnY       = 0f;
     /** Records per-frame inputs in solo mode when -Dninja.record=true is set. */
     private final com.indieniinja.sim.InputRecorder soloRecorder = new com.indieniinja.sim.InputRecorder();
+    /** Non-null during replay playback — drives inputs instead of the keyboard. */
+    private com.indieniinja.sim.ReplayPlayer soloReplay;
+    /** Absolute path to the .ndjson replay file to load on show(), or null for live play. */
+    private final String replayPath;
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
@@ -249,15 +253,20 @@ public final class GameScreen implements Screen {
     private boolean megamapStale     = false;
 
     public GameScreen(NinjaGameClient game, String host, int port) {
-        this(game, host, port, "arcade");
+        this(game, host, port, "arcade", null);
     }
 
     public GameScreen(NinjaGameClient game, String host, int port, String gameMode) {
-        this.game     = game;
-        this.host     = host;
-        this.port     = port;
-        this.gameMode = gameMode;
-        this.soloMode = "solo".equals(gameMode);
+        this(game, host, port, gameMode, null);
+    }
+
+    public GameScreen(NinjaGameClient game, String host, int port, String gameMode, String replayPath) {
+        this.game       = game;
+        this.host       = host;
+        this.port       = port;
+        this.gameMode   = gameMode;
+        this.replayPath = replayPath;
+        this.soloMode   = "solo".equals(gameMode) || replayPath != null;
     }
 
     // ── Screen lifecycle ──────────────────────────────────────────────────────
@@ -329,8 +338,21 @@ public final class GameScreen implements Screen {
         pauseScreen = new PauseScreen(game, this::resume);
 
         if (soloMode) {
-            // Offline path — build local sim world immediately (may be replaced by saved seed below).
-            initializeSoloSimulation(System.currentTimeMillis(), Boolean.getBoolean("ninja.record"));
+            if (replayPath != null) {
+                // Replay playback — load the file, seed the sim from the recording header.
+                try {
+                    soloReplay = com.indieniinja.sim.ReplayPlayer.load(java.nio.file.Paths.get(replayPath));
+                    initializeSoloSimulation(soloReplay.seed(), false);
+                    log.info("[Replay] loaded {} entries from {}", soloReplay.totalEntries(), replayPath);
+                } catch (java.io.IOException e) {
+                    log.error("[Replay] failed to load replay file {}: {}", replayPath, e.getMessage());
+                    soloReplay = null;
+                    initializeSoloSimulation(System.currentTimeMillis(), false);
+                }
+            } else {
+                // Offline path — build local sim world immediately (may be replaced by saved seed below).
+                initializeSoloSimulation(System.currentTimeMillis(), Boolean.getBoolean("ninja.record"));
+            }
         } else {
             networkClient = new NetworkClientThread(host, port, stateBuffer);
             networkClient.setGameMode(gameMode);
@@ -540,7 +562,9 @@ public final class GameScreen implements Screen {
         if (!paused && !dialogueConsumed && !missionOverlayConsumed && !scriptedLossConsumed) {
             accumulator += delta;
             while (accumulator >= PHYSICS_DT) {
-                InputCommand cmd = inputPoller.poll();
+                InputCommand cmd = (soloReplay != null)
+                        ? soloReplay.inputsForTick(localFrame).getOrDefault(0, new InputCommand())
+                        : inputPoller.poll();
                 if (soloMode) {
                     // Offline: step local sim directly and push snapshot to stateBuffer.
                     if (soloRecorder.isRecording()) soloRecorder.record(localFrame, 0, cmd);
@@ -551,6 +575,11 @@ public final class GameScreen implements Screen {
                     com.indieniinja.network.WorldSnapshot soloSnap = localSim.getSnapshot(localFrame++);
                     stampSoloFields(soloSnap);
                     stateBuffer.update(soloSnap);
+                    if (soloReplay != null && soloReplay.isDone(localFrame)) {
+                        log.info("[Replay] playback complete at tick {}", localFrame);
+                        soloReplay = null;
+                        pause();
+                    }
                 } else {
                     networkClient.sendInput(cmd);
                 }
