@@ -43,8 +43,6 @@ public final class MinimapRenderer {
     // ── Layout ────────────────────────────────────────────────────────────────
     private static final float QUICK_PANEL_W = 720f;
     private static final float QUICK_PANEL_H = 500f;
-    private static final float FULL_PANEL_W  = 1240f;
-    private static final float FULL_PANEL_H  = 920f;
     private static final float PANEL_PAD   =  20f;
     private static final float ROOM_PAD    =   4f;
     private static final float TITLE_H     =  22f;
@@ -269,8 +267,8 @@ public final class MinimapRenderer {
         }
 
         // ── Fit room cell size ────────────────────────────────────────────────
-        float modeMaxW = mapMode == MapMode.FULL ? FULL_PANEL_W : QUICK_PANEL_W;
-        float modeMaxH = mapMode == MapMode.FULL ? FULL_PANEL_H : QUICK_PANEL_H;
+        float modeMaxW = mapMode == MapMode.FULL ? sw * 0.75f : QUICK_PANEL_W;
+        float modeMaxH = mapMode == MapMode.FULL ? sh * 0.75f : QUICK_PANEL_H;
         float maxPanelW = Math.min(modeMaxW, sw * 0.94f);
         float maxPanelH = Math.min(modeMaxH, sh * 0.92f);
         float innerW    = maxPanelW - PANEL_PAD * 2f;

@@ -2,7 +2,7 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-16
+last_updated: 2026-04-18
 version_anchor: v0.11.54
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.11.61] - 2026-04-18 (playtest fixes: full-map 75% screen, YY stance circle indicator)
+
+### Changed
+- `MinimapRenderer`: full-map panel now fills 75% of screen (`sw * 0.75f` × `sh * 0.75f`) instead of hardcoded 1240 × 920 px
+- `HudRenderer`: replaced "STANCE: YIN/YANG" text with a Yin/Yang stance circle indicator — warm creamy white (Yin) ↔ cool grey-blue (Yang) fill, rotating needle (balanced = up, yin = left, yang = right), double glow ring when in Flow; POSTURE label moved to the right of the circle
 
 ## [0.11.60] - 2026-04-17 (PLAYER_EXPECTATIONS updated to v0.11.60)
 

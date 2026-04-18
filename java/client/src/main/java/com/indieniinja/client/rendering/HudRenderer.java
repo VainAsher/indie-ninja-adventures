@@ -50,6 +50,10 @@ public final class HudRenderer {
     private static final float LAN_H      = 7f;
     private static final float LAN_X      = 10f;
     private static final float LAN_Y      = 90f;  // above currency row
+    // ── Yin/Yang stance circle — right of lantern bar ────────────────────────
+    private static final float YY_CX = LAN_X + LAN_W + 30f;  // 120
+    private static final float YY_CY = LAN_Y + 10f;           // 100
+    private static final float YY_R  = 20f;
 
     private final ShapeRenderer shapes;
     private final SpriteBatch   hudBatch;
@@ -188,6 +192,27 @@ public final class HudRenderer {
             }
         }
 
+        // ── YY stance circle — filled pass (local player only) ───────────────
+        if (snap != null) {
+            for (PlayerState p : snap.players) {
+                if (p.slot != localSlot) continue;
+                float delta = Math.max(-1f, Math.min(1f, p.yinValue - p.yangValue));
+                float t = (delta + 1f) * 0.5f;  // 0=full yang, 1=full yin
+                float cr = 0.38f + t * 0.62f;
+                float cg = 0.58f + t * 0.38f;
+                float cb = 0.92f - t * 0.10f;
+                if (p.flowMode) {
+                    shapes.setColor(0.88f, 1f, 0.65f, 0.30f);
+                    shapes.circle(YY_CX, YY_CY, YY_R + 6f, 24);
+                    shapes.setColor(0.88f, 1f, 0.65f, 0.14f);
+                    shapes.circle(YY_CX, YY_CY, YY_R + 11f, 24);
+                }
+                shapes.setColor(cr * 0.40f, cg * 0.40f, cb * 0.40f, 0.85f);
+                shapes.circle(YY_CX, YY_CY, YY_R, 24);
+                break;
+            }
+        }
+
         // ── Boss HP bar (top-centre, prominent) ──────────────────────────────
         if (snap != null && !snap.bosses.isEmpty()) {
             com.indieniinja.network.BossState boss = snap.bosses.get(0);
@@ -240,6 +265,34 @@ public final class HudRenderer {
 
         shapes.end();
 
+        // ── YY stance circle outline + needle ────────────────────────────────
+        if (snap != null) {
+            shapes.begin(ShapeRenderer.ShapeType.Line);
+            for (PlayerState p : snap.players) {
+                if (p.slot != localSlot) continue;
+                float delta = Math.max(-1f, Math.min(1f, p.yinValue - p.yangValue));
+                float t = (delta + 1f) * 0.5f;
+                float cr = 0.38f + t * 0.62f;
+                float cg = 0.58f + t * 0.38f;
+                float cb = 0.92f - t * 0.10f;
+                if (p.flowMode) {
+                    shapes.setColor(0.88f, 1f, 0.65f, 0.85f);
+                    shapes.circle(YY_CX, YY_CY, YY_R, 24);
+                }
+                shapes.setColor(cr, cg, cb, 1f);
+                shapes.circle(YY_CX, YY_CY, YY_R, 24);
+                // Needle: balanced=up (90°), yin tilts left, yang tilts right
+                float angleRad = (float)(Math.PI * 0.5 + delta * Math.PI * 75.0 / 180.0);
+                float nx = YY_CX + (float)Math.cos(angleRad) * YY_R * 0.80f;
+                float ny = YY_CY + (float)Math.sin(angleRad) * YY_R * 0.80f;
+                shapes.setColor(1f, 1f, 1f, 0.95f);
+                shapes.line(YY_CX, YY_CY, nx, ny);
+                shapes.circle(YY_CX, YY_CY, 2.5f, 8);
+                break;
+            }
+            shapes.end();
+        }
+
         // ── Text pass (SpriteBatch) ───────────────────────────────────────────
         hudBatch.setProjectionMatrix(screenCam.combined);
         hudBatch.begin();
@@ -283,14 +336,7 @@ public final class HudRenderer {
                 font.setColor(0.95f, 0.7f * p.lanternValue + 0.1f, 0.05f, lanLabelAlpha);
                 font.draw(hudBatch, "\u25ca " + lanPct + "%", LAN_X + LAN_W + 5f, LAN_Y + LAN_H);
                 font.setColor(0.70f, 0.86f, 1f, 0.95f);
-                font.draw(hudBatch,
-                    "STANCE: " + stanceLabel(p) + "  POSTURE: " + weaponLabel(p),
-                    LAN_X + LAN_W + 5f, LAN_Y - 6f);
-                // Flow Mode indicator near the lantern
-                if (p.flowMode) {
-                    font.setColor(0.9f, 1f, 0.7f, 0.9f);
-                    font.draw(hudBatch, "FLOW", LAN_X + LAN_W + 45f, LAN_Y + LAN_H);
-                }
+                font.draw(hudBatch, weaponLabel(p), YY_CX + YY_R + 6f, YY_CY + 5f);
                 font.setColor(Color.WHITE);
                 break;
             }
