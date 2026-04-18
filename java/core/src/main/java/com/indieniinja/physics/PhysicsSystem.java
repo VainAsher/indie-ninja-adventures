@@ -48,7 +48,8 @@ public final class PhysicsSystem {
      * Mirrors Python physics_system.py _apply_gravity() exactly.
      */
     private static void applyGravity(PhysicsState p) {
-        if (p.onGround) return;  // collision system zeroes vy on landing
+        if (p.onGround) return;      // collision system zeroes vy on landing
+        if (p.gravityFrozen) return; // traversal override (climb/ledge hang) holds position
 
         // Base gravity
         p.vy += GRAVITY;

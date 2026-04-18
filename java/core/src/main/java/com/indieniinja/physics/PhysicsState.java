@@ -22,6 +22,7 @@ public final class PhysicsState {
     // Gravity modifier flags (set by mechanics, read by physics system)
     public boolean jumpCutActive;   // jump released mid-air → extra gravity
     public boolean fastFallActive;  // down held while airborne
+    public boolean gravityFrozen;   // traversal override (climb/ledge) → skip gravity this tick
 
     // Hazard tile contact flags — reset each tick by CollisionSystem before resolution
     public boolean inWater;         // inside a WATER tile — reduced speed, no dash

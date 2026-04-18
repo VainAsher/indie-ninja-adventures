@@ -16,6 +16,13 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.11.62] - 2026-04-18 (playtest bugfixes: spawn edge, hub boss, Yin climb judder)
+
+### Fixed
+- `PhysicsState` + `PhysicsSystem`: added `gravityFrozen` flag — gravity is now bypassed for wall-climbing, ledge-hang, and ledge-climb states, eliminating Yin wall-climb judder/slide and ledge-hang micro-drift
+- `LevelLayout.buildProceduralLayout`: spawn search now falls back to a full-room-width scan when the initial centre-band filter (±768 px) finds no ground tiles, preventing player spawn at the world edge in solo/start rooms with sparse centre geometry
+- `LevelLayout`: added `withoutBoss()` factory; `ZoneSimulationLoop` now strips layout-seeded bosses from hub zones so placeholder bosses no longer appear in hub areas
+
 ## [0.11.61] - 2026-04-18 (playtest fixes: full-map 75% screen, YY stance circle indicator)
 
 ### Changed

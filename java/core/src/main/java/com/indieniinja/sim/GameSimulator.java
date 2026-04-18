@@ -1283,9 +1283,11 @@ public final class GameSimulator {
         PhysicsState p = sp.physics;
 
         sp.atWaterSurface = p.inWater && isAtWaterSurface(p);
+        p.gravityFrozen = false;  // reset each tick; set below when traversal overrides physics
 
         if (sp.isLedgeClimbing) {
             sp.isClimbing = false;
+            p.gravityFrozen = true;
             p.vx = 0f;
             p.vy = 0f;
             sp.ledgeClimbTimer -= DT;
@@ -1314,6 +1316,7 @@ public final class GameSimulator {
             p.onGround = false;
             p.onWall = false;
             p.wallDir = 0;
+            p.gravityFrozen = true;
             sp.isClimbing = false;
 
             boolean pressAway = (sp.facing > 0 && cmd.left) || (sp.facing < 0 && cmd.right);
@@ -1361,6 +1364,7 @@ public final class GameSimulator {
         boolean onClimbableWall = p.onWall && isTouchingClimbableSurface(p, wallProbeDir);
         boolean yinWallClimbMode = "yin".equals(sp.stanceMode);
         sp.isClimbing = yinWallClimbMode && onClimbableWall && !sp.isDashing && !sp.teleportPhaseMode;
+        p.gravityFrozen = sp.isClimbing;
         if (sp.isClimbing) {
             p.vx = 0f;
             if (cmd.up && !cmd.down) {

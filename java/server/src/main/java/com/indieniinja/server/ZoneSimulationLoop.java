@@ -130,11 +130,12 @@ public final class ZoneSimulationLoop implements Runnable {
             layout = LevelLayout.buildUnifiedWorldLayout(graph, zone.masterHubId);
         }
 
-        // Hub zones: HubStateMachine is the sole authority for NPCs.
+        // Hub zones: HubStateMachine is the sole authority for NPCs and bosses.
         // Clear layout-seeded NPCs so they don't clash with the hub FSM roster.
         // (EntityPlanner places lore/shop/crafter in every room including START;
         //  tickHubEvolution would wipe them at t=1s anyway — skip the churn.)
         layout.npcSpawns.clear();
+        layout = layout.withoutBoss();  // no layout-seeded bosses in hub zones
 
         zone.simulator = new GameSimulator(graph.startRoom().seed, zone.hubId, layout);
         zone.simulator.setMode(zone.gameMode, zone.arcadeDepth, zone.arcadeRooms);

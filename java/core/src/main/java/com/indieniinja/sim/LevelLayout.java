@@ -95,6 +95,13 @@ public final class LevelLayout {
         this.doorTiles        = doorTiles != null ? doorTiles : Collections.emptyMap();
     }
 
+    /** Return a copy of this layout with the boss spawn removed (used for hub zones). */
+    public LevelLayout withoutBoss() {
+        return new LevelLayout(seed, widthTiles, heightTiles, spatialHash,
+            enemySpawns, pickupSpawns, npcSpawns, null,
+            portalSpawns, fallingPlatforms, movingPlatforms, spawnX, spawnY, doorTiles);
+    }
+
     /** Spawn descriptor for an enemy. */
     public record EnemySpawn(
         String type, float x, float y, float patrolMinX, float patrolMaxX) {}
@@ -548,6 +555,20 @@ public final class LevelLayout {
                 bestScore = score;
                 spawnX = pos[0];
                 spawnY = pos[1] - 56f;                   // entity top = floor top − height
+            }
+        }
+        // No ground in the centre band (can happen for start/platform rooms with little
+        // centre geometry). Retry without the band filter so we always find a valid spawn.
+        if (bestScore == Float.MAX_VALUE) {
+            for (float[] pos : groundPos) {
+                float dx = Math.abs(pos[0] - centreX);
+                float dy = (ROWS * TILE) - pos[1];
+                float score = dy * 0.3f + dx;
+                if (score < bestScore) {
+                    bestScore = score;
+                    spawnX = pos[0];
+                    spawnY = pos[1] - 56f;
+                }
             }
         }
 
