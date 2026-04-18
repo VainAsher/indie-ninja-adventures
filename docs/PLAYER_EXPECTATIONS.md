@@ -3,15 +3,15 @@ doc_type: playtest_contract
 status: living
 owner: qa-team
 last_updated: 2026-04-18
-version_anchor: v0.11.64
+version_anchor: v0.11.65
 ---
 # Shadow Ascent - Launcher-Only Playtest Pack
 ## End-to-End UX Validation for Solo and Multiplayer
 
-**Target build:** `v0.11.64`
+**Target build:** `v0.11.65`
 **Last updated:** `2026-04-18`
 **Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
-**Primary goal:** Verify user experience, progression reliability, and Flow baseline before P1 tuning
+**Primary goal:** Verify portal travel stability, stance readability, and campaign flow before external tester arrivals
 
 ---
 
@@ -43,11 +43,16 @@ If a tester cannot progress without external help, capture that as onboarding fr
 
 1. Open `launcher.exe`.
 2. On Play tab:
-- For solo baseline: click `Play` and choose `SOLO` in mode select.
-- For localhost multiplayer baseline: click `Start Server`, then `Host + Play`.
-- For remote multiplayer baseline: click `Join` and enter `host:port`.
+
+   - For solo campaign baseline: click `Play` and choose `CAMPAIGN` in mode select.
+   - For developer/debug baseline: choose `DEVELOPER` in mode select (all systems, no story pressure).
+   - For localhost multiplayer baseline: click `Start Server`, then `Host + Play`.
+   - For remote multiplayer baseline: click `Join` and enter `host:port`.
+
 3. Confirm game reaches Main Menu, then Mode Select, then in-game HUD.
 4. Run test packs in order from Section 7.
+
+> **v0.11.65 note:** Sandbox mode has been retired. Mode select now shows CAMPAIGN, ARCADE (in development), and DEVELOPER. CAMPAIGN is the primary tester path.
 
 ---
 
@@ -77,10 +82,12 @@ Use this as the default expected keyboard map.
 | Hitbox overlay | `H` |
 | Controls overlay | `F1` |
 | Runtime debug overlay | `F3` |
+| Debug ability toggle (solo only) | `F9` |
 
 Notes:
 - These are default bindings. Testers can override them via `user_data/settings/settings.json` under `keybindings`.
 - `F1` controls overlay now renders the active live bindings, not only defaults.
+- `F9` is an internal debug shortcut (solo only). It cycles all abilities granted → all cleared. Useful for testing locked portals without level grinding. **Do not share this key with external testers unless explicitly running a debug session.**
 
 If control understanding is poor, tag finding with `UX-CONTROLS`.
 
@@ -128,6 +135,7 @@ Do not preload mechanical spoilers beyond this.
 | Hitbox overlay | Working | Press `H` in-game |
 | Controls overlay | Working | Press `F1` in-game |
 | Runtime telemetry panel | Working | Press `F3` in-game |
+| Debug ability toggle | Working (v0.11.65) | Press `F9` in-game (solo only) — cycles all abilities on/off |
 | Launcher log viewer | Working | Launcher `Dev Tools` tab |
 | Deep simulation inspector | Missing | No dedicated in-game dev console yet |
 
@@ -163,7 +171,7 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
    - expectation: objective interactions now show a short explicit player animation cue (`lever`/`button`) instead of silent state change.
 6. Trigger at least one failure/death and recover.
 
-`v0.11.64` expectation:
+`v0.11.65` expectation:
 - In `demo_coin_run`, each collected coin should increment mission progress (`collect_items_coin`) and unlock exit at 5/5.
 
 ### Record
@@ -297,67 +305,81 @@ Conclusion: P0 playtest logging/debug coverage is now full for mission/stance/fl
 
 ---
 
-## Pack G: Portal travel and hub navigation — v0.11.64 focus (20 to 30 min)
+## Pack G: Portal travel and hub navigation — v0.11.65 focus (20 to 30 min)
 
-**Goal:** Verify the solo/multiplayer campaign unification — hub portal travel now uses the same ability-gate and zone-migration flow as co-op. This is the primary new system in v0.11.64 and the highest-priority test target for this session.
+**Goal:** Verify that portal travel is fully stable after the v0.11.65 blocker fixes: no self-loops, world regenerates correctly, camera snaps to spawn, stance animation shows in all movement states (not only attack). This is the highest-priority test target for this week's external playtest.
 
-### New in v0.11.64 — what changed
+### What changed in v0.11.65 (fixes for playtest blockers)
 
-- Pressing `E` near a portal now checks your abilities before allowing entry (same logic as multiplayer).
-- Locked portals show a toast: `PORTAL LOCKED: REQUIRES <ABILITY>`.
-- On successful travel: simulation resets for the destination hub, player state (health, level, inventory, abilities) is preserved, and the megamap rebuilds.
-- Entry confirmation toast: `ENTERING: <HUB NAME>`.
-- Yin/Yang stance now drives the player sprite prefix directly — Yin always shows unarmed posture, Yang always shows sword posture, regardless of inventory.
-- Minimap compass arrows appear on the panel border when an active objective is in a room outside the current zoom window (colour-coded: gold = reach/waypoint, red = switch, cyan = exit).
+- **Start-room portal self-loop removed:** pressing `E` near spawn no longer shows "ENTERING: CENTRAL HUB" and reloads the same hub. Only exit-room portals are active.
+- **World now renders after portal travel:** megamap rebuilds and camera snaps to the new spawn point immediately on arrival. The previous bug (blank world, player off-screen) is resolved.
+- **Stance posture in all movement states:** Yin/Yang armed posture is now visible in idle, walk, jump, and crouch — not only during attack animations. This was the v0.11.64 regression.
+- **No spurious ability toasts after travel:** abilities restored post-travel no longer fire "new unlock" notifications.
+- **F9 debug shortcut (internal only):** press `F9` in solo to grant all abilities instantly for locked-portal testing. Toggle again to clear. Do not include in external tester instructions unless running a debug session.
 
 ### Steps
 
 1. **Open portal (no ability required):**
-   - Launch solo from the launcher. Locate any portal (glowing E-interact prompt).
-   - Press `E`. Confirm the game transitions to `forest_hub`.
-   - Expected: `ENTERING: FOREST` toast appears. World visibly regenerates. Player retains health/inventory.
+   - Launch CAMPAIGN from the launcher. From spawn, explore the start room — confirm there is **no portal prompt near spawn**. Portals are only in exit rooms.
+   - Reach an exit room, locate a portal (glowing `E`-interact prompt), press `E`.
+   - Expected: `ENTERING: <HUB NAME>` toast appears. World visibly regenerates. Player spawns in the new hub with health and inventory intact. Camera is centred on the player — not at world origin.
+   - Tag any blank world, off-screen spawn, or wrong hub name as `UX-HUB` P0.
 
 2. **Locked portal gate:**
-   - Without unlocking the `dash` ability, locate and press `E` on a `cave_hub` portal.
+   - Without the `dash` ability, locate and press `E` on a `cave_hub` portal.
    - Expected: `PORTAL LOCKED: REQUIRES DASH` toast. No zone transition occurs.
-   - If you cannot locate a cave portal quickly, check the full map (`Tab` hold) for portal icons.
+   - To test this quickly without grinding: press `F9` to grant all abilities, travel through, then press `F9` again to clear abilities and verify the lock reappears on the next locked portal.
+   - Tag absent toast or unintended transit as `UX-HUB` P1.
 
-3. **Stance posture readability:**
+3. **Stance posture readability — all movement states:**
    - Press `A` to switch between Yin and Yang.
-   - In Yin stance: player sprite should show empty hands / unarmed posture across all movement and idle states.
-   - In Yang stance: player sprite should show sword / armed posture.
-   - Enter combat in both stances and confirm the visual difference is readable without the `H` hitbox overlay.
-   - Tag any sprite flicker or wrong-posture frame as `TECH-ANIM`.
+   - In **Yin**: player sprite should show unarmed/empty-hands posture while idle, walking, jumping, crouching, and attacking.
+   - In **Yang**: player sprite should show sword/armed posture in **all** of those states — not only when swinging.
+   - Specifically test idle and walking — these were the broken states in v0.11.64.
+   - Tag any state that stays unarmed in Yang (or armed in Yin) as `TECH-ANIM`.
 
-4. **Minimap compass:**
+4. **Post-travel ability toasts:**
+   - Travel through a portal successfully.
+   - On arrival, confirm the HUD does **not** show a burst of "new ability unlocked" toasts for abilities you already had.
+   - One toast for a genuinely new unlock is correct. Multiple toasts for already-known abilities is the bug.
+   - Tag spurious toasts as `TECH-ANIM` or `UX-HUB`.
+
+5. **Minimap compass:**
    - With an active mission objective (check mission tracker `O`), open quick map (`Tab` tap).
-   - Move to a room that is far from the objective — the objective should be off the minimap zoom window.
-   - Expected: a coloured directional arrow appears on the minimap panel border pointing toward the objective room.
+   - Move to a room far from the objective — the objective should be outside the minimap zoom window.
+   - Expected: a coloured directional arrow appears on the minimap panel border pointing toward the objective room (gold = reach/waypoint, red = switch, cyan = exit).
    - Confirm the arrow disappears when you enter the objective's room.
    - Tag absence of arrows as `UX-MAP`.
 
 ### Record
 
+- `start_room_portal_absent_yes_no` (should be yes — no portal at spawn)
 - `portal_travel_success_yes_no`
+- `world_rendered_after_travel_yes_no`
+- `camera_on_player_after_travel_yes_no`
 - `portal_lock_toast_visible_yes_no`
 - `player_state_preserved_after_travel_yes_no` (health, inventory intact)
-- `yin_posture_readable_yes_no`
-- `yang_posture_readable_yes_no`
+- `yin_posture_idle_walk_readable_yes_no`
+- `yang_posture_idle_walk_readable_yes_no`
+- `spurious_ability_toasts_after_travel_yes_no` (should be no)
 - `compass_arrow_visible_yes_no`
-- `any_sprint_or_crash_on_portal_travel`
+- `any_crash_or_softlock_on_portal_travel`
 
 ### Expected
 
-- Portal travel completes without crash or softlock.
-- Player state (health, inventory, abilities) is identical before and after hub transition.
-- Locked portal does not transition — toast is the only feedback.
-- Yin/Yang stance sprite difference is visible to a first-time tester without explanation.
+- No portal near the start room. Portals are exit-room only.
+- Portal travel completes without crash, blank world, or off-screen spawn.
+- Player state (health, inventory, abilities) is preserved across hub transition.
+- Locked portal shows toast only — no transition.
+- Yin shows unarmed posture in all states. Yang shows armed posture in all states including idle and walk.
+- No ability toasts for already-held abilities on arrival.
 - Compass arrow appears within 1–2 seconds of the objective leaving the minimap window.
 
 ### Known limitations (do not file as bugs)
 
-- Hub worlds are procedurally generated — room layout will differ from the source hub. This is correct behaviour.
-- Not all hubs are reachable in early game without the required ability unlock. Central Hub and Forest Hub are always open.
+- Hub worlds are procedurally generated — room layout differs between visits. This is correct.
+- Not all hubs are reachable without the required ability. Central Hub and Forest Hub are always open.
+- ARCADE mode is in development and does not yet have hub travel.
 
 ---
 
@@ -503,7 +525,7 @@ If UUID changes across relaunch with same profile, report as `TECH-STABILITY` bl
 
 ```md
 ### Session Summary
-Build: v0.11.64
+Build: v0.11.65
 Mode: SOLO / HOST / JOIN
 Duration: XX min
 
@@ -528,7 +550,7 @@ IDs: UX-___ / BAL-___ / TECH-___
 
 ```md
 ### Bug
-Build: v0.11.64
+Build: v0.11.65
 Mode: SOLO / HOST / JOIN
 Severity: blocker / high / medium / low
 
@@ -582,9 +604,11 @@ The playtest pack phase is complete when all are true:
 7. At least one trial room (Pack F) completed and `BAL-TRIAL` findings filed.
 8. Veil Maiden illusion mechanic legibility note filed under `BAL-BOSS-VEIL` (even if not reached in every session).
 9. Music cross-fade behaviour noted for at least one hub transition (`UX-AUDIO` or `TECH-AUDIO`).
-10. **v0.11.64 gate:** Pack G portal travel test completed — at least one successful hub transition and one locked-portal denial observed from launcher. `UX-HUB` filed or marked clean.
-11. **v0.11.64 gate:** Yin/Yang stance posture visibly readable in live play — `TECH-ANIM` filed or marked clean.
-12. **v0.11.64 gate:** Minimap compass arrows observed during at least one off-screen objective — `UX-MAP` filed or marked clean.
+10. **v0.11.65 gate:** Pack G step 1 — portal travel completes with world rendered and camera on player. No blank world. `UX-HUB` filed or marked clean.
+11. **v0.11.65 gate:** Pack G step 3 — Yang stance shows armed posture in idle and walk states (not only attack). `TECH-ANIM` filed or marked clean.
+12. **v0.11.65 gate:** Pack G step 2 — locked portal denial observed; no start-room portal present. `UX-HUB` filed or marked clean.
+13. **v0.11.65 gate:** Pack G step 4 — no spurious ability toasts on portal arrival. `UX-HUB` or `TECH-ANIM` filed or marked clean.
+14. **v0.11.65 gate:** Minimap compass arrows observed during at least one off-screen objective — `UX-MAP` filed or marked clean.
 
 ---
 
