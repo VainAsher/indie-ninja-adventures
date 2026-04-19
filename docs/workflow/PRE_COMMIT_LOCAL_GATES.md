@@ -22,6 +22,12 @@ Fast local gate workflow for preventing obvious breakage before commit or push.
 3. Any commit touching `.py` files must pass Black locally.
 4. Any commit touching version or docs metadata must pass version-sync checks.
 5. Do not rely on CI as the first formatting or basic test gate.
+6. **`:client:test` is the required evidence surface when `GameScreen` construction changes** — new fields, new inline field initializers, new `create()` calls. Server tests do not cover this surface. If client tests cannot run locally (see Known Local Limitations), push the feature commit first and wait for CI green before tagging.
+7. **libGDX renderer classes must guard `Gdx.app != null` in their constructors.** `ShapeRenderer`, `BitmapFont`, `SpriteBatch`, and any class wrapping OpenGL resources will throw `NullPointerException` in headless unit tests if constructed unconditionally. Pattern: `if (Gdx.app != null) { ... create renderer ... }`. Render methods must also null-check before using these objects.
+
+## Known Local Test Limitations
+
+`:client:test` may fail locally on Windows due to OneDrive or AV file locks on build output directories. This is expected and does not indicate a code defect. Treat CI as the authoritative gate for client tests. Consequence: **do not tag a release that touches `GameScreen` or any libGDX rendering class until the CI `java-build` job is green on the feature commit.**
 
 ## Recommended Hook Split
 

@@ -28,7 +28,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 IGNORE_PATTERNS = {".DS_Store", "Thumbs.db", "desktop.ini", "__pycache__"}
-IGNORE_EXTS     = {".pyc", ".class"}
+IGNORE_EXTS = {".pyc", ".class"}
 
 
 def sha256(path: Path) -> str:
@@ -49,11 +49,13 @@ def scan_assets(root: Path) -> list[dict]:
         if abs_path.suffix in IGNORE_EXTS:
             continue
         rel = abs_path.relative_to(root).as_posix()
-        entries.append({
-            "path":   rel,
-            "size":   abs_path.stat().st_size,
-            "sha256": sha256(abs_path),
-        })
+        entries.append(
+            {
+                "path": rel,
+                "size": abs_path.stat().st_size,
+                "sha256": sha256(abs_path),
+            }
+        )
     return entries
 
 
@@ -61,9 +63,9 @@ def build_manifest(root: Path) -> dict:
     entries = scan_assets(root)
     return {
         "generated": datetime.now(timezone.utc).isoformat(),
-        "root":      root.as_posix(),
-        "count":     len(entries),
-        "files":     entries,
+        "root": root.as_posix(),
+        "count": len(entries),
+        "files": entries,
     }
 
 
@@ -79,31 +81,37 @@ def check_manifest(manifest_path: Path, root: Path) -> bool:
         print(f"Cannot read manifest: {e}", file=sys.stderr)
         return False
 
-    current_files  = {e["path"]: e for e in scan_assets(root)}
+    current_files = {e["path"]: e for e in scan_assets(root)}
     manifest_files = {e["path"]: e for e in existing.get("files", [])}
 
-    added   = set(current_files) - set(manifest_files)
+    added = set(current_files) - set(manifest_files)
     removed = set(manifest_files) - set(current_files)
     changed = {
-        p for p in current_files
+        p
+        for p in current_files
         if p in manifest_files and current_files[p]["sha256"] != manifest_files[p]["sha256"]
     }
 
     if added or removed or changed:
-        print(f"Manifest stale: +{len(added)} added, -{len(removed)} removed, ~{len(changed)} changed.")
+        print(
+            f"Manifest stale: +{len(added)} added, -{len(removed)} removed, ~{len(changed)} changed."
+        )
         return False
     return True
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Shadow Ascent asset pipeline.")
-    parser.add_argument("--root",  default="assets",                  help="Asset root directory")
-    parser.add_argument("--out",   default="assets/asset_manifest.json", help="Output manifest path")
-    parser.add_argument("--check", action="store_true",
-                        help="Check manifest currency without updating (exit 1 if stale)")
+    parser.add_argument("--root", default="assets", help="Asset root directory")
+    parser.add_argument("--out", default="assets/asset_manifest.json", help="Output manifest path")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Check manifest currency without updating (exit 1 if stale)",
+    )
     args = parser.parse_args()
 
-    root         = Path(args.root)
+    root = Path(args.root)
     manifest_path = Path(args.out)
 
     if not root.is_dir():

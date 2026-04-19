@@ -41,11 +41,11 @@ def escape_yarn(text: str) -> str:
 
 
 def node_to_yarn(node: dict, is_root: bool) -> str:
-    node_id    = node.get("node_id", node.get("nodeId", "unknown"))
-    speaker    = node.get("speaker", "")
-    text       = node.get("text", "")
-    choices    = node.get("choices", [])
-    next_id    = node.get("next_node_id")
+    node_id = node.get("node_id", node.get("nodeId", "unknown"))
+    speaker = node.get("speaker", "")
+    text = node.get("text", "")
+    choices = node.get("choices", [])
+    next_id = node.get("next_node_id")
     exit_event = node.get("on_exit_event")
 
     lines: list[str] = []
@@ -70,9 +70,9 @@ def node_to_yarn(node: dict, is_root: bool) -> str:
     # ── Choices or auto-advance ───────────────────────────────────────────────
     if choices:
         for choice in choices:
-            choice_text  = escape_yarn(choice.get("choice_text", ""))
-            next_node    = choice.get("next_node_id")
-            requires     = choice.get("requires")
+            choice_text = escape_yarn(choice.get("choice_text", ""))
+            next_node = choice.get("next_node_id")
+            requires = choice.get("requires")
             select_event = choice.get("on_select_event")
 
             if requires:
@@ -100,7 +100,7 @@ def node_to_yarn(node: dict, is_root: bool) -> str:
 
 def tree_to_yarn(tree_id: str, tree: dict) -> str:
     root_node_id = tree.get("root_node_id", "")
-    nodes        = tree.get("nodes", {})
+    nodes = tree.get("nodes", {})
 
     yarn_nodes: list[str] = []
 
@@ -135,12 +135,12 @@ def convert(input_path: Path, out_dir: Path) -> int:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     converted = 0
-    errors    = 0
+    errors = 0
 
     for tree_id, tree in data.items():
         try:
             yarn_text = tree_to_yarn(tree_id, tree)
-            out_path  = out_dir / f"{tree_id}.yarn"
+            out_path = out_dir / f"{tree_id}.yarn"
             out_path.write_text(yarn_text, encoding="utf-8")
             node_count = len(tree.get("nodes", {}))
             print(f"  {tree_id}.yarn  ({node_count} nodes)")

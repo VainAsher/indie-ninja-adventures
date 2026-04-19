@@ -25,13 +25,20 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 REQUIRED_TEMPLATES = {"boss", "shop", "start", "exit"}
-EXPECTED_WIDTH  = 128
+EXPECTED_WIDTH = 128
 EXPECTED_HEIGHT = 128
-VALID_GIDS      = set(range(9))   # 0-8 match WorldGenerator byte constants
+VALID_GIDS = set(range(9))  # 0-8 match WorldGenerator byte constants
 
 GID_NAMES = {
-    0: "AIR", 1: "SOLID", 2: "PLATFORM", 3: "ICE",
-    4: "WATER", 5: "LAVA", 6: "DOOR_LOCKED", 7: "GAS", 8: "CLIMBABLE",
+    0: "AIR",
+    1: "SOLID",
+    2: "PLATFORM",
+    3: "ICE",
+    4: "WATER",
+    5: "LAVA",
+    6: "DOOR_LOCKED",
+    7: "GAS",
+    8: "CLIMBABLE",
 }
 
 
@@ -50,7 +57,7 @@ def validate_tmx(path: Path) -> list[str]:
         return errors
 
     try:
-        width  = int(root.get("width",  0))
+        width = int(root.get("width", 0))
         height = int(root.get("height", 0))
     except ValueError:
         errors.append("Map width/height attributes are not integers")
@@ -86,9 +93,7 @@ def validate_tmx(path: Path) -> list[str]:
     expected_tiles = width * height
 
     if len(tokens) != expected_tiles:
-        errors.append(
-            f"Tile count {len(tokens)} — expected {expected_tiles} ({width}×{height})"
-        )
+        errors.append(f"Tile count {len(tokens)} — expected {expected_tiles} ({width}×{height})")
 
     non_air = 0
     for i, tok in enumerate(tokens):

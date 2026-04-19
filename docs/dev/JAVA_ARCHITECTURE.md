@@ -114,6 +114,12 @@ java/
 └── client/
     └── src/main/java/com/indieniinja/client/
         ├── DesktopLauncher.java         ← Entry point (main → Lwjgl3Application)
+        │
+        │   ⚠ Headless test rule: any class that constructs a libGDX renderer
+        │   (ShapeRenderer, BitmapFont, SpriteBatch, Texture, …) must guard
+        │   with `if (Gdx.app != null)`. Client unit tests run headlessly —
+        │   unconditional OpenGL construction throws NPE at test setup time.
+        │   New fields on GameScreen with non-trivial constructors are high risk.
         ├── NinjaGameClient.java         ← libGDX Game, screen manager
         ├── GameScreen.java              ← Main in-game screen
         ├── GameCamera.java              ← Camera tracking + room-bound clamping
