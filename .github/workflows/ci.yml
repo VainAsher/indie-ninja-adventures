@@ -132,6 +132,19 @@ jobs:
           path: java/client/build/libs/*-all.jar
           if-no-files-found: error
 
+      - name: Run asset pipeline + animation manifest validation
+        shell: bash
+        run: |
+          python tools/asset_pipeline.py --root assets --out assets/asset_manifest.json
+          python tools/validate_animation_manifest.py --manifest assets/animations/manifest.json
+
+      - name: Upload asset pipeline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-manifest
+          path: assets/asset_manifest.json
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4

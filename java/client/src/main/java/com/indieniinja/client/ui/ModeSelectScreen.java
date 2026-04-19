@@ -50,6 +50,7 @@ public final class ModeSelectScreen implements Screen {
     private final NinjaGameClient game;
     private final String          host;
     private final int             port;
+    private final int             saveSlot;
 
     private int selectedIndex = 0;  // 0=campaign, 1=arcade, 2=developer
 
@@ -58,10 +59,16 @@ public final class ModeSelectScreen implements Screen {
     private final BitmapFont     fontLarge;
     private final BitmapFont     fontSmall;
 
+    /** Backward-compatible constructor — defaults to slot 1. */
     public ModeSelectScreen(NinjaGameClient game, String host, int port) {
-        this.game = game;
-        this.host = host;
-        this.port = port;
+        this(game, host, port, 1);
+    }
+
+    public ModeSelectScreen(NinjaGameClient game, String host, int port, int saveSlot) {
+        this.game     = game;
+        this.host     = host;
+        this.port     = port;
+        this.saveSlot = saveSlot;
 
         batch     = new SpriteBatch();
         shapes    = new ShapeRenderer();
@@ -209,6 +216,6 @@ public final class ModeSelectScreen implements Screen {
     }
 
     private void confirmMode() {
-        game.setScreen(new GameScreen(game, host, port, MODE_IDS[selectedIndex]));
+        game.setScreen(new GameScreen(game, host, port, MODE_IDS[selectedIndex], null, saveSlot));
     }
 }

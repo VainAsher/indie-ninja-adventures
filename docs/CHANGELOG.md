@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-18
-version_anchor: v0.11.67
+last_updated: 2026-04-19
+version_anchor: v0.11.68
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.68] - 2026-04-19 (engine platform phase D: save checksums, perf regression CI, multi-slot saves)
+
+### Added
+
+- **ENG-D3 — Save checksums**: SHA-256 sidecar file (`savegame.sha256`) written alongside each save. On load, checksum is verified before data is applied — corrupt saves detected with a clear error log and fresh-start fallback.
+- **ENG-D2 — Perf regression CI**: `TickDurationRegressionTest` in `:server:test` — 200-tick warm-up + 2000-tick timed run asserts avg ms/tick < 5.0. `perf_baseline.json` at repo root documents the ceiling.
+- **ENG-D1 — Save multi-slot**: Saves now live in `user_data/saves/slot_N/savegame.json` (slots 1–3). `SlotSelectScreen` shows 3 slot cards (save date, playtime, level) before mode selection. Legacy single-slot saves auto-migrated to slot 1 on first load.
+
+### Changed
+
+- `SaveManager` constructor overloaded with `(int slotIndex, StoryManager, MissionManager)`. Zero-arg slot parameter defaults to slot 1 — backward compatible.
+- `MainMenuScreen` CONNECT now routes through `SlotSelectScreen` → `ModeSelectScreen` → `GameScreen`.
+- `GameScreen` accepts `saveSlot` parameter; threads it into `SaveManager` construction.
 
 ---
 

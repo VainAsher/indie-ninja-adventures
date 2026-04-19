@@ -55,7 +55,7 @@ public final class MainMenuScreen implements Screen {
         TextButton connectBtn = new TextButton("  CONNECT  ", skin);
         connectBtn.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent event, Actor actor) {
-                game.setScreen(new ModeSelectScreen(game, host, port));
+                game.setScreen(new SlotSelectScreen(game, host, port));
             }
         });
         root.add(connectBtn).width(220).height(48).padBottom(12).row();

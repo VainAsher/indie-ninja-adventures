@@ -1,0 +1,6 @@
+{
+  "tick_duration_ms_max": 5.0,
+  "ticks_measured": 2000,
+  "warmup_ticks": 200,
+  "description": "ENG-D2 tick-duration regression baseline. CI fails if avg ms/tick exceeds tick_duration_ms_max."
+}

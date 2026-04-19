@@ -263,21 +263,28 @@ public final class GameScreen implements Screen {
      */
     private boolean megamapStale     = false;
 
+    private int saveSlot = 1;
+
     public GameScreen(NinjaGameClient game, String host, int port) {
-        this(game, host, port, "arcade", null);
+        this(game, host, port, "arcade", null, 1);
     }
 
     public GameScreen(NinjaGameClient game, String host, int port, String gameMode) {
-        this(game, host, port, gameMode, null);
+        this(game, host, port, gameMode, null, 1);
     }
 
     public GameScreen(NinjaGameClient game, String host, int port, String gameMode, String replayPath) {
+        this(game, host, port, gameMode, replayPath, 1);
+    }
+
+    public GameScreen(NinjaGameClient game, String host, int port, String gameMode, String replayPath, int saveSlot) {
         this.game       = game;
         this.host       = host;
         this.port       = port;
         this.gameMode   = gameMode;
         this.replayPath = replayPath;
         this.soloMode   = "solo".equals(gameMode) || replayPath != null;
+        this.saveSlot   = saveSlot;
     }
 
     // ── Screen lifecycle ──────────────────────────────────────────────────────
@@ -396,7 +403,7 @@ public final class GameScreen implements Screen {
         missionSelectOverlay = new MissionSelectOverlay(missionManager);
         missionSelectOverlay.setOnStartMission(missionId -> startMissionFlow(missionId, "overlay"));
         missionSelectOverlay.setOnClose(() -> dialogueManager.setStoryContext(storyManager.toConditionContext()));
-        saveManager     = new com.indieniinja.client.game.SaveManager(storyManager, missionManager);
+        saveManager     = new com.indieniinja.client.game.SaveManager(saveSlot, storyManager, missionManager);
         saveManager.setPreSaveSync(this::syncSaveState);
         saveManager.load();
         dialogueManager.setStoryContext(storyManager.toConditionContext());

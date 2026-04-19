@@ -85,7 +85,7 @@ D4 (Java in CI)          — independent, first D task
 - [x] `assets/animations/manifest.json` covers all entities
 - [x] `AnimationRegistry` loads from manifest
 - [x] `inheritsFrom` inheritance works
-- [ ] `tools/validate_animation_manifest.py` zero errors
+- [x] `tools/validate_animation_manifest.py` zero errors
 - [x] Hot-reload stub in `AnimationRegistry.reload()`
 
 ---
@@ -124,7 +124,7 @@ D4 (Java in CI)          — independent, first D task
 - [x] `assets/asset_manifest.json` created
 - [x] `buildAssets` Gradle task registered
 - [x] `tools/asset_pipeline.py` orchestrator written
-- [ ] CI uploads asset pipeline report artifact
+- [x] CI uploads asset pipeline report artifact
 
 ---
 
@@ -159,27 +159,27 @@ D4 (Java in CI)          — independent, first D task
 ### D4 — Java Tests in CI (First D Task)
 **Task ID:** ENG-D4 | **Effort:** 1 team-day | **Dependencies:** None
 
-- [ ] `.github/workflows/ci.yml` runs `./gradlew test`
-- [ ] Test results uploaded as artifact
+- [x] `.github/workflows/ci.yml` runs `./gradlew test`
+- [x] Test results uploaded as artifact
 
 ### D1 — Save Multi-Slot
 **Task ID:** ENG-D1 | **Effort:** 3 team-days | **Dependencies:** None (independent)
 
-- [ ] Save slot selection UI exists
-- [ ] Multiple named save slots supported
-- [ ] Schema migration from single-slot
+- [x] Save slot selection UI exists (`SlotSelectScreen.java` — 3 cards, same style as ModeSelectScreen)
+- [x] Multiple named save slots supported (`user_data/saves/slot_N/savegame.json`, slots 1–3)
+- [x] Schema migration from single-slot (slot 1 load auto-migrates legacy `saves/savegame.json`)
 
 ### D2 — Perf Regression CI
 **Task ID:** ENG-D2 | **Effort:** 2 team-days | **Dependencies:** None
 
-- [ ] Benchmark baseline recorded
-- [ ] CI fails if tick duration regresses > 10%
+- [x] Benchmark baseline recorded (`perf_baseline.json` at repo root, 5 ms/tick ceiling)
+- [x] CI fails if tick duration regresses > 10% (`TickDurationRegressionTest` in `:server:test`)
 
 ### D3 — Save Checksums
 **Task ID:** ENG-D3 | **Effort:** 2 team-days | **Dependencies:** None
 
-- [ ] Save file checksum written on save
-- [ ] Checksum validated on load — corrupt file detected with clear error
+- [x] Save file checksum written on save
+- [x] Checksum validated on load — corrupt file detected with clear error
 
 ---
 
@@ -189,11 +189,14 @@ D4 (Java in CI)          — independent, first D task
 - **ENG-A2** — EnemyDefinitionRegistry (2026-04-19)
 - **ENG-A3** — RoomTypeRegistry (2026-04-19)
 - **ENG-A4** — GameConfig class (2026-04-19)
-- **ENG-A5** — Animation manifest format + loader (2026-04-19) *(validate_animation_manifest.py pending)*
+- **ENG-A5** — Animation manifest format + loader (2026-04-19)
 - **ENG-B1** — Tiled map editor integration (2026-04-19)
 - **ENG-B2** — Yarn Spinner dialogue integration (2026-04-19)
 - **ENG-B3** — In-game developer console (2026-04-19)
-- **ENG-B4** — Gradle asset pipeline task (2026-04-19) *(CI artifact upload pending)*
+- **ENG-B4** — Gradle asset pipeline task + CI artifact (2026-04-19)
 - **ENG-C1** — :shadowascent module extraction (2026-04-19)
 - **ENG-C2** — EntityTypeRegistry + ShadowAscentEntityTypeBootstrap (2026-04-19)
 - **ENG-C3** — maven-publish configured (2026-04-19) *(publish verified pending CI credentials)*
+- **ENG-D4** — Java tests in CI: :server:test + :client:test + test report artifact (2026-04-19)
+- **ENG-D3** — Save checksums: SHA-256 sidecar written on save, verified on load (2026-04-19)
+- **ENG-D2** — Perf regression CI: TickDurationRegressionTest + perf_baseline.json 5ms ceiling (2026-04-19)
