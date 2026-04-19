@@ -78,7 +78,9 @@ def validate(manifest_path: Path) -> list[str]:
                         errors.append(f"{tprefix}: missing '{field}'")
                 fc = t.get("frameCounts")
                 if not isinstance(fc, list) or not all(isinstance(x, int) and x >= 0 for x in fc):
-                    errors.append(f"{tprefix}: frameCounts must be list of non-negative ints, got {fc!r}")
+                    errors.append(
+                        f"{tprefix}: frameCounts must be list of non-negative ints, got {fc!r}"
+                    )
 
         else:
             entries = s.get("entries")
@@ -112,7 +114,11 @@ def validate(manifest_path: Path) -> list[str]:
                         errors.append(f"{eprefix}: 'totalFrames' must be int >= 1 when present")
                     if not isinstance(offset, int) or offset < 0:
                         errors.append(f"{eprefix}: 'offset' must be int >= 0 when present")
-                    if isinstance(frames, int) and isinstance(total, int) and isinstance(offset, int):
+                    if (
+                        isinstance(frames, int)
+                        and isinstance(total, int)
+                        and isinstance(offset, int)
+                    ):
                         if offset + frames > total:
                             errors.append(
                                 f"{eprefix}: offset({offset}) + frames({frames}) > totalFrames({total})"
@@ -141,7 +147,11 @@ def main() -> int:
     with open(manifest_path, encoding="utf-8") as f:
         data = json.load(f)
     total_keys = sum(
-        len(s.get("entries", [])) if s.get("type", "entries") != "enemy_sheet_batch" else len(s.get("types", []))
+        (
+            len(s.get("entries", []))
+            if s.get("type", "entries") != "enemy_sheet_batch"
+            else len(s.get("types", []))
+        )
         for s in data.get("sets", [])
     )
     print(f"Manifest valid: {len(data.get('sets', []))} sets, {total_keys} entries — zero errors.")
