@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-19
-version_anchor: v0.11.66
+version_anchor: v0.11.68
 replaces: docs/HANDOVER.md
 ---
 
@@ -13,8 +13,8 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Baseline
 
-- Date baseline: 2026-04-18
-- Version baseline: v0.11.66
+- Date baseline: 2026-04-19
+- Version baseline: v0.11.68
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -24,10 +24,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.11.67 (combat feel / balance iteration).
-- Latest release verification (`2026-04-18`):
+- Next release candidate: v0.11.69 (combat feel / balance iteration — engine platform D is now live).
+- Latest release verification (`2026-04-19`):
   - Tests green locally (BUILD SUCCESSFUL — all modules)
-  - Tag target: v0.11.66
+  - Tag target: v0.11.68
 
 ## Runtime Reality (Implemented)
 
@@ -50,6 +50,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Release/version parity gate is enforced through `tools/check_version_sync.py`.
 - Solo replay playback is now routed through the Java client (`ninja-client-all.jar`) via `-Dninja.replayPath`; `ninja_dash.exe` / `demo_game.py` is no longer invoked for any launcher-initiated game operation.
 - **Engine Platform Phases A–C complete (2026-04-19)**: Content definition system (`ContentLoader`, `ContentRegistry`, JSON-schema-validated definitions), `GameConfig` balance constants, animation manifest + hot-reload, Tiled TMX room loader (4 templates), Yarn Spinner dialogue format (23 files), in-game DevConsole (backtick toggle, 14 commands), Gradle `buildAssets` pipeline (436 files, SHA-256). Module extraction: `:shadowascent` module created — `sim.*` and `world.*` moved out of `:core`; `EntityTypeRegistry` + `ShadowAscentEntityTypeBootstrap` added; `:core` published as `engine-core` Maven artifact to GitHub Packages. All server tests pass.
+- **Engine Platform Phase D complete (2026-04-19)**: Save checksums (`savegame.sha256` SHA-256 sidecar, verified on load with corrupt-save fallback). Perf regression gate (`TickDurationRegressionTest` — 2000-tick run, 5 ms ceiling, `perf_baseline.json`). Multi-slot save support (`user_data/saves/slot_N/`, `SlotSelectScreen`, legacy single-slot auto-migration). `tools/validate_animation_manifest.py` validates manifest against registry at authoring time.
 
 ## Canonical Documentation Set
 

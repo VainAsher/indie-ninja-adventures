@@ -106,9 +106,9 @@ Single source of truth: [`version.json`](version.json)
 
 ```json
 {
-  "version": "0.11.63",
+  "version": "0.11.68",
   "build": "production",
-  "build_date": "2026-04-18",
+  "build_date": "2026-04-19",
   "min_launcher_version": "1.1.0"
 }
 ```

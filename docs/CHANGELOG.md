@@ -16,19 +16,28 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
-## [0.11.68] - 2026-04-19 (engine platform phase D: save checksums, perf regression CI, multi-slot saves)
+## [0.11.68] - 2026-04-19 (engine platform phase D: save checksums, perf regression CI, multi-slot saves, CI fixes)
 
 ### Added
 
 - **ENG-D3 — Save checksums**: SHA-256 sidecar file (`savegame.sha256`) written alongside each save. On load, checksum is verified before data is applied — corrupt saves detected with a clear error log and fresh-start fallback.
 - **ENG-D2 — Perf regression CI**: `TickDurationRegressionTest` in `:server:test` — 200-tick warm-up + 2000-tick timed run asserts avg ms/tick < 5.0. `perf_baseline.json` at repo root documents the ceiling.
 - **ENG-D1 — Save multi-slot**: Saves now live in `user_data/saves/slot_N/savegame.json` (slots 1–3). `SlotSelectScreen` shows 3 slot cards (save date, playtime, level) before mode selection. Legacy single-slot saves auto-migrated to slot 1 on first load.
+- **`tools/validate_animation_manifest.py`**: 152-line validation script — checks `assets/animations/manifest.json` against registered animation keys; reports missing files, unexpected extras, and orphaned registry entries. Run with `python tools/validate_animation_manifest.py` or as a CI pre-flight.
+
+### Fixed
+
+- **DevConsole headless guard**: `ShapeRenderer` and `BitmapFont` construction now guarded behind `Gdx.app != null` — prevents NPE when client unit tests construct `GameScreen` in a headless environment without a live OpenGL context.
+- **Python tools Black-format**: `tools/asset_pipeline.py`, `tools/dialogues_json_to_yarn.py`, and `tools/validate_room_templates.py` reformatted to pass Black style gate — CI was failing on all three due to style violations introduced with the v0.11.67 authoring-tools additions.
 
 ### Changed
 
 - `SaveManager` constructor overloaded with `(int slotIndex, StoryManager, MissionManager)`. Zero-arg slot parameter defaults to slot 1 — backward compatible.
 - `MainMenuScreen` CONNECT now routes through `SlotSelectScreen` → `ModeSelectScreen` → `GameScreen`.
 - `GameScreen` accepts `saveSlot` parameter; threads it into `SaveManager` construction.
+- **`docs/workflow/ITERATION_RELEASE_PROTOCOL`** (10-step restructure): `:client:test` added to local gates; push-before-tag pattern introduced (push feature commit first, wait for CI `java-build` green, then version-bump + tag); step count renumbered to 10. Prevents tagging on a build that hasn't cleared CI.
+- **`docs/workflow/PRE_COMMIT_LOCAL_GATES`** (rules 6–7 added): client test evidence surface documented; libGDX `Gdx.app` guard pattern for headless tests; known OneDrive/AV file-lock limitation noted for `:client:test` local failures.
+- **`docs/dev/JAVA_ARCHITECTURE.md`**: headless test rule callout added to client module section — all client tests must guard against `Gdx.app == null`.
 
 ---
 
