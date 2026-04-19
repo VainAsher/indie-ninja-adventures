@@ -49,6 +49,28 @@ project(":client").tasks.matching { it.name == "shadowJar" }.configureEach {
     dependsOn(tasks.named("buildAssets"))
 }
 
+// ── OneDrive build-dir redirect ─────────────────────────────────────────────
+//
+// OneDrive syncs java/*/build/ in real-time, holding file handles that block
+// Gradle's output-directory cleanup step (IOException: Unable to delete).
+// When the repo lives under OneDrive, redirect all subproject build dirs to
+// %LOCALAPPDATA%\indie-ninja-builds\<module> — outside the sync boundary.
+//
+// CI runners (GitHub Actions windows-latest) use paths like D:\a\... which do
+// NOT contain "OneDrive", so this block is a no-op on CI and artifact paths
+// remain at the standard java/*/build/libs/ locations.
+val repoPathNorm = rootDir.canonicalPath.replace('\\', '/')
+val onOneDrive   = repoPathNorm.contains("/OneDrive/", ignoreCase = true)
+if (onOneDrive) {
+    val localRoot = (System.getenv("LOCALAPPDATA") ?: System.getProperty("java.io.tmpdir"))
+        .replace('\\', '/')
+    val buildRoot = "$localRoot/indie-ninja-builds"
+    logger.lifecycle("[OneDrive] Build dirs redirected → $buildRoot/<module>")
+    subprojects {
+        layout.buildDirectory.set(File("$buildRoot/${project.name}"))
+    }
+}
+
 subprojects {
     apply(plugin = "java")
 
