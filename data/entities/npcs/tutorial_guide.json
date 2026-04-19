@@ -1,0 +1,20 @@
+{
+  "$schema": "../../schemas/npc_def_schema.json",
+  "id": "tutorial_guide",
+  "displayName": "Tutorial Guide",
+  "width": 32,
+  "height": 64,
+  "animationKey": "npc_tutorial_guide",
+  "dialogueTreeId": "tutorial_guide_main",
+  "isQuestGiver": false,
+  "isShop": false,
+  "isBoss": false,
+  "hubPresenceByState": {
+    "FULL": true,
+    "CORRUPTED": false,
+    "EMPTY": false,
+    "FRACTURED": false,
+    "RECOVERING": false,
+    "WHOLE": false
+  }
+}

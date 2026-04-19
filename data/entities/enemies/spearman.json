@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schemas/enemy_def_schema.json",
+  "id": "spearman",
+  "displayName": "Spearman",
+  "width": 36,
+  "height": 52,
+  "physicsHeight": 44,
+  "baseHp": 6,
+  "damage": 2,
+  "speed": 65.0,
+  "detectionRange": 190.0,
+  "attackRange": 80.0,
+  "attackWindupSeconds": 0.6,
+  "fleeHpThreshold": 0.0,
+  "knockoutDurationTicks": 130,
+  "xpReward": 13,
+  "currencyDrop": { "min": 1, "max": 4, "chance": 0.45 },
+  "aiProfile": "standard",
+  "animationKey": "enemy_spearman",
+  "spawnWeight": 7,
+  "biomeAffinity": ["earth", "stone"],
+  "tags": ["grounded", "melee", "reach"]
+}

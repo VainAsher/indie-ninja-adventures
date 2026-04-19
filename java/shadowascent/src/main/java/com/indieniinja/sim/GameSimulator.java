@@ -1,5 +1,7 @@
 package com.indieniinja.sim;
 
+import com.indieniinja.content.ContentRegistry;
+import com.indieniinja.content.GameConfig;
 import com.indieniinja.core.EntityManager;
 import com.indieniinja.core.EventBus;
 import com.indieniinja.core.GameClock;
@@ -60,15 +62,15 @@ public final class GameSimulator {
     // ── Constants ─────────────────────────────────────────────────────────────
     private static final float DT           = PhysicsConstants.FIXED_DT;
     private static final float PIXELS_PER_S = 1f / DT;  // 60
-    private static final float SKELETON_RANGE_MULT = 1.15f;
-    private static final float ARCHER_PROJECTILE_SPEED = SimPlayer.SHURIKEN_SPEED * 0.90f;
-    private static final float ARCHER_MIN_COMBAT_RANGE = 112f;
-    private static final float ARCHER_MAX_COMBAT_RANGE = 220f;
-    private static final float SKELETON_GUARD_RETREAT_SPEED_MULT = 0.35f;
-    private static final float STANCE_DRIFT_PER_SECOND = 0.09f;
-    private static final float STANCE_SWITCH_BOOST = 0.035f;
-    private static final float PARRY_STUN_DURATION = 0.80f;
-    private static final float FLOW_LANTERN_RESTORE_PER_SECOND = 0.012f;
+    private static final float SKELETON_RANGE_MULT            = GameConfig.SKELETON_RANGE_MULT;
+    private static final float ARCHER_PROJECTILE_SPEED        = GameConfig.PLAYER_SHURIKEN_SPEED * GameConfig.ARCHER_PROJECTILE_SPEED_MULT;
+    private static final float ARCHER_MIN_COMBAT_RANGE        = GameConfig.ARCHER_MIN_COMBAT_RANGE;
+    private static final float ARCHER_MAX_COMBAT_RANGE        = GameConfig.ARCHER_MAX_COMBAT_RANGE;
+    private static final float SKELETON_GUARD_RETREAT_SPEED_MULT = GameConfig.SKELETON_GUARD_RETREAT_SPEED_MULT;
+    private static final float STANCE_DRIFT_PER_SECOND        = GameConfig.STANCE_DRIFT_PER_SECOND;
+    private static final float STANCE_SWITCH_BOOST            = GameConfig.STANCE_SWITCH_BOOST;
+    private static final float PARRY_STUN_DURATION            = GameConfig.PARRY_STUN_DURATION;
+    private static final float FLOW_LANTERN_RESTORE_PER_SECOND = GameConfig.LANTERN_FLOW_RESTORE_RATE;
     private static final float YIN_SWIM_HORIZONTAL_CAP = PhysicsConstants.MAX_RUN_SPEED * 0.52f;
     private static final float YANG_SWIM_HORIZONTAL_CAP = PhysicsConstants.MAX_RUN_SPEED * 0.62f;
     private static final float YIN_SWIM_DESCEND_CAP = 2.9f;
@@ -152,6 +154,16 @@ public final class GameSimulator {
     private final Map<String, Integer> loggedBossPhaseById = new HashMap<>();
     /** Per-boss AI-state transition cache for low-noise playtest tracing. */
     private final Map<String, BossAIState> loggedBossStateById = new HashMap<>();
+
+    // ── Content registry (set at startup; null = legacy switch fallback) ─────
+
+    private ContentRegistry contentRegistry;
+
+    public void setContentRegistry(ContentRegistry registry) {
+        this.contentRegistry = registry;
+    }
+
+    public ContentRegistry getContentRegistry() { return contentRegistry; }
 
     // ── Construction ─────────────────────────────────────────────────────────
 
@@ -1919,8 +1931,7 @@ public final class GameSimulator {
         if (en.physics.y < 0) en.physics.y = 0;
     }
 
-    // ── Respawn delay (seconds) ────────────────────────────────────────────────
-    private static final float RESPAWN_DELAY = 5.0f;
+    private static final float RESPAWN_DELAY = GameConfig.PLAYER_RESPAWN_DELAY;
 
     /**
      * Count down respawn timers and restore dead players when time expires.
@@ -2755,10 +2766,25 @@ public final class GameSimulator {
     }
 
     private SimEnemy buildEnemy(LevelLayout.EnemySpawn spec, int idx) {
-        // Arcade difficulty: +1 HP and +5% speed per 3 depth levels
         int   hpBonus   = (gameMode == GameMode.ARCADE && arcadeDepth > 0) ? arcadeDepth / 3 : 0;
         float speedMult = (gameMode == GameMode.ARCADE && arcadeDepth > 0) ? 1f + (arcadeDepth / 3) * 0.05f : 1f;
-        // Stats from Python ENEMY_DEFINITIONS (entities/enemy.py)
+
+        if (contentRegistry != null) {
+            com.indieniinja.content.EnemyDefinition def = contentRegistry.getEnemyOrNull(spec.type());
+            if (def != null) {
+                boolean canFly = def.tags().contains("aerial");
+                return new SimEnemy(
+                    hubId + "_" + def.id() + "_" + idx, def.id(),
+                    spec.x(), spec.y(),
+                    def.width(), def.height(),
+                    def.baseHp() + hpBonus, def.damage(),
+                    def.speed() * speedMult,
+                    def.detectionRange(), def.attackRange(),
+                    spec.patrolMinX(), spec.patrolMaxX(), canFly
+                );
+            }
+        }
+        // Legacy fallback (used when registry not loaded, e.g. in unit tests)
         return switch (spec.type()) {
             case "goblin"   -> new SimEnemy(hubId+"_goblin_"+idx,   "goblin",   spec.x(), spec.y(), 32, 48, 5+hpBonus, 1, 72f *speedMult, 200f, 32f, spec.patrolMinX(), spec.patrolMaxX(), false);
             case "bat"      -> new SimEnemy(hubId+"_bat_"+idx,      "bat",      spec.x(), spec.y(), 28, 28, 3+hpBonus, 1, 90f *speedMult, 180f, 28f, spec.patrolMinX(), spec.patrolMaxX(), true);
@@ -2774,20 +2800,38 @@ public final class GameSimulator {
      * Dynamically spawn an enemy mid-simulation (used by Time Leech Lord pattern).
      * Spawns at the given world position with default patrol bounds centred on spawn.
      */
+    /** Public entry point for the dev console — delegates to internal spawn logic. */
+    public void devSpawnEnemy(String type, float x, float y) { spawnEnemyAt(type, x, y); }
+
     private void spawnEnemyAt(String type, float x, float y) {
         int idx = enemies.size();
         float patrolHalf = 96f;
-        SimEnemy en = switch (type) {
-            case "time_leech" -> new SimEnemy(hubId+"_tl_"+idx, "time_leech", x, y, 40, 32,
-                                              3, 1, 78f, 170f, 40f,
-                                              x - patrolHalf, x + patrolHalf, false);
-            case "slime_red" -> new SimEnemy(hubId+"_rs_"+idx, "slime_red", x, y, 40, 32,
-                                             5, 2, 68f, 180f, 44f,
-                                             x - patrolHalf, x + patrolHalf, false);
-            default           -> new SimEnemy(hubId+"_dyn_"+idx, type, x, y, 32, 48,
-                                              2, 1, 72f, 180f, 32f,
-                                              x - patrolHalf, x + patrolHalf, false);
-        };
+        SimEnemy en;
+        if (contentRegistry != null) {
+            com.indieniinja.content.EnemyDefinition def = contentRegistry.getEnemyOrNull(type);
+            if (def != null) {
+                boolean canFly = def.tags().contains("aerial");
+                en = new SimEnemy(hubId + "_dyn_" + idx, def.id(), x, y,
+                    def.width(), def.height(), def.baseHp(), def.damage(), def.speed(),
+                    def.detectionRange(), def.attackRange(),
+                    x - patrolHalf, x + patrolHalf, canFly);
+            } else {
+                en = new SimEnemy(hubId+"_dyn_"+idx, type, x, y, 32, 48, 2, 1, 72f, 180f, 32f,
+                    x - patrolHalf, x + patrolHalf, false);
+            }
+        } else {
+            en = switch (type) {
+                case "time_leech" -> new SimEnemy(hubId+"_tl_"+idx, "time_leech", x, y, 40, 32,
+                                                  3, 1, 78f, 170f, 40f,
+                                                  x - patrolHalf, x + patrolHalf, false);
+                case "slime_red"  -> new SimEnemy(hubId+"_rs_"+idx, "slime_red", x, y, 40, 32,
+                                                  5, 2, 68f, 180f, 44f,
+                                                  x - patrolHalf, x + patrolHalf, false);
+                default           -> new SimEnemy(hubId+"_dyn_"+idx, type, x, y, 32, 48,
+                                                  2, 1, 72f, 180f, 32f,
+                                                  x - patrolHalf, x + patrolHalf, false);
+            };
+        }
         enemies.add(en);
         if (!en.canFly) {
             var entity = entityManager.create(com.indieniinja.core.EntityType.ENEMY, en.physics);

@@ -1,5 +1,6 @@
 package com.indieniinja.world;
 
+import com.indieniinja.content.RoomTypeDefinition;
 import java.util.*;
 
 /**
@@ -57,6 +58,22 @@ public final class ZonePlanner {
      * @param neighborDirs set of connected directions ("up","down","left","right")
      * @return byte[H][W] zone grid
      */
+    public static byte[][] plan(long roomSeed, RoomTypeDefinition def,
+                                 Collection<String> neighborDirs) {
+        byte[][] zones = new byte[H][W];
+        Random rng = new Random(roomSeed);
+        List<int[]> doorZones    = placeDoors(zones, neighborDirs);
+        List<int[]> featureZones = placeFeaturesFromDef(zones, def, doorZones, rng);
+        List<int[]> mustConnect  = new ArrayList<>(doorZones);
+        mustConnect.addAll(featureZones);
+        if (mustConnect.size() >= 2) ensureConnectivity(zones, mustConnect);
+        applyLogicRules(zones, def.id(), neighborDirs);
+        addFillZones(zones, def.id(), mustConnect, rng);
+        thickenPerimeter(zones, neighborDirs, mustConnect);
+        finalizeDecor(zones, def.id(), rng);
+        return zones;
+    }
+
     public static byte[][] plan(long roomSeed, String roomType,
                                  Collection<String> neighborDirs) {
         byte[][] zones = new byte[H][W];
@@ -160,6 +177,34 @@ public final class ZonePlanner {
                     }
                 }
             }
+        }
+        return features;
+    }
+
+    private static List<int[]> placeFeaturesFromDef(byte[][] z, RoomTypeDefinition def,
+                                                      List<int[]> doorZones, Random rng) {
+        List<int[]> features = new ArrayList<>();
+        int cx = W / 2, cy = H / 2;
+
+        if (def.hasShop()) {
+            z[cy][cx] = SHOP;  features.add(new int[]{cx, cy});
+            int[] corner = farCorner(doorZones, rng);
+            z[corner[1]][corner[0]] = LOOT;  features.add(corner);
+        } else if (def.hasPuzzle()) {
+            z[cy][cx] = SAVE;  features.add(new int[]{cx, cy});
+            int[] corner = farCorner(doorZones, rng);
+            z[corner[1]][corner[0]] = LOOT;  features.add(corner);
+        } else if (def.lootTier() >= 2) {
+            z[cy][cx] = LOOT;  features.add(new int[]{cx, cy});
+        } else if ("start".equals(def.id())) {
+            features.add(new int[]{cx, cy});
+            if (!doorZones.isEmpty()) {
+                int[] closest = closestInterior(z, doorZones.get(0), doorZones, features);
+                if (closest != null) { z[closest[1]][closest[0]] = SAVE; features.add(closest); }
+            }
+        } else if (def.lootTier() >= 1 && rng.nextFloat() < 0.25f) {
+            int[] candidate = randomInterior(z, doorZones, features, rng);
+            if (candidate != null) { z[candidate[1]][candidate[0]] = LOOT; features.add(candidate); }
         }
         return features;
     }

@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schemas/enemy_def_schema.json",
+  "id": "bat",
+  "displayName": "Bat",
+  "width": 28,
+  "height": 28,
+  "physicsHeight": 24,
+  "baseHp": 3,
+  "damage": 1,
+  "speed": 90.0,
+  "detectionRange": 180.0,
+  "attackRange": 28.0,
+  "attackWindupSeconds": 0.3,
+  "fleeHpThreshold": 0.0,
+  "knockoutDurationTicks": 60,
+  "xpReward": 6,
+  "currencyDrop": { "min": 0, "max": 1, "chance": 0.2 },
+  "aiProfile": "aerial",
+  "animationKey": "enemy_bat",
+  "spawnWeight": 8,
+  "biomeAffinity": ["cave", "dark"],
+  "tags": ["aerial", "melee"]
+}

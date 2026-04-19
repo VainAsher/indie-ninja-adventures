@@ -21,6 +21,34 @@ tasks.register("buildAll") {
     description = "Build fat JARs and copy them to the repo root for the launcher."
 }
 
+// ── Asset pipeline ─────────────────────────────────────────────────────────
+
+/**
+ * Regenerate assets/asset_manifest.json by scanning the assets/ directory.
+ *
+ * Runs tools/asset_pipeline.py via the system Python 3 interpreter.
+ * Called automatically by the client shadowJar task so the manifest is always
+ * current when a new fat JAR is produced.
+ *
+ * To run manually:  ./gradlew buildAssets
+ * To only check:    python tools/asset_pipeline.py --check
+ */
+tasks.register<Exec>("buildAssets") {
+    group       = "build"
+    description = "Scan assets/ and update assets/asset_manifest.json."
+    val repoRoot = rootProject.projectDir.parentFile
+    workingDir  = repoRoot
+    val python = if (System.getProperty("os.name").lowercase().contains("win")) "python" else "python3"
+    commandLine(python, "tools/asset_pipeline.py",
+        "--root",  "assets",
+        "--out",   "assets/asset_manifest.json")
+}
+
+// Hook buildAssets into the client shadow JAR so the manifest is always current.
+project(":client").tasks.matching { it.name == "shadowJar" }.configureEach {
+    dependsOn(tasks.named("buildAssets"))
+}
+
 subprojects {
     apply(plugin = "java")
 

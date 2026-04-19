@@ -2,7 +2,7 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-18
+last_updated: 2026-04-19
 version_anchor: v0.11.66
 replaces: docs/HANDOVER.md
 ---
@@ -49,6 +49,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Interaction affordance readability bridge is now active: lever/button/echo-trigger and pickup interactions queue short explicit animation feedback with `[Playtest][Interaction]` traces.
 - Release/version parity gate is enforced through `tools/check_version_sync.py`.
 - Solo replay playback is now routed through the Java client (`ninja-client-all.jar`) via `-Dninja.replayPath`; `ninja_dash.exe` / `demo_game.py` is no longer invoked for any launcher-initiated game operation.
+- **Engine Platform Phases A–C complete (2026-04-19)**: Content definition system (`ContentLoader`, `ContentRegistry`, JSON-schema-validated definitions), `GameConfig` balance constants, animation manifest + hot-reload, Tiled TMX room loader (4 templates), Yarn Spinner dialogue format (23 files), in-game DevConsole (backtick toggle, 14 commands), Gradle `buildAssets` pipeline (436 files, SHA-256). Module extraction: `:shadowascent` module created — `sim.*` and `world.*` moved out of `:core`; `EntityTypeRegistry` + `ShadowAscentEntityTypeBootstrap` added; `:core` published as `engine-core` Maven artifact to GitHub Packages. All server tests pass.
 
 ## Canonical Documentation Set
 

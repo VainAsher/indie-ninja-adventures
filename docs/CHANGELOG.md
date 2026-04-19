@@ -16,6 +16,25 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [Unreleased] - Engine Platform Phases A–C (v0.11.66 baseline)
+
+### Added
+
+- **ENG-A1 — Content definition JSON format**: `EnemyDefinition`, `NpcDefinition`, `RoomTypeDefinition` Java records; `ContentLoader` (Jackson + JSON Schema validation); `ContentRegistry` typed lookup API with `getEnemyOrNull()` graceful fallback. Definitions in `data/entities/enemies/*.json`, `data/entities/npcs/*.json`, `data/entities/rooms/types/*.json`.
+- **ENG-A2 — EnemyDefinitionRegistry**: `EntityRenderer.enemyPhysicsH/W()` converted from static switches to ContentRegistry lookups (registry-first, legacy-fallback pattern). `EnemyAiProfile` enum (STANDARD, AERIAL, RANGED).
+- **ENG-A3 — RoomTypeRegistry**: `ZonePlanner` and `RoomGenerator` consume `RoomTypeDefinition` from `ContentRegistry`; `RoomType` enum extended with `id()` method for registry key lookup.
+- **ENG-A4 — GameConfig class**: `GameConfig.java` centralises all balance constants (12 combat, 9 AI, 10 physics). `SimPlayer` and `GameSimulator` delegate all magic numbers to `GameConfig`.
+- **ENG-A5 — Animation manifest**: `assets/animations/manifest.json` covering all entities (player unarmed/sword/pistol + 6 enemy types). `AnimationRegistry.loadFromManifest()` for hot-reload via DevConsole.
+- **ENG-B1 — Tiled map editor integration**: `TmxRoomLoader.java` (XML parse via `DocumentBuilderFactory`, GID→byte mapping). 4 template `.tmx` files (`boss`, `shop`, `start`, `exit`). `RoomGenerator` template-first fallback. `docs/dev/TILED_SETUP.md`. `tools/validate_room_templates.py`.
+- **ENG-B2 — Yarn Spinner dialogue**: `tools/dialogues_json_to_yarn.py` converter. 23 `.yarn` dialogue files. `DialogueTree.loadAllFromYarn()` and `DialogueManager` prefers Yarn directory over monolithic JSON.
+- **ENG-B3 — In-game developer console**: `DevConsole.java` — backtick toggle, 14 commands (`help`, `reload_content`, `reload_anims`, `spawn`, `teleport`, `god`, `noclip`, `hud`, `fps`, `give_xp`, `set_health`, `clear`, `quit`). Disabled in release builds (`-Dindierelease=true`). No-op in multiplayer.
+- **ENG-B4 — Gradle asset pipeline**: `tools/asset_pipeline.py` SHA-256 asset scanner. `assets/asset_manifest.json` (436 files). `buildAssets` Gradle task hooked into `:client:shadowJar`.
+- **ENG-C1 — `:shadowascent` Gradle module**: `java/shadowascent/` module created. `com.indieniinja.sim.*` and `com.indieniinja.world.*` moved from `:core` to `:shadowascent`. `:core` now compiles independently of any game-specific code. `:server` and `:client` depend on `:shadowascent` (which exposes `:core` via `api`). All 18+ server tests pass.
+- **ENG-C2 — EntityTypeRegistry**: `EntityTypeRegistry.java` in `:core` — string-keyed registry mapping type IDs to `EntityType`. `ShadowAscentEntityTypeBootstrap.java` in `:shadowascent` — registers all enemies, NPCs, bosses, projectiles, and pickups at startup.
+- **ENG-C3 — engine-core artifact publication**: `maven-publish` plugin configured in `:core/build.gradle.kts`. Publishes `com.indieniinja:engine-core` to GitHub Packages via `./gradlew :core:publish` (requires `GITHUB_ACTOR` + `GITHUB_TOKEN`).
+
+---
+
 ## [0.11.66] - 2026-04-18 (workflow system, golden paths, CI gate enforcement, surface-specific done criteria)
 
 ### Added

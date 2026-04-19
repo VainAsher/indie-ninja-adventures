@@ -1,5 +1,6 @@
 package com.indieniinja.server;
 
+import com.indieniinja.content.ContentRegistry;
 import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.NPCState;
 import com.indieniinja.network.InputCommand;
@@ -102,6 +103,10 @@ public final class ZoneSimulationLoop implements Runnable {
     private static final int DEFAULT_ROOMS = 12;
 
     public static void initSimulator(ZoneInstance zone) {
+        initSimulator(zone, null);
+    }
+
+    public static void initSimulator(ZoneInstance zone, ContentRegistry contentRegistry) {
         // Idempotent: skip if already initialized.
         if (zone.simulator != null) return;
 
@@ -138,6 +143,7 @@ public final class ZoneSimulationLoop implements Runnable {
         layout = layout.withoutBoss();  // no layout-seeded bosses in hub zones
 
         zone.simulator = new GameSimulator(graph.startRoom().seed, zone.hubId, layout);
+        if (contentRegistry != null) zone.simulator.setContentRegistry(contentRegistry);
         zone.simulator.setMode(zone.gameMode, zone.arcadeDepth, zone.arcadeRooms);
 
         // Initialise hub evolution state machine (one per zone, keyed by masterHubId)
@@ -192,7 +198,7 @@ public final class ZoneSimulationLoop implements Runnable {
     @Override
     public void run() {
         // Phase B: initialise the server-side GameSimulator for this zone
-        initSimulator(zone);
+        initSimulator(zone, session.contentRegistry);
         log.info("[Zone {}] simulation loop started", zone.hubId);
 
         // Start recording if enabled via system property -Dninja.record=true

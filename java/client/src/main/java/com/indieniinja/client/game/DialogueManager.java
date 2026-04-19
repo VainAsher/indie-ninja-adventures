@@ -34,6 +34,15 @@ public final class DialogueManager {
     private java.util.function.Consumer<String> eventCallback;
 
     public DialogueManager() {
+        // Prefer .yarn directory if present; fall back to monolithic dialogues.json.
+        com.badlogic.gdx.files.FileHandle yarnDir = Gdx.files.internal("data/dialogues");
+        if (yarnDir.exists() && yarnDir.isDirectory()) {
+            Map<String, DialogueTree> fromYarn = DialogueTree.loadAllFromYarn(yarnDir);
+            if (!fromYarn.isEmpty()) {
+                this.trees = fromYarn;
+                return;
+            }
+        }
         this.trees = DialogueTree.loadAll(Gdx.files.internal("data/dialogues.json"));
     }
 

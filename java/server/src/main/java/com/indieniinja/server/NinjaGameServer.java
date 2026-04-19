@@ -1,5 +1,8 @@
 package com.indieniinja.server;
 
+import com.indieniinja.content.ContentLoadException;
+import com.indieniinja.content.ContentLoader;
+import com.indieniinja.content.ContentRegistry;
 import com.indieniinja.network.WireCodec;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -59,7 +62,12 @@ public final class NinjaGameServer {
     }
 
     public static void run(int port, long seed) throws Exception {
+        // Load all content definitions from data/ directory at startup.
+        // Server does not start if any definition file fails schema validation.
+        ContentRegistry contentRegistry = loadContent();
+
         GameSession session = new GameSession(seed);
+        session.contentRegistry = contentRegistry;
 
         // Optional Redis — enable with -Dredis.host=<host> (default port 6379)
         String redisHost = System.getProperty("redis.host");
@@ -139,6 +147,23 @@ public final class NinjaGameServer {
         protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) {
             out.writeInt(msg.readableBytes());  // big-endian uint32
             out.writeBytes(msg);
+        }
+    }
+
+    private static ContentRegistry loadContent() throws Exception {
+        java.nio.file.Path dataRoot = java.nio.file.Paths.get("data");
+        if (!java.nio.file.Files.isDirectory(dataRoot)) {
+            log.warn("[Content] data/ directory not found at {}; starting with empty registry", dataRoot.toAbsolutePath());
+            return new ContentRegistry();
+        }
+        try {
+            ContentRegistry registry = new ContentLoader(dataRoot).loadAll();
+            log.info("[Content] Registry ready ({} enemies, {} npcs, {} roomTypes)",
+                registry.enemyCount(), registry.npcCount(), registry.roomTypeCount());
+            return registry;
+        } catch (ContentLoadException e) {
+            log.error("[Content] Failed to load content definitions — server cannot start: {}", e.getMessage());
+            throw e;
         }
     }
 }

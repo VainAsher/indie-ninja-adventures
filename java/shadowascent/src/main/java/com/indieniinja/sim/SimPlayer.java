@@ -1,5 +1,6 @@
 package com.indieniinja.sim;
 
+import com.indieniinja.content.GameConfig;
 import com.indieniinja.network.InputCommand;
 import com.indieniinja.physics.PhysicsConstants;
 import com.indieniinja.physics.PhysicsState;
@@ -94,20 +95,20 @@ public final class SimPlayer {
     public String  interactionState = "";
     public float   interactionTimer = 0f;
 
-    // Combat constants (match Python combat_mechanic.py / shuriken.py)
-    public static final int   MELEE_DAMAGE         = 1;   // unarmed hit (KO, non-lethal)
-    public static final int   ARMED_MELEE_DAMAGE   = 2;   // armed hit (lethal, drops loot)
-    public static final int   MELEE_ACTIVE_TICKS   = 8;    // frames hitbox is live
-    public static final float MELEE_COOLDOWN       = 0.4f; // seconds
-    public static final float MELEE_REACH          = 48f;  // px forward from player center
-    public static final float MELEE_HEIGHT         = 40f;  // hitbox height
-    public static final float SHURIKEN_SPEED       = 10f;  // px/tick (600px/s ÷ 60)
-    public static final float SHURIKEN_COOLDOWN    = 0.35f;
-    public static final int   SHURIKEN_DAMAGE      = 1;
+    // Combat constants — delegate to GameConfig so balance edits have one home.
+    public static final int   MELEE_DAMAGE         = GameConfig.PLAYER_MELEE_DAMAGE;
+    public static final int   ARMED_MELEE_DAMAGE   = GameConfig.PLAYER_ARMED_MELEE_DAMAGE;
+    public static final int   MELEE_ACTIVE_TICKS   = GameConfig.PLAYER_MELEE_ACTIVE_TICKS;
+    public static final float MELEE_COOLDOWN       = GameConfig.PLAYER_MELEE_COOLDOWN;
+    public static final float MELEE_REACH          = GameConfig.PLAYER_MELEE_REACH;
+    public static final float MELEE_HEIGHT         = GameConfig.PLAYER_MELEE_HEIGHT;
+    public static final float SHURIKEN_SPEED       = GameConfig.PLAYER_SHURIKEN_SPEED;
+    public static final float SHURIKEN_COOLDOWN    = GameConfig.PLAYER_SHURIKEN_COOLDOWN;
+    public static final int   SHURIKEN_DAMAGE      = GameConfig.PLAYER_SHURIKEN_DAMAGE;
     public static final float SHURIKEN_STUN        = 0.4f;
-    public static final int   SHURIKEN_MAX_AMMO    = 5;
-    public static final float PARRY_WINDOW         = 0.10f;
-    public static final float BLOCK_DAMAGE_MULT    = 0.35f;
+    public static final int   SHURIKEN_MAX_AMMO    = GameConfig.PLAYER_SHURIKEN_MAX_AMMO;
+    public static final float PARRY_WINDOW         = GameConfig.PLAYER_PARRY_WINDOW;
+    public static final float BLOCK_DAMAGE_MULT    = GameConfig.PLAYER_BLOCK_DAMAGE_MULT;
     public static final float BLOCK_HIT_TIME       = 0.16f;
     public static final float PARRY_HIT_TIME       = 0.20f;
     public static final float INTERACT_LEVER_TIME  = 0.45f;
@@ -284,7 +285,7 @@ public final class SimPlayer {
         if (invincibilityTicks > 0) return;
         health = Math.max(0, health - dmg);
         if (health <= 0) isDead = true;
-        invincibilityTicks = 60;  // 1 second invincibility at 60 Hz
+        invincibilityTicks = GameConfig.PLAYER_INVINCIBILITY_TICKS;
         lantern.onDamage();       // taking damage dims the lantern
     }
 

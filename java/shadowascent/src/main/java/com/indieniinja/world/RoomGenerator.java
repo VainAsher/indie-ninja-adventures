@@ -1,5 +1,6 @@
 package com.indieniinja.world;
 
+import com.indieniinja.content.RoomTypeDefinition;
 import com.indieniinja.physics.PhysicsConstants;
 
 import java.util.Collection;
@@ -47,6 +48,36 @@ public final class RoomGenerator {
     public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
                                      long roomSeed) {
         return generate(zones, neighborDirs, roomSeed, "combat");
+    }
+
+    public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
+                                     long roomSeed, RoomTypeDefinition def) {
+        // Template-first: rooms that require a template try to load it before generating.
+        if (def.requiresTemplate()) {
+            byte[][] template = TmxRoomLoader.loadTemplate(def.id());
+            if (template != null) {
+                carveDoors(template, neighborDirs);
+                return template;
+            }
+            // No template file found — fall through to procedural generation.
+        }
+        byte[][] grid = new byte[ROWS][COLS];
+        boolean hasUp    = neighborDirs.contains("up");
+        boolean hasDown  = neighborDirs.contains("down");
+        boolean hasLeft  = neighborDirs.contains("left");
+        boolean hasRight = neighborDirs.contains("right");
+        addBoundaries(grid, hasUp, hasDown, hasLeft, hasRight);
+        if (!hasDown) {
+            for (int c = 1; c < COLS - 1; c++)
+                if (grid[ROWS - 2][c] == WorldGenerator.AIR)
+                    grid[ROWS - 2][c] = WorldGenerator.PLATFORM;
+        }
+        for (int zy = 0; zy < ZonePlanner.H; zy++)
+            for (int zx = 0; zx < ZonePlanner.W; zx++)
+                expandZone(grid, zx, zy, zones[zy][zx], hasUp, hasDown, hasLeft, hasRight);
+        carveDoors(grid, neighborDirs);
+        addBlobVariationFromDef(grid, zones, roomSeed, def);
+        return grid;
     }
 
     public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
@@ -222,6 +253,25 @@ public final class RoomGenerator {
 
     // ── Step 5 — Blob variation ───────────────────────────────────────────────
 
+    private static void addBlobVariationFromDef(byte[][] g, byte[][] zones, long roomSeed,
+                                                  RoomTypeDefinition def) {
+        Random rng = new Random(roomSeed + 1337L);
+        int blobCount = switch (def.terrainDensity()) {
+            case 0 ->  4 + rng.nextInt(4);   //  4-7  (open/clean)
+            case 1 -> 10 + rng.nextInt(8);   // 10-17 (moderate)
+            case 2 -> 14 + rng.nextInt(10);  // 14-23 (dense)
+            case 3 -> 18 + rng.nextInt(10);  // 18-27 (maze-like)
+            default -> 8 + rng.nextInt(10);
+        };
+        for (int b = 0; b < blobCount; b++) {
+            int blobW = 2 + rng.nextInt(31);
+            int blobH = 2 + rng.nextInt(31);
+            int cx    = 2 + rng.nextInt(COLS - 4);
+            int cy    = 2 + rng.nextInt(ROWS - 4);
+            stampBlob(g, zones, cx, cy, blobW, blobH, 0.35f + rng.nextFloat() * 0.55f, rng.nextBoolean(), rng);
+        }
+    }
+
     /**
      * Add elliptical solid/carved blobs inside FILL/VOID zones for visual richness.
      * Python parity: RoomGenerator._apply_tile_variation().
@@ -230,15 +280,15 @@ public final class RoomGenerator {
                                           String roomType) {
         Random rng = new Random(roomSeed + 1337L);
 
-        // Blob count by room type — combat/treasure: dense variation;
-        // platform: moderate (platforms already handle structure); boss: open arena
+        // Blob count by terrainDensity (0=open, 1=moderate, 2=dense, 3=maze)
+        // Legacy string path kept for callers that don't yet pass RoomTypeDefinition.
         int blobCount = switch (roomType != null ? roomType : "combat") {
-            case "combat"   -> 14 + rng.nextInt(10);  // 14-23
-            case "treasure" -> 18 + rng.nextInt(10);  // 18-27 (maze-like)
-            case "platform" -> 10 + rng.nextInt(8);   // 10-17
-            case "boss"     ->  6 + rng.nextInt(6);   //  6-11 (open arena)
-            case "shop", "start", "exit" -> 4 + rng.nextInt(4); // 4-7 (clean)
-            default         ->  8 + rng.nextInt(10);  //  8-17
+            case "combat"   -> 14 + rng.nextInt(10);  // density 2: 14-23
+            case "treasure" -> 18 + rng.nextInt(10);  // density 3: 18-27 (maze-like)
+            case "platform" -> 10 + rng.nextInt(8);   // density 1: 10-17
+            case "boss"     ->  6 + rng.nextInt(6);   // density 0:  6-11 (open arena)
+            case "shop", "start", "exit" -> 4 + rng.nextInt(4); // density 0: 4-7
+            default         ->  8 + rng.nextInt(10);  // density 1:  8-17
         };
 
         for (int b = 0; b < blobCount; b++) {

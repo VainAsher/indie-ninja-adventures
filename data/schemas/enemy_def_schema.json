@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "enemy_def_schema.json",
+  "type": "object",
+  "required": ["id", "displayName", "width", "height", "physicsHeight", "baseHp", "damage", "speed", "detectionRange", "attackRange", "animationKey", "aiProfile"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema":                { "type": "string" },
+    "id":                     { "type": "string", "minLength": 1 },
+    "displayName":            { "type": "string" },
+    "width":                  { "type": "integer", "minimum": 1 },
+    "height":                 { "type": "integer", "minimum": 1 },
+    "physicsHeight":          { "type": "integer", "minimum": 1 },
+    "baseHp":                 { "type": "integer", "minimum": 1 },
+    "damage":                 { "type": "integer", "minimum": 0 },
+    "speed":                  { "type": "number",  "minimum": 0 },
+    "detectionRange":         { "type": "number",  "minimum": 0 },
+    "attackRange":            { "type": "number",  "minimum": 0 },
+    "attackWindupSeconds":    { "type": "number",  "minimum": 0 },
+    "fleeHpThreshold":        { "type": "number",  "minimum": 0, "maximum": 1 },
+    "knockoutDurationTicks":  { "type": "integer", "minimum": 0 },
+    "xpReward":               { "type": "integer", "minimum": 0 },
+    "currencyDrop": {
+      "type": "object",
+      "required": ["min", "max", "chance"],
+      "properties": {
+        "min":    { "type": "integer", "minimum": 0 },
+        "max":    { "type": "integer", "minimum": 0 },
+        "chance": { "type": "number",  "minimum": 0, "maximum": 1 }
+      }
+    },
+    "aiProfile":      { "type": "string", "enum": ["standard", "aerial", "ranged"] },
+    "animationKey":   { "type": "string" },
+    "spawnWeight":    { "type": "integer", "minimum": 0 },
+    "biomeAffinity":  { "type": "array", "items": { "type": "string" } },
+    "tags":           { "type": "array", "items": { "type": "string" } }
+  }
+}

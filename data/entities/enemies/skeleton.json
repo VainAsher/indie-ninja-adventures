@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schemas/enemy_def_schema.json",
+  "id": "skeleton",
+  "displayName": "Skeleton",
+  "width": 32,
+  "height": 56,
+  "physicsHeight": 48,
+  "baseHp": 5,
+  "damage": 1,
+  "speed": 60.0,
+  "detectionRange": 200.0,
+  "attackRange": 73.6,
+  "attackWindupSeconds": 0.6,
+  "fleeHpThreshold": 0.0,
+  "knockoutDurationTicks": 150,
+  "xpReward": 12,
+  "currencyDrop": { "min": 1, "max": 4, "chance": 0.5 },
+  "aiProfile": "standard",
+  "animationKey": "enemy_skeleton",
+  "spawnWeight": 8,
+  "biomeAffinity": ["undead", "stone"],
+  "tags": ["grounded", "melee"]
+}

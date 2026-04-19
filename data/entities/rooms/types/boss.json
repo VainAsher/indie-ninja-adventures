@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../schemas/room_type_schema.json",
+  "id": "boss",
+  "displayName": "Boss Arena",
+  "enemyDensity": 0,
+  "hasPortal": false,
+  "hasPuzzle": false,
+  "hasShop": false,
+  "lootTier": 0,
+  "terrainDensity": 0,
+  "allowedBiomes": ["any"],
+  "spawnableEnemyTags": [],
+  "environmentHazards": [],
+  "minRoomSize": [64, 64],
+  "requiresTemplate": true,
+  "templateHint": "rooms/templates/boss_siren_arena.tmx"
+}

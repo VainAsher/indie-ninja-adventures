@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schemas/enemy_def_schema.json",
+  "id": "goblin",
+  "displayName": "Goblin",
+  "width": 32,
+  "height": 48,
+  "physicsHeight": 40,
+  "baseHp": 5,
+  "damage": 1,
+  "speed": 72.0,
+  "detectionRange": 200.0,
+  "attackRange": 32.0,
+  "attackWindupSeconds": 0.5,
+  "fleeHpThreshold": 0.0,
+  "knockoutDurationTicks": 120,
+  "xpReward": 10,
+  "currencyDrop": { "min": 0, "max": 3, "chance": 0.4 },
+  "aiProfile": "standard",
+  "animationKey": "enemy_goblin",
+  "spawnWeight": 10,
+  "biomeAffinity": ["earth", "grass"],
+  "tags": ["grounded", "melee"]
+}

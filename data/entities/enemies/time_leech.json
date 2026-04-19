@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schemas/enemy_def_schema.json",
+  "id": "time_leech",
+  "displayName": "Time Leech",
+  "width": 40,
+  "height": 32,
+  "physicsHeight": 28,
+  "baseHp": 3,
+  "damage": 1,
+  "speed": 78.0,
+  "detectionRange": 170.0,
+  "attackRange": 40.0,
+  "attackWindupSeconds": 0.4,
+  "fleeHpThreshold": 0.0,
+  "knockoutDurationTicks": 90,
+  "xpReward": 9,
+  "currencyDrop": { "min": 0, "max": 2, "chance": 0.25 },
+  "aiProfile": "standard",
+  "animationKey": "enemy_time_leech",
+  "spawnWeight": 4,
+  "biomeAffinity": ["void", "dark"],
+  "tags": ["grounded", "melee", "boss_spawn"]
+}

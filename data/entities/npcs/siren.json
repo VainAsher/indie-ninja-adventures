@@ -1,0 +1,22 @@
+{
+  "$schema": "../../schemas/npc_def_schema.json",
+  "id": "siren",
+  "displayName": "Siren of the Veiled Vale",
+  "width": 48,
+  "height": 80,
+  "animationKey": "npc_siren",
+  "dialogueTreeId": "siren_act1",
+  "isQuestGiver": true,
+  "isShop": false,
+  "isBoss": true,
+  "bossPhases": 4,
+  "bossAnimationKeys": ["boss_siren_phase1", "boss_siren_phase2", "boss_siren_phase3", "boss_siren_phase4"],
+  "hubPresenceByState": {
+    "FULL": true,
+    "CORRUPTED": true,
+    "EMPTY": true,
+    "FRACTURED": false,
+    "RECOVERING": false,
+    "WHOLE": false
+  }
+}

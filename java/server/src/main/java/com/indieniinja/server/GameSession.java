@@ -1,5 +1,6 @@
 package com.indieniinja.server;
 
+import com.indieniinja.content.ContentRegistry;
 import com.indieniinja.sim.GameMode;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,9 @@ public final class GameSession {
 
     /** Game mode for this session — set from the first CLIENT_HELLO. */
     public volatile GameMode gameMode = GameMode.ARCADE;
+
+    /** Content definitions loaded at startup — passed to each zone simulator. */
+    public ContentRegistry contentRegistry = new ContentRegistry();
 
     /**
      * Zone state cache — stores the most recent full snapshot for each hub so

@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schemas/room_type_schema.json",
+  "id": "exit",
+  "displayName": "Exit Portal",
+  "enemyDensity": 0,
+  "hasPortal": true,
+  "hasPuzzle": false,
+  "hasShop": false,
+  "lootTier": 0,
+  "terrainDensity": 0,
+  "allowedBiomes": ["any"],
+  "spawnableEnemyTags": [],
+  "environmentHazards": [],
+  "minRoomSize": [32, 32],
+  "requiresTemplate": false
+}

@@ -22,6 +22,8 @@ public final class WorldGraph {
     public enum RoomType {
         START, EXIT, SHOP, COMBAT, PLATFORM, TREASURE, BOSS;
         public String wire() { return name().toLowerCase(); }
+        /** ContentRegistry key matching the room type's JSON definition id. */
+        public String id()   { return wire(); }
     }
 
     /**

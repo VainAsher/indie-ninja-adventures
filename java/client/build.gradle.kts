@@ -8,7 +8,7 @@ plugins {
 val gdxVersion = "1.12.1"
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":shadowascent"))
 
     // libGDX — desktop backend
     implementation("com.badlogicgames.gdx:gdx:$gdxVersion")

@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schemas/room_type_schema.json",
+  "id": "combat",
+  "displayName": "Combat Zone",
+  "enemyDensity": 3,
+  "hasPortal": false,
+  "hasPuzzle": false,
+  "hasShop": false,
+  "lootTier": 1,
+  "terrainDensity": 2,
+  "allowedBiomes": ["any"],
+  "spawnableEnemyTags": ["grounded", "aerial"],
+  "environmentHazards": [],
+  "minRoomSize": [32, 32],
+  "requiresTemplate": false
+}

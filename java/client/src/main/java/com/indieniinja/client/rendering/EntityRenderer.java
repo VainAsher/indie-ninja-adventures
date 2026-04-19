@@ -3,6 +3,8 @@ package com.indieniinja.client.rendering;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.indieniinja.content.ContentRegistry;
+import com.indieniinja.content.EnemyDefinition;
 import com.indieniinja.network.BossState;
 import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.NPCState;
@@ -85,9 +87,11 @@ public final class EntityRenderer {
     /**
      * Physics AABB height for each enemy type.
      * Must mirror GameSimulator.buildEnemy() constructor arguments exactly.
-     * Used to bottom-align the display sprite with the physics feet.
+     * Registry-first: uses EnemyDefinition.height() when available.
      */
-    private static int enemyPhysicsH(String enemyType) {
+    private int enemyPhysicsH(String enemyType) {
+        EnemyDefinition def = contentRegistry.getEnemyOrNull(enemyType);
+        if (def != null) return def.height();
         return switch (enemyType) {
             case "bat"                 -> 28;
             case "slime", "slime_red", "time_leech" -> 32;
@@ -99,8 +103,10 @@ public final class EntityRenderer {
         };
     }
 
-    /** Physics AABB width — mirrors GameSimulator.buildEnemy(). */
-    private static int enemyPhysicsW(String enemyType) {
+    /** Physics AABB width — mirrors GameSimulator.buildEnemy(). Registry-first. */
+    private int enemyPhysicsW(String enemyType) {
+        EnemyDefinition def = contentRegistry.getEnemyOrNull(enemyType);
+        if (def != null) return def.width();
         return switch (enemyType) {
             case "bat"      -> 28;
             case "slime", "slime_red", "time_leech" -> 40;
@@ -216,6 +222,7 @@ public final class EntityRenderer {
 
     private final AnimationRegistry anims;
     private final ParticleSystem    particles;
+    private ContentRegistry contentRegistry = new ContentRegistry();
 
     // Per-entity state time for smooth animation (render-thread managed)
     private final java.util.HashMap<String, Float>   stateTimes   = new java.util.HashMap<>();
@@ -233,6 +240,10 @@ public final class EntityRenderer {
     public EntityRenderer(AnimationRegistry anims, ParticleSystem particles) {
         this.anims     = anims;
         this.particles = particles;
+    }
+
+    public void setContentRegistry(ContentRegistry registry) {
+        this.contentRegistry = registry;
     }
 
     /**

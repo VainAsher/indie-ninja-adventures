@@ -1,0 +1,2187 @@
+{
+  "generated": "2026-04-18T22:45:45.647270+00:00",
+  "root": "assets",
+  "count": 436,
+  "files": [
+    {
+      "path": "animations/manifest.json",
+      "size": 14575,
+      "sha256": "8fd575528f21b3a0a84f1d9f92da5c5a6e695685971884e0975d3311042fdc6e"
+    },
+    {
+      "path": "asset_manifest.json",
+      "size": 80913,
+      "sha256": "056c1d8920d0fcde05c1ba93497d104b73c98937189db667e702fb37d300010b"
+    },
+    {
+      "path": "audio/sfx/dash.wav",
+      "size": 8864,
+      "sha256": "eb5735128ada31cc6c375cf8794d8d168e6f082849ae0f09a7a07cd05c1be6b2"
+    },
+    {
+      "path": "audio/sfx/hit_enemy.wav",
+      "size": 8864,
+      "sha256": "6eed14f6ceb096e23b9d3b86ada73f5e62a480a6667eece6b7228956ad3a9b35"
+    },
+    {
+      "path": "audio/sfx/inventory_open.wav",
+      "size": 13274,
+      "sha256": "66a3b8fc93d7641a765d529a1726ba23378c159c1eaaac68147cccd24a2271a5"
+    },
+    {
+      "path": "audio/sfx/jump.wav",
+      "size": 12392,
+      "sha256": "a9fffe6f14e598e2b2fe5cb1d4a579a938a4e67e15c8352000083c4ac46117c7"
+    },
+    {
+      "path": "audio/sfx/land.wav",
+      "size": 7100,
+      "sha256": "d2e27e21cebbd23418eabb2e16a331fbc281dfaf50eab79aa84317cb3d2b98e3"
+    },
+    {
+      "path": "audio/sfx/menu_confirm.wav",
+      "size": 12392,
+      "sha256": "b0f103c9d08fcc23914f1934614e14c140d89f05fa36cdfec784d717d93e955a"
+    },
+    {
+      "path": "audio/sfx/menu_select.wav",
+      "size": 4454,
+      "sha256": "ce860859bf79bfe2d7eda7051928659ee310337eef04d2d0d7804db82da6f376"
+    },
+    {
+      "path": "audio/sfx/pickup_coin.wav",
+      "size": 12392,
+      "sha256": "09c76da5379f33acfea61307f9a67396f1ed5a80ea6a191251ba332f826247c8"
+    },
+    {
+      "path": "audio/sfx/pickup_item.wav",
+      "size": 17684,
+      "sha256": "52d4175350cc19a63964f75b4d00dbdeb22b79a019354a2c78c332aaf5e20559"
+    },
+    {
+      "path": "audio/sfx/player_death.wav",
+      "size": 48554,
+      "sha256": "8c83a669036a3b2f6f06eab45997322e53407c3c99eaf3fb857a2381289ee31f"
+    },
+    {
+      "path": "audio/sfx/player_hurt.wav",
+      "size": 17684,
+      "sha256": "08abcc6cb62cf59b5ecb7ee71aec4f8e19b2df8ede6b0be2bce3205766e0ced8"
+    },
+    {
+      "path": "audio/sfx/README.md",
+      "size": 1144,
+      "sha256": "ae0a97e74aef85e4e7b1f3f312d88877aee28d8fdd725d0e9fda67b9a40b40ea"
+    },
+    {
+      "path": "audio/sfx/swing.wav",
+      "size": 12392,
+      "sha256": "483248dd403ca693d4574bbeadad7648a0583f78fcacfa6e71235fdf282a9a85"
+    },
+    {
+      "path": "biomes/building/door.png",
+      "size": 96,
+      "sha256": "31364aa60df66265bd56b036edf4f0602cb36ec4848f1d1420ee5cfa3e927142"
+    },
+    {
+      "path": "biomes/building/exit.png",
+      "size": 98,
+      "sha256": "8f51479d5d5c55f63ef6c14919eead6817e28822ef926e52cce35a67d1c1e9c4"
+    },
+    {
+      "path": "biomes/building/platform.png",
+      "size": 98,
+      "sha256": "d0017ceb03059b046350be2b21fdd37ea19c61c47bfc210c4faee0dade843cd3"
+    },
+    {
+      "path": "biomes/building/save.png",
+      "size": 97,
+      "sha256": "266d0230e415406f1cc04be5ea6bc61289b4d761e70e8463be2803123376f2e0"
+    },
+    {
+      "path": "biomes/building/shop.png",
+      "size": 93,
+      "sha256": "15d9928c04bd3702f8c6e18acb19a8bd8e1cbb5e27c52897552830b87c523a4e"
+    },
+    {
+      "path": "biomes/building/spawn.png",
+      "size": 92,
+      "sha256": "3d5ce724ceca560abd07284133e13becbad55234399c71cf7dabb51f48c35072"
+    },
+    {
+      "path": "biomes/building/terrain.png",
+      "size": 96,
+      "sha256": "e8816c062ef7c82f0288249a4784f967e9b6611b354a9d7a6570a644a181aaa4"
+    },
+    {
+      "path": "biomes/building/treasure.png",
+      "size": 93,
+      "sha256": "955a72303c83c38362dbca2496b16d74bf041b19c851573aba126e99114f3e10"
+    },
+    {
+      "path": "biomes/building/void.png",
+      "size": 69,
+      "sha256": "80bc23f635d76d4178844b66760d23d0028d7d3dd47f93b22ca099e2cd2f7e35"
+    },
+    {
+      "path": "biomes/building/wall.png",
+      "size": 96,
+      "sha256": "4ce0119c5d4349274a0eb1a7798fb45381b1af8ecf9ce5752198de1eaedbe866"
+    },
+    {
+      "path": "biomes/cave/door.png",
+      "size": 96,
+      "sha256": "62ab8fbc0df518e2e883bb54cba9ec8a67982a3bedf75c2484a77b9479edb63c"
+    },
+    {
+      "path": "biomes/cave/exit.png",
+      "size": 98,
+      "sha256": "a123042132dce2a67bc1caa696266fbf55af4ee372f4b3dc68e8879cd5ceff2b"
+    },
+    {
+      "path": "biomes/cave/platform.png",
+      "size": 98,
+      "sha256": "247b02cfb208fb1880eb0334340f94ff2f03966250e96ef0bd54282737750f74"
+    },
+    {
+      "path": "biomes/cave/save.png",
+      "size": 97,
+      "sha256": "3c2f75001f5b66d0f2be08e62d03af7c46e160ef7cd55c26ee5f82424f7d6e03"
+    },
+    {
+      "path": "biomes/cave/shop.png",
+      "size": 93,
+      "sha256": "fa2c62aa3c607773f9ab6e84a96aef8f793cb62795f54573c41af7dc9041a959"
+    },
+    {
+      "path": "biomes/cave/spawn.png",
+      "size": 92,
+      "sha256": "041d604e5d662dc5c9b1b67bb7b11085ba61ed568c96098542141e79f11c164c"
+    },
+    {
+      "path": "biomes/cave/terrain.png",
+      "size": 96,
+      "sha256": "b883e322873324816ef04a2b62f7d2816c344e0936751b2912f3f34910d3f2c6"
+    },
+    {
+      "path": "biomes/cave/treasure.png",
+      "size": 93,
+      "sha256": "617eb1c685cdfcdbda245a67ea028c3b8804e89f9bfd9e52b4d14d5a6fca4675"
+    },
+    {
+      "path": "biomes/cave/void.png",
+      "size": 69,
+      "sha256": "80bc23f635d76d4178844b66760d23d0028d7d3dd47f93b22ca099e2cd2f7e35"
+    },
+    {
+      "path": "biomes/cave/wall.png",
+      "size": 93,
+      "sha256": "82ab4ea5227d3f48db0b4189192267e94883b715ef2a05b1dd952f2700d7bd10"
+    },
+    {
+      "path": "biomes/dungeon/save.png",
+      "size": 97,
+      "sha256": "266d0230e415406f1cc04be5ea6bc61289b4d761e70e8463be2803123376f2e0"
+    },
+    {
+      "path": "biomes/dungeon/shop.png",
+      "size": 93,
+      "sha256": "ef1d2525b7a7b9b616140e36bd9b31b8c9962578c3c638282b0c7152c46ddc7b"
+    },
+    {
+      "path": "biomes/dungeon/spawn.png",
+      "size": 92,
+      "sha256": "3d5ce724ceca560abd07284133e13becbad55234399c71cf7dabb51f48c35072"
+    },
+    {
+      "path": "biomes/dungeon/tile_platform.png",
+      "size": 98,
+      "sha256": "8ae3672fb7dbcf24645a2090cfc20e055587dc36188242befeabc5b10b646e67"
+    },
+    {
+      "path": "biomes/dungeon/tile_terrain.png",
+      "size": 2012,
+      "sha256": "c874c6dedc8dc7509a8da9bee503c449615f5f2b639b156490e527d53e71ad1e"
+    },
+    {
+      "path": "biomes/dungeon/tile_terrain_001.png",
+      "size": 96,
+      "sha256": "0232cffce1d308737df5afbae37d5617c27b6c4933d571008cd6c749596a4a1e"
+    },
+    {
+      "path": "biomes/dungeon/treasure.png",
+      "size": 93,
+      "sha256": "955a72303c83c38362dbca2496b16d74bf041b19c851573aba126e99114f3e10"
+    },
+    {
+      "path": "biomes/dungeon/void.png",
+      "size": 69,
+      "sha256": "80bc23f635d76d4178844b66760d23d0028d7d3dd47f93b22ca099e2cd2f7e35"
+    },
+    {
+      "path": "biomes/forest/door.png",
+      "size": 96,
+      "sha256": "9611798bc7202411f56622c92f7abaeee0f464134ec425d124a45d0f0425afdb"
+    },
+    {
+      "path": "biomes/forest/exit.png",
+      "size": 98,
+      "sha256": "af716fba8e2e4b733cb81673b8f40a413eaa383b8238c1afbbbb0b379847b929"
+    },
+    {
+      "path": "biomes/forest/platform.png",
+      "size": 98,
+      "sha256": "8f1e2d4f7403fa9967b937a4e6e75adc047133c04822420cc956022f50e4523d"
+    },
+    {
+      "path": "biomes/forest/save.png",
+      "size": 97,
+      "sha256": "1880c91077b21de2acc89950ee2d639c649d54c9bd0e22db88308f73ae2c7bd0"
+    },
+    {
+      "path": "biomes/forest/shop.png",
+      "size": 93,
+      "sha256": "cbf4b3fd2b9335febb1938977703eff2e4926d6da9cca8658515cf8f40a47c6f"
+    },
+    {
+      "path": "biomes/forest/spawn.png",
+      "size": 92,
+      "sha256": "3d5ce724ceca560abd07284133e13becbad55234399c71cf7dabb51f48c35072"
+    },
+    {
+      "path": "biomes/forest/terrain.png",
+      "size": 94,
+      "sha256": "85e24fa7e8fe296fddbe0684896a3e0a28af2166ac7706b0f6ca66ff41071f56"
+    },
+    {
+      "path": "biomes/forest/treasure.png",
+      "size": 93,
+      "sha256": "4e59c58beebe91a2d187e4d84d2817cfff4bc2c00dba00997de716d4a2d20775"
+    },
+    {
+      "path": "biomes/forest/void.png",
+      "size": 69,
+      "sha256": "80bc23f635d76d4178844b66760d23d0028d7d3dd47f93b22ca099e2cd2f7e35"
+    },
+    {
+      "path": "biomes/forest/wall.png",
+      "size": 94,
+      "sha256": "889f610553f8cd3659c99f1d244349cc87f47f307a9358d0d79204f4fa19b218"
+    },
+    {
+      "path": "biomes/hollow/door.png",
+      "size": 96,
+      "sha256": "c4e116aa1907527d15838c626f805acc3fdd4badd4d398118a7f05de4b658804"
+    },
+    {
+      "path": "biomes/hollow/exit.png",
+      "size": 98,
+      "sha256": "53eb829a50aa5975eb4a5d3296fce58db41726d47930b50a723560329071eca6"
+    },
+    {
+      "path": "biomes/hollow/platform.png",
+      "size": 98,
+      "sha256": "524a5f1400131060fb713d74d4a2321220c5ab7cd108f03e6a0b7dc290627333"
+    },
+    {
+      "path": "biomes/hollow/save.png",
+      "size": 97,
+      "sha256": "d84d6d5007f187d65ad89302a2a771cbc9c3151a9d2ef5ce6c0c754a8b3f3aea"
+    },
+    {
+      "path": "biomes/hollow/shop.png",
+      "size": 93,
+      "sha256": "6a485e6e38c5bf5cd790f6b79a33a3a550ee8d4fc7d33338a32b96918fd5e5fd"
+    },
+    {
+      "path": "biomes/hollow/spawn.png",
+      "size": 92,
+      "sha256": "5a6d85f8ade81c758c9e01b85285c3271665e2a972d679d9319ec4d2e188395d"
+    },
+    {
+      "path": "biomes/hollow/terrain.png",
+      "size": 96,
+      "sha256": "0d630dcfc59df70faf4b122b9fe247a7285fe4a72c1aa9a151eb5497e3c512b3"
+    },
+    {
+      "path": "biomes/hollow/treasure.png",
+      "size": 93,
+      "sha256": "c6625eeb45b7c36a3d8ca324792ef79142310b3fa361c9735a1ca1010f266dbe"
+    },
+    {
+      "path": "biomes/hollow/void.png",
+      "size": 69,
+      "sha256": "80bc23f635d76d4178844b66760d23d0028d7d3dd47f93b22ca099e2cd2f7e35"
+    },
+    {
+      "path": "biomes/hollow/wall.png",
+      "size": 94,
+      "sha256": "1b7bf3704880c362e136dded12c759e027037b282015b758a8b28821273277d5"
+    },
+    {
+      "path": "biomes/sewer/door.png",
+      "size": 96,
+      "sha256": "c9e3ab5f6b5f57fe44abef47e15a89fd29f23debc75b9f5441377ac6a46bbc91"
+    },
+    {
+      "path": "biomes/sewer/exit.png",
+      "size": 98,
+      "sha256": "4099a7fffdde80c53b82095abf95d6d342107ecb6024a7c2188f9dd4c0bc2ca4"
+    },
+    {
+      "path": "biomes/sewer/platform.png",
+      "size": 98,
+      "sha256": "caa0b97aae9ed287f4f7517c8c0bbe6d907707019e4b254d1eee5280f635b245"
+    },
+    {
+      "path": "biomes/sewer/save.png",
+      "size": 97,
+      "sha256": "9b137902ccf09703ce0e38aae44709556c01deda9b583bd3ec9747b0f101a1dc"
+    },
+    {
+      "path": "biomes/sewer/shop.png",
+      "size": 93,
+      "sha256": "b4272450f4cdc391256f9e6a0892f63cea9c3cc07bbc69c071ad0da8db4537dd"
+    },
+    {
+      "path": "biomes/sewer/spawn.png",
+      "size": 92,
+      "sha256": "84e95e003c506029a4eb8651c4ab46d4e4bc2e614ebdc8a796c2dfa7cac7e8e1"
+    },
+    {
+      "path": "biomes/sewer/terrain.png",
+      "size": 96,
+      "sha256": "820d56c7e2e2ca1370949229af37246cc987b1df8d44a29b24256f9b4898f137"
+    },
+    {
+      "path": "biomes/sewer/treasure.png",
+      "size": 93,
+      "sha256": "ab6451d1812f446cae0d1a920ae12a2bb9acfa3ab0c7ca8db3ad9a5f50be3287"
+    },
+    {
+      "path": "biomes/sewer/void.png",
+      "size": 69,
+      "sha256": "80bc23f635d76d4178844b66760d23d0028d7d3dd47f93b22ca099e2cd2f7e35"
+    },
+    {
+      "path": "biomes/sewer/wall.png",
+      "size": 94,
+      "sha256": "8d5c4d281d9ec5e170330435883ee05795e8ddd27c0a363f3626a16fee59b2f6"
+    },
+    {
+      "path": "biomes/tile_config.py",
+      "size": 4071,
+      "sha256": "35df76536a4a2f26f53ca4d613b8b58752aa70cf537cd98cf6fe4ac26eebad21"
+    },
+    {
+      "path": "biomes/tile_config_autotile.py",
+      "size": 5674,
+      "sha256": "de5f611ef868a700a1093b664f148ee3574e459cca04e05f1c7eca8dfb31c60e"
+    },
+    {
+      "path": "biomes/town/door.png",
+      "size": 96,
+      "sha256": "c4e116aa1907527d15838c626f805acc3fdd4badd4d398118a7f05de4b658804"
+    },
+    {
+      "path": "biomes/town/exit.png",
+      "size": 98,
+      "sha256": "45de9909841e0fb8827318c6dc852b9b0afad7bbcd2b211ba6f96cfb1ea4e71c"
+    },
+    {
+      "path": "biomes/town/platform.png",
+      "size": 98,
+      "sha256": "66c5eca7042422814966b3147f708e27d4cb1a1c791fdcba2c0d24e781561933"
+    },
+    {
+      "path": "biomes/town/save.png",
+      "size": 97,
+      "sha256": "b7a781ec2e72c17180b9dae82f66ec1aa0fc83cb376659b420d5aea8001af5df"
+    },
+    {
+      "path": "biomes/town/shop.png",
+      "size": 93,
+      "sha256": "ef1d2525b7a7b9b616140e36bd9b31b8c9962578c3c638282b0c7152c46ddc7b"
+    },
+    {
+      "path": "biomes/town/spawn.png",
+      "size": 92,
+      "sha256": "3d5ce724ceca560abd07284133e13becbad55234399c71cf7dabb51f48c35072"
+    },
+    {
+      "path": "biomes/town/terrain.png",
+      "size": 96,
+      "sha256": "5c00701e17a34eee84a01e40a3fa3b965d0523e2b8a536fa3ad091c68fb98e7b"
+    },
+    {
+      "path": "biomes/town/treasure.png",
+      "size": 93,
+      "sha256": "955a72303c83c38362dbca2496b16d74bf041b19c851573aba126e99114f3e10"
+    },
+    {
+      "path": "biomes/town/void.png",
+      "size": 69,
+      "sha256": "80bc23f635d76d4178844b66760d23d0028d7d3dd47f93b22ca099e2cd2f7e35"
+    },
+    {
+      "path": "biomes/town/wall.png",
+      "size": 96,
+      "sha256": "f0e7b54076af32ba9a51ffd2fd4da7bc096b569936abf06d5f0aba1e5dfedfdd"
+    },
+    {
+      "path": "generate_placeholder_tiles.py",
+      "size": 3620,
+      "sha256": "3dd20c0e91eef47a9a384f4ac14a99f5e5b7ca83046fd76bc6298d25e7f50cb7"
+    },
+    {
+      "path": "rooms/templates/boss.tmx",
+      "size": 33419,
+      "sha256": "1402d2f66f5aea0ff459bb26b55b407c5b15ee273e7eab413dfbdd6877752678"
+    },
+    {
+      "path": "rooms/templates/exit.tmx",
+      "size": 33419,
+      "sha256": "9d11ecf308e7506eb9215fd1a0dbbbfbbf8ef2c56cd54e0fda8f55ba6fa96c4e"
+    },
+    {
+      "path": "rooms/templates/shop.tmx",
+      "size": 33419,
+      "sha256": "26f6d34025b1505e9b7c106378125855bb5b275a78ce97889a8b48e67c725496"
+    },
+    {
+      "path": "rooms/templates/start.tmx",
+      "size": 33419,
+      "sha256": "63297696af4066bc8815bd4d6adff6a8cb42e6b8ce882b1ede926227a42489c0"
+    },
+    {
+      "path": "splash/landing.png",
+      "size": 11977,
+      "sha256": "c54890f7d788357208ab1efd2e8982c4415c6e0546835846bbfe5b75722a9e7f"
+    },
+    {
+      "path": "sprites/player/attack-sword_spritesheet.png",
+      "size": 4685,
+      "sha256": "c59f2eb9eba3e4cfabf754836cee6d16742312aeb43f22eb307a2c847cfc07b6"
+    },
+    {
+      "path": "sprites/player/attack1_spritesheet.png",
+      "size": 2306,
+      "sha256": "3663ae8cc85ede1974d56bef37522616b8142f1b2cf768bcd38c30bd939082a7"
+    },
+    {
+      "path": "sprites/player/attack2_spritesheet.png",
+      "size": 3641,
+      "sha256": "c957c7a3a976aee86165b7daf02f441acca8e19d93241daa2951251abd2091a3"
+    },
+    {
+      "path": "sprites/player/attack3_spritesheet.png",
+      "size": 6131,
+      "sha256": "9aa4ecd49b3f9ba73efa6d9d18568eb205c322899f9356cc517dd19f0737936c"
+    },
+    {
+      "path": "sprites/player/crouch_idle_spritesheet.png",
+      "size": 2435,
+      "sha256": "829a069e0d7afb7f7d41228061e3689351eecce7017a664d0492a6a4919d106c"
+    },
+    {
+      "path": "sprites/player/crouch_walk_spritesheet.png",
+      "size": 3026,
+      "sha256": "089dbf90ec9ca33c7725414e7ee505215843b36a5557c084867d0483c5e8af87"
+    },
+    {
+      "path": "sprites/player/dash_spritesheet.png",
+      "size": 3707,
+      "sha256": "6d9b20024325d81dfb4f57ec482c6104e2cc9723c54756fb6bed17c9a82326a4"
+    },
+    {
+      "path": "sprites/player/death_spritesheet.png",
+      "size": 3713,
+      "sha256": "eadf9bd07edfd711a4e4e1755cca3959dae0bfb545a41c2ced46060efe9089f1"
+    },
+    {
+      "path": "sprites/player/hurt_spritesheet.png",
+      "size": 1931,
+      "sha256": "6662d455f09c683d51811ee70ea02d6998d82c5df2c139458666bd9c61a9b376"
+    },
+    {
+      "path": "sprites/player/idle_spritesheet.png",
+      "size": 2367,
+      "sha256": "13b7acf83157fd258a6e3e2628d6a78eb86bb359947fa3d810e4bba6bd7c166d"
+    },
+    {
+      "path": "sprites/player/jumpfall_spritesheet.png",
+      "size": 4917,
+      "sha256": "7eeaadbe4062f25578d761eb5840f889ae61a429a3f3a51011f430ff52115f44"
+    },
+    {
+      "path": "sprites/player/pistol/001-_rope_hanging_idle_spritesheet.png",
+      "size": 1509,
+      "sha256": "af3ff2f1cd3c719853b2eff4fbafa0f5b7b1f81d8dea6679bc509db2d685e33e"
+    },
+    {
+      "path": "sprites/player/pistol/001-_rope_swinging_spritesheet.png",
+      "size": 3515,
+      "sha256": "b952a092db1742975f5c05018cded3ab3ed97682665803ab8cf2ad7d05df09d3"
+    },
+    {
+      "path": "sprites/player/pistol/001-_victory_spritesheet.png",
+      "size": 3532,
+      "sha256": "27086e9b3d85331bc2a3c046d004a39a9f99bcb7b6c69984e73cfad8831fc89a"
+    },
+    {
+      "path": "sprites/player/pistol/001-asleep_spritesheet.png",
+      "size": 4375,
+      "sha256": "9500c1b3e191eeb090662474414f9df4c882c48ba26ff43365f12a09c88f4be3"
+    },
+    {
+      "path": "sprites/player/pistol/001-block_hit_(normal)_spritesheet.png",
+      "size": 1552,
+      "sha256": "562157e620ecfef6b587c22886e7d6155ffbfc5326ff69f65ef22ce8775875cf"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_(left)_spritesheet.png",
+      "size": 2333,
+      "sha256": "8597e48e02dc9c48def0ee0408d56e61c27fcd9511bb59da2ca21d283fd812af"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_(right)_spritesheet.png",
+      "size": 2379,
+      "sha256": "59f47fb8a374e692de3399e44cd77beb303425250be11532c648a9abd01ad0ea"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_(up)_(down)_(back)_spritesheet.png",
+      "size": 2208,
+      "sha256": "2504c8e438d21a8e82425c03cd9023fc36cd7cfcc85094f55f116ab7eef079fc"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_(up)_(down)_(side)_spritesheet.png",
+      "size": 2714,
+      "sha256": "ef22a44a290b734afc7de7fbe41d2bd5c0b957f2a68e257e70cbcca6acd02099"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_idle_(back)_spritesheet.png",
+      "size": 1451,
+      "sha256": "a3de215f7f5f9f44ec6a3e9893c8ccf551ddeccb495a15ea2f57cafa20160ec5"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_idle_(side)_spritesheet.png",
+      "size": 1916,
+      "sha256": "969579193fe1c222cab91ec9d9bcb1c317d90709fe02e9d00c85cc12e2710a79"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_ledge_climbing_(back)_spritesheet.png",
+      "size": 2056,
+      "sha256": "eae05b6f449f6476f3b1c06de320642a53a5cd86e85944f496d47fc27bff048a"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_ledge_climbing_(side)_spritesheet.png",
+      "size": 1934,
+      "sha256": "7b24cfddcede1ec8fbeac8172b53fabdb703bef76381695f5fb4a4643fa3919f"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_ledge_grab_(back)_spritesheet.png",
+      "size": 1112,
+      "sha256": "8344cda5d614afd24e774e00f579b60320bcd9e78154033974f8cda43bd4ac09"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_ledge_grab_(side)_spritesheet.png",
+      "size": 1065,
+      "sha256": "563965e4d51ab33bd6fbded8140a915abc5f57987f8a075af361db8a94a74994"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_ledge_idle_(back)_spritesheet.png",
+      "size": 1418,
+      "sha256": "baf75c49b125d2567fb22896a9f44b9d5b5b9e93bfeb4a0453ac6831946e2a04"
+    },
+    {
+      "path": "sprites/player/pistol/001-climb_ledge_idle_(side)_spritesheet.png",
+      "size": 1693,
+      "sha256": "2327dd2276fb8f486344b67ddea642a67a6b119035af153a45e764f3e4eeba2a"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_aim_front_spritesheet.png",
+      "size": 2167,
+      "sha256": "6d0718818289312600779a98fa1f15a5056f927bb9165b2b4d419ec9f0444ceb"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_block_hit_spritesheet.png",
+      "size": 1489,
+      "sha256": "dafbffc4f44f88b883e26d0f8890a3fdedd4f5b830f2a8b8b818f15b265e4fa9"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_block_idle-sheet.png",
+      "size": 1949,
+      "sha256": "ccb99b00b8835d49bf01c5a3265fd8ed6e6f2f5eb86fb8c39fe9ee7437a96ea2"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_hit_spritesheet.png",
+      "size": 2050,
+      "sha256": "61f4308a72f1bc86f8924b5f1cba433e4247da533d2961ce561db5969d17d85d"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_idle_spritesheet.png",
+      "size": 2303,
+      "sha256": "d609a1b1ca819952f17b773f07b4d0d12554470312ef79726a0b47a7ef7a2fe7"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_shoot_front_spritesheet.png",
+      "size": 2322,
+      "sha256": "69118b4ac7cd0e644ba695e6ccf7e8e1455bc908cae0660534ee7089c052be88"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_walk_aim_front_spritesheet.png",
+      "size": 2424,
+      "sha256": "2c2713a5a7dd358d6612063ad38499abcef68e5759526e18abcd171b231eab5e"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_walk_shoot_front-_pistol_effect_lb-sheet.png",
+      "size": 536,
+      "sha256": "93befbca604b34b2cdf0a57dfa24f44f68faf3b6c0e455845c35fc64dacc0317"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_walk_shoot_front-_pistol_lb-sheet.png",
+      "size": 1467,
+      "sha256": "da9edd1ad8dd5e197d2074cbb64f9393b8dce6ec64b8f63741c231a1fd10b67a"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_walk_shoot_front-_pistol_ub-sheet.png",
+      "size": 1779,
+      "sha256": "55960090e2b749d6552fbb3a098188bb1af63c7ba0a626c8fd4686c095957ad1"
+    },
+    {
+      "path": "sprites/player/pistol/001-crouch_walk_spritesheet.png",
+      "size": 2680,
+      "sha256": "8fb0f390e0f02b206c3bb6238110c09bf2f34bd72f90da4bf6d3be8d66c50e21"
+    },
+    {
+      "path": "sprites/player/pistol/001-dash_spritesheet.png",
+      "size": 3342,
+      "sha256": "d66ff8d0fcd0a24fa96b8a80b20ee5f89e57da6bcdd70b9b1f771198ce399401"
+    },
+    {
+      "path": "sprites/player/pistol/001-death(defeat)_a_spritesheet.png",
+      "size": 3491,
+      "sha256": "d993c3a754877a2198860514d3ba5906c87e20c3ccee0d90bd3a25dc6517137a"
+    },
+    {
+      "path": "sprites/player/pistol/001-death(defeat)_b_spritesheet.png",
+      "size": 3529,
+      "sha256": "898a53ab56542b0b8554ecd7fa14b105cb457d4de5b96e820d35aed61cd68552"
+    },
+    {
+      "path": "sprites/player/pistol/001-door_enter_spritesheet.png",
+      "size": 3264,
+      "sha256": "192d0eab408cffc9f79b4ae5518eb06ee2e053daac1ec0b926469316a90536a6"
+    },
+    {
+      "path": "sprites/player/pistol/001-door_exit_spritesheet.png",
+      "size": 2941,
+      "sha256": "060dd1aabcd3a67bc70941f39295cda237f9510efa2623cf9b3174246470427f"
+    },
+    {
+      "path": "sprites/player/pistol/001-drink_-_pistol_object-sheet.png",
+      "size": 644,
+      "sha256": "77a1878c6f92719d1f49f2eaea3dea1101741a96863ec452295118478fe6371b"
+    },
+    {
+      "path": "sprites/player/pistol/001-drink_spritesheet.png",
+      "size": 3174,
+      "sha256": "447df0475c8836b4688458c58c539c3382936e9b438259b1c83a3216951e2d43"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_aim_front_spritesheet.png",
+      "size": 3457,
+      "sha256": "7cdafb1c3a2626c6a7ef5b771e0a671c31cf13ab2e5d72e848895ebb321ad58a"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_block_hit_spritesheet.png",
+      "size": 1589,
+      "sha256": "d1d90dad25e15ed934e278b44928f554b808cdd1eeeba58cadcb683789834f05"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_block_idle_spritesheet.png",
+      "size": 3539,
+      "sha256": "b1049973c56cb589adfb0b3574a7b1f23c2cb7cf8ca490c33bfe52dc4e9a0bc7"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_front_flip_spritesheet.png",
+      "size": 2877,
+      "sha256": "30b3624129bfa8b5ea1c1c6cea03fc46c01e07928d36f93a3e783c3a15842336"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_kick_spritesheet.png",
+      "size": 3218,
+      "sha256": "fd475841f6acb369754e1b301f3cf6dba195ceebcf383e0d3182f1427d5735d3"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_shoot_front_-_pistol_effect_lb-sheet.png",
+      "size": 692,
+      "sha256": "5f5058c565a24f50ec68079ab9d227f7c3292a0de759d38a49def8e1ebba6ede"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_shoot_front_-_pistol_lb-sheet.png",
+      "size": 1859,
+      "sha256": "e20512b0cb7ade4712a0f2831126eb49aa47e0c2924fb7c568c1bc893034d94e"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_shoot_front_-_pistol_ub-sheet.png",
+      "size": 1737,
+      "sha256": "5d82e3110cd0af3d9cf4a905ce23fba2aa011ff5cdc3fd7de9c0e60b259f093f"
+    },
+    {
+      "path": "sprites/player/pistol/001-jump_spritesheet.png",
+      "size": 4354,
+      "sha256": "4689ddd8cf80e576f612bfbad73d863f6d176a394fe040a99fb1bbb687d15022"
+    },
+    {
+      "path": "sprites/player/pistol/001-open_chest_(back)_spritesheet.png",
+      "size": 2872,
+      "sha256": "a98153770793d19da4786ebd7ed5bfd67d3176ad1d62ce9be3d74b37361d20ca"
+    },
+    {
+      "path": "sprites/player/pistol/001-open_chest_(side)_spritesheet.png",
+      "size": 2675,
+      "sha256": "fe67dad1775444a6f72343d667849ce1b75a2ab64391ee310da8dd32ec866f2e"
+    },
+    {
+      "path": "sprites/player/pistol/001-pickup_crouch_spritesheet.png",
+      "size": 1920,
+      "sha256": "6948288f693e1d5423b2860f1cc06a6434603ea2a9eff0702413a5d6c8816057"
+    },
+    {
+      "path": "sprites/player/pistol/001-pickup_standing_spritesheet.png",
+      "size": 2461,
+      "sha256": "6b1921551f0b9914b13dd66cb16a556ce50685781ffc7eea05a45abf4b0784c7"
+    },
+    {
+      "path": "sprites/player/pistol/001-prone_aim_front_spritesheet.png",
+      "size": 1606,
+      "sha256": "c61856bf99ab124cfe9c6ad6de77d6ada79771d68bf190c062a64a3b5ba22b8a"
+    },
+    {
+      "path": "sprites/player/pistol/001-prone_crawling_spritesheet.png",
+      "size": 2590,
+      "sha256": "6fc6151fc2933d333ad7bde1dedbb9393c6a5bb9f9fa2b1830727c354244941c"
+    },
+    {
+      "path": "sprites/player/pistol/001-prone_death(defeat)_spritesheet.png",
+      "size": 2202,
+      "sha256": "dcf64f9e9eb6a167732ee1ac55bf9b962197f10b06c4777ae41ad61d48438dd2"
+    },
+    {
+      "path": "sprites/player/pistol/001-prone_death(defeat)_waking_up_spritesheet.png",
+      "size": 1912,
+      "sha256": "34191ad70b69bb6201769cac16597efe3916c42fe88fc54029a5976b607b3c7f"
+    },
+    {
+      "path": "sprites/player/pistol/001-prone_hit_spritesheet.png",
+      "size": 1589,
+      "sha256": "7d1ad4a2ae171ee876e42cab3d243593dbcc5401aea32ef4f337a3002c8cc435"
+    },
+    {
+      "path": "sprites/player/pistol/001-prone_idle_spritesheet.png",
+      "size": 2040,
+      "sha256": "17e360e4cb6fd25ec314b4e2be59e4432efb1af01963cfb9ea4b7f1662177b06"
+    },
+    {
+      "path": "sprites/player/pistol/001-prone_shoot_front_spritesheet.png",
+      "size": 1921,
+      "sha256": "50869b9226022ab44f643870305ef993a3148e14e38cb23e2436c50e668056bc"
+    },
+    {
+      "path": "sprites/player/pistol/001-pull_lever_(ground)_spritesheet.png",
+      "size": 3619,
+      "sha256": "a190331720c71ef12b00adfef9a3300f25e084b49eeba55f2b62bea552e5aacb"
+    },
+    {
+      "path": "sprites/player/pistol/001-pull_spritesheet.png",
+      "size": 2923,
+      "sha256": "2c05ba4fde3bef5ad69fa2532a66f2e836d8875a9b6313125d50e4504a8bd348"
+    },
+    {
+      "path": "sprites/player/pistol/001-push-pull_idle_spritesheet.png",
+      "size": 2048,
+      "sha256": "b006ebca756e1c272c6557734e04cd1a200092ec87050e9d299c1228da4961fd"
+    },
+    {
+      "path": "sprites/player/pistol/001-push_button_(back)_spritesheet.png",
+      "size": 1767,
+      "sha256": "2101490f7bf123d784c8dc678fa778395f9fca30494b3f48a3d72b4086f5785a"
+    },
+    {
+      "path": "sprites/player/pistol/001-push_button_(side)_spritesheet.png",
+      "size": 2347,
+      "sha256": "5533962efb290d2de48749adae78a4edae28694bdb9527154a6d817ae1b9d528"
+    },
+    {
+      "path": "sprites/player/pistol/001-push_spritesheet.png",
+      "size": 2641,
+      "sha256": "fd5d6a3858cf78c10d2aec2250ff5fe326c529245f506368e967cffab609b293"
+    },
+    {
+      "path": "sprites/player/pistol/001-roll_spritesheet.png",
+      "size": 3791,
+      "sha256": "967240bd154aad8afa47f392c5be5c93e8aa203820bec6fc7ce54461225cf511"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_aim_front_spritesheet.png",
+      "size": 2751,
+      "sha256": "ee758da672eb04b34a629f7ba2d220772ab2de9b6e721faf2db9450549766a4c"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_flying_kick_spritesheet.png",
+      "size": 3451,
+      "sha256": "96c1731aba3d23559f8d25ca4155bbd5a348705c38c76e9b2b61593f1323aa0d"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_shoot_front_-_pistol_effect_lb-sheet.png",
+      "size": 621,
+      "sha256": "1561da126985e5f78650519c4d1fd601f29fc1ea01c4328d99de765837d81ac4"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_shoot_front_-_pistol_lb-sheet.png",
+      "size": 1729,
+      "sha256": "5c0b8e387ac12f2b6a121d8f7963a4cd0ba2e288c8930a6c939450a29215a8eb"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_shoot_front_-_pistol_ub-sheet.png",
+      "size": 1783,
+      "sha256": "672b070474586885ba3aaf0dcf6555df5e514b9ffcf3a78a9e9c7b5314cea986"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_skid_turn_spritesheet.png",
+      "size": 2107,
+      "sha256": "166dd8a7a41c1ed19f9c49fe975d160daa9ec88d518202d373bbdab1828edd87"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_spritesheet.png",
+      "size": 4140,
+      "sha256": "70673c43e887479623cdd434d5f53f262632b6a2e247288994eafaba2bb0d9db"
+    },
+    {
+      "path": "sprites/player/pistol/001-run_stop_spritesheet.png",
+      "size": 1848,
+      "sha256": "1855d98dd1dcb8725220e96c202a3d8c4826dca75fb18ba2a4bd355b552163ab"
+    },
+    {
+      "path": "sprites/player/pistol/001-sitting_spritesheet.png",
+      "size": 3146,
+      "sha256": "110379850ceb7531d9e8ab6569ceb956244787e8913ae80e7740faafec74fee6"
+    },
+    {
+      "path": "sprites/player/pistol/001-slide_spritesheet.png",
+      "size": 2579,
+      "sha256": "13e7d945bb0a75e0896c1d4d1268910f280de9aed6ea182bb07eecd0dc4de83a"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_aim_front_spritesheet.png",
+      "size": 2537,
+      "sha256": "10b4635ba78a40b71d6c6eb3f7e6d2fce938d77e47557d0013fa81309d2951f3"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_block_idle_spritesheet.png",
+      "size": 2080,
+      "sha256": "98818ce9321beca72c533a89500243af3ec523a443eafdf7cadaec56c248f62a"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_hit_lower_body_spritesheet.png",
+      "size": 1977,
+      "sha256": "a624faf6f2f79a5d232c84bc48e0695e770694e9ea6e60171c2ba161b778de98"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_hit_upper_body_spritesheet.png",
+      "size": 1902,
+      "sha256": "d2b44566e30a6e76217eb1748087ada9753deaffbb57ed218282ecdad67007ae"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_idle_spritesheet.png",
+      "size": 2174,
+      "sha256": "6346ad943a7b8ecb3f99b4fde99b32d24f5958318b03b3cce10a97799088a964"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_idly_spritesheet.png",
+      "size": 2024,
+      "sha256": "cc7d24ac05fb7b40862148f81712231979c5294f3a872d02db3d762c170dee2d"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_kick_spritesheet.png",
+      "size": 2625,
+      "sha256": "95af5a14c82d47d191d37b1c77fa1bd520c78cd3e179fdd9bd42395755dd57de"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_shoot_front_-_pistol_-sheet.png",
+      "size": 1897,
+      "sha256": "97fc3b84aa2f0da65c8306d72c6bfc8d5e76b2de40b0bb952e93979ef5b9973a"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_walk_aim_front_spritesheet.png",
+      "size": 2533,
+      "sha256": "965c0b2a0cc8ed76787d61630fd1d07f3c0982d74737a9b94e8413c20ac1b60f"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_walk_shoot_front_-_pistol_effect_lb-sheet.png",
+      "size": 574,
+      "sha256": "e8d60b80cdddd2a369d2d7d6de805f052971dc0e98dc060b457f4b6aec870592"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_walk_shoot_front_-_pistol_lb-sheet.png",
+      "size": 1510,
+      "sha256": "8c607632d30f8dfea59bf6d7c24a8ba19fb6d0f4a98f86d928fd2e838cc23d7c"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_walk_shoot_front_-_pistol_ub-sheet.png",
+      "size": 1778,
+      "sha256": "0bacf8b1e14113ca4e50b87f9e5a11c7093e474ccd3cdf8d9edf194dfdf4d6f2"
+    },
+    {
+      "path": "sprites/player/pistol/001-standing_walk_spritesheet.png",
+      "size": 2988,
+      "sha256": "7a1043868c9fa57293e8d620490b8d4ec1ddb6af3dbd67cec6379eb2e591b970"
+    },
+    {
+      "path": "sprites/player/pistol/001-talking_spritesheet.png",
+      "size": 2569,
+      "sha256": "8d97e611c83db171e02f8b0b0877e2a3feca3e680fa3099bad82066b04024a16"
+    },
+    {
+      "path": "sprites/player/pistol/001-wall_jump_land_spritesheet.png",
+      "size": 2261,
+      "sha256": "0d2fa2032417e30ac626129e971f7c3661aa43db5dd209570d3b0457f9fe228d"
+    },
+    {
+      "path": "sprites/player/pistol/001-wall_jump_slide_spritesheet.png",
+      "size": 1800,
+      "sha256": "ee041c7b8541276d93f5b57631ec50b1744441fb18dff6978c8985902f6d7252"
+    },
+    {
+      "path": "sprites/player/pistol/001-water_bottom_idle_spritesheet.png",
+      "size": 2599,
+      "sha256": "b6ee49204651656390faebc991f8ee4c9b12b89b8ab0297725940d2e4648e4e4"
+    },
+    {
+      "path": "sprites/player/pistol/001-water_bottom_swimming_(down)_spritesheet.png",
+      "size": 2611,
+      "sha256": "0bf4e163f05c5958031a3b21029c09657d4210ebf7f7b03b8d3435fdd9fb1b53"
+    },
+    {
+      "path": "sprites/player/pistol/001-water_bottom_swimming_(front)_spritesheet.png",
+      "size": 2553,
+      "sha256": "9ecbb245538a78e476cd40e66e799d49c11318249823d1177ba52496e6316c83"
+    },
+    {
+      "path": "sprites/player/pistol/001-water_bottom_swimming_(up)_spritesheet.png",
+      "size": 2814,
+      "sha256": "5e7b32b60efeb262854b4b94b34840e23f75d3c9998e19f153a14aabcdaa1f5e"
+    },
+    {
+      "path": "sprites/player/pistol/001-water_surface_idle_spritesheet.png",
+      "size": 2453,
+      "sha256": "50df1c89f413a52583534101c0578e307502a5200f433cb0c79c21ac520df08d"
+    },
+    {
+      "path": "sprites/player/pistol/001-water_surface_swimming_spritesheet.png",
+      "size": 2741,
+      "sha256": "1716a8edb83897ee7089e0e74fb0effa836835f8d20bec515cc316a26b2d4867"
+    },
+    {
+      "path": "sprites/player/pistol/002-block_hit_(hard)_spritesheet.png",
+      "size": 2456,
+      "sha256": "2a130d6d21a8205e308c2b49341e08efef89f46aeb286895ef98a5f6aef228b2"
+    },
+    {
+      "path": "sprites/player/pistol/002-crouch_aim_front_up_spritesheet.png",
+      "size": 2251,
+      "sha256": "efc45a66d81ef738ac05b2b96364094582923fc391ce124e1c7f3e0b88555aa1"
+    },
+    {
+      "path": "sprites/player/pistol/002-crouch_shoot_front_up_spritesheet.png",
+      "size": 2298,
+      "sha256": "6568d1b51bc4ce9d919325b7f55787a57dd1684f71f285c9a61aeed8159a211b"
+    },
+    {
+      "path": "sprites/player/pistol/002-crouch_walk_aim_front_up_spritesheet.png",
+      "size": 2516,
+      "sha256": "b749ac82a2c6825bf9cc3d8b08953144014d56111a39b391e01e44d85b9ceaf5"
+    },
+    {
+      "path": "sprites/player/pistol/002-crouch_walk_shoot_front_up-_pistol_effect_lb-sheet.png",
+      "size": 469,
+      "sha256": "9382bf030406c454e15ff1e028555247513270aa46f761d51fed79564406c853"
+    },
+    {
+      "path": "sprites/player/pistol/002-crouch_walk_shoot_front_up-_pistol_ub-sheet.png",
+      "size": 1834,
+      "sha256": "ec244385d51f241c131e8c8376c9df18bc9cfeb32b58ff45bcd31cb767285271"
+    },
+    {
+      "path": "sprites/player/pistol/002-death(defeat)_b_getting_up_spritesheet.png",
+      "size": 2862,
+      "sha256": "6473e8e27c89e7a5fc5323c11be0b8ce97ea999942c89173024df65bfff3cd5f"
+    },
+    {
+      "path": "sprites/player/pistol/002-death_a_getting_up_spritesheet.png",
+      "size": 2836,
+      "sha256": "3d5eed303958a88f5bcaa53036b193022ca27d75717726035f13bebe99472c40"
+    },
+    {
+      "path": "sprites/player/pistol/002-jump_aim_front_up_spritesheet.png",
+      "size": 3532,
+      "sha256": "e921db105e56fcbba1768e78782777c37c3b5cb01ed4ff1a90ac155bd0a8628e"
+    },
+    {
+      "path": "sprites/player/pistol/002-jump_shoot_front_up_-_pistol_effect_lb-sheet.png",
+      "size": 692,
+      "sha256": "5f5058c565a24f50ec68079ab9d227f7c3292a0de759d38a49def8e1ebba6ede"
+    },
+    {
+      "path": "sprites/player/pistol/002-jump_shoot_front_up_-_pistol_ub-sheet.png",
+      "size": 1813,
+      "sha256": "b4fe85a750638e9c8c0e7510204ae0ae046c0b46106260ab3ba9c65f2808f754"
+    },
+    {
+      "path": "sprites/player/pistol/002-prone_shoot_front_up_spritesheet.png",
+      "size": 1835,
+      "sha256": "688cee6822baed5bf2dc121b509c1649aea5ab6f2530e3771ea3315a22c88d62"
+    },
+    {
+      "path": "sprites/player/pistol/002-run_aim_front_up_spritesheet.png",
+      "size": 2828,
+      "sha256": "40ed06ad3d1ad9f8a7f48c074baa5a5dbb5b6a1da964b7319b4c7209d84dcad2"
+    },
+    {
+      "path": "sprites/player/pistol/002-run_shoot_front_up_-_pistol_effect_lb-sheet.png",
+      "size": 502,
+      "sha256": "8d4da5422393466e77124b6e915766360f596a66bd1206a40283836522d94534"
+    },
+    {
+      "path": "sprites/player/pistol/002-run_shoot_front_up_-_pistol_ub-sheet.png",
+      "size": 1813,
+      "sha256": "b4fe85a750638e9c8c0e7510204ae0ae046c0b46106260ab3ba9c65f2808f754"
+    },
+    {
+      "path": "sprites/player/pistol/002-standing_aim_front_up_spritesheet.png",
+      "size": 2571,
+      "sha256": "750ef8d2ec861ae08188013bca9162472a4af7da6542b95883377e88718866d0"
+    },
+    {
+      "path": "sprites/player/pistol/002-standing_shoot_front_up_spritesheet.png",
+      "size": 1961,
+      "sha256": "7d2b5a207a391371883c844c53788a14d2526b96760ae4d62ea566605215d696"
+    },
+    {
+      "path": "sprites/player/pistol/002-standing_walk_aim_front_up_spritesheet.png",
+      "size": 2559,
+      "sha256": "ae3ab15b989331a6915d9e18643665ee68ae7782f3fde1a3d904311f6ea247ed"
+    },
+    {
+      "path": "sprites/player/pistol/002-standing_walk_shoot_front_up_-_pistol_effect_lb-sheet.png",
+      "size": 574,
+      "sha256": "e8d60b80cdddd2a369d2d7d6de805f052971dc0e98dc060b457f4b6aec870592"
+    },
+    {
+      "path": "sprites/player/pistol/002-standing_walk_shoot_front_up_-_pistol_ub-sheet.png",
+      "size": 1720,
+      "sha256": "2f0a5c05e6af66f7fc77d1616001c5f2098df878799b3bceb62c93d05f60ee6e"
+    },
+    {
+      "path": "sprites/player/pistol/003-crouch_aim_up_spritesheet.png",
+      "size": 2606,
+      "sha256": "54398cc7ff0fba909af24fc6f6bdc65ebd9165e3e04c682d3a1e2077dd636898"
+    },
+    {
+      "path": "sprites/player/pistol/003-crouch_shoot_up_spritesheet.png",
+      "size": 2604,
+      "sha256": "10fd7439c0f6c4b5da320fa730b3d1724f444cab17892112d3f91e9a56e0bf6f"
+    },
+    {
+      "path": "sprites/player/pistol/003-crouch_walk_aim_up_spritesheet.png",
+      "size": 2762,
+      "sha256": "c6cafe42303ea972782fe3cc7f62fa0dc7e1d33dd8ef9fb34d60083d50d07657"
+    },
+    {
+      "path": "sprites/player/pistol/003-crouch_walk_shoot_up-_pistol_effect_lb-sheet.png",
+      "size": 445,
+      "sha256": "58a965590f97a6230dd1778bd67212bd8bab2fd43c3604247ccf0d10602e4d8f"
+    },
+    {
+      "path": "sprites/player/pistol/003-crouch_walk_shoot_up-_pistol_ub-sheet.png",
+      "size": 1916,
+      "sha256": "7852c0f4a15d805616243b4f436f7891eac0c94d75c0aec7f233d8ddeb661cf9"
+    },
+    {
+      "path": "sprites/player/pistol/003-jump_aim_up_spritesheet.png",
+      "size": 3382,
+      "sha256": "86fb1b3a6e67d363e91464ca028e568f6f699726ef06e1722671e013983a6b9f"
+    },
+    {
+      "path": "sprites/player/pistol/003-jump_shoot_up_-_pistol_effect_lb-sheet.png",
+      "size": 532,
+      "sha256": "2aec3ccbb2760098d3f4757c56a4814d3629dee269c6aa893aa4392d4a966134"
+    },
+    {
+      "path": "sprites/player/pistol/003-jump_shoot_up_-_pistol_ub-sheet.png",
+      "size": 1888,
+      "sha256": "59e0e5f9078604834244aec55e827f9abd421271988af5d0919401e34bfbb0f6"
+    },
+    {
+      "path": "sprites/player/pistol/003-run_aim_up_spritesheet.png",
+      "size": 2947,
+      "sha256": "85a12ed42a69f5449a70804f887cd3c6d62d7b4f83f290eabcb537d5179515c6"
+    },
+    {
+      "path": "sprites/player/pistol/003-run_shoot_up_-_pistol_effect_lb-sheet.png",
+      "size": 467,
+      "sha256": "15b58fa8861ca09d733d2a7f0052879f1564c1af14fa357213f48b7d65b2b739"
+    },
+    {
+      "path": "sprites/player/pistol/003-run_shoot_up_-_pistol_ub-sheet.png",
+      "size": 1884,
+      "sha256": "6c8e16d4c735f710ce4e2569dfbc9af507049924e32132fae4bb95915a2edf2a"
+    },
+    {
+      "path": "sprites/player/pistol/003-standing_aim_up_spritesheet.png",
+      "size": 2713,
+      "sha256": "6ca17c5ae4b987e8a834c18c6fdfdfb51c3a81fd6ecb3d3e1b8d9c386d761137"
+    },
+    {
+      "path": "sprites/player/pistol/003-standing_shoot_up_spritesheet.png",
+      "size": 2055,
+      "sha256": "0a3017ccdd2d7137a1f8bb7693cb3c6f3dacb6b618c42b1cb8bd870cef945522"
+    },
+    {
+      "path": "sprites/player/pistol/003-standing_walk_aim_up_spritesheet.png",
+      "size": 2821,
+      "sha256": "b2c286d52a0c63a5997dd48f5def25fdc31963f6e434f3f124bf7c2d285a0261"
+    },
+    {
+      "path": "sprites/player/pistol/003-standing_walk_shoot_up_-_pistol_effect_lb-sheet.png",
+      "size": 466,
+      "sha256": "8877bc911fe784625ac7a70c058884ad43f982774a3ae199c70adecc5f4ca78e"
+    },
+    {
+      "path": "sprites/player/pistol/003-standing_walk_shoot_up_-_pistol_ub-sheet.png",
+      "size": 1880,
+      "sha256": "2119d193c0dbd42eb046b012a7046e9618621b5fb6279477eb1312f7e597b4cb"
+    },
+    {
+      "path": "sprites/player/pistol/004-crouch_aim_front_down_spritesheet.png",
+      "size": 2122,
+      "sha256": "d621ba24cf2c3de6dd66045fad7bf2942fbae2113b81242376f299b491e5a0fa"
+    },
+    {
+      "path": "sprites/player/pistol/004-crouch_shoot_front_down_spritesheet.png",
+      "size": 2326,
+      "sha256": "c21688fc7dae16989dfde51f89d71c889dd74ef9bfcc85a87a797ce75e1f1361"
+    },
+    {
+      "path": "sprites/player/pistol/004-crouch_walk_aim_front_down_spritesheet.png",
+      "size": 2381,
+      "sha256": "f2791bf4d5776e13dd4f1453fc7c45a720b99fd150bfebed97e936c18d4257c0"
+    },
+    {
+      "path": "sprites/player/pistol/004-crouch_walk_shoot_front_down-_pistol_effect_lb-sheet.png",
+      "size": 536,
+      "sha256": "93befbca604b34b2cdf0a57dfa24f44f68faf3b6c0e455845c35fc64dacc0317"
+    },
+    {
+      "path": "sprites/player/pistol/004-crouch_walk_shoot_front_down-_pistol_ub-sheet.png",
+      "size": 1776,
+      "sha256": "9c23912bae95e70a2fe2ee2020b8bd4913d8b5bd3bd52385c5ed40e69f8f9be7"
+    },
+    {
+      "path": "sprites/player/pistol/004-jump_aim_front_down_spritesheet.png",
+      "size": 3314,
+      "sha256": "8790683b7eceb96e89c2b4ab1cbee92fea10663b67ca9d5b66706c26e4c09d0e"
+    },
+    {
+      "path": "sprites/player/pistol/004-jump_shoot_front_down_-_pistol_effect_lb-sheet.png",
+      "size": 771,
+      "sha256": "c3ecbf397a1719ce6191cfcc4d26876ad3ef23236dcc0722fc4e2e60d33a4270"
+    },
+    {
+      "path": "sprites/player/pistol/004-jump_shoot_front_down_-_pistol_ub-sheet.png",
+      "size": 1892,
+      "sha256": "ba06ced1c512020a131108b5d4d0c07dfee36d18b243f1ee797e4927c11f8d82"
+    },
+    {
+      "path": "sprites/player/pistol/004-run_aim_front_down_spritesheet.png",
+      "size": 2934,
+      "sha256": "fc598b32d16422be3cc618cecd95bd63c24a1a3fde0badd33eed264d9e3b0dac"
+    },
+    {
+      "path": "sprites/player/pistol/004-run_shoot_front_down_-_pistol_effect_lb-sheet.png",
+      "size": 621,
+      "sha256": "1561da126985e5f78650519c4d1fd601f29fc1ea01c4328d99de765837d81ac4"
+    },
+    {
+      "path": "sprites/player/pistol/004-run_shoot_front_down_-_pistol_ub-sheet.png",
+      "size": 1893,
+      "sha256": "d1acaec979c5ae63b6740c693a7558dc17014c6c51578943e16e8f0aba3a0f24"
+    },
+    {
+      "path": "sprites/player/pistol/004-standing_aim_front_down_spritesheet.png",
+      "size": 2632,
+      "sha256": "72949f3a928024fa649db791c1670bec63f9da396b9741708d4f493babf56884"
+    },
+    {
+      "path": "sprites/player/pistol/004-standing_shoot_front_down_spritesheet.png",
+      "size": 2093,
+      "sha256": "4e006b904cd85e800ff3fc288401537fc5c3a8b8687211ca738c8de4f7a188a9"
+    },
+    {
+      "path": "sprites/player/pistol/004-standing_walk_aim_front_down_spritesheet.png",
+      "size": 2665,
+      "sha256": "bf833a7780765a8a691ef6b3df5d40dd6f75a6f6eacf94388196fab5a3551224"
+    },
+    {
+      "path": "sprites/player/pistol/004-standing_walk_shoot_front_down_-_pistol_effect_lb-sheet.png",
+      "size": 574,
+      "sha256": "e8d60b80cdddd2a369d2d7d6de805f052971dc0e98dc060b457f4b6aec870592"
+    },
+    {
+      "path": "sprites/player/pistol/004-standing_walk_shoot_front_down_-_pistol_ub-sheet.png",
+      "size": 1893,
+      "sha256": "d1acaec979c5ae63b6740c693a7558dc17014c6c51578943e16e8f0aba3a0f24"
+    },
+    {
+      "path": "sprites/player/pistol/005-jump_aim_down_spritesheet.png",
+      "size": 3188,
+      "sha256": "b5099e9493de0c9ec25cbd043de078e4c0284b56885f353f12ee3ba825fef04b"
+    },
+    {
+      "path": "sprites/player/pistol/005-jump_shoot_down_-_pistol_effect_lb-sheet.png",
+      "size": 732,
+      "sha256": "0efb5318cf243af42e7a97647faacecf6d08e6f7d0d4ce02bcb85f621e4690ac"
+    },
+    {
+      "path": "sprites/player/pistol/005-jump_shoot_down_-_pistol_ub-sheet.png",
+      "size": 1982,
+      "sha256": "5c1e5530ea3fbf9e588cae372bc1e0497c3a3714a426a6757b5a38be309cc0de"
+    },
+    {
+      "path": "sprites/player/pistol/005-run_aim_down_spritesheet.png",
+      "size": 2839,
+      "sha256": "482a237f819b02eef5ccda3cd71aacc6d2164d80b0ca2e03e93beb303da2a290"
+    },
+    {
+      "path": "sprites/player/pistol/005-run_shoot_down_-_pistol_effect_lb-sheet.png",
+      "size": 635,
+      "sha256": "c985af241c38aea643154482fb37d6e546cae01dd5ac18090dfb8a7e0e65425f"
+    },
+    {
+      "path": "sprites/player/pistol/005-run_shoot_down_-_pistol_ub-sheet.png",
+      "size": 1982,
+      "sha256": "5c1e5530ea3fbf9e588cae372bc1e0497c3a3714a426a6757b5a38be309cc0de"
+    },
+    {
+      "path": "sprites/player/pistol/005-standing_aim_down_spritesheet.png",
+      "size": 2503,
+      "sha256": "b4e4720ac0e29924ba67b814d766fa1c09abfabc941c43b45fb3bcbcc57464c1"
+    },
+    {
+      "path": "sprites/player/pistol/005-standing_shoot_down_spritesheet.png",
+      "size": 1930,
+      "sha256": "9565531b911dd2cdfa3a53fa2bfdd4bbdbb1e78bed8045207ba18a52f7ef0d08"
+    },
+    {
+      "path": "sprites/player/pistol/005-standing_walk_aim_down_spritesheet.png",
+      "size": 2464,
+      "sha256": "e9ee9cd908a3b54b26c9079eb7f7ddba2cebcaaf092f69807697660c30c36b4c"
+    },
+    {
+      "path": "sprites/player/pistol/005-standing_walk_shoot_down_-_pistol_effect_lb-sheet.png",
+      "size": 573,
+      "sha256": "136cb181f2521f4364adaeaeba9c44c9d1542764859c8a23481bcae79bf19902"
+    },
+    {
+      "path": "sprites/player/pistol/005-standing_walk_shoot_down_-_pistol_ub-sheet.png",
+      "size": 1997,
+      "sha256": "fbfe02a66e59405f07f472603bdd4f652201aa4dc577bd32169d01bf7971daf9"
+    },
+    {
+      "path": "sprites/player/run_spritesheet.png",
+      "size": 3999,
+      "sha256": "d196e07ceb4bac6f9eca07c78cd3199c356ca1d09149998a2679063da5d00dc2"
+    },
+    {
+      "path": "sprites/player/sword/air_attack_d0_spritesheet.png",
+      "size": 2226,
+      "sha256": "e696517d77f42347fed1de8be3a1bee53e4cfe70a3bc995146b1a27ea5f14f62"
+    },
+    {
+      "path": "sprites/player/sword/air_attack_d1_spritesheet.png",
+      "size": 3812,
+      "sha256": "e6278b142b74aa62f1b3959597a519dafb3649a3feef123fbafcb87b4d2b5be2"
+    },
+    {
+      "path": "sprites/player/sword/air_block_hit_spritesheet.png",
+      "size": 1620,
+      "sha256": "0180c5acff2f00b123e4b93811bd406811fc08a7417c5cf3411f4b162c720b1f"
+    },
+    {
+      "path": "sprites/player/sword/air_block_spritesheet.png",
+      "size": 3393,
+      "sha256": "4c2148cfa903a23d284e92006d3fc0e68bf13583b44f73cca3f488d49cbe5635"
+    },
+    {
+      "path": "sprites/player/sword/air_kick_spritesheet.png",
+      "size": 3150,
+      "sha256": "21e2ebbdbdf057171a9ede505f6da701b983b107f9cc0cf7703178766a60b4b7"
+    },
+    {
+      "path": "sprites/player/sword/air_punch1_spritesheet.png",
+      "size": 2927,
+      "sha256": "39282382009e123be33d6843b87818174a0e01395da321f0e8ee2063945733e4"
+    },
+    {
+      "path": "sprites/player/sword/air_punch2_spritesheet.png",
+      "size": 3569,
+      "sha256": "eaae5d70915133509114e087407f247f0cf2bcd64f9bc28f6ddeb4f0848a438e"
+    },
+    {
+      "path": "sprites/player/sword/attack_combo_d0_spritesheet.png",
+      "size": 2306,
+      "sha256": "3663ae8cc85ede1974d56bef37522616b8142f1b2cf768bcd38c30bd939082a7"
+    },
+    {
+      "path": "sprites/player/sword/attack_combo_d1_spritesheet.png",
+      "size": 3641,
+      "sha256": "c957c7a3a976aee86165b7daf02f441acca8e19d93241daa2951251abd2091a3"
+    },
+    {
+      "path": "sprites/player/sword/attack_combo_d2_spritesheet.png",
+      "size": 6131,
+      "sha256": "9aa4ecd49b3f9ba73efa6d9d18568eb205c322899f9356cc517dd19f0737936c"
+    },
+    {
+      "path": "sprites/player/sword/block_hit_hard_spritesheet.png",
+      "size": 2390,
+      "sha256": "5c6ee72e9924e7e78cd91729ce682cfe0b012229db37eee13267dce05d15e7c5"
+    },
+    {
+      "path": "sprites/player/sword/block_hit_normal_spritesheet.png",
+      "size": 1462,
+      "sha256": "b2b02748745027aa6f9c185042ed4d89cfcacc20b3700c0ba7d7602ba024c86a"
+    },
+    {
+      "path": "sprites/player/sword/block_idle_spritesheet.png",
+      "size": 2004,
+      "sha256": "bf16cf538d5b71849ac72f7942805f625b6be9cbb23ac80a633013e9974d25f5"
+    },
+    {
+      "path": "sprites/player/sword/button_spritesheet.png",
+      "size": 2147,
+      "sha256": "1d1631614c5a8dae2b7a92f5d2d3f265630183ff80c9a9d1c0cfdfb469669de4"
+    },
+    {
+      "path": "sprites/player/sword/chest_back_spritesheet.png",
+      "size": 2738,
+      "sha256": "3bbb8acb558b033140f3cceb0b77fe772d03ab906afe1bc8f4c010498c287f42"
+    },
+    {
+      "path": "sprites/player/sword/chest_side_spritesheet.png",
+      "size": 2533,
+      "sha256": "31ed6e173e73862d105eb7c8f44aa4124f76756bbf8f686692979451a2646bd5"
+    },
+    {
+      "path": "sprites/player/sword/climb_back_spritesheet.png",
+      "size": 2107,
+      "sha256": "45d7b132d281747da05c6332b3de70e1912f5f91596da0763eeef2779dbfb702"
+    },
+    {
+      "path": "sprites/player/sword/climb_idle_back_spritesheet.png",
+      "size": 1366,
+      "sha256": "269c7407b08cbefacb1176314c2ff3f1766f1eef903fd80899082938ba717ca8"
+    },
+    {
+      "path": "sprites/player/sword/climb_idle_side_spritesheet.png",
+      "size": 1821,
+      "sha256": "6a25743dfe3eb00a4c70c8b5ea4c4f52583361c5c274b01e2a41262c855337dd"
+    },
+    {
+      "path": "sprites/player/sword/climb_left_spritesheet.png",
+      "size": 2245,
+      "sha256": "dc6801f3b921672e4b6cab12f8919e89a910cb7d1bcd72290bb8a0e422807344"
+    },
+    {
+      "path": "sprites/player/sword/climb_right_spritesheet.png",
+      "size": 2329,
+      "sha256": "7bc8d906a5b69ffc93aed445b05f724885e0f16486a4d419a8cbba919fab546d"
+    },
+    {
+      "path": "sprites/player/sword/climb_side_spritesheet.png",
+      "size": 2661,
+      "sha256": "10f37fc8cf4bd3549d76cedfb335298dbcc771af2f58913c693f3c3773e0b13c"
+    },
+    {
+      "path": "sprites/player/sword/combat_idle_spritesheet.png",
+      "size": 2152,
+      "sha256": "b0c6fe06a0b4972cc9deb6163cd9827b5b6884bda51b2716961b10fc4dd86330"
+    },
+    {
+      "path": "sprites/player/sword/crouch_attack_d0_spritesheet.png",
+      "size": 2074,
+      "sha256": "09ca22c6b803c97cd37916322d3f6ca35736ef1fab2f76a4a885484be4d43faf"
+    },
+    {
+      "path": "sprites/player/sword/crouch_attack_d1_spritesheet.png",
+      "size": 3428,
+      "sha256": "ff53eb5db10c5def0e735f814315ecd0c8e9ef1775d20e0c1227e3e925e7899c"
+    },
+    {
+      "path": "sprites/player/sword/crouch_block_hit_spritesheet.png",
+      "size": 1446,
+      "sha256": "a48a4c3a94992dc1215b06aab3b783df84962e8f1bb477b12cbe7d6555f86e90"
+    },
+    {
+      "path": "sprites/player/sword/crouch_block_spritesheet.png",
+      "size": 1873,
+      "sha256": "b3117ab43e328873208cd418adf0daf5eb0b668375ec6f2dc79b026da706cc3c"
+    },
+    {
+      "path": "sprites/player/sword/crouch_hurt_spritesheet.png",
+      "size": 1974,
+      "sha256": "30dc7a7b7a1933a7eff204ecff8a364e44fc6a3f2b7e19d7c24d402c36f654a6"
+    },
+    {
+      "path": "sprites/player/sword/crouch_idle_spritesheet.png",
+      "size": 2250,
+      "sha256": "6d4fad4ab6bb3f70fe87dc127d27fcb5d6ddffeea0b76a447d215393433db8ae"
+    },
+    {
+      "path": "sprites/player/sword/crouch_kick_spritesheet.png",
+      "size": 2859,
+      "sha256": "5b97f85e18d25408589f03805b27689f22620c88afc09fe160690acc893f35f5"
+    },
+    {
+      "path": "sprites/player/sword/crouch_punch_spritesheet.png",
+      "size": 2309,
+      "sha256": "70c9f5b4b79fc633fbc88f363e245526b9164032e0c431df5e087e6058ec5567"
+    },
+    {
+      "path": "sprites/player/sword/crouch_walk_spritesheet.png",
+      "size": 2897,
+      "sha256": "1cd8307479cf986d6705b190198918e009223b60dcd18beda9b37d4f9c4b8a58"
+    },
+    {
+      "path": "sprites/player/sword/dance_spritesheet.png",
+      "size": 3774,
+      "sha256": "983fb55d126e1b19e35d9710b58d16d42710c93521b633edd7e1ee23342d94c3"
+    },
+    {
+      "path": "sprites/player/sword/dash_attack_spritesheet.png",
+      "size": 3789,
+      "sha256": "562322e28cb0533da4157441501e1410a55f1fe95362b259289d57dc37c85f73"
+    },
+    {
+      "path": "sprites/player/sword/dash_spritesheet.png",
+      "size": 3366,
+      "sha256": "5054092f995bdb4044593de143f447e2fa55aaf8c2f12da624b1608dc34ede3e"
+    },
+    {
+      "path": "sprites/player/sword/death2_spritesheet.png",
+      "size": 3288,
+      "sha256": "68f91a316797ede14738a77b09c2e98af7af1fa230ffe42eb7ab808100850e80"
+    },
+    {
+      "path": "sprites/player/sword/death_spritesheet.png",
+      "size": 3317,
+      "sha256": "c130dfe71fb048416906b78974aecb747a1664f65d931fa2a10e919d02da99d6"
+    },
+    {
+      "path": "sprites/player/sword/door_enter_spritesheet.png",
+      "size": 3191,
+      "sha256": "02edac110f6ac6917f3771d9eef3806a85edefc3734cfadec384de677e442251"
+    },
+    {
+      "path": "sprites/player/sword/door_exit_spritesheet.png",
+      "size": 3052,
+      "sha256": "f0056873536c0cf0ddae5649685198d10892fb09a28bd6bd13113878259ca69e"
+    },
+    {
+      "path": "sprites/player/sword/drink_spritesheet.png",
+      "size": 3063,
+      "sha256": "cc08fdf0ad698058c4b49a0d5b2d9a0b6e84aa436fbd0c9446c83cf9e0af81b1"
+    },
+    {
+      "path": "sprites/player/sword/fidget_spritesheet.png",
+      "size": 1928,
+      "sha256": "d7515646e8306b62166d1ae52ef708bd6e46f880163cab094cd5644339af453c"
+    },
+    {
+      "path": "sprites/player/sword/flip_spritesheet.png",
+      "size": 2687,
+      "sha256": "d1c0de94667a4f69eda8759bc275cd33311e9a3197dce4b81f4cd662531561f4"
+    },
+    {
+      "path": "sprites/player/sword/hurt_lower_spritesheet.png",
+      "size": 1912,
+      "sha256": "0ed4d5e0986e07bd1575490195d380ff72c93457af9c25f0019880c0939c8bdb"
+    },
+    {
+      "path": "sprites/player/sword/hurt_upper_spritesheet.png",
+      "size": 1800,
+      "sha256": "8a5a28cb01a1b179fdfe3a6532eedd3d7d317e4f38d16508e6f4a497f9db5b8d"
+    },
+    {
+      "path": "sprites/player/sword/idle_spritesheet.png",
+      "size": 2042,
+      "sha256": "900aeea148bae709cf7efeb61397b2b38955b9a6c71a396da26e5300319e704a"
+    },
+    {
+      "path": "sprites/player/sword/jumpfall_spritesheet.png",
+      "size": 4198,
+      "sha256": "5a2a2a4f977ff83e3607e2f66252609327fc90ac291a3cdb9703b93294ee7c7f"
+    },
+    {
+      "path": "sprites/player/sword/kick_spritesheet.png",
+      "size": 2786,
+      "sha256": "8250654c9fadf4f7ca1c181b74a0f5fedeaec33317543319f58718ecab1d1b50"
+    },
+    {
+      "path": "sprites/player/sword/ledge_climb_back_spritesheet.png",
+      "size": 1967,
+      "sha256": "84012d5c3960a6b3a712b8b2790ea04a5f51cc9c6dfe232ee138a16fabca8d77"
+    },
+    {
+      "path": "sprites/player/sword/ledge_climb_spritesheet.png",
+      "size": 1874,
+      "sha256": "f528579193e4c638df6cef7df8d438748a99f22e34da9cd23e246866498a948f"
+    },
+    {
+      "path": "sprites/player/sword/ledge_grab_back_spritesheet.png",
+      "size": 1075,
+      "sha256": "0e41d617ac2aa7d209b34345579ffaf8f47723f0a0a12135baf6b3afb49c0dde"
+    },
+    {
+      "path": "sprites/player/sword/ledge_grab_spritesheet.png",
+      "size": 1010,
+      "sha256": "9a326be2973b1f7299e2d9fa643bc93edf3342bfe7f1a753e142962d2b782f11"
+    },
+    {
+      "path": "sprites/player/sword/ledge_idle_back_spritesheet.png",
+      "size": 1361,
+      "sha256": "db3ac28a07779c1dac9fed3a476ee1c48070f870848b0986a6db9f4be597ef3e"
+    },
+    {
+      "path": "sprites/player/sword/ledge_idle_spritesheet.png",
+      "size": 1646,
+      "sha256": "53abf06fe209f7d79eaa59c212207b6d005f071d4960da5245d3c17e18a6286d"
+    },
+    {
+      "path": "sprites/player/sword/lever_spritesheet.png",
+      "size": 3424,
+      "sha256": "ce31c8b9436bcb844147e47d6be6457b15c4775a00eefb165a47cb92abc5da43"
+    },
+    {
+      "path": "sprites/player/sword/pickup_crouch_spritesheet.png",
+      "size": 1877,
+      "sha256": "bbf98dfb5eff26c919dbafcd0c9d80b294456f09db760644569ccb337db1449f"
+    },
+    {
+      "path": "sprites/player/sword/pickup_spritesheet.png",
+      "size": 2430,
+      "sha256": "2f5197cd579041127131e7e68b692d6ca6d8e34a67cf42d3950e0e551b0e7c93"
+    },
+    {
+      "path": "sprites/player/sword/prone_death_spritesheet.png",
+      "size": 2129,
+      "sha256": "07f2be85e23002629d9e2d1b9e7004b0bd9a70e6100b98e645af502b14da3ea8"
+    },
+    {
+      "path": "sprites/player/sword/prone_hurt_spritesheet.png",
+      "size": 1536,
+      "sha256": "6b9c800a087fa5b051aea7b46177b0ac82036b9f94d582e75b74cee7aeaa308b"
+    },
+    {
+      "path": "sprites/player/sword/prone_idle_spritesheet.png",
+      "size": 1979,
+      "sha256": "57bba225d6a8b855190c74dd622a6b1f7729217e0f4c024f6a56d17ca21fa5a6"
+    },
+    {
+      "path": "sprites/player/sword/prone_revive_spritesheet.png",
+      "size": 1835,
+      "sha256": "5a368b3e29cf9abf46440d71744315deb31cc7f2672f6f6dc18a486c58e769a0"
+    },
+    {
+      "path": "sprites/player/sword/prone_walk_spritesheet.png",
+      "size": 2430,
+      "sha256": "745ff45fc4edebc087ba96c56642a7dc97f210312f49859e3f5ffb666e06c1a7"
+    },
+    {
+      "path": "sprites/player/sword/pull_spritesheet.png",
+      "size": 2763,
+      "sha256": "71fd6f12fe1528b5262c3fc5123371b0f9e137038fde4c13bff8ab619decf266"
+    },
+    {
+      "path": "sprites/player/sword/punch1_spritesheet.png",
+      "size": 2773,
+      "sha256": "60194b680c160ae90eb01ab276babbce528a49d04097358f50eda811a4d75861"
+    },
+    {
+      "path": "sprites/player/sword/punch2_spritesheet.png",
+      "size": 3471,
+      "sha256": "e723d04a40f0e9a3744048bb9d80202555a8e0e1a0b7d7d3c94e70f48095e1f1"
+    },
+    {
+      "path": "sprites/player/sword/push_idle_spritesheet.png",
+      "size": 2006,
+      "sha256": "f167b0623bda77cb3d3cd522942b29e8d3b2419dfd0bf83f784594b4cea6452c"
+    },
+    {
+      "path": "sprites/player/sword/push_spritesheet.png",
+      "size": 2470,
+      "sha256": "fa17a9dccc74cadbb6daee36daea927a0ced265c8877bc99227722c0fa9a89d6"
+    },
+    {
+      "path": "sprites/player/sword/revive2_spritesheet.png",
+      "size": 2674,
+      "sha256": "880528ac1868268c08d3199652b977fa97399e3a99041470e537f0f88a6a82ea"
+    },
+    {
+      "path": "sprites/player/sword/revive_spritesheet.png",
+      "size": 2780,
+      "sha256": "555ec431207a107bd5b4f60ba4f4867f70469fe299ecb2242b17b500eb03b5b5"
+    },
+    {
+      "path": "sprites/player/sword/roll_spritesheet.png",
+      "size": 3582,
+      "sha256": "52de873373304a64059a6366a4de7fc5249ad2f22728f0fddf85c2a6d6de4f04"
+    },
+    {
+      "path": "sprites/player/sword/rope_idle_spritesheet.png",
+      "size": 1388,
+      "sha256": "4a66596f31866c4ad7927d38d80dbd29d96dff710acc46421f20a12b7806fd18"
+    },
+    {
+      "path": "sprites/player/sword/rope_swing_spritesheet.png",
+      "size": 3329,
+      "sha256": "92c83fd45f04d64e87de24e1a8ab2873eeb356b9788c8327f92aa0aa1cf3a3df"
+    },
+    {
+      "path": "sprites/player/sword/run_kick_spritesheet.png",
+      "size": 3252,
+      "sha256": "6a6dc009af5f71ff83106babe018385086beda157af6635d546400cf34baa819"
+    },
+    {
+      "path": "sprites/player/sword/run_spritesheet.png",
+      "size": 3794,
+      "sha256": "fb7b4b5ebd8d1e76fb67e91eafc34cd69fa4321ea4905737995c287c497b286a"
+    },
+    {
+      "path": "sprites/player/sword/run_stop_spritesheet.png",
+      "size": 1778,
+      "sha256": "02ba85224ad5a3f78e10e1795330c362fc62dda6170e4a388a03df70a25ec58d"
+    },
+    {
+      "path": "sprites/player/sword/sit_spritesheet.png",
+      "size": 3094,
+      "sha256": "6bbce412aef6e8791a3bb30606da5a83b7b1c9cd283b7a134f77e0dfb6cf4e57"
+    },
+    {
+      "path": "sprites/player/sword/skid_spritesheet.png",
+      "size": 2021,
+      "sha256": "96ec9b650ecd048374752a33ac605924d1b6d8257131a6a0ec6734c6c0969f5e"
+    },
+    {
+      "path": "sprites/player/sword/sleep_spritesheet.png",
+      "size": 4294,
+      "sha256": "5d74c6f3298806db26c09dc8a993f0e1ea9b370cbe08e12770cf88acad1a004c"
+    },
+    {
+      "path": "sprites/player/sword/slide_spritesheet.png",
+      "size": 2371,
+      "sha256": "2d8a26b408f9c7a50263f15ef9bb1e06394df7054d17e5bf1106ab3750fb30c7"
+    },
+    {
+      "path": "sprites/player/sword/stab_combo_spritesheet.png",
+      "size": 2251,
+      "sha256": "e06d13be7f83996c6c89f7a79012f3f99b5613999c5b0ae9997d46d1fcc207f5"
+    },
+    {
+      "path": "sprites/player/sword/swim_down_spritesheet.png",
+      "size": 2451,
+      "sha256": "82cd0574374b082038135f34be50a70adcaa43cfdd989a160735c88669366fd5"
+    },
+    {
+      "path": "sprites/player/sword/swim_idle_spritesheet.png",
+      "size": 2554,
+      "sha256": "a96b7a1914aa362a3c776fc6f73a99825031d82892c4df60df3b853dfbbd47a4"
+    },
+    {
+      "path": "sprites/player/sword/swim_spritesheet.png",
+      "size": 2434,
+      "sha256": "7ca94739e72046dc87e72439ded226d825e93230c80e9c4dfb9f25ad69da668b"
+    },
+    {
+      "path": "sprites/player/sword/swim_surface_idle_spritesheet.png",
+      "size": 2334,
+      "sha256": "50e40cbebc96fd29c40c670a6d36465ab4ec8a56486cd135de7df235de387f3e"
+    },
+    {
+      "path": "sprites/player/sword/swim_surface_spritesheet.png",
+      "size": 2554,
+      "sha256": "5cb9898eb9a3649f150ffc6f5f32bd3de30a74e155c0b682a2a8b511b84784a3"
+    },
+    {
+      "path": "sprites/player/sword/swim_up_spritesheet.png",
+      "size": 2587,
+      "sha256": "ba13dc54c56a5be7d263c6f2c51841292d4fc8153628cfe14e9241021445554c"
+    },
+    {
+      "path": "sprites/player/sword/talk_spritesheet.png",
+      "size": 2597,
+      "sha256": "fbc865972e9269217c0a682368bdc74f3aaa694fab87bfb2e1dd426fa1b34912"
+    },
+    {
+      "path": "sprites/player/sword/victory_spritesheet.png",
+      "size": 3323,
+      "sha256": "48ebad902855123cab42f38a339fe127516bda9a2c79cb19616431a7e9c77753"
+    },
+    {
+      "path": "sprites/player/sword/walk_spritesheet.png",
+      "size": 2997,
+      "sha256": "94b221d1d2f6fd6a6c4f02ea36bc9f0e6ae31a7584ab7621c9dc3b5636b365ba"
+    },
+    {
+      "path": "sprites/player/sword/wall_land_spritesheet.png",
+      "size": 2167,
+      "sha256": "1206da99825c4843a9947b5a84f71549e4ac1abba26177ef1ce0a538a66f3e2b"
+    },
+    {
+      "path": "sprites/player/sword/wall_slide_spritesheet.png",
+      "size": 1714,
+      "sha256": "be61c294cf2ac2a29146ae194ecc9c2962d9c543610d95e286ca852a168293c4"
+    },
+    {
+      "path": "sprites/player/unarmed/air_block_hit_spritesheet.png",
+      "size": 1620,
+      "sha256": "0180c5acff2f00b123e4b93811bd406811fc08a7417c5cf3411f4b162c720b1f"
+    },
+    {
+      "path": "sprites/player/unarmed/air_block_spritesheet.png",
+      "size": 3393,
+      "sha256": "4c2148cfa903a23d284e92006d3fc0e68bf13583b44f73cca3f488d49cbe5635"
+    },
+    {
+      "path": "sprites/player/unarmed/air_kick_spritesheet.png",
+      "size": 3150,
+      "sha256": "21e2ebbdbdf057171a9ede505f6da701b983b107f9cc0cf7703178766a60b4b7"
+    },
+    {
+      "path": "sprites/player/unarmed/air_punch1_spritesheet.png",
+      "size": 2927,
+      "sha256": "39282382009e123be33d6843b87818174a0e01395da321f0e8ee2063945733e4"
+    },
+    {
+      "path": "sprites/player/unarmed/air_punch2_spritesheet.png",
+      "size": 3569,
+      "sha256": "eaae5d70915133509114e087407f247f0cf2bcd64f9bc28f6ddeb4f0848a438e"
+    },
+    {
+      "path": "sprites/player/unarmed/block_hit_hard_spritesheet.png",
+      "size": 2390,
+      "sha256": "5c6ee72e9924e7e78cd91729ce682cfe0b012229db37eee13267dce05d15e7c5"
+    },
+    {
+      "path": "sprites/player/unarmed/block_hit_normal_spritesheet.png",
+      "size": 1462,
+      "sha256": "b2b02748745027aa6f9c185042ed4d89cfcacc20b3700c0ba7d7602ba024c86a"
+    },
+    {
+      "path": "sprites/player/unarmed/block_idle_spritesheet.png",
+      "size": 2004,
+      "sha256": "bf16cf538d5b71849ac72f7942805f625b6be9cbb23ac80a633013e9974d25f5"
+    },
+    {
+      "path": "sprites/player/unarmed/button_spritesheet.png",
+      "size": 2147,
+      "sha256": "1d1631614c5a8dae2b7a92f5d2d3f265630183ff80c9a9d1c0cfdfb469669de4"
+    },
+    {
+      "path": "sprites/player/unarmed/chest_back_spritesheet.png",
+      "size": 2738,
+      "sha256": "3bbb8acb558b033140f3cceb0b77fe772d03ab906afe1bc8f4c010498c287f42"
+    },
+    {
+      "path": "sprites/player/unarmed/chest_side_spritesheet.png",
+      "size": 2533,
+      "sha256": "31ed6e173e73862d105eb7c8f44aa4124f76756bbf8f686692979451a2646bd5"
+    },
+    {
+      "path": "sprites/player/unarmed/climb_back_spritesheet.png",
+      "size": 2107,
+      "sha256": "45d7b132d281747da05c6332b3de70e1912f5f91596da0763eeef2779dbfb702"
+    },
+    {
+      "path": "sprites/player/unarmed/climb_idle_back_spritesheet.png",
+      "size": 1366,
+      "sha256": "269c7407b08cbefacb1176314c2ff3f1766f1eef903fd80899082938ba717ca8"
+    },
+    {
+      "path": "sprites/player/unarmed/climb_idle_side_spritesheet.png",
+      "size": 1821,
+      "sha256": "6a25743dfe3eb00a4c70c8b5ea4c4f52583361c5c274b01e2a41262c855337dd"
+    },
+    {
+      "path": "sprites/player/unarmed/climb_left_spritesheet.png",
+      "size": 2245,
+      "sha256": "dc6801f3b921672e4b6cab12f8919e89a910cb7d1bcd72290bb8a0e422807344"
+    },
+    {
+      "path": "sprites/player/unarmed/climb_right_spritesheet.png",
+      "size": 2329,
+      "sha256": "7bc8d906a5b69ffc93aed445b05f724885e0f16486a4d419a8cbba919fab546d"
+    },
+    {
+      "path": "sprites/player/unarmed/climb_side_spritesheet.png",
+      "size": 2661,
+      "sha256": "10f37fc8cf4bd3549d76cedfb335298dbcc771af2f58913c693f3c3773e0b13c"
+    },
+    {
+      "path": "sprites/player/unarmed/combat_idle_spritesheet.png",
+      "size": 2152,
+      "sha256": "b0c6fe06a0b4972cc9deb6163cd9827b5b6884bda51b2716961b10fc4dd86330"
+    },
+    {
+      "path": "sprites/player/unarmed/crouch_block_hit_spritesheet.png",
+      "size": 1446,
+      "sha256": "a48a4c3a94992dc1215b06aab3b783df84962e8f1bb477b12cbe7d6555f86e90"
+    },
+    {
+      "path": "sprites/player/unarmed/crouch_block_spritesheet.png",
+      "size": 1873,
+      "sha256": "b3117ab43e328873208cd418adf0daf5eb0b668375ec6f2dc79b026da706cc3c"
+    },
+    {
+      "path": "sprites/player/unarmed/crouch_hurt_spritesheet.png",
+      "size": 1974,
+      "sha256": "30dc7a7b7a1933a7eff204ecff8a364e44fc6a3f2b7e19d7c24d402c36f654a6"
+    },
+    {
+      "path": "sprites/player/unarmed/crouch_idle_spritesheet.png",
+      "size": 2250,
+      "sha256": "6d4fad4ab6bb3f70fe87dc127d27fcb5d6ddffeea0b76a447d215393433db8ae"
+    },
+    {
+      "path": "sprites/player/unarmed/crouch_kick_spritesheet.png",
+      "size": 2859,
+      "sha256": "5b97f85e18d25408589f03805b27689f22620c88afc09fe160690acc893f35f5"
+    },
+    {
+      "path": "sprites/player/unarmed/crouch_punch_spritesheet.png",
+      "size": 2309,
+      "sha256": "70c9f5b4b79fc633fbc88f363e245526b9164032e0c431df5e087e6058ec5567"
+    },
+    {
+      "path": "sprites/player/unarmed/crouch_walk_spritesheet.png",
+      "size": 2897,
+      "sha256": "1cd8307479cf986d6705b190198918e009223b60dcd18beda9b37d4f9c4b8a58"
+    },
+    {
+      "path": "sprites/player/unarmed/dance_spritesheet.png",
+      "size": 3774,
+      "sha256": "983fb55d126e1b19e35d9710b58d16d42710c93521b633edd7e1ee23342d94c3"
+    },
+    {
+      "path": "sprites/player/unarmed/dash_spritesheet.png",
+      "size": 3366,
+      "sha256": "5054092f995bdb4044593de143f447e2fa55aaf8c2f12da624b1608dc34ede3e"
+    },
+    {
+      "path": "sprites/player/unarmed/death2_spritesheet.png",
+      "size": 3288,
+      "sha256": "68f91a316797ede14738a77b09c2e98af7af1fa230ffe42eb7ab808100850e80"
+    },
+    {
+      "path": "sprites/player/unarmed/death_spritesheet.png",
+      "size": 3317,
+      "sha256": "c130dfe71fb048416906b78974aecb747a1664f65d931fa2a10e919d02da99d6"
+    },
+    {
+      "path": "sprites/player/unarmed/door_enter_spritesheet.png",
+      "size": 3191,
+      "sha256": "02edac110f6ac6917f3771d9eef3806a85edefc3734cfadec384de677e442251"
+    },
+    {
+      "path": "sprites/player/unarmed/door_exit_spritesheet.png",
+      "size": 3052,
+      "sha256": "f0056873536c0cf0ddae5649685198d10892fb09a28bd6bd13113878259ca69e"
+    },
+    {
+      "path": "sprites/player/unarmed/drink_spritesheet.png",
+      "size": 3063,
+      "sha256": "cc08fdf0ad698058c4b49a0d5b2d9a0b6e84aa436fbd0c9446c83cf9e0af81b1"
+    },
+    {
+      "path": "sprites/player/unarmed/fidget_spritesheet.png",
+      "size": 1928,
+      "sha256": "d7515646e8306b62166d1ae52ef708bd6e46f880163cab094cd5644339af453c"
+    },
+    {
+      "path": "sprites/player/unarmed/flip_spritesheet.png",
+      "size": 2687,
+      "sha256": "d1c0de94667a4f69eda8759bc275cd33311e9a3197dce4b81f4cd662531561f4"
+    },
+    {
+      "path": "sprites/player/unarmed/hurt_lower_spritesheet.png",
+      "size": 1912,
+      "sha256": "0ed4d5e0986e07bd1575490195d380ff72c93457af9c25f0019880c0939c8bdb"
+    },
+    {
+      "path": "sprites/player/unarmed/hurt_upper_spritesheet.png",
+      "size": 1800,
+      "sha256": "8a5a28cb01a1b179fdfe3a6532eedd3d7d317e4f38d16508e6f4a497f9db5b8d"
+    },
+    {
+      "path": "sprites/player/unarmed/idle_spritesheet.png",
+      "size": 2042,
+      "sha256": "900aeea148bae709cf7efeb61397b2b38955b9a6c71a396da26e5300319e704a"
+    },
+    {
+      "path": "sprites/player/unarmed/jumpfall_spritesheet.png",
+      "size": 4198,
+      "sha256": "5a2a2a4f977ff83e3607e2f66252609327fc90ac291a3cdb9703b93294ee7c7f"
+    },
+    {
+      "path": "sprites/player/unarmed/kick_spritesheet.png",
+      "size": 2786,
+      "sha256": "8250654c9fadf4f7ca1c181b74a0f5fedeaec33317543319f58718ecab1d1b50"
+    },
+    {
+      "path": "sprites/player/unarmed/ledge_climb_back_spritesheet.png",
+      "size": 1967,
+      "sha256": "84012d5c3960a6b3a712b8b2790ea04a5f51cc9c6dfe232ee138a16fabca8d77"
+    },
+    {
+      "path": "sprites/player/unarmed/ledge_climb_spritesheet.png",
+      "size": 1874,
+      "sha256": "f528579193e4c638df6cef7df8d438748a99f22e34da9cd23e246866498a948f"
+    },
+    {
+      "path": "sprites/player/unarmed/ledge_grab_back_spritesheet.png",
+      "size": 1075,
+      "sha256": "0e41d617ac2aa7d209b34345579ffaf8f47723f0a0a12135baf6b3afb49c0dde"
+    },
+    {
+      "path": "sprites/player/unarmed/ledge_grab_spritesheet.png",
+      "size": 1010,
+      "sha256": "9a326be2973b1f7299e2d9fa643bc93edf3342bfe7f1a753e142962d2b782f11"
+    },
+    {
+      "path": "sprites/player/unarmed/ledge_idle_back_spritesheet.png",
+      "size": 1361,
+      "sha256": "db3ac28a07779c1dac9fed3a476ee1c48070f870848b0986a6db9f4be597ef3e"
+    },
+    {
+      "path": "sprites/player/unarmed/ledge_idle_spritesheet.png",
+      "size": 1646,
+      "sha256": "53abf06fe209f7d79eaa59c212207b6d005f071d4960da5245d3c17e18a6286d"
+    },
+    {
+      "path": "sprites/player/unarmed/lever_spritesheet.png",
+      "size": 3424,
+      "sha256": "ce31c8b9436bcb844147e47d6be6457b15c4775a00eefb165a47cb92abc5da43"
+    },
+    {
+      "path": "sprites/player/unarmed/pickup_crouch_spritesheet.png",
+      "size": 1877,
+      "sha256": "bbf98dfb5eff26c919dbafcd0c9d80b294456f09db760644569ccb337db1449f"
+    },
+    {
+      "path": "sprites/player/unarmed/pickup_spritesheet.png",
+      "size": 2430,
+      "sha256": "2f5197cd579041127131e7e68b692d6ca6d8e34a67cf42d3950e0e551b0e7c93"
+    },
+    {
+      "path": "sprites/player/unarmed/prone_death_spritesheet.png",
+      "size": 2129,
+      "sha256": "07f2be85e23002629d9e2d1b9e7004b0bd9a70e6100b98e645af502b14da3ea8"
+    },
+    {
+      "path": "sprites/player/unarmed/prone_hurt_spritesheet.png",
+      "size": 1536,
+      "sha256": "6b9c800a087fa5b051aea7b46177b0ac82036b9f94d582e75b74cee7aeaa308b"
+    },
+    {
+      "path": "sprites/player/unarmed/prone_idle_spritesheet.png",
+      "size": 1979,
+      "sha256": "57bba225d6a8b855190c74dd622a6b1f7729217e0f4c024f6a56d17ca21fa5a6"
+    },
+    {
+      "path": "sprites/player/unarmed/prone_revive_spritesheet.png",
+      "size": 1835,
+      "sha256": "5a368b3e29cf9abf46440d71744315deb31cc7f2672f6f6dc18a486c58e769a0"
+    },
+    {
+      "path": "sprites/player/unarmed/prone_walk_spritesheet.png",
+      "size": 2430,
+      "sha256": "745ff45fc4edebc087ba96c56642a7dc97f210312f49859e3f5ffb666e06c1a7"
+    },
+    {
+      "path": "sprites/player/unarmed/pull_spritesheet.png",
+      "size": 2763,
+      "sha256": "71fd6f12fe1528b5262c3fc5123371b0f9e137038fde4c13bff8ab619decf266"
+    },
+    {
+      "path": "sprites/player/unarmed/punch1_spritesheet.png",
+      "size": 2773,
+      "sha256": "60194b680c160ae90eb01ab276babbce528a49d04097358f50eda811a4d75861"
+    },
+    {
+      "path": "sprites/player/unarmed/punch2_spritesheet.png",
+      "size": 3471,
+      "sha256": "e723d04a40f0e9a3744048bb9d80202555a8e0e1a0b7d7d3c94e70f48095e1f1"
+    },
+    {
+      "path": "sprites/player/unarmed/push_idle_spritesheet.png",
+      "size": 2006,
+      "sha256": "f167b0623bda77cb3d3cd522942b29e8d3b2419dfd0bf83f784594b4cea6452c"
+    },
+    {
+      "path": "sprites/player/unarmed/push_spritesheet.png",
+      "size": 2470,
+      "sha256": "fa17a9dccc74cadbb6daee36daea927a0ced265c8877bc99227722c0fa9a89d6"
+    },
+    {
+      "path": "sprites/player/unarmed/revive2_spritesheet.png",
+      "size": 2674,
+      "sha256": "880528ac1868268c08d3199652b977fa97399e3a99041470e537f0f88a6a82ea"
+    },
+    {
+      "path": "sprites/player/unarmed/revive_spritesheet.png",
+      "size": 2780,
+      "sha256": "555ec431207a107bd5b4f60ba4f4867f70469fe299ecb2242b17b500eb03b5b5"
+    },
+    {
+      "path": "sprites/player/unarmed/roll_spritesheet.png",
+      "size": 3582,
+      "sha256": "52de873373304a64059a6366a4de7fc5249ad2f22728f0fddf85c2a6d6de4f04"
+    },
+    {
+      "path": "sprites/player/unarmed/rope_idle_spritesheet.png",
+      "size": 1388,
+      "sha256": "4a66596f31866c4ad7927d38d80dbd29d96dff710acc46421f20a12b7806fd18"
+    },
+    {
+      "path": "sprites/player/unarmed/rope_swing_spritesheet.png",
+      "size": 3329,
+      "sha256": "92c83fd45f04d64e87de24e1a8ab2873eeb356b9788c8327f92aa0aa1cf3a3df"
+    },
+    {
+      "path": "sprites/player/unarmed/run_kick_spritesheet.png",
+      "size": 3252,
+      "sha256": "6a6dc009af5f71ff83106babe018385086beda157af6635d546400cf34baa819"
+    },
+    {
+      "path": "sprites/player/unarmed/run_spritesheet.png",
+      "size": 3794,
+      "sha256": "fb7b4b5ebd8d1e76fb67e91eafc34cd69fa4321ea4905737995c287c497b286a"
+    },
+    {
+      "path": "sprites/player/unarmed/run_stop_spritesheet.png",
+      "size": 1778,
+      "sha256": "02ba85224ad5a3f78e10e1795330c362fc62dda6170e4a388a03df70a25ec58d"
+    },
+    {
+      "path": "sprites/player/unarmed/sit_spritesheet.png",
+      "size": 3094,
+      "sha256": "6bbce412aef6e8791a3bb30606da5a83b7b1c9cd283b7a134f77e0dfb6cf4e57"
+    },
+    {
+      "path": "sprites/player/unarmed/skid_spritesheet.png",
+      "size": 2021,
+      "sha256": "96ec9b650ecd048374752a33ac605924d1b6d8257131a6a0ec6734c6c0969f5e"
+    },
+    {
+      "path": "sprites/player/unarmed/sleep_spritesheet.png",
+      "size": 4294,
+      "sha256": "5d74c6f3298806db26c09dc8a993f0e1ea9b370cbe08e12770cf88acad1a004c"
+    },
+    {
+      "path": "sprites/player/unarmed/slide_spritesheet.png",
+      "size": 2371,
+      "sha256": "2d8a26b408f9c7a50263f15ef9bb1e06394df7054d17e5bf1106ab3750fb30c7"
+    },
+    {
+      "path": "sprites/player/unarmed/swim_down_spritesheet.png",
+      "size": 2451,
+      "sha256": "82cd0574374b082038135f34be50a70adcaa43cfdd989a160735c88669366fd5"
+    },
+    {
+      "path": "sprites/player/unarmed/swim_idle_spritesheet.png",
+      "size": 2554,
+      "sha256": "a96b7a1914aa362a3c776fc6f73a99825031d82892c4df60df3b853dfbbd47a4"
+    },
+    {
+      "path": "sprites/player/unarmed/swim_spritesheet.png",
+      "size": 2434,
+      "sha256": "7ca94739e72046dc87e72439ded226d825e93230c80e9c4dfb9f25ad69da668b"
+    },
+    {
+      "path": "sprites/player/unarmed/swim_surface_idle_spritesheet.png",
+      "size": 2334,
+      "sha256": "50e40cbebc96fd29c40c670a6d36465ab4ec8a56486cd135de7df235de387f3e"
+    },
+    {
+      "path": "sprites/player/unarmed/swim_surface_spritesheet.png",
+      "size": 2554,
+      "sha256": "5cb9898eb9a3649f150ffc6f5f32bd3de30a74e155c0b682a2a8b511b84784a3"
+    },
+    {
+      "path": "sprites/player/unarmed/swim_up_spritesheet.png",
+      "size": 2587,
+      "sha256": "ba13dc54c56a5be7d263c6f2c51841292d4fc8153628cfe14e9241021445554c"
+    },
+    {
+      "path": "sprites/player/unarmed/talk_spritesheet.png",
+      "size": 2597,
+      "sha256": "fbc865972e9269217c0a682368bdc74f3aaa694fab87bfb2e1dd426fa1b34912"
+    },
+    {
+      "path": "sprites/player/unarmed/victory_spritesheet.png",
+      "size": 3323,
+      "sha256": "48ebad902855123cab42f38a339fe127516bda9a2c79cb19616431a7e9c77753"
+    },
+    {
+      "path": "sprites/player/unarmed/walk_spritesheet.png",
+      "size": 2997,
+      "sha256": "94b221d1d2f6fd6a6c4f02ea36bc9f0e6ae31a7584ab7621c9dc3b5636b365ba"
+    },
+    {
+      "path": "sprites/player/unarmed/wall_land_spritesheet.png",
+      "size": 2167,
+      "sha256": "1206da99825c4843a9947b5a84f71549e4ac1abba26177ef1ce0a538a66f3e2b"
+    },
+    {
+      "path": "sprites/player/unarmed/wall_slide_spritesheet.png",
+      "size": 1714,
+      "sha256": "be61c294cf2ac2a29146ae194ecc9c2962d9c543610d95e286ca852a168293c4"
+    },
+    {
+      "path": "sprites/player/walk_spritesheet.png",
+      "size": 3375,
+      "sha256": "412d5fca944400bb432ae32a9484565c6b6673edfae3f1c734b08ae4da51da6a"
+    },
+    {
+      "path": "sprites/player/wall_slide_spritesheet.png",
+      "size": 1847,
+      "sha256": "d2e77f569aeb20930b6b3d3e8e5ae92eeed188348b31ae3614efdc1948e739dc"
+    },
+    {
+      "path": "sprites/projectiles/shuriken.png",
+      "size": 218,
+      "sha256": "0a0999962d75857af791290ff73e644f56df678deb17830f1350f2b4a5b117ef"
+    },
+    {
+      "path": "tileset/mk_nature.png",
+      "size": 46763,
+      "sha256": "30631d8492b5eb65855d2a2d9eb8b03bc2154a5d484c7d519b8e7d921cd16002"
+    },
+    {
+      "path": "tileset/mk_nature_blob_sets.json",
+      "size": 17026,
+      "sha256": "594dd1ebc0ce5b403e8b0a368149e446a77d538e4779668c64eeb7554bbba617"
+    }
+  ]
+}

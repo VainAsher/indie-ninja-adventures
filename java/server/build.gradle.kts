@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":shadowascent"))
 
     // Netty NIO server
     implementation("io.netty:netty-all:4.1.111.Final")
@@ -30,7 +30,7 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.25.3")
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito:mockito-junit-jupiter:5.11.0")
-    testImplementation(project(":core"))
+    testImplementation(project(":shadowascent"))
 }
 
 application {

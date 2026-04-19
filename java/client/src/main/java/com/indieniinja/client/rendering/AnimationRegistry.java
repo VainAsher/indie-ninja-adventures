@@ -5,6 +5,8 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,6 +42,70 @@ public final class AnimationRegistry {
 
     /** Fallback region used when an animation key is not found. */
     private TextureRegion fallback;
+
+    // ── Manifest loading ──────────────────────────────────────────────────────
+
+    /**
+     * Load all animations declared in assets/animations/manifest.json.
+     *
+     * Manifest sets with no "type" field (or type "entries") iterate their "entries"
+     * array and call sliceAndRegister / sliceSubsetAndRegister for each entry.
+     * Entries with totalFrames > 0 use the subset path; all others use the standard slice.
+     *
+     * Sets with type "enemy_sheet_batch" dispatch to loadEnemySheetType() for each
+     * entry in "types", preserving the conditional run.png / walk.png fallback logic.
+     *
+     * Missing files are silently skipped — same behaviour as the hardcoded load methods.
+     *
+     * @param manifestFile  FileHandle pointing to the manifest JSON (e.g. assets/animations/manifest.json)
+     * @param assetRoot     FileHandle for the assets/ directory (base for all relative baseDirs)
+     */
+    public void loadFromManifest(FileHandle manifestFile, FileHandle assetRoot) {
+        if (manifestFile == null || !manifestFile.exists()) return;
+        JsonValue root = new JsonReader().parse(manifestFile);
+        JsonValue sets = root.get("sets");
+        if (sets == null) return;
+        for (JsonValue set : sets) {
+            String setType   = set.getString("type", "entries");
+            String baseDirStr = set.getString("baseDir", "");
+            FileHandle baseDir = baseDirStr.isEmpty() ? assetRoot : assetRoot.child(baseDirStr);
+
+            if ("enemy_sheet_batch".equals(setType)) {
+                JsonValue types = set.get("types");
+                if (types == null) continue;
+                for (JsonValue t : types) {
+                    String srcType = t.getString("srcType");
+                    String regType = t.getString("regType", srcType);
+                    int[] fc = new int[10];
+                    JsonValue counts = t.get("frameCounts");
+                    if (counts != null) {
+                        int i = 0;
+                        for (JsonValue c : counts) {
+                            if (i < fc.length) fc[i++] = c.asInt();
+                        }
+                    }
+                    loadEnemySheetType(baseDir, srcType, regType, fc);
+                }
+                continue;
+            }
+
+            // Default "entries" set
+            JsonValue entries = set.get("entries");
+            if (entries == null) continue;
+            for (JsonValue entry : entries) {
+                String key       = entry.getString("key");
+                String file      = entry.getString("file");
+                int    frames    = entry.getInt("frames");
+                int    total     = entry.getInt("totalFrames", 0);
+                int    offset    = entry.getInt("offset", 0);
+                if (total > 0) {
+                    sliceSubsetAndRegister(baseDir, key, file, total, offset, frames);
+                } else {
+                    sliceAndRegister(baseDir, key, file, frames);
+                }
+            }
+        }
+    }
 
     // ── Atlas loading ─────────────────────────────────────────────────────────
 

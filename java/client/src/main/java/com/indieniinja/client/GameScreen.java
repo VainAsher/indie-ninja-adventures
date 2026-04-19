@@ -7,6 +7,9 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.indieniinja.content.ContentLoadException;
+import com.indieniinja.content.ContentLoader;
+import com.indieniinja.content.ContentRegistry;
 import com.indieniinja.client.audio.AudioManager;
 import com.indieniinja.client.audio.MusicManager;
 import com.indieniinja.client.game.DialogueManager;
@@ -104,6 +107,12 @@ public final class GameScreen implements Screen {
     private com.indieniinja.sim.ReplayPlayer soloReplay;
     /** Absolute path to the .ndjson replay file to load on show(), or null for live play. */
     private final String replayPath;
+
+    // ── Content registry (shared between sim + renderer) ─────────────────────
+    private ContentRegistry clientContentRegistry;
+
+    // ── Developer console (dev builds only) ──────────────────────────────────
+    private final DevConsole devConsole = new DevConsole();
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
@@ -334,6 +343,11 @@ public final class GameScreen implements Screen {
 
         particleSystem = new ParticleSystem();
         entityRenderer = new EntityRenderer(anims, particleSystem);
+        clientContentRegistry = loadClientContentRegistry();
+        entityRenderer.setContentRegistry(clientContentRegistry);
+        devConsole.setAnimationRegistry(anims);
+        devConsole.setContentRegistry(clientContentRegistry);
+        devConsole.setMultiplayer(!"solo".equals(gameMode) && replayPath == null);
         hudRenderer    = new HudRenderer();
         hitboxRenderer = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
 
@@ -1026,6 +1040,13 @@ public final class GameScreen implements Screen {
             pauseScreen.render(delta);
         }
 
+        // ── Dev console (topmost layer — always rendered last) ────────────────
+        devConsole.processInput();
+        int sw = Gdx.graphics.getWidth();
+        int sh = Gdx.graphics.getHeight();
+        devConsole.render(batch, sw, sh);
+        devConsole.renderFpsOverlay(batch, sw, sh);
+
         // ── Persist snapshot for next frame's overlay input handling ──────────
         if (snap != null) prevSnap = snap;
     }
@@ -1650,6 +1671,8 @@ public final class GameScreen implements Screen {
 
         LevelLayout layout = LevelLayout.buildUnifiedWorldLayout(soloWorldGraph, resolvedHubId);
         localSim = new GameSimulator(startRoom.seed, resolvedHubId, layout);
+        localSim.setContentRegistry(clientContentRegistry);
+        devConsole.setSimulator(localSim);
         localSim.setMode(com.indieniinja.sim.GameMode.CAMPAIGN, 0, 0);
         localSim.setDarkArea(true);  // solo dungeon is always dark — lantern decays
         soloSpawnX = layout.spawnX;
@@ -2396,5 +2419,17 @@ public final class GameScreen implements Screen {
         if (craftingOverlay  != null) craftingOverlay.dispose();
         if (minimapRenderer  != null) minimapRenderer.dispose();
         if (hitboxRenderer   != null) hitboxRenderer.dispose();
+        devConsole.dispose();
+    }
+
+    private static ContentRegistry loadClientContentRegistry() {
+        java.nio.file.Path dataRoot = java.nio.file.Paths.get("data");
+        if (!java.nio.file.Files.isDirectory(dataRoot)) return new ContentRegistry();
+        try {
+            return new ContentLoader(dataRoot).loadAll();
+        } catch (ContentLoadException e) {
+            com.badlogic.gdx.Gdx.app.error("GameScreen", "Content load failed (using empty registry): " + e.getMessage());
+            return new ContentRegistry();
+        }
     }
 }

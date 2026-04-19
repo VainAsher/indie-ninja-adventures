@@ -1,6 +1,6 @@
 # Java Codebase Architecture Reference
 **Indie Ninja Adventures — Shadow Ascent: The Hollowed Ninja**
-**Version:** v0.10.83 | **Last updated:** 2026-04-10
+**Version:** v0.11.66 | **Last updated:** 2026-04-19
 
 ---
 
@@ -56,24 +56,32 @@ The Phase 0 audit (2026-04-09) identified 30+ issues. In the 20 commits since th
 
 ```
 java/
-├── settings.gradle.kts        ← Declares :core, :server, :client subprojects
-├── build.gradle.kts           ← Shared dependency versions + conventions
-├── core/                      ← Shared library (no main class)
+├── settings.gradle.kts        ← Declares :core, :shadowascent, :server, :client subprojects
+├── build.gradle.kts           ← Shared dependency versions + conventions (buildAssets task)
+├── core/                      ← Engine shared library — NO game-specific code
 │   └── src/main/java/com/indieniinja/
 │       ├── core/              ← ECS: Entity, EntityManager, EntityLifecycleListener,
-│       │                          EventBus, GameClock, Component, SerializableComponent
+│       │                          EventBus, GameClock, Component, SerializableComponent,
+│       │                          EntityType, EntityTypeRegistry
 │       ├── physics/           ← PhysicsSystem, CollisionSystem, SpatialHash,
 │       │                          TileType (enum), TileRect, PhysicsConstants, PhysicsState
-│       ├── sim/               ← GameSimulator + all Sim* entity classes,
-│       │                          AbilityComponent, HealthComponent, InventoryComponent,
-│       │                          ItemDatabase, RecipeBook, SimInventory
-│       ├── world/             ← WorldGenerator, WorldGraph, RoomGenerator, ZonePlanner,
-│       │                          HubRegistry, SeedHierarchy, AutotileResolver
-│       │   ├── postprocess/   ← RoomPostProcessor pipeline (AbilityLayer, PuzzleLayer,
-│       │   │                      EntityPlanner, PlacementFilter, RoomContent)
-│       │   └── puzzle/        ← PuzzlePlanner, PuzzlePlan, AbilityGate, ValidationLayer
+│       ├── content/           ← ContentLoader, ContentRegistry, EnemyDefinition,
+│       │                          NpcDefinition, RoomTypeDefinition, GameConfig,
+│       │                          ContentLoadException, ContentNotFoundException
 │       └── network/           ← WorldSnapshot, PlayerState, EnemyState, InventoryState,
 │                                  WireCodec, MessageType, InputCommand, …all DTOs
+│                              → Published to GitHub Packages as engine-core artifact
+├── shadowascent/              ← Shadow Ascent game-specific module (depends on :core via api)
+│   └── src/main/java/com/indieniinja/
+│       ├── sim/               ← GameSimulator + all Sim* entity classes,
+│       │                          AbilityComponent, HealthComponent, InventoryComponent,
+│       │                          ItemDatabase, RecipeBook, SimInventory, GameConfig refs,
+│       │                          ShadowAscentEntityTypeBootstrap
+│       └── world/             ← WorldGenerator, WorldGraph, RoomGenerator, ZonePlanner,
+│               │                  HubRegistry, SeedHierarchy, AutotileResolver, TmxRoomLoader
+│               ├── postprocess/  ← RoomPostProcessor pipeline (AbilityLayer, PuzzleLayer,
+│               │                    EntityPlanner, PlacementFilter, RoomContent)
+│               └── puzzle/       ← PuzzlePlanner, PuzzlePlan, AbilityGate, ValidationLayer
 ├── server/
 │   └── src/main/java/com/indieniinja/server/
 │       ├── NinjaGameServer.java         ← Entry point (main)

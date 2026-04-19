@@ -1,0 +1,23 @@
+{
+  "$schema": "../../schemas/enemy_def_schema.json",
+  "id": "slime",
+  "displayName": "Slime",
+  "width": 40,
+  "height": 32,
+  "physicsHeight": 28,
+  "baseHp": 7,
+  "damage": 2,
+  "speed": 60.0,
+  "detectionRange": 160.0,
+  "attackRange": 40.0,
+  "attackWindupSeconds": 0.4,
+  "fleeHpThreshold": 0.0,
+  "knockoutDurationTicks": 90,
+  "xpReward": 8,
+  "currencyDrop": { "min": 0, "max": 2, "chance": 0.3 },
+  "aiProfile": "standard",
+  "animationKey": "enemy_slime",
+  "spawnWeight": 9,
+  "biomeAffinity": ["swamp", "water"],
+  "tags": ["grounded", "melee"]
+}

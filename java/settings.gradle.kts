@@ -1,7 +1,8 @@
 rootProject.name = "indie-ninja-adventures"
 
-include(":core", ":server", ":client")
+include(":core", ":shadowascent", ":server", ":client")
 
-project(":core").projectDir   = file("core")
-project(":server").projectDir = file("server")
-project(":client").projectDir = file("client")
+project(":core").projectDir         = file("core")
+project(":shadowascent").projectDir = file("shadowascent")
+project(":server").projectDir       = file("server")
+project(":client").projectDir       = file("client")

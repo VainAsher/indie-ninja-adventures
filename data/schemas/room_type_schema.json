@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "room_type_schema.json",
+  "type": "object",
+  "required": ["id", "displayName"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema":            { "type": "string" },
+    "id":                 { "type": "string", "minLength": 1 },
+    "displayName":        { "type": "string" },
+    "enemyDensity":       { "type": "integer", "minimum": 0 },
+    "hasPortal":          { "type": "boolean" },
+    "hasPuzzle":          { "type": "boolean" },
+    "hasShop":            { "type": "boolean" },
+    "lootTier":           { "type": "integer", "minimum": 0 },
+    "allowedBiomes":      { "type": "array", "items": { "type": "string" } },
+    "spawnableEnemyTags": { "type": "array", "items": { "type": "string" } },
+    "environmentHazards": { "type": "array", "items": { "type": "string" } },
+    "minRoomSize":        { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
+    "terrainDensity":     { "type": "integer", "minimum": 0, "maximum": 3 },
+    "requiresTemplate":   { "type": "boolean" },
+    "templateHint":       { "type": "string" }
+  }
+}
