@@ -75,9 +75,12 @@ public final class DevConsole {
     public DevConsole() {
         if (!ENABLED) return;
         registerBuiltins();
-        shapeRenderer = new ShapeRenderer();
-        font = new BitmapFont();
-        font.getData().setScale(FONT_SCALE);
+        // Guard: Gdx.app is null in headless unit tests — skip renderer construction.
+        if (Gdx.app != null) {
+            shapeRenderer = new ShapeRenderer();
+            font = new BitmapFont();
+            font.getData().setScale(FONT_SCALE);
+        }
     }
 
     // ── Dependency injection ──────────────────────────────────────────────────
@@ -150,7 +153,7 @@ public final class DevConsole {
      * Call at the very end of the render pass (after game world is drawn).
      */
     public void render(SpriteBatch batch, int screenWidth, int screenHeight) {
-        if (!isVisible()) return;
+        if (!isVisible() || shapeRenderer == null) return;
 
         // Draw background panel
         shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
@@ -186,7 +189,7 @@ public final class DevConsole {
 
     /** Render FPS overlay (independent of console visibility). */
     public void renderFpsOverlay(SpriteBatch batch, int screenWidth, int screenHeight) {
-        if (!ENABLED || !showFps) return;
+        if (!ENABLED || !showFps || font == null) return;
         batch.begin();
         font.setColor(INFO_COLOR);
         font.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 8, screenHeight - 8);
