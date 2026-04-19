@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-18
-version_anchor: v0.11.66
+version_anchor: v0.11.67
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -16,7 +16,7 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
-## [Unreleased] - Engine Platform Phases A–C (v0.11.66 baseline)
+## [0.11.67] - 2026-04-19 (engine platform phases A–C: content system, authoring tools, module extraction)
 
 ### Added
 
