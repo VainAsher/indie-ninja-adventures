@@ -69,3 +69,14 @@ tasks.shadowJar {
 tasks.build {
     dependsOn(tasks.shadowJar)
 }
+
+// Copy the fat JAR to the repo root so the launcher always picks up the latest local build.
+// Running ':client:shadowJar' or ':client:build' automatically refreshes the launcher JAR.
+tasks.register<Copy>("copyJarToRoot") {
+    from(tasks.shadowJar)
+    into(repoRoot)
+    dependsOn(tasks.shadowJar)
+}
+tasks.shadowJar {
+    finalizedBy("copyJarToRoot")
+}
