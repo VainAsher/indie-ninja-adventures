@@ -200,3 +200,4 @@ D4 (Java in CI)          — independent, first D task
 - **ENG-D4** — Java tests in CI: :server:test + :client:test + test report artifact (2026-04-19)
 - **ENG-D3** — Save checksums: SHA-256 sidecar written on save, verified on load (2026-04-19)
 - **ENG-D2** — Perf regression CI: TickDurationRegressionTest + perf_baseline.json 5ms ceiling (2026-04-19)
+- **ENG-D1** — Save multi-slot: SlotSelectScreen, slot_N path layout, legacy migration (2026-04-19)
