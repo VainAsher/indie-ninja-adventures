@@ -19,6 +19,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - [GDD.md](GDD.md)
 - [PLAYER_EXPECTATIONS.md](PLAYER_EXPECTATIONS.md)
 - [RELEASE_VERSION_SYNC_CHECKLIST.md](RELEASE_VERSION_SYNC_CHECKLIST.md)
+- [PLAYTEST_HANDOVER_v0.11.69.md](PLAYTEST_HANDOVER_v0.11.69.md) — active playtest handover (v0.11.69)
 
 ## Plans
 
