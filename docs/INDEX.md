@@ -54,6 +54,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - [workflow/SESSION_END_WORKFLOW.md](workflow/SESSION_END_WORKFLOW.md)
 - [workflow/PRE_COMMIT_LOCAL_GATES.md](workflow/PRE_COMMIT_LOCAL_GATES.md)
 - [workflow/DAILY_SMOKE_WORKFLOW.md](workflow/DAILY_SMOKE_WORKFLOW.md)
+- [workflow/ONEDRIVE_BUILD_RECOVERY.md](workflow/ONEDRIVE_BUILD_RECOVERY.md) — recovery steps when OneDrive locks Gradle output dirs
 
 ### Quality Gates
 

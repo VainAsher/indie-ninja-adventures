@@ -72,7 +72,9 @@ tasks.build {
 
 // Copy the fat JAR to the repo root so the launcher always picks up the latest local build.
 // Running ':client:shadowJar' or ':client:build' automatically refreshes the launcher JAR.
+// doNotTrackState: repo root may contain OneDrive-locked files that break MD5 state tracking.
 tasks.register<Copy>("copyJarToRoot") {
+    doNotTrackState("repo root may have OneDrive-locked files that break incremental MD5 hashing")
     from(tasks.shadowJar)
     into(repoRoot)
     dependsOn(tasks.shadowJar)

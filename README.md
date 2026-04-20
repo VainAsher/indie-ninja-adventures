@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.11.68** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.11.69** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,7 +17,7 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.11.68
+## What's in v0.11.69 (F10 dev console, build reliability)
 
 | System | Status |
 | ------ | ------ |
@@ -106,9 +106,9 @@ Single source of truth: [`version.json`](version.json)
 
 ```json
 {
-  "version": "0.11.68",
+  "version": "0.11.69",
   "build": "production",
-  "build_date": "2026-04-19",
+  "build_date": "2026-04-20",
   "min_launcher_version": "1.1.0"
 }
 ```

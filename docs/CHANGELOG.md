@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-19
-version_anchor: v0.11.68
+last_updated: 2026-04-20
+version_anchor: v0.11.69
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.11.69] - 2026-04-20 (dev console F10 toggle, copyJarToRoot OneDrive fix)
+
+### Fixed
+
+- **DevConsole F10 toggle**: Added `Input.Keys.F10` as secondary toggle alongside backtick (`` ` ``). GLFW maps `GRAVE` via a keycode that some Windows keyboard layouts don't emit correctly — F10 is unambiguous across all layouts. Press F10 in Campaign or Developer mode to open the dev console.
+- **`copyJarToRoot` OneDrive crash**: Gradle's incremental MD5 state tracking fails when repo root contains OneDrive-locked files. Added `doNotTrackState()` to the `copyJarToRoot` task — task always runs on `shadowJar` completion, file-lock-safe.
 
 ## [0.11.68] - 2026-04-19 (engine platform phase D: save checksums, perf regression CI, multi-slot saves, CI fixes)
 

@@ -18,12 +18,12 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /**
- * In-game developer console toggled by backtick (`).
+ * In-game developer console toggled by backtick (`) or F10.
  *
  * Disabled entirely when the system property "indie.release" is true.
  * No-op in multiplayer mode (when isMultiplayer is set).
  *
- * To disable in release builds, launch with: -Dindierelease=true
+ * To disable in release builds, launch with: -Dindie.release=true
  * The Gradle shadowJar task can inject this via the manifest when -Prelease is passed.
  *
  * Commands are registered via {@link #register(String, String, CommandHandler)}.
@@ -107,8 +107,10 @@ public final class DevConsole {
     public boolean processInput() {
         if (!ENABLED || isMultiplayer) return false;
 
-        // Backtick toggles visibility
-        if (Gdx.input.isKeyJustPressed(Input.Keys.GRAVE)) {
+        // Backtick or F10 toggles visibility (F10 as fallback for keyboard layouts
+        // where GLFW doesn't map the grave/backtick key correctly on Windows)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.GRAVE)
+                || Gdx.input.isKeyJustPressed(Input.Keys.F10)) {
             visible = !visible;
             if (!visible) inputBuffer.setLength(0);
             return true;
