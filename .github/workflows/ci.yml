@@ -113,10 +113,15 @@ jobs:
           gradle-version: "8.7"
           cache-read-only: false
 
-      - name: Build jars + run Java regression suites
+      - name: Run Java regression suites
         working-directory: java
         shell: bash
-        run: gradle :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon --stacktrace
+        run: gradle :server:test :client:test --no-daemon --stacktrace
+
+      - name: Build server + client JARs
+        working-directory: java
+        shell: bash
+        run: gradle :server:shadowJar :client:shadowJar --no-daemon --stacktrace
 
       - name: Upload server JAR
         uses: actions/upload-artifact@v4
