@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "room_type_schema.json",
+  "$id": "https://vainashergaming.com/schemas/room_type_schema.json",
   "type": "object",
   "required": ["id", "displayName"],
   "additionalProperties": false,

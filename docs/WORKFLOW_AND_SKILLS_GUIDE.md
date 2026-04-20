@@ -2,8 +2,8 @@
 doc_type: guide
 status: living
 owner: VainAsher
-last_updated: 2026-04-18
-version_anchor: v0.11.61
+last_updated: 2026-04-20
+version_anchor: v0.11.69
 ---
 
 # Shadow Ascent — Workflow, Skills, and Agent Guide
@@ -580,7 +580,7 @@ Produces a Tuning Note:
 - Test scenario
 - Rollback note
 
-These are currently especially relevant — v0.11.63 just tuned enemy health and armed lethality.
+These are currently especially relevant — v0.11.69 active playtest is targeting combat feel and balance.
 
 ---
 

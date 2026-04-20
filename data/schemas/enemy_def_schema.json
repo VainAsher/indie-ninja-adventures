@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "enemy_def_schema.json",
+  "$id": "https://vainashergaming.com/schemas/enemy_def_schema.json",
   "type": "object",
   "required": ["id", "displayName", "width", "height", "physicsHeight", "baseHp", "damage", "speed", "detectionRange", "attackRange", "animationKey", "aiProfile"],
   "additionalProperties": false,

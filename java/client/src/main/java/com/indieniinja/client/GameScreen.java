@@ -1048,6 +1048,7 @@ public final class GameScreen implements Screen {
         }
 
         // ── Dev console (topmost layer — always rendered last) ────────────────
+        batch.setProjectionMatrix(hudRenderer.screenProjection());
         devConsole.processInput();
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();

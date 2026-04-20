@@ -16,12 +16,14 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
-## [0.11.69] - 2026-04-20 (dev console F10 toggle, copyJarToRoot OneDrive fix)
+## [0.11.69] - 2026-04-20 (dev console F10 toggle, copyJarToRoot OneDrive fix, schema $id crash, DevConsole projection fix)
 
 ### Fixed
 
 - **DevConsole F10 toggle**: Added `Input.Keys.F10` as secondary toggle alongside backtick (`` ` ``). GLFW maps `GRAVE` via a keycode that some Windows keyboard layouts don't emit correctly — F10 is unambiguous across all layouts. Press F10 in Campaign or Developer mode to open the dev console.
 - **`copyJarToRoot` OneDrive crash**: Gradle's incremental MD5 state tracking fails when repo root contains OneDrive-locked files. Added `doNotTrackState()` to the `copyJarToRoot` task — task always runs on `shadowJar` completion, file-lock-safe.
+- **Content schema `$id` startup crash** (`InvalidSchemaException`): `enemy_def_schema.json`, `npc_def_schema.json`, and `room_type_schema.json` had bare filenames as their `$id` field. `networknt` JSON Schema validator requires an absolute URI — startup crashed before any mode could load. Fixed by using `https://vainashergaming.com/schemas/<name>` URIs, matching the pattern already used in `dialogues_schema.json`, `items_schema.json`, and `missions_schema.json`.
+- **DevConsole invisible in-game** (world-space projection): `GameScreen.render()` called `devConsole.render()` while `batch` still held the world-camera projection matrix. The console panel was drawn at world coordinates (off-screen). Added `batch.setProjectionMatrix(hudRenderer.screenProjection())` before the devConsole block — same pattern used by the inventory and shop overlays.
 
 ## [0.11.68] - 2026-04-19 (engine platform phase D: save checksums, perf regression CI, multi-slot saves, CI fixes)
 
