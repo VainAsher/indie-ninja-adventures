@@ -3,7 +3,7 @@ doc_type: guide
 status: living
 owner: VainAsher
 last_updated: 2026-04-20
-version_anchor: v0.11.69
+version_anchor: v0.11.70
 ---
 
 # Shadow Ascent — Workflow, Skills, and Agent Guide

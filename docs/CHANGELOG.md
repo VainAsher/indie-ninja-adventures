@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-20
-version_anchor: v0.11.69
+version_anchor: v0.11.70
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -16,7 +16,17 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
-## [0.11.69] - 2026-04-20 (dev console F10 toggle, copyJarToRoot OneDrive fix, schema $id crash, DevConsole projection fix)
+## [0.11.70] - 2026-04-20 (schema $id startup crash, DevConsole projection fix, CI split fix)
+
+### Fixed
+
+- **Content schema `$id` startup crash** (`InvalidSchemaException`): `enemy_def_schema.json`, `npc_def_schema.json`, and `room_type_schema.json` had bare filenames as their `$id` field. `networknt` JSON Schema validator requires an absolute URI — startup crashed before any mode could load. Fixed to `https://vainashergaming.com/schemas/<name>`, matching the pattern in `dialogues_schema.json`, `items_schema.json`, and `missions_schema.json`.
+- **DevConsole invisible in-game** (world-space projection): `GameScreen.render()` called `devConsole.render()` while `batch` still held the world-camera projection matrix. The console panel was drawn at world coordinates (off-screen). Added `batch.setProjectionMatrix(hudRenderer.screenProjection())` before the devConsole block — same pattern used by the inventory and shop overlays.
+- **CI `copyJarToRoot` implicit-dependency failure**: Gradle strict task validation flagged `copyJarToRoot` (outputs to repo root) and `test`/`compileTestJava` as having an undeclared ordering when run in the same invocation. Fixed by splitting `ci.yml` `java-build` step into two Gradle invocations: tests first, JARs second.
+
+---
+
+## [0.11.69] - 2026-04-20 (dev console F10 toggle, copyJarToRoot OneDrive fix)
 
 ### Fixed
 
