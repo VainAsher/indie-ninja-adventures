@@ -121,6 +121,7 @@ jobs:
             "$CLIENT_JAR"
 
       - name: Notify launcher repo of new game release
+        if: ${{ secrets.CROSS_REPO_PAT != '' }}
         continue-on-error: true
         uses: peter-evans/repository-dispatch@v3
         with:
@@ -132,3 +133,8 @@ jobs:
               "version": "${{ env.RELEASE_TAG }}",
               "release_url": "https://github.com/VainAsher/indie-ninja-adventures/releases/tag/${{ env.RELEASE_TAG }}"
             }
+
+      - name: Skip launcher dispatch (token not configured)
+        if: ${{ secrets.CROSS_REPO_PAT == '' }}
+        shell: bash
+        run: echo "CROSS_REPO_PAT is not configured; skipping repository_dispatch to launcher repo."
