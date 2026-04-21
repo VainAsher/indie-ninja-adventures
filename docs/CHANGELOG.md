@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-20
-version_anchor: v0.11.70
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.11.71] - 2026-04-21 (player animation pack import, input/minimap polish, CI format gate fix)
+
+### Added
+
+- **Player template pack import (Yin/Yang/Pistol)**: integrated refreshed sheets under `assets/sprites/player/sword/` and `assets/sprites/player/pistol/`, with updated `assets/asset_manifest.json` and runtime registration support.
+- **Directory-based animation extraction pipeline**: `tools/extract_animations.py` now supports direct folder inputs (`--unarmed-dir`, `--sword-dir`, `--pistol-dir`) in addition to ZIP mode, with overwrite support and canonical runtime filename mapping.
+- **Input regression coverage**: added `GameScreenInputLatchTest` to lock in one-shot input latching behavior.
+
+### Changed
+
+- **Teleport animation mapping**: Yin keeps `player_teleport -> roll_spritesheet.png`; Yang now maps `player_sword_teleport -> dash_spritesheet.png` in both runtime loader and animation manifest.
+- **Minimap usability tuning**: minimap presentation and zoom behavior were adjusted for clearer playtest readability in runtime UI.
+- **Gameplay input feel**: stance/control input handling was tuned for more consistent responsiveness across frame/tick boundaries.
+
+### Fixed
+
+- **CI Black gate failure**: `tools/extract_animations.py` was Black-formatted to satisfy the Python formatting check in the `CI` workflow.
 
 ---
 
@@ -1920,5 +1940,4 @@ None - all changes are internal refactoring and code organization improvements.
 **Last Updated**: 2025-12-12
 **Current Version**: 0.7.0
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures
-
 

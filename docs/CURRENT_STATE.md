@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-19
-version_anchor: v0.11.70
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 replaces: docs/HANDOVER.md
 ---
 
@@ -13,8 +13,8 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Baseline
 
-- Date baseline: 2026-04-19
-- Version baseline: v0.11.68
+- Date baseline: 2026-04-21
+- Version baseline: v0.11.71
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -24,10 +24,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.11.69 (combat feel / balance iteration — engine platform D is now live).
-- Latest release verification (`2026-04-19`):
+- Next release candidate: v0.11.72 (P0 stabilization follow-up after animation/input/minimap integration).
+- Latest release verification (`2026-04-21`):
   - Tests green locally (BUILD SUCCESSFUL — all modules)
-  - Tag target: v0.11.68
+  - Tag target: v0.11.71
 
 ## Runtime Reality (Implemented)
 
