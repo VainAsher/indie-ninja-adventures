@@ -2,68 +2,76 @@
 doc_type: workflow
 status: living
 owner: core-team
-last_updated: 2026-04-18
-version_anchor: v0.11.60
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 
 # Cross-Repo Coordination Workflow
 
-Reference documents:
-- [README.md](../../README.md)
-- [docs/CHANGELOG.md](../CHANGELOG.md)
-- [docs/DEVLOG.md](../DEVLOG.md)
-- [docs/production/decisions.md](../production/decisions.md)
+Workflow for coordinating changes across game, launcher, feedback, and pipeline repos.
 
-Workflow for keeping game, launcher, feedback, and pipeline repositories aligned when work crosses repository boundaries.
+## Control-Tower Rule
 
-## Rules
+`VainAsher/indie-ninja-pipeline` is the master planning and coordination repo.
 
-1. Multi-repo work must identify repo ownership explicitly.
-2. Version references must not drift across repos silently.
-3. Public notes must have one owning repo or publication path.
-4. Cross-repo dependencies must be called out before release.
+- Planning authority: pipeline
+- Implementation authority: source repos
+- Public intake authority: feedback
+- Player delivery authority: launcher + game releases
 
 ## Trigger Conditions
 
-Run this workflow when:
-- a game change requires launcher behavior/update
-- feedback templates or intake paths must change
-- release automation/pipeline behavior must change
-- public notes or version references must be updated in more than one repo
+Run this workflow when any change affects more than one repo, including:
 
-## Canonical Loop
+- release automation or payload contract updates
+- feedback intake, labels, or triage routing updates
+- launcher behavior coupled to game release changes
+- player-facing comms that depend on internal implementation state
 
-1. Identify all repos touched by the change.
-2. Assign the owning repo for implementation and the owning repo for public notes.
-3. Record required follow-up updates in the other repos.
-4. Update version references deliberately.
-5. Validate the release path across the affected repos.
-6. Close the loop only when linked repos are aligned.
+## Canonical Coordination Loop
 
-## Ownership Guidance
+1. Identify all touched repos and expected outputs.
+2. Open or update the coordinating pipeline issue.
+3. Declare ownership per repo (who changes what).
+4. Confirm event contract impact before code changes.
+5. Implement per-repo changes with linked references.
+6. Validate end-to-end behavior.
+7. Close with release/user communication updates.
 
-- game repo: code, runtime behavior, technical docs
-- launcher repo: launcher behavior, player guides, GitHub Pages
-- feedback repo: public bug/feature intake
-- pipeline repo: internal triage, planning, release management
+## Required Coordination Artifacts
+
+- Planning issue in pipeline repo
+- Linked implementation issue/PR in source repo(s)
+- Linked feedback issue(s) when player-reported
+- Release note entry if user-facing behavior changed
+
+## Event Contract Checks
+
+Before shipping cross-repo release changes, verify:
+
+- `game-release` payload shape matches consumer expectations
+- required secrets (`CROSS_REPO_PAT`) exist and are scoped correctly
+- failure path is defined (manual fallback issue or step)
 
 ## Done Criteria
 
-- [ ] Affected repos identified
-- [ ] Ownership clear
-- [ ] Version/reference updates recorded
-- [ ] Public notes owner chosen
-- [ ] Follow-up actions completed or tracked
+- [ ] Pipeline coordination issue updated and closed
+- [ ] Repo ownership and boundaries respected
+- [ ] Contract-impact check completed
+- [ ] End-to-end validation evidence recorded
+- [ ] Player-facing notes/feedback updates complete
 
 ## Failure Path
 
-If a release-facing task depends on another repo but no owner is assigned:
+If any repo dependency is unowned or unverified:
 
-1. Stop treating it as single-repo work.
-2. Record the missing dependency.
-3. Assign the owning follow-up before shipping.
+1. Stop release-facing rollout.
+2. Mark coordination issue blocked.
+3. Assign owner and unblock plan.
+4. Re-run end-to-end validation before merge/tag.
 
-## Related Workflows
+## References
 
-- [RELEASE_NOTES_AND_PUBLIC_COMMS.md](RELEASE_NOTES_AND_PUBLIC_COMMS.md)
-- [DECISION_RECORD_WORKFLOW.md](DECISION_RECORD_WORKFLOW.md)
+- [OPERATING_RHYTHM_AND_HABITS.md](OPERATING_RHYTHM_AND_HABITS.md)
+- [../operations/CROSS_REPO_CONTROL_TOWER_HANDOVER.md](../operations/CROSS_REPO_CONTROL_TOWER_HANDOVER.md)
+- [../operations/PYGAME_MIGRATION_HANDOVER.md](../operations/PYGAME_MIGRATION_HANDOVER.md)

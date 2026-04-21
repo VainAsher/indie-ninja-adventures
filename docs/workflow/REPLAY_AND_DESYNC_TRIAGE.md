@@ -9,9 +9,9 @@ version_anchor: v0.11.60
 # Replay and Desync Triage Workflow
 
 Reference documents:
-- [docs/workflow/BUG_REPRO_REPLAY_WORKFLOW.md](BUG_REPRO_REPLAY_WORKFLOW.md)
-- [docs/technical/architecture.md](../technical/architecture.md)
-- [docs/production/bugs.md](../production/bugs.md)
+- [docs/workflow/DEBUG_EVIDENCE_CAPTURE.md](DEBUG_EVIDENCE_CAPTURE.md)
+- [docs/dev/JAVA_ARCHITECTURE.md](../dev/JAVA_ARCHITECTURE.md)
+- [docs/templates/BUG_REPORT.md](../templates/BUG_REPORT.md)
 
 Workflow for using deterministic replay and desync signals as primary debugging tools instead of memory-driven debugging.
 

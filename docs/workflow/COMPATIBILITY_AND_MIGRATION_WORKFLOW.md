@@ -10,8 +10,8 @@ version_anchor: v0.11.60
 
 Reference documents:
 - [version.json](../../version.json)
-- [docs/technical/mission_format.md](../technical/mission_format.md)
-- [docs/technical/dependency_inventory.md](../technical/dependency_inventory.md)
+- [docs/dev/JAVA_ARCHITECTURE.md](../dev/JAVA_ARCHITECTURE.md)
+- [docs/plans/implementing/PLAN_SHADOW_ASCENT.md](../plans/implementing/PLAN_SHADOW_ASCENT.md)
 - [docs/CHANGELOG.md](../CHANGELOG.md)
 
 Workflow for protecting save, replay, schema, and protocol compatibility as the project evolves.
@@ -78,5 +78,5 @@ If compatibility impact cannot be determined quickly:
 
 ## Related Workflows
 
-- [CONTENT_AND_SCHEMA_CHANGE_WORKFLOW.md](CONTENT_AND_SCHEMA_CHANGE_WORKFLOW.md)
-- [DEPENDENCY_INVENTORY_WORKFLOW.md](DEPENDENCY_INVENTORY_WORKFLOW.md)
+- [ARCHITECTURE_AND_SPEC_SYNC.md](ARCHITECTURE_AND_SPEC_SYNC.md)
+- [DECISION_RECORD_WORKFLOW.md](DECISION_RECORD_WORKFLOW.md)

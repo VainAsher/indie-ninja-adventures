@@ -9,7 +9,7 @@ version_anchor: v0.11.60
 # Decision Record Workflow
 
 Reference documents:
-- [docs/production/decisions.md](../production/decisions.md)
+- [docs/decisions/INDEX.md](../decisions/INDEX.md)
 - [docs/templates/decision_record_template.md](../templates/decision_record_template.md)
 
 Workflow for recording high-impact project decisions before their context is lost and the repo drifts into undocumented structure.
@@ -77,4 +77,4 @@ If a cleanup, architecture shift, or process change is already merged without a 
 ## Related Workflows
 
 - [ARCHITECTURE_AND_SPEC_SYNC.md](ARCHITECTURE_AND_SPEC_SYNC.md)
-- [REPO_HYGIENE_AND_ARCHIVE.md](REPO_HYGIENE_AND_ARCHIVE.md)
+- [TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md](TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md)

@@ -9,9 +9,8 @@ version_anchor: v0.11.60
 # Debug Evidence Capture Workflow
 
 Reference documents:
-- [docs/templates/bug_template.md](../templates/bug_template.md)
-- [docs/production/bugs.md](../production/bugs.md)
-- [docs/workflow/BUG_REPRO_REPLAY_WORKFLOW.md](BUG_REPRO_REPLAY_WORKFLOW.md)
+- [docs/templates/BUG_REPORT.md](../templates/BUG_REPORT.md)
+- [docs/workflow/REPLAY_AND_DESYNC_TRIAGE.md](REPLAY_AND_DESYNC_TRIAGE.md)
 
 Workflow for turning bug reports and debugging notes into actionable engineering evidence.
 
@@ -81,5 +80,4 @@ If the issue cannot be reproduced cleanly:
 
 ## Related Workflows
 
-- [BUG_REPRO_REPLAY_WORKFLOW.md](BUG_REPRO_REPLAY_WORKFLOW.md)
 - [REPLAY_AND_DESYNC_TRIAGE.md](REPLAY_AND_DESYNC_TRIAGE.md)

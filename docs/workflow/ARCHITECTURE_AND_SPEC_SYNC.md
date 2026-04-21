@@ -9,18 +9,18 @@ version_anchor: v0.11.60
 # Architecture and Spec Sync Workflow
 
 Reference documents:
-- [docs/design/GDD.md](../design/GDD.md)
-- [docs/technical/architecture.md](../technical/architecture.md)
-- [docs/technical/ci_cd.md](../technical/ci_cd.md)
-- [docs/technical/mission_format.md](../technical/mission_format.md)
+- [docs/GDD.md](../GDD.md)
+- [docs/dev/JAVA_ARCHITECTURE.md](../dev/JAVA_ARCHITECTURE.md)
+- [docs/workflow/ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.md)
+- [docs/workflow/COMPATIBILITY_AND_MIGRATION_WORKFLOW.md](COMPATIBILITY_AND_MIGRATION_WORKFLOW.md)
 
 Workflow for keeping design truth, implementation truth, and technical specs aligned as systems evolve.
 
 ## Rules
 
 1. Design intent and implementation detail are different documents and must stay separated.
-2. `docs/design/GDD.md` is design truth.
-3. `docs/technical/architecture.md`, `docs/technical/ci_cd.md`, and `docs/technical/mission_format.md` are implementation/spec truth.
+2. `docs/GDD.md` is design truth.
+3. `docs/dev/JAVA_ARCHITECTURE.md` plus active workflow contracts are implementation/spec truth.
 4. Aspirational ideas must be labeled as planned, not written as implemented.
 5. Shipped schema/format changes require spec updates in the same work loop.
 6. Runtime reality must not drift behind polished design wording for long.
@@ -46,11 +46,11 @@ Update sync whenever any of the following occur:
 3. Update linked docs that depend on the changed truth.
 4. Add explicit status wording when implementation is partial or planned.
 5. Validate that no doc now overclaims what the runtime actually does.
-6. Record major sync-impacting choices in `docs/production/decisions.md` when needed.
+6. Record major sync-impacting choices in `docs/decisions/INDEX.md` when needed.
 
 ## Truth Boundary Examples
 
-`docs/design/GDD.md` should answer:
+`docs/GDD.md` should answer:
 - what the game is trying to express
 - intended pillars, loops, and experience
 - target structure and system purpose
@@ -79,5 +79,5 @@ If docs disagree on what is implemented:
 
 ## Related Workflows
 
-- [CONTENT_AND_SCHEMA_CHANGE_WORKFLOW.md](CONTENT_AND_SCHEMA_CHANGE_WORKFLOW.md)
-- [REFACTOR_AND_BOUNDARY_CHANGE.md](REFACTOR_AND_BOUNDARY_CHANGE.md)
+- [COMPATIBILITY_AND_MIGRATION_WORKFLOW.md](COMPATIBILITY_AND_MIGRATION_WORKFLOW.md)
+- [DECISION_RECORD_WORKFLOW.md](DECISION_RECORD_WORKFLOW.md)

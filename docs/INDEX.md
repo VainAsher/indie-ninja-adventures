@@ -32,6 +32,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - Implementing:
   - [plans/implementing/PLAN_SHADOW_ASCENT.md](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Completed:
+  - [plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md](plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md)
   - [plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md](plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md)
   - [plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md](plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md)
   - [plans/completed/PLAN_N4_L2.md](plans/completed/PLAN_N4_L2.md)
@@ -46,9 +47,11 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - [workflow/ITERATION_RELEASE_PROTOCOL.md](workflow/ITERATION_RELEASE_PROTOCOL.md)
 - [workflow/RELEASE_CHECKLIST.md](workflow/RELEASE_CHECKLIST.md)
 - [workflow/SPRINT_WORKFLOW.md](workflow/SPRINT_WORKFLOW.md)
+- [workflow/OPERATING_RHYTHM_AND_HABITS.md](workflow/OPERATING_RHYTHM_AND_HABITS.md)
 - [workflow/BRANCHING.md](workflow/BRANCHING.md)
 - [operations/CI_CD_PLAN.md](operations/CI_CD_PLAN.md)
 - [operations/PYGAME_MIGRATION_HANDOVER.md](operations/PYGAME_MIGRATION_HANDOVER.md)
+- [operations/CROSS_REPO_CONTROL_TOWER_HANDOVER.md](operations/CROSS_REPO_CONTROL_TOWER_HANDOVER.md)
 
 ### Session and Daily Loop
 
@@ -100,6 +103,21 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - [dev/JAVA_SETUP.md](dev/JAVA_SETUP.md)
 - [QUICK_START.md](QUICK_START.md)
 
+## Systems (Java Canonical)
+
+- [systems/AUDIO.md](systems/AUDIO.md)
+- [systems/CAMPAIGN.md](systems/CAMPAIGN.md)
+- [systems/COMPANIONS.md](systems/COMPANIONS.md)
+- [systems/ENDINGS.md](systems/ENDINGS.md)
+- [systems/LOOT.md](systems/LOOT.md)
+- [systems/MECHANICS.md](systems/MECHANICS.md)
+- [systems/MODDING.md](systems/MODDING.md)
+- [systems/PERFORMANCE.md](systems/PERFORMANCE.md)
+- [systems/RENDERING.md](systems/RENDERING.md)
+- [systems/REPLAY.md](systems/REPLAY.md)
+- [systems/SETTINGS.md](systems/SETTINGS.md)
+- [systems/WORLD_GEN.md](systems/WORLD_GEN.md)
+
 ## Reviews and Audits
 
 - [reviews/2026-03-25/ROADMAP_AND_PLAN.md](reviews/2026-03-25/ROADMAP_AND_PLAN.md)
@@ -109,6 +127,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 
 - [decisions/INDEX.md](decisions/INDEX.md)
 - [decisions/2026-04-21_pygame-prototype-extraction.md](decisions/2026-04-21_pygame-prototype-extraction.md)
+- [decisions/2026-04-21_java-systems-docs-canonicalization.md](decisions/2026-04-21_java-systems-docs-canonicalization.md)
 
 ## Templates
 
@@ -120,6 +139,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 
 - [archive/retired/](archive/retired/)
 - [archive/retired/2026-04-21_v0.11.71_pygame-extraction/](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
+- [archive/retired/2026-04-21_v0.11.71_python-systems-docs/](archive/retired/2026-04-21_v0.11.71_python-systems-docs/)
 - [archive/zips/INDEX.md](archive/zips/INDEX.md)
 - [HANDOVER.md](HANDOVER.md) (redirect)
 - [DEVLOG.md](DEVLOG.md) (rolling index)

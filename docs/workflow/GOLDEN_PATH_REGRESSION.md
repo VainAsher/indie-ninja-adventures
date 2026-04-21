@@ -59,7 +59,7 @@ Run each golden in order. A failure in any earlier golden does not skip later on
 
 ### G5 — Hub Portal Travel (full checklist)
 
-1. From spawn, confirm **no portal prompt near the start room** (exit-rooms only)
+1. From spawn, confirm **no portal prompt near the hub spawn room (world hub room)** (exit-rooms only)
 2. Reach an exit room, press `E` on portal — confirm `ENTERING: <HUB NAME>` toast
 3. Confirm: world renders, camera is centred on player (not at world origin)
 4. Press `E` on a **locked** portal without required ability — confirm lock toast, no travel

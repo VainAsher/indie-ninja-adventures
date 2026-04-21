@@ -1,82 +1,50 @@
-# Companion Orbs — Yin & Yang
-
-**Indie Ninja Adventures** | v0.7.1 | 2026-03-28
-
+﻿---
+doc_type: system_doc
+status: living
+owner: core-team
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 
-## Rationale
+# Companions System (Java)
 
-Yin & Yang are twin spirit-orbs that orbit the player. They are purely cosmetic — no gameplay effect — but carry the emotional core of the story. They represent the player character's lost family (children), and their presence or absence across story acts is the primary visual signal of narrative progress.
+## Scope
 
----
+Yin/Yang companion-orb rendering and balance visualization in the Java client.
 
-## Architecture
+## Primary Java owners
 
-**File**: `entities/companions.py` — `CompanionOrbs` class
+- `java/client/src/main/java/com/indieniinja/client/rendering/EntityRenderer.java`
+- `java/core/src/main/java/com/indieniinja/network/PlayerState.java`
+- `java/shadowascent/src/main/java/com/indieniinja/sim/YinYangComponent.java`
 
-The class is self-contained. It takes player position each tick and computes orb positions, glow animations, and particle trails. It renders directly to the game surface.
+## Runtime flow
 
----
+1. Server simulation computes yin/yang values and flow balance per player.
+2. Values are serialized on `PlayerState` (`yinValue`, `yangValue`, `flowMode`).
+3. `EntityRenderer.renderCompanions(...)` draws two orbiting orbs around each player.
+4. Orb size/alpha and flow effects derive directly from current player balance values.
 
-## Visual design
+## Method-level call graphs
 
-| Orb | Side | Color | Animation | Meaning |
-| --- | --- | --- | --- | --- |
-| Yin | Left | Soft white-blue `(220, 220, 255)` | Steady pulse (2.0 rad/s) | Calm, reflection |
-| Yang | Right | Warm gold `(255, 220, 150)` | Fast flicker (6.0 rad/s) | Energy, joy |
+- Authoritative balance graph:
+  - `GameSimulator.step(...)` -> `tickYinYang()` -> `YinYangComponent.decay(DT)` -> `YinYangComponent.absorbYin(...)` or `YinYangComponent.absorbYang(...)` -> `YinYangComponent.isBalanced()`
+- Snapshot graph:
+  - `GameSimulator.getSnapshot(frame)` -> write `PlayerState.yinValue/yangValue/flowMode` -> `WorldSnapshot`
+- Render graph:
+  - `GameScreen.render(delta)` -> `EntityRenderer.render(batch, snap, delta)` -> `EntityRenderer.renderCompanions(batch, player, delta)` -> orbit/sizing from `player.yinValue`, `player.yangValue`, `player.flowMode`
 
-**Orbit parameters**:
-- Radius: 35 px from player center
-- Rotation speed: 0.8 rad/s (slow, gentle orbit)
-- Orbs are π apart (180°) — always on opposite sides
+## Design notes
 
-**Glow**: Each orb has a 16 px soft glow sphere behind the 8 px core disc.
+- Companions are visualized state, not independent server entities.
+- Orbit constants are defined in `EntityRenderer` (`COMPANION_RADIUS`, `COMPANION_SPEED`).
+- Flow mode doubles orbit speed and enables extra visual linkage.
 
-**Particles**: Optional particle trail emitted from each orb position (enabled by default, `enable_particles: True`).
+## Current gaps
 
----
+- No separate gameplay AI/behavior module for companions; this is currently a rendering-language system for yin/yang state readability.
 
-## Story presence
+## Legacy archive
 
-| Act | Orbs present | Reason |
-| --- | --- | --- |
-| Act 0 (prologue) | Both | Before the journey begins |
-| Act 1 | Neither | Consumed by the Veil Maiden |
-| Act 2 | Neither | Still lost |
-| Act 3 | Both | Recovered / memory restored |
-| Act 4 (epilogue) | Constellation only | Returned as stars post-ending |
-
-Both endings (`SAVE` and `DESTROY`) set `constellation_visible: True` — the orbs are never physically present again in post-game, but are visible as distant stars in the hub sky.
-
----
-
-## API
-
-```python
-orbs = CompanionOrbs()
-
-# Control visibility (driven by StoryManager / act transitions)
-orbs.yin_active = False   # hide Yin
-orbs.yang_active = False  # hide Yang
-
-# Each physics tick
-orbs.update(dt, player_x, player_y, player_width, player_height)
-
-# Each render frame
-orbs.render(surface, camera_offset_x, camera_offset_y)
-```
-
-`update()` advances orbit angle, pulse/flicker animation timers, and particle state.
-`render()` draws glow, core disc, and particles for each active orb.
-
----
-
-## Audio
-
-`enable_audio: False` — a gentle hum/chime placeholder exists in the design but no audio file is wired. If audio is added, it should be a quiet ambient loop tied to the SFX volume setting.
-
----
-
-## Current status
-
-`CompanionOrbs` is **fully implemented** visually. Story-driven visibility toggling (act transitions) is wired through `StoryManager`. Audio is not implemented.
+Python/Pygame version is archived at:
+`docs/archive/retired/2026-04-21_v0.11.71_python-systems-docs/COMPANIONS.md`

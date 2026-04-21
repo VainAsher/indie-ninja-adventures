@@ -1,89 +1,72 @@
-# Loot & Drop System
-
-**Indie Ninja Adventures** | v0.7.1 | 2026-03-28
-
+﻿---
+doc_type: system_doc
+status: living
+owner: core-team
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 
-## Rationale
+# Loot, Inventory, and Economy (Java)
 
-Item drops use a deterministic seeded RNG so that the same world seed produces the same drops in the same run. This is required for replay consistency (the replay system replays inputs, not outcomes — so outcomes must be deterministic). It also supports future multiplayer where both peers must agree on drop results.
+## Scope
 
----
+Pickup drops, inventory state, item definitions, recipes, crafting/trade requests, and persistence across Java client/server.
 
-## Architecture
+## Primary Java owners
 
-**File**: `game/loot_system.py`
+- Simulation/domain:
+  - `java/shadowascent/src/main/java/com/indieniinja/sim/SimPickup.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/sim/SimInventory.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/sim/ItemDatabase.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/sim/RecipeBook.java`
+- Wire state:
+  - `java/core/src/main/java/com/indieniinja/network/PickupState.java`
+  - `java/core/src/main/java/com/indieniinja/network/InventoryState.java`
+  - `java/core/src/main/java/com/indieniinja/network/ShopState.java`
+- Server endpoints/persistence:
+  - `java/server/src/main/java/com/indieniinja/server/ServerProtocolHandler.java`
+  - `java/server/src/main/java/com/indieniinja/server/InventoryRepository.java`
+  - `java/server/src/main/java/com/indieniinja/server/InventoryDatabaseLoader.java`
+  - `java/server/src/main/java/com/indieniinja/server/ItemCache.java`
+- Client UI:
+  - `java/client/src/main/java/com/indieniinja/client/ui/InventoryOverlay.java`
+  - `java/client/src/main/java/com/indieniinja/client/ui/ShopOverlay.java`
+  - `java/client/src/main/java/com/indieniinja/client/ui/CraftingOverlay.java`
 
-```
-LootDrop          item_id + quantity_range + drop_chance (0.0–1.0)
-LootTable         table_id, guaranteed_drops[], chance_drops[], currency_range
-LootGenerator     seeded random.Random; generate_loot(table) → (items, currency)
-LootTableDatabase registry; _register_default_tables() at init
-```
+## Runtime flow
 
----
+1. Simulation spawns pickups and updates player inventories.
+2. Server snapshots publish pickup/inventory/shop wire states.
+3. Client overlays send trade/craft/use/equip requests to server.
+4. Server validates and mutates authoritative inventory/economy state.
+5. DB and cache layers persist/prime item and inventory data.
 
-## Drop generation
+## Method-level call graphs
 
-`LootGenerator.generate_loot(table)` processes in order:
+- Client request graph:
+  - `CraftingOverlay.setOnCraft(...)` callback in `GameScreen` -> `networkClient.sendMessage(MessageType.CRAFT_REQUEST, payload)`
+  - `ShopOverlay.setOnTrade(...)` callback in `GameScreen` -> `networkClient.sendMessage(MessageType.TRADE_REQUEST, payload)`
+  - `InventoryOverlay.setOnUseItem(...)` / `setOnEquipItem(...)` callbacks in `GameScreen` -> `networkClient.sendMessage(MessageType.USE_ITEM/EQUIP_ITEM, payload)`
+- Server handler graph:
+  - `ServerProtocolHandler.channelRead0(...)` -> `handleTradeRequest/handleCraftRequest/handleUseItem/handleEquipItem`
+  - Handler -> `zone.simulator.handleTradeRequest/handleCraftRequest/handleUseItem/handleEquipItem`
+- Authoritative economy graph:
+  - Trade: `GameSimulator.handleTradeRequest(...)` -> `SimShop.buy(...)` or `SimShop.sell(...)` -> `SimInventory.addItem/removeItem/addCurrency/removeCurrency`
+  - Craft: `GameSimulator.handleCraftRequest(...)` -> `RecipeBook.get(recipeId)` -> `CraftingRecipe.craft(inv)`
+  - Consumable/equip: `GameSimulator.handleUseItem(...)` / `handleEquipItem(...)` -> `ItemDatabase.get(itemId)` -> `SimInventory.removeItem(...)` / `SimInventory.equipItem(...)` / `SimInventory.unequipItem(...)`
+- Pickup lifecycle graph:
+  - `GameSimulator.step(...)` -> `stepPickups()` -> `applyPickup(player, pickupType)` -> `startRespawn(slotIdx)` -> `stepPickupRespawns()`
+- Persistence/bootstrap graph:
+  - `InventoryDatabaseLoader.initOrSeed()` -> `InventoryRepository.ensureSchema()` -> `loadItemDefs/loadRecipeDefs` (or `seedItemDefs/seedRecipeDefs`) -> `ItemCache.putAll(...)`
+  - Player state persistence -> `InventoryRepository.saveInventory(...)` / `InventoryRepository.loadInventory(...)`
 
-1. **Guaranteed drops** (`drop_chance = 1.0`): always roll a quantity from `quantity_range`; add if > 0
-2. **Chance drops**: roll `rng.random() <= drop_chance`; if hit, roll quantity
-3. **Currency**: roll `rng.randint(min, max)` from `currency_range` if max > 0
+## Contracts
 
-Returns `(list[(item_id, quantity)], currency_int)`.
+- Pickup IDs and inventory slots are authoritative on server.
+- Item and recipe registries can be DB-seeded and reloaded.
+- Mission objectives can consume loot events via `MissionManager.onItemCollected(...)`.
 
-The `LootGenerator` is initialized with the world seed so the entire session's drops are reproducible.
+## Legacy archive
 
----
-
-## Enemy loot tiers
-
-| Table ID | Enemy type | Currency | Notable drops |
-| --- | --- | --- | --- |
-| `enemy_common` | Goblin, slime | 1–5 | 15% small health potion, 25% cloth |
-| `enemy_uncommon` | Bat, wolf | 3–10 | 20% small HP, 10% medium HP, 5% dagger |
-| `enemy_rare` | Elite variants | 10–25 | Guaranteed medium HP, 10% sword/armor |
-
----
-
-## Boss loot tables
-
-All boss kills are **guaranteed drops** for key items and weapons, plus currency:
-
-| Table ID | Boss | Currency | Guaranteed | Chance |
-| --- | --- | --- | --- | --- |
-| `boss_forest_guardian` | Forest boss | 50–100 | Large HP ×2-3, `key_item_forest_heart`, `weapon_nature_bow` | 50% bark plate, 25% max HP upgrade |
-| `boss_corrupt_mayor` | Town boss | 75–150 | Large HP ×2-3, `key_item_town_seal`, `weapon_steel_sword` | 50% chain mail, 25% max HP upgrade |
-| `boss_crystal_golem` | Caves boss | 100–200 | Large HP ×3-4, `key_item_crystal_core`, `armor_crystal_plate` | 50% crystal blade, 30% max HP upgrade |
-| `boss_dark_knight` | Castle boss | 100+ | Large HP ×3-5, `key_item_dark_key`, `weapon_dark_blade` | 50% dark plate, 35% max HP upgrade |
-
----
-
-## Adding a loot table
-
-```python
-# In LootTableDatabase._register_default_tables() or at runtime:
-table = LootTable(table_id="enemy_custom")
-table.add_guaranteed_drop("health_potion_small", (1, 1))
-table.add_chance_drop("weapon_katana", (1, 1), 0.10)   # 10% chance
-table.currency_range = (5, 20)
-db.register_table(table)
-```
-
-Then call:
-```python
-items, currency = loot_generator.generate_loot_by_id("enemy_custom", loot_table_db)
-```
-
----
-
-## Integration with PickupManager
-
-The `PickupManager` (`entities/pickup_spawner.py`) consumes loot results to spawn `PickupComponent` entities in the world. Enemy death events trigger loot generation and pickup spawning at the enemy's last position.
-
----
-
-## Current status
-
-`LootSystem` is implemented and functional. The default tables cover common/uncommon/rare enemies and all four currently-implemented bosses. Table IDs for the remaining two boss regions (sewer, hollow_depths) are not yet registered. The rarity tier naming (`common`, `uncommon`, `rare`) is internal — there is no visible rarity label in the UI.
+Python/Pygame version is archived at:
+`docs/archive/retired/2026-04-21_v0.11.71_python-systems-docs/LOOT.md`

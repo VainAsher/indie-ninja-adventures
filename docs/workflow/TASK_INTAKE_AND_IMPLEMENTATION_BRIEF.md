@@ -9,9 +9,10 @@ version_anchor: v0.11.60
 # Task Intake and Implementation Brief Workflow
 
 Reference documents:
-- [docs/production/backlog.md](../production/backlog.md)
-- [docs/production/roadmap.md](../production/roadmap.md)
-- [docs/production/decisions.md](../production/decisions.md)
+- [docs/ROADMAP.md](../ROADMAP.md)
+- [docs/plans/implementing/PLAN_SHADOW_ASCENT.md](../plans/implementing/PLAN_SHADOW_ASCENT.md)
+- [docs/plans/implementing/PLAN_PYGAME_EXTRACTION.md](../plans/implementing/PLAN_PYGAME_EXTRACTION.md)
+- [docs/decisions/INDEX.md](../decisions/INDEX.md)
 - [docs/workflow/READY_DONE_WORKFLOW.md](READY_DONE_WORKFLOW.md)
 
 Pre-implementation workflow for forcing scope clarity before code changes begin.

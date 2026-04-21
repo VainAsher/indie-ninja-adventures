@@ -13,6 +13,7 @@ Canonical index for active high-impact project decisions.
 ## Active Decisions
 
 - [2026-04-21 - Pygame Prototype Extraction](2026-04-21_pygame-prototype-extraction.md) - `accepted`
+- [2026-04-21 - Java Systems Docs Canonicalization](2026-04-21_java-systems-docs-canonicalization.md) - `accepted`
 
 ## Rules
 

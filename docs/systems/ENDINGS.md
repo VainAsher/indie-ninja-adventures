@@ -1,91 +1,54 @@
-# Endings & Moral Choice System
-
-**Indie Ninja Adventures** | v0.7.1 | 2026-03-28
-
+﻿---
+doc_type: system_doc
+status: living
+owner: core-team
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 
-## Rationale
+# Endings and Narrative Resolution (Java)
 
-The game has two distinct endings driven by a single moral choice at the climax of the campaign. Both endings share a bittersweet outcome — Yin & Yang remain as stars — but the fate of The Veil Maiden and the emotional tone of the post-game hub differ. The choice is designed to avoid a "good vs. bad" binary: both paths are defensible.
+## Scope
 
----
+Act progression and scripted loss/finale transition hooks currently implemented in Java runtime.
 
-## Architecture
+## Primary Java owners
 
-**File**: `game/ending_manager.py`
+- `java/client/src/main/java/com/indieniinja/client/game/StoryManager.java`
+- `java/client/src/main/java/com/indieniinja/client/GameScreen.java`
+- `java/server/src/main/java/com/indieniinja/server/ZoneSimulationLoop.java`
+- `java/core/src/main/java/com/indieniinja/network/WorldSnapshot.java`
 
-```
-EndingChoice    (SAVE | DESTROY | NOT_CHOSEN)
-EndingState     (NOT_STARTED → FINAL_BATTLE → CHOICE_PRESENTED → ENDING_PLAYING → COMPLETED)
-EndingData      dataclass — per-ending title, description, cutscene_id, veil_maiden_fate, hub_final_state
-EndingManager   orchestrates the state machine, callbacks, and hub state application
-```
+## Current implementation
 
----
+- Narrative progression is modeled as act state (`Act`) plus hub-state transitions.
+- Scripted-loss signaling is supported from simulation to client.
+- `StoryManager` applies act transitions and narrative flags used by dialogue/conditions.
+- End-state transitions are currently gameplay/system driven rather than a dedicated cinematic-ending pipeline.
 
-## Endings
+## Method-level call graphs
 
-### The Path of Mercy (SAVE)
+- Scripted-loss event graph:
+  - `GameSimulator.step(...)` sets scripted-loss flag -> `ZoneSimulationLoop.simulateTick()` -> `sim.drainPendingScriptedLoss()` -> `ZoneSimulationLoop.broadcastEvent(MessageType.SCRIPTED_LOSS, ...)`
+- Scripted-loss client graph:
+  - `NetworkClientThread` handles `MessageType.SCRIPTED_LOSS` -> `GameStateBuffer.markScriptedLoss()`
+  - `GameScreen.render(...)` -> `stateBuffer.pollScriptedLoss()` -> scripted-loss overlay
+  - `GameScreen.handleScriptedLossOverlayInput()` -> `StoryManager.onVeilMaidenDefeatedAct1()`
+- Hub-state narrative graph:
+  - `ZoneSimulationLoop.buildSnapshot(...)` -> `snap.hubState = hubStateMachine.getState().name()` -> `WorldSnapshot.toMap()`
+  - `GameStateBuffer.update(...)` -> `GameScreen.render(...)` -> `StoryManager.onHubStateUpdate(...)` -> `StoryManager.syncActFromHubState()` -> `StoryManager.setAct(...)`
 
-> "You chose to save The Veil Maiden, offering her redemption."
+## Contracts
 
-- `cutscene_id`: `ending_save`
-- Veil Maiden fate: **redeemed** — joins the hub as an NPC
-- Hub final state:
-  - `brightness: 0.9` — warm, hopeful
-  - `veil_maiden_present: True`
-  - `constellation_visible: True` — Yin & Yang visible as stars
+- Hub-state wire values are authoritative for act progression synchronization.
+- Scripted-loss handling is one-shot polled on client buffer/overlay path.
 
-### The Path of Justice (DESTROY)
+## Current gaps
 
-> "You chose to destroy The Veil Maiden, ending her threat."
+- No dedicated Java "ending manager" equivalent to legacy prototype architecture.
+- Final ending/cutscene orchestration remains a future authored pipeline task.
 
-- `cutscene_id`: `ending_destroy`
-- Veil Maiden fate: **defeated** — absent from hub
-- Hub final state:
-  - `brightness: 0.7` — dimmer, melancholic
-  - `veil_maiden_present: False`
-  - `constellation_visible: True` — Yin & Yang visible as stars
+## Legacy archive
 
-Both endings: `npcs_active: True`, `constellation_visible: True`. The constellation is the unifying symbol regardless of choice.
-
----
-
-## State machine
-
-```
-NOT_STARTED
-  → FINAL_BATTLE         when final boss mission begins
-  → CHOICE_PRESENTED     when boss is defeated; player sees SAVE/DESTROY prompt
-  → ENDING_PLAYING       after player selects a choice; cutscene runs
-  → COMPLETED            cutscene ends; hub transitions to final state
-```
-
-### Callbacks
-
-`EndingManager` uses two optional callbacks to integrate with the rest of the game:
-
-| Callback | When called | Receives |
-| --- | --- | --- |
-| `on_choice_callback` | Player selects SAVE or DESTROY | `EndingChoice` |
-| `on_ending_complete_callback` | Ending cutscene finishes | `EndingData` |
-
----
-
-## Integration points
-
-- **StoryManager** drives `EndingManager` — it detects final boss defeat and calls into the ending state machine
-- **HubManager** reads `hub_final_state` to configure the post-game hub (brightness, NPC presence, constellation)
-- **CampaignSaveData** stores the ending choice so it survives across sessions
-
----
-
-## Companion orb tie-in
-
-Yin & Yang (see [COMPANIONS.md](COMPANIONS.md)) are visible in Acts 0, 3, and 4. They are absent in Acts 1–2 (consumed by the Veil Maiden). In the post-game both endings return them as a visible constellation (`constellation_visible: True`), but never as physical orbs again.
-
----
-
-## Current status
-
-`EndingManager` is fully implemented. Integration with `StoryManager` and the cutscene system depends on boss AI being implemented (the final boss must be beatable to trigger the choice). See [TASK_LIST.md](../TASK_LIST.md) — boss AI is the current top-priority task.
+Python/Pygame version is archived at:
+`docs/archive/retired/2026-04-21_v0.11.71_python-systems-docs/ENDINGS.md`

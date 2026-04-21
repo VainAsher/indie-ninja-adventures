@@ -1,125 +1,66 @@
-# Replay & Input Pipeline
-
-**Indie Ninja Adventures** | v0.7.1 | 2026-03-28
-
+﻿---
+doc_type: system_doc
+status: living
+owner: core-team
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 
-## Rationale
+# Replay and Input Recording (Java)
 
-The input pipeline exists to support three distinct use cases from a single code path:
+## Scope
 
-1. **Live play** — raw `pygame` key state read each frame
-2. **Recording** — live play with every frame's inputs serialized to JSON
-3. **Replay** — playback driven entirely by the saved JSON (no keyboard needed)
+Input recording and playback for deterministic validation in solo and server simulation paths.
 
-This was designed for deterministic replay: the physics engine runs at a fixed 60 Hz timestep, so the same input sequence always produces the same world state. The same infrastructure will support future multiplayer (command-based authority).
+## Primary Java owners
 
----
-
-## Architecture
-
-```
-network/
-├── commands.py          InputCommand dataclass — one per frame
-├── input_pipeline.py    InputPipeline — live/record/replay unified
-└── __init__.py
-```
-
-**`InputCommand`** (`network/commands.py`) — one instance per physics tick, capturing every possible player action as booleans:
-
-```
-up, down, left, right, jump, dash, attack, throw, teleport, ninjutsu,
-interact, inventory, consumable, minimap, fullmap, cycle_camera,
-toggle_proc, debug_overlay, slow_walk, menu_confirm, menu_back,
-controls_overlay
-```
-
-**`CommandKeyView`** — a pygame-key-like adapter so `keys[pygame.K_SPACE]` transparently uses the command's `jump` field. This means player code reads keys the same way in all three modes.
-
-**`InputPipeline`** — the central class:
-
-| Mode | Constructor params | `next()` returns |
-| --- | --- | --- |
-| Live | no `record_path` or `replay_path` | `(raw_keys_state, InputCommand)` |
-| Record | `record_path=<path>` | `(raw_keys_state, InputCommand)` — commands buffered |
-| Replay | `replay_path=<path>` | `(CommandKeyView, InputCommand)` — keyboard ignored |
-
----
-
-## Usage
-
-### CLI flags
-
-```bash
-python demo_game.py --record user_data/replays/my_run.json
-python demo_game.py --replay user_data/replays/my_run.json
-```
-
-These are passed to the `InputPipeline` constructor at startup.
-
-### In-code (game loop)
-
-```python
-pipeline = InputPipeline(record_path=..., replay_path=..., metadata={...})
-
-# Each physics tick:
-keys_like, command = pipeline.next(raw_keys, frame_idx, keydown_keys)
-
-# Tell the pipeline when the menu was dismissed (gameplay started)
-pipeline.set_game_start(frame_idx)
-
-# At shutdown:
-pipeline.finalize()   # writes JSON to disk if recording
-```
-
-### `set_game_start(frame)`
-
-Records `game_start_frame` in the metadata. On replay the pipeline seeks past all menu-navigation frames so replays start directly at gameplay, not at the main menu.
-
-### `finalize()`
-
-Writes the recording to `record_path` as JSON. Also writes a command log to `log_path` if `log_commands=True`.
-
----
+- Input log write:
+  - `java/shadowascent/src/main/java/com/indieniinja/sim/InputRecorder.java`
+- Input log playback:
+  - `java/shadowascent/src/main/java/com/indieniinja/sim/ReplayPlayer.java`
+- Solo wiring:
+  - `java/client/src/main/java/com/indieniinja/client/GameScreen.java`
+  - `java/client/src/main/java/com/indieniinja/client/NinjaGameClient.java`
+  - `java/client/src/main/java/com/indieniinja/client/DesktopLauncher.java`
+- Server recording wiring:
+  - `java/server/src/main/java/com/indieniinja/server/ZoneSimulationLoop.java`
 
 ## File format
 
-Recording files are JSON:
+- NDJSON line format.
+- Header line includes seed and entry count.
+- Data lines store tick, slot, and full command booleans.
 
-```json
-{
-  "game_start_frame": 145,
-  "terminated_frame": 4207,
-  "seed": 98765,
-  "commands": [
-    {"frame": 145, "jump": false, "left": false, ...},
-    {"frame": 146, "jump": true,  "left": false, ...},
-    ...
-  ]
-}
-```
+## Runtime flow
 
-All `InputCommand` fields are serialized via `to_dict()` / `from_dict()`.
+- Record path:
+  - Enabled by `-Dninja.record=true`.
+  - Recorder captures per-tick commands and writes `user_data/replays/*.ndjson`.
+- Replay path:
+  - Pass replay file path via `-Dninja.replayPath=<abs-or-rel-path>`.
+  - `GameScreen` loads replay and drives input from `ReplayPlayer` instead of keyboard sampling.
 
----
+## Method-level call graphs
 
-## Determinism requirements
+- Solo recording graph:
+  - Launch with `-Dninja.record=true` -> `GameScreen.initializeSoloSimulation(..., startRecording=true)` -> `soloRecorder.startRecording(seed)`
+  - Tick path -> `GameScreen.render(...)` -> `soloRecorder.record(localFrame, slot, cmd)`
+  - Flush path -> `GameScreen.flushSoloReplay()` -> `soloRecorder.stopRecording(path)`
+- Server recording graph:
+  - `ZoneSimulationLoop.run()` with `Boolean.getBoolean("ninja.record")` -> `recorder.startRecording(zone.seed)`
+  - `ZoneSimulationLoop.simulateTick()` -> `recorder.record(tickCount, slot, cmd)`
+  - Shutdown -> `recorder.stopRecording(replayPath)`
+- Replay playback graph:
+  - Launch with `-Dninja.replayPath=...` -> `ReplayPlayer.load(path)`
+  - Tick input source -> `GameScreen.render(...)` -> `soloReplay.inputsForTick(localFrame)` (instead of `InputPoller.poll()`)
+  - Completion check -> `soloReplay.isDone(localFrame)`
 
-For a replay to be byte-identical to the original run:
+## Contracts
 
-- Physics must run at fixed 60 Hz — no variable-timestep physics
-- No `random.random()` or `time.time()` in player/physics code — use seeded RNG or tick counts
-- World generation uses the same seed from recording metadata
+- Replay determinism depends on fixed-tick simulation and stable content assumptions.
+- Input commands are the canonical replay source of truth, not raw key events.
 
-The loot system (`game/loot_system.py`) already uses a seeded `random.Random` for this reason.
+## Legacy archive
 
----
-
-## Current status
-
-The pipeline is **fully implemented** and wired in `demo_game.py`. The `--record` and `--replay` flags work. Recording files go to `user_data/replays/` by default.
-
-Limitations:
-- No in-game playback UI — replay is a launch-time flag only
-- No replay browser or playback scrubbing
-- `controls_overlay` and `menu_confirm`/`menu_back` fields exist but not all are fully consumed by the game loop
+Python/Pygame version is archived at:
+`docs/archive/retired/2026-04-21_v0.11.71_python-systems-docs/REPLAY.md`
