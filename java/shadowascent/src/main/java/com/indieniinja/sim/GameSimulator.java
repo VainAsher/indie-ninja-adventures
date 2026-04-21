@@ -308,9 +308,16 @@ public final class GameSimulator {
      */
     public SimEcho spawnEchoFromPlayer(int slot, boolean recallable) {
         SimPlayer owner = players.get(slot);
-        if (owner == null) return null;
+        if (owner == null) {
+            log.info("[Playtest][Echo] event=spawn_skipped slot={} reason=unknown_slot", slot);
+            return null;
+        }
         List<InputCommand> recorded = owner.echoRecorder.snapshot();
-        if (recorded.isEmpty()) return null;
+        if (recorded.isEmpty()) {
+            log.info("[Playtest][Echo] event=spawn_skipped player={} slot={} reason=empty_recorder",
+                owner.playerId, owner.slot);
+            return null;
+        }
         ReplayPlayer replay = ReplayPlayer.fromInputSequence(seed, slot, recorded);
         SimEcho echo = new SimEcho(
             hubId + "_echo_" + echoSeq++,
@@ -322,6 +329,9 @@ public final class GameSimulator {
             owner.weaponState
         );
         echoes.add(echo);
+        log.info("[Playtest][Echo] event=spawn player={} slot={} echo={} recallable={} entries={} hub={} pos=({}, {})",
+            owner.playerId, owner.slot, echo.echoId, recallable, recorded.size(),
+            hubId, (int) owner.physics.x, (int) owner.physics.y);
         return echo;
     }
 
@@ -331,8 +341,14 @@ public final class GameSimulator {
      */
     public boolean recallEcho(String echoId) {
         for (SimEcho echo : echoes) {
-            if (echo.echoId.equals(echoId)) return echo.recall();
+            if (echo.echoId.equals(echoId)) {
+                boolean ok = echo.recall();
+                log.info("[Playtest][Echo] event=recall slot={} echo={} ok={} recallable={} completed={} failed={} ticks={}",
+                    echo.ownerSlot, echo.echoId, ok, echo.recallable, echo.completed, echo.failed, echo.ticksPlayed());
+                return ok;
+            }
         }
+        log.info("[Playtest][Echo] event=recall_skipped echo={} reason=not_found", echoId);
         return true;
     }
 
@@ -873,9 +889,10 @@ public final class GameSimulator {
         boolean dashJustPressed   = cmd.dash          && !sp.prevDash;
         boolean attackJustPressed = cmd.attack        && !sp.prevAttack;
         boolean throwJustPressed  = cmd.throwShuriken && !sp.prevThrow;
+        boolean stanceSwitchJustPressed = cmd.stanceSwitch && !sp.prevStanceSwitch;
 
         // ── Stance switching (P0-A bridge) ───────────────────────────────────
-        if (cmd.stanceSwitch) {
+        if (stanceSwitchJustPressed) {
             String prevStance = sp.stanceMode;
             sp.stanceMode = "yin".equals(sp.stanceMode) ? "yang" : "yin";
             if ("yang".equals(sp.stanceMode)) {
@@ -1057,6 +1074,7 @@ public final class GameSimulator {
         sp.prevDash    = cmd.dash;
         sp.prevAttack  = cmd.attack;
         sp.prevThrow   = cmd.throwShuriken;
+        sp.prevStanceSwitch = cmd.stanceSwitch;
 
         // ── Teleport ──────────────────────────────────────────────────────────
         // Mirrors Python TeleportMechanic exactly:
@@ -2452,14 +2470,15 @@ public final class GameSimulator {
      * Remove all DOOR_LOCKED tiles for the given puzzleId from the SpatialHash,
      * allowing players to walk through the opened door.
      */
-    private void unlockDoor(String doorPuzzleId) {
-        if (solvedPuzzles.contains(doorPuzzleId)) return;
+    private boolean unlockDoor(String doorPuzzleId) {
+        if (solvedPuzzles.contains(doorPuzzleId)) return false;
         List<TileRect> tiles = doorTiles.get(doorPuzzleId);
-        if (tiles == null || tiles.isEmpty()) return;
+        if (tiles == null || tiles.isEmpty()) return false;
         solvedPuzzles.add(doorPuzzleId);
         for (TileRect tr : tiles) spatialHash.remove(tr);
         collisionSystem.setSpatialHash(spatialHash);  // ensure CollisionSystem sees the update
         log.info("[puzzle] door unlocked: {}", doorPuzzleId);
+        return true;
     }
 
     /** Advance all active echoes by one replay tick. */
@@ -2527,9 +2546,19 @@ public final class GameSimulator {
                     queueInteractionAnimation(p, "button", SimPlayer.INTERACT_BUTTON_TIME);
                     log.info("[Playtest][Interaction] player={} slot={} type=echo_trigger marker={}",
                         p.playerId, p.slot, t);
-                    spawnEchoFromPlayer(entry.getKey(), true);
                     String pid = t.substring("echo_trigger_".length());
-                    if (!pid.isBlank()) unlockDoor("echo_door_" + pid);
+                    SimEcho spawned = spawnEchoFromPlayer(entry.getKey(), true);
+                    log.info("[Playtest][Echo] event=trigger player={} slot={} marker={} puzzle={} echo_spawned={} echo={}",
+                        p.playerId, p.slot, t, pid, spawned != null, spawned != null ? spawned.echoId : "none");
+                    if (!pid.isBlank()) {
+                        String doorId = "echo_door_" + pid;
+                        boolean unlocked = unlockDoor(doorId);
+                        log.info("[Playtest][Echo] event=door_unlock player={} slot={} marker={} puzzle={} door={} unlocked={}",
+                            p.playerId, p.slot, t, pid, doorId, unlocked);
+                    } else {
+                        log.info("[Playtest][Echo] event=door_unlock_skipped player={} slot={} marker={} reason=blank_puzzle_id",
+                            p.playerId, p.slot, t);
+                    }
                 }
                 break;
             }

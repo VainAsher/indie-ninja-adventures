@@ -54,6 +54,7 @@ public final class SimPlayer {
     public boolean prevJump     = false;
     public boolean prevDash     = false;
     public boolean prevTeleport = false;
+    public boolean prevStanceSwitch = false;
 
     // Ground state from previous tick (for coyote-time detection)
     public boolean wasOnGround  = false;

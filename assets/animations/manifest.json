@@ -113,6 +113,7 @@
         { "key": "player_sword_slow_walk",   "file": "walk_spritesheet.png",        "frames": 8 },
         { "key": "player_sword_run",         "file": "run_spritesheet.png",         "frames": 8 },
         { "key": "player_sword_dash",        "file": "dash_spritesheet.png",        "frames": 7 },
+        { "key": "player_sword_teleport",    "file": "dash_spritesheet.png",        "frames": 7 },
         { "key": "player_sword_jump", "file": "jumpfall_spritesheet.png", "frames": 5, "totalFrames": 10, "offset": 0 },
         { "key": "player_sword_fall", "file": "jumpfall_spritesheet.png", "frames": 5, "totalFrames": 10, "offset": 5 },
         { "key": "player_sword_crouch",      "file": "crouch_idle_spritesheet.png", "frames": 9 },

@@ -41,16 +41,16 @@ import java.util.Set;
 public final class MinimapRenderer {
 
     // ── Layout ────────────────────────────────────────────────────────────────
-    private static final float QUICK_PANEL_W = 720f;
-    private static final float QUICK_PANEL_H = 500f;
+    private static final float QUICK_PANEL_W = 980f;
+    private static final float QUICK_PANEL_H = 660f;
     private static final float PANEL_PAD   =  20f;
     private static final float ROOM_PAD    =   4f;
     private static final float TITLE_H     =  22f;
     /** Footer holds room-type legend + toggle-state row. */
-    private static final float FOOTER_H    =  46f;
+    private static final float FOOTER_H    =  62f;
 
     // ── Tile detail texture: 64×64 downsampled from the 128×128 tile grid ─────
-    private static final int TEX_SZ    = 64;
+    private static final int TEX_SZ    = 128;
     private static final int GRID_COLS = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
     private static final int GRID_ROWS = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
 
@@ -58,6 +58,11 @@ public final class MinimapRenderer {
     private static final int PIX_SOLID    = Color.rgba8888(0.72f, 0.72f, 0.78f, 1f);
     private static final int PIX_CLIMBABLE= Color.rgba8888(0.42f, 0.82f, 0.58f, 1f);
     private static final int PIX_PLATFORM = Color.rgba8888(0.55f, 0.44f, 0.30f, 1f);
+    private static final int PIX_ICE      = Color.rgba8888(0.62f, 0.86f, 1.00f, 1f);
+    private static final int PIX_WATER    = Color.rgba8888(0.22f, 0.42f, 0.98f, 0.95f);
+    private static final int PIX_LAVA     = Color.rgba8888(1.00f, 0.36f, 0.08f, 1f);
+    private static final int PIX_GAS      = Color.rgba8888(0.55f, 0.72f, 0.66f, 0.88f);
+    private static final int PIX_DOOR     = Color.rgba8888(0.94f, 0.72f, 0.18f, 1f);
     private static final int PIX_AIR      = 0x00000000;  // transparent
 
     // ── Room type colours + labels ────────────────────────────────────────────
@@ -99,6 +104,13 @@ public final class MinimapRenderer {
     // Focused room — MIN_VALUE means "follow current player room"
     private int     focusGX    = Integer.MIN_VALUE;
     private int     focusGY    = Integer.MIN_VALUE;
+    private boolean manualFocus = false;
+    private float   panRepeatTimer = 0f;
+
+    private static final int   MIN_ZOOM_LEVEL = 1;
+    private static final int   MAX_ZOOM_LEVEL = 6;
+    private static final float PAN_REPEAT_INITIAL_DELAY = 0.22f;
+    private static final float PAN_REPEAT_STEP_DELAY    = 0.08f;
 
     private final ShapeRenderer        shapes;
     private final BitmapFont           font;
@@ -133,6 +145,10 @@ public final class MinimapRenderer {
     public void showQuick() {
         visible = true;
         mapMode = MapMode.QUICK;
+        manualFocus = false;
+        focusGX = Integer.MIN_VALUE;
+        focusGY = Integer.MIN_VALUE;
+        panRepeatTimer = 0f;
     }
     public void toggleQuick() {
         if (visible && mapMode == MapMode.QUICK) {
@@ -144,10 +160,18 @@ public final class MinimapRenderer {
     public void showFull() {
         visible = true;
         mapMode = MapMode.FULL;
+        manualFocus = false;
+        focusGX = Integer.MIN_VALUE;
+        focusGY = Integer.MIN_VALUE;
+        panRepeatTimer = 0f;
     }
     public void hide() {
         visible = false;
         mapMode = MapMode.QUICK;
+        manualFocus = false;
+        focusGX = Integer.MIN_VALUE;
+        focusGY = Integer.MIN_VALUE;
+        panRepeatTimer = 0f;
     }
 
     /**
@@ -169,22 +193,69 @@ public final class MinimapRenderer {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) { showTileDetail = !showTileDetail; return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) { showFog        = !showFog;        return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) { showEntities   = !showEntities;   return true; }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            manualFocus = false;
+            focusGX = Integer.MIN_VALUE;
+            focusGY = Integer.MIN_VALUE;
+            return true;
+        }
         // Zoom in/out: + / - keys
         if (Gdx.input.isKeyJustPressed(Input.Keys.EQUALS) || Gdx.input.isKeyJustPressed(Input.Keys.PLUS)) {
-            zoomLevel = Math.min(4, zoomLevel * 2);
+            zoomLevel = Math.min(MAX_ZOOM_LEVEL, zoomLevel + 1);
+            manualFocus = false;
+            focusGX = Integer.MIN_VALUE;
+            focusGY = Integer.MIN_VALUE;
             return true;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.MINUS)) {
-            zoomLevel = Math.max(1, zoomLevel / 2);
-            if (zoomLevel == 1) { focusGX = Integer.MIN_VALUE; focusGY = Integer.MIN_VALUE; }
+            zoomLevel = Math.max(MIN_ZOOM_LEVEL, zoomLevel - 1);
+            if (zoomLevel == MIN_ZOOM_LEVEL) {
+                manualFocus = false;
+                focusGX = Integer.MIN_VALUE;
+                focusGY = Integer.MIN_VALUE;
+            }
             return true;
         }
-        // Pan focused room with arrow keys when zoomed
+        // Pan focused room with arrow keys when zoomed.
+        // Supports both tap and hold with repeat timing.
         if (zoomLevel > 1) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT))  { if (focusGX != Integer.MIN_VALUE) focusGX--; return true; }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) { if (focusGX != Integer.MIN_VALUE) focusGX++; return true; }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.UP))    { if (focusGY != Integer.MIN_VALUE) focusGY--; return true; }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN))  { if (focusGY != Integer.MIN_VALUE) focusGY++; return true; }
+            int panX = 0;
+            int panY = 0;
+            boolean justPressed = false;
+
+            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT))  { panX = -1; justPressed = true; }
+            else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) { panX = 1; justPressed = true; }
+            else if (Gdx.input.isKeyJustPressed(Input.Keys.UP))    { panY = -1; justPressed = true; }
+            else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN))  { panY = 1; justPressed = true; }
+
+            if (!justPressed) {
+                boolean heldLeft  = Gdx.input.isKeyPressed(Input.Keys.LEFT);
+                boolean heldRight = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+                boolean heldUp    = Gdx.input.isKeyPressed(Input.Keys.UP);
+                boolean heldDown  = Gdx.input.isKeyPressed(Input.Keys.DOWN);
+                panRepeatTimer = Math.max(0f, panRepeatTimer - Gdx.graphics.getDeltaTime());
+                if (panRepeatTimer <= 0f) {
+                    if (heldLeft && !heldRight) panX = -1;
+                    else if (heldRight && !heldLeft) panX = 1;
+                    else if (heldUp && !heldDown) panY = -1;
+                    else if (heldDown && !heldUp) panY = 1;
+                    if (panX != 0 || panY != 0) {
+                        panRepeatTimer = PAN_REPEAT_STEP_DELAY;
+                    }
+                }
+            } else {
+                panRepeatTimer = PAN_REPEAT_INITIAL_DELAY;
+            }
+
+            if (panX != 0 || panY != 0) {
+                if (focusGX == Integer.MIN_VALUE || focusGY == Integer.MIN_VALUE) {
+                    return true;
+                }
+                focusGX += panX;
+                focusGY += panY;
+                manualFocus = true;
+                return true;
+            }
         }
         return false;
     }
@@ -245,37 +316,58 @@ public final class MinimapRenderer {
         float sh = Gdx.graphics.getHeight();
 
         // ── Grid bounds ───────────────────────────────────────────────────────
-        int minGX = rooms.stream().mapToInt(r -> r.gridX).min().getAsInt();
-        int minGY = rooms.stream().mapToInt(r -> r.gridY).min().getAsInt();
-        int maxGX = rooms.stream().mapToInt(r -> r.gridX).max().getAsInt();
-        int maxGY = rooms.stream().mapToInt(r -> r.gridY).max().getAsInt();
+        int worldMinGX = rooms.stream().mapToInt(r -> r.gridX).min().getAsInt();
+        int worldMinGY = rooms.stream().mapToInt(r -> r.gridY).min().getAsInt();
+        int worldMaxGX = rooms.stream().mapToInt(r -> r.gridX).max().getAsInt();
+        int worldMaxGY = rooms.stream().mapToInt(r -> r.gridY).max().getAsInt();
+        int worldSpanW = worldMaxGX - worldMinGX + 1;
+        int worldSpanH = worldMaxGY - worldMinGY + 1;
+
+        int minGX = worldMinGX;
+        int minGY = worldMinGY;
+        int maxGX = worldMaxGX;
+        int maxGY = worldMaxGY;
+
+        // ── Zoom: clamp visible grid to a window centred on focus room ────────
+        if (zoomLevel > MIN_ZOOM_LEVEL) {
+            if (!manualFocus || focusGX == Integer.MIN_VALUE || focusGY == Integer.MIN_VALUE) {
+                focusGX = currentGridX;
+                focusGY = currentGridY;
+            }
+
+            focusGX = Math.max(worldMinGX, Math.min(worldMaxGX, focusGX));
+            focusGY = Math.max(worldMinGY, Math.min(worldMaxGY, focusGY));
+
+            int windowW = Math.max(1, (int) Math.ceil(worldSpanW / (float) zoomLevel));
+            int windowH = Math.max(1, (int) Math.ceil(worldSpanH / (float) zoomLevel));
+
+            int maxStartGX = worldMaxGX - windowW + 1;
+            int maxStartGY = worldMaxGY - windowH + 1;
+            int startGX = focusGX - (windowW / 2);
+            int startGY = focusGY - (windowH / 2);
+
+            startGX = Math.max(worldMinGX, Math.min(maxStartGX, startGX));
+            startGY = Math.max(worldMinGY, Math.min(maxStartGY, startGY));
+
+            minGX = startGX;
+            minGY = startGY;
+            maxGX = startGX + windowW - 1;
+            maxGY = startGY + windowH - 1;
+        }
+
         int spanW = maxGX - minGX + 1;
         int spanH = maxGY - minGY + 1;
 
-        // ── Zoom: clamp visible grid to a window centred on focus room ────────
-        if (zoomLevel > 1) {
-            if (focusGX == Integer.MIN_VALUE) { focusGX = currentGridX; focusGY = currentGridY; }
-            // Half-width/-height of the visible window (in rooms), at least 2 each side
-            int halfW = Math.max(2, spanW / (zoomLevel * 2));
-            int halfH = Math.max(2, spanH / (zoomLevel * 2));
-            minGX = Math.max(minGX, focusGX - halfW);
-            maxGX = Math.min(maxGX, focusGX + halfW);
-            minGY = Math.max(minGY, focusGY - halfH);
-            maxGY = Math.min(maxGY, focusGY + halfH);
-            spanW = maxGX - minGX + 1;
-            spanH = maxGY - minGY + 1;
-        }
-
         // ── Fit room cell size ────────────────────────────────────────────────
-        float modeMaxW = mapMode == MapMode.FULL ? sw * 0.75f : QUICK_PANEL_W;
-        float modeMaxH = mapMode == MapMode.FULL ? sh * 0.75f : QUICK_PANEL_H;
-        float maxPanelW = Math.min(modeMaxW, sw * 0.94f);
-        float maxPanelH = Math.min(modeMaxH, sh * 0.92f);
+        float modeMaxW = mapMode == MapMode.FULL ? sw * 0.88f : QUICK_PANEL_W;
+        float modeMaxH = mapMode == MapMode.FULL ? sh * 0.88f : QUICK_PANEL_H;
+        float maxPanelW = Math.min(modeMaxW, sw * 0.97f);
+        float maxPanelH = Math.min(modeMaxH, sh * 0.95f);
         float innerW    = maxPanelW - PANEL_PAD * 2f;
         float innerH    = maxPanelH - PANEL_PAD * 2f - TITLE_H - FOOTER_H;
         float roomSizeW = (innerW - (spanW - 1) * ROOM_PAD) / spanW;
         float roomSizeH = (innerH - (spanH - 1) * ROOM_PAD) / spanH;
-        float roomSize  = Math.max(12f, Math.min(Math.min(roomSizeW, roomSizeH), 80f));
+        float roomSize  = Math.max(14f, Math.min(Math.min(roomSizeW, roomSizeH), 96f));
 
         // ── Panel dimensions ──────────────────────────────────────────────────
         float gridW  = spanW * roomSize + (spanW - 1) * ROOM_PAD;
@@ -393,7 +485,8 @@ public final class MinimapRenderer {
                 for (EnemyState e : cachedEnemies) {
                     if ("dead".equals(e.aiState)) continue;
                     float[] sc = worldToMinimap(e.x, e.y, roomWidthPx, roomHeightPx,
-                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                        worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                     if (sc != null) shapes.circle(sc[0], sc[1], dotR, 8);
                 }
             }
@@ -404,7 +497,8 @@ public final class MinimapRenderer {
                     if (!p.alive) continue;
                     shapes.setColor(pickupTypeColor(p.pickupType));
                     float[] sc = worldToMinimap(p.x, p.y, roomWidthPx, roomHeightPx,
-                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                        worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                     if (sc != null) shapes.circle(sc[0], sc[1], dotR * 0.85f, 8);
                 }
             }
@@ -416,7 +510,8 @@ public final class MinimapRenderer {
                     if (!p.isActive) continue;
                     float[] sc = worldToMinimap(p.x + p.width * 0.5f, p.y + p.height * 0.5f,
                         roomWidthPx, roomHeightPx,
-                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                        worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                     if (sc != null) shapes.circle(sc[0], sc[1], dotR * 1.4f, 10);
                 }
             }
@@ -426,7 +521,8 @@ public final class MinimapRenderer {
                 shapes.setColor(COL_NPC);
                 for (NPCState n : snap.npcs) {
                     float[] sc = worldToMinimap(n.x, n.y, roomWidthPx, roomHeightPx,
-                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                        worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                     if (sc != null) {
                         float half = dotR * 0.85f;
                         shapes.rect(sc[0] - half, sc[1] - half, half * 2f, half * 2f);
@@ -438,14 +534,16 @@ public final class MinimapRenderer {
                 for (BossState b : snap.bosses) {
                     if (!b.alive) continue;
                     float[] sc = worldToMinimap(b.x, b.y, roomWidthPx, roomHeightPx,
-                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                        worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                     if (sc != null) shapes.circle(sc[0], sc[1], dotR * 2f, 12);
                 }
 
                 // Players — self = white, others = blue
                 for (PlayerState p : snap.players) {
                     float[] sc = worldToMinimap(p.posX, p.posY, roomWidthPx, roomHeightPx,
-                        minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                        worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                     if (sc != null) {
                         shapes.setColor(p.slot == localSlot ? COL_SELF : COL_OTHER);
                         shapes.circle(sc[0], sc[1], dotR * (p.slot == localSlot ? 1.6f : 1.3f), 10);
@@ -470,7 +568,8 @@ public final class MinimapRenderer {
             for (ObjectiveMarker marker : objectiveMarkers) {
                 if (marker == null) continue;
                 float[] sc = worldToMinimap(marker.worldX(), marker.worldY(), roomWidthPx, roomHeightPx,
-                    minGX, minGY, maxGX, maxGY, gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
+                    worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
+                    gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
                 if (sc == null) continue;
                 String type = marker.markerType() != null ? marker.markerType() : "reach";
                 if ("switch".equals(type)) {
@@ -526,8 +625,8 @@ public final class MinimapRenderer {
             for (ObjectiveMarker marker : objectiveMarkers) {
                 if (marker == null) continue;
                 // Grid cell of the objective (same formula as worldToMinimap)
-                int objGX = (int) Math.floor(marker.worldX() / roomWidthPx) + minGX;
-                int objGY = (int) Math.floor(marker.worldY() / roomHeightPx) + minGY;
+                int objGX = (int) Math.floor(marker.worldX() / roomWidthPx) + worldMinGX;
+                int objGY = (int) Math.floor(marker.worldY() / roomHeightPx) + worldMinGY;
                 // Only draw compass when objective is outside the visible window
                 if (objGX >= minGX && objGX <= maxGX && objGY >= minGY && objGY <= maxGY) continue;
                 // Direction in screen space (libGDX Y-up; higher gridY = lower on screen)
@@ -612,7 +711,8 @@ public final class MinimapRenderer {
         font.setColor(showFog        ? COL_ON : COL_OFF); font.draw(batch, "[2] Fog",      lx +  78f, ty);
         font.setColor(showEntities   ? COL_ON : COL_OFF); font.draw(batch, "[3] Entities", lx + 128f, ty);
         font.setColor(0.72f, 0.88f, 1f, 1f);
-        String zoomText = "[+/-] Zoom: " + zoomLevel + "x" + (zoomLevel > 1 ? "  [Arrows] Pan" : "");
+        String zoomText = "[+/-] Zoom " + zoomLevel + "x (1-6)"
+            + (zoomLevel > 1 ? "  [Arrows] Pan  [R] Recenter" : "");
         font.draw(batch, zoomText, lx + 258f, ty);
 
         font.getData().setScale(0.85f);
@@ -633,19 +733,18 @@ public final class MinimapRenderer {
     private static float[] worldToMinimap(
             float worldX, float worldY,
             float roomWidthPx, float roomHeightPx,
-            int minGX, int minGY, int maxGX, int maxGY,
-            float gridOriX, float gridOriY, int maxGY2,
+            int worldMinGX, int worldMinGY,
+            int visibleMinGX, int visibleMinGY, int visibleMaxGX, int visibleMaxGY,
+            float gridOriX, float gridOriY, int visibleMaxGY2,
             float step, float roomSize) {
-        // Physics world is 0-based: the room at grid (minGX, minGY) starts at
-        // physics (0, 0).  Convert to actual grid coordinates before bounds check.
-        int gx = (int) Math.floor(worldX / roomWidthPx) + minGX;
-        int gy = (int) Math.floor(worldY / roomHeightPx) + minGY;
-        if (gx < minGX || gx > maxGX || gy < minGY || gy > maxGY) return null;
-        // Room-local pixel coords — (gx-minGX) is the 0-based room index.
-        float localX = worldX - (gx - minGX) * roomWidthPx;
-        float localY = worldY - (gy - minGY) * roomHeightPx;
-        float rx = gridOriX + (gx - minGX) * step;
-        float ry = gridOriY + (maxGY2 - gy) * step;
+        int gx = (int) Math.floor(worldX / roomWidthPx) + worldMinGX;
+        int gy = (int) Math.floor(worldY / roomHeightPx) + worldMinGY;
+        if (gx < visibleMinGX || gx > visibleMaxGX || gy < visibleMinGY || gy > visibleMaxGY) return null;
+
+        float localX = worldX - (gx - worldMinGX) * roomWidthPx;
+        float localY = worldY - (gy - worldMinGY) * roomHeightPx;
+        float rx = gridOriX + (gx - visibleMinGX) * step;
+        float ry = gridOriY + (visibleMaxGY2 - gy) * step;
         return new float[]{
             rx + (localX / roomWidthPx)  * roomSize,
             ry + (1f - localY / roomHeightPx) * roomSize
@@ -654,8 +753,8 @@ public final class MinimapRenderer {
 
     /**
      * Build or retrieve a cached tile-detail Texture for the given room.
-     * The Pixmap is downsampled 2× (128→64 per axis) and uses Nearest filtering
-     * so it renders as crisp pixel art when scaled to the room cell.
+     * The Pixmap samples the room tile grid into a cached minimap texture.
+     * Nearest filtering keeps the detail crisp when scaled into each room cell.
      */
     private Texture getOrBuildTexture(String key, byte[][] grid) {
         Texture tex = detailTextures.get(key);
@@ -664,19 +763,24 @@ public final class MinimapRenderer {
         Pixmap px = new Pixmap(TEX_SZ, TEX_SZ, Pixmap.Format.RGBA8888);
         px.setBlending(Pixmap.Blending.None);
 
-        int scaleC = GRID_COLS / TEX_SZ;  // 2
-        int scaleR = GRID_ROWS / TEX_SZ;  // 2
+        float rowScale = GRID_ROWS / (float) TEX_SZ;
+        float colScale = GRID_COLS / (float) TEX_SZ;
 
         for (int tr = 0; tr < TEX_SZ; tr++) {
             for (int tc = 0; tc < TEX_SZ; tc++) {
-                int gr = Math.min(tr * scaleR, GRID_ROWS - 1);
-                int gc = Math.min(tc * scaleC, GRID_COLS - 1);
+                int gr = Math.min((int) (tr * rowScale), GRID_ROWS - 1);
+                int gc = Math.min((int) (tc * colScale), GRID_COLS - 1);
                 byte tile = grid[gr][gc];
                 int color;
-                if      (tile == WorldGenerator.SOLID)     color = PIX_SOLID;
-                else if (tile == WorldGenerator.CLIMBABLE) color = PIX_CLIMBABLE;
-                else if (tile == WorldGenerator.PLATFORM)  color = PIX_PLATFORM;
-                else                                      color = PIX_AIR;
+                if      (tile == WorldGenerator.SOLID)       color = PIX_SOLID;
+                else if (tile == WorldGenerator.CLIMBABLE)   color = PIX_CLIMBABLE;
+                else if (tile == WorldGenerator.PLATFORM)    color = PIX_PLATFORM;
+                else if (tile == WorldGenerator.ICE)         color = PIX_ICE;
+                else if (tile == WorldGenerator.WATER)       color = PIX_WATER;
+                else if (tile == WorldGenerator.LAVA)        color = PIX_LAVA;
+                else if (tile == WorldGenerator.GAS)         color = PIX_GAS;
+                else if (tile == WorldGenerator.DOOR_LOCKED) color = PIX_DOOR;
+                else                                          color = PIX_AIR;
                 px.drawPixel(tc, tr, color);
             }
         }

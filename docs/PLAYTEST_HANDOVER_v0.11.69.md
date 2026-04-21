@@ -134,7 +134,8 @@ All playtest sessions automatically write log files:
 - `[Playtest][Stance]` — stance switch events
 - `[Playtest][Mission]` — mission start/progress/complete/fail
 - `[Playtest][Boss]` — boss phase transitions
-- `[Playtest][Interaction]` — lever, button, pickup animations
+- `[Playtest][Interaction]` - lever, button, pickup animations
+- `[Playtest][Echo]` - echo trigger activation, spawn, and echo-door unlock outcomes
 - `[Playtest][NPC]` — NPC dialogue interactions
 - `[Playtest][Trial]` — trial room entry and completion
 - `[Playtest][Player]` — death, respawn, ability acquisition

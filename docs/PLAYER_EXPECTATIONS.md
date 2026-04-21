@@ -124,6 +124,7 @@ Do not preload mechanical spoilers beyond this.
 | Mission event logging | Working | Mission start/progress/exit-unlock/complete/fail/restore, onboarding dialogue events, and room transitions include hub/room/position context |
 | Structured event IDs | Working | Runtime traces use stable prefixes: `[Playtest][Stance]`, `[Playtest][Flow]`, `[Playtest][Lantern]`, `[Playtest][Room]`, `[Playtest][Boss]`, `[Playtest][Player]`, `[Playtest][Interaction]`, `[Playtest][NPC]`, `[Playtest][Trial]`, `[Playtest][Echo]`, `[Playtest][Portal]` |
 | Portal travel logging | Working | `[Playtest][Portal]` traces emit on both gate denial (`solo portal denied hub=X requiredAbility=Y`) and successful transition (`solo portal travel A → B seed=N`) |
+| Echo puzzle logging | Working | `[Playtest][Echo]` traces emit on trigger activation, echo spawn/skip outcome, and `echo_door_*` unlock outcomes |
 | Correlation/session IDs | Working | Client sends `session_id` in `CLIENT_HELLO`; server logs join/travel/disconnect with `player_id` + `session_id` |
 | Controls baseline evidence | Working | Startup log emits `[Playtest][Controls] preset=GDD-10.3.13 ...` for each launched session |
 | Scripted loss traceability | Working | Client network/runtime logs emit `[Net] SCRIPTED_LOSS received` plus `[Playtest][ScriptedLoss] received/continue` context |
@@ -622,4 +623,3 @@ Update this file every release candidate with:
 - newly discovered must-test regressions
 
 This document is a release artifact, not just internal notes.
-

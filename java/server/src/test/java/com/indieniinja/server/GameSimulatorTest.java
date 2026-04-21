@@ -429,6 +429,55 @@ class GameSimulatorTest {
     }
 
     @Test
+    void stanceSwitchHeldAcrossTicksOnlyTogglesOncePerPress() {
+        LevelLayout fixture = LevelLayout.buildTestLayout(890L);
+        GameSimulator sim = new GameSimulator(890L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, fixture.spawnX, fixture.spawnY);
+        sim.addPlayer(player);
+
+        assertThat(player.stanceMode).isEqualTo("yin");
+
+        InputCommand pressAndHold = new InputCommand(0);
+        pressAndHold.stanceSwitch = true;
+
+        sim.step(Map.of(0, pressAndHold));
+        assertThat(player.stanceMode).isEqualTo("yang");
+
+        // Same held command on the next tick must not bounce back to yin.
+        sim.step(Map.of(0, pressAndHold));
+        assertThat(player.stanceMode).isEqualTo("yang");
+
+        InputCommand release = new InputCommand(1);
+        sim.step(Map.of(0, release));
+
+        InputCommand secondPress = new InputCommand(2);
+        secondPress.stanceSwitch = true;
+        sim.step(Map.of(0, secondPress));
+        assertThat(player.stanceMode).isEqualTo("yin");
+    }
+
+    @Test
+    void echoTriggerInteractionSpawnsEchoAndQueuesFeedback() {
+        LevelLayout fixture = LevelLayout.buildInteractionMarkerFixtureLayout(889L, "echo_trigger_fx_0");
+        GameSimulator sim = new GameSimulator(889L, "test_hub", fixture);
+        SimPlayer player = new SimPlayer("p1", 0, fixture.spawnX, fixture.spawnY);
+        sim.addPlayer(player);
+
+        InputCommand interact = new InputCommand(0);
+        interact.interact = true;
+        sim.step(Map.of(0, interact));
+
+        assertThat(player.interactionState).isEqualTo("button");
+        assertThat(player.interactionTimer).isGreaterThan(0f);
+        assertThat(sim.getEchoes()).hasSize(1);
+        assertThat(sim.getEchoes().get(0).echoId).contains("test_hub_echo_");
+        assertThat(sim.getEchoes().get(0).ticksPlayed()).isEqualTo(0);
+
+        sim.step(Map.of(0, new InputCommand(1)));
+        assertThat(sim.getEchoes().get(0).ticksPlayed()).isEqualTo(1);
+    }
+
+    @Test
     void timeLeechLordSpawnsTypedCappedMinions() {
         long seed = findBossSeed("time_leech_lord");
         LevelLayout layout = LevelLayout.buildProceduralLayout(

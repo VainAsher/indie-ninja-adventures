@@ -358,6 +358,7 @@ public final class AnimationRegistry {
         sliceAndRegister(d, "player_sword_slow_walk",   "walk_spritesheet.png",       8);
         sliceAndRegister(d, "player_sword_run",         "run_spritesheet.png",        8);
         sliceAndRegister(d, "player_sword_dash",        "dash_spritesheet.png",       7);
+        sliceAndRegister(d, "player_sword_teleport",    "dash_spritesheet.png",       7);
 
         // Jump / fall split
         registerJumpFallPrefixed(d, "jumpfall_spritesheet.png", "player_sword");

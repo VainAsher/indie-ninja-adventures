@@ -2,6 +2,8 @@ package com.indieniinja.client;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
@@ -113,6 +115,18 @@ public final class GameScreen implements Screen {
 
     // ── Developer console (dev builds only) ──────────────────────────────────
     private final DevConsole devConsole = new DevConsole();
+    /**
+     * Console text-input bridge.
+     * Game input is poll-based; keyTyped events are only needed for console commands.
+     */
+    private final InputAdapter devConsoleInputAdapter = new InputAdapter() {
+        @Override
+        public boolean keyTyped(char character) {
+            if (!devConsole.isVisible()) return false;
+            devConsole.typeChar(character);
+            return true;
+        }
+    };
 
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
@@ -247,6 +261,13 @@ public final class GameScreen implements Screen {
     /** Previous room grid position — used to detect same-hub room crossings. */
     private int   prevRoomGridX   = Integer.MIN_VALUE;
     private int   prevRoomGridY   = Integer.MIN_VALUE;
+    /**
+     * Render-frame-latched gameplay input.
+     *
+     * One-shot actions are OR-latched until consumed by a physics tick so
+     * quick taps are not lost between 60 Hz updates.
+     */
+    private final InputCommand latchedRealtimeInput = new InputCommand();
 
     // ── Megamap state ─────────────────────────────────────────────────────────
     /** Number of rooms in the built megamap (0 = not built yet). */
@@ -478,7 +499,10 @@ public final class GameScreen implements Screen {
                 prevSnap != null ? prevSnap.hubId : "unknown",
                 prevSnap != null ? prevSnap.frame : -1);
         }
-        boolean scriptedLossConsumed = handleScriptedLossOverlayInput();
+        devConsole.processInput();
+        syncDevConsoleInputFocus();
+        boolean consoleVisible = devConsole.isVisible();
+        boolean scriptedLossConsumed = !consoleVisible && handleScriptedLossOverlayInput();
 
         // ── Overlay input priority: crafting > shop > inventory > dialogue > game
         // Use prevSnap (last frame's snapshot) since this frame's snap hasn't been polled yet.
@@ -487,31 +511,31 @@ public final class GameScreen implements Screen {
         boolean craftConsumed = false;
         boolean shopConsumed  = false;
         boolean invConsumed   = false;
-        if (!scriptedLossConsumed) {
+        if (!scriptedLossConsumed && !consoleVisible) {
             craftConsumed = craftingOverlay.handleInputAndRender(batch, prevLocal, delta);
             shopConsumed  = !craftConsumed && shopOverlay.handleInput(prevLocal);
             invConsumed   = !craftConsumed && !shopConsumed && inventoryOverlay.handleInput();
         }
 
         // ── Dialogue input (consumes keys when dialogue is open) ─────────────
-        boolean dialogueConsumed = !scriptedLossConsumed
+        boolean dialogueConsumed = !scriptedLossConsumed && !consoleVisible
             && !shopConsumed && !invConsumed && dialogueOverlay.handleInput();
-        boolean missionOverlayConsumed = !scriptedLossConsumed
+        boolean missionOverlayConsumed = !scriptedLossConsumed && !consoleVisible
             && !craftConsumed && !shopConsumed && !invConsumed
             && !dialogueConsumed
             && missionSelectOverlay.handleInput(storyManager.currentAct().wire());
 
         // ── I key: toggle inventory (when no other overlay active) ────────────
-        if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
+        if (!consoleVisible && !shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
                 && keyBindings.isJustPressed("inventory")) {
             inventoryOverlay.toggle();
         }
-        if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
+        if (!consoleVisible && !shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused
                 && keyBindings.isJustPressed("mission_menu")) {
             openMissionSelectOverlay("hotkey_o");
         }
         // ── TAB key: tap=quick map toggle, hold=full map while held ──────────
-        if (!shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused) {
+        if (!consoleVisible && !shopConsumed && !invConsumed && !dialogueConsumed && !missionOverlayConsumed && !paused) {
             boolean fullMapDown = keyBindings.isHeld("fullmap");
             if (sharedMapBinding) {
                 if (fullMapDown) {
@@ -563,7 +587,7 @@ public final class GameScreen implements Screen {
 
         // ── ESC toggles pause (only when no overlay active) ───────────────────
         boolean anyOverlay = scriptedLossConsumed || craftConsumed || shopConsumed || invConsumed
-            || dialogueConsumed || missionOverlayConsumed;
+            || dialogueConsumed || missionOverlayConsumed || consoleVisible;
 
         // ── H key: toggle hitbox debug overlay ───────────────────────────────
         if (!anyOverlay && !paused && keyBindings.isJustPressed("toggle_hitboxes")) {
@@ -586,12 +610,24 @@ public final class GameScreen implements Screen {
             if (paused) resume(); else pause();
         }
 
-        if (!paused && !dialogueConsumed && !missionOverlayConsumed && !scriptedLossConsumed) {
+        boolean gameplayInputEnabled = !paused
+            && !dialogueConsumed
+            && !missionOverlayConsumed
+            && !scriptedLossConsumed
+            && !consoleVisible;
+
+        if (soloReplay != null || !gameplayInputEnabled) {
+            clearLatchedRealtimeInput();
+        } else {
+            latchRealtimeInput(inputPoller.poll());
+        }
+
+        if (gameplayInputEnabled) {
             accumulator += delta;
             while (accumulator >= PHYSICS_DT) {
                 InputCommand cmd = (soloReplay != null)
                         ? soloReplay.inputsForTick(localFrame).getOrDefault(0, new InputCommand())
-                        : inputPoller.poll();
+                        : consumeLatchedRealtimeInput();
                 if (soloMode) {
                     // Offline: step local sim directly and push snapshot to stateBuffer.
                     if (soloRecorder.isRecording()) soloRecorder.record(localFrame, 0, cmd);
@@ -1049,7 +1085,6 @@ public final class GameScreen implements Screen {
 
         // ── Dev console (topmost layer — always rendered last) ────────────────
         batch.setProjectionMatrix(hudRenderer.screenProjection());
-        devConsole.processInput();
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
         devConsole.render(batch, sw, sh);
@@ -2403,8 +2438,18 @@ public final class GameScreen implements Screen {
     }
 
     @Override public void pause()  { paused = true;  pauseScreen.activate(); }
-    @Override public void resume() { paused = false; Gdx.input.setInputProcessor(null); }
-    @Override public void hide()   { if (saveManager != null) { syncSaveState(); saveManager.save(); } flushSoloReplay(); }
+    @Override public void resume() {
+        paused = false;
+        Gdx.input.setInputProcessor(null);
+        syncDevConsoleInputFocus();
+    }
+    @Override public void hide() {
+        if (saveManager != null) { syncSaveState(); saveManager.save(); }
+        if (Gdx.input.getInputProcessor() == devConsoleInputAdapter) {
+            Gdx.input.setInputProcessor(null);
+        }
+        flushSoloReplay();
+    }
 
     @Override
     public void dispose() {
@@ -2428,6 +2473,143 @@ public final class GameScreen implements Screen {
         if (minimapRenderer  != null) minimapRenderer.dispose();
         if (hitboxRenderer   != null) hitboxRenderer.dispose();
         devConsole.dispose();
+    }
+
+    /**
+     * Give keyboard text focus to the dev console only while it is visible.
+     * Other game controls remain poll-based and should not install an input processor.
+     */
+    private void syncDevConsoleInputFocus() {
+        if (paused) return;
+        InputProcessor current = Gdx.input.getInputProcessor();
+        if (devConsole.isVisible()) {
+            if (current != devConsoleInputAdapter) {
+                Gdx.input.setInputProcessor(devConsoleInputAdapter);
+            }
+        } else if (current == devConsoleInputAdapter) {
+            Gdx.input.setInputProcessor(null);
+        }
+    }
+
+    private void latchRealtimeInput(InputCommand sampled) {
+        if (sampled == null) return;
+        latchedRealtimeInput.frame = sampled.frame;
+
+        // Held state mirrors latest sampled keyboard state.
+        latchedRealtimeInput.up = sampled.up;
+        latchedRealtimeInput.down = sampled.down;
+        latchedRealtimeInput.left = sampled.left;
+        latchedRealtimeInput.right = sampled.right;
+        latchedRealtimeInput.jump = sampled.jump;
+        latchedRealtimeInput.dash = sampled.dash;
+        latchedRealtimeInput.crouch = sampled.crouch;
+        latchedRealtimeInput.attack = sampled.attack;
+        latchedRealtimeInput.throwShuriken = sampled.throwShuriken;
+        latchedRealtimeInput.teleport = sampled.teleport;
+        latchedRealtimeInput.ninjutsu = sampled.ninjutsu;
+        latchedRealtimeInput.block = sampled.block;
+        latchedRealtimeInput.fullmap = sampled.fullmap;
+        latchedRealtimeInput.slowWalk = sampled.slowWalk;
+
+        // One-shot actions are OR-latched until the next sim tick consumes them.
+        latchedRealtimeInput.toggleProc |= sampled.toggleProc;
+        latchedRealtimeInput.cycleCamera |= sampled.cycleCamera;
+        latchedRealtimeInput.interact |= sampled.interact;
+        latchedRealtimeInput.inventory |= sampled.inventory;
+        latchedRealtimeInput.consumable |= sampled.consumable;
+        latchedRealtimeInput.minimap |= sampled.minimap;
+        latchedRealtimeInput.controlsOverlay |= sampled.controlsOverlay;
+        latchedRealtimeInput.debugOverlay |= sampled.debugOverlay;
+        latchedRealtimeInput.menuConfirm |= sampled.menuConfirm;
+        latchedRealtimeInput.menuBack |= sampled.menuBack;
+        latchedRealtimeInput.stanceSwitch |= sampled.stanceSwitch;
+        latchedRealtimeInput.selectWeapon1 |= sampled.selectWeapon1;
+        latchedRealtimeInput.selectWeapon2 |= sampled.selectWeapon2;
+    }
+
+    private InputCommand consumeLatchedRealtimeInput() {
+        InputCommand out = copyInputCommand(latchedRealtimeInput);
+        clearLatchedOneShotFlags();
+        return out;
+    }
+
+    private void clearLatchedOneShotFlags() {
+        latchedRealtimeInput.toggleProc = false;
+        latchedRealtimeInput.cycleCamera = false;
+        latchedRealtimeInput.interact = false;
+        latchedRealtimeInput.inventory = false;
+        latchedRealtimeInput.consumable = false;
+        latchedRealtimeInput.minimap = false;
+        latchedRealtimeInput.controlsOverlay = false;
+        latchedRealtimeInput.debugOverlay = false;
+        latchedRealtimeInput.menuConfirm = false;
+        latchedRealtimeInput.menuBack = false;
+        latchedRealtimeInput.stanceSwitch = false;
+        latchedRealtimeInput.selectWeapon1 = false;
+        latchedRealtimeInput.selectWeapon2 = false;
+    }
+
+    private void clearLatchedRealtimeInput() {
+        latchedRealtimeInput.frame = 0;
+        latchedRealtimeInput.up = false;
+        latchedRealtimeInput.down = false;
+        latchedRealtimeInput.left = false;
+        latchedRealtimeInput.right = false;
+        latchedRealtimeInput.jump = false;
+        latchedRealtimeInput.dash = false;
+        latchedRealtimeInput.crouch = false;
+        latchedRealtimeInput.toggleProc = false;
+        latchedRealtimeInput.cycleCamera = false;
+        latchedRealtimeInput.attack = false;
+        latchedRealtimeInput.throwShuriken = false;
+        latchedRealtimeInput.teleport = false;
+        latchedRealtimeInput.ninjutsu = false;
+        latchedRealtimeInput.block = false;
+        latchedRealtimeInput.interact = false;
+        latchedRealtimeInput.inventory = false;
+        latchedRealtimeInput.consumable = false;
+        latchedRealtimeInput.minimap = false;
+        latchedRealtimeInput.fullmap = false;
+        latchedRealtimeInput.controlsOverlay = false;
+        latchedRealtimeInput.debugOverlay = false;
+        latchedRealtimeInput.slowWalk = false;
+        latchedRealtimeInput.menuConfirm = false;
+        latchedRealtimeInput.menuBack = false;
+        latchedRealtimeInput.stanceSwitch = false;
+        latchedRealtimeInput.selectWeapon1 = false;
+        latchedRealtimeInput.selectWeapon2 = false;
+    }
+
+    private static InputCommand copyInputCommand(InputCommand src) {
+        InputCommand dst = new InputCommand(src.frame);
+        dst.up = src.up;
+        dst.down = src.down;
+        dst.left = src.left;
+        dst.right = src.right;
+        dst.jump = src.jump;
+        dst.dash = src.dash;
+        dst.crouch = src.crouch;
+        dst.toggleProc = src.toggleProc;
+        dst.cycleCamera = src.cycleCamera;
+        dst.attack = src.attack;
+        dst.throwShuriken = src.throwShuriken;
+        dst.teleport = src.teleport;
+        dst.ninjutsu = src.ninjutsu;
+        dst.block = src.block;
+        dst.interact = src.interact;
+        dst.inventory = src.inventory;
+        dst.consumable = src.consumable;
+        dst.minimap = src.minimap;
+        dst.fullmap = src.fullmap;
+        dst.controlsOverlay = src.controlsOverlay;
+        dst.debugOverlay = src.debugOverlay;
+        dst.slowWalk = src.slowWalk;
+        dst.menuConfirm = src.menuConfirm;
+        dst.menuBack = src.menuBack;
+        dst.stanceSwitch = src.stanceSwitch;
+        dst.selectWeapon1 = src.selectWeapon1;
+        dst.selectWeapon2 = src.selectWeapon2;
+        return dst;
     }
 
     private static ContentRegistry loadClientContentRegistry() {
