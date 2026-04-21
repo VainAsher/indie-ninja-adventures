@@ -2,8 +2,8 @@
 doc_type: workflow
 status: living
 owner: release-team
-last_updated: 2026-04-15
-version_anchor: v0.11.48
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 
 # Release Checklist
@@ -16,8 +16,7 @@ Reference protocol: [ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.m
 - [ ] Docs freshness baseline generated: `python tools/check_docs_freshness.py --emit-report`
 - [ ] Java tests + build pass:
   - [ ] `cd java`
-  - [ ] `gradle :server:test :server:shadowJar :client:shadowJar --no-daemon`
-- [ ] Python tests pass if Python code/tooling changed: `python run_tests.py`
+  - [ ] `gradle :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
 ## Documentation Gate
 
@@ -37,7 +36,6 @@ Reference protocol: [ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.m
 - [ ] `CI` workflow passed
 - [ ] `Release` workflow passed
 - [ ] Release includes:
-  - [ ] EXE + launcher + checksum
   - [ ] server/client fat JARs
   - [ ] docs archive ZIP
 

@@ -2,8 +2,8 @@
 doc_type: index
 status: living
 owner: core-team
-last_updated: 2026-04-15
-version_anchor: v0.11.45
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 replaces: docs/INDEX.md (2026-03-28)
 ---
 
@@ -31,6 +31,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
   - [plans/developing/perf_render_gap_plan.md](plans/developing/perf_render_gap_plan.md)
 - Implementing:
   - [plans/implementing/PLAN_SHADOW_ASCENT.md](plans/implementing/PLAN_SHADOW_ASCENT.md)
+  - [plans/implementing/PLAN_PYGAME_EXTRACTION.md](plans/implementing/PLAN_PYGAME_EXTRACTION.md)
 - Completed:
   - [plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md](plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md)
   - [plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md](plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md)
@@ -48,6 +49,8 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - [workflow/SPRINT_WORKFLOW.md](workflow/SPRINT_WORKFLOW.md)
 - [workflow/BRANCHING.md](workflow/BRANCHING.md)
 - [operations/CI_CD_PLAN.md](operations/CI_CD_PLAN.md)
+- [operations/PYGAME_EXTRACTION_INVENTORY.md](operations/PYGAME_EXTRACTION_INVENTORY.md)
+- [operations/PYGAME_SPLIT_CHECKLIST.md](operations/PYGAME_SPLIT_CHECKLIST.md)
 
 ### Session and Daily Loop
 
@@ -103,6 +106,11 @@ This index tracks only the active documentation system for the Java v0.11.x line
 
 - [reviews/2026-03-25/ROADMAP_AND_PLAN.md](reviews/2026-03-25/ROADMAP_AND_PLAN.md)
 - [archive/audits/](archive/audits/)
+
+## Decisions
+
+- [decisions/INDEX.md](decisions/INDEX.md)
+- [decisions/2026-04-21_pygame-prototype-extraction.md](decisions/2026-04-21_pygame-prototype-extraction.md)
 
 ## Templates
 

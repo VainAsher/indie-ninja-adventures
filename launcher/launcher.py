@@ -154,11 +154,7 @@ def _get_version_path() -> Path:
 
 
 def _get_game_exe() -> Path:
-    base = _get_base_dir()
-    exe = base / GAME_EXE_NAME
-    if exe.exists():
-        return exe
-    return base / "demo_game.py"
+    return _get_base_dir() / GAME_EXE_NAME
 
 
 def _get_splash_path() -> Path | None:
@@ -2988,8 +2984,7 @@ class LauncherApp:
                     )
                     return
 
-            # Always install to the fixed exe name — never use _get_game_exe() here
-            # because that fallback returns demo_game.py when ninja_dash.exe is absent.
+            # Always install to the fixed EXE target path.
             final_exe = _get_base_dir() / GAME_EXE_NAME
             if final_exe.exists():
                 bak = final_exe.with_suffix(".bak")
@@ -3175,7 +3170,7 @@ class LauncherApp:
                 parent=self.root,
             )
             return
-        cmd = [sys.executable, str(game_path)] if game_path.suffix == ".py" else [str(game_path)]
+        cmd = [str(game_path)]
         # Inject --record if the Replays tab checkbox is set (skip for replay playback)
         if self._record_var.get() and "--replay" not in extra_args:
             rec_name = self._record_name_var.get().strip()

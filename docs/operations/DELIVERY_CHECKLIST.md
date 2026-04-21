@@ -1,21 +1,34 @@
-# Delivery Checklist (push-ready)
+---
+doc_type: operations
+status: living
+owner: release-team
+last_updated: 2026-04-21
+version_anchor: v0.11.71
+---
 
-## Scope Freeze Focus
-- Modes: Campaign, Arcade, Sandbox.
-- Vertical slice: movement/jump/dash/crouch, pickups/hazards, exit/win flow, HUD/menus, camera, procedural/static toggle.
+# Delivery Checklist (Java-first)
 
-## Before Pushing to GitHub
-- [ ] Ensure `python -m pytest` (or `python run_tests.py`) passes locally with `SDL_VIDEODRIVER=dummy`.
-- [ ] Commit `requirements.txt`, docs updates, and operations folder.
-- [ ] Verify `demo_game.py` runs in static and `--procedural --seed 12345` modes.
-- [ ] Confirm `user_data/` paths are writable or override with `NINJADASH_USER_DATA`.
-- [ ] Lint/logs: no noisy stdout on import; logger output is acceptable.
+Use this checklist before push/tag actions in this repository.
 
-## CI/CD Artifacts to Include
-- `.github/workflows/ci.yml` based on `docs/operations/CI_CD_PLAN.md` (to add after repo is on GitHub).
-- Test logs/junit optional for PR visibility.
+## Local Push Gates
 
-## Follow-up Tasks (post-push)
-- Add `--headless` flag to demo for CI smoke.
-- Expand tests to cover new systems (inventory/trading/missions/enemies/autotiling).
-- Wire vertical-slice acceptance tests for Campaign/Arcade/Sandbox.
+- [ ] `python tools/check_version_sync.py`
+- [ ] `python tools/check_docs_freshness.py --emit-report`
+- [ ] `cd java && ./gradlew :server:test :client:test --no-daemon`
+- [ ] If release-facing: `cd java && ./gradlew :server:shadowJar :client:shadowJar --no-daemon`
+
+## Workflow Consistency
+
+- [ ] `.github/workflows/ci.yml` remains Java-default for required game validation.
+- [ ] `.github/workflows/release.yml` remains JAR + docs-archive delivery (no `ninja_dash.exe` build lane).
+- [ ] Docs and plans are updated when release process assumptions changed.
+
+## Release Artifact Expectations
+
+- [ ] server fat JAR (`*-all.jar`)
+- [ ] client fat JAR (`*-all.jar`)
+- [ ] docs archive ZIP (`docs-archive-YYYY-MM-DD-vX.Y.Z.zip`)
+
+## Legacy Note
+
+`run_tests.py` and legacy Pygame runtime checks are migration-lane-only and not part of default release gating for this repository.
