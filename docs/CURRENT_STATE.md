@@ -23,7 +23,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
-- Active extraction plan: [`docs/plans/implementing/PLAN_PYGAME_EXTRACTION.md`](plans/implementing/PLAN_PYGAME_EXTRACTION.md)
+- Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
 - Next release candidate: v0.11.72 (P0 stabilization follow-up after animation/input/minimap integration).
 - Latest release verification (`2026-04-21`):

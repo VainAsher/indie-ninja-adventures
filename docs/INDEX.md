@@ -31,7 +31,6 @@ This index tracks only the active documentation system for the Java v0.11.x line
   - [plans/developing/perf_render_gap_plan.md](plans/developing/perf_render_gap_plan.md)
 - Implementing:
   - [plans/implementing/PLAN_SHADOW_ASCENT.md](plans/implementing/PLAN_SHADOW_ASCENT.md)
-  - [plans/implementing/PLAN_PYGAME_EXTRACTION.md](plans/implementing/PLAN_PYGAME_EXTRACTION.md)
 - Completed:
   - [plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md](plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md)
   - [plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md](plans/completed/PLAN_MULTIPLAYER_HOTJOIN_RECONNECT_PERSISTENCE.md)
@@ -49,8 +48,6 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - [workflow/SPRINT_WORKFLOW.md](workflow/SPRINT_WORKFLOW.md)
 - [workflow/BRANCHING.md](workflow/BRANCHING.md)
 - [operations/CI_CD_PLAN.md](operations/CI_CD_PLAN.md)
-- [operations/PYGAME_EXTRACTION_INVENTORY.md](operations/PYGAME_EXTRACTION_INVENTORY.md)
-- [operations/PYGAME_SPLIT_CHECKLIST.md](operations/PYGAME_SPLIT_CHECKLIST.md)
 - [operations/PYGAME_MIGRATION_HANDOVER.md](operations/PYGAME_MIGRATION_HANDOVER.md)
 
 ### Session and Daily Loop
@@ -122,6 +119,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 ## Archives
 
 - [archive/retired/](archive/retired/)
+- [archive/retired/2026-04-21_v0.11.71_pygame-extraction/](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - [archive/zips/INDEX.md](archive/zips/INDEX.md)
 - [HANDOVER.md](HANDOVER.md) (redirect)
 - [DEVLOG.md](DEVLOG.md) (rolling index)

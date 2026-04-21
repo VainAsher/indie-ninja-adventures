@@ -1,6 +1,6 @@
 ---
 doc_type: operations
-status: implementing
+status: living
 owner: core-team
 last_updated: 2026-04-21
 version_anchor: v0.11.71
@@ -41,3 +41,9 @@ Migration handover for the extraction of the legacy Pygame runtime lane from `in
 - Launcher distribution/update regressions: file in `indie-ninja-launcher`.
 - Player-facing bug reports and feature requests: open in `indie-ninja-feedback`.
 - Triage prioritization and sprint intake: manage in `indie-ninja-pipeline`.
+
+## Close-Out Audit (2026-04-21)
+
+- Split-era extraction planning notes archived under `docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`.
+- Living doc routing updated (`docs/INDEX.md`, `docs/CURRENT_STATE.md`, extraction redirect docs).
+- Workflow/release hygiene validated after extraction cutover (CI run `24712532879` passed).
