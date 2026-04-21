@@ -13,6 +13,11 @@ on:
     tags:
       - "v0.*.*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (for manual runs), e.g. v0.11.72"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -36,8 +41,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          fi
           python tools/check_version_sync.py --tag "$TAG"
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Set up Java 21 (Temurin)
         uses: actions/setup-java@v4
@@ -102,9 +111,9 @@ jobs:
         shell: bash
         run: |
           # Delete existing release for this tag if it was created manually
-          gh release delete "${{ github.ref_name }}" --yes 2>/dev/null || true
-          gh release create "${{ github.ref_name }}" \
-            --title "Indie Ninja Adventures ${{ github.ref_name }}" \
+          gh release delete "$RELEASE_TAG" --yes 2>/dev/null || true
+          gh release create "$RELEASE_TAG" \
+            --title "Indie Ninja Adventures $RELEASE_TAG" \
             --generate-notes \
             "$DOCS_ARCHIVE_ZIP" \
             "$SERVER_JAR" \
@@ -119,6 +128,6 @@ jobs:
           event-type: game-release
           client-payload: |
             {
-              "version": "${{ github.ref_name }}",
-              "release_url": "https://github.com/VainAsher/indie-ninja-adventures/releases/tag/${{ github.ref_name }}"
+              "version": "${{ env.RELEASE_TAG }}",
+              "release_url": "https://github.com/VainAsher/indie-ninja-adventures/releases/tag/${{ env.RELEASE_TAG }}"
             }
