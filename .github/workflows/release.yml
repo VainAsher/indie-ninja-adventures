@@ -59,10 +59,12 @@ jobs:
           gradle-version: "8.7"
           cache-read-only: false
 
-      - name: Build and test Java server/client
+      - name: Test and package Java server/client
         working-directory: java
         shell: bash
-        run: gradle :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon --stacktrace
+        run: |
+          gradle :server:test :client:test --no-daemon --stacktrace
+          gradle :server:shadowJar :client:shadowJar --no-daemon --stacktrace
 
       - name: Build docs archive ZIP snapshot
         shell: pwsh
