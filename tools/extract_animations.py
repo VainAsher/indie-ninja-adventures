@@ -25,7 +25,6 @@ import argparse
 import zipfile
 from pathlib import Path
 
-
 # ZIP basename -> engine filename (assets/sprites/player/unarmed/)
 UNARMED_MAP = {
     "001-Standing Idle-Sheet.png": "idle_spritesheet.png",
@@ -238,9 +237,7 @@ def extract_unarmed_dir(
         if dest_name is None:
             unmapped.append(basename)
             continue
-        ok, skip = write_sheet(
-            basename, src.read_bytes(), out_dir, dest_name, overwrite, written
-        )
+        ok, skip = write_sheet(basename, src.read_bytes(), out_dir, dest_name, overwrite, written)
         extracted += 1 if ok else 0
         skipped += 1 if skip else 0
         if ok and verbose:
@@ -323,17 +320,11 @@ def extract_sword_combos_dir(
         ("Crouch Attack Combo - Sword", "crouch_attack", 5),
     ]
     for basename_pattern, out_prefix, max_n in patterns:
-        combo_files = [
-            p
-            for p in files
-            if basename_pattern in p.name and "Effect" not in p.name
-        ]
+        combo_files = [p for p in files if basename_pattern in p.name and "Effect" not in p.name]
         combo_files.sort(key=lambda p: p.name)
         for idx, src in enumerate(combo_files[:max_n]):
             fname = f"{out_prefix}_d{idx}_spritesheet.png"
-            ok, _ = write_sheet(
-                src.name, src.read_bytes(), out_dir, fname, overwrite, written
-            )
+            ok, _ = write_sheet(src.name, src.read_bytes(), out_dir, fname, overwrite, written)
             if ok:
                 extracted += 1
                 if verbose:
@@ -416,9 +407,7 @@ def extract_sword_dir(
         if dest_name is None:
             unmapped.append(basename)
             continue
-        ok, skip = write_sheet(
-            basename, src.read_bytes(), out_dir, dest_name, overwrite, written
-        )
+        ok, skip = write_sheet(basename, src.read_bytes(), out_dir, dest_name, overwrite, written)
         extracted += 1 if ok else 0
         skipped += 1 if skip else 0
         if ok and verbose:
@@ -475,9 +464,7 @@ def extract_pistol_dir(
         if dest_name is None:
             unmapped.append(basename)
             continue
-        ok, skip = write_sheet(
-            basename, src.read_bytes(), out_dir, dest_name, overwrite, written
-        )
+        ok, skip = write_sheet(basename, src.read_bytes(), out_dir, dest_name, overwrite, written)
         extracted += 1 if ok else 0
         skipped += 1 if skip else 0
         if ok and verbose:
@@ -523,7 +510,9 @@ def main() -> None:
         z1 = Path(args.zip1)
         ensure_exists(z1, "unarmed zip")
         with zipfile.ZipFile(z1) as z:
-            ex, sk, um = extract_unarmed_zip(z, player_dir / "unarmed", args.verbose, args.overwrite)
+            ex, sk, um = extract_unarmed_zip(
+                z, player_dir / "unarmed", args.verbose, args.overwrite
+            )
     print(f"\nUnarmed: {ex} extracted, {sk} skipped, {len(um)} unmapped")
     if um:
         for n in sorted(set(um))[:10]:
