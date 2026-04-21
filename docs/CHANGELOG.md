@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-21
-version_anchor: v0.11.71
+version_anchor: v0.12.00
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+
+## [0.12.00] - 2026-04-21 (repo cleanup, workflow adoption, distribution-lane hardening)
+
+### Changed
+
+- Consolidated cross-repo operating model with pipeline as control-tower for planning, triage, and reporting.
+- Standardized workflow guidance and scaffold docs for Java-first release lanes and distribution-only launcher architecture.
+- Updated release and intake automation wiring across game, launcher, feedback, and pipeline repos.
+
+### Fixed
+
+- Removed duplicate weekly intake stream risk by retiring legacy game-side scheduled sync lane.
+- Eliminated launcher release automation token/config drift in dispatch and intake workflows.
+
+### Notes
+
+- This release is intentionally chores/documentation/cleanup focused and does not introduce new gameplay features.
 
 ---
 
