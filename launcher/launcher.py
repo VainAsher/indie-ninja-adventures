@@ -87,6 +87,9 @@ _REPORT_TYPES = [
 
 # Max log lines to embed in a GitHub report body
 _LOG_TAIL_LINES = 50
+# Browser URL safety ceiling for pre-filled issue links. If exceeded, fallback to
+# opening a shorter issue URL and copying the full body to clipboard.
+_MAX_ISSUE_URL_LEN = 1800
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1258,10 +1261,56 @@ class LauncherApp:
         }
         self._report_title_var.set(prefixes.get(name, ""))
 
-    def _open_report(self) -> None:
-        """Build a pre-filled GitHub issue URL and open it in the browser."""
+    def _open_issue_with_fallback(
+        self,
+        *,
+        title: str,
+        labels: str,
+        body: str,
+        parent: tk.Misc | None = None,
+    ) -> None:
+        """Open a pre-filled issue URL, with clipboard fallback for long payloads."""
         import urllib.parse
 
+        clean_title = (title or "Report").strip()[:120]
+        base_params = {
+            "title": clean_title,
+            "labels": labels,
+        }
+        full_params = dict(base_params)
+        full_params["body"] = body
+
+        full_url = f"{ISSUES_URL}?{urllib.parse.urlencode(full_params)}"
+        if len(full_url) <= _MAX_ISSUE_URL_LEN:
+            webbrowser.open(full_url)
+            return
+
+        # URL would be too long: copy full details and open a shorter issue page.
+        self.root.clipboard_clear()
+        self.root.clipboard_append(body)
+
+        short_body = (
+            "The launcher copied the full report details to your clipboard because "
+            "the pre-filled URL exceeded browser limits.\n\n"
+            "Paste (Ctrl+V) below this line:\n"
+        )
+        short_params = dict(base_params)
+        short_params["body"] = short_body
+        short_url = f"{ISSUES_URL}?{urllib.parse.urlencode(short_params)}"
+        if len(short_url) <= _MAX_ISSUE_URL_LEN:
+            webbrowser.open(short_url)
+        else:
+            webbrowser.open(f"{ISSUES_URL}?{urllib.parse.urlencode(base_params)}")
+
+        messagebox.showinfo(
+            "Report details copied",
+            "The report details were too long for a browser URL and have been copied\n"
+            "to your clipboard.\n\nPaste them into the GitHub issue body with Ctrl+V.",
+            parent=parent or self.root,
+        )
+
+    def _open_report(self) -> None:
+        """Build a pre-filled GitHub issue URL and open it in the browser."""
         report_name = self._report_type_var.get()
         labels = next((r[2] for r in _REPORT_TYPES if r[0] == report_name), "bug")
         title = self._report_title_var.get().strip() or report_name
@@ -1294,16 +1343,12 @@ class LauncherApp:
                 ]
 
         body = "\n".join(body_lines)
-
-        params = urllib.parse.urlencode(
-            {
-                "title": title,
-                "labels": labels,
-                "body": body,
-            }
+        self._open_issue_with_fallback(
+            title=title,
+            labels=labels,
+            body=body,
+            parent=self.root,
         )
-        url = f"{ISSUES_URL}?{params}"
-        webbrowser.open(url)
 
     # ── Tab 3: Dev Tools ──────────────────────────────────────────────────────
 
@@ -3687,14 +3732,12 @@ class LauncherApp:
             ]
             if log_tail:
                 body_lines += ["", "---", "**Log tail:**", "```", log_tail, "```"]
-            params = urllib.parse.urlencode(
-                {
-                    "title": f"[Crash] Exit {code_str}",
-                    "labels": "crash,bug",
-                    "body": "\n".join(body_lines),
-                }
+            self._open_issue_with_fallback(
+                title=f"[Crash] Exit {code_str}",
+                labels="crash,bug",
+                body="\n".join(body_lines),
+                parent=win,
             )
-            webbrowser.open(f"{ISSUES_URL}?{params}")
 
         def _copy_to_clipboard() -> None:
             text = f"Exit code: {code_str}\n\n{log_tail}"
