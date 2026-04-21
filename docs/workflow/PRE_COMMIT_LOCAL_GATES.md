@@ -2,8 +2,8 @@
 doc_type: workflow
 status: living
 owner: release-team
-last_updated: 2026-04-18
-version_anchor: v0.11.60
+last_updated: 2026-04-21
+version_anchor: v0.11.71
 ---
 
 # Pre-Commit Local Gates
@@ -47,7 +47,7 @@ Run heavier checks:
 - `python tools/check_version_sync.py`
 - `python tools/check_docs_freshness.py --emit-report`
 - `cd java && ./gradlew test --no-daemon`
-- `python run_tests.py` when Python tooling changed
+- `python run_tests.py` only when intentionally touching the legacy Pygame migration lane
 
 ## Minimal Commands
 
