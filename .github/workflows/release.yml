@@ -26,6 +26,8 @@ jobs:
   build-and-release:
     name: Build and Release (Java Lane)
     runs-on: windows-latest
+    env:
+      CROSS_REPO_PAT: ${{ secrets.CROSS_REPO_PAT }}
 
     steps:
       - name: Checkout code
@@ -121,11 +123,11 @@ jobs:
             "$CLIENT_JAR"
 
       - name: Notify launcher repo of new game release
-        if: ${{ secrets.CROSS_REPO_PAT != '' }}
+        if: ${{ env.CROSS_REPO_PAT != '' }}
         continue-on-error: true
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.CROSS_REPO_PAT }}
+          token: ${{ env.CROSS_REPO_PAT }}
           repository: VainAsher/indie-ninja-launcher
           event-type: game-release
           client-payload: |
@@ -135,6 +137,6 @@ jobs:
             }
 
       - name: Skip launcher dispatch (token not configured)
-        if: ${{ secrets.CROSS_REPO_PAT == '' }}
+        if: ${{ env.CROSS_REPO_PAT == '' }}
         shell: bash
         run: echo "CROSS_REPO_PAT is not configured; skipping repository_dispatch to launcher repo."
