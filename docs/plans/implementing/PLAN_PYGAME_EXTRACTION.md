@@ -39,9 +39,9 @@ Make `indie-ninja-adventures` a Java-first repo with no default dependency on `d
 
 ### Phase 2 - New Repo Setup and Move
 
-- [ ] Create dedicated pygame repo and initialize docs/CI baseline.
-- [ ] Move python runtime code and tests from this repo to new repo.
-- [ ] Port python build specs and packaging metadata to new repo.
+- [x] Create dedicated pygame repo and initialize baseline docs (`VainAsher/indie-ninja-prototype`).
+- [x] Seed python runtime code and tests into new repo snapshot.
+- [x] Seed python build specs and packaging metadata into new repo snapshot.
 - [ ] Publish migration handover note and ownership mapping.
 
 ### Phase 3 - Decouple This Repo
@@ -72,3 +72,11 @@ If extraction destabilizes release flow, pause at phase boundary, restore prior 
 - Hidden launcher expectations for legacy EXE path.
 - CI breakage from mixed java/python assumptions.
 - Documentation drift if routing is not updated in lockstep.
+
+## Phase 2 Execution Note (2026-04-21)
+
+- Cross-repo launcher scaffold published: `VainAsher/indie-ninja-launcher`
+- Launcher coordination issue opened: `VainAsher/indie-ninja-launcher#1`
+- Prototype extraction target created and seeded: `VainAsher/indie-ninja-prototype`
+- Follow-up normalization issue opened in prototype repo: `VainAsher/indie-ninja-prototype#1`
+- Remaining cutover work (source-path removal and final ownership handover) is deferred to Phase 4.

@@ -18,11 +18,12 @@ Tracking checklist for extracting the legacy Pygame prototype lane into a separa
 
 ## Phase 2 - New Repo Setup and Move
 
-- [ ] Create target repository for prototype runtime (`indie-ninja-prototype`, or final chosen name).
-- [ ] Move runtime packages (`core/`, `systems/`, `mechanics/`, `entities/`, `game/`, `network/`, `rendering/`, `ui/`, `audio/`, `config/`, `dev_tools/`, `utils/`).
-- [ ] Move prototype tests (`tests/`, `run_tests.py`, `playtest_verification.py`).
-- [ ] Move prototype build lane (`demo_game.py`, `build/build.py`, `build/ninja_dash_{dev,testing,production}.spec`).
-- [ ] Split prototype packaging metadata (`pyproject.toml`, `requirements.txt`) into new-repo ownership.
+- [x] Create target repository for prototype runtime (`VainAsher/indie-ninja-prototype`).
+- [x] Seed runtime packages snapshot in target repo (`core/`, `systems/`, `mechanics/`, `entities/`, `game/`, `network/`, `rendering/`, `ui/`, `audio/`, `config/`, `dev_tools/`, `utils/`).
+- [x] Seed prototype tests snapshot in target repo (`tests/`, `run_tests.py`, `playtest_verification.py`).
+- [x] Seed prototype build lane snapshot in target repo (`demo_game.py`, `build/build.py`, `build/ninja_dash_{dev,testing,production}.spec`).
+- [x] Seed packaging metadata in target repo (`pyproject.toml`, `requirements.txt`).
+- [ ] Complete ownership cutover by removing migrated prototype paths from this repo in Phase 4.
 
 ## Phase 3 - Decouple This Repo
 
@@ -39,6 +40,13 @@ Tracking checklist for extracting the legacy Pygame prototype lane into a separa
 
 ## Cross-Repo Follow-Up
 
-- [ ] Open coordination item in launcher repo for release-asset expectations (JAR-first/default lane).
+- [x] Open coordination item in launcher repo for release-asset expectations (JAR-first/default lane): `VainAsher/indie-ninja-launcher#1`.
 - [ ] Open coordination item in feedback/pipeline repo for intake wording and triage labels.
 - [ ] Publish migration note with ownership and support boundaries.
+
+## Execution Links (2026-04-21)
+
+- Launcher repo scaffold created: `https://github.com/VainAsher/indie-ninja-launcher`
+- Launcher coordination issue: `https://github.com/VainAsher/indie-ninja-launcher/issues/1`
+- Prototype repo created: `https://github.com/VainAsher/indie-ninja-prototype`
+- Prototype phase-2 follow-up issue: `https://github.com/VainAsher/indie-ninja-prototype/issues/1`
