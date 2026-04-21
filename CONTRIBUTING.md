@@ -1,145 +1,88 @@
 # Contributing
 
-Indie Ninja Adventures is currently solo-developed. This guide documents processes and standards
-for future collaborators and for maintaining consistency as the project grows.
-
----
+Indie Ninja Adventures is now a Java-first repository. Use this guide for day-to-day contribution standards.
 
 ## Branching Model
 
-See [docs/workflow/BRANCHING.md](docs/workflow/BRANCHING.md) for the full Git flow model.
+See [docs/workflow/BRANCHING.md](docs/workflow/BRANCHING.md) for the full process.
 
 Quick reference:
 
-```
-main        ← stable releases only
-develop     ← integration — PR here from feature branches
-feature/*   ← new work
-hotfix/*    ← urgent production fixes
+```text
+main        <- stable release lane
+develop     <- integration lane
+feature/*   <- new work
+hotfix/*    <- urgent fixes
 ```
 
-**Never commit directly to `main`.**
-
----
+Do not commit directly to `main`.
 
 ## Commit Messages
 
 Format: `type: short description`
 
-```
-feat: add Forest boss phase 1 charge attack pattern
-fix: resolve coin desync when host collects before client joins
-docs: update ARCHITECTURE.md with authoritative server data flow
-test: add edge case for wall jump during dash cancellation
-chore: bump version to 0.8.1
-refactor: extract world snapshot serialisation into snapshots.py
+```text
+feat: add portal travel lock reason telemetry
+fix: resolve room transition camera snap jitter
+docs: update release checklist for jar-first lane
+test: add regression for hub migration state restore
+chore: bump version metadata to v0.11.72
+refactor: extract world-graph edge validation helper
 ```
 
-Types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`
-
----
+Common types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`.
 
 ## Pull Requests
 
-- PR against `develop`, not `main`
-- Fill in the PR template (`.github/PULL_REQUEST_TEMPLATE.md`)
-- All CI checks must pass before merge
-- Squash optional — clear linear history is preferred but not required
+- Open PRs against `develop` unless instructed otherwise.
+- Complete the PR template.
+- Ensure CI checks pass before merge.
 
----
+## Local Validation
 
-## Code Standards
-
-This project uses automated formatting and linting enforced by pre-commit hooks.
-
-**Install hooks once:**
-```bash
-pip install pre-commit
-pre-commit install
-```
-
-**Standards:**
-
-| Tool | Config | Rule |
-|------|--------|------|
-| Black | `pyproject.toml` | Line length 100, Python 3.11 |
-| Ruff | `pyproject.toml` | E, W, F, I, N, UP, B, C4 rules |
-| MyPy | `pyproject.toml` | Gradual typing — `disallow_untyped_defs = false` |
-
-Pre-commit runs automatically on `git commit`. To run manually:
-```bash
-pre-commit run --all-files
-```
-
----
-
-## Tests
-
-All tests must pass before merging.
+Run these before opening or merging a PR:
 
 ```bash
-# Run full suite
-python run_tests.py
-
-# Run categories
-python run_tests.py --unit
-python run_tests.py --integration
-python run_tests.py --edge
-
-# Headless (CI mode)
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python run_tests.py
+python tools/check_version_sync.py
+python tools/check_docs_freshness.py --emit-report
+cd java && gradle :server:test :client:test --no-daemon
 ```
 
-**Rules:**
-- New features require new tests
-- Bug fixes require a regression test
-- Tests must not open windows (use headless mode)
-- Tests must not depend on file system state or random seeds (use fixtures)
+If your change touches runtime behavior, also smoke the built jars:
 
-If physics or the input pipeline changes, run a replay validation:
 ```bash
-python demo_game.py --replay user_data/replays/<session>.json
+java -jar ninja-server-all.jar
+java -jar ninja-client-all.jar
 ```
 
----
+## Dev Environment
 
-## Dev Environment Setup
+Primary setup docs:
 
-See [docs/dev/SETUP.md](docs/dev/SETUP.md) for full setup instructions.
+- [docs/dev/JAVA_SETUP.md](docs/dev/JAVA_SETUP.md)
+- [docs/workflow/PRE_COMMIT_LOCAL_GATES.md](docs/workflow/PRE_COMMIT_LOCAL_GATES.md)
 
 Quick start:
+
 ```bash
 git clone https://github.com/VainAsher/indie-ninja-adventures.git
 cd indie-ninja-adventures
-python -m venv .venv && .venv\Scripts\activate
-pip install -e ".[dev]"
-pre-commit install
-python demo_game.py
+cd java && gradle :server:test :client:test --no-daemon
 ```
 
----
+## Documentation Updates
 
-## Documentation
+When behavior changes, update:
 
-When making user-visible changes, update:
+- `docs/CHANGELOG.md`
+- `docs/CURRENT_STATE.md` (if runtime state changes)
+- `docs/ROADMAP.md` (if milestone scope/status changes)
 
-- `docs/CHANGELOG.md` — add entry under correct version
-- `docs/dev/SYSTEMS.md` — if a public API changes
-- `docs/dev/ARCHITECTURE.md` — if a system design changes
-- `docs/ROADMAP.md` — mark completed milestones
+For release work, keep `version.json` in sync with release tags.
 
-For release PRs, also update:
-- `version.json` — bump version + build_date
-- `pyproject.toml` — match version
+## Prototype Lane Note
 
----
+The legacy Pygame prototype lane is no longer developed in this repository.
 
-## Review Checklist
-
-Before merging any PR:
-
-- [ ] Tests pass (`python run_tests.py`)
-- [ ] No regressions in multiplayer (smoke test if netcode touched)
-- [ ] Replay determinism preserved (if physics/input changed)
-- [ ] Docs updated if behaviour changed
-- [ ] Version bumped if this is a release PR
+- Prototype repo: `https://github.com/VainAsher/indie-ninja-prototype`
+- Migration handover: `docs/operations/PYGAME_MIGRATION_HANDOVER.md`

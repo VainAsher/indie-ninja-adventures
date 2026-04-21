@@ -42,7 +42,7 @@ Make `indie-ninja-adventures` a Java-first repo with no default dependency on `d
 - [x] Create dedicated pygame repo and initialize baseline docs (`VainAsher/indie-ninja-prototype`).
 - [x] Seed python runtime code and tests into new repo snapshot.
 - [x] Seed python build specs and packaging metadata into new repo snapshot.
-- [ ] Publish migration handover note and ownership mapping.
+- [x] Publish migration handover note and ownership mapping.
 
 ### Phase 3 - Decouple This Repo
 
@@ -53,7 +53,7 @@ Make `indie-ninja-adventures` a Java-first repo with no default dependency on `d
 
 ### Phase 4 - Cleanup and Archive
 
-- [ ] Remove temporary compatibility shims after migration window closes.
+- [x] Remove temporary compatibility shims after migration window closes.
 - [ ] Move split-era historical docs to archive.
 - [ ] Re-run workflow/docs audit and close extraction plan.
 
@@ -79,4 +79,11 @@ If extraction destabilizes release flow, pause at phase boundary, restore prior 
 - Launcher coordination issue opened: `VainAsher/indie-ninja-launcher#1`
 - Prototype extraction target created and seeded: `VainAsher/indie-ninja-prototype`
 - Follow-up normalization issue opened in prototype repo: `VainAsher/indie-ninja-prototype#1`
-- Remaining cutover work (source-path removal and final ownership handover) is deferred to Phase 4.
+- Feedback intake repo scaffold published: `VainAsher/indie-ninja-feedback`
+- Pipeline triage repo scaffold published: `VainAsher/indie-ninja-pipeline`
+
+## Phase 4 Execution Note (2026-04-21)
+
+- Legacy prototype source paths were removed from this repository after transfer verification.
+- Migration handover/ownership map was published in `docs/operations/PYGAME_MIGRATION_HANDOVER.md`.
+- Remaining closure tasks: archive split-era notes and rerun workflow/docs audit.

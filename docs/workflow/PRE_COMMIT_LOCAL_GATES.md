@@ -47,7 +47,7 @@ Run heavier checks:
 - `python tools/check_version_sync.py`
 - `python tools/check_docs_freshness.py --emit-report`
 - `cd java && ./gradlew test --no-daemon`
-- `python run_tests.py` only when intentionally touching the legacy Pygame migration lane
+- Prototype-lane tests now run in `VainAsher/indie-ninja-prototype`, not this repository
 
 ## Minimal Commands
 

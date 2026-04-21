@@ -31,4 +31,4 @@ Use this checklist before push/tag actions in this repository.
 
 ## Legacy Note
 
-`run_tests.py` and legacy Pygame runtime checks are migration-lane-only and not part of default release gating for this repository.
+Legacy Pygame runtime checks now belong to `VainAsher/indie-ninja-prototype` and are not part of this repository's release gates.

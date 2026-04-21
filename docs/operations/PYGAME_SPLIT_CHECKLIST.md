@@ -23,7 +23,7 @@ Tracking checklist for extracting the legacy Pygame prototype lane into a separa
 - [x] Seed prototype tests snapshot in target repo (`tests/`, `run_tests.py`, `playtest_verification.py`).
 - [x] Seed prototype build lane snapshot in target repo (`demo_game.py`, `build/build.py`, `build/ninja_dash_{dev,testing,production}.spec`).
 - [x] Seed packaging metadata in target repo (`pyproject.toml`, `requirements.txt`).
-- [ ] Complete ownership cutover by removing migrated prototype paths from this repo in Phase 4.
+- [x] Complete ownership cutover by removing migrated prototype paths from this repo in Phase 4.
 
 ## Phase 3 - Decouple This Repo
 
@@ -34,15 +34,17 @@ Tracking checklist for extracting the legacy Pygame prototype lane into a separa
 
 ## Phase 4 - Cleanup and Archive
 
-- [ ] Delete migrated prototype paths from this repo after transfer verification.
+- [x] Delete migrated prototype paths from this repo after transfer verification.
 - [ ] Archive split-era planning notes in docs archive.
 - [ ] Run repo hygiene pass and close extraction plan.
 
 ## Cross-Repo Follow-Up
 
 - [x] Open coordination item in launcher repo for release-asset expectations (JAR-first/default lane): `VainAsher/indie-ninja-launcher#1`.
-- [ ] Open coordination item in feedback/pipeline repo for intake wording and triage labels.
-- [ ] Publish migration note with ownership and support boundaries.
+- [x] Open coordination item in feedback/pipeline repo for intake wording and triage labels:
+  - `VainAsher/indie-ninja-feedback#2`
+  - `VainAsher/indie-ninja-pipeline#1`
+- [x] Publish migration note with ownership and support boundaries (`docs/operations/PYGAME_MIGRATION_HANDOVER.md`).
 
 ## Execution Links (2026-04-21)
 
@@ -50,3 +52,7 @@ Tracking checklist for extracting the legacy Pygame prototype lane into a separa
 - Launcher coordination issue: `https://github.com/VainAsher/indie-ninja-launcher/issues/1`
 - Prototype repo created: `https://github.com/VainAsher/indie-ninja-prototype`
 - Prototype phase-2 follow-up issue: `https://github.com/VainAsher/indie-ninja-prototype/issues/1`
+- Feedback repo scaffold created: `https://github.com/VainAsher/indie-ninja-feedback`
+- Feedback coordination issue: `https://github.com/VainAsher/indie-ninja-feedback/issues/2`
+- Pipeline repo scaffold created: `https://github.com/VainAsher/indie-ninja-pipeline`
+- Pipeline coordination issue: `https://github.com/VainAsher/indie-ninja-pipeline/issues/1`

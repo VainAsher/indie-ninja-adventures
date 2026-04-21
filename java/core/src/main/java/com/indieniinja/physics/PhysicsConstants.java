@@ -3,8 +3,8 @@ package com.indieniinja.physics;
 /**
  * Physics constants — single source of truth for the Java engine.
  *
- * Values MUST match config/physics_constants.py EXACTLY.
- * Do not add or change constants here without updating the Python file too.
+ * Java runtime values are authoritative in this repository.
+ * Legacy prototype parity values now live in VainAsher/indie-ninja-prototype.
  *
  * All units: pixels per tick (tick = 1/60 second).
  */

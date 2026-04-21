@@ -51,6 +51,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 - [operations/CI_CD_PLAN.md](operations/CI_CD_PLAN.md)
 - [operations/PYGAME_EXTRACTION_INVENTORY.md](operations/PYGAME_EXTRACTION_INVENTORY.md)
 - [operations/PYGAME_SPLIT_CHECKLIST.md](operations/PYGAME_SPLIT_CHECKLIST.md)
+- [operations/PYGAME_MIGRATION_HANDOVER.md](operations/PYGAME_MIGRATION_HANDOVER.md)
 
 ### Session and Daily Loop
 
@@ -100,7 +101,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 
 - [dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md)
 - [dev/JAVA_SETUP.md](dev/JAVA_SETUP.md)
-- [dev/SETUP.md](dev/SETUP.md)
+- [QUICK_START.md](QUICK_START.md)
 
 ## Reviews and Audits
 

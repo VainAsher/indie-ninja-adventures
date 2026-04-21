@@ -66,7 +66,7 @@ body:
       description: Checklist of what must be true for this task to be done
       placeholder: |
         - [ ] Boss transitions to phase 2 at 50% HP
-        - [ ] All existing tests pass (python run_tests.py)
+        - [ ] All existing tests pass (`cd java && gradle :server:test :client:test --no-daemon`)
         - [ ] Multiplayer: boss state sync verified for 2-player session
         - [ ] docs/CHANGELOG.md updated
     validations:

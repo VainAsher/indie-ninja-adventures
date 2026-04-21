@@ -217,7 +217,7 @@ Enum of collision semantics. Introduced post-audit to decouple `CollisionSystem`
 `TileType.of(byte id)` provides a safe lookup returning `AIR` for unknown values.
 
 #### `PhysicsConstants`
-Central constants. Must stay in exact parity with `config/physics_constants.py`.
+Central constants. Java runtime values are authoritative in this repository; legacy prototype parity values live in `VainAsher/indie-ninja-prototype`.
 
 | Constant | Value |
 |----------|-------|

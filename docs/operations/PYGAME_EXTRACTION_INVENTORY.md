@@ -13,8 +13,8 @@ Phase 1 boundary contract for splitting the legacy Pygame runtime and `ninja_das
 ## Migration Window and Shim Contract
 
 - Legacy launcher fallback window: closed on 2026-04-21.
-- Runtime fallback shim status: remove entirely in this session (`demo_game.py` launch path no longer supported by launcher).
-- Temporary migration shim kept during move-out: legacy prototype files remain on disk until the new repo receives them, but they are no longer first-class CI/release lanes here.
+- Runtime fallback shim status: removed on 2026-04-21 (`demo_game.py` launch path no longer supported by launcher).
+- Source-path compatibility shim status: removed on 2026-04-21 (migrated prototype paths deleted from this repo after transfer verification).
 
 ## Exact Move Map (Leaves This Repo)
 
@@ -43,10 +43,10 @@ Phase 1 boundary contract for splitting the legacy Pygame runtime and `ninja_das
 | `pyproject.toml` | split/move | Current package metadata is prototype-runtime centric. |
 | `requirements.txt` | split/move | Current dependency list is prototype-runtime centric. |
 
-## Temporary Compatibility Shims (Remain Until Phase 4)
+## Post-Cutover Compatibility Notes
 
 - Launcher historical-release installer logic remains able to install EXE assets from old tags when users manually select those tags.
-- Prototype files remain present in this repository during migration transfer, but without active CI/release ownership.
+- Prototype runtime ownership is now in `VainAsher/indie-ninja-prototype`.
 
 ## Java-First Surfaces (Stay In This Repo)
 
