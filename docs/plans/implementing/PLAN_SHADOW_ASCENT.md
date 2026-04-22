@@ -94,6 +94,20 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-22 21:24:31 +01:00`
+
+- `v0.12.04` stabilization slice 2: late-join/rejoin mission-pickup reconcile and no-dup top-up seeding.
+  - `ServerProtocolHandler` now persists latest mission pickup seed contracts per `player_id + zone_id`.
+  - `bootstrapLateJoiner(...)` now queues a server-authoritative mission pickup reseed request when a contract exists (no client re-send required).
+  - `handlePortalTravel(...)` now clears stale source-zone mission seed contracts and queues reconcile requests for destination zones when applicable.
+  - `ZoneSimulationLoop.seedMissionObjectivePickups(...)` now reconciles using existing alive scoped pickups plus owner inventory count, spawning only missing supply instead of duplicating full requested counts.
+- Added regression coverage:
+  - `ServerProtocolHandlerMissionPickupSeedTest.bootstrapLateJoinerQueuesMissionPickupReseedWhenContractExists`.
+- Validation:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
+
 ### v0.12.04 Implementation Brief (Mission Pickup Lifecycle / No-Despawn)
 
 - goal: harden authoritative mission-pickup lifecycle so mission-critical pickups do not silently disappear from late-join/reconnect views.

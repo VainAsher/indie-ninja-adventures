@@ -461,7 +461,9 @@ public final class ZoneSimulationLoop implements Runnable {
             if (!isPersistentMissionPickupItem(itemId)) continue;
 
             int count = clampMissionPickupCount(entry.getValue());
-            for (int i = 0; i < count; i++) {
+            int available = countExistingMissionScopedPickupSupply(sim, itemId, request.playerSlot());
+            int missing = Math.max(0, count - available);
+            for (int i = 0; i < missing; i++) {
                 float spawnX;
                 float spawnY;
                 if (anchorIndex < anchors.size()) {
@@ -483,6 +485,19 @@ public final class ZoneSimulationLoop implements Runnable {
             }
         }
         return seededCount;
+    }
+
+    private static int countExistingMissionScopedPickupSupply(GameSimulator sim, String itemId, int playerSlot) {
+        int aliveScopedPickups = 0;
+        for (SimPickup pickup : sim.getPickups()) {
+            if (pickup == null || !pickup.alive) continue;
+            if (pickup.missionOwnerSlot != playerSlot) continue;
+            if (!itemId.equals(normalizeMissionPickupItemId(pickup.pickupType))) continue;
+            aliveScopedPickups++;
+        }
+        SimPlayer owner = sim.getPlayers().get(playerSlot);
+        int inventoryCount = owner == null ? 0 : Math.max(0, owner.inventory.countItem(itemId));
+        return aliveScopedPickups + inventoryCount;
     }
 
     private static int clampMissionPickupCount(Integer value) {

@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Netty channel handler — routes incoming messages to session/zone logic.
@@ -69,10 +70,19 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     /** Map channelId → playerId for disconnect lookup. */
     private final Map<String, String> channelToPlayer = new ConcurrentHashMap<>();
+    /** Latest mission pickup seed contract keyed by player+zone for late-join/rejoin reconcile. */
+    private final Map<String, MissionPickupSeedContract> missionPickupSeedContractsByPlayerZone =
+        new ConcurrentHashMap<>();
+    private final AtomicLong missionPickupReseedSeq = new AtomicLong(0L);
 
     public ServerProtocolHandler(GameSession session) {
         this.session = session;
     }
+
+    private record MissionPickupSeedContract(
+        String missionId,
+        java.util.Map<String, Integer> itemCounts
+    ) {}
 
     // ── Connection lifecycle ──────────────────────────────────────────────────
 
@@ -276,6 +286,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         if (oldZone != null) {
             oldZone.playerIds.remove(pid);
             oldZone.lastActivityMs = System.currentTimeMillis();
+            forgetMissionPickupSeedContract(pid, oldZone.hubId);
             broadcastZone(oldZone, MessageType.ZONE_PRESENCE, Map.of(
                 "player_id", pid, "slot", player.slot,
                 "hub_id", oldZone.hubId, "action", "departed"
@@ -287,6 +298,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         String destinationSpawnRoomId = newZone.hubId;
         player.hubId = newZone.hubId;
         newZone.playerIds.add(pid);
+        queueMissionPickupReseedForPlayerIfPresent(player, newZone);
         log.info(
             "[Server][Playtest][Portal] portal travel type={} player_id={} session_id={} origin_hub_id={} destination_hub_id={} destination_spawn_room_id={}",
             transitionType, pid, player.sessionId, originHubId, destHubId, destinationSpawnRoomId
@@ -446,6 +458,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         // Force the next live zone broadcast to be a full snapshot so state
         // (especially pickups) converges immediately on authoritative data.
         hub.forceNextFullSnapshot.set(true);
+        queueMissionPickupReseedForPlayerIfPresent(player, hub);
 
         Map<String, Object> startPayload = Map.of(
             "seed",       session.worldSeed,
@@ -626,8 +639,59 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             sender.slot,
             java.util.Collections.unmodifiableMap(new LinkedHashMap<>(itemCounts))
         ));
+        rememberMissionPickupSeedContract(sender.playerId, sender.hubId, missionId, itemCounts);
         log.info("[Mission][Net] queued pickup seed request_id={} mission={} player={} slot={} items={} hub={}",
             requestId, missionId, sender.playerId, sender.slot, itemCounts, sender.hubId);
+    }
+
+    private void rememberMissionPickupSeedContract(
+        String playerId,
+        String zoneId,
+        String missionId,
+        Map<String, Integer> itemCounts
+    ) {
+        if (playerId == null || playerId.isBlank()) return;
+        if (zoneId == null || zoneId.isBlank()) return;
+        if (itemCounts == null || itemCounts.isEmpty()) return;
+        missionPickupSeedContractsByPlayerZone.put(
+            missionPickupSeedContractKey(playerId, zoneId),
+            new MissionPickupSeedContract(
+                missionId == null ? "" : missionId,
+                java.util.Collections.unmodifiableMap(new LinkedHashMap<>(itemCounts))
+            )
+        );
+    }
+
+    private void forgetMissionPickupSeedContract(String playerId, String zoneId) {
+        if (playerId == null || playerId.isBlank()) return;
+        if (zoneId == null || zoneId.isBlank()) return;
+        missionPickupSeedContractsByPlayerZone.remove(missionPickupSeedContractKey(playerId, zoneId));
+    }
+
+    private void queueMissionPickupReseedForPlayerIfPresent(PlayerRecord player, ZoneInstance zone) {
+        if (player == null || zone == null) return;
+        MissionPickupSeedContract contract = missionPickupSeedContractsByPlayerZone.get(
+            missionPickupSeedContractKey(player.playerId, zone.hubId)
+        );
+        if (contract == null || contract.itemCounts() == null || contract.itemCounts().isEmpty()) return;
+
+        String requestId = "reseed-" + missionPickupReseedSeq.incrementAndGet();
+        zone.pendingMissionPickupSeeds.add(new ZoneInstance.PendingMissionPickupSeed(
+            requestId,
+            contract.missionId(),
+            player.playerId,
+            player.slot,
+            contract.itemCounts()
+        ));
+        zone.forceNextFullSnapshot.set(true);
+        log.info(
+            "[Mission][Net] queued late-join pickup reconcile request_id={} mission={} player={} slot={} items={} hub={}",
+            requestId, contract.missionId(), player.playerId, player.slot, contract.itemCounts(), zone.hubId
+        );
+    }
+
+    private static String missionPickupSeedContractKey(String playerId, String zoneId) {
+        return playerId + "|" + zoneId;
     }
 
     private static String normalizeRequestId(Object raw) {
