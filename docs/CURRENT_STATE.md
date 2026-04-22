@@ -73,3 +73,20 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Retired/stale docs move immediately to `docs/archive/retired/`.
 - Archive ZIP snapshots are kept in `docs/archive/zips/` and mirrored to release assets.
 - Docs freshness checks are warning-only in CI unless explicitly run in strict mode.
+
+## Session Close-Out (2026-04-22)
+
+- Date: 2026-04-22
+- Branch + HEAD: `master @ e6aa604`
+- Current version: `v0.12.02`
+- Systems touched: release metadata/docs sync; active plan/version anchor sync; repo hygiene and cross-repo close-out sweep.
+- Validation run:
+  - `tools/check_version_sync.py --tag v0.12.02` (PASS)
+  - `tools/check_docs_freshness.py --emit-report` (PASS)
+  - `./gradlew :server:test :client:test --no-daemon` (PASS)
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` (PASS)
+  - `gh run list --limit 6 --json status,conclusion,name,headSha,displayTitle,event` (CI=success, Release=success for `e6aa604`)
+  - `gh release view v0.12.02 --json ...assets` (docs archive + client/server jars present)
+- Known issue or risk: none blocking.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: implement host-authoritative hard guarantees for mission-critical pickups in multiplayer-hosted runs (guaranteed objective spawn, no pre-resolution despawn, late-join pickup state sync), then run a mission item/NPC sprite and animation readability pass.
