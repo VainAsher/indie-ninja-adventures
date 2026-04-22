@@ -75,3 +75,17 @@ legacy-archive/
 # Windows reserved filenames
 nul
 tests/nul
+
+# Local session/workspace artifacts (do not track)
+.codex_tmp/
+.gradle-local*/
+java/**/bin/
+java/client/user_data/
+user_data/
+
+# Local scratch exports and debug helpers
+docs/workflow.zip
+ion.json
+launcher/launcher_config.json
+test_cp.bat
+java/core/src/main/java/com/indieniinja/world.zip
