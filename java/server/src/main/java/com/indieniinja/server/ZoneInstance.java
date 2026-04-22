@@ -9,6 +9,7 @@ import com.indieniinja.world.puzzle.PuzzlePlan;
 
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -52,6 +53,12 @@ public final class ZoneInstance {
      *  Pre-set to FULL_SNAPSHOT_EVERY so the very first broadcast is always a full snapshot,
      *  ensuring the client gets shop states, world rooms, and all full-snap fields immediately. */
     public int fullSnapCountdown = ZoneSimulationLoop.FULL_SNAPSHOT_EVERY;
+
+    /**
+     * One-shot broadcast override toggled by control-plane events (e.g. late join bootstrap).
+     * When set, the next ZoneSimulationLoop broadcast is forced to a full snapshot.
+     */
+    public final AtomicBoolean forceNextFullSnapshot = new AtomicBoolean(false);
 
     /** Handle to the running sim loop task (for cancellation on zone teardown). */
     public volatile Future<?> simFuture;

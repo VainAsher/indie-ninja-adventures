@@ -81,6 +81,22 @@ class SnapshotBroadcastScheduleTest {
             .isTrue();
     }
 
+    @Test
+    void forceNextFullSnapshotOverridesCounterAndResetsSchedule() {
+        ZoneInstance zone = new ZoneInstance(
+            "test_hub", "test_hub", 42L, "BLOB", 12, 42L, 100f, 200f);
+        zone.fullSnapCountdown = 7;
+        zone.forceNextFullSnapshot.set(true);
+
+        boolean isFull = zone.forceNextFullSnapshot.getAndSet(false)
+            || (++zone.fullSnapCountdown >= ZoneSimulationLoop.FULL_SNAPSHOT_EVERY);
+        if (isFull) zone.fullSnapCountdown = 0;
+
+        assertThat(isFull).isTrue();
+        assertThat(zone.forceNextFullSnapshot.get()).isFalse();
+        assertThat(zone.fullSnapCountdown).isZero();
+    }
+
     // ── isDelta=false (full snapshot) field contract ──────────────────────────
 
     @Test

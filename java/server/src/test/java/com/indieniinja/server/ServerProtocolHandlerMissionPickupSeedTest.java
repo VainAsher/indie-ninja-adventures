@@ -1,6 +1,8 @@
 package com.indieniinja.server;
 
 import com.indieniinja.network.WireMessage;
+import com.indieniinja.world.HubRegistry;
+import com.indieniinja.world.WorldGraph;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.jupiter.api.Test;
@@ -69,6 +71,57 @@ class ServerProtocolHandlerMissionPickupSeedTest {
         } finally {
             senderChannel.close();
             otherChannel.close();
+        }
+    }
+
+    @Test
+    void bootstrapLateJoinerMarksZoneForImmediateFullSnapshot() throws Exception {
+        GameSession session = new GameSession(271828L);
+        ServerProtocolHandler handler = new ServerProtocolHandler(session);
+        EmbeddedChannel channel = new EmbeddedChannel(handler);
+        try {
+            HubRegistry.HubDef hubDef = HubRegistry.get("central_hub");
+            long zoneSeed = HubRegistry.hubSeed(session.worldSeed, "central_hub");
+            WorldGraph graph = WorldGraph.generate(
+                zoneSeed,
+                hubDef.roomCount(),
+                WorldGraph.WorldShape.valueOf(hubDef.graphShape())
+            );
+            WorldGraph.RoomNode startRoom = graph.startRoom();
+            String zoneKey = "central_hub:" + startRoom.gridX + ":" + startRoom.gridY;
+            ZoneInstance zone = new ZoneInstance(
+                zoneKey,
+                "central_hub",
+                zoneSeed,
+                hubDef.graphShape(),
+                hubDef.roomCount(),
+                session.worldSeed,
+                startRoom.gridX * 32f,
+                startRoom.gridY * 32f
+            );
+            zone.worldGraph = graph;
+
+            @SuppressWarnings("unchecked")
+            ConcurrentHashMap<String, ZoneInstance> zones =
+                (ConcurrentHashMap<String, ZoneInstance>) getField(handler, "zones");
+            zones.put(zoneKey, zone);
+
+            PlayerRecord lateJoiner = new PlayerRecord("late-player", "session-xyz", 0, channel);
+            assertThat(zone.forceNextFullSnapshot.get()).isFalse();
+
+            Method bootstrapLateJoiner = ServerProtocolHandler.class.getDeclaredMethod(
+                "bootstrapLateJoiner",
+                io.netty.channel.Channel.class,
+                PlayerRecord.class
+            );
+            bootstrapLateJoiner.setAccessible(true);
+            bootstrapLateJoiner.invoke(handler, channel, lateJoiner);
+
+            assertThat(lateJoiner.hubId).isEqualTo(zone.hubId);
+            assertThat(zone.playerIds).contains(lateJoiner.playerId);
+            assertThat(zone.forceNextFullSnapshot.get()).isTrue();
+        } finally {
+            channel.close();
         }
     }
 

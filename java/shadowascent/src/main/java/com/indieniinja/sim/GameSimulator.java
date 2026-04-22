@@ -2404,7 +2404,9 @@ public final class GameSimulator {
             pu.tick();
             // Authoritative collection
             for (SimPlayer p : players.values()) {
-                if (p.isAlive() && pu.overlaps(p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
+                if (!p.isAlive()) continue;
+                if (!pu.canBeCollectedBy(p.slot)) continue;
+                if (pu.overlaps(p.physics.x, p.physics.y, p.physics.width, p.physics.height)) {
                     pu.alive = false;
                     applyPickup(p, pu.pickupType);
                     break;
@@ -2896,17 +2898,30 @@ public final class GameSimulator {
      * Persistent pickups never expire by lifetime timer and do not use respawn slots.
      */
     public void addPickup(String pickupType, float x, float y, boolean persistent) {
+        addPickup(pickupType, x, y, persistent, -1);
+    }
+
+    /**
+     * Spawn a pickup during runtime with optional player-slot ownership.
+     * missionOwnerSlot=-1 means globally collectible.
+     */
+    public void addPickup(String pickupType, float x, float y, boolean persistent, int missionOwnerSlot) {
         String type = pickupType == null ? "" : pickupType;
         int ticks = persistent ? Integer.MAX_VALUE : 2700;
         pickups.add(new SimPickup(
             hubId + "_dpickup_" + lootSeq++,
-            type, x, y, -1, ticks, persistent
+            type, x, y, -1, ticks, persistent, missionOwnerSlot
         ));
     }
 
     /** Convenience helper for mission/objective pickups. */
     public void addPersistentPickup(String pickupType, float x, float y) {
-        addPickup(pickupType, x, y, true);
+        addPickup(pickupType, x, y, true, -1);
+    }
+
+    /** Convenience helper for mission/objective pickups scoped to one player slot. */
+    public void addPersistentPickupForPlayer(String pickupType, float x, float y, int playerSlot) {
+        addPickup(pickupType, x, y, true, playerSlot);
     }
 
     public Map<Integer, SimPlayer> getPlayers()  { return java.util.Collections.unmodifiableMap(players); }

@@ -142,6 +142,10 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
                 .filter(p -> "ancient_tablet".equals(p.pickupType))
                 .allMatch(p -> p.persistent))
                 .isTrue();
+            assertThat(harness.zone.simulator.getPickups().stream()
+                .filter(p -> "ancient_tablet".equals(p.pickupType))
+                .allMatch(p -> p.missionOwnerSlot == harness.player.slot))
+                .isTrue();
 
             for (int i = 0; i < 5000; i++) {
                 harness.zone.simulator.step(Map.of());
@@ -154,6 +158,61 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         } finally {
             harness.executor.shutdownNow();
             harness.channel.close();
+        }
+    }
+
+    @Test
+    void missionPickupSeededForPlayerCannotBeConsumedByOtherPlayer() throws Exception {
+        MultiHarness harness = createMultiHarness();
+        try {
+            harness.zone.pendingMissionPickupSeeds.add(new ZoneInstance.PendingMissionPickupSeed(
+                "req-owner-scope-1",
+                "mission_scope",
+                harness.player1.playerId,
+                harness.player1.slot,
+                Map.of("ancient_tablet", 1)
+            ));
+            invokeSimulateTick(harness.loop);
+
+            com.indieniinja.sim.SimPickup scopedPickup = harness.zone.simulator.getPickups().stream()
+                .filter(p -> "ancient_tablet".equals(p.pickupType) && p.missionOwnerSlot == harness.player1.slot)
+                .findFirst()
+                .orElseThrow();
+
+            SimPlayer owner = harness.zone.simulator.getPlayer(harness.player1.slot);
+            SimPlayer nonOwner = harness.zone.simulator.getPlayer(harness.player2.slot);
+            assertThat(owner).isNotNull();
+            assertThat(nonOwner).isNotNull();
+
+            int ownerBefore = owner.inventory.countItem("ancient_tablet");
+            int nonOwnerBefore = nonOwner.inventory.countItem("ancient_tablet");
+
+            owner.physics.x = scopedPickup.x + 280f;
+            owner.physics.y = scopedPickup.y + 280f;
+            nonOwner.physics.x = scopedPickup.x;
+            nonOwner.physics.y = scopedPickup.y;
+            invokeSimulateTick(harness.loop);
+
+            assertThat(harness.zone.simulator.getPickups().stream()
+                .anyMatch(p -> p.pickupId.equals(scopedPickup.pickupId) && p.alive))
+                .isTrue();
+            assertThat(nonOwner.inventory.countItem("ancient_tablet")).isEqualTo(nonOwnerBefore);
+
+            owner.physics.x = scopedPickup.x;
+            owner.physics.y = scopedPickup.y;
+            nonOwner.physics.x = scopedPickup.x + 280f;
+            nonOwner.physics.y = scopedPickup.y + 280f;
+            invokeSimulateTick(harness.loop);
+
+            assertThat(harness.zone.simulator.getPickups().stream()
+                .noneMatch(p -> p.pickupId.equals(scopedPickup.pickupId) && p.alive))
+                .isTrue();
+            assertThat(owner.inventory.countItem("ancient_tablet")).isEqualTo(ownerBefore + 1);
+        } finally {
+            harness.executor.shutdownNow();
+            harness.channel1.close();
+            harness.channel2.close();
+            harness.outsiderChannel.close();
         }
     }
 

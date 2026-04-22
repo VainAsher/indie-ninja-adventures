@@ -94,6 +94,19 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-22 18:44:56 +01:00`
+
+- `v0.12.03` stabilization slice: mission-seeded pickup ownership hardening for hosted multiplayer.
+  - Added mission-owner scoping on `SimPickup` (`missionOwnerSlot`) so mission-seeded objective pickups are collectible only by the requesting player slot.
+  - `GameSimulator.stepPickups()` now enforces ownership gating before collection to prevent non-owner pickup consumption/despawn.
+  - `ZoneSimulationLoop.seedMissionObjectivePickups(...)` now uses `addPersistentPickupForPlayer(...)` so authoritative mission seeds are owner-scoped by default.
+- Added regression coverage:
+  - `ZoneSimulationLoopScriptedLossOrderingTest` now verifies mission-seeded pickups carry owner-slot scoping and cannot be consumed by other players.
+- Validation:
+  - `./gradlew :server:test` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
+
 `2026-04-22 17:25:00 +01:00`
 
 - Release loop execution for `v0.12.02` (docs/workflow closure + release metadata sync):

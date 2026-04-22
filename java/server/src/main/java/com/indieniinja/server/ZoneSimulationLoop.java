@@ -239,7 +239,8 @@ public final class ZoneSimulationLoop implements Runnable {
             // ── Broadcast ─────────────────────────────────────────────────────
             if (++broadcastCtr >= BROADCAST_EVERY) {
                 broadcastCtr = 0;
-                boolean fullSnap = (++zone.fullSnapCountdown >= FULL_SNAPSHOT_EVERY);
+                boolean fullSnap = zone.forceNextFullSnapshot.getAndSet(false)
+                    || (++zone.fullSnapCountdown >= FULL_SNAPSHOT_EVERY);
                 if (fullSnap) {
                     zone.fullSnapCountdown = 0;
                     zone.deltaEncoder.reset();
@@ -468,7 +469,7 @@ public final class ZoneSimulationLoop implements Runnable {
                     spawnX = originX + (float) Math.cos(angle) * radius;
                     spawnY = originY + 12f + ((ring & 1) == 0 ? 0f : 10f);
                 }
-                sim.addPersistentPickup(itemId, spawnX, spawnY);
+                sim.addPersistentPickupForPlayer(itemId, spawnX, spawnY, request.playerSlot());
                 anchorIndex++;
                 seededCount++;
             }

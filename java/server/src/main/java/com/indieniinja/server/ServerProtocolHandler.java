@@ -442,6 +442,10 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         ZoneInstance hub = getOrCreateStartZone("central_hub");
         player.hubId = hub.hubId;
         hub.playerIds.add(player.playerId);
+        // Late joiners may receive a cached full snapshot that is slightly stale.
+        // Force the next live zone broadcast to be a full snapshot so state
+        // (especially pickups) converges immediately on authoritative data.
+        hub.forceNextFullSnapshot.set(true);
 
         Map<String, Object> startPayload = Map.of(
             "seed",       session.worldSeed,
