@@ -94,6 +94,19 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-22 22:03:12 +01:00`
+
+- `v0.12.04` stabilization slice 3: mission-end contract clearing for hosted pickup lifecycle correctness.
+  - Client now emits `entity_event` `mission_seed_pickups_clear` on mission complete/fail callbacks.
+  - Server now handles `mission_seed_pickups_clear` by removing the per-player zone contract, preventing stale late-join reseeds after mission end.
+  - Existing slice-2 late-join reconcile remains active for in-progress missions.
+- Added regression coverage:
+  - `ServerProtocolHandlerMissionPickupSeedTest.missionPickupSeedClearEventPreventsLateJoinReseed`.
+- Validation target:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon`
+- Compatibility classification (expected):
+  - replay=`no`, save=`no`, protocol=`no`.
+
 `2026-04-22 21:24:31 +01:00`
 
 - `v0.12.04` stabilization slice 2: late-join/rejoin mission-pickup reconcile and no-dup top-up seeding.

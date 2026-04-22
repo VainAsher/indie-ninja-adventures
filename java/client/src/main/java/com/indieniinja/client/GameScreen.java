@@ -68,6 +68,8 @@ public final class GameScreen implements Screen {
     private static final int   LEVEL_ROWS     = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
     private static final String PORTAL_TRANSITION_INTER_HUB = "inter_hub";
     private static final String PORTAL_TRANSITION_MISSION_RETURN = "mission_return";
+    private static final String ENTITY_EVENT_MISSION_SEED_PICKUPS = "mission_seed_pickups";
+    private static final String ENTITY_EVENT_MISSION_SEED_PICKUPS_CLEAR = "mission_seed_pickups_clear";
 
     private final NinjaGameClient game;
     private final String          host;
@@ -239,6 +241,8 @@ public final class GameScreen implements Screen {
     private float onboardingToastCooldown = 1.2f;
     /** Last mission ID we emitted a "mission started" toast for. */
     private String lastMissionToastId = "";
+    /** Active multiplayer mission pickup seed contract tracked client-side for lifecycle clear events. */
+    private String multiplayerMissionPickupSeedMissionId = "";
 
     /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
     private static String npcDialogueId(String npcType) {
@@ -430,8 +434,22 @@ public final class GameScreen implements Screen {
         saveManager.setPreSaveSync(this::syncSaveState);
         saveManager.load();
         dialogueManager.setStoryContext(storyManager.toConditionContext());
-        missionManager.setOnMissionComplete(() -> saveManager.markDirty());
-        missionManager.setOnMissionFail(    () -> saveManager.markDirty());
+        missionManager.setOnMissionComplete(() -> {
+            requestMultiplayerMissionObjectivePickupClear(
+                multiplayerMissionPickupSeedMissionId,
+                "mission_complete"
+            );
+            multiplayerMissionPickupSeedMissionId = "";
+            saveManager.markDirty();
+        });
+        missionManager.setOnMissionFail(() -> {
+            requestMultiplayerMissionObjectivePickupClear(
+                multiplayerMissionPickupSeedMissionId,
+                "mission_fail"
+            );
+            multiplayerMissionPickupSeedMissionId = "";
+            saveManager.markDirty();
+        });
 
         // Inventory / shop / minimap overlays
         inventoryOverlay = new InventoryOverlay();
@@ -1146,6 +1164,7 @@ public final class GameScreen implements Screen {
         }
 
         missionManager.startMission(missionId);
+        multiplayerMissionPickupSeedMissionId = "";
         java.util.Map<String, Integer> objectiveItemCounts = collectMissionObjectiveItemCounts(def);
         if (soloMode) {
             rebuildSoloWorldForMission(def, objectiveItemCounts);
@@ -1195,13 +1214,29 @@ public final class GameScreen implements Screen {
         if (objectiveItemCounts == null || objectiveItemCounts.isEmpty()) return;
 
         java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
-        payload.put("event", "mission_seed_pickups");
+        payload.put("event", ENTITY_EVENT_MISSION_SEED_PICKUPS);
         payload.put("request_id", java.util.UUID.randomUUID().toString());
-        payload.put("mission_id", normalizeKey(def.missionId));
+        String missionId = normalizeKey(def.missionId);
+        payload.put("mission_id", missionId);
         payload.put("item_counts", new java.util.LinkedHashMap<>(objectiveItemCounts));
         networkClient.sendMessage(com.indieniinja.network.MessageType.ENTITY_EVENT, payload);
+        multiplayerMissionPickupSeedMissionId = missionId;
         log.info("[Mission] requested multiplayer objective pickups for {}: {}",
             def.missionId, objectiveItemCounts);
+    }
+
+    private void requestMultiplayerMissionObjectivePickupClear(String missionId, String reason) {
+        if (soloMode || networkClient == null) return;
+        String normalizedMissionId = normalizeKey(missionId);
+        if (normalizedMissionId.isBlank()) return;
+
+        java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("event", ENTITY_EVENT_MISSION_SEED_PICKUPS_CLEAR);
+        payload.put("mission_id", normalizedMissionId);
+        payload.put("reason", reason == null ? "" : reason);
+        networkClient.sendMessage(com.indieniinja.network.MessageType.ENTITY_EVENT, payload);
+        log.info("[Mission] cleared multiplayer objective pickup contract for {} via {}",
+            normalizedMissionId, reason);
     }
 
     /**

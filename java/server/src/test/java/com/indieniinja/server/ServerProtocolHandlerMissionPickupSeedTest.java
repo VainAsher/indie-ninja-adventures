@@ -206,6 +206,87 @@ class ServerProtocolHandlerMissionPickupSeedTest {
         }
     }
 
+    @Test
+    void missionPickupSeedClearEventPreventsLateJoinReseed() throws Exception {
+        GameSession session = new GameSession(161803L);
+        ServerProtocolHandler handler = new ServerProtocolHandler(session);
+        EmbeddedChannel senderChannel = new EmbeddedChannel(handler);
+        try {
+            HubRegistry.HubDef hubDef = HubRegistry.get("central_hub");
+            long zoneSeed = HubRegistry.hubSeed(session.worldSeed, "central_hub");
+            WorldGraph graph = WorldGraph.generate(
+                zoneSeed,
+                hubDef.roomCount(),
+                WorldGraph.WorldShape.valueOf(hubDef.graphShape())
+            );
+            WorldGraph.RoomNode startRoom = graph.startRoom();
+            String zoneKey = "central_hub:" + startRoom.gridX + ":" + startRoom.gridY;
+            ZoneInstance zone = new ZoneInstance(
+                zoneKey,
+                "central_hub",
+                zoneSeed,
+                hubDef.graphShape(),
+                hubDef.roomCount(),
+                session.worldSeed,
+                startRoom.gridX * 32f,
+                startRoom.gridY * 32f
+            );
+            zone.worldGraph = graph;
+
+            PlayerRecord sender = new PlayerRecord("p1", 0, senderChannel);
+            sender.hubId = zone.hubId;
+            session.players.put(sender.playerId, sender);
+            zone.playerIds.add(sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            Map<String, String> channelToPlayer =
+                (Map<String, String>) getField(handler, "channelToPlayer");
+            channelToPlayer.put(senderChannel.id().asShortText(), sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            ConcurrentHashMap<String, ZoneInstance> zones =
+                (ConcurrentHashMap<String, ZoneInstance>) getField(handler, "zones");
+            zones.put(zone.hubId, zone);
+
+            Method handleEntityEvent = ServerProtocolHandler.class.getDeclaredMethod(
+                "handleEntityEvent", ChannelHandlerContext.class, WireMessage.class);
+            handleEntityEvent.setAccessible(true);
+            ChannelHandlerContext senderCtx = senderChannel.pipeline().context(handler);
+
+            WireMessage seedMsg = new WireMessage("entity_event", Map.of(
+                "event", "mission_seed_pickups",
+                "request_id", "req-contract-2",
+                "mission_id", "demo_mission",
+                "item_counts", Map.of("relic", 2)
+            ));
+            handleEntityEvent.invoke(handler, senderCtx, seedMsg);
+            ZoneInstance.PendingMissionPickupSeed initial = zone.pendingMissionPickupSeeds.poll();
+            assertThat(initial).isNotNull();
+            assertThat(initial.requestId()).isEqualTo("req-contract-2");
+
+            WireMessage clearMsg = new WireMessage("entity_event", Map.of(
+                "event", "mission_seed_pickups_clear",
+                "mission_id", "demo_mission",
+                "reason", "mission_complete"
+            ));
+            handleEntityEvent.invoke(handler, senderCtx, clearMsg);
+            assertThat(zone.pendingMissionPickupSeeds).isEmpty();
+
+            Method bootstrapLateJoiner = ServerProtocolHandler.class.getDeclaredMethod(
+                "bootstrapLateJoiner",
+                io.netty.channel.Channel.class,
+                PlayerRecord.class
+            );
+            bootstrapLateJoiner.setAccessible(true);
+            bootstrapLateJoiner.invoke(handler, senderChannel, sender);
+
+            assertThat(zone.pendingMissionPickupSeeds.poll()).isNull();
+            assertThat(zone.forceNextFullSnapshot.get()).isTrue();
+        } finally {
+            senderChannel.close();
+        }
+    }
+
     private static Object getField(Object target, String fieldName) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);

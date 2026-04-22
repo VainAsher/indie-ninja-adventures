@@ -51,6 +51,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     private static final String PORTAL_TRANSITION_INTER_HUB = "inter_hub";
     private static final String PORTAL_TRANSITION_MISSION_RETURN = "mission_return";
     private static final String ENTITY_EVENT_MISSION_SEED_PICKUPS = "mission_seed_pickups";
+    private static final String ENTITY_EVENT_MISSION_SEED_PICKUPS_CLEAR = "mission_seed_pickups_clear";
     private static final int MISSION_SEED_MAX_ITEM_TYPES = 24;
     private static final int MISSION_SEED_MAX_PER_ITEM = 16;
     private static final int MISSION_SEED_MAX_TOTAL = 64;
@@ -228,6 +229,10 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         Map<String, Object> payload = msg.payload();
         if (isMissionPickupSeedEvent(payload)) {
             queueMissionPickupSeedRequest(sender, payload);
+            return;
+        }
+        if (isMissionPickupSeedClearEvent(payload)) {
+            clearMissionPickupSeedContract(sender, payload);
             return;
         }
         try {
@@ -613,6 +618,12 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         return event != null && ENTITY_EVENT_MISSION_SEED_PICKUPS.equals(event.toString());
     }
 
+    private static boolean isMissionPickupSeedClearEvent(Map<String, Object> payload) {
+        if (payload == null) return false;
+        Object event = payload.get("event");
+        return event != null && ENTITY_EVENT_MISSION_SEED_PICKUPS_CLEAR.equals(event.toString());
+    }
+
     private void queueMissionPickupSeedRequest(PlayerRecord sender, Map<String, Object> payload) {
         ZoneInstance zone = zones.get(sender.hubId);
         if (zone == null) return;
@@ -666,6 +677,16 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         if (playerId == null || playerId.isBlank()) return;
         if (zoneId == null || zoneId.isBlank()) return;
         missionPickupSeedContractsByPlayerZone.remove(missionPickupSeedContractKey(playerId, zoneId));
+    }
+
+    private void clearMissionPickupSeedContract(PlayerRecord sender, Map<String, Object> payload) {
+        if (sender == null) return;
+        String missionId = normalizeMissionId(payload == null ? null : payload.get("mission_id"));
+        forgetMissionPickupSeedContract(sender.playerId, sender.hubId);
+        log.info(
+            "[Mission][Net] cleared mission pickup seed contract mission={} player={} slot={} hub={}",
+            missionId, sender.playerId, sender.slot, sender.hubId
+        );
     }
 
     private void queueMissionPickupReseedForPlayerIfPresent(PlayerRecord player, ZoneInstance zone) {
