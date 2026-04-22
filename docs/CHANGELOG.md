@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-21
-version_anchor: v0.12.00
+last_updated: 2026-04-22
+version_anchor: v0.12.01
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.01] - 2026-04-22 (mission objective pickup hard guarantee in multiplayer-hosted runs)
+
+### Added
+
+- **Multiplayer mission pickup seed control event**: mission start in multiplayer now sends `entity_event` payload `event=mission_seed_pickups` with `request_id`, `mission_id`, and objective `item_counts`.
+- **Server-side mission seed queue on `ZoneInstance`**: `pendingMissionPickupSeeds` added so Netty thread input is queued and applied on the zone simulation thread.
+- **Regression coverage for mission seed guarantees**:
+  - `ZoneSimulationLoopScriptedLossOrderingTest` now verifies persistent quest-pickup seeding and request-id dedupe behavior.
+  - `ServerProtocolHandlerMissionPickupSeedTest` verifies mission seed event interception and queueing.
+
+### Changed
+
+- **Mission objective item extraction path unified**: `GameScreen` now uses a shared objective item-count collector for both solo seeding and multiplayer seed request payload construction.
+- **`ENTITY_EVENT` handling in server protocol**: `mission_seed_pickups` events are consumed as control-plane input instead of being relayed as generic client FX events.
+
+### Fixed
+
+- **Soft-lock prevention parity in multiplayer-hosted runs**: mission `collect_items` objective sources now spawn as persistent quest pickups on the authoritative server sim path, matching the solo hard guarantee.
+- **Duplicate mission seed retries**: request-id dedupe in `ZoneSimulationLoop` prevents duplicate persistent pickup bursts from repeated network sends.
 
 ---
 
@@ -1960,4 +1982,3 @@ None - all changes are internal refactoring and code organization improvements.
 **Last Updated**: 2025-12-12
 **Current Version**: 0.7.0
 **Project**: Vain Asher Gaming's: Indie Ninja Adventures
-

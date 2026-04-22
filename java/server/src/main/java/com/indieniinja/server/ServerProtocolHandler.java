@@ -47,6 +47,12 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
     /** Rooms per hub world — matches ZoneSimulationLoop.DEFAULT_ROOMS. */
     private static final int DEFAULT_ROOMS = 12;
+    private static final String PORTAL_TRANSITION_INTER_HUB = "inter_hub";
+    private static final String PORTAL_TRANSITION_MISSION_RETURN = "mission_return";
+    private static final String ENTITY_EVENT_MISSION_SEED_PICKUPS = "mission_seed_pickups";
+    private static final int MISSION_SEED_MAX_ITEM_TYPES = 24;
+    private static final int MISSION_SEED_MAX_PER_ITEM = 16;
+    private static final int MISSION_SEED_MAX_TOTAL = 64;
 
     private final GameSession session;
 
@@ -202,7 +208,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     // ── Handler: ENTITY_EVENT (Phase 2.5 relay) ───────────────────────────────
 
     private void handleEntityEvent(ChannelHandlerContext ctx, WireMessage msg) {
-        // Relay to all other clients in the same zone
+        // Relay to all other clients in the same zone (except control events).
         String pid  = channelToPlayer.get(ctx.channel().id().asShortText());
         if (pid == null) return;
 
@@ -210,6 +216,10 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         if (sender == null) return;
 
         Map<String, Object> payload = msg.payload();
+        if (isMissionPickupSeedEvent(payload)) {
+            queueMissionPickupSeedRequest(sender, payload);
+            return;
+        }
         try {
             byte[] encoded = WireCodec.encodeBody(MessageType.ENTITY_EVENT, payload);
             for (PlayerRecord pr : session.connectedPlayers()) {
@@ -232,14 +242,19 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         if (player == null) return;
 
         String destHubId = msg.getString("destination_id", "central_hub");
+        String transitionType = normalizePortalTransitionType(msg.getString(
+            "transition_type",
+            PORTAL_TRANSITION_INTER_HUB
+        ));
+        ZoneInstance oldZone = zones.get(player.hubId);
+        String originHubId = oldZone != null ? oldZone.masterHubId : player.hubId;
 
         // ── Loop 16: ability-gate check ───────────────────────────────────────
         // Look up the destination hub's required ability and verify the player has it.
         HubRegistry.HubDef destHub = HubRegistry.get(destHubId);
         if (!destHub.requiredAbility().isEmpty()) {
-            ZoneInstance curZone = zones.get(player.hubId);
-            if (curZone != null && curZone.simulator != null) {
-                com.indieniinja.sim.SimPlayer sp = curZone.simulator.getPlayer(player.slot);
+            if (oldZone != null && oldZone.simulator != null) {
+                com.indieniinja.sim.SimPlayer sp = oldZone.simulator.getPlayer(player.slot);
                 if (sp != null && !sp.unlockedAbilities.contains(destHub.requiredAbility())) {
                     // Player lacks the required ability — send a denial notification
                     try {
@@ -248,15 +263,16 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
                             "category", "portal_denied"
                         ));
                     } catch (Exception ignored) {}
-                    log.info("PORTAL_TRAVEL denied: pid={} lacks '{}' for hub '{}'",
-                        pid, destHub.requiredAbility(), destHubId);
+                    log.info(
+                        "[Server][Playtest][Portal] portal denied type={} player_id={} session_id={} origin_hub_id={} destination_hub_id={} required_ability={}",
+                        transitionType, pid, player.sessionId, originHubId, destHubId, destHub.requiredAbility()
+                    );
                     return;
                 }
             }
         }
 
         // Remove from current zone
-        ZoneInstance oldZone = zones.get(player.hubId);
         if (oldZone != null) {
             oldZone.playerIds.remove(pid);
             oldZone.lastActivityMs = System.currentTimeMillis();
@@ -268,22 +284,29 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
         // Get or create destination zone (start room of that hub)
         ZoneInstance newZone = getOrCreateStartZone(destHubId);
+        String destinationSpawnRoomId = newZone.hubId;
         player.hubId = newZone.hubId;
         newZone.playerIds.add(pid);
-        log.info("Portal travel: player={} session={} from={} to={}",
-            pid, player.sessionId, oldZone != null ? oldZone.hubId : "none", newZone.hubId);
+        log.info(
+            "[Server][Playtest][Portal] portal travel type={} player_id={} session_id={} origin_hub_id={} destination_hub_id={} destination_spawn_room_id={}",
+            transitionType, pid, player.sessionId, originHubId, destHubId, destinationSpawnRoomId
+        );
 
         // Send WORLD_TRANSITION to this player
         try {
-            sendMessage(ctx.channel(), MessageType.WORLD_TRANSITION, Map.of(
-                "hub_id",     newZone.hubId,
-                "seed",       newZone.seed,
-                "shape",      newZone.shape,
-                "rooms",      newZone.rooms,
-                "world_seed", newZone.worldSeed,
-                "spawn_x",    newZone.spawnX,
-                "spawn_y",    newZone.spawnY
-            ));
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("hub_id", newZone.hubId);
+            payload.put("seed", newZone.seed);
+            payload.put("shape", newZone.shape);
+            payload.put("rooms", newZone.rooms);
+            payload.put("world_seed", newZone.worldSeed);
+            payload.put("spawn_x", newZone.spawnX);
+            payload.put("spawn_y", newZone.spawnY);
+            payload.put("transition_type", transitionType);
+            payload.put("origin_hub_id", originHubId);
+            payload.put("destination_hub_id", destHubId);
+            payload.put("destination_spawn_room_id", destinationSpawnRoomId);
+            sendMessage(ctx.channel(), MessageType.WORLD_TRANSITION, payload);
         } catch (Exception ex) {
             log.error("WORLD_TRANSITION send error: {}", ex.getMessage());
         }
@@ -565,6 +588,101 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         } catch (Exception ex) {
             log.error("zone broadcast error ({}): {}", type, ex.getMessage());
         }
+    }
+
+    private static boolean isMissionPickupSeedEvent(Map<String, Object> payload) {
+        if (payload == null) return false;
+        Object event = payload.get("event");
+        return event != null && ENTITY_EVENT_MISSION_SEED_PICKUPS.equals(event.toString());
+    }
+
+    private void queueMissionPickupSeedRequest(PlayerRecord sender, Map<String, Object> payload) {
+        ZoneInstance zone = zones.get(sender.hubId);
+        if (zone == null) return;
+
+        String requestId = normalizeRequestId(payload.get("request_id"));
+        if (requestId.isBlank()) {
+            log.warn("[Mission][Net] dropped pickup seed event with empty request_id player={} hub={}",
+                sender.playerId, sender.hubId);
+            return;
+        }
+
+        String missionId = normalizeMissionId(payload.get("mission_id"));
+        Map<String, Integer> itemCounts = sanitizeMissionItemCounts(payload.get("item_counts"));
+        if (itemCounts.isEmpty()) {
+            log.info("[Mission][Net] dropped pickup seed request_id={} mission={} player={} (no valid objective items)",
+                requestId, missionId, sender.playerId);
+            return;
+        }
+
+        zone.pendingMissionPickupSeeds.add(new ZoneInstance.PendingMissionPickupSeed(
+            requestId,
+            missionId,
+            sender.playerId,
+            sender.slot,
+            java.util.Collections.unmodifiableMap(new LinkedHashMap<>(itemCounts))
+        ));
+        log.info("[Mission][Net] queued pickup seed request_id={} mission={} player={} slot={} items={} hub={}",
+            requestId, missionId, sender.playerId, sender.slot, itemCounts, sender.hubId);
+    }
+
+    private static String normalizeRequestId(Object raw) {
+        if (!(raw instanceof String s)) return "";
+        String trimmed = s.trim();
+        if (trimmed.isEmpty()) return "";
+        return trimmed.length() <= 128 ? trimmed : trimmed.substring(0, 128);
+    }
+
+    private static String normalizeMissionId(Object raw) {
+        if (!(raw instanceof String s)) return "";
+        return s.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static Map<String, Integer> sanitizeMissionItemCounts(Object raw) {
+        if (!(raw instanceof Map<?, ?> source)) return Map.of();
+
+        LinkedHashMap<String, Integer> clean = new LinkedHashMap<>();
+        int total = 0;
+
+        for (Map.Entry<?, ?> entry : source.entrySet()) {
+            if (clean.size() >= MISSION_SEED_MAX_ITEM_TYPES || total >= MISSION_SEED_MAX_TOTAL) break;
+
+            String itemId = normalizeMissionItemId(entry.getKey());
+            if (itemId.isBlank() || "coin".equals(itemId)) continue;
+
+            int count = parsePositiveInt(entry.getValue());
+            if (count <= 0) continue;
+            count = Math.min(count, MISSION_SEED_MAX_PER_ITEM);
+
+            int allowed = Math.min(count, MISSION_SEED_MAX_TOTAL - total);
+            if (allowed <= 0) break;
+
+            clean.merge(itemId, allowed, Integer::sum);
+            total += allowed;
+        }
+        return clean;
+    }
+
+    private static String normalizeMissionItemId(Object raw) {
+        if (raw == null) return "";
+        return raw.toString().trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static int parsePositiveInt(Object raw) {
+        if (raw instanceof Number n) return Math.max(0, n.intValue());
+        if (raw instanceof String s) {
+            try {
+                return Math.max(0, Integer.parseInt(s.trim()));
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    private static String normalizePortalTransitionType(String raw) {
+        if (PORTAL_TRANSITION_MISSION_RETURN.equals(raw)) return PORTAL_TRANSITION_MISSION_RETURN;
+        return PORTAL_TRANSITION_INTER_HUB;
     }
 
     private static String normalizeSessionId(String raw) {

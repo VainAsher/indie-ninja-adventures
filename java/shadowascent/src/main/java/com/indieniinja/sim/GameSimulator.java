@@ -202,12 +202,21 @@ public final class GameSimulator {
         for (LevelLayout.PickupSpawn spec : layout.pickupSpawns) {
             float px = spec.x();
             float py = spec.y() - PhysicsConstants.TILE_SIZE;
+            String pickupType = spec.type();
+            boolean persistent = isPersistentPickupType(pickupType);
+            if (persistent) {
+                pickups.add(new SimPickup(
+                    hubId + "_pickup_" + pickupIdx++,
+                    pickupType, px, py, -1, Integer.MAX_VALUE, true
+                ));
+                continue;
+            }
             int slotIdx = pickupSlots.size();
-            pickupSlots.add(new PickupSlot(px, py, spec.type()));
+            pickupSlots.add(new PickupSlot(px, py, pickupType));
             int ticks = 1800 + slotRng.nextInt(1801); // 30–60 s
             pickups.add(new SimPickup(
                 hubId + "_pickup_" + pickupIdx++,
-                spec.type(), px, py, slotIdx, ticks
+                pickupType, px, py, slotIdx, ticks
             ));
         }
 
@@ -2409,6 +2418,17 @@ public final class GameSimulator {
         pickups.removeIf(pu -> !pu.alive);
     }
 
+    /**
+     * Mission/puzzle-critical pickups should never auto-expire.
+     * Quest items are tagged in ItemDatabase with type="quest_item".
+     */
+    private static boolean isPersistentPickupType(String pickupType) {
+        if (pickupType == null || pickupType.isBlank()) return false;
+        if (pickupType.startsWith("key_")) return true;
+        ItemDatabase.ItemDef def = ItemDatabase.get(pickupType);
+        return def != null && "quest_item".equals(def.type());
+    }
+
     private void startRespawn(int slotIdx) {
         PickupSlot slot = pickupSlots.get(slotIdx);
         slot.active       = false;
@@ -2870,6 +2890,24 @@ public final class GameSimulator {
     }
 
     // ── Accessors (for testing) ───────────────────────────────────────────────
+
+    /**
+     * Spawn a pickup during runtime.
+     * Persistent pickups never expire by lifetime timer and do not use respawn slots.
+     */
+    public void addPickup(String pickupType, float x, float y, boolean persistent) {
+        String type = pickupType == null ? "" : pickupType;
+        int ticks = persistent ? Integer.MAX_VALUE : 2700;
+        pickups.add(new SimPickup(
+            hubId + "_dpickup_" + lootSeq++,
+            type, x, y, -1, ticks, persistent
+        ));
+    }
+
+    /** Convenience helper for mission/objective pickups. */
+    public void addPersistentPickup(String pickupType, float x, float y) {
+        addPickup(pickupType, x, y, true);
+    }
 
     public Map<Integer, SimPlayer> getPlayers()  { return java.util.Collections.unmodifiableMap(players); }
 

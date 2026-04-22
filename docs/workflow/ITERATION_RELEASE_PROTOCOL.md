@@ -2,8 +2,8 @@
 doc_type: workflow
 status: living
 owner: release-team
-last_updated: 2026-04-21
-version_anchor: v0.11.71
+last_updated: 2026-04-22
+version_anchor: v0.11.72
 ---
 
 # Iteration Release Protocol

@@ -1,6 +1,6 @@
 {
-  "version": "0.12.00",
+  "version": "0.12.01",
   "build": "production",
-  "build_date": "2026-04-21",
+  "build_date": "2026-04-22",
   "min_launcher_version": "1.1.0"
 }

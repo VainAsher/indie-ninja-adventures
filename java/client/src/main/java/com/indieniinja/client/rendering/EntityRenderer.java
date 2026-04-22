@@ -16,6 +16,7 @@ import com.indieniinja.network.ShurikenState;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.SimShuriken;
 import com.indieniinja.sim.EnemyAttackGeometry;
+import com.indieniinja.sim.ItemDatabase;
 import com.indieniinja.physics.PhysicsConstants;
 
 /**
@@ -552,6 +553,13 @@ public final class EntityRenderer {
 
     /** Returns a distinct RGBA colour for each pickup type so placeholders are recognisable. */
     private static float[] pickupColor(String type) {
+        if (type != null && type.startsWith("key_")) {
+            return new float[]{1.00f, 0.95f, 0.35f, 1f}; // puzzle/door key
+        }
+        ItemDatabase.ItemDef def = ItemDatabase.get(type);
+        if (def != null && "quest_item".equals(def.type())) {
+            return new float[]{0.25f, 0.90f, 0.55f, 1f}; // mission objective item
+        }
         return switch (type != null ? type : "") {
             case "coin"             -> new float[]{1.00f, 0.85f, 0.00f, 1f};  // gold
             case "health_potion"    -> new float[]{0.90f, 0.15f, 0.15f, 1f};  // red

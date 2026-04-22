@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-21
-version_anchor: v0.12.00
+last_updated: 2026-04-22
+version_anchor: v0.12.01
 replaces: docs/HANDOVER.md
 ---
 
@@ -13,8 +13,8 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Baseline
 
-- Date baseline: 2026-04-21
-- Version baseline: v0.12.00
+- Date baseline: 2026-04-22
+- Version baseline: v0.12.01
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -25,10 +25,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.12.01 (post-cleanup stabilization follow-up).
-- Latest release verification (`2026-04-21`):
+- Next release candidate: v0.12.02 (post-release stabilization follow-up).
+- Latest release verification (`2026-04-22`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
-  - Tag target: v0.12.00
+  - Tag target: v0.12.01
 
 ## Runtime Reality (Implemented)
 
@@ -62,12 +62,14 @@ Canonical runtime and handover snapshot for the active Java stack.
 - [PLAYER_EXPECTATIONS.md](PLAYER_EXPECTATIONS.md) - launcher-first playtest contract
 - [GDD.md](GDD.md) - design intent and narrative/mechanics contracts
 - [RELEASE_VERSION_SYNC_CHECKLIST.md](RELEASE_VERSION_SYNC_CHECKLIST.md) - release metadata gate
+- [workflow/OPERATING_RHYTHM_AND_HABITS.md](workflow/OPERATING_RHYTHM_AND_HABITS.md) - daily/weekly/monthly operating model
+- [operations/CROSS_REPO_CONTROL_TOWER_HANDOVER.md](operations/CROSS_REPO_CONTROL_TOWER_HANDOVER.md) - cross-repo control-tower handover
 
 ## Repository Process Defaults
 
 - Plan-embedded tasks are canonical for implementation tracking.
+- `indie-ninja-pipeline` is the control tower for master planning and cross-repo coordination.
 - `docs/TASK_LIST.md` is historical and archived.
 - Retired/stale docs move immediately to `docs/archive/retired/`.
 - Archive ZIP snapshots are kept in `docs/archive/zips/` and mirrored to release assets.
 - Docs freshness checks are warning-only in CI unless explicitly run in strict mode.
-

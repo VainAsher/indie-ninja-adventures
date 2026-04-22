@@ -119,6 +119,71 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         }
     }
 
+    @Test
+    void missionPickupSeedRequestSpawnsPersistentQuestPickups() throws Exception {
+        TestHarness harness = createHarness();
+        try {
+            harness.zone.playerIds.clear(); // Avoid pickup collection while validating persistence.
+            long before = countPickupType(harness.zone.simulator, "ancient_tablet");
+
+            harness.zone.pendingMissionPickupSeeds.add(new ZoneInstance.PendingMissionPickupSeed(
+                "req-mission-seed-1",
+                "mission_alpha",
+                harness.player.playerId,
+                harness.player.slot,
+                Map.of("ancient_tablet", 2, "coin", 9, "weapon_sword", 5)
+            ));
+
+            invokeSimulateTick(harness.loop);
+
+            long after = countPickupType(harness.zone.simulator, "ancient_tablet");
+            assertThat(after).isGreaterThanOrEqualTo(before + 2);
+            assertThat(harness.zone.simulator.getPickups().stream()
+                .filter(p -> "ancient_tablet".equals(p.pickupType))
+                .allMatch(p -> p.persistent))
+                .isTrue();
+
+            for (int i = 0; i < 5000; i++) {
+                harness.zone.simulator.step(Map.of());
+            }
+
+            long aliveAfterTicks = harness.zone.simulator.getPickups().stream()
+                .filter(p -> "ancient_tablet".equals(p.pickupType) && p.alive)
+                .count();
+            assertThat(aliveAfterTicks).isGreaterThanOrEqualTo(before + 2);
+        } finally {
+            harness.executor.shutdownNow();
+            harness.channel.close();
+        }
+    }
+
+    @Test
+    void duplicateMissionPickupSeedRequestIdIsIgnored() throws Exception {
+        TestHarness harness = createHarness();
+        try {
+            harness.zone.playerIds.clear();
+            long before = countPickupType(harness.zone.simulator, "map_shard");
+
+            ZoneInstance.PendingMissionPickupSeed request = new ZoneInstance.PendingMissionPickupSeed(
+                "req-dup-42",
+                "mission_beta",
+                harness.player.playerId,
+                harness.player.slot,
+                Map.of("map_shard", 1)
+            );
+            harness.zone.pendingMissionPickupSeeds.add(request);
+            harness.zone.pendingMissionPickupSeeds.add(request);
+
+            invokeSimulateTick(harness.loop);
+
+            long after = countPickupType(harness.zone.simulator, "map_shard");
+            assertThat(after - before).isEqualTo(1L);
+        } finally {
+            harness.executor.shutdownNow();
+            harness.channel.close();
+        }
+    }
+
     private static TestHarness createHarness() {
         GameSession session = new GameSession(12345L);
         ZoneInstance zone = new ZoneInstance(
@@ -202,6 +267,12 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         Method trigger = GameSimulator.class.getDeclaredMethod("triggerSirenScriptedLoss");
         trigger.setAccessible(true);
         trigger.invoke(sim);
+    }
+
+    private static long countPickupType(GameSimulator sim, String pickupType) {
+        return sim.getPickups().stream()
+            .filter(p -> pickupType.equals(p.pickupType))
+            .count();
     }
 
     @SuppressWarnings("unchecked")

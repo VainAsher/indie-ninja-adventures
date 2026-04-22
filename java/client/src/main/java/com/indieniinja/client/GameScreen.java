@@ -66,6 +66,8 @@ public final class GameScreen implements Screen {
     private static final float TAB_FULL_MAP_HOLD_SECONDS = 0.28f;
     private static final int   LEVEL_COLS     = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
     private static final int   LEVEL_ROWS     = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
+    private static final String PORTAL_TRANSITION_INTER_HUB = "inter_hub";
+    private static final String PORTAL_TRANSITION_MISSION_RETURN = "mission_return";
 
     private final NinjaGameClient game;
     private final String          host;
@@ -723,7 +725,8 @@ public final class GameScreen implements Screen {
                     float poCy = portal.y + portal.height * 0.5f;
                     float dx = pcx - poCx, dy = pcy - poCy;
                     if (dx * dx + dy * dy <= 56f * 56f) {
-                        if (missionManager.isActive() && isMissionExitPortal(portal, snap)) {
+                        boolean missionExitPortal = missionManager.isActive() && isMissionExitPortal(portal, snap);
+                        if (missionExitPortal) {
                             if (missionManager.isExitLocked()) {
                                 log.info("[Mission] exit blocked until objectives are complete");
                                 portalTriggered = true;
@@ -736,14 +739,20 @@ public final class GameScreen implements Screen {
                             missionTriggerMissionId = "";
                             log.info("[Mission] completed on exit contact before portal travel");
                         }
+                        String transitionType = missionExitPortal
+                            ? PORTAL_TRANSITION_MISSION_RETURN
+                            : PORTAL_TRANSITION_INTER_HUB;
                         if (networkClient == null) {
                             // Solo mode: warp player directly to the destination room
                             // in the unified world-space layout.
-                            handleSoloPortalTravel(portal.destinationId);
+                            handleSoloPortalTravel(portal.destinationId, transitionType);
                         } else {
                             // Multiplayer: let the server handle the zone transition.
                             networkClient.sendMessage(com.indieniinja.network.MessageType.PORTAL_TRAVEL,
-                                java.util.Map.of("destination_id", portal.destinationId));
+                                java.util.Map.of(
+                                    "destination_id", portal.destinationId,
+                                    "transition_type", transitionType
+                                ));
                         }
                         portalTriggered = true;
                         break;
@@ -1137,8 +1146,11 @@ public final class GameScreen implements Screen {
         }
 
         missionManager.startMission(missionId);
+        java.util.Map<String, Integer> objectiveItemCounts = collectMissionObjectiveItemCounts(def);
         if (soloMode) {
-            rebuildSoloWorldForMission(def);
+            rebuildSoloWorldForMission(def, objectiveItemCounts);
+        } else {
+            requestMultiplayerMissionObjectivePickups(def, objectiveItemCounts);
         }
         missionReachedLocations.clear();
         missionActivatedSwitches.clear();
@@ -1151,14 +1163,103 @@ public final class GameScreen implements Screen {
             source, missionId, def.roomCount, def.shape);
     }
 
-    private void rebuildSoloWorldForMission(MissionDefinition def) {
+    private void rebuildSoloWorldForMission(MissionDefinition def, java.util.Map<String, Integer> objectiveItemCounts) {
         if (!soloMode || def == null) return;
         int targetRooms = targetRoomCountForAct(def);
         WorldGraph.WorldShape shape = parseWorldShape(def.shape);
         long seed = System.currentTimeMillis();
         initializeSoloSimulation(seed, Boolean.getBoolean("ninja.record"), targetRooms, shape);
+        seedSoloMissionObjectivePickups(def, objectiveItemCounts);
         refreshSoloWorldRoomCache();
         hudRenderer.notifyToast("WORLD BUILT: " + targetRooms + " ROOMS");
+    }
+
+    private java.util.Map<String, Integer> collectMissionObjectiveItemCounts(MissionDefinition def) {
+        java.util.Map<String, Integer> requiredByItem = new java.util.LinkedHashMap<>();
+        if (def == null || def.objectives == null) return requiredByItem;
+
+        for (MissionObjective obj : def.objectives) {
+            if (obj == null || obj.type != ObjectiveType.COLLECT_ITEMS) continue;
+            String itemId = normalizeKey(obj.item);
+            if (itemId.isBlank() || "coin".equals(itemId)) continue;
+            requiredByItem.merge(itemId, objectiveTarget(obj), Integer::sum);
+        }
+        return requiredByItem;
+    }
+
+    private void requestMultiplayerMissionObjectivePickups(
+        MissionDefinition def,
+        java.util.Map<String, Integer> objectiveItemCounts
+    ) {
+        if (soloMode || networkClient == null || def == null) return;
+        if (objectiveItemCounts == null || objectiveItemCounts.isEmpty()) return;
+
+        java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("event", "mission_seed_pickups");
+        payload.put("request_id", java.util.UUID.randomUUID().toString());
+        payload.put("mission_id", normalizeKey(def.missionId));
+        payload.put("item_counts", new java.util.LinkedHashMap<>(objectiveItemCounts));
+        networkClient.sendMessage(com.indieniinja.network.MessageType.ENTITY_EVENT, payload);
+        log.info("[Mission] requested multiplayer objective pickups for {}: {}",
+            def.missionId, objectiveItemCounts);
+    }
+
+    /**
+     * Ensure collect_items mission objectives always have pickup sources in solo worlds.
+     * These mission pickups are persistent (no timed despawn) to prevent soft locks.
+     */
+    private void seedSoloMissionObjectivePickups(
+        MissionDefinition def,
+        java.util.Map<String, Integer> objectiveItemCounts
+    ) {
+        if (!soloMode || def == null || localSim == null) return;
+        java.util.Map<String, Integer> requiredByItem =
+            objectiveItemCounts == null
+                ? collectMissionObjectiveItemCounts(def)
+                : objectiveItemCounts;
+        if (requiredByItem.isEmpty()) return;
+
+        java.util.List<float[]> anchors = new java.util.ArrayList<>();
+        for (com.indieniinja.sim.SimPickup pickup : localSim.getPickups()) {
+            if (pickup == null || !pickup.alive) continue;
+            anchors.add(new float[]{pickup.x, pickup.y});
+        }
+
+        SimPlayer player = localSim.getPlayer(0);
+        float originX = player != null
+            ? player.physics.x + player.physics.width * 0.5f
+            : soloSpawnX;
+        float originY = player != null ? player.physics.y : soloSpawnY;
+
+        int anchorIndex = 0;
+        int seededCount = 0;
+        for (var entry : requiredByItem.entrySet()) {
+            String itemId = entry.getKey();
+            int count = Math.max(1, entry.getValue());
+            for (int i = 0; i < count; i++) {
+                float spawnX;
+                float spawnY;
+                if (anchorIndex < anchors.size()) {
+                    float[] anchor = anchors.get(anchorIndex);
+                    spawnX = anchor[0];
+                    spawnY = anchor[1];
+                } else {
+                    int extraIdx = anchorIndex - anchors.size();
+                    int ring = 1 + (extraIdx / 8);
+                    int spoke = extraIdx % 8;
+                    float angle = (float) ((Math.PI * 2.0 * spoke) / 8.0);
+                    float radius = 72f + ring * 40f;
+                    spawnX = originX + (float) Math.cos(angle) * radius;
+                    spawnY = originY + 12f + ((ring & 1) == 0 ? 0f : 10f);
+                }
+                localSim.addPersistentPickup(itemId, spawnX, spawnY);
+                anchorIndex++;
+                seededCount++;
+            }
+        }
+
+        log.info("[Mission] seeded {} persistent objective pickup(s) for mission {}: {}",
+            seededCount, def.missionId, requiredByItem);
     }
 
     private int targetRoomCountForAct(MissionDefinition def) {
@@ -1954,10 +2055,27 @@ public final class GameScreen implements Screen {
             log.info("[Debug][F9] abilities granted: {}", ALL_ABILITIES);
         }
     }
+    private static String normalizePortalTransitionType(String rawType) {
+        if (PORTAL_TRANSITION_MISSION_RETURN.equals(rawType)) return PORTAL_TRANSITION_MISSION_RETURN;
+        return PORTAL_TRANSITION_INTER_HUB;
+    }
+
+    private String soloSpawnRoomId(String hubId) {
+        return hubId + ":" + soloCurrentGridX + ":" + soloCurrentGridY;
+    }
+
     private void handleSoloPortalTravel(String destinationId) {
+        handleSoloPortalTravel(destinationId, PORTAL_TRANSITION_INTER_HUB);
+    }
+
+    private void handleSoloPortalTravel(String destinationId, String transitionType) {
         if (localSim == null) return;
         com.indieniinja.sim.SimPlayer sp = localSim.getPlayer(0);
         if (sp == null) return;
+        String normalizedTransitionType = normalizePortalTransitionType(transitionType);
+        String originHubId = (soloCurrentHubId == null || soloCurrentHubId.isBlank())
+            ? "unknown_hub"
+            : soloCurrentHubId;
 
         com.indieniinja.world.HubRegistry.HubDef hubDef =
             com.indieniinja.world.HubRegistry.get(destinationId);
@@ -1966,8 +2084,10 @@ public final class GameScreen implements Screen {
         if (!hubDef.isAccessible(sp.unlockedAbilities)) {
             String req = hubDef.requiredAbility().replace('_', ' ').toUpperCase();
             if (hudRenderer != null) hudRenderer.notifyToast("PORTAL LOCKED: REQUIRES " + req);
-            log.info("[GameScreen][Playtest][Portal] solo portal denied hub={} requiredAbility={}",
-                destinationId, hubDef.requiredAbility());
+            log.info(
+                "[GameScreen][Playtest][Portal] solo portal denied type={} origin_hub_id={} destination_hub_id={} required_ability={}",
+                normalizedTransitionType, originHubId, destinationId, hubDef.requiredAbility()
+            );
             return;
         }
 
@@ -2020,12 +2140,15 @@ public final class GameScreen implements Screen {
         // resetForZoneTransition signals the render loop to clear per-zone state and
         // then call refreshSoloWorldRoomCache() + camera.snapTo() for solo mode.
         if (stateBuffer != null) stateBuffer.resetForZoneTransition();
-        String fromHubId = soloCurrentHubId;
+        String fromHubId = originHubId;
         soloCurrentHubId = hubDef.id();
+        String destinationSpawnRoomId = soloSpawnRoomId(hubDef.id());
         if (saveManager != null) saveManager.markDirty();
         if (hudRenderer != null) hudRenderer.notifyToast("ENTERING: " + hubDef.displayName().toUpperCase());
-        log.info("[GameScreen][Playtest][Portal] solo portal travel {} → {} seed={}",
-            fromHubId, hubDef.id(), hubSeed);
+        log.info(
+            "[GameScreen][Playtest][Portal] solo portal travel type={} origin_hub_id={} destination_hub_id={} destination_spawn_room_id={} seed={}",
+            normalizedTransitionType, fromHubId, hubDef.id(), destinationSpawnRoomId, hubSeed
+        );
     }
 
     // ── Megamap construction ──────────────────────────────────────────────────

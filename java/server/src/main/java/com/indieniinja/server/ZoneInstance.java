@@ -150,4 +150,20 @@ public final class ZoneInstance {
     /** Transitions queued by the sim thread; drained each tick before broadcast. */
     public final java.util.concurrent.ConcurrentLinkedQueue<PendingRoomTransition>
         pendingRoomTransitions = new java.util.concurrent.ConcurrentLinkedQueue<>();
+
+    /**
+     * Mission pickup seed request queued by the Netty thread.
+     * Drained by ZoneSimulationLoop on the authoritative sim thread.
+     */
+    public record PendingMissionPickupSeed(
+        String requestId,
+        String missionId,
+        String playerId,
+        int playerSlot,
+        java.util.Map<String, Integer> itemCounts
+    ) {}
+
+    /** Multiplayer mission pickup seed requests waiting to be applied on the sim thread. */
+    public final java.util.concurrent.ConcurrentLinkedQueue<PendingMissionPickupSeed>
+        pendingMissionPickupSeeds = new java.util.concurrent.ConcurrentLinkedQueue<>();
 }

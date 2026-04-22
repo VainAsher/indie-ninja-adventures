@@ -4,6 +4,7 @@ import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.EnemyAIState;
 import com.indieniinja.sim.GameSimulator;
+import com.indieniinja.sim.ItemDatabase;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.sim.SimEnemy;
 import com.indieniinja.sim.SimPlayer;
@@ -136,6 +137,37 @@ class GameSimulatorTest {
         WorldSnapshot snap = sim.getSnapshot(0);
         assertThat(snap.pickups).isNotEmpty();
         snap.pickups.forEach(p -> assertThat(p.alive).isTrue());
+    }
+
+    @Test
+    void questItemPickupsDoNotExpireOnLifetimeTimer() {
+        LevelLayout layout = LevelLayout.buildTestLayout(4242L);
+        LevelLayout.PickupSpawn anchor = layout.pickupSpawns.get(0);
+        layout.pickupSpawns.add(new LevelLayout.PickupSpawn("relic", anchor.x(), anchor.y()));
+
+        GameSimulator sim = new GameSimulator(4242L, "test_hub", layout);
+        for (int i = 0; i < 5000; i++) {
+            sim.step(Map.of());
+        }
+
+        long aliveRelics = sim.getPickups().stream()
+            .filter(p -> "relic".equals(p.pickupType) && p.alive)
+            .count();
+        assertThat(aliveRelics).isGreaterThanOrEqualTo(1L);
+    }
+
+    @Test
+    void missionObjectiveItemsExistInItemDatabase() {
+        ItemDatabase.ItemDef relic = ItemDatabase.get("relic");
+        ItemDatabase.ItemDef tablet = ItemDatabase.get("ancient_tablet");
+        ItemDatabase.ItemDef shard = ItemDatabase.get("map_shard");
+
+        assertThat(relic).isNotNull();
+        assertThat(tablet).isNotNull();
+        assertThat(shard).isNotNull();
+        assertThat(relic.type()).isEqualTo("quest_item");
+        assertThat(tablet.type()).isEqualTo("quest_item");
+        assertThat(shard.type()).isEqualTo("quest_item");
     }
 
     // ── Physics constant parity guard ─────────────────────────────────────────

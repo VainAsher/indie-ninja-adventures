@@ -2,12 +2,12 @@
 doc_type: plan
 status: implementing
 owner: core-team
-last_updated: 2026-04-18
-version_anchor: v0.11.66
+last_updated: 2026-04-22
+version_anchor: v0.11.72
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-18 | **Codebase version:** v0.11.66 | **Next release target:** v0.11.67 (combat feel / balance iteration)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.11.72 | **Next release target:** v0.11.73 (stabilization follow-up)
 
 ---
 
@@ -93,6 +93,18 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-22 09:20:00 +01:00`
+
+- Multiplayer mission objective pickup hard guarantee (v0.11.72):
+  - Client now emits `entity_event` `mission_seed_pickups` when a mission starts in multiplayer-hosted runs.
+  - Server queues seed requests on `ZoneInstance.pendingMissionPickupSeeds` from the Netty thread and applies them on the authoritative sim thread in `ZoneSimulationLoop`.
+  - Request-id dedupe now prevents duplicate seed bursts on retries/replays.
+  - Seeded mission pickups are restricted to persistent `quest_item`/`key_*` types; coin and non-objective entries are ignored.
+- Solo mission objective seeding remains active and now shares the same objective item-count extraction path used by multiplayer requests.
+- Validation:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest` ✅
+  - `./gradlew :client:test --tests com.indieniinja.client.game.MissionAuthoringProgressionCoverageTest` ✅
 
 `2026-04-18 14:00:00 +01:00`
 

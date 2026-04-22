@@ -13,6 +13,7 @@ import com.indieniinja.network.WorldRoomDescriptor;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.InputRecorder;
+import com.indieniinja.sim.ItemDatabase;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.world.WorldGraph;
 import com.indieniinja.world.puzzle.PuzzlePlan;
@@ -55,6 +56,8 @@ public final class ZoneSimulationLoop implements Runnable {
     static final long TICK_NS              = 1_000_000_000L / 60;  // 16,666,666 ns
     static final int  BROADCAST_EVERY      = 3;    // 20 Hz — matches Python
     static final int  FULL_SNAPSHOT_EVERY  = 60;   // 3 s full snapshot
+    private static final int MISSION_SEED_REQUEST_HISTORY_LIMIT = 512;
+    private static final int MISSION_SEED_MAX_PER_ITEM = 16;
 
     /** Idle zone reaper: tear down zone after this many ms without any player. */
     static final long IDLE_TTL_MS = 120_000L;  // 120 s — matches Python
@@ -79,6 +82,9 @@ public final class ZoneSimulationLoop implements Runnable {
     private final InputRecorder recorder = new InputRecorder();
     /** Monotonically increasing tick counter for this zone loop. */
     private long tickCount = 0L;
+    /** Request-id dedupe cache for mission pickup seed events. */
+    private final java.util.Set<String> recentMissionSeedRequestIds = new java.util.HashSet<>();
+    private final java.util.ArrayDeque<String> recentMissionSeedRequestOrder = new java.util.ArrayDeque<>();
 
     public ZoneSimulationLoop(ZoneInstance zone, GameSession session, AtomicBoolean shutdown,
                               ConcurrentHashMap<String, ZoneInstance> allZones,
@@ -282,6 +288,7 @@ public final class ZoneSimulationLoop implements Runnable {
     private void simulateTick() {
         GameSimulator sim = zone.simulator;
         if (sim == null) return;
+        drainPendingMissionPickupSeedRequests(sim);
 
         // Server-authoritative physics: player positions are owned by the server sim.
         // PlayerRecord.posX/Y is only used for the initial spawn — after that the
@@ -390,6 +397,102 @@ public final class ZoneSimulationLoop implements Runnable {
      * known-alive set, then syncs the NPC roster with the hub state machine:
      * spawns NPCs that should be active and despawns ones that shouldn't.
      */
+    private void drainPendingMissionPickupSeedRequests(GameSimulator sim) {
+        ZoneInstance.PendingMissionPickupSeed request;
+        while ((request = zone.pendingMissionPickupSeeds.poll()) != null) {
+            if (!rememberMissionSeedRequest(request.requestId())) {
+                log.debug("[Zone {}] duplicate mission pickup seed request ignored request_id={}",
+                    zone.hubId, request.requestId());
+                continue;
+            }
+            int seeded = seedMissionObjectivePickups(sim, request);
+            if (seeded > 0) {
+                log.info("[Zone {}] seeded {} persistent mission pickup(s) request_id={} mission={} player={}",
+                    zone.hubId, seeded, request.requestId(), request.missionId(), request.playerId());
+            } else {
+                log.info("[Zone {}] mission pickup seed produced no valid spawns request_id={} mission={} player={}",
+                    zone.hubId, request.requestId(), request.missionId(), request.playerId());
+            }
+        }
+    }
+
+    private boolean rememberMissionSeedRequest(String requestId) {
+        if (requestId == null || requestId.isBlank()) return false;
+        if (!recentMissionSeedRequestIds.add(requestId)) return false;
+        recentMissionSeedRequestOrder.addLast(requestId);
+        while (recentMissionSeedRequestOrder.size() > MISSION_SEED_REQUEST_HISTORY_LIMIT) {
+            String oldest = recentMissionSeedRequestOrder.removeFirst();
+            recentMissionSeedRequestIds.remove(oldest);
+        }
+        return true;
+    }
+
+    private int seedMissionObjectivePickups(
+        GameSimulator sim,
+        ZoneInstance.PendingMissionPickupSeed request
+    ) {
+        if (request.itemCounts() == null || request.itemCounts().isEmpty()) return 0;
+
+        java.util.List<float[]> anchors = new java.util.ArrayList<>();
+        for (com.indieniinja.sim.SimPickup pickup : sim.getPickups()) {
+            if (pickup == null || !pickup.alive) continue;
+            anchors.add(new float[]{pickup.x, pickup.y});
+        }
+
+        SimPlayer player = sim.getPlayers().get(request.playerSlot());
+        float originX = player != null
+            ? player.physics.x + player.physics.width * 0.5f
+            : zone.spawnX;
+        float originY = player != null ? player.physics.y : zone.spawnY;
+
+        int anchorIndex = 0;
+        int seededCount = 0;
+        for (Map.Entry<String, Integer> entry : request.itemCounts().entrySet()) {
+            String itemId = normalizeMissionPickupItemId(entry.getKey());
+            if (!isPersistentMissionPickupItem(itemId)) continue;
+
+            int count = clampMissionPickupCount(entry.getValue());
+            for (int i = 0; i < count; i++) {
+                float spawnX;
+                float spawnY;
+                if (anchorIndex < anchors.size()) {
+                    float[] anchor = anchors.get(anchorIndex);
+                    spawnX = anchor[0];
+                    spawnY = anchor[1];
+                } else {
+                    int extraIdx = anchorIndex - anchors.size();
+                    int ring = 1 + (extraIdx / 8);
+                    int spoke = extraIdx % 8;
+                    float angle = (float) ((Math.PI * 2.0 * spoke) / 8.0);
+                    float radius = 72f + ring * 40f;
+                    spawnX = originX + (float) Math.cos(angle) * radius;
+                    spawnY = originY + 12f + ((ring & 1) == 0 ? 0f : 10f);
+                }
+                sim.addPersistentPickup(itemId, spawnX, spawnY);
+                anchorIndex++;
+                seededCount++;
+            }
+        }
+        return seededCount;
+    }
+
+    private static int clampMissionPickupCount(Integer value) {
+        if (value == null) return 0;
+        return Math.max(0, Math.min(value, MISSION_SEED_MAX_PER_ITEM));
+    }
+
+    private static String normalizeMissionPickupItemId(String itemId) {
+        if (itemId == null) return "";
+        return itemId.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static boolean isPersistentMissionPickupItem(String itemId) {
+        if (itemId.isBlank() || "coin".equals(itemId)) return false;
+        if (itemId.startsWith("key_")) return true;
+        ItemDatabase.ItemDef def = ItemDatabase.get(itemId);
+        return def != null && "quest_item".equals(def.type());
+    }
+
     private final java.util.Set<String> prevAliveBossIds = new java.util.HashSet<>();
 
     private void tickHubEvolution(com.indieniinja.sim.GameSimulator sim) {

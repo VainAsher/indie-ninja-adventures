@@ -80,6 +80,26 @@ public final class ItemDatabase {
         regAbility("ability_teleport",    "epic",     "Teleport Crystal",    "Grants the power of teleportation.",     "teleport");
         regAbility("ability_ninjutsu",    "legendary","Ninjutsu Tome",       "Grants mastery of ninjutsu.",            "ninjutsu");
 
+        // ── Mission objective quest items (collect_items targets) ───────────
+        reg("forest_key",       "quest_item", "common",   "Forest Key",         "A key recovered during forest patrols.",               99, 0, false, 0, 0, 0f, 0, 0);
+        reg("relic",            "quest_item", "uncommon", "Sacred Relic",       "An ancient relic from the forest shrine.",             99, 0, false, 0, 0, 0f, 0, 0);
+        reg("treasure_chest",   "quest_item", "uncommon", "Treasure Cache",     "Recovered treasure for mission objectives.",           99, 0, false, 0, 0, 0f, 0, 0);
+        reg("stolen_goods",     "quest_item", "common",   "Stolen Goods",       "Recovered stolen merchandise.",                         99, 0, false, 0, 0, 0f, 0, 0);
+        reg("tax_money",        "quest_item", "common",   "Tax Money",          "Recovered town tax money.",                             99, 0, false, 0, 0, 0f, 0, 0);
+        reg("firework",         "quest_item", "common",   "Firework Canister",  "Festival fireworks canister.",                          99, 0, false, 0, 0, 0f, 0, 0);
+        reg("crystal",          "quest_item", "common",   "Crystal",            "A luminous crystal shard.",                             99, 0, false, 0, 0, 0f, 0, 0);
+        reg("artifact",         "quest_item", "rare",     "Ancient Artifact",   "A mysterious artifact tied to mission progress.",      99, 0, false, 0, 0, 0f, 0, 0);
+        reg("royal_treasure",   "quest_item", "rare",     "Royal Treasure",     "Treasure reclaimed from royal vaults.",                99, 0, false, 0, 0, 0f, 0, 0);
+        reg("ancient_tablet",   "quest_item", "rare",     "Ancient Tablet",     "A tablet inscribed with forgotten lore.",              99, 0, false, 0, 0, 0f, 0, 0);
+        reg("map_shard",        "quest_item", "common",   "Map Shard",          "One fragment of an ancient map.",                      99, 0, false, 0, 0, 0f, 0, 0);
+        reg("star_ink",         "quest_item", "uncommon", "Star Ink",           "Rare ink used in celestial rites.",                    99, 0, false, 0, 0, 0f, 0, 0);
+        reg("hammer_fragment",  "quest_item", "common",   "Hammer Fragment",    "Fragment of a lost forge hammer.",                     99, 0, false, 0, 0, 0f, 0, 0);
+        reg("hearthstone_ore",  "quest_item", "uncommon", "Hearthstone Ore",    "Ore needed for hearthstone forging.",                  99, 0, false, 0, 0, 0f, 0, 0);
+        reg("silk_thread_moss", "quest_item", "common",   "Silk-Thread Moss",   "Moss used in restorative weaving.",                    99, 0, false, 0, 0, 0f, 0, 0);
+        reg("cloud_reed",       "quest_item", "common",   "Cloud Reed",         "Reed harvested for weaving repairs.",                  99, 0, false, 0, 0, 0f, 0, 0);
+        reg("hazels_cloth",     "quest_item", "common",   "Hazel's Cloth",      "Lantern cloth requested by Hazel.",                    99, 0, false, 0, 0, 0f, 0, 0);
+        reg("woven_root",       "quest_item", "common",   "Woven Root",         "A rooted weave material for trial repairs.",           99, 0, false, 0, 0, 0f, 0, 0);
+
         // ── Yin/Yang/Lantern fragments (M4 — GDD §3.3/§3.4) ─────────────────────
         // Non-stackable; consumed on pickup (handled in GameSimulator.applyPickup).
         reg("yin_fragment",     "key_item", "rare",      "Yin Fragment",

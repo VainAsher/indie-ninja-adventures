@@ -27,24 +27,33 @@ public final class SimPickup {
      * When this pickup expires or is collected, the simulator starts the slot's cooldown.
      */
     public final int slotIdx;
+    /** Mission/objective pickups are persistent and never expire on a lifetime timer. */
+    public final boolean persistent;
 
     // Lifetime counter — ticks at 60 Hz. Default 2700 (~45 s) for loot drops.
     public int ticksRemaining;
 
     /** Loot-drop constructor — no respawn slot, default 45-second lifetime. */
     public SimPickup(String pickupId, String pickupType, float x, float y) {
-        this(pickupId, pickupType, x, y, -1, 2700);
+        this(pickupId, pickupType, x, y, -1, 2700, false);
     }
 
     /** Full constructor used by the room-pickup factory. */
     public SimPickup(String pickupId, String pickupType, float x, float y,
                      int slotIdx, int ticksRemaining) {
+        this(pickupId, pickupType, x, y, slotIdx, ticksRemaining, false);
+    }
+
+    /** Full constructor with explicit persistence control. */
+    public SimPickup(String pickupId, String pickupType, float x, float y,
+                     int slotIdx, int ticksRemaining, boolean persistent) {
         this.pickupId        = pickupId;
         this.pickupType      = pickupType;
         this.x               = x;
         this.y               = y;
         this.slotIdx         = slotIdx;
         this.ticksRemaining  = ticksRemaining;
+        this.persistent      = persistent;
     }
 
     /** AABB overlap test — used for authoritative collection check. */
@@ -56,6 +65,7 @@ public final class SimPickup {
     /** Advance lifetime; marks dead if expired. */
     public void tick() {
         if (!alive) return;
+        if (persistent) return;
         if (--ticksRemaining <= 0) alive = false;
     }
 }
