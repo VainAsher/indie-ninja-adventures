@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-22
-version_anchor: v0.12.01
+version_anchor: v0.12.02
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.12.01 | **Next release target:** v0.12.02 (stabilization follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.12.02 | **Next release target:** v0.12.03 (stabilization follow-up)
 
 ---
 
@@ -93,6 +93,17 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-22 17:25:00 +01:00`
+
+- Release loop execution for `v0.12.02` (docs/workflow closure + release metadata sync):
+  - Updated release-sync canonical files: `version.json`, `java/build.gradle.kts`, `README.md`, `docs/ROADMAP.md`, `docs/CURRENT_STATE.md`, `docs/CHANGELOG.md`.
+  - Refreshed docs freshness evidence report for current release anchor.
+- Validation:
+  - `C:\Users\asher\AppData\Local\Programs\Python\Python312\python.exe tools/check_version_sync.py --tag v0.12.02` ✅
+  - `C:\Users\asher\AppData\Local\Programs\Python\Python312\python.exe tools/check_docs_freshness.py --emit-report` ✅
+  - `./gradlew :server:test :client:test --no-daemon` with local `GRADLE_USER_HOME` ✅
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` with local `GRADLE_USER_HOME` + Python312 on `PATH` ✅
 
 `2026-04-22 09:20:00 +01:00`
 

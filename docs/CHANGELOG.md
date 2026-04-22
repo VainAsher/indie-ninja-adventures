@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-22
-version_anchor: v0.12.01
+version_anchor: v0.12.02
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.02] - 2026-04-22 (docs/workflow closure and control-tower handoff scaffolding)
+
+### Added
+
+- **Cross-repo control-tower handoff documentation**: added `docs/operations/CROSS_REPO_CONTROL_TOWER_HANDOVER.md` for ownership and coordination continuity.
+- **Pipeline scaffold contract artifacts**: added coordination contract docs and feedback intake workflow scaffold under `docs/repo-scaffolds/pipeline-repo/`.
+
+### Changed
+
+- **Java systems-docs rewrite closure finalized**: completed brief and routing/traceability artifacts were normalized under completed-plan and workflow indexes.
+- **Workflow corpus deepened for Java-era operations**: expanded canonical workflow docs for compatibility, routing, release discipline, replay/desync triage, and repository hygiene.
+
+### Fixed
+
+- **Tileset naming parity for release packaging**: added `assets/tileset/shadow_ascent_tiles.png` and `assets/tileset/shadow_ascent_tiles.json` into tracked assets for consistent downstream packaging.
+- **Local session artifact noise**: `.gitignore` was updated to keep local/generated clutter out of release-facing diffs.
 
 ---
 
