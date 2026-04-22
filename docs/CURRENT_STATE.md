@@ -77,16 +77,14 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Session Close-Out (2026-04-22)
 
 - Date: 2026-04-22
-- Branch + HEAD: `master @ e6aa604`
+- Branch + HEAD: `master @ 0b6abca`
 - Current version: `v0.12.02`
-- Systems touched: release metadata/docs sync; active plan/version anchor sync; repo hygiene and cross-repo close-out sweep.
+- Systems touched: session-end verification evidence, handover alignment, and repo close-out hygiene confirmation.
 - Validation run:
-  - `tools/check_version_sync.py --tag v0.12.02` (PASS)
+  - `python tools/check_version_sync.py` (PASS)
   - `tools/check_docs_freshness.py --emit-report` (PASS)
-  - `./gradlew :server:test :client:test --no-daemon` (PASS)
-  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` (PASS)
-  - `gh run list --limit 6 --json status,conclusion,name,headSha,displayTitle,event` (CI=success, Release=success for `e6aa604`)
-  - `gh release view v0.12.02 --json ...assets` (docs archive + client/server jars present)
+  - `gh run list --limit 3 --json status,conclusion,name,headSha,displayTitle,event` (CI=success for `0b6abca`; latest Release=success for `e6aa604`)
+  - `gh release view v0.12.02 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets` (release published; docs archive + client/server jars present)
 - Known issue or risk: none blocking.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: implement host-authoritative hard guarantees for mission-critical pickups in multiplayer-hosted runs (guaranteed objective spawn, no pre-resolution despawn, late-join pickup state sync), then run a mission item/NPC sprite and animation readability pass.
