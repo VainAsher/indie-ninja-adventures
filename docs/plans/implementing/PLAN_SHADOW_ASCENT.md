@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-22
-version_anchor: v0.12.02
+version_anchor: v0.12.03
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.12.02 | **Next release target:** v0.12.03 (stabilization follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.12.03 | **Next release target:** v0.12.04 (stabilization follow-up)
 
 ---
 

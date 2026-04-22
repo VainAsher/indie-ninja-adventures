@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-22
-version_anchor: v0.12.02
+version_anchor: v0.12.03
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.03] - 2026-04-22 (hosted mission pickup authority hardening + late-join convergence)
+
+### Added
+
+- **Late-join full-snapshot override on zones**: added `ZoneInstance.forceNextFullSnapshot` and bootstrap wiring so a late join immediately triggers a fresh authoritative full world snapshot.
+- **Mission pickup owner-scoping in simulation entities**: `SimPickup` now carries mission-owner slot scope and collection eligibility checks.
+- **Regression coverage for authoritative convergence and pickup ownership**:
+  - `SnapshotBroadcastScheduleTest` verifies one-shot full-snapshot override behavior.
+  - `ServerProtocolHandlerMissionPickupSeedTest` verifies late-join bootstrap sets full-snapshot override.
+  - `ZoneSimulationLoopScriptedLossOrderingTest` verifies mission-seeded pickups are owner-scoped and non-owners cannot consume them.
+
+### Changed
+
+- **Hosted mission pickup seeding path now owner-scoped**: `ZoneSimulationLoop.seedMissionObjectivePickups(...)` now uses `GameSimulator.addPersistentPickupForPlayer(...)` so mission objective items are reserved for the requesting player slot.
+- **Authoritative pickup collection path now enforces ownership checks**: `GameSimulator.stepPickups()` validates per-pickup collection eligibility before applying pickup effects.
+
+### Fixed
+
+- **Late-join stale pickup state window**: reconnecting/late-joining players now receive rapid full-state convergence instead of waiting for the normal full-snapshot interval.
+- **Hosted objective race from non-owner pickup consumption**: mission-seeded objective items no longer despawn because another player intersected them first.
 
 ---
 

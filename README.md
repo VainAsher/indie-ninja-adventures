@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.12.02** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.12.03** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,7 +17,11 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.12.02 (docs/workflow closure and release-hygiene follow-up)
+## What's in v0.12.03 (hosted mission pickup authority + late-join convergence stabilization)
+
+- Late-join bootstrap now forces the next authoritative world broadcast to a full snapshot for immediate state convergence.
+- Mission-seeded objective pickups are now owner-scoped in hosted multiplayer to prevent non-owner consumption races.
+- Server regression coverage expanded for full-snapshot forcing and mission pickup owner-scoping behavior.
 
 | System | Status |
 | ------ | ------ |
