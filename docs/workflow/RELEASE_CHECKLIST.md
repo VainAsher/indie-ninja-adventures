@@ -3,7 +3,7 @@ doc_type: workflow
 status: living
 owner: release-team
 last_updated: 2026-04-22
-version_anchor: v0.11.72
+version_anchor: v0.12.01
 ---
 
 # Release Checklist

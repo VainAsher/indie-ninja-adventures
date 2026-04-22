@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-22
-version_anchor: v0.11.72
+version_anchor: v0.12.01
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.11.72 | **Next release target:** v0.11.73 (stabilization follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.12.01 | **Next release target:** v0.12.02 (stabilization follow-up)
 
 ---
 
@@ -96,7 +96,7 @@ The original workloop is excellent for implementation discipline, but the new di
 
 `2026-04-22 09:20:00 +01:00`
 
-- Multiplayer mission objective pickup hard guarantee (v0.11.72):
+- Multiplayer mission objective pickup hard guarantee (v0.12.01):
   - Client now emits `entity_event` `mission_seed_pickups` when a mission starts in multiplayer-hosted runs.
   - Server queues seed requests on `ZoneInstance.pendingMissionPickupSeeds` from the Netty thread and applies them on the authoritative sim thread in `ZoneSimulationLoop`.
   - Request-id dedupe now prevents duplicate seed bursts on retries/replays.
