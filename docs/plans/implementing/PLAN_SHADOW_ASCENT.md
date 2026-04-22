@@ -94,6 +94,31 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+### v0.12.04 Implementation Brief (Mission Pickup Lifecycle / No-Despawn)
+
+- goal: harden authoritative mission-pickup lifecycle so mission-critical pickups do not silently disappear from late-join/reconnect views.
+- player-facing impact: hosted co-op mission item state converges faster for joiners/rejoiners; fewer stale/ghost pickup windows.
+- systems touched: `ZoneSimulationLoop` mission pickup lifecycle + snapshot forcing; server mission pickup regression tests.
+- risks: excessive forced full snapshots if mission-pickup change detection is noisy.
+- required tests:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon`
+- required docs to update:
+  - `docs/CURRENT_STATE.md`
+  - `docs/plans/implementing/PLAN_SHADOW_ASCENT.md`
+- rollback plan: revert mission-pickup snapshot forcing hook in `ZoneSimulationLoop` and its new regression case; keep prior owner-scoping behavior intact.
+
+`2026-04-22 20:32:40 +01:00`
+
+- `v0.12.04` stabilization slice 1: mission-scoped pickup lifecycle sync hardening for hosted multiplayer + late-join convergence.
+  - Added mission-scoped pickup hash tracking in `ZoneSimulationLoop` and now force `zone.forceNextFullSnapshot` when mission-scoped pickup state changes (seeded or collected).
+  - This tightens cache/broadcast convergence so late joiners do not wait for periodic full-snapshot cadence after mission pickup lifecycle transitions.
+- Added regression coverage:
+  - `ZoneSimulationLoopScriptedLossOrderingTest.missionScopedPickupSeedAndCollectionForceNextFullSnapshot`.
+- Validation:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
+
 `2026-04-22 18:44:56 +01:00`
 
 - `v0.12.03` stabilization slice: mission-seeded pickup ownership hardening for hosted multiplayer.

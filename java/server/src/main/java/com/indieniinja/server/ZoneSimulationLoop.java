@@ -15,6 +15,7 @@ import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.InputRecorder;
 import com.indieniinja.sim.ItemDatabase;
 import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.sim.SimPickup;
 import com.indieniinja.world.WorldGraph;
 import com.indieniinja.world.puzzle.PuzzlePlan;
 import com.indieniinja.world.puzzle.PuzzlePlanner;
@@ -85,6 +86,12 @@ public final class ZoneSimulationLoop implements Runnable {
     /** Request-id dedupe cache for mission pickup seed events. */
     private final java.util.Set<String> recentMissionSeedRequestIds = new java.util.HashSet<>();
     private final java.util.ArrayDeque<String> recentMissionSeedRequestOrder = new java.util.ArrayDeque<>();
+    /**
+     * Hash of mission-scoped pickup state from the previous tick.
+     * Used to force a near-immediate full snapshot whenever mission-critical pickup
+     * state changes (seeded/collected), tightening late-join convergence.
+     */
+    private long lastMissionScopedPickupHash = Long.MIN_VALUE;
 
     public ZoneSimulationLoop(ZoneInstance zone, GameSession session, AtomicBoolean shutdown,
                               ConcurrentHashMap<String, ZoneInstance> allZones,
@@ -331,6 +338,7 @@ public final class ZoneSimulationLoop implements Runnable {
 
         tickCount++;
         sim.step(inputs);
+        forceFullSnapshotOnMissionPickupStateChange(sim);
         if (sim.drainPendingScriptedLoss()) {
             broadcastEvent(MessageType.SCRIPTED_LOSS, java.util.Map.of(
                 "hub_id", zone.hubId,
@@ -492,6 +500,43 @@ public final class ZoneSimulationLoop implements Runnable {
         if (itemId.startsWith("key_")) return true;
         ItemDatabase.ItemDef def = ItemDatabase.get(itemId);
         return def != null && "quest_item".equals(def.type());
+    }
+
+    private void forceFullSnapshotOnMissionPickupStateChange(GameSimulator sim) {
+        long currentHash = computeMissionScopedPickupHash(sim);
+        if (lastMissionScopedPickupHash == Long.MIN_VALUE) {
+            lastMissionScopedPickupHash = currentHash;
+            return;
+        }
+        if (currentHash != lastMissionScopedPickupHash) {
+            zone.forceNextFullSnapshot.set(true);
+            lastMissionScopedPickupHash = currentHash;
+        }
+    }
+
+    private static long computeMissionScopedPickupHash(GameSimulator sim) {
+        if (sim == null) return 0L;
+        List<SimPickup> missionScoped = new ArrayList<>();
+        for (SimPickup pickup : sim.getPickups()) {
+            if (!isMissionScopedPickup(pickup)) continue;
+            missionScoped.add(pickup);
+        }
+        if (missionScoped.isEmpty()) return 0L;
+        missionScoped.sort(java.util.Comparator.comparing(p -> p.pickupId));
+        CRC32 crc = new CRC32();
+        for (SimPickup pickup : missionScoped) {
+            updateCrcString(crc, pickup.pickupId);
+            updateCrcString(crc, pickup.pickupType);
+            updateCrcFloat(crc, pickup.x);
+            updateCrcFloat(crc, pickup.y);
+            updateCrcInt(crc, pickup.missionOwnerSlot);
+            crc.update(pickup.alive ? 1 : 0);
+        }
+        return crc.getValue();
+    }
+
+    private static boolean isMissionScopedPickup(SimPickup pickup) {
+        return pickup != null && pickup.missionOwnerSlot >= 0;
     }
 
     private final java.util.Set<String> prevAliveBossIds = new java.util.HashSet<>();
@@ -791,6 +836,23 @@ public final class ZoneSimulationLoop implements Runnable {
         crc.update((bits >>> 16) & 0xFF);
         crc.update((bits >>>  8) & 0xFF);
         crc.update(bits          & 0xFF);
+    }
+
+    private static void updateCrcInt(CRC32 crc, int v) {
+        crc.update((v >>> 24) & 0xFF);
+        crc.update((v >>> 16) & 0xFF);
+        crc.update((v >>>  8) & 0xFF);
+        crc.update(v          & 0xFF);
+    }
+
+    private static void updateCrcString(CRC32 crc, String value) {
+        if (value == null) {
+            crc.update(0);
+            return;
+        }
+        byte[] data = value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        crc.update(data, 0, data.length);
+        crc.update(0); // field separator
     }
 
     private List<PlayerRecord> playersInZone() {

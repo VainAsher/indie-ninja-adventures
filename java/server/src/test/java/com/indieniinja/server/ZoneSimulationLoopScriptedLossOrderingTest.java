@@ -7,6 +7,7 @@ import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.sim.SimPlayer;
+import com.indieniinja.sim.SimPickup;
 import com.indieniinja.world.HubState;
 import com.indieniinja.world.HubStateMachine;
 import io.netty.buffer.ByteBuf;
@@ -237,6 +238,47 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
 
             long after = countPickupType(harness.zone.simulator, "map_shard");
             assertThat(after - before).isEqualTo(1L);
+        } finally {
+            harness.executor.shutdownNow();
+            harness.channel.close();
+        }
+    }
+
+    @Test
+    void missionScopedPickupSeedAndCollectionForceNextFullSnapshot() throws Exception {
+        TestHarness harness = createHarness();
+        try {
+            harness.zone.forceNextFullSnapshot.set(false);
+            invokeSimulateTick(harness.loop); // establish mission pickup baseline hash
+            assertThat(harness.zone.forceNextFullSnapshot.get()).isFalse();
+
+            SimPlayer owner = harness.zone.simulator.getPlayer(harness.player.slot);
+            assertThat(owner).isNotNull();
+            owner.physics.x = harness.zone.spawnX - 1200f;
+            owner.physics.y = harness.zone.spawnY - 1200f;
+
+            harness.zone.pendingMissionPickupSeeds.add(new ZoneInstance.PendingMissionPickupSeed(
+                "req-sync-force-1",
+                "mission_sync",
+                harness.player.playerId,
+                harness.player.slot,
+                Map.of("ancient_tablet", 1)
+            ));
+
+            invokeSimulateTick(harness.loop);
+            assertThat(harness.zone.forceNextFullSnapshot.get()).isTrue();
+
+            harness.zone.forceNextFullSnapshot.set(false);
+            SimPickup seeded = harness.zone.simulator.getPickups().stream()
+                .filter(p -> "ancient_tablet".equals(p.pickupType) && p.missionOwnerSlot == harness.player.slot)
+                .findFirst()
+                .orElseThrow();
+
+            owner.physics.x = seeded.x;
+            owner.physics.y = seeded.y;
+            invokeSimulateTick(harness.loop);
+
+            assertThat(harness.zone.forceNextFullSnapshot.get()).isTrue();
         } finally {
             harness.executor.shutdownNow();
             harness.channel.close();

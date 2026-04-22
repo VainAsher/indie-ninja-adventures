@@ -77,14 +77,26 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Session Close-Out (2026-04-22)
 
 - Date: 2026-04-22
-- Branch + HEAD: `master @ 0b6abca`
-- Current version: `v0.12.02`
-- Systems touched: session-end verification evidence, handover alignment, and repo close-out hygiene confirmation.
+- Branch + HEAD: `master @ 08c0424`
+- Current version: `v0.12.03`
+- Systems touched: release-loop metadata/docs parity, CI + Release verification, release asset publication confirmation.
 - Validation run:
-  - `python tools/check_version_sync.py` (PASS)
-  - `tools/check_docs_freshness.py --emit-report` (PASS)
-  - `gh run list --limit 3 --json status,conclusion,name,headSha,displayTitle,event` (CI=success for `0b6abca`; latest Release=success for `e6aa604`)
-  - `gh release view v0.12.02 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets` (release published; docs archive + client/server jars present)
+  - `python tools/check_version_sync.py --tag v0.12.03` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+  - `gh run list --limit 8 --json status,conclusion,name,headSha,displayTitle,event` (CI=success + Release=success for `08c0424`)
+  - `gh release view v0.12.03 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets` (release published; docs archive + client/server jars present)
 - Known issue or risk: none blocking.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
-- First action next session: implement host-authoritative hard guarantees for mission-critical pickups in multiplayer-hosted runs (guaranteed objective spawn, no pre-resolution despawn, late-join pickup state sync), then run a mission item/NPC sprite and animation readability pass.
+- First action next session: begin `v0.12.04` stabilization by auditing mission-item lifecycle/despawn paths and implementing authoritative mission-critical no-despawn guarantees (solo + hosted multiplayer + late-join sync).
+
+## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
+
+- Date: 2026-04-22
+- Branch: `master`
+- Current version: `v0.12.03`
+- Primary target: mission-item lifecycle/despawn hardening with authoritative no-despawn guarantees and tighter late-join convergence.
+- Supporting tasks:
+  - Add regression coverage for mission pickup lifecycle state transitions.
+  - Keep plan/workflow notes synced for the first `v0.12.04` stabilization slice.
+- First validation command: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon`
+- Resume risk notes: `none`
