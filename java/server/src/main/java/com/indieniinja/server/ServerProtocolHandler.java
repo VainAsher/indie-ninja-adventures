@@ -709,7 +709,18 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     private void clearMissionPickupSeedContract(PlayerRecord sender, Map<String, Object> payload) {
         if (sender == null) return;
         String missionId = normalizeMissionId(payload == null ? null : payload.get("mission_id"));
-        forgetMissionPickupSeedContract(sender.playerId, sender.hubId);
+        String contractKey = missionPickupSeedContractKey(sender.playerId, sender.hubId);
+        MissionPickupSeedContract existing = missionPickupSeedContractsByPlayerZone.get(contractKey);
+        if (existing == null) return;
+        String existingMissionId = normalizeMissionId(existing.missionId());
+        if (!missionId.isBlank() && !missionId.equals(existingMissionId)) {
+            log.info(
+                "[Mission][Net] ignored mission pickup seed clear due to mission mismatch requested={} existing={} player={} slot={} hub={}",
+                missionId, existingMissionId, sender.playerId, sender.slot, sender.hubId
+            );
+            return;
+        }
+        missionPickupSeedContractsByPlayerZone.remove(contractKey);
         log.info(
             "[Mission][Net] cleared mission pickup seed contract mission={} player={} slot={} hub={}",
             missionId, sender.playerId, sender.slot, sender.hubId

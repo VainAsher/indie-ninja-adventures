@@ -105,3 +105,9 @@ Canonical runtime and handover snapshot for the active Java stack.
   - Added regression: `ServerProtocolHandlerMissionPickupSeedTest.disconnectKeepsCurrentHubContractAndClearsStaleContractsForPlayer` and `disconnectKeepsCurrentHubContractAvailableForRejoinReseed`.
   - Validation: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS).
   - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- Progress update (`2026-04-23 08:10:34 +01:00`):
+  - Completed `v0.12.04` stabilization slice 5: mission-switch/abandon mission pickup contract hardening for hosted + rejoin flows.
+  - Client now clears prior mission pickup seed contract when starting a new mission; server now ignores stale clear events that target a different mission contract.
+  - Added regression: `ServerProtocolHandlerMissionPickupSeedTest.missionSwitchAToBRejoinReseedsMissionBContract`.
+  - Validation: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS), `python tools/check_version_sync.py` (PASS), `python tools/check_docs_freshness.py --emit-report` (PASS).
+  - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.

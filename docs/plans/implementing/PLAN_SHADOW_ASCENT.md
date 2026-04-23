@@ -94,6 +94,19 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-23 08:10:34 +01:00`
+
+- `v0.12.04` stabilization slice 5: mission-switch/abandon contract lifecycle hardening for hosted mission pickup correctness.
+  - `GameScreen.startMissionFlow(...)` now clears any prior multiplayer mission pickup seed contract before starting the next mission (`mission_switch_start` / `mission_restart`).
+  - `ServerProtocolHandler.clearMissionPickupSeedContract(...)` is now mission-aware and ignores stale clear events when `mission_id` does not match the currently stored contract.
+  - This prevents cross-mission carry-over in consecutive mission starts while preserving rejoin reseed for the latest mission contract.
+- Added regression coverage:
+  - `ServerProtocolHandlerMissionPickupSeedTest.missionSwitchAToBRejoinReseedsMissionBContract`.
+- Validation:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
+
 `2026-04-23 07:45:21 +01:00`
 
 - `v0.12.04` stabilization slice 4: disconnect-path contract clearing for mission pickup lifecycle correctness.

@@ -1163,6 +1163,7 @@ public final class GameScreen implements Screen {
             return;
         }
 
+        clearPriorMultiplayerMissionPickupContractOnMissionSwitch(missionId);
         missionManager.startMission(missionId);
         multiplayerMissionPickupSeedMissionId = "";
         java.util.Map<String, Integer> objectiveItemCounts = collectMissionObjectiveItemCounts(def);
@@ -1180,6 +1181,27 @@ public final class GameScreen implements Screen {
         if (saveManager != null) saveManager.markDirty();
         log.info("[Mission] started via {}: {} (rooms={}, shape={})",
             source, missionId, def.roomCount, def.shape);
+    }
+
+    /**
+     * Mission switch hardening for hosted sessions.
+     * Consecutive mission starts (A -> B) must clear any prior mission pickup
+     * contract first so late-join/rejoin cannot reseed A in B's lifecycle.
+     */
+    private void clearPriorMultiplayerMissionPickupContractOnMissionSwitch(String nextMissionId) {
+        if (soloMode || networkClient == null) return;
+
+        String priorContractMissionId = normalizeKey(multiplayerMissionPickupSeedMissionId);
+        if (priorContractMissionId.isBlank()) {
+            priorContractMissionId = normalizeKey(missionManager.getActiveMissionId());
+        }
+        if (priorContractMissionId.isBlank()) return;
+
+        String nextId = normalizeKey(nextMissionId);
+        String reason = priorContractMissionId.equals(nextId)
+            ? "mission_restart"
+            : "mission_switch_start";
+        requestMultiplayerMissionObjectivePickupClear(priorContractMissionId, reason);
     }
 
     private void rebuildSoloWorldForMission(MissionDefinition def, java.util.Map<String, Integer> objectiveItemCounts) {
