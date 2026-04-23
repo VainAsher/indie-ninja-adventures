@@ -79,6 +79,7 @@ tests/nul
 # Local session/workspace artifacts (do not track)
 .codex_tmp/
 .gradle-local*/
+java/.gradle-user-home/
 java/**/bin/
 java/client/user_data/
 user_data/

@@ -2,14 +2,14 @@
 doc_type: index
 status: living
 owner: core-team
-last_updated: 2026-04-21
-version_anchor: v0.11.71
+last_updated: 2026-04-23
+version_anchor: v0.12.03
 replaces: docs/INDEX.md (2026-03-28)
 ---
 
 # Documentation Index
 
-This index tracks only the active documentation system for the Java v0.11.x line.
+This index tracks only the active documentation system for the Java v0.12.x line.
 
 ## Core Canonical
 
@@ -25,6 +25,7 @@ This index tracks only the active documentation system for the Java v0.11.x line
 
 - Developing:
   - [plans/developing/PLAN_ANIMATION_INTEGRATION.md](plans/developing/PLAN_ANIMATION_INTEGRATION.md)
+  - [plans/developing/PLAN_WORKFLOW_ALIGNED_IMPROVEMENT_CHECKLIST.md](plans/developing/PLAN_WORKFLOW_ALIGNED_IMPROVEMENT_CHECKLIST.md)
   - [plans/developing/PLAN_ENEMY_ANIMATION.md](plans/developing/PLAN_ENEMY_ANIMATION.md)
   - [plans/developing/animation_pipeline_plan.md](plans/developing/animation_pipeline_plan.md)
   - [plans/developing/perf_optimisation_plan.md](plans/developing/perf_optimisation_plan.md)
