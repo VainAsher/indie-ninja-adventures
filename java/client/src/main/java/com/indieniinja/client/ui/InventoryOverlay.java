@@ -222,7 +222,7 @@ public final class InventoryOverlay {
             InventoryState.SlotState slot = (i < slots.size()) ? slots.get(i) : null;
             if (slot == null) continue;
 
-            String label = abbreviate(slot.itemId());
+            String label = ItemLabelFormatter.abbreviateForInventory(slot.itemId());
             font.setColor(slot.equipped() ? Color.CYAN : i == selectedIdx ? Color.WHITE : new Color(0.85f, 0.85f, 0.85f, 1f));
             layout.setText(font, label);
             font.draw(batch, label,
@@ -258,50 +258,19 @@ public final class InventoryOverlay {
         font.setColor(Color.YELLOW);
         font.draw(batch, "Wpn:", eqX, eqY);
         font.setColor(Color.WHITE);
-        font.draw(batch, inv.equippedWeapon != null ? abbreviate(inv.equippedWeapon) : "—",
+        font.draw(batch, inv.equippedWeapon != null
+            ? ItemLabelFormatter.abbreviateForInventory(inv.equippedWeapon) : "—",
             eqX + 36f, eqY);
         eqY -= 18f;
 
         font.setColor(Color.YELLOW);
         font.draw(batch, "Arm:", eqX, eqY);
         font.setColor(Color.WHITE);
-        font.draw(batch, inv.equippedArmor != null ? abbreviate(inv.equippedArmor) : "—",
+        font.draw(batch, inv.equippedArmor != null
+            ? ItemLabelFormatter.abbreviateForInventory(inv.equippedArmor) : "—",
             eqX + 36f, eqY);
 
         font.setColor(Color.WHITE);
-    }
-
-    /** Shorten item ID to a compact display label. */
-    private static String abbreviate(String itemId) {
-        if (itemId == null) return "?";
-        return switch (itemId) {
-            case "weapon_dagger"        -> "Dagger";
-            case "weapon_sword"         -> "Sword";
-            case "weapon_steel_sword"   -> "Stl.Sw";
-            case "weapon_crystal_blade" -> "Crys.Bl";
-            case "weapon_dark_blade"    -> "Drk.Bl";
-            case "armor_cloth"          -> "Cloth";
-            case "armor_leather"        -> "Leathr";
-            case "armor_chain_mail"     -> "ChainM";
-            case "armor_bark_plate"     -> "BarkPl";
-            case "armor_crystal_plate"  -> "CrysPl";
-            case "health_potion"        -> "H.Pot";
-            case "health_potion_small"  -> "H.PotS";
-            case "health_potion_medium" -> "H.PotM";
-            case "health_potion_large"  -> "H.PotL";
-            case "speed_boost_potion"   -> "SpeedP";
-            case "invincibility_potion" -> "InvPot";
-            case "max_hp_upgrade"       -> "HPCrys";
-            case "coin"                 -> "Coin";
-            case "material_iron"        -> "Iron";
-            case "material_crystal"     -> "Cryst";
-            case "material_dark_essence"-> "DrkEss";
-            default -> {
-                String s = itemId.replace("weapon_", "").replace("armor_", "")
-                                  .replace("material_", "").replace("_", ".");
-                yield s.length() > 6 ? s.substring(0, 6) : s;
-            }
-        };
     }
 
     public void dispose() {

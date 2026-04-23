@@ -99,7 +99,7 @@ Execute smallest complete unit each loop (`SPRINT_WORKFLOW.md` + `READY_DONE_WOR
 Cleanup categories:
 - [x] Correctness fixes found during review
 - [x] Naming/readability cleanup
-- [ ] Method extraction and de-duplication
+- [x] Method extraction and de-duplication
 - [ ] Dead code/path removal
 - [x] Null safety and guard-rail hardening
 - [ ] Logging clarity for debugging and support
@@ -153,7 +153,7 @@ Reliability:
 - [ ] deterministic behavior requirements for replay surfaces
 
 Maintainability:
-- [ ] repeated logic that should be centralized
+- [x] repeated logic that should be centralized
 - [ ] confusing method names or mixed responsibilities
 - [ ] dead or unreachable code
 
@@ -358,3 +358,66 @@ Session closeout note (per `SESSION_END_WORKFLOW.md`):
 
 First action next session:
 - Run method-extraction/de-dup cleanup slice for client UI item/label formatting helpers (`InventoryOverlay` / `ShopOverlay`) with no behavior change and targeted tests.
+
+### Loop ID: CRCL-2026-04-23-04
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: method-extraction/de-dup cleanup for client UI item/label formatting (`InventoryOverlay` + `ShopOverlay`)
+- Supporting tasks: add targeted formatter regression tests, run full client test gate, refresh docs/version/CI evidence
+- First validation command: `./gradlew :client:test --tests com.indieniinja.client.ui.ItemLabelFormatterTest --no-daemon`
+- Resume risk notes: `env` (OneDrive/Gradle temp-cache lock contention)
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: centralize duplicated item-label/sell-price formatting logic used by inventory and shop overlays while preserving output strings.
+- Player-facing impact: none (UI strings/prices are parity-preserved by regression tests).
+- Systems touched: `java/client` UI overlays (`InventoryOverlay`, `ShopOverlay`) and new shared formatter utility.
+- Risks: low; string formatting regression risk mitigated by explicit output tests.
+- Required tests: `:client:test --tests com.indieniinja.client.ui.ItemLabelFormatterTest` plus full `:client:test`.
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: remove `ItemLabelFormatter`, restore original overlay helper methods, remove formatter test class.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- Extracted shared formatting helper:
+  - `java/client/src/main/java/com/indieniinja/client/ui/ItemLabelFormatter.java`
+  - centralizes:
+    - inventory abbreviation logic (`abbreviateForInventory`)
+    - shop abbreviation logic (`abbreviateForShop`)
+    - estimated sell-price table (`estimatedSellPrice`)
+    - shop buy-line / inventory sell-line formatting helpers
+- Updated overlays to consume shared helper:
+  - `InventoryOverlay` now uses `ItemLabelFormatter.abbreviateForInventory(...)`
+  - `ShopOverlay` now uses `ItemLabelFormatter.formatShopBuyLine(...)` and `formatInventorySellLine(...)`
+- Added focused regression coverage:
+  - `java/client/src/test/java/com/indieniinja/client/ui/ItemLabelFormatterTest.java`
+  - verifies inventory/shop abbreviation parity, sell-price table parity, and exact formatted line outputs.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp4`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-4`
+  `./gradlew :client:test --tests com.indieniinja.client.ui.ItemLabelFormatterTest --no-daemon` -> PASS.
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp4`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-4`
+  `./gradlew :client:test --no-daemon` -> PASS.
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.04` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `gh run list --limit 3 --json status,conclusion,name,headSha` -> latest `CI` and `Release` are `success`.
+
+Known issues/risks:
+- Default `python` shim remains unreliable in this environment; explicit Python path is still required for deterministic version-sync gate runs.
+- OneDrive-backed temp cache lock contention remains an intermittent local risk; isolated `LOCALAPPDATA`/`GRADLE_USER_HOME` roots mitigate it.
+
+First action next session:
+- Run the dead-code/path-removal cleanup slice for unused UI fields/helpers and verify no render/input behavior changes.

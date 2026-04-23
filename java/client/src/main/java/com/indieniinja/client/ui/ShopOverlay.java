@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.indieniinja.network.InventoryState;
@@ -47,7 +46,6 @@ public final class ShopOverlay {
 
     private final BitmapFont    font;
     private final ShapeRenderer shapes;
-    private final GlyphLayout   layout = new GlyphLayout();
 
     private static final float PANEL_W = 260f;
     private static final float PANEL_H = 320f;
@@ -188,9 +186,7 @@ public final class ShopOverlay {
         List<String> invLines = new ArrayList<>(invSlots.size());
         for (InventoryState.SlotState s : invSlots) {
             if (s == null) continue;
-            int sell = sellPrice(s.itemId());
-            invLines.add(String.format("%-10s x%-2d  sell %dg",
-                abbrev(s.itemId()), s.quantity(), sell));
+            invLines.add(ItemLabelFormatter.formatInventorySellLine(s.itemId(), s.quantity()));
         }
         renderPanel(batch, "INVENTORY  (sell)", panelX + PANEL_W + PAD, panelY, !shopPanelActive,
             invLines, selectedInvIdx);
@@ -228,9 +224,8 @@ public final class ShopOverlay {
     private String formatShopItem(ShopState.ShopItemState item, PlayerState player) {
         boolean canAfford = player != null && player.inventory != null
             && player.inventory.currency >= item.buyPrice();
-        return String.format("%-10s stk:%-2d  %dg%s",
-            abbrev(item.itemId()), item.stock(), item.buyPrice(),
-            canAfford ? "" : " !");
+        return ItemLabelFormatter.formatShopBuyLine(
+            item.itemId(), item.stock(), item.buyPrice(), canAfford);
     }
 
     private static List<InventoryState.SlotState> inventorySlots(PlayerState p) {
@@ -240,41 +235,6 @@ public final class ShopOverlay {
             if (s != null) result.add(s);
         }
         return result;
-    }
-
-    private static int sellPrice(String itemId) {
-        // Client-side estimate: 50% of base value × rarity mult (matches server logic)
-        // We can't import ItemDatabase (server package), so keep a simple table
-        return switch (itemId != null ? itemId : "") {
-            case "weapon_dagger"        ->  7;
-            case "weapon_sword"         -> 15;
-            case "weapon_steel_sword"   -> 30; // 75×4×0.5/5 ≈ 30
-            case "weapon_crystal_blade" -> 80;
-            case "weapon_dark_blade"    ->200;
-            case "armor_cloth"          ->  5;
-            case "armor_leather"        -> 10;
-            case "armor_chain_mail"     -> 24;
-            case "health_potion"        ->  2;
-            case "health_potion_small"  ->  1;
-            case "health_potion_medium" ->  4;
-            case "health_potion_large"  -> 10;
-            case "speed_boost_potion"   ->  6;
-            case "invincibility_potion" -> 20;
-            case "max_hp_upgrade"       -> 40;
-            case "coin"                 ->  1;
-            case "material_iron"        ->  2;
-            case "material_crystal"     ->  8;
-            case "material_dark_essence"-> 24;
-            default -> 1;
-        };
-    }
-
-    private static String abbrev(String id) {
-        if (id == null) return "?";
-        String s = id.replace("weapon_", "").replace("armor_", "")
-                      .replace("material_", "").replace("health_potion", "hpot")
-                      .replace("_potion", "pot").replace("_", ".");
-        return s.length() > 10 ? s.substring(0, 10) : s;
     }
 
     public void dispose() {
