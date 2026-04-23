@@ -68,6 +68,11 @@ public final class HudRenderer {
     private static final Color TRACKER_UNLOCKED_COLOR = new Color(0.45f, 1f, 0.45f, 1f);
     private static final Color TRACKER_META_COLOR     = new Color(0.80f, 0.86f, 0.94f, 0.95f);
     private static final Color TRACKER_DONE_COLOR     = new Color(0.55f, 1f, 0.55f, 0.95f);
+    private static final Color BOSS_PHASE_BASE_COLOR  = new Color(0.6f, 0.2f, 0.7f, 1f);
+    private static final Color BOSS_PHASE_2_COLOR     = new Color(0.9f, 0.8f, 0.1f, 1f);
+    private static final Color BOSS_PHASE_3_COLOR     = new Color(0.9f, 0.45f, 0.1f, 1f);
+    private static final Color BOSS_PHASE_4_COLOR     = new Color(0.85f, 0.1f, 0.1f, 1f);
+    private static final float[] BOSS_PHASE_DIVIDER_PCTS = {0.75f, 0.50f, 0.25f};
     private final java.util.List<String> toastTexts = new java.util.ArrayList<>();
     private final java.util.List<Float>  toastTtls  = new java.util.ArrayList<>();
     // Active mission tracker (fed by GameScreen each frame).
@@ -245,18 +250,12 @@ public final class HudRenderer {
                 shapes.rect(bBarX - 2, bBarY - 2, bBarW + 4, bBarH + 4);
 
                 // Filled — colour by phase
-                Color bCol = switch (boss.phase) {
-                    case 2  -> new Color(0.9f, 0.8f, 0.1f, 1f);
-                    case 3  -> new Color(0.9f, 0.45f, 0.1f, 1f);
-                    case 4  -> new Color(0.85f, 0.1f, 0.1f, 1f);
-                    default -> new Color(0.6f, 0.2f, 0.7f, 1f);
-                };
-                shapes.setColor(bCol);
+                shapes.setColor(bossPhaseColor(boss.phase));
                 shapes.rect(bBarX, bBarY, bBarW * Math.max(0, bRatio), bBarH);
 
                 // Phase divider lines at 75/50/25%
                 shapes.setColor(0f, 0f, 0f, 0.6f);
-                for (float pct : new float[]{0.75f, 0.50f, 0.25f}) {
+                for (float pct : BOSS_PHASE_DIVIDER_PCTS) {
                     shapes.rect(bBarX + bBarW * pct - 1f, bBarY, 2f, bBarH);
                 }
             }
@@ -439,8 +438,7 @@ public final class HudRenderer {
 
         // ── Death overlay ─────────────────────────────────────────────────────
         if (snap != null) {
-            boolean localDead = snap.players.stream()
-                .anyMatch(p -> p.slot == localSlot && p.isDead);
+            boolean localDead = isPlayerDead(snap.players, localSlot);
             if (localDead) {
                 // Dark translucent vignette
                 shapes.setProjectionMatrix(screenCam.combined);
@@ -874,6 +872,22 @@ public final class HudRenderer {
         if (ratio > 0.6f) return Color.GREEN;
         if (ratio > 0.3f) return Color.YELLOW;
         return Color.RED;
+    }
+
+    private static Color bossPhaseColor(int phase) {
+        return switch (phase) {
+            case 2 -> BOSS_PHASE_2_COLOR;
+            case 3 -> BOSS_PHASE_3_COLOR;
+            case 4 -> BOSS_PHASE_4_COLOR;
+            default -> BOSS_PHASE_BASE_COLOR;
+        };
+    }
+
+    private static boolean isPlayerDead(java.util.List<PlayerState> players, int slot) {
+        for (PlayerState p : players) {
+            if (p.slot == slot && p.isDead) return true;
+        }
+        return false;
     }
 
     private static String stanceLabel(PlayerState p) {

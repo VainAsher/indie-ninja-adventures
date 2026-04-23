@@ -274,6 +274,7 @@ public final class GameScreen implements Screen {
      * quick taps are not lost between 60 Hz updates.
      */
     private final InputCommand latchedRealtimeInput = new InputCommand();
+    private final java.util.Map<Integer, InputCommand> soloStepInputs = new java.util.HashMap<>(1);
 
     // ── Megamap state ─────────────────────────────────────────────────────────
     /** Number of rooms in the built megamap (0 = not built yet). */
@@ -526,8 +527,7 @@ public final class GameScreen implements Screen {
 
         // ── Overlay input priority: crafting > shop > inventory > dialogue > game
         // Use prevSnap (last frame's snapshot) since this frame's snap hasn't been polled yet.
-        PlayerState prevLocal = prevSnap == null ? null : prevSnap.players.stream()
-            .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+        PlayerState prevLocal = prevSnap == null ? null : findPlayerBySlot(prevSnap.players, localSlot);
         boolean craftConsumed = false;
         boolean shopConsumed  = false;
         boolean invConsumed   = false;
@@ -646,12 +646,14 @@ public final class GameScreen implements Screen {
             accumulator += delta;
             while (accumulator >= PHYSICS_DT) {
                 InputCommand cmd = (soloReplay != null)
-                        ? soloReplay.inputsForTick(localFrame).getOrDefault(0, new InputCommand())
+                        ? inputForReplayTick(localFrame)
                         : consumeLatchedRealtimeInput();
                 if (soloMode) {
                     // Offline: step local sim directly and push snapshot to stateBuffer.
                     if (soloRecorder.isRecording()) soloRecorder.record(localFrame, 0, cmd);
-                    localSim.step(java.util.Map.of(0, cmd));
+                    soloStepInputs.clear();
+                    soloStepInputs.put(0, cmd);
+                    localSim.step(soloStepInputs);
                     if (localSim.drainPendingScriptedLoss()) {
                         stateBuffer.markScriptedLoss();
                     }
@@ -732,8 +734,7 @@ public final class GameScreen implements Screen {
 
             // Check portal interaction first (portals are closer to the player than NPCs typically)
             boolean portalTriggered = false;
-            PlayerState localPlayer = snap.players.stream()
-                .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+            PlayerState localPlayer = findPlayerBySlot(snap.players, localSlot);
             if (localPlayer != null) {
                 float pcx = localPlayer.posX + 14f;  // player centre (width=28/2)
                 float pcy = localPlayer.posY + 28f;  // player centre (height=56/2)
@@ -844,10 +845,7 @@ public final class GameScreen implements Screen {
                 cachedPickups = java.util.List.of();
                 // Room entry is a meaningful checkpoint — trigger auto-save
                 if (saveManager != null) saveManager.markDirty();
-                PlayerState lp = snap.players.stream()
-                    .filter(p -> p.slot == localSlot)
-                    .findFirst()
-                    .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
+                PlayerState lp = findPlayerBySlotOrFirst(snap.players, localSlot);
                 float px = lp != null ? lp.posX : 0f;
                 float py = lp != null ? lp.posY : 0f;
                 log.info("[Playtest][Room] changed hub={} ({},{})→({},{}) pos=({}, {})",
@@ -906,9 +904,7 @@ public final class GameScreen implements Screen {
                 // Snap camera to player's world-space position directly —
                 // entities are in world-space so posX/Y are already the correct target.
                 if (!snap.players.isEmpty()) {
-                    PlayerState snapLocal = snap.players.stream()
-                        .filter(p -> p.slot == localSlot).findFirst()
-                        .orElse(snap.players.get(0));
+                    PlayerState snapLocal = findPlayerBySlotOrFirst(snap.players, localSlot);
                     camera.snapTo(snapLocal.posX, snapLocal.posY);
                 }
             }
@@ -942,10 +938,7 @@ public final class GameScreen implements Screen {
             // ── Camera follow ─────────────────────────────────────────────────
             // Entities and player are in world-space — follow posX/Y directly.
             if (!snap.players.isEmpty()) {
-                PlayerState local = snap.players.stream()
-                    .filter(p -> p.slot == localSlot)
-                    .findFirst()
-                    .orElse(snap.players.get(0));
+                PlayerState local = findPlayerBySlotOrFirst(snap.players, localSlot);
                 camera.follow(local.posX, local.posY);
                 camera.clampToBounds(
                     megamapW * PhysicsConstants.TILE_SIZE,
@@ -1039,8 +1032,7 @@ public final class GameScreen implements Screen {
         if (minimapRenderer.isVisible() && !cachedWorldRooms.isEmpty()) {
             WorldSnapshot snapForMap = snap != null ? snap : prevSnap;
             PlayerState localForMap = snapForMap != null
-                ? snapForMap.players.stream().filter(p -> p.slot == localSlot).findFirst()
-                    .orElse(!snapForMap.players.isEmpty() ? snapForMap.players.get(0) : null)
+                ? findPlayerBySlotOrFirst(snapForMap.players, localSlot)
                 : null;
             int   gridX   = snapForMap != null ? snapForMap.roomGridX : 0;
             int   gridY   = snapForMap != null ? snapForMap.roomGridY : 0;
@@ -1063,9 +1055,7 @@ public final class GameScreen implements Screen {
 
         // ── Inventory overlay (screen-space, centre) ──────────────────────────
         if (inventoryOverlay.isVisible() && snap != null) {
-            PlayerState localInv = snap.players.stream()
-                .filter(p -> p.slot == localSlot).findFirst()
-                .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
+            PlayerState localInv = findPlayerBySlotOrFirst(snap.players, localSlot);
             batch.setProjectionMatrix(hudRenderer.screenProjection());
             batch.begin();
             inventoryOverlay.render(batch, localInv);
@@ -1075,9 +1065,7 @@ public final class GameScreen implements Screen {
 
         // ── Shop overlay (screen-space, centre) ───────────────────────────────
         if (shopOverlay.isVisible() && snap != null) {
-            PlayerState localShop = snap.players.stream()
-                .filter(p -> p.slot == localSlot).findFirst()
-                .orElse(!snap.players.isEmpty() ? snap.players.get(0) : null);
+            PlayerState localShop = findPlayerBySlotOrFirst(snap.players, localSlot);
             batch.setProjectionMatrix(hudRenderer.screenProjection());
             batch.begin();
             shopOverlay.render(batch, localShop);
@@ -1087,9 +1075,7 @@ public final class GameScreen implements Screen {
 
         // ── Death / respawn overlay ───────────────────────────────────────────
         if (snap != null) {
-            PlayerState localPlayer = snap.players.stream()
-                .filter(p -> p.slot == localSlot)
-                .findFirst().orElse(null);
+            PlayerState localPlayer = findPlayerBySlot(snap.players, localSlot);
             if (localPlayer != null && localPlayer.isDead) {
                 hudRenderer.renderDeathOverlay(localPlayer.respawnTimer);
             }
@@ -1147,10 +1133,7 @@ public final class GameScreen implements Screen {
         if (snap == null || scriptedLossCollapseTimer <= 0f || snap.players == null || snap.players.isEmpty()) {
             return;
         }
-        PlayerState local = snap.players.stream()
-            .filter(p -> p.slot == localSlot)
-            .findFirst()
-            .orElse(snap.players.get(0));
+        PlayerState local = findPlayerBySlotOrFirst(snap.players, localSlot);
         if (local == null || local.isDead) return;
         local.animState = "collapse";
     }
@@ -1371,9 +1354,7 @@ public final class GameScreen implements Screen {
         MissionDefinition def = missionManager.getActiveDefinition();
         if (def == null) return;
 
-        PlayerState local = snap.players.stream()
-            .filter(p -> p.slot == localSlot)
-            .findFirst().orElse(null);
+        PlayerState local = findPlayerBySlot(snap.players, localSlot);
         if (local == null) return;
 
         buildMissionContactVolumes(snap, def, activeMissionId);
@@ -2395,10 +2376,7 @@ public final class GameScreen implements Screen {
 
     private void logLocalPlaytestState(WorldSnapshot snap) {
         if (snap == null || snap.players == null || snap.players.isEmpty()) return;
-        PlayerState local = snap.players.stream()
-            .filter(p -> p.slot == localSlot)
-            .findFirst()
-            .orElse(snap.players.get(0));
+        PlayerState local = findPlayerBySlotOrFirst(snap.players, localSlot);
         if (local == null) return;
 
         if (lastLoggedStanceMode == null || !lastLoggedStanceMode.equals(local.stanceMode)) {
@@ -2493,8 +2471,7 @@ public final class GameScreen implements Screen {
         }
 
         // ── Ability unlocks (Loop 20) ─────────────────────────────────────────
-        com.indieniinja.network.PlayerState localP = snap.players.stream()
-            .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+        com.indieniinja.network.PlayerState localP = findPlayerBySlot(snap.players, localSlot);
         if (localP != null) {
             for (String ab : localP.abilities) {
                 if (!prevLocalAbilities.contains(ab)) {
@@ -2599,8 +2576,7 @@ public final class GameScreen implements Screen {
                 }
             }
         } else if (prevSnap != null) {
-            PlayerState local = prevSnap.players.stream()
-                .filter(p -> p.slot == localSlot).findFirst().orElse(null);
+            PlayerState local = findPlayerBySlot(prevSnap.players, localSlot);
             if (local != null) {
                 live.currentHubId = prevSnap.hubId;
                 live.currentHubX  = local.posX;
@@ -2758,6 +2734,26 @@ public final class GameScreen implements Screen {
         latchedRealtimeInput.stanceSwitch = false;
         latchedRealtimeInput.selectWeapon1 = false;
         latchedRealtimeInput.selectWeapon2 = false;
+    }
+
+    private InputCommand inputForReplayTick(long frame) {
+        java.util.Map<Integer, InputCommand> replayInputs = soloReplay.inputsForTick(frame);
+        InputCommand cmd = replayInputs.get(0);
+        return cmd != null ? cmd : new InputCommand();
+    }
+
+    private static PlayerState findPlayerBySlot(java.util.List<PlayerState> players, int slot) {
+        if (players == null || players.isEmpty()) return null;
+        for (PlayerState p : players) {
+            if (p.slot == slot) return p;
+        }
+        return null;
+    }
+
+    private static PlayerState findPlayerBySlotOrFirst(java.util.List<PlayerState> players, int slot) {
+        PlayerState found = findPlayerBySlot(players, slot);
+        if (found != null) return found;
+        return (players == null || players.isEmpty()) ? null : players.get(0);
     }
 
     private static InputCommand copyInputCommand(InputCommand src) {

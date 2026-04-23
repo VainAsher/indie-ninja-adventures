@@ -158,7 +158,7 @@ Maintainability:
 - [x] dead or unreachable code
 
 Performance:
-- [ ] hot-path allocations
+- [x] hot-path allocations
 - [ ] expensive loops in per-tick or per-frame paths
 - [ ] avoidable map/list churn in core loops
 
@@ -529,3 +529,58 @@ Known issues/risks:
 
 First action next session:
 - Run a focused performance-review slice on client hot-path allocations (`GameScreen`/`HudRenderer`) and capture before/after evidence if any low-risk reductions are applied.
+
+### Loop ID: CRCL-2026-04-23-07
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: performance slice on client hot-path allocations in `GameScreen` and `HudRenderer`.
+- Supporting tasks: keep runtime behavior unchanged, validate full client tests, refresh docs/version/CI evidence.
+- First validation command: `./gradlew :client:test --no-daemon`
+- Resume risk notes: `env` (temp cache/network constraints and iterative compile/test loops).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: reduce avoidable per-frame/per-tick allocations in high-frequency render/sim paths without changing gameplay behavior.
+- Player-facing impact: none expected (performance/readability cleanup only).
+- Systems touched: `java/client` (`GameScreen`, `HudRenderer`).
+- Risks: low; broad method-touch in frame loop but logic preserved.
+- Required tests: full `:client:test`.
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: revert `GameScreen`/`HudRenderer` changes for this loop.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- `GameScreen` hot-path allocation reductions:
+  - Replaced repeated `players.stream().filter(...).findFirst()` calls with helper-based slot lookups (`findPlayerBySlot`, `findPlayerBySlotOrFirst`) across render/tick paths.
+  - Added `inputForReplayTick(long)` to avoid eager `new InputCommand()` allocation on every replay tick.
+  - Replaced per-tick `Map.of(0, cmd)` allocation in solo sim step with reusable `soloStepInputs` map (`clear` + `put`).
+- `HudRenderer` hot-path allocation reductions:
+  - Replaced per-frame boss-phase `new Color(...)` creation with static phase color constants.
+  - Replaced per-frame `new float[]{0.75f, 0.50f, 0.25f}` divider array with static constant.
+  - Replaced death-overlay stream/lambda check with loop helper (`isPlayerDead`).
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp6`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-6`
+  `./gradlew :client:test --no-daemon` -> PASS.
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.04` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `gh run list --limit 3 --json status,conclusion,name,headSha` -> latest `CI` and `Release` are `success`.
+
+Known issues/risks:
+- One intermediate compile failure during the loop (`inputForReplayTick` parameter type mismatch) was fixed immediately (`int` -> `long`).
+- Commit status: intentionally left uncommitted pending user direction after this performance slice.
+
+First action next session:
+- Run the next performance review slice on expensive per-frame loops and map/list churn in render/update paths, with targeted micro-optimizations only where behavior remains unchanged.
