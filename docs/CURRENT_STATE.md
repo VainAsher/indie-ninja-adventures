@@ -252,6 +252,21 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: execute interactive `Daily Smoke` and relevant golden routes, then attach evidence; code cleanup slices are otherwise complete.
 
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Interactive Runtime Gate Closure)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master` (CRCL-21 manual-gate closure in progress)
+- Current version: `v0.12.05`
+- Systems touched: cleanup-lane runtime-gate closeout notes (`PLAN_CODE_REVIEW_AND_CLEANUP.md`) and manual evidence capture linkage.
+- Validation run:
+  - Interactive `Daily Smoke` route: PASS (user-confirmed)
+  - Golden `G7` replay playback: PASS (`docs/reports/manual-runtime/manual-20260423-232647/g7-replay.log`)
+  - Golden `G8` network connect/drop: PASS (`docs/reports/manual-runtime/manual-20260423-232647/client-a.log`, `client-b.log`, `server.log`)
+  - Evidence index captured: `Get-ChildItem docs/reports/manual-runtime/manual-20260423-232647 | Select Name,Length,LastWriteTime`
+- Known issue or risk: no new blocker identified; cleanup-lane manual runtime gates are now satisfied.
+- Compatibility impact: replay=`no` (validation-only), save=`no`, protocol=`no`.
+- First action next session: cleanup lane complete; continue with the next highest-priority implementing slice from `PLAN_SHADOW_ASCENT.md` after running `SESSION_START_WORKFLOW.md`.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22

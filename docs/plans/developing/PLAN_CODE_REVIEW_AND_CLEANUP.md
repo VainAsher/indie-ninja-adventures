@@ -112,8 +112,8 @@ Cleanup categories:
 - [x] `cd java && ./gradlew :server:test :client:test --no-daemon` (or targeted test command for scoped slices)
 
 ### C2 Runtime gates
-- [ ] Daily smoke route (`DAILY_SMOKE_WORKFLOW.md`) when runtime behavior was touched
-- [ ] Golden pair/full golden run (`GOLDEN_PATH_REGRESSION.md`) for touched systems
+- [x] Daily smoke route (`DAILY_SMOKE_WORKFLOW.md`) when runtime behavior was touched
+- [x] Golden pair/full golden run (`GOLDEN_PATH_REGRESSION.md`) for touched systems
 
 ### C3 Compatibility gates
 - [x] If persistence/replay/protocol/schema touched, complete classification:
@@ -1327,3 +1327,64 @@ Known issues/risks:
 
 First action next session:
 - Execute interactive smoke/golden (`Daily Smoke` + relevant goldens) and attach pass/fail evidence; code cleanup slices are otherwise complete.
+
+### Loop ID: CRCL-2026-04-23-21
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.05`
+- Primary target: close remaining manual runtime gates by executing interactive Daily Smoke + relevant Goldens and attach concrete evidence bundle.
+- Supporting tasks: capture launcher/server/client/replay logs, record pass/fail and first-failure-point (if any), and update cleanup-lane closeout docs.
+- First validation command: `Get-ChildItem docs\reports\manual-runtime\manual-20260423-232647 | Select Name,Length,LastWriteTime`
+- Resume risk notes: `runtime` (manual interactive path execution).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: satisfy deferred C2 runtime gates from CRCL-20 using interactive evidence bundle and user-confirmed outcomes.
+- Player-facing impact: none (validation/closeout only).
+- Systems touched: `docs/plans/developing/PLAN_CODE_REVIEW_AND_CLEANUP.md`, `docs/CURRENT_STATE.md`.
+- Risks: low; documentation-only evidence closure.
+- Required tests: interactive `DAILY_SMOKE_WORKFLOW.md`; interactive `GOLDEN_PATH_REGRESSION.md` (relevant routes for touched systems: G7 replay playback, G8 network connect/drop).
+- Docs to update: this execution log and `docs/CURRENT_STATE.md`.
+- Rollback plan: revert runtime-gate checkbox updates and loop-closeout notes.
+
+Review map and findings:
+- `runtime evidence`: interactive evidence bundle exists at `docs/reports/manual-runtime/manual-20260423-232647/` with server/client/replay logs.
+- `docs`: C2 runtime-gate checklist still open from prior terminal-only slice; now closable with provided evidence.
+
+Implemented cleanup (`no-behavior-change`):
+- Closed deferred C2 runtime gates after interactive execution evidence was supplied.
+- Recorded user-confirmed PASS status for Daily Smoke and relevant Goldens in cleanup-lane closeout log.
+
+Smoke/golden result:
+- `Daily Smoke` route: PASS (user-confirmed).
+- Golden `G7` replay playback: PASS (log: `g7-replay.log`).
+- Golden `G8` network connect/drop: PASS (logs: `client-a.log`, `client-b.log`, `server.log`).
+- Evidence bundle: `docs/reports/manual-runtime/manual-20260423-232647/`:
+  - `build.txt`
+  - `docs_freshness.txt`
+  - `version_sync.txt`
+  - `server.log`
+  - `client-a.log`
+  - `client-b.log`
+  - `g7-replay.log`
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no format impact (runtime validation only)
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `Get-ChildItem docs\reports\manual-runtime\manual-20260423-232647 | Select Name,Length,LastWriteTime` -> PASS (files present).
+- User-confirmed manual interactive outcomes: PASS.
+
+Known issues/risks:
+- No remaining blocker for cleanup-lane closure.
+
+First action next session:
+- Cleanup lane is complete; resume the next priority from the active implementation plan (`PLAN_SHADOW_ASCENT.md`) under standard session-start workflow.
