@@ -386,6 +386,112 @@ class ServerProtocolHandlerMissionPickupSeedTest {
     }
 
     @Test
+    void missionReturnTravelClearsContractsAndSkipsDestinationReseed() throws Exception {
+        GameSession session = new GameSession(20260423L);
+        ServerProtocolHandler handler = new ServerProtocolHandler(session);
+        EmbeddedChannel senderChannel = new EmbeddedChannel(handler);
+        try {
+            HubRegistry.HubDef missionHubDef = HubRegistry.get("forest_hub");
+            long missionZoneSeed = HubRegistry.hubSeed(session.worldSeed, "forest_hub");
+            WorldGraph missionGraph = WorldGraph.generate(
+                missionZoneSeed,
+                missionHubDef.roomCount(),
+                WorldGraph.WorldShape.valueOf(missionHubDef.graphShape())
+            );
+            WorldGraph.RoomNode missionStart = missionGraph.startRoom();
+            String missionZoneKey = "forest_hub:" + missionStart.gridX + ":" + missionStart.gridY;
+            ZoneInstance missionZone = new ZoneInstance(
+                missionZoneKey,
+                "forest_hub",
+                missionZoneSeed,
+                missionHubDef.graphShape(),
+                missionHubDef.roomCount(),
+                session.worldSeed,
+                missionStart.gridX * 32f,
+                missionStart.gridY * 32f
+            );
+            missionZone.worldGraph = missionGraph;
+
+            HubRegistry.HubDef centralHubDef = HubRegistry.get("central_hub");
+            long centralZoneSeed = HubRegistry.hubSeed(session.worldSeed, "central_hub");
+            WorldGraph centralGraph = WorldGraph.generate(
+                centralZoneSeed,
+                centralHubDef.roomCount(),
+                WorldGraph.WorldShape.valueOf(centralHubDef.graphShape())
+            );
+            WorldGraph.RoomNode centralStart = centralGraph.startRoom();
+            String centralZoneKey = "central_hub:" + centralStart.gridX + ":" + centralStart.gridY;
+            ZoneInstance centralZone = new ZoneInstance(
+                centralZoneKey,
+                "central_hub",
+                centralZoneSeed,
+                centralHubDef.graphShape(),
+                centralHubDef.roomCount(),
+                session.worldSeed,
+                centralStart.gridX * 32f,
+                centralStart.gridY * 32f
+            );
+            centralZone.worldGraph = centralGraph;
+
+            PlayerRecord sender = new PlayerRecord("p1", 0, senderChannel);
+            sender.hubId = missionZone.hubId;
+            session.players.put(sender.playerId, sender);
+            missionZone.playerIds.add(sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            Map<String, String> channelToPlayer =
+                (Map<String, String>) getField(handler, "channelToPlayer");
+            channelToPlayer.put(senderChannel.id().asShortText(), sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            ConcurrentHashMap<String, ZoneInstance> zones =
+                (ConcurrentHashMap<String, ZoneInstance>) getField(handler, "zones");
+            zones.put(missionZone.hubId, missionZone);
+            zones.put(centralZone.hubId, centralZone);
+
+            Method rememberContract = ServerProtocolHandler.class.getDeclaredMethod(
+                "rememberMissionPickupSeedContract",
+                String.class,
+                String.class,
+                String.class,
+                Map.class
+            );
+            rememberContract.setAccessible(true);
+            rememberContract.invoke(handler, sender.playerId, missionZone.hubId, "mission_a", Map.of("relic", 2));
+            rememberContract.invoke(handler, sender.playerId, centralZone.hubId, "mission_stale", Map.of("key_old", 1));
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> contracts =
+                (Map<String, Object>) getField(handler, "missionPickupSeedContractsByPlayerZone");
+            assertThat(contracts.keySet()).containsExactlyInAnyOrder(
+                sender.playerId + "|" + missionZone.hubId,
+                sender.playerId + "|" + centralZone.hubId
+            );
+
+            Method handlePortalTravel = ServerProtocolHandler.class.getDeclaredMethod(
+                "handlePortalTravel",
+                ChannelHandlerContext.class,
+                WireMessage.class
+            );
+            handlePortalTravel.setAccessible(true);
+            ChannelHandlerContext senderCtx = senderChannel.pipeline().context(handler);
+            WireMessage portalTravel = new WireMessage("portal_travel", Map.of(
+                "destination_id", "central_hub",
+                "transition_type", "mission_return"
+            ));
+            handlePortalTravel.invoke(handler, senderCtx, portalTravel);
+
+            assertThat(sender.hubId).isEqualTo(centralZone.hubId);
+            assertThat(missionZone.playerIds).doesNotContain(sender.playerId);
+            assertThat(centralZone.playerIds).contains(sender.playerId);
+            assertThat(contracts).isEmpty();
+            assertThat(centralZone.pendingMissionPickupSeeds.poll()).isNull();
+        } finally {
+            senderChannel.close();
+        }
+    }
+
+    @Test
     void disconnectKeepsCurrentHubContractAndClearsStaleContractsForPlayer() throws Exception {
         GameSession session = new GameSession(424242L);
         ServerProtocolHandler handler = new ServerProtocolHandler(session);

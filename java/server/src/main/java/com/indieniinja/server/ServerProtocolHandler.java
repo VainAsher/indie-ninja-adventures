@@ -261,6 +261,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             "transition_type",
             PORTAL_TRANSITION_INTER_HUB
         ));
+        boolean missionReturn = PORTAL_TRANSITION_MISSION_RETURN.equals(transitionType);
         ZoneInstance oldZone = zones.get(player.hubId);
         String originHubId = oldZone != null ? oldZone.masterHubId : player.hubId;
 
@@ -297,13 +298,24 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
                 "hub_id", oldZone.hubId, "action", "departed"
             ));
         }
+        if (missionReturn) {
+            int clearedContracts = forgetMissionPickupSeedContractsForPlayer(pid);
+            if (clearedContracts > 0) {
+                log.info(
+                    "[Mission][Net] mission_return cleared {} mission pickup seed contract(s) player={} session={} slot={}",
+                    clearedContracts, pid, player.sessionId, player.slot
+                );
+            }
+        }
 
         // Get or create destination zone (start room of that hub)
         ZoneInstance newZone = getOrCreateStartZone(destHubId);
         String destinationSpawnRoomId = newZone.hubId;
         player.hubId = newZone.hubId;
         newZone.playerIds.add(pid);
-        queueMissionPickupReseedForPlayerIfPresent(player, newZone);
+        if (!missionReturn) {
+            queueMissionPickupReseedForPlayerIfPresent(player, newZone);
+        }
         log.info(
             "[Server][Playtest][Portal] portal travel type={} player_id={} session_id={} origin_hub_id={} destination_hub_id={} destination_spawn_room_id={}",
             transitionType, pid, player.sessionId, originHubId, destHubId, destinationSpawnRoomId
@@ -704,6 +716,10 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             }
         }
         return removed;
+    }
+
+    private int forgetMissionPickupSeedContractsForPlayer(String playerId) {
+        return forgetMissionPickupSeedContractsForPlayerExceptHub(playerId, null);
     }
 
     private void clearMissionPickupSeedContract(PlayerRecord sender, Map<String, Object> payload) {

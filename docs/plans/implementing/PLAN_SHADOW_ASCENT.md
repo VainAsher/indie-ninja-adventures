@@ -2,12 +2,12 @@
 doc_type: plan
 status: implementing
 owner: core-team
-last_updated: 2026-04-22
+last_updated: 2026-04-23
 version_anchor: v0.12.03
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-22 | **Codebase version:** v0.12.03 | **Next release target:** v0.12.04 (stabilization follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-23 | **Codebase version:** v0.12.03 | **Next release target:** v0.12.04 (stabilization follow-up)
 
 ---
 
@@ -93,6 +93,20 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-23 08:36:53 +01:00`
+
+- `v0.12.04` stabilization slice 6: mission-return portal-travel contract lifecycle hardening for hosted mission pickup correctness.
+  - `ServerProtocolHandler.handlePortalTravel(...)` now detects `transition_type=mission_return`, clears mission pickup seed contracts for the travelling player, and skips destination reseed queuing for that travel type.
+  - This prevents mission-return path stale-contract carry-over and avoids reseeding mission pickups into return hubs.
+- Added regression coverage:
+  - `ServerProtocolHandlerMissionPickupSeedTest.missionReturnTravelClearsContractsAndSkipsDestinationReseed`.
+- Validation:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` ✅
+  - `python tools/check_version_sync.py` ✅
+  - `python tools/check_docs_freshness.py --emit-report` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
 
 `2026-04-23 08:10:34 +01:00`
 

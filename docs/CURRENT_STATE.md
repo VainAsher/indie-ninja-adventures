@@ -111,3 +111,9 @@ Canonical runtime and handover snapshot for the active Java stack.
   - Added regression: `ServerProtocolHandlerMissionPickupSeedTest.missionSwitchAToBRejoinReseedsMissionBContract`.
   - Validation: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS), `python tools/check_version_sync.py` (PASS), `python tools/check_docs_freshness.py --emit-report` (PASS).
   - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- Progress update (`2026-04-23 08:36:53 +01:00`):
+  - Completed `v0.12.04` stabilization slice 6: mission-return portal-travel mission pickup contract hardening.
+  - `ServerProtocolHandler.handlePortalTravel(...)` now clears mission pickup seed contracts when `transition_type=mission_return` and skips destination reseed queueing for mission-return travel.
+  - Added regression: `ServerProtocolHandlerMissionPickupSeedTest.missionReturnTravelClearsContractsAndSkipsDestinationReseed`.
+  - Validation: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS), `python tools/check_version_sync.py` (PASS), `python tools/check_docs_freshness.py --emit-report` (PASS).
+  - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
