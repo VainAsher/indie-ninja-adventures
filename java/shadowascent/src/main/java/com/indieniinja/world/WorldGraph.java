@@ -71,7 +71,13 @@ public final class WorldGraph {
         public RoomNode(int gx, int gy, RoomType type, long seed, int biomeIndex,
                         Collection<String> dirs) {
             this(gx, gy, type, seed, biomeIndex);
-            neighborDirs.addAll(dirs);
+            if (dirs == null) return;
+            for (String dir : dirs) {
+                String normalized = normalizeDirection(dir);
+                if (normalized != null) {
+                    neighborDirs.add(normalized);
+                }
+            }
         }
 
         public Set<String> neighborDirs() { return Collections.unmodifiableSet(neighborDirs); }
@@ -108,9 +114,10 @@ public final class WorldGraph {
     private final RoomNode            exitRoom;
 
     private WorldGraph(Map<Long, RoomNode> rooms, RoomNode startRoom, RoomNode exitRoom) {
-        this.rooms     = rooms;
-        this.startRoom = startRoom;
-        this.exitRoom  = exitRoom;
+        this.rooms = Collections.unmodifiableMap(new LinkedHashMap<>(
+                Objects.requireNonNull(rooms, "rooms")));
+        this.startRoom = Objects.requireNonNull(startRoom, "startRoom");
+        this.exitRoom = Objects.requireNonNull(exitRoom, "exitRoom");
     }
 
     /**
@@ -119,7 +126,26 @@ public final class WorldGraph {
      */
     public static WorldGraph fromRooms(Map<Long, RoomNode> rooms,
                                         RoomNode startRoom, RoomNode exitRoom) {
-        return new WorldGraph(rooms, startRoom, exitRoom);
+        Objects.requireNonNull(rooms, "rooms");
+        Objects.requireNonNull(startRoom, "startRoom");
+        Objects.requireNonNull(exitRoom, "exitRoom");
+        Map<Long, RoomNode> snapshot = new LinkedHashMap<>();
+        for (Map.Entry<Long, RoomNode> entry : rooms.entrySet()) {
+            Long key = Objects.requireNonNull(entry.getKey(), "room key");
+            RoomNode node = Objects.requireNonNull(entry.getValue(), "room node");
+            snapshot.put(key, node);
+        }
+        long startKey = key(startRoom.gridX, startRoom.gridY);
+        long exitKey = key(exitRoom.gridX, exitRoom.gridY);
+        RoomNode canonicalStart = snapshot.get(startKey);
+        RoomNode canonicalExit = snapshot.get(exitKey);
+        if (canonicalStart == null || canonicalExit == null) {
+            throw new IllegalArgumentException("start/exit room missing from room map");
+        }
+        if (canonicalStart.type != RoomType.START || canonicalExit.type != RoomType.EXIT) {
+            throw new IllegalArgumentException("start/exit room type mismatch in room map");
+        }
+        return new WorldGraph(snapshot, canonicalStart, canonicalExit);
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -135,12 +161,8 @@ public final class WorldGraph {
      * or null if no room exists there.
      */
     public RoomNode neighborRoom(int gx, int gy, String direction) {
-        for (int i = 0; i < DIR_NAMES.length; i++) {
-            if (DIR_NAMES[i].equals(direction)) {
-                return rooms.get(key(gx + DIR_DX[i], gy + DIR_DY[i]));
-            }
-        }
-        return null;
+        int i = dirIndex(direction);
+        return i < 0 ? null : rooms.get(key(gx + DIR_DX[i], gy + DIR_DY[i]));
     }
 
     // ── Generation ────────────────────────────────────────────────────────────
@@ -339,9 +361,24 @@ public final class WorldGraph {
     }
 
     private static int dirIndex(String dir) {
-        for (int i = 0; i < DIR_NAMES.length; i++)
-            if (DIR_NAMES[i].equals(dir)) return i;
-        return -1;
+        String normalized = normalizeDirection(dir);
+        if (normalized == null) return -1;
+        return switch (normalized) {
+            case "up" -> 0;
+            case "down" -> 1;
+            case "left" -> 2;
+            case "right" -> 3;
+            default -> -1;
+        };
+    }
+
+    private static String normalizeDirection(String dir) {
+        if (dir == null) return null;
+        String normalized = dir.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "up", "down", "left", "right" -> normalized;
+            default -> null;
+        };
     }
 
     /**

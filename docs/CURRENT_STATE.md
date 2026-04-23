@@ -143,6 +143,21 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: continue remaining cleanup-lane rubric coverage (authority/race/lifecycle/reliability matrix) and capture smoke/golden evidence when future slices change runtime behavior.
 
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - WorldGraph Lifecycle Hardening)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master @ 630da76` (working tree dirty; local slice not yet committed)
+- Current version: `v0.12.05`
+- Systems touched: world-graph reconstruction hardening (`WorldGraph.fromRooms` ownership/lifecycle guards, direction normalization), state-matrix regression expansion in `WorldGraphGenerationTest`.
+- Validation run:
+  - `./gradlew :server:test --tests com.indieniinja.server.WorldGraphGenerationTest --tests com.indieniinja.server.WorldGraphTest --no-daemon` (PASS)
+  - `python tools/check_version_sync.py --tag v0.12.05` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+  - `gh run list --limit 3 --json status,conclusion,name,headSha` (`CI`=success for `630da76`, latest `Release`=success for `6fdddbf`)
+- Known issue or risk: invalid/corrupted persisted world-graph payloads with missing or type-mismatched start/exit entries are now rejected during reconstruction and should fall back to regeneration in repository load paths.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: continue cleanup-lane rubric coverage on remaining race/order and disconnect/reconnect lifecycle surfaces (`ServerProtocolHandler` + `ZoneSimulationLoop`), and capture smoke/golden evidence if a slice changes player-visible behavior.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22

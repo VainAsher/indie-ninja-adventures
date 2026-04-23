@@ -873,3 +873,65 @@ Known issues/risks:
 
 First action next session:
 - Resume remaining review rubric coverage (authority/race/lifecycle/reliability matrix) and run targeted smoke/golden evidence when a future slice changes runtime behavior.
+
+### Loop ID: CRCL-2026-04-23-13
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.05`
+- Primary target: continue cleanup-lane rubric coverage by hardening `WorldGraph` reconstruction ownership/lifecycle contracts used by persistence reload paths.
+- Supporting tasks: add state-matrix regression coverage for reconstruction guardrails and direction-normalization intake safety.
+- First validation command: `./gradlew :server:test --tests com.indieniinja.server.WorldGraphGenerationTest --tests com.indieniinja.server.WorldGraphTest --no-daemon`
+- Resume risk notes: `runtime` (must preserve valid persisted-world load behavior while hardening invalid-state handling).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: remove authority/lifecycle leakage in `WorldGraph.fromRooms(...)` and harden direction intake for deserialized room neighbor data.
+- Player-facing impact: none expected for valid data; corrupted world-graph payloads now fail fast instead of being accepted silently.
+- Systems touched: `java/shadowascent` (`WorldGraph`), `java/server` tests (`WorldGraphGenerationTest`).
+- Risks: low; constructor/reconstruction and direction normalization changes in world-graph internals.
+- Required tests: `:server:test --tests com.indieniinja.server.WorldGraphGenerationTest --tests com.indieniinja.server.WorldGraphTest`.
+- Docs to update: this cleanup plan execution log and `docs/CURRENT_STATE.md`.
+- Rollback plan: revert `WorldGraph` reconstruction/intake changes and the added regression tests.
+
+Review map and findings:
+- `java/core`: no new P0/P1 findings in this slice; no edits.
+- `java/server`: P2 finding - reconstruction accepted caller-owned mutable room maps and could be mutated after load boundaries.
+- `java/shadowascent`: P2 finding - deserialized `neighborDirs` accepted null/invalid/case-variant entries without normalization.
+- `java/client`: no new findings in this slice; no edits.
+
+Implemented cleanup (`behavior-change`: defensive-hardening, no intended gameplay/runtime contract change for valid data):
+- `WorldGraph` reconstruction ownership/lifecycle hardening:
+  - `fromRooms(...)` now validates non-null inputs, snapshots the room map, resolves canonical start/exit by coordinates, and rejects missing/type-mismatched start/exit entries.
+  - `WorldGraph` constructor now stores an unmodifiable room-map snapshot to prevent external map/view mutation after construction.
+- `WorldGraph.RoomNode` deserialization constructor now normalizes direction strings (`trim + lowercase`) and drops null/unknown directions.
+- `neighborRoom(...)` now uses normalized direction lookup so case/whitespace variants resolve safely.
+
+Regression coverage added:
+- `fromRooms_snapshotUnaffectedByCallerMapMutation`
+- `fromRooms_rejectsMissingStartOrExitInRoomMap`
+- `roomNodeDeserializationConstructorNormalizesDirectionsAndDropsInvalid`
+- `neighborRoom_acceptsCaseAndWhitespaceDirection`
+
+Smoke/golden result:
+- Not run for this slice (`no player-path or mission-flow behavior change`; defensive reconstruction hardening only).
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact (valid persisted graphs unchanged; invalid graphs now fail fast)
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `./gradlew :server:test --tests com.indieniinja.server.WorldGraphGenerationTest --tests com.indieniinja.server.WorldGraphTest --no-daemon` -> PASS.
+
+Known issues/risks:
+- Work remains intentionally uncommitted pending user direction for commit/release loop timing.
+- Corrupted persisted graph payloads with missing/invalid start/exit entries now reject reconstruction; load path should regenerate safely via existing fallback behavior.
+
+First action next session:
+- Continue rubric pass on remaining `race/order` and `disconnect/reconnect safety` surfaces in world/zone transition lifecycle (`ServerProtocolHandler` + `ZoneSimulationLoop`), and run smoke/golden evidence if a slice changes player-visible behavior.

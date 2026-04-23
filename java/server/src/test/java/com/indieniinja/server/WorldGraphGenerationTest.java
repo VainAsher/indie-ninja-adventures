@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Regression tests for WorldGraph generation features added in WORLD-1/2/3/4:
@@ -211,6 +212,66 @@ class WorldGraphGenerationTest {
         assertAllReachable(reconstructed);
     }
 
+    @Test
+    void fromRooms_snapshotUnaffectedByCallerMapMutation() {
+        WorldGraph original = WorldGraph.generate(101L, 12, WorldShape.BRANCHY);
+
+        Map<Long, RoomNode> roomMap = new LinkedHashMap<>();
+        for (RoomNode r : original.allRooms()) {
+            RoomNode rebuilt = new RoomNode(r.gridX, r.gridY, r.type, r.seed,
+                    r.biomeIndex, new ArrayList<>(r.neighborDirs()));
+            roomMap.put(roomKeyLong(r.gridX, r.gridY), rebuilt);
+        }
+        RoomNode newStart = roomMap.values().stream()
+                .filter(r -> r.type == WorldGraph.RoomType.START).findFirst().orElseThrow();
+        RoomNode newExit = roomMap.values().stream()
+                .filter(r -> r.type == WorldGraph.RoomType.EXIT).findFirst().orElseThrow();
+
+        WorldGraph reconstructed = WorldGraph.fromRooms(roomMap, newStart, newExit);
+        int reconstructedSize = reconstructed.size();
+
+        // Mutating caller-owned map after reconstruction must not affect graph state.
+        roomMap.clear();
+
+        assertThat(reconstructed.size()).isEqualTo(reconstructedSize);
+        assertAllReachable(reconstructed);
+    }
+
+    @Test
+    void fromRooms_rejectsMissingStartOrExitInRoomMap() {
+        RoomNode start = new RoomNode(0, 0, WorldGraph.RoomType.START, 1L, 0, List.of("right"));
+        RoomNode exit = new RoomNode(1, 0, WorldGraph.RoomType.EXIT, 2L, 0, List.of("left"));
+        Map<Long, RoomNode> missingExit = new LinkedHashMap<>();
+        missingExit.put(roomKeyLong(start.gridX, start.gridY), start);
+
+        assertThatThrownBy(() -> WorldGraph.fromRooms(missingExit, start, exit))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("missing");
+    }
+
+    @Test
+    void roomNodeDeserializationConstructorNormalizesDirectionsAndDropsInvalid() {
+        RoomNode node = new RoomNode(
+                3, 4, WorldGraph.RoomType.COMBAT, 5L, 1,
+                Arrays.asList(" up ", "RIGHT", null, "", "diag", "left", "right"));
+
+        assertThat(node.neighborDirs())
+                .containsExactlyInAnyOrder("up", "right", "left");
+    }
+
+    @Test
+    void neighborRoom_acceptsCaseAndWhitespaceDirection() {
+        WorldGraph graph = WorldGraph.generate(13L, 14, WorldShape.BLOB);
+        RoomNode start = graph.startRoom();
+        String canonicalDir = start.neighborDirs().iterator().next();
+        RoomNode expected = graph.neighborRoom(start.gridX, start.gridY, canonicalDir);
+
+        RoomNode actual = graph.neighborRoom(
+                start.gridX, start.gridY, " " + canonicalDir.toUpperCase(Locale.ROOT) + " ");
+
+        assertThat(actual).isSameAs(expected);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static void assertAllReachable(WorldGraph g) {
@@ -238,5 +299,9 @@ class WorldGraphGenerationTest {
 
     private static String roomKey(RoomNode r) {
         return r.gridX + "," + r.gridY;
+    }
+
+    private static long roomKeyLong(int x, int y) {
+        return (long) (x + 50000) * 100000L + (y + 50000);
     }
 }
