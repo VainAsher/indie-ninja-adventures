@@ -94,6 +94,24 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-24 00:13:12 +01:00`
+
+- `v0.12.06` release loop completion (`ITERATION_RELEASE_PROTOCOL` step 7/8/9 closure).
+  - Pushed release-prep commits `1a23671` and `0433a6e` to `master`.
+  - Created/pushed annotated tag `v0.12.06`.
+  - Verified `CI` success on `0433a6e` (`run_id=24863406100`).
+  - Verified tag-triggered `Release` success for `v0.12.06` (`run_id=24863406970`).
+  - Verified published assets include docs archive ZIP + `ninja-client-all.jar` + `ninja-server-all.jar`.
+- Validation evidence:
+  - `python tools/check_version_sync.py --tag v0.12.06` ✅
+  - `python tools/check_docs_freshness.py --emit-report` ✅
+  - `./gradlew :server:test :client:test --no-daemon` ✅
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` ✅
+  - `gh run list --limit 6 --json status,conclusion,name,headSha,displayTitle,event` ✅
+  - `gh release view v0.12.06 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets,url` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
+
 `2026-04-23 14:42:16 +01:00`
 
 - `v0.12.05` release loop completion (`ITERATION_RELEASE_PROTOCOL` step 7/8/9 closure).

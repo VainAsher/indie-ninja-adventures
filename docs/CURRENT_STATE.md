@@ -267,6 +267,23 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no` (validation-only), save=`no`, protocol=`no`.
 - First action next session: cleanup lane complete; continue with the next highest-priority implementing slice from `PLAN_SHADOW_ASCENT.md` after running `SESSION_START_WORKFLOW.md`.
 
+## Session Close-Out (2026-04-24, Final v0.12.06 Release Loop)
+
+- Date: 2026-04-24
+- Branch + HEAD: `master @ 0433a6e`
+- Current version: `v0.12.06`
+- Systems touched: release metadata parity (`version.json`, `java/build.gradle.kts`, `README.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`), active-plan/current-state/version-anchor sync, and public comms capture (`docs/devlog/2026-04.md`).
+- Validation run:
+  - `python tools/check_version_sync.py --tag v0.12.06` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+  - `./gradlew :server:test :client:test --no-daemon` (PASS)
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` (PASS)
+  - `gh run list --limit 6 --json status,conclusion,name,headSha` (CI + Release SUCCESS on `0433a6e`)
+  - `gh release view v0.12.06 --json tagName,name,publishedAt,assets,url` (PASS; assets verified)
+- Known issue or risk: combined local Gradle lane (`:server:test :client:test :server:shadowJar :client:shadowJar`) still reproduces `:client:copyJarToRoot` ordering validation under OneDrive; split-lane workflow remains the validated local workaround.
+- Compatibility impact: replay=`no` (determinism hardening only), save=`no`, protocol=`no`.
+- First action next session: continue next implementing stabilization slice from `PLAN_SHADOW_ASCENT.md` (`v0.12.07` target) after session-start workflow.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22
