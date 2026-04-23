@@ -2,6 +2,7 @@ package com.indieniinja.server;
 
 import com.indieniinja.content.ContentRegistry;
 import com.indieniinja.sim.GameMode;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +54,20 @@ public final class GameSession {
      * Slot reserved for a disconnected player's playerId.
      * Allows the same client to reconnect and reclaim their slot within the grace period.
      */
-    private final Map<String, Integer> reservedSlots = new ConcurrentHashMap<>();
+    private final Map<String, SlotReservation> reservedSlots = new ConcurrentHashMap<>();
+
+    private final Clock clock;
+
+    private record SlotReservation(int slot, long expiresAtMs) {}
 
     public GameSession(long worldSeed) {
+        this(worldSeed, Clock.systemUTC());
+    }
+
+    GameSession(long worldSeed, Clock clock) {
         this.worldSeed   = worldSeed;
         this.globalFrame = 0;
+        this.clock = clock;
         for (int i = 0; i < MAX_PLAYERS; i++) freeSlots.add(i);
     }
 
@@ -67,11 +77,17 @@ public final class GameSession {
      * Otherwise return the lowest free slot, or -1 if full.
      */
     public synchronized int claimSlot(String playerId) {
+        long nowMs = clock.millis();
+        releaseExpiredReservations(nowMs);
+
         // Reconnecting player? Give them back their old slot.
-        Integer reserved = reservedSlots.remove(playerId);
+        SlotReservation reserved = reservedSlots.remove(playerId);
         if (reserved != null) {
-            freeSlots.remove(reserved);
-            return reserved;
+            if (reserved.expiresAtMs >= nowMs) {
+                freeSlots.remove(reserved.slot);
+                return reserved.slot;
+            }
+            freeSlots.add(reserved.slot);
         }
         if (freeSlots.isEmpty()) return -1;
         int slot = freeSlots.first();
@@ -84,8 +100,19 @@ public final class GameSession {
      * Remembers the association so the same player can reclaim it on reconnect.
      */
     public synchronized void releaseSlot(String playerId, int slot) {
-        reservedSlots.put(playerId, slot);
-        freeSlots.add(slot);
+        long expiresAtMs = clock.millis() + RECONNECT_GRACE_SECONDS * 1000L;
+        reservedSlots.put(playerId, new SlotReservation(slot, expiresAtMs));
+        freeSlots.remove(slot);
+    }
+
+    private void releaseExpiredReservations(long nowMs) {
+        for (Map.Entry<String, SlotReservation> entry : reservedSlots.entrySet()) {
+            SlotReservation reservation = entry.getValue();
+            if (reservation == null || reservation.expiresAtMs >= nowMs) continue;
+            if (reservedSlots.remove(entry.getKey(), reservation)) {
+                freeSlots.add(reservation.slot);
+            }
+        }
     }
 
     /** Snapshot of currently connected players for broadcast. */

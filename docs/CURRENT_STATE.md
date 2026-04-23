@@ -171,6 +171,18 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: continue remaining cleanup-lane disconnect/reconnect lifecycle ordering pass in `ServerProtocolHandler` and capture manual smoke/golden evidence if player-visible behavior changes.
 
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Reconnect Slot Reservation Ordering)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master @ 83db817` (working tree dirty; local CRCL-15 slice not yet committed)
+- Current version: `v0.12.05`
+- Systems touched: `GameSession` disconnect/reconnect slot lifecycle (`releaseSlot` reservation semantics + `claimSlot` expiry sweep), new deterministic reservation tests in `GameSessionSlotReservationTest`.
+- Validation run:
+  - `./gradlew :server:test --tests com.indieniinja.server.GameSessionSlotReservationTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS)
+- Known issue or risk: `tools/run_p0_regression_suite.py` still references missing `tests/test_data_integrity.py`; workflow evidence runner requires follow-up path correction.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: resolve P0 regression-runner stale data-integrity path, then continue disconnect/reconnect handoff ordering pass in `ServerProtocolHandler`.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22

@@ -994,3 +994,65 @@ Known issues/risks:
 
 First action next session:
 - Continue remaining queued lifecycle/reliability rubric surfaces on disconnect/reconnect flow integrity (`ServerProtocolHandler` contract/zone handoff ordering) and capture manual smoke/golden evidence if a slice changes player-visible routing.
+
+### Loop ID: CRCL-2026-04-23-15
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.05`
+- Primary target: harden disconnect/reconnect slot-lifecycle ordering so reconnect grace reservations cannot be stolen by new joins.
+- Supporting tasks: add deterministic time-controlled regression coverage for slot reservation/grace expiry behavior.
+- First validation command: `./gradlew :server:test --tests com.indieniinja.server.GameSessionSlotReservationTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon`
+- Resume risk notes: `runtime` (multiplayer reconnect/lobby slot ownership path).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: fix reconnect-slot lifecycle ordering bug in `GameSession` where `releaseSlot(...)` immediately returned reserved slots to the free pool.
+- Player-facing impact: reconnecting players retain their reserved slot for the grace period; opportunistic slot theft by new players is prevented.
+- Systems touched: `java/server` (`GameSession`), `java/server` tests (`GameSessionSlotReservationTest`).
+- Risks: medium-low; slot allocation/release policy changed for reconnect grace timing.
+- Required tests: `:server:test --tests com.indieniinja.server.GameSessionSlotReservationTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest`.
+- Docs to update: this cleanup plan execution log and `docs/CURRENT_STATE.md`.
+- Rollback plan: revert reservation/grace handling changes in `GameSession` plus the new slot-reservation tests.
+
+Review map and findings:
+- `java/server`: P1 finding - `GameSession.releaseSlot(...)` added disconnected slots back to `freeSlots` immediately while also storing reservation metadata, allowing reconnect slots to be reassigned before grace expiry.
+- `java/core`: no edits.
+- `java/client`: no edits.
+- `java/shadowascent`: no edits.
+
+Implemented cleanup (`behavior-change`: reconnect-lifecycle reliability hardening):
+- Updated `GameSession` slot reservation model:
+  - `reservedSlots` now tracks `slot + expiresAtMs` reservation records.
+  - `releaseSlot(...)` now reserves slot for grace window and no longer returns it to `freeSlots` immediately.
+  - `claimSlot(...)` now sweeps expired reservations before allocation and only restores reserved slot to the original player when reservation remains valid.
+- Added package-visible clock-injected constructor (`GameSession(long, Clock)`) for deterministic lifecycle tests.
+
+Regression coverage added:
+- `GameSessionSlotReservationTest.reconnectGraceReservesSlotForSamePlayer`
+- `GameSessionSlotReservationTest.expiredReservationReturnsSlotToFreePool`
+- `GameSessionSlotReservationTest.reconnectAfterGraceUsesCurrentFreeSlotInsteadOfExpiredReservation`
+
+Smoke/golden result:
+- Manual smoke/golden route not executed in this terminal slice (non-interactive).
+- Player-visible risk surface covered with deterministic server lifecycle regression tests.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `./gradlew :server:test --tests com.indieniinja.server.GameSessionSlotReservationTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` -> PASS.
+
+Known issues/risks:
+- `tools/run_p0_regression_suite.py` still references missing `tests/test_data_integrity.py`; this is independent of the reconnect-slot fix but remains an outstanding workflow-evidence issue.
+- Work remains intentionally uncommitted pending user direction for commit/release loop timing.
+
+First action next session:
+- Resolve P0 regression-runner stale data-integrity check path, then continue remaining disconnect/reconnect handoff ordering review in `ServerProtocolHandler` (zone transfer + late-join converge sequencing).
