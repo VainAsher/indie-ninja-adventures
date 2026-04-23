@@ -26,9 +26,9 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
 - Next release candidate: v0.12.05 (post-release stabilization follow-up).
-- Latest release verification (`2026-04-22`):
+- Latest release verification (`2026-04-23`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
-  - Tag target: v0.12.03
+  - Tag target: v0.12.04
 
 ## Runtime Reality (Implemented)
 
@@ -107,6 +107,24 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Known issue or risk: combined local Gradle lane (`test + shadowJar` in one invocation) still trips a task-order validation on `:client:copyJarToRoot`; split-lane execution and CI both pass.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: either patch `:client:copyJarToRoot` task dependency ordering so the canonical combined release command passes in one run, or keep split-lane release validation as the documented local workaround.
+
+## Session Close-Out (2026-04-23, Final v0.12.04 Release Loop)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master @ 2044b0d`
+- Current version: `v0.12.04`
+- Systems touched: release metadata/version parity bump, changelog/roadmap/current-state/plan release-note alignment, annotated tag publication, GitHub Release publication verification.
+- Validation run:
+  - `C:\Users\asher\AppData\Local\Programs\Python\Python312\python.exe tools/check_version_sync.py --tag v0.12.04` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+  - `./gradlew :server:test :client:test --no-daemon` (PASS)
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` (PASS)
+  - `gh run list --limit 3 --json status,conclusion,name,headSha` (Release=success + CI=success for `2044b0d`)
+  - `gh run list --limit 8 --json status,conclusion,name,headSha,displayTitle,event` (tag-triggered Release=success for `v0.12.04`, `run_id=24825590863`)
+  - `gh release view v0.12.04 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets` (PASS; docs archive + client/server jars present)
+- Known issue or risk: non-blocking local workflow limitation remains: combined Gradle invocation `:server:test :client:test :server:shadowJar :client:shadowJar` can still trip `:client:copyJarToRoot` task-order validation; split-lane command sequence remains the validated local workaround.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: start `v0.12.05` stabilization planning and decide whether to permanently codify split-lane local release commands or fix `:client:copyJarToRoot` task dependency ordering.
 
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
