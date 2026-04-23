@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-23
-version_anchor: v0.12.05
+last_updated: 2026-04-24
+version_anchor: v0.12.06
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.06] - 2026-04-24 (server lifecycle/race-order reliability + replay determinism hardening)
+
+### Added
+
+- **Targeted server regression coverage for lifecycle and ordering hazards**:
+  - `ServerProtocolHandlerClientHelloOrderingTest.duplicateClientHelloOnSameChannelIsIdempotent`
+  - `ServerProtocolHandlerClientHelloOrderingTest.overlappingClientHelloFromDifferentChannelReclaimsSameSlot`
+  - `ZoneSimulationLoopScriptedLossOrderingTest.simulateTickRecordsReplayInputsInSlotOrder`
+- **Runtime evidence bundle capture for cleanup-lane closure**:
+  - interactive Daily Smoke and relevant Golden routes (G7 replay playback, G8 network connect/drop) were executed and logged under `docs/reports/manual-runtime/`.
+
+### Changed
+
+- **CLIENT_HELLO lifecycle ordering** (`ServerProtocolHandler`):
+  - duplicate hello packets on the same channel are now idempotent and re-ack without slot churn.
+  - overlapping hello packets on a different channel now force old-channel disconnect cleanup before admitting the replacement channel.
+- **Per-tick simulation/replay ordering** (`ZoneSimulationLoop`):
+  - player processing now uses a single sorted zone-player snapshot for input collection and authoritative state write-back.
+  - `playersInZone()` now enforces deterministic ordering (`slot`, then `player_id`) for stable replay input recording.
+
+### Fixed
+
+- **Room authority race from concurrent-set iteration order**: room updates now avoid nondeterministic player ordering artifacts across zone ticks.
+- **Slot/channel drift on duplicate join handshakes**: duplicate or overlapping `CLIENT_HELLO` traffic no longer leaks slot/channel ownership.
+- **Replay input order drift in multiplayer ticks**: recorder frame entries now follow deterministic slot order.
 
 ---
 

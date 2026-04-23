@@ -2,8 +2,8 @@
 doc_type: plan
 status: developing
 owner: core-team
-last_updated: 2026-04-23
-version_anchor: v0.12.05
+last_updated: 2026-04-24
+version_anchor: v0.12.06
 ---
 
 # PLAN - Code Review and Cleanup Lane (Workflow-First)

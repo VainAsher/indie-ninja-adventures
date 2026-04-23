@@ -2,8 +2,8 @@
 doc_type: devlog_index
 status: living
 owner: core-team
-last_updated: 2026-04-21
-version_anchor: v0.11.71
+last_updated: 2026-04-24
+version_anchor: v0.12.06
 replaces: docs/archive/retired/2026-04-15_v0.11.45/DEVLOG.md
 ---
 

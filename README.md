@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.12.05** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.12.06** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,12 +17,12 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.12.05 (client review/cleanup performance hardening)
+## What's in v0.12.06 (server lifecycle + replay determinism cleanup lane closure)
 
-- GameScreen mission/HUD/minimap hot paths now reuse scratch collections instead of per-frame/per-tick list/map allocations.
-- Mission objective progress HUD now reads a stable unmodifiable mission-progress view rather than building per-frame snapshot copies.
-- Minimap world-to-screen projection now reuses a shared projection scratch buffer to remove per-entity/per-marker temp array churn.
-- Minimap room/pickup color selection and room-key handling now use cached constants/keys, with reduced repeated visited-room lookups across render passes.
+- Zone room-authority and player ordering paths are now deterministic across simulation ticks, removing concurrent-set iteration order drift in room updates and replay input capture.
+- Join/rejoin lifecycle hardening now treats duplicate `CLIENT_HELLO` on the same channel as idempotent and safely cleans overlap/takeover channel state before re-admission.
+- Disconnect/reconnect and portal handoff cleanup slices from CRCL-13 through CRCL-21 are now shipped with targeted server regression coverage.
+- Cleanup-lane manual runtime gates were completed with interactive Daily Smoke plus Golden G7/G8 evidence capture.
 
 | System | Status |
 | ------ | ------ |
@@ -111,9 +111,9 @@ Single source of truth: [`version.json`](version.json)
 
 ```json
 {
-  "version": "0.12.05",
+  "version": "0.12.06",
   "build": "production",
-  "build_date": "2026-04-23",
+  "build_date": "2026-04-24",
   "min_launcher_version": "1.1.0"
 }
 ```
