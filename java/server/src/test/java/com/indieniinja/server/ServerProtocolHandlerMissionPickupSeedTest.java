@@ -288,7 +288,7 @@ class ServerProtocolHandlerMissionPickupSeedTest {
     }
 
     @Test
-    void disconnectClearsMissionPickupSeedContractsForPlayer() throws Exception {
+    void disconnectKeepsCurrentHubContractAndClearsStaleContractsForPlayer() throws Exception {
         GameSession session = new GameSession(424242L);
         ServerProtocolHandler handler = new ServerProtocolHandler(session);
         EmbeddedChannel senderChannel = new EmbeddedChannel(handler);
@@ -302,42 +302,93 @@ class ServerProtocolHandlerMissionPickupSeedTest {
             zone.playerIds.add(sender.playerId);
 
             @SuppressWarnings("unchecked")
-            Map<String, String> channelToPlayer =
-                (Map<String, String>) getField(handler, "channelToPlayer");
-            channelToPlayer.put(senderChannel.id().asShortText(), sender.playerId);
-
-            @SuppressWarnings("unchecked")
             ConcurrentHashMap<String, ZoneInstance> zones =
                 (ConcurrentHashMap<String, ZoneInstance>) getField(handler, "zones");
             zones.put(zone.hubId, zone);
 
-            Method handleEntityEvent = ServerProtocolHandler.class.getDeclaredMethod(
-                "handleEntityEvent", ChannelHandlerContext.class, WireMessage.class);
-            handleEntityEvent.setAccessible(true);
-            ChannelHandlerContext senderCtx = senderChannel.pipeline().context(handler);
-
-            WireMessage seedMsg = new WireMessage("entity_event", Map.of(
-                "event", "mission_seed_pickups",
-                "request_id", "req-contract-disconnect",
-                "mission_id", "demo_mission",
-                "item_counts", Map.of("relic", 2)
-            ));
-            handleEntityEvent.invoke(handler, senderCtx, seedMsg);
-            assertThat(zone.pendingMissionPickupSeeds.poll()).isNotNull();
+            Method rememberContract = ServerProtocolHandler.class.getDeclaredMethod(
+                "rememberMissionPickupSeedContract",
+                String.class,
+                String.class,
+                String.class,
+                Map.class
+            );
+            rememberContract.setAccessible(true);
+            rememberContract.invoke(handler, sender.playerId, zone.hubId, "demo_mission", Map.of("relic", 2));
+            rememberContract.invoke(handler, sender.playerId, "mission_hub:9:9", "demo_mission", Map.of("relic", 1));
 
             @SuppressWarnings("unchecked")
             Map<String, Object> contracts =
                 (Map<String, Object>) getField(handler, "missionPickupSeedContractsByPlayerZone");
-            assertThat(contracts).isNotEmpty();
+            assertThat(contracts.keySet()).containsExactlyInAnyOrder(
+                sender.playerId + "|" + zone.hubId,
+                sender.playerId + "|mission_hub:9:9"
+            );
 
             Method handleDisconnect = ServerProtocolHandler.class.getDeclaredMethod(
                 "handleDisconnect", String.class, io.netty.channel.Channel.class);
             handleDisconnect.setAccessible(true);
             handleDisconnect.invoke(handler, sender.playerId, senderChannel);
 
-            assertThat(contracts).isEmpty();
+            assertThat(contracts.keySet()).containsExactly(sender.playerId + "|" + zone.hubId);
             assertThat(zone.playerIds).doesNotContain(sender.playerId);
             assertThat(session.players).doesNotContainKey(sender.playerId);
+        } finally {
+            senderChannel.close();
+        }
+    }
+
+    @Test
+    void disconnectKeepsCurrentHubContractAvailableForRejoinReseed() throws Exception {
+        GameSession session = new GameSession(515151L);
+        ServerProtocolHandler handler = new ServerProtocolHandler(session);
+        EmbeddedChannel senderChannel = new EmbeddedChannel(handler);
+        try {
+            ZoneInstance zone = new ZoneInstance(
+                "central_hub:0:0", "central_hub", 515151L, "blob", 12, 515151L, 256f, 256f);
+
+            PlayerRecord sender = new PlayerRecord("p1", 0, senderChannel);
+            sender.hubId = zone.hubId;
+            session.players.put(sender.playerId, sender);
+            zone.playerIds.add(sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            ConcurrentHashMap<String, ZoneInstance> zones =
+                (ConcurrentHashMap<String, ZoneInstance>) getField(handler, "zones");
+            zones.put(zone.hubId, zone);
+
+            Method rememberContract = ServerProtocolHandler.class.getDeclaredMethod(
+                "rememberMissionPickupSeedContract",
+                String.class,
+                String.class,
+                String.class,
+                Map.class
+            );
+            rememberContract.setAccessible(true);
+            rememberContract.invoke(handler, sender.playerId, zone.hubId, "demo_mission", Map.of("relic", 2));
+
+            Method handleDisconnect = ServerProtocolHandler.class.getDeclaredMethod(
+                "handleDisconnect", String.class, io.netty.channel.Channel.class);
+            handleDisconnect.setAccessible(true);
+            handleDisconnect.invoke(handler, sender.playerId, senderChannel);
+
+            PlayerRecord rejoin = new PlayerRecord("p1", "session-rejoin", 0, senderChannel);
+            rejoin.hubId = zone.hubId;
+            Method queueReseed = ServerProtocolHandler.class.getDeclaredMethod(
+                "queueMissionPickupReseedForPlayerIfPresent",
+                PlayerRecord.class,
+                ZoneInstance.class
+            );
+            queueReseed.setAccessible(true);
+            queueReseed.invoke(handler, rejoin, zone);
+
+            ZoneInstance.PendingMissionPickupSeed reseed = zone.pendingMissionPickupSeeds.poll();
+            assertThat(reseed).isNotNull();
+            assertThat(reseed.requestId()).startsWith("reseed-");
+            assertThat(reseed.missionId()).isEqualTo("demo_mission");
+            assertThat(reseed.playerId()).isEqualTo("p1");
+            assertThat(reseed.playerSlot()).isEqualTo(0);
+            assertThat(reseed.itemCounts()).containsEntry("relic", 2);
         } finally {
             senderChannel.close();
         }

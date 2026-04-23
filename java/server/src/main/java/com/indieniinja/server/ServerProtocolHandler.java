@@ -418,11 +418,14 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
                 zone.simulator.removePlayer(player.slot);
             }
         }
-        int clearedMissionContracts = forgetAllMissionPickupSeedContractsForPlayer(pid);
+        int clearedMissionContracts = forgetMissionPickupSeedContractsForPlayerExceptHub(
+            pid,
+            player.hubId
+        );
         if (clearedMissionContracts > 0) {
             log.info(
-                "[Mission][Net] cleared {} mission pickup seed contract(s) on disconnect player={} session={} slot={}",
-                clearedMissionContracts, pid, player.sessionId, player.slot
+                "[Mission][Net] cleared {} stale mission pickup seed contract(s) on disconnect player={} session={} slot={} kept_hub={}",
+                clearedMissionContracts, pid, player.sessionId, player.slot, player.hubId
             );
         }
 
@@ -686,12 +689,16 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         missionPickupSeedContractsByPlayerZone.remove(missionPickupSeedContractKey(playerId, zoneId));
     }
 
-    private int forgetAllMissionPickupSeedContractsForPlayer(String playerId) {
+    private int forgetMissionPickupSeedContractsForPlayerExceptHub(String playerId, String keepZoneId) {
         if (playerId == null || playerId.isBlank()) return 0;
+        String keepKey = (keepZoneId == null || keepZoneId.isBlank())
+            ? ""
+            : missionPickupSeedContractKey(playerId, keepZoneId);
         String keyPrefix = playerId + "|";
         int removed = 0;
         for (String key : missionPickupSeedContractsByPlayerZone.keySet()) {
             if (!key.startsWith(keyPrefix)) continue;
+            if (!keepKey.isEmpty() && keepKey.equals(key)) continue;
             if (missionPickupSeedContractsByPlayerZone.remove(key) != null) {
                 removed++;
             }

@@ -101,7 +101,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - First validation command: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon`
 - Resume risk notes: `none`
 - Progress update (`2026-04-23 07:45:21 +01:00`):
-  - Completed `v0.12.04` stabilization slice 4: disconnect-path mission pickup contract cleanup to prevent stale reseed carry-over.
-  - Added regression: `ServerProtocolHandlerMissionPickupSeedTest.disconnectClearsMissionPickupSeedContractsForPlayer`.
+  - Completed `v0.12.04` stabilization slice 4: disconnect-path mission pickup contract cleanup (clear stale contracts, retain current-hub contract for rejoin reseed).
+  - Added regression: `ServerProtocolHandlerMissionPickupSeedTest.disconnectKeepsCurrentHubContractAndClearsStaleContractsForPlayer` and `disconnectKeepsCurrentHubContractAvailableForRejoinReseed`.
   - Validation: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS).
   - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
