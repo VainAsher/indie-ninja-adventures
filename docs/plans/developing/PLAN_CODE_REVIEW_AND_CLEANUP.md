@@ -94,7 +94,7 @@ Execute smallest complete unit each loop (`SPRINT_WORKFLOW.md` + `READY_DONE_WOR
 - [x] Add or update tests for each fixed bug or risky path
 - [x] Run module-appropriate validation
 - [x] Update plan loop notes
-- [ ] Commit with scope/reason/risk
+- [x] Commit with scope/reason/risk
 
 Cleanup categories:
 - [x] Correctness fixes found during review
@@ -131,7 +131,7 @@ Cleanup categories:
 - [ ] Route new/updated docs in `docs/INDEX.md` when needed
 
 ### D2 Release and closeout
-- [ ] Run release checklist for release-facing loops
+- [x] Run release checklist for release-facing loops
 - [x] Verify CI and Release status before session close (`SESSION_END_WORKFLOW.md`)
 - [x] Record:
   - [x] systems touched
@@ -813,3 +813,63 @@ Known issues/risks:
 
 First action next session:
 - Execute release-loop closure: finalize release docs parity, commit scoped cleanup/release prep, push, verify CI green, then bump/tag/publish per `ITERATION_RELEASE_PROTOCOL`.
+
+### Loop ID: CRCL-2026-04-23-12
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.05`
+- Primary target: execute commit + tag + release closure for the cleanup batch using `ITERATION_RELEASE_PROTOCOL`.
+- Supporting tasks: verify CI green on feature SHA before tagging; verify release assets after tag publication.
+- First validation command: `gh run list --limit 8 --json status,conclusion,name,headSha,displayTitle,event`
+- Resume risk notes: `env` (GitHub Actions async wait windows).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: publish a testable release for cleanup slices CRCL-08 through CRCL-11 with workflow-complete evidence.
+- Player-facing impact: none expected (cleanup/perf hardening, no intended gameplay contract changes).
+- Systems touched: release metadata/docs, plan logs, GitHub release/tag state.
+- Risks: low; release discipline and metadata parity only.
+- Required tests: version/docs gates + server/client tests + shadowJar gates + CI/Release success.
+- Docs to update: cleanup plan log and release-facing docs.
+- Rollback plan: cut next patch if post-tag regression is detected.
+
+Implemented cleanup/release closure:
+- Committed scoped batch with release metadata and cleanup slices:
+  - commit: `6fdddbf`
+  - message includes `plan_id/scope/reason/risk`.
+- Pushed `master` and waited for CI success on feature SHA before tagging:
+  - CI run: `24838332894` -> `success`.
+- Created and pushed annotated tag:
+  - `v0.12.05`.
+- Verified tag-triggered Release workflow:
+  - Release run: `24838474542` -> `success`.
+- Verified published release assets:
+  - `docs-archive-2026-04-23-v0.12.05.zip`
+  - `ninja-client-all.jar`
+  - `ninja-server-all.jar`
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.05` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `./gradlew :server:test :client:test --no-daemon` -> PASS.
+- `./gradlew :server:shadowJar :client:shadowJar --no-daemon` -> PASS.
+- `gh run list --limit 8 --json status,conclusion,name,headSha,displayTitle,event` -> `CI` + `Release` success for `6fdddbf`.
+- `gh release view v0.12.05 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets,url` -> PASS (assets present).
+
+Known issues/risks:
+- Combined local Gradle release lane (`test + shadowJar` in one invocation) still triggers task-order validation conflict on `:client:copyJarToRoot`; split-lane workaround remains required locally.
+- Post-release follow-up should either codify split-lane local gate usage permanently or patch task dependency ordering.
+
+First action next session:
+- Resume remaining review rubric coverage (authority/race/lifecycle/reliability matrix) and run targeted smoke/golden evidence when a future slice changes runtime behavior.

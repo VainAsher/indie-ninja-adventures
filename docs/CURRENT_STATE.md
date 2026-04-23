@@ -126,6 +126,23 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: start `v0.12.05` stabilization planning and decide whether to permanently codify split-lane local release commands or fix `:client:copyJarToRoot` task dependency ordering.
 
+## Session Close-Out (2026-04-23, Final v0.12.05 Release Loop)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master @ 6fdddbf`
+- Current version: `v0.12.05`
+- Systems touched: client cleanup/perf hardening (`GameScreen`, `MissionManager`, `MinimapRenderer`), release metadata/docs parity bump, annotated tag publication, release asset verification.
+- Validation run:
+  - `C:\Users\asher\AppData\Local\Programs\Python\Python312\python.exe tools/check_version_sync.py --tag v0.12.05` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+  - `./gradlew :server:test :client:test --no-daemon` (PASS)
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` (PASS)
+  - `gh run list --limit 8 --json status,conclusion,name,headSha,displayTitle,event` (CI=success + Release=success for `6fdddbf`)
+  - `gh release view v0.12.05 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets,url` (PASS; docs archive + client/server jars present)
+- Known issue or risk: local combined Gradle lane (`:server:test :client:test :server:shadowJar :client:shadowJar`) still triggers `:client:copyJarToRoot` task-order validation; split-lane command sequence remains the validated local workaround.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: continue remaining cleanup-lane rubric coverage (authority/race/lifecycle/reliability matrix) and capture smoke/golden evidence when future slices change runtime behavior.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22
