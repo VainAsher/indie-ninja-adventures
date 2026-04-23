@@ -94,6 +94,18 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-04-23 07:45:21 +01:00`
+
+- `v0.12.04` stabilization slice 4: disconnect-path contract clearing for mission pickup lifecycle correctness.
+  - `ServerProtocolHandler.handleDisconnect(...)` now clears all mission pickup seed contracts for the disconnecting player.
+  - Prevents stale mission pickup reseed contracts from surviving abrupt disconnects and later hub/mission re-entry.
+- Added regression coverage:
+  - `ServerProtocolHandlerMissionPickupSeedTest.disconnectClearsMissionPickupSeedContractsForPlayer`.
+- Validation:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
+
 `2026-04-22 22:03:12 +01:00`
 
 - `v0.12.04` stabilization slice 3: mission-end contract clearing for hosted pickup lifecycle correctness.

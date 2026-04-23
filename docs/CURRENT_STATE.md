@@ -2,7 +2,7 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-22
+last_updated: 2026-04-23
 version_anchor: v0.12.03
 replaces: docs/HANDOVER.md
 ---
@@ -100,3 +100,8 @@ Canonical runtime and handover snapshot for the active Java stack.
   - Keep plan/workflow notes synced for the first `v0.12.04` stabilization slice.
 - First validation command: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon`
 - Resume risk notes: `none`
+- Progress update (`2026-04-23 07:45:21 +01:00`):
+  - Completed `v0.12.04` stabilization slice 4: disconnect-path mission pickup contract cleanup to prevent stale reseed carry-over.
+  - Added regression: `ServerProtocolHandlerMissionPickupSeedTest.disconnectClearsMissionPickupSeedContractsForPlayer`.
+  - Validation: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS).
+  - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.

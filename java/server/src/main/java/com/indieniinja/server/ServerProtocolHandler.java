@@ -418,6 +418,13 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
                 zone.simulator.removePlayer(player.slot);
             }
         }
+        int clearedMissionContracts = forgetAllMissionPickupSeedContractsForPlayer(pid);
+        if (clearedMissionContracts > 0) {
+            log.info(
+                "[Mission][Net] cleared {} mission pickup seed contract(s) on disconnect player={} session={} slot={}",
+                clearedMissionContracts, pid, player.sessionId, player.slot
+            );
+        }
 
         // Broadcast leave to all remaining players
         broadcastAll(MessageType.PLAYER_LEAVE, Map.of("player_id", pid, "slot", player.slot));
@@ -677,6 +684,19 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         if (playerId == null || playerId.isBlank()) return;
         if (zoneId == null || zoneId.isBlank()) return;
         missionPickupSeedContractsByPlayerZone.remove(missionPickupSeedContractKey(playerId, zoneId));
+    }
+
+    private int forgetAllMissionPickupSeedContractsForPlayer(String playerId) {
+        if (playerId == null || playerId.isBlank()) return 0;
+        String keyPrefix = playerId + "|";
+        int removed = 0;
+        for (String key : missionPickupSeedContractsByPlayerZone.keySet()) {
+            if (!key.startsWith(keyPrefix)) continue;
+            if (missionPickupSeedContractsByPlayerZone.remove(key) != null) {
+                removed++;
+            }
+        }
+        return removed;
     }
 
     private void clearMissionPickupSeedContract(PlayerRecord sender, Map<String, Object> payload) {

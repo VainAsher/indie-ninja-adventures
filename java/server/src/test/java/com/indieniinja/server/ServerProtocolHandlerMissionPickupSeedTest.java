@@ -287,6 +287,62 @@ class ServerProtocolHandlerMissionPickupSeedTest {
         }
     }
 
+    @Test
+    void disconnectClearsMissionPickupSeedContractsForPlayer() throws Exception {
+        GameSession session = new GameSession(424242L);
+        ServerProtocolHandler handler = new ServerProtocolHandler(session);
+        EmbeddedChannel senderChannel = new EmbeddedChannel(handler);
+        try {
+            ZoneInstance zone = new ZoneInstance(
+                "central_hub:0:0", "central_hub", 424242L, "blob", 12, 424242L, 256f, 256f);
+
+            PlayerRecord sender = new PlayerRecord("p1", 0, senderChannel);
+            sender.hubId = zone.hubId;
+            session.players.put(sender.playerId, sender);
+            zone.playerIds.add(sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            Map<String, String> channelToPlayer =
+                (Map<String, String>) getField(handler, "channelToPlayer");
+            channelToPlayer.put(senderChannel.id().asShortText(), sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            ConcurrentHashMap<String, ZoneInstance> zones =
+                (ConcurrentHashMap<String, ZoneInstance>) getField(handler, "zones");
+            zones.put(zone.hubId, zone);
+
+            Method handleEntityEvent = ServerProtocolHandler.class.getDeclaredMethod(
+                "handleEntityEvent", ChannelHandlerContext.class, WireMessage.class);
+            handleEntityEvent.setAccessible(true);
+            ChannelHandlerContext senderCtx = senderChannel.pipeline().context(handler);
+
+            WireMessage seedMsg = new WireMessage("entity_event", Map.of(
+                "event", "mission_seed_pickups",
+                "request_id", "req-contract-disconnect",
+                "mission_id", "demo_mission",
+                "item_counts", Map.of("relic", 2)
+            ));
+            handleEntityEvent.invoke(handler, senderCtx, seedMsg);
+            assertThat(zone.pendingMissionPickupSeeds.poll()).isNotNull();
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> contracts =
+                (Map<String, Object>) getField(handler, "missionPickupSeedContractsByPlayerZone");
+            assertThat(contracts).isNotEmpty();
+
+            Method handleDisconnect = ServerProtocolHandler.class.getDeclaredMethod(
+                "handleDisconnect", String.class, io.netty.channel.Channel.class);
+            handleDisconnect.setAccessible(true);
+            handleDisconnect.invoke(handler, sender.playerId, senderChannel);
+
+            assertThat(contracts).isEmpty();
+            assertThat(zone.playerIds).doesNotContain(sender.playerId);
+            assertThat(session.players).doesNotContainKey(sender.playerId);
+        } finally {
+            senderChannel.close();
+        }
+    }
+
     private static Object getField(Object target, String fieldName) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
