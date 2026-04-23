@@ -89,6 +89,25 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: begin `v0.12.04` stabilization by auditing mission-item lifecycle/despawn paths and implementing authoritative mission-critical no-despawn guarantees (solo + hosted multiplayer + late-join sync).
 
+## Session Close-Out (2026-04-23)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master @ 519f690`
+- Current version: `v0.12.03`
+- Systems touched: mission-return mission pickup contract lifecycle hardening, regression coverage expansion, release-checklist evidence pass, session close-out evidence capture.
+- Validation run:
+  - `C:\Users\asher\AppData\Local\Programs\Python\Python312\python.exe tools/check_version_sync.py --tag v0.12.03` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+  - `./gradlew :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon` (FAIL: Gradle task validation on `:client:copyJarToRoot` implicit dependency when mixed with test tasks)
+  - `./gradlew :server:test :client:test --no-daemon` (PASS)
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` (PASS)
+  - `gh run list --limit 3 --json status,conclusion,name,headSha` (CI=success for `519f690`)
+  - `gh run list --limit 12 --json status,conclusion,name,headSha,displayTitle,event` (latest `Release`=success for `08c0424`)
+  - `gh release view v0.12.03 --json tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish,assets` (PASS; docs archive + client/server jars present)
+- Known issue or risk: combined local Gradle lane (`test + shadowJar` in one invocation) still trips a task-order validation on `:client:copyJarToRoot`; split-lane execution and CI both pass.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: either patch `:client:copyJarToRoot` task dependency ordering so the canonical combined release command passes in one run, or keep split-lane release validation as the documented local workaround.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22
