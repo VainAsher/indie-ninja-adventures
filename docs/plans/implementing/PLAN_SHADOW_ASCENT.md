@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-23
-version_anchor: v0.12.04
+version_anchor: v0.12.05
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-23 | **Codebase version:** v0.12.04 | **Next release target:** v0.12.05 (stabilization follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-23 | **Codebase version:** v0.12.05 | **Next release target:** v0.12.06 (stabilization follow-up)
 
 ---
 
@@ -93,6 +93,20 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-23 14:32:35 +01:00`
+
+- `v0.12.05` release-prep loop (`ITERATION_RELEASE_PROTOCOL` steps 2-4).
+  - Continued cleanup lane with minimap hot-path churn reductions and preserved runtime behavior.
+  - Synced release parity docs and metadata targets to `v0.12.05`:
+    - `version.json`
+    - `java/build.gradle.kts`
+    - `README.md`
+    - `docs/ROADMAP.md`
+    - `docs/CHANGELOG.md`
+  - Executed release-grade local gates:
+    - `./gradlew :server:test :client:test --no-daemon` ✅
+    - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` ✅
 
 `2026-04-23 09:45:01 +01:00`
 

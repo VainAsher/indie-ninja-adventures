@@ -3,7 +3,7 @@ doc_type: plan
 status: developing
 owner: core-team
 last_updated: 2026-04-23
-version_anchor: v0.12.04
+version_anchor: v0.12.05
 ---
 
 # PLAN - Code Review and Cleanup Lane (Workflow-First)
@@ -159,8 +159,8 @@ Maintainability:
 
 Performance:
 - [x] hot-path allocations
-- [ ] expensive loops in per-tick or per-frame paths
-- [ ] avoidable map/list churn in core loops
+- [x] expensive loops in per-tick or per-frame paths
+- [x] avoidable map/list churn in core loops
 
 Testing:
 - [x] missing regression tests for known bug classes
@@ -584,3 +584,232 @@ Known issues/risks:
 
 First action next session:
 - Run the next performance review slice on expensive per-frame loops and map/list churn in render/update paths, with targeted micro-optimizations only where behavior remains unchanged.
+
+### Loop ID: CRCL-2026-04-23-08
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: continue performance lane with explicit map/list churn reduction in `GameScreen` runtime paths.
+- Supporting tasks: keep behavior unchanged, validate full client tests, refresh docs/version/CI evidence.
+- First validation command: `./gradlew :client:test --no-daemon`
+- Resume risk notes: `env` (temp Gradle cache/bootstrap overhead in isolated local roots).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: remove avoidable per-frame/per-tick map/list allocations in mission tracker, minimap marker, and inventory-progress paths.
+- Player-facing impact: none.
+- Systems touched: `java/client` (`GameScreen`, `MissionManager`).
+- Risks: low; data-flow/loop cleanup only, no gameplay contract change.
+- Required tests: full `:client:test`.
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: revert `GameScreen` and `MissionManager` edits in this loop.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- `GameScreen` map/list churn reductions:
+  - Added reusable scratch collections:
+    - `missionTrackerLinesScratch`
+    - `minimapObjectiveMarkersScratch`
+    - `inventoryTotalsScratch`
+  - `syncMissionTrackerHud()` now reuses `missionTrackerLinesScratch` instead of allocating a new list each frame.
+  - `buildMinimapObjectiveMarkers()` now reuses `minimapObjectiveMarkersScratch` instead of allocating a new list each frame.
+  - `tickMissionProgress()` now reuses `inventoryTotalsScratch` instead of allocating a new hash map each tick.
+- `MissionManager` progress-map churn reduction:
+  - Added read-only live view accessor `getObjectiveProgressView()` backed by a single unmodifiable map wrapper.
+  - `GameScreen.syncMissionTrackerHud()` now reads this view instead of requesting a per-frame snapshot copy.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp7`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-7`
+  `./gradlew :client:test --no-daemon` -> PASS.
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.04` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `gh run list --limit 3 --json status,conclusion,name,headSha` -> latest `CI` and `Release` are `success`.
+
+Known issues/risks:
+- No functional regressions observed in client test suite.
+- Commit status: intentionally left uncommitted pending user direction.
+
+First action next session:
+- Continue performance lane with targeted expensive-loop reductions in `MinimapRenderer` world-to-minimap projection path (reuse scratch vectors / reduce per-marker temp allocations) while preserving draw behavior.
+
+### Loop ID: CRCL-2026-04-23-09
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: execute the queued `MinimapRenderer` expensive-loop slice from CRCL-08 first action.
+- Supporting tasks: preserve minimap draw behavior, validate full client tests, refresh docs/version/CI evidence.
+- First validation command: `./gradlew :client:test --no-daemon`
+- Resume risk notes: `env` (isolated Gradle cache bootstrap overhead in temp roots).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: remove avoidable per-frame allocations in `MinimapRenderer` world-to-minimap projection path.
+- Player-facing impact: none expected (render-path allocation cleanup only).
+- Systems touched: `java/client` (`MinimapRenderer`).
+- Risks: low; projection helper contract changed from return-array to out-parameter.
+- Required tests: full `:client:test`.
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: revert `MinimapRenderer` changes in this loop.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- Added reusable projection scratch buffer in `MinimapRenderer`:
+  - `minimapProjectionScratch` (`float[2]`).
+- Refactored `worldToMinimap(...)`:
+  - from `float[]` allocation-return helper
+  - to `boolean` helper that writes `{x,y}` into a caller-provided output array.
+- Updated all minimap projection hot-path loops to reuse the same scratch output:
+  - enemies, pickups, portals, NPCs, bosses, players, and mission objective markers.
+- Result:
+  - removes per-entity/per-marker `new float[]` churn in per-frame minimap render path while preserving coordinate math.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp8`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-8`
+  `./gradlew :client:test --no-daemon` -> PASS.
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.04` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `gh run list --limit 3 --json status,conclusion,name,headSha` -> latest `CI` and `Release` are `success`.
+
+Known issues/risks:
+- No functional regressions observed in client test suite.
+- Commit status: intentionally left uncommitted pending user direction.
+
+First action next session:
+- Continue performance lane in `MinimapRenderer` by reducing remaining per-frame allocation churn (`roomColor`/`pickupTypeColor` object creation and repeated `roomKey` string construction in render loops) while preserving visual output.
+
+### Loop ID: CRCL-2026-04-23-10
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: execute the queued `MinimapRenderer` churn slice from CRCL-09 first action.
+- Supporting tasks: keep minimap visuals unchanged, validate full client tests, refresh docs/version/CI evidence.
+- First validation command: `./gradlew :client:test --no-daemon`
+- Resume risk notes: `env` (isolated Gradle cache bootstrap overhead in temp roots).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: remove remaining per-frame object churn in minimap color selection and room-key generation.
+- Player-facing impact: none expected (render-path cleanup only).
+- Systems touched: `java/client` (`MinimapRenderer`).
+- Risks: low; helper return values now reference static color constants and room-key lookup now caches by packed grid coordinate.
+- Required tests: full `:client:test`.
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: revert `MinimapRenderer` changes in this loop.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- Replaced per-call room color allocation in `roomColor(...)`:
+  - switched from `new Color(...)` in switch branches to static room color constants.
+- Replaced per-call pickup color allocation in `pickupTypeColor(...)`:
+  - switched from `new Color(...)` in switch branches to static pickup color constants.
+- Replaced transient room key string construction path:
+  - added `LongMap<String> roomKeysByPackedCoord` cache keyed by packed `(gx, gy)`.
+  - `roomKey(...)` now returns cached string keys and only builds once per coordinate.
+  - `clearState()` now clears the room-key cache alongside minimap textures.
+- Result:
+  - eliminates per-frame `Color` and repeated `String` churn in minimap render loops while preserving draw logic.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp9`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-9`
+  `./gradlew :client:test --no-daemon` -> PASS.
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.04` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `gh run list --limit 3 --json status,conclusion,name,headSha` -> latest `CI` and `Release` are `success`.
+
+Known issues/risks:
+- No functional regressions observed in client test suite.
+- Commit status: intentionally left uncommitted pending user direction.
+
+First action next session:
+- Continue performance lane with a focused pass on remaining minimap loop overhead (e.g., repeated `visitedRooms.contains(...)` checks and repeated room-center arithmetic in multi-pass room loops) only if behavior remains unchanged.
+
+### Loop ID: CRCL-2026-04-23-11
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: execute CRCL-10 queued minimap overhead pass before release workflow execution.
+- Supporting tasks: keep minimap behavior unchanged and collect release-grade local gate evidence.
+- First validation command: `./gradlew :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+- Resume risk notes: `env` (isolated Gradle cache/bootstrap overhead in temp roots).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: reduce remaining `MinimapRenderer` per-frame overhead from repeated visited-room lookups and repeated room-center arithmetic.
+- Player-facing impact: none expected (render-path cleanup only).
+- Systems touched: `java/client` (`MinimapRenderer`).
+- Risks: low; loop condition/caching changes in draw passes.
+- Required tests: release-grade local gates (`server/client tests`, `shadowJar` build outputs).
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: revert `MinimapRenderer` changes in this loop.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- Added reused per-frame visible-room visited cache in `MinimapRenderer`:
+  - `visibleVisitedRoomCoordsScratch` keyed by packed room coordinates.
+- Updated multi-pass minimap loops to use cached visited-state checks instead of repeated `visitedRooms.contains(roomKey(...))` calls.
+- Added `roomHalf` precompute for reused room-center arithmetic in connection-line pass.
+- Preserved previous projection and color/room-key cache optimizations from CRCL-09/10 while tightening hot-path loop reuse.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- Strict combined release lane attempted:
+  - `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp10`
+    `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-10`
+    `./gradlew :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+    -> FAIL (`:client:copyJarToRoot` task-order validation conflict with `:client:compileTestJava`).
+- Deterministic split-lane workaround (`ITERATION_RELEASE_PROTOCOL` evidence capture):
+  - `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp10c`
+    `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-10c`
+    `./gradlew :server:test :client:test --no-daemon` -> PASS.
+  - `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp10d`
+    `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-10d`
+    `./gradlew :server:shadowJar :client:shadowJar --no-daemon` -> PASS.
+
+Known issues/risks:
+- Combined local release lane remains sensitive to Gradle task-order validation (`:client:copyJarToRoot`).
+- Commit status: intentionally left uncommitted pending release-loop commit/tag execution.
+
+First action next session:
+- Execute release-loop closure: finalize release docs parity, commit scoped cleanup/release prep, push, verify CI green, then bump/tag/publish per `ITERATION_RELEASE_PROTOCOL`.

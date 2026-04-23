@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-23
-version_anchor: v0.12.04
+version_anchor: v0.12.05
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.05] - 2026-04-23 (client review/cleanup performance hardening)
+
+### Changed
+
+- **GameScreen hot-path allocation cleanup**:
+  - mission tracker HUD line assembly now reuses a scratch list instead of per-frame list creation.
+  - minimap objective marker assembly now reuses a scratch list.
+  - mission objective item-total aggregation now reuses a scratch map instead of per-tick map allocation.
+- **Mission progress snapshot usage cleanup**:
+  - `MissionManager` now exposes a stable read-only progress view and client HUD sync reads that view instead of requesting per-frame snapshot copies.
+- **Minimap projection/render hot-path cleanup**:
+  - `MinimapRenderer.worldToMinimap(...)` now writes into reusable projection output buffers (no per-marker/per-entity temp arrays).
+  - room and pickup color switches now return static shared `Color` constants instead of constructing new color objects per call.
+  - room-key generation now uses packed-coordinate key caching and a reused visible-visited cache to reduce repeated map/set churn in multi-pass minimap rendering.
+
+### Fixed
+
+- **Release local gate reliability note captured for Gradle task ordering**:
+  - the combined `:server:test :client:test :server:shadowJar :client:shadowJar` lane can trigger a local task-order validation on `:client:copyJarToRoot`;
+    release evidence now records the deterministic split-lane workaround (`tests` then `shadowJar`) used in this iteration.
 
 ---
 

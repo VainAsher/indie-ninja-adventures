@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.utils.LongMap;
 import com.indieniinja.network.BossState;
 import com.indieniinja.network.EnemyState;
 import com.indieniinja.network.NPCState;
@@ -80,13 +81,13 @@ public final class MinimapRenderer {
 
     private static Color roomColor(String type) {
         return switch (type != null ? type : "combat") {
-            case "start"    -> new Color(0.31f, 0.86f, 0.31f, 1f);
-            case "exit"     -> new Color(0.86f, 0.31f, 0.31f, 1f);
-            case "shop"     -> new Color(0.86f, 0.70f, 0.31f, 1f);
-            case "platform" -> new Color(0.47f, 0.47f, 0.63f, 1f);
-            case "treasure" -> new Color(0.86f, 0.86f, 0.31f, 1f);
-            case "boss"     -> new Color(0.70f, 0.31f, 0.70f, 1f);
-            default         -> new Color(0.70f, 0.31f, 0.31f, 1f);
+            case "start"    -> ROOM_COL_START;
+            case "exit"     -> ROOM_COL_EXIT;
+            case "shop"     -> ROOM_COL_SHOP;
+            case "platform" -> ROOM_COL_PLATFORM;
+            case "treasure" -> ROOM_COL_TREASURE;
+            case "boss"     -> ROOM_COL_BOSS;
+            default         -> ROOM_COL_COMBAT;
         };
     }
 
@@ -116,8 +117,29 @@ public final class MinimapRenderer {
     private final BitmapFont           font;
     /** Cached tile-detail textures, keyed "gx,gy". */
     private final Map<String, Texture> detailTextures = new HashMap<>();
+    /** Cached room-key strings keyed by packed grid coordinates. */
+    private final LongMap<String> roomKeysByPackedCoord = new LongMap<>();
+    /** Reused visited-room cache for the current visible minimap window. */
+    private final LongMap<Boolean> visibleVisitedRoomCoordsScratch = new LongMap<>();
+    /** Scratch projection output reused across entity/objective loops. */
+    private final float[] minimapProjectionScratch = new float[2];
 
     // ── Colours reused per-frame ──────────────────────────────────────────────
+    private static final Color ROOM_COL_START    = new Color(0.31f, 0.86f, 0.31f, 1f);
+    private static final Color ROOM_COL_EXIT     = new Color(0.86f, 0.31f, 0.31f, 1f);
+    private static final Color ROOM_COL_SHOP     = new Color(0.86f, 0.70f, 0.31f, 1f);
+    private static final Color ROOM_COL_PLATFORM = new Color(0.47f, 0.47f, 0.63f, 1f);
+    private static final Color ROOM_COL_TREASURE = new Color(0.86f, 0.86f, 0.31f, 1f);
+    private static final Color ROOM_COL_BOSS     = new Color(0.70f, 0.31f, 0.70f, 1f);
+    private static final Color ROOM_COL_COMBAT   = new Color(0.70f, 0.31f, 0.31f, 1f);
+    private static final Color PICKUP_COL_COIN            = new Color(1.00f, 0.85f, 0.00f, 0.9f);
+    private static final Color PICKUP_COL_HEALTH_POTION   = new Color(0.90f, 0.20f, 0.20f, 0.9f);
+    private static final Color PICKUP_COL_RARE_POTION     = new Color(0.80f, 0.10f, 0.90f, 0.9f);
+    private static final Color PICKUP_COL_GEM             = new Color(0.10f, 0.90f, 0.90f, 0.9f);
+    private static final Color PICKUP_COL_YIN_FRAGMENT    = new Color(0.40f, 0.55f, 1.00f, 1.0f);
+    private static final Color PICKUP_COL_YANG_FRAGMENT   = new Color(1.00f, 0.55f, 0.15f, 1.0f);
+    private static final Color PICKUP_COL_LANTERN_FRAGMENT= new Color(1.00f, 1.00f, 0.35f, 1.0f);
+    private static final Color PICKUP_COL_DEFAULT         = new Color(1.00f, 0.90f, 0.20f, 0.9f);
     private static final Color COL_UNVISITED = new Color(0.10f, 0.10f, 0.16f, 1f);
     private static final Color COL_ENEMY     = new Color(1f,    0.22f, 0.22f, 0.90f);
     private static final Color COL_BOSS      = new Color(0.82f, 0.25f, 0.82f, 1f);
@@ -186,6 +208,7 @@ public final class MinimapRenderer {
     public void clearState() {
         for (Texture t : detailTextures.values()) t.dispose();
         detailTextures.clear();
+        roomKeysByPackedCoord.clear();
     }
 
     /**
@@ -269,14 +292,14 @@ public final class MinimapRenderer {
     /** Returns a distinct colour per pickup type for the minimap dot. */
     private static Color pickupTypeColor(String type) {
         return switch (type != null ? type : "") {
-            case "coin"             -> new Color(1.00f, 0.85f, 0.00f, 0.9f);
-            case "health_potion"    -> new Color(0.90f, 0.20f, 0.20f, 0.9f);
-            case "rare_potion"      -> new Color(0.80f, 0.10f, 0.90f, 0.9f);
-            case "gem"              -> new Color(0.10f, 0.90f, 0.90f, 0.9f);
-            case "yin_fragment"     -> new Color(0.40f, 0.55f, 1.00f, 1.0f);
-            case "yang_fragment"    -> new Color(1.00f, 0.55f, 0.15f, 1.0f);
-            case "lantern_fragment" -> new Color(1.00f, 1.00f, 0.35f, 1.0f);
-            default                 -> new Color(1.00f, 0.90f, 0.20f, 0.9f);
+            case "coin"             -> PICKUP_COL_COIN;
+            case "health_potion"    -> PICKUP_COL_HEALTH_POTION;
+            case "rare_potion"      -> PICKUP_COL_RARE_POTION;
+            case "gem"              -> PICKUP_COL_GEM;
+            case "yin_fragment"     -> PICKUP_COL_YIN_FRAGMENT;
+            case "yang_fragment"    -> PICKUP_COL_YANG_FRAGMENT;
+            case "lantern_fragment" -> PICKUP_COL_LANTERN_FRAGMENT;
+            default                 -> PICKUP_COL_DEFAULT;
         };
     }
 
@@ -390,6 +413,18 @@ public final class MinimapRenderer {
         final int   fMaxGY    = maxGY;
         final float fGridOriY = gridOriY;
         final float fStep     = roomSize + ROOM_PAD;
+        final float roomHalf  = roomSize * 0.5f;
+        final LongMap<Boolean> visibleVisitedRoomCoords = visibleVisitedRoomCoordsScratch;
+        visibleVisitedRoomCoords.clear();
+        if (showFog) {
+            for (WorldRoomDescriptor room : rooms) {
+                if (room.gridX < minGX || room.gridX > maxGX) continue;
+                if (room.gridY < minGY || room.gridY > maxGY) continue;
+                if (visitedRooms.contains(roomKey(room.gridX, room.gridY))) {
+                    visibleVisitedRoomCoords.put(packedRoomCoord(room.gridX, room.gridY), Boolean.TRUE);
+                }
+            }
+        }
 
         shapes.setProjectionMatrix(batch.getProjectionMatrix());
         Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -405,7 +440,7 @@ public final class MinimapRenderer {
         for (WorldRoomDescriptor room : rooms) {
             if (room.gridX < minGX || room.gridX > maxGX) continue;
             if (room.gridY < minGY || room.gridY > maxGY) continue;
-            boolean visited = !showFog || visitedRooms.contains(roomKey(room.gridX, room.gridY));
+            boolean visited = !showFog || visibleVisitedRoomCoords.containsKey(packedRoomCoord(room.gridX, room.gridY));
             float rx = gridOriX + (room.gridX - minGX) * fStep;
             float ry = fGridOriY + (fMaxGY - room.gridY) * fStep;
             if (visited) {
@@ -431,9 +466,9 @@ public final class MinimapRenderer {
         for (WorldRoomDescriptor room : rooms) {
             if (room.gridX < minGX || room.gridX > maxGX) continue;
             if (room.gridY < minGY || room.gridY > maxGY) continue;
-            if (showFog && !visitedRooms.contains(roomKey(room.gridX, room.gridY))) continue;
-            float cx1 = gridOriX + (room.gridX - minGX) * fStep + roomSize * 0.5f;
-            float cy1 = fGridOriY + (fMaxGY - room.gridY) * fStep + roomSize * 0.5f;
+            if (showFog && !visibleVisitedRoomCoords.containsKey(packedRoomCoord(room.gridX, room.gridY))) continue;
+            float cx1 = gridOriX + (room.gridX - minGX) * fStep + roomHalf;
+            float cy1 = fGridOriY + (fMaxGY - room.gridY) * fStep + roomHalf;
             for (String dir : room.neighborDirs) {
                 int nx = room.gridX, ny = room.gridY;
                 switch (dir) {
@@ -443,9 +478,9 @@ public final class MinimapRenderer {
                     case "right" -> nx++;
                 }
                 if (("right".equals(dir) && nx <= maxGX) || ("down".equals(dir) && ny <= maxGY)) {
-                    if (showFog && !visitedRooms.contains(roomKey(nx, ny))) continue;
-                    float cx2 = gridOriX + (nx - minGX) * fStep + roomSize * 0.5f;
-                    float cy2 = fGridOriY + (fMaxGY - ny) * fStep + roomSize * 0.5f;
+                    if (showFog && !visibleVisitedRoomCoords.containsKey(packedRoomCoord(nx, ny))) continue;
+                    float cx2 = gridOriX + (nx - minGX) * fStep + roomHalf;
+                    float cy2 = fGridOriY + (fMaxGY - ny) * fStep + roomHalf;
                     shapes.line(cx1, cy1, cx2, cy2);
                 }
             }
@@ -461,8 +496,8 @@ public final class MinimapRenderer {
             for (WorldRoomDescriptor room : rooms) {
                 if (room.gridX < minGX || room.gridX > maxGX) continue;
                 if (room.gridY < minGY || room.gridY > maxGY) continue;
+                if (showFog && !visibleVisitedRoomCoords.containsKey(packedRoomCoord(room.gridX, room.gridY))) continue;
                 String key = roomKey(room.gridX, room.gridY);
-                if (showFog && !visitedRooms.contains(key)) continue;
                 byte[][] grid = tileGrids.get(key);
                 if (grid == null) continue;
                 Texture tex = getOrBuildTexture(key, grid);
@@ -481,6 +516,7 @@ public final class MinimapRenderer {
         // ═════════════════════════════════════════════════════════════════════
         float crx = gridOriX + (currentGridX - minGX) * fStep;
         float cry = fGridOriY + (fMaxGY - currentGridY) * fStep;
+        float[] projectionScratch = minimapProjectionScratch;
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         if (showEntities && roomWidthPx > 0 && roomHeightPx > 0) {
@@ -491,10 +527,11 @@ public final class MinimapRenderer {
                 shapes.setColor(COL_ENEMY);
                 for (EnemyState e : cachedEnemies) {
                     if ("dead".equals(e.aiState)) continue;
-                    float[] sc = worldToMinimap(e.x, e.y, roomWidthPx, roomHeightPx,
+                    if (worldToMinimap(e.x, e.y, roomWidthPx, roomHeightPx,
                         worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
-                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
-                    if (sc != null) shapes.circle(sc[0], sc[1], dotR, 8);
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize, projectionScratch)) {
+                        shapes.circle(projectionScratch[0], projectionScratch[1], dotR, 8);
+                    }
                 }
             }
 
@@ -503,10 +540,11 @@ public final class MinimapRenderer {
                 for (PickupState p : cachedPickups) {
                     if (!p.alive) continue;
                     shapes.setColor(pickupTypeColor(p.pickupType));
-                    float[] sc = worldToMinimap(p.x, p.y, roomWidthPx, roomHeightPx,
+                    if (worldToMinimap(p.x, p.y, roomWidthPx, roomHeightPx,
                         worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
-                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
-                    if (sc != null) shapes.circle(sc[0], sc[1], dotR * 0.85f, 8);
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize, projectionScratch)) {
+                        shapes.circle(projectionScratch[0], projectionScratch[1], dotR * 0.85f, 8);
+                    }
                 }
             }
 
@@ -515,11 +553,12 @@ public final class MinimapRenderer {
                 shapes.setColor(COL_PORTAL);
                 for (PortalState p : cachedPortals) {
                     if (!p.isActive) continue;
-                    float[] sc = worldToMinimap(p.x + p.width * 0.5f, p.y + p.height * 0.5f,
+                    if (worldToMinimap(p.x + p.width * 0.5f, p.y + p.height * 0.5f,
                         roomWidthPx, roomHeightPx,
                         worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
-                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
-                    if (sc != null) shapes.circle(sc[0], sc[1], dotR * 1.4f, 10);
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize, projectionScratch)) {
+                        shapes.circle(projectionScratch[0], projectionScratch[1], dotR * 1.4f, 10);
+                    }
                 }
             }
 
@@ -527,12 +566,15 @@ public final class MinimapRenderer {
             if (snap != null) {
                 shapes.setColor(COL_NPC);
                 for (NPCState n : snap.npcs) {
-                    float[] sc = worldToMinimap(n.x, n.y, roomWidthPx, roomHeightPx,
+                    if (worldToMinimap(n.x, n.y, roomWidthPx, roomHeightPx,
                         worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
-                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
-                    if (sc != null) {
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize, projectionScratch)) {
                         float half = dotR * 0.85f;
-                        shapes.rect(sc[0] - half, sc[1] - half, half * 2f, half * 2f);
+                        shapes.rect(
+                            projectionScratch[0] - half,
+                            projectionScratch[1] - half,
+                            half * 2f,
+                            half * 2f);
                     }
                 }
 
@@ -540,20 +582,24 @@ public final class MinimapRenderer {
                 shapes.setColor(COL_BOSS);
                 for (BossState b : snap.bosses) {
                     if (!b.alive) continue;
-                    float[] sc = worldToMinimap(b.x, b.y, roomWidthPx, roomHeightPx,
+                    if (worldToMinimap(b.x, b.y, roomWidthPx, roomHeightPx,
                         worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
-                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
-                    if (sc != null) shapes.circle(sc[0], sc[1], dotR * 2f, 12);
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize, projectionScratch)) {
+                        shapes.circle(projectionScratch[0], projectionScratch[1], dotR * 2f, 12);
+                    }
                 }
 
                 // Players — self = white, others = blue
                 for (PlayerState p : snap.players) {
-                    float[] sc = worldToMinimap(p.posX, p.posY, roomWidthPx, roomHeightPx,
+                    if (worldToMinimap(p.posX, p.posY, roomWidthPx, roomHeightPx,
                         worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
-                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
-                    if (sc != null) {
+                        gridOriX, fGridOriY, fMaxGY, fStep, roomSize, projectionScratch)) {
                         shapes.setColor(p.slot == localSlot ? COL_SELF : COL_OTHER);
-                        shapes.circle(sc[0], sc[1], dotR * (p.slot == localSlot ? 1.6f : 1.3f), 10);
+                        shapes.circle(
+                            projectionScratch[0],
+                            projectionScratch[1],
+                            dotR * (p.slot == localSlot ? 1.6f : 1.3f),
+                            10);
                     }
                 }
             }
@@ -574,30 +620,33 @@ public final class MinimapRenderer {
             float markR = Math.max(3f, roomSize * 0.09f);
             for (ObjectiveMarker marker : objectiveMarkers) {
                 if (marker == null) continue;
-                float[] sc = worldToMinimap(marker.worldX(), marker.worldY(), roomWidthPx, roomHeightPx,
+                if (!worldToMinimap(marker.worldX(), marker.worldY(), roomWidthPx, roomHeightPx,
                     worldMinGX, worldMinGY, minGX, minGY, maxGX, maxGY,
-                    gridOriX, fGridOriY, fMaxGY, fStep, roomSize);
-                if (sc == null) continue;
+                    gridOriX, fGridOriY, fMaxGY, fStep, roomSize, projectionScratch)) {
+                    continue;
+                }
+                float markerX = projectionScratch[0];
+                float markerY = projectionScratch[1];
                 String type = marker.markerType() != null ? marker.markerType() : "reach";
                 if ("switch".equals(type)) {
                     shapes.setColor(COL_OBJECTIVE_SWITCH);
                     float half = markR;
-                    shapes.rect(sc[0] - half, sc[1] - half, half * 2f, half * 2f);
+                    shapes.rect(markerX - half, markerY - half, half * 2f, half * 2f);
                 } else if ("exit".equals(type)) {
                     shapes.setColor(COL_OBJECTIVE_EXIT);
-                    shapes.circle(sc[0], sc[1], markR * 1.2f, 10);
+                    shapes.circle(markerX, markerY, markR * 1.2f, 10);
                 } else if ("waypoint".equals(type)) {
                     // Diamond shape: two triangles sharing a horizontal mid-line
                     shapes.setColor(COL_OBJECTIVE_REACH);
                     float r = markR * 1.1f;
-                    shapes.triangle(sc[0], sc[1] + r, sc[0] - r, sc[1], sc[0] + r, sc[1]);  // top half
-                    shapes.triangle(sc[0], sc[1] - r, sc[0] - r, sc[1], sc[0] + r, sc[1]);  // bottom half
+                    shapes.triangle(markerX, markerY + r, markerX - r, markerY, markerX + r, markerY);
+                    shapes.triangle(markerX, markerY - r, markerX - r, markerY, markerX + r, markerY);
                 } else {
                     shapes.setColor(COL_OBJECTIVE_REACH);
                     shapes.triangle(
-                        sc[0], sc[1] + markR * 1.3f,
-                        sc[0] - markR, sc[1] - markR,
-                        sc[0] + markR, sc[1] - markR);
+                        markerX, markerY + markR * 1.3f,
+                        markerX - markR, markerY - markR,
+                        markerX + markR, markerY - markR);
                 }
             }
         }
@@ -677,7 +726,7 @@ public final class MinimapRenderer {
             for (WorldRoomDescriptor room : rooms) {
                 if (room.gridX < minGX || room.gridX > maxGX) continue;
                 if (room.gridY < minGY || room.gridY > maxGY) continue;
-                if (showFog && !visitedRooms.contains(roomKey(room.gridX, room.gridY))) continue;
+                if (showFog && !visibleVisitedRoomCoords.containsKey(packedRoomCoord(room.gridX, room.gridY))) continue;
                 Color rc = roomColor(room.roomType);
                 font.setColor(Math.min(1f, rc.r * 0.6f + 0.45f),
                               Math.min(1f, rc.g * 0.6f + 0.45f),
@@ -729,33 +778,45 @@ public final class MinimapRenderer {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static String roomKey(int gx, int gy) { return gx + "," + gy; }
+    private String roomKey(int gx, int gy) {
+        long packed = packedRoomCoord(gx, gy);
+        String key = roomKeysByPackedCoord.get(packed);
+        if (key != null) return key;
+        key = gx + "," + gy;
+        roomKeysByPackedCoord.put(packed, key);
+        return key;
+    }
+
+    private static long packedRoomCoord(int gx, int gy) {
+        return (((long) gx) << 32) ^ (gy & 0xffffffffL);
+    }
 
     private static float clamp01(float v) { return v < 0f ? 0f : (v > 1f ? 1f : v); }
 
     /**
      * Convert a world-space entity position to minimap screen coordinates.
-     * Returns {screenX, screenY} or null if outside the known room grid.
+     * Writes screen coordinates into {@code outXY}; returns false when the
+     * position lies outside the currently visible room window.
      */
-    private static float[] worldToMinimap(
+    private static boolean worldToMinimap(
             float worldX, float worldY,
             float roomWidthPx, float roomHeightPx,
             int worldMinGX, int worldMinGY,
             int visibleMinGX, int visibleMinGY, int visibleMaxGX, int visibleMaxGY,
             float gridOriX, float gridOriY, int visibleMaxGY2,
-            float step, float roomSize) {
+            float step, float roomSize,
+            float[] outXY) {
         int gx = (int) Math.floor(worldX / roomWidthPx) + worldMinGX;
         int gy = (int) Math.floor(worldY / roomHeightPx) + worldMinGY;
-        if (gx < visibleMinGX || gx > visibleMaxGX || gy < visibleMinGY || gy > visibleMaxGY) return null;
+        if (gx < visibleMinGX || gx > visibleMaxGX || gy < visibleMinGY || gy > visibleMaxGY) return false;
 
         float localX = worldX - (gx - worldMinGX) * roomWidthPx;
         float localY = worldY - (gy - worldMinGY) * roomHeightPx;
         float rx = gridOriX + (gx - visibleMinGX) * step;
         float ry = gridOriY + (visibleMaxGY2 - gy) * step;
-        return new float[]{
-            rx + (localX / roomWidthPx)  * roomSize,
-            ry + (1f - localY / roomHeightPx) * roomSize
-        };
+        outXY[0] = rx + (localX / roomWidthPx)  * roomSize;
+        outXY[1] = ry + (1f - localY / roomHeightPx) * roomSize;
+        return true;
     }
 
     /**

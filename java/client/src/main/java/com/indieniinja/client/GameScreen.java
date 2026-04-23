@@ -223,6 +223,10 @@ public final class GameScreen implements Screen {
     private final java.util.Set<String> missionReachedLocations = new java.util.HashSet<>();
     /** Per-mission activated fallback switch IDs (prevents duplicate activate_switches increments). */
     private final java.util.Set<String> missionActivatedSwitches = new java.util.HashSet<>();
+    private final java.util.Map<String, Integer> inventoryTotalsScratch = new java.util.HashMap<>();
+    private final java.util.List<String> missionTrackerLinesScratch = new java.util.ArrayList<>();
+    private final java.util.List<com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker>
+        minimapObjectiveMarkersScratch = new java.util.ArrayList<>();
     private String missionTriggerMissionId = "";
     /** Mission contact volumes rebuilt from room entities each frame (debug-visible with H). */
     private final java.util.List<MissionContactVolume> missionContactVolumes = new java.util.ArrayList<>();
@@ -1411,16 +1415,16 @@ public final class GameScreen implements Screen {
             return;
         }
 
-        java.util.Map<String, Integer> progress = missionManager.getObjectiveProgressSnapshot();
-        java.util.List<String> lines = new java.util.ArrayList<>();
+        java.util.Map<String, Integer> progress = missionManager.getObjectiveProgressView();
+        missionTrackerLinesScratch.clear();
         float missionTimer = missionManager.getMissionTimer();
 
         for (MissionObjective obj : def.objectives) {
             if (obj == null || obj.type == null) continue;
-            lines.add(formatObjectiveLine(def, obj, progress, missionTimer));
+            missionTrackerLinesScratch.add(formatObjectiveLine(def, obj, progress, missionTimer));
         }
 
-        hudRenderer.setMissionTracker(def.missionName, lines,
+        hudRenderer.setMissionTracker(def.missionName, missionTrackerLinesScratch,
             missionManager.isExitLocked(), missionTimer);
     }
 
@@ -1565,9 +1569,8 @@ public final class GameScreen implements Screen {
     }
 
     private java.util.List<com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker> buildMinimapObjectiveMarkers() {
-        if (!missionManager.isActive() || missionContactVolumes.isEmpty()) return java.util.List.of();
-        java.util.List<com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker> markers =
-            new java.util.ArrayList<>(missionContactVolumes.size());
+        minimapObjectiveMarkersScratch.clear();
+        if (!missionManager.isActive() || missionContactVolumes.isEmpty()) return minimapObjectiveMarkersScratch;
         for (MissionContactVolume v : missionContactVolumes) {
             if (v == null) continue;
             String id = normalizeKey(v.id);
@@ -1584,9 +1587,10 @@ public final class GameScreen implements Screen {
 
             float cx = v.x + v.width * 0.5f;
             float cy = v.y + v.height * 0.5f;
-            markers.add(new com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker(cx, cy, markerType));
+            minimapObjectiveMarkersScratch.add(
+                new com.indieniinja.client.ui.MinimapRenderer.ObjectiveMarker(cx, cy, markerType));
         }
-        return markers;
+        return minimapObjectiveMarkersScratch;
     }
 
     private int requiredSwitchActivationCount(MissionDefinition def) {
@@ -2485,12 +2489,15 @@ public final class GameScreen implements Screen {
 
         // Inventory gains (collect_items objective wiring).
         if (localP != null && localP.inventory != null) {
-            java.util.Map<String, Integer> currentTotals = new java.util.HashMap<>();
+            inventoryTotalsScratch.clear();
             for (var slot : localP.inventory.slots) {
                 if (slot == null) continue;
                 String itemId = slot.itemId();
                 if (itemId == null || itemId.isBlank()) continue;
-                currentTotals.merge(itemId.toLowerCase(java.util.Locale.ROOT), slot.quantity(), Integer::sum);
+                inventoryTotalsScratch.merge(
+                    itemId.toLowerCase(java.util.Locale.ROOT),
+                    slot.quantity(),
+                    Integer::sum);
             }
 
             int currentCurrency = Math.max(0, localP.inventory.currency);
@@ -2501,7 +2508,7 @@ public final class GameScreen implements Screen {
                     log.debug("[Mission] currency gain coin +{}", currencyGained);
                 }
 
-                for (var e : currentTotals.entrySet()) {
+                for (var e : inventoryTotalsScratch.entrySet()) {
                     int prevQty = prevInventoryTotals.getOrDefault(e.getKey(), 0);
                     int gained = e.getValue() - prevQty;
                     if (gained > 0) {
@@ -2514,7 +2521,7 @@ public final class GameScreen implements Screen {
             }
 
             prevInventoryTotals.clear();
-            prevInventoryTotals.putAll(currentTotals);
+            prevInventoryTotals.putAll(inventoryTotalsScratch);
             prevInventoryCurrency = currentCurrency;
         }
     }

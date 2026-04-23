@@ -32,6 +32,8 @@ public final class MissionManager {
     private String activeMissionId = null;
     private float  missionTimer    = 0f;         // seconds elapsed in active mission
     private final Map<String, Integer> objectiveProgress = new HashMap<>();  // key → count
+    private final Map<String, Integer> objectiveProgressView =
+        java.util.Collections.unmodifiableMap(objectiveProgress);
     private boolean exitLocked = false;
 
     // Callbacks (set by GameScreen)
@@ -65,6 +67,7 @@ public final class MissionManager {
     public Map<String, Float>    getBestTimes()           { return java.util.Collections.unmodifiableMap(bestTimes); }
     public Map<String, Integer>  getAttempts()            { return java.util.Collections.unmodifiableMap(attempts); }
     public Map<String, MissionState> getStatesSnapshot()   { return new HashMap<>(states); }
+    public Map<String, Integer>  getObjectiveProgressView() { return objectiveProgressView; }
     public Map<String, Integer>  getObjectiveProgressSnapshot() { return new HashMap<>(objectiveProgress); }
 
     /** All available mission definitions ordered by difficulty (for mission menu UI). */

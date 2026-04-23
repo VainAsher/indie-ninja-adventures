@@ -3,7 +3,7 @@ doc_type: index
 status: living
 owner: core-team
 last_updated: 2026-04-23
-version_anchor: v0.12.03
+version_anchor: v0.12.05
 replaces: docs/INDEX.md (2026-03-28)
 ---
 
