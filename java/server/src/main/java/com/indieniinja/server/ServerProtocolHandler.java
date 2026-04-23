@@ -292,6 +292,9 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
         if (oldZone != null) {
             oldZone.playerIds.remove(pid);
             oldZone.lastActivityMs = System.currentTimeMillis();
+            if (oldZone.simulator != null) {
+                oldZone.simulator.removePlayer(player.slot);
+            }
             forgetMissionPickupSeedContract(pid, oldZone.hubId);
             broadcastZone(oldZone, MessageType.ZONE_PRESENCE, Map.of(
                 "player_id", pid, "slot", player.slot,

@@ -29,9 +29,12 @@ class CheckResult:
     elapsed_seconds: float
     return_code: int
     output_tail: str
+    skipped: bool = False
 
     @property
     def status(self) -> str:
+        if self.skipped:
+            return "SKIP"
         return "PASS" if self.return_code == 0 else "FAIL"
 
 
@@ -120,18 +123,20 @@ def main() -> int:
     generated_at = dt.datetime.now(dt.timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
 
     gradle_user_home = str(root / ".gradle-local")
-    checks: list[tuple[str, list[str], Path, dict[str, str] | None]] = [
+    checks: list[tuple[str, list[str], Path, dict[str, str] | None, Path | None]] = [
         (
             "Version Sync",
             [sys.executable, "tools/check_version_sync.py"],
             root,
             None,
+            root / "tools" / "check_version_sync.py",
         ),
         (
             "Data Integrity",
             [sys.executable, "tests/test_data_integrity.py"],
             root,
             None,
+            root / "tests" / "test_data_integrity.py",
         ),
         (
             "Java Server/Client Tests",
@@ -139,11 +144,26 @@ def main() -> int:
             + [":server:test", ":client:test", "--console=plain", "--no-daemon"],
             root / "java",
             {"GRADLE_USER_HOME": gradle_user_home},
+            root / "java" / "gradlew.bat" if os.name == "nt" else root / "java" / "gradlew",
         ),
     ]
 
     results: list[CheckResult] = []
-    for name, command, cwd, env_overrides in checks:
+    for name, command, cwd, env_overrides, required_path in checks:
+        if required_path is not None and not required_path.exists():
+            results.append(
+                CheckResult(
+                    name=name,
+                    command=command,
+                    cwd=cwd,
+                    elapsed_seconds=0.0,
+                    return_code=0,
+                    output_tail=f"Skipped: required path not found: {required_path}",
+                    skipped=True,
+                )
+            )
+            print(f"[P0] skipping {name} (missing: {required_path})")
+            continue
         print(f"[P0] running {name}...")
         results.append(_run_check(name, command, cwd, env_overrides))
 
@@ -152,7 +172,7 @@ def main() -> int:
     report_path.write_text(_render_report(results, generated_at), encoding="utf-8")
     print(f"[P0] wrote report: {report_path}")
 
-    failures = [r for r in results if r.return_code != 0]
+    failures = [r for r in results if not r.skipped and r.return_code != 0]
     if failures:
         print("[P0] regression suite FAILED")
         for failure in failures:

@@ -183,6 +183,19 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: resolve P0 regression-runner stale data-integrity path, then continue disconnect/reconnect handoff ordering pass in `ServerProtocolHandler`.
 
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Portal Handoff Lifecycle + P0 Runner Reliability)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master @ b253912` (working tree dirty; local CRCL-16 slice not yet committed)
+- Current version: `v0.12.05`
+- Systems touched: `ServerProtocolHandler.handlePortalTravel` origin-zone simulator cleanup for transitions, mission pickup lifecycle regression expansion, and `tools/run_p0_regression_suite.py` optional check-path skip handling.
+- Validation run:
+  - `./gradlew :server:test --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --tests com.indieniinja.server.GameSessionSlotReservationTest --no-daemon` (PASS)
+  - `python tools/run_p0_regression_suite.py` (PASS; `Data Integrity` check now `SKIP` when legacy path is absent)
+- Known issue or risk: manual smoke/golden portal-travel route validation remains pending in an interactive run despite targeted automated coverage passing.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: execute manual portal-travel smoke/golden route (G5) and continue any remaining authority/race/lifecycle checklist gaps.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22

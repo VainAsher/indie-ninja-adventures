@@ -1,6 +1,9 @@
 package com.indieniinja.server;
 
 import com.indieniinja.network.WireMessage;
+import com.indieniinja.sim.GameSimulator;
+import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.sim.SimPlayer;
 import com.indieniinja.world.HubRegistry;
 import com.indieniinja.world.WorldGraph;
 import io.netty.channel.ChannelHandlerContext;
@@ -437,6 +440,18 @@ class ServerProtocolHandlerMissionPickupSeedTest {
             sender.hubId = missionZone.hubId;
             session.players.put(sender.playerId, sender);
             missionZone.playerIds.add(sender.playerId);
+            missionZone.simulator = new GameSimulator(
+                missionZone.seed,
+                missionZone.hubId,
+                LevelLayout.buildTestLayout(missionZone.seed)
+            );
+            missionZone.simulator.addPlayer(new SimPlayer(
+                sender.playerId,
+                sender.slot,
+                missionZone.spawnX,
+                missionZone.spawnY
+            ));
+            assertThat(missionZone.simulator.getPlayer(sender.slot)).isNotNull();
 
             @SuppressWarnings("unchecked")
             Map<String, String> channelToPlayer =
@@ -484,6 +499,7 @@ class ServerProtocolHandlerMissionPickupSeedTest {
             assertThat(sender.hubId).isEqualTo(centralZone.hubId);
             assertThat(missionZone.playerIds).doesNotContain(sender.playerId);
             assertThat(centralZone.playerIds).contains(sender.playerId);
+            assertThat(missionZone.simulator.getPlayer(sender.slot)).isNull();
             assertThat(contracts).isEmpty();
             assertThat(centralZone.pendingMissionPickupSeeds.poll()).isNull();
         } finally {
