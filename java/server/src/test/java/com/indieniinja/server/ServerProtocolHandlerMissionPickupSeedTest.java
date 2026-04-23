@@ -1,17 +1,21 @@
 package com.indieniinja.server;
 
 import com.indieniinja.network.WireMessage;
+import com.indieniinja.network.WireCodec;
 import com.indieniinja.sim.GameSimulator;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.sim.SimPlayer;
 import com.indieniinja.world.HubRegistry;
 import com.indieniinja.world.WorldGraph;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -508,6 +512,97 @@ class ServerProtocolHandlerMissionPickupSeedTest {
     }
 
     @Test
+    void portalTravelArrivedPresenceUsesDestinationZoneKey() throws Exception {
+        GameSession session = new GameSession(20260424L);
+        ServerProtocolHandler handler = new ServerProtocolHandler(session);
+        EmbeddedChannel senderChannel = new EmbeddedChannel(handler);
+        try {
+            HubRegistry.HubDef missionHubDef = HubRegistry.get("forest_hub");
+            long missionZoneSeed = HubRegistry.hubSeed(session.worldSeed, "forest_hub");
+            WorldGraph missionGraph = WorldGraph.generate(
+                missionZoneSeed,
+                missionHubDef.roomCount(),
+                WorldGraph.WorldShape.valueOf(missionHubDef.graphShape())
+            );
+            WorldGraph.RoomNode missionStart = missionGraph.startRoom();
+            String missionZoneKey = "forest_hub:" + missionStart.gridX + ":" + missionStart.gridY;
+            ZoneInstance missionZone = new ZoneInstance(
+                missionZoneKey,
+                "forest_hub",
+                missionZoneSeed,
+                missionHubDef.graphShape(),
+                missionHubDef.roomCount(),
+                session.worldSeed,
+                missionStart.gridX * 32f,
+                missionStart.gridY * 32f
+            );
+            missionZone.worldGraph = missionGraph;
+
+            HubRegistry.HubDef centralHubDef = HubRegistry.get("central_hub");
+            long centralZoneSeed = HubRegistry.hubSeed(session.worldSeed, "central_hub");
+            WorldGraph centralGraph = WorldGraph.generate(
+                centralZoneSeed,
+                centralHubDef.roomCount(),
+                WorldGraph.WorldShape.valueOf(centralHubDef.graphShape())
+            );
+            WorldGraph.RoomNode centralStart = centralGraph.startRoom();
+            String centralZoneKey = "central_hub:" + centralStart.gridX + ":" + centralStart.gridY;
+            ZoneInstance centralZone = new ZoneInstance(
+                centralZoneKey,
+                "central_hub",
+                centralZoneSeed,
+                centralHubDef.graphShape(),
+                centralHubDef.roomCount(),
+                session.worldSeed,
+                centralStart.gridX * 32f,
+                centralStart.gridY * 32f
+            );
+            centralZone.worldGraph = centralGraph;
+
+            PlayerRecord sender = new PlayerRecord("p1", 0, senderChannel);
+            sender.hubId = missionZone.hubId;
+            session.players.put(sender.playerId, sender);
+            missionZone.playerIds.add(sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            Map<String, String> channelToPlayer =
+                (Map<String, String>) getField(handler, "channelToPlayer");
+            channelToPlayer.put(senderChannel.id().asShortText(), sender.playerId);
+
+            @SuppressWarnings("unchecked")
+            ConcurrentHashMap<String, ZoneInstance> zones =
+                (ConcurrentHashMap<String, ZoneInstance>) getField(handler, "zones");
+            zones.put(missionZone.hubId, missionZone);
+            zones.put(centralZone.hubId, centralZone);
+
+            Method handlePortalTravel = ServerProtocolHandler.class.getDeclaredMethod(
+                "handlePortalTravel",
+                ChannelHandlerContext.class,
+                WireMessage.class
+            );
+            handlePortalTravel.setAccessible(true);
+            ChannelHandlerContext senderCtx = senderChannel.pipeline().context(handler);
+            WireMessage portalTravel = new WireMessage("portal_travel", Map.of(
+                "destination_id", "central_hub",
+                "transition_type", "inter_hub"
+            ));
+            handlePortalTravel.invoke(handler, senderCtx, portalTravel);
+
+            List<WireMessage> outbound = readOutboundMessages(senderChannel);
+            WireMessage arrivedPresence = outbound.stream()
+                .filter(m -> "zone_presence".equals(m.type()))
+                .filter(m -> "arrived".equals(m.getString("action", "")))
+                .findFirst()
+                .orElse(null);
+            assertThat(arrivedPresence).isNotNull();
+            assertThat(arrivedPresence.getString("hub_id", "")).isEqualTo(centralZone.hubId);
+            assertThat(arrivedPresence.getString("master_hub_id", "")).isEqualTo("central_hub");
+        } finally {
+            senderChannel.close();
+        }
+    }
+
+    @Test
     void disconnectKeepsCurrentHubContractAndClearsStaleContractsForPlayer() throws Exception {
         GameSession session = new GameSession(424242L);
         ServerProtocolHandler handler = new ServerProtocolHandler(session);
@@ -657,5 +752,23 @@ class ServerProtocolHandlerMissionPickupSeedTest {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         return field.get(target);
+    }
+
+    private static List<WireMessage> readOutboundMessages(EmbeddedChannel channel) {
+        ArrayList<WireMessage> out = new ArrayList<>();
+        for (;;) {
+            Object msg = channel.readOutbound();
+            if (!(msg instanceof ByteBuf buf)) break;
+            try {
+                byte[] body = new byte[buf.readableBytes()];
+                buf.readBytes(body);
+                out.add(WireCodec.decodeBody(body));
+            } catch (java.io.IOException io) {
+                throw new RuntimeException("Failed to decode outbound wire message", io);
+            } finally {
+                buf.release();
+            }
+        }
+        return out;
     }
 }

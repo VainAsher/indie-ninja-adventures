@@ -298,7 +298,9 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             forgetMissionPickupSeedContract(pid, oldZone.hubId);
             broadcastZone(oldZone, MessageType.ZONE_PRESENCE, Map.of(
                 "player_id", pid, "slot", player.slot,
-                "hub_id", oldZone.hubId, "action", "departed"
+                "hub_id", oldZone.hubId,
+                "master_hub_id", oldZone.masterHubId,
+                "action", "departed"
             ));
         }
         if (missionReturn) {
@@ -345,7 +347,9 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
 
         broadcastZone(newZone, MessageType.ZONE_PRESENCE, Map.of(
             "player_id", pid, "slot", player.slot,
-            "hub_id", destHubId, "action", "arrived"
+            "hub_id", newZone.hubId,
+            "master_hub_id", destHubId,
+            "action", "arrived"
         ));
     }
 

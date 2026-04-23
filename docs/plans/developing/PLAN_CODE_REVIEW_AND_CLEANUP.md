@@ -1088,7 +1088,7 @@ Implemented cleanup (`behavior-change`: lifecycle hardening + evidence tooling r
 - `tools/run_p0_regression_suite.py` now treats missing required check paths as explicit `SKIP` results instead of failing the whole suite; PASS/FAIL now excludes skipped checks from failure tally.
 
 Smoke/golden result:
-- Manual smoke/golden route not executed in this terminal slice (non-interactive).
+- Manual smoke/golden portal-travel checks (G5 route) executed in interactive runtime session: PASS (user-confirmed, 2026-04-23).
 - Automated evidence includes targeted server lifecycle tests plus P0 runner PASS artifact.
 
 Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
@@ -1106,8 +1106,61 @@ Validation evidence:
 - `python tools/run_p0_regression_suite.py` -> PASS (`Data Integrity` now reported as `SKIP` when `tests/test_data_integrity.py` is absent; report emitted).
 
 Known issues/risks:
-- Manual smoke/golden confirmation for portal-travel-visible behavior remains pending in an interactive runtime session.
-- Work remains intentionally uncommitted pending user direction for commit/release loop timing.
+- No new blocker identified after manual portal-travel smoke/golden confirmation.
 
 First action next session:
-- Run targeted manual smoke/golden portal-travel checks (G5 route) and continue any remaining authority/race/lifecycle rubric gaps not yet closed.
+- Continue the cleanup-lane rubric pass on remaining authority/race/order surfaces in `ServerProtocolHandler` zone join/leave sequencing, then capture smoke/golden evidence if runtime behavior changes.
+
+### Loop ID: CRCL-2026-04-23-17
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.05`
+- Primary target: harden `ServerProtocolHandler` zone join/leave sequencing by making `ZONE_PRESENCE` payload identity consistent for portal travel.
+- Supporting tasks: align `arrived`/`departed` hub identity semantics and add regression coverage that decodes live outbound wire messages.
+- First validation command: `./gradlew :server:test --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon`
+- Resume risk notes: `runtime` (network event payload contract touched).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: remove inconsistent `hub_id` semantics in `ZONE_PRESENCE` events (`departed` used zone key, `arrived` used master hub id).
+- Player-facing impact: low; improves zone presence ordering/identity correctness for consumers tracking join/leave by zone key.
+- Systems touched: `java/server` (`ServerProtocolHandler`) and `java/server` tests (`ServerProtocolHandlerMissionPickupSeedTest`).
+- Risks: low-medium; protocol payload semantics corrected on portal arrival events.
+- Required tests: `:server:test --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest`; `python tools/check_version_sync.py`; `python tools/check_docs_freshness.py --emit-report`.
+- Docs to update: this cleanup execution log and `docs/CURRENT_STATE.md`.
+- Rollback plan: revert `ZONE_PRESENCE` payload alignment and the new regression test.
+
+Review map and findings:
+- `java/server`: P1 race/order lifecycle finding - `ZONE_PRESENCE` payload used different hub identity semantics for `arrived` vs `departed`, allowing join/leave consumers to key presence state inconsistently.
+- `java/core` / `java/client` / `java/shadowascent` / `tools`: no edits.
+
+Implemented cleanup (`behavior-change`: protocol payload consistency hardening):
+- `ServerProtocolHandler.handlePortalTravel(...)` now emits `ZONE_PRESENCE` with consistent zone-key identity:
+  - `hub_id` is the concrete zone key for both `departed` and `arrived`.
+  - `master_hub_id` is added for both events to preserve explicit master-hub context.
+- Added regression `portalTravelArrivedPresenceUsesDestinationZoneKey` that decodes outbound wire messages and asserts consistent arrival payload identity.
+
+Smoke/golden result:
+- Not run for this slice (`event payload consistency` only; no direct gameplay/render path change in current client flow).
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: low-risk change (`ZONE_PRESENCE` arrival `hub_id` corrected to zone key; additive `master_hub_id`)
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `./gradlew :server:test --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` -> PASS.
+- `python tools/check_version_sync.py` -> PASS (`v0.12.05`).
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+
+Known issues/risks:
+- Any downstream listener that previously interpreted `ZONE_PRESENCE.arrived.hub_id` as master-hub id should switch to `master_hub_id` for master-hub routing.
+
+First action next session:
+- Continue cleanup-lane rubric coverage on remaining `ServerProtocolHandler` race/order surfaces by hardening duplicate `CLIENT_HELLO` (same `player_id`) channel overlap handling, then add targeted lifecycle regression coverage.

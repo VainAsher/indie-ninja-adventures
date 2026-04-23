@@ -186,15 +186,29 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Portal Handoff Lifecycle + P0 Runner Reliability)
 
 - Date: 2026-04-23
-- Branch + HEAD: `master @ b253912` (working tree dirty; local CRCL-16 slice not yet committed)
+- Branch + HEAD: `master @ de93c91`
 - Current version: `v0.12.05`
 - Systems touched: `ServerProtocolHandler.handlePortalTravel` origin-zone simulator cleanup for transitions, mission pickup lifecycle regression expansion, and `tools/run_p0_regression_suite.py` optional check-path skip handling.
 - Validation run:
   - `./gradlew :server:test --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --tests com.indieniinja.server.GameSessionSlotReservationTest --no-daemon` (PASS)
   - `python tools/run_p0_regression_suite.py` (PASS; `Data Integrity` check now `SKIP` when legacy path is absent)
-- Known issue or risk: manual smoke/golden portal-travel route validation remains pending in an interactive run despite targeted automated coverage passing.
+- Known issue or risk: no new blocker identified after manual interactive portal-travel smoke/golden validation.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
-- First action next session: execute manual portal-travel smoke/golden route (G5) and continue any remaining authority/race/lifecycle checklist gaps.
+- First action next session: continue cleanup-lane rubric coverage on remaining authority/race/order surfaces in `ServerProtocolHandler` zone join/leave sequencing, and capture smoke/golden evidence if runtime behavior changes.
+
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Zone Presence Join/Leave Sequencing)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master` (CRCL-17 local slice committed in-session)
+- Current version: `v0.12.05`
+- Systems touched: `ServerProtocolHandler.handlePortalTravel` `ZONE_PRESENCE` payload alignment (`hub_id` now zone key for both `arrived`/`departed`; additive `master_hub_id`), and regression coverage in `ServerProtocolHandlerMissionPickupSeedTest`.
+- Validation run:
+  - `./gradlew :server:test --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS)
+  - `python tools/check_version_sync.py` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+- Known issue or risk: downstream listeners must use `master_hub_id` when master-hub routing is required; `hub_id` is now consistently zone-key scoped.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`low-risk payload correction + additive field`.
+- First action next session: continue cleanup-lane rubric coverage on remaining `ServerProtocolHandler` race/order surfaces by hardening duplicate `CLIENT_HELLO` channel overlap handling and adding targeted lifecycle regression coverage.
 
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
