@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-22
-version_anchor: v0.12.03
+last_updated: 2026-04-23
+version_anchor: v0.12.04
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.04] - 2026-04-23 (mission pickup contract lifecycle hardening)
+
+### Added
+
+- **Mission lifecycle regression coverage expansion**:
+  - `ServerProtocolHandlerMissionPickupSeedTest.disconnectKeepsCurrentHubContractAndClearsStaleContractsForPlayer`
+  - `ServerProtocolHandlerMissionPickupSeedTest.disconnectKeepsCurrentHubContractAvailableForRejoinReseed`
+  - `ServerProtocolHandlerMissionPickupSeedTest.missionSwitchAToBRejoinReseedsMissionBContract`
+  - `ServerProtocolHandlerMissionPickupSeedTest.missionReturnTravelClearsContractsAndSkipsDestinationReseed`
+
+### Changed
+
+- **Mission-return contract handling**: `ServerProtocolHandler.handlePortalTravel(...)` now clears player mission pickup contracts on `transition_type=mission_return` and skips destination reseed queueing for return-hub travel.
+- **Mission-switch contract handling**: stale mission pickup clear events are now mission-aware, and mission start/restart clears prior mission contract state before seeding the next mission.
+- **Disconnect contract handling**: disconnect cleanup now drops stale per-player mission contracts while preserving current-hub contract state for reconnect reseed.
+
+### Fixed
+
+- **Cross-mission pickup carry-over**: consecutive hosted mission starts no longer leak prior mission pickup contracts into the next mission lifecycle.
+- **Return-hub mission pickup pollution**: mission-return travel no longer injects mission reseed requests into destination return hubs.
+- **Stale contract residue after disconnect**: reconnect/rejoin paths now retain only the contract needed for active-hub convergence.
 
 ---
 

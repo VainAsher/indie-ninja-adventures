@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-23
-version_anchor: v0.12.03
+version_anchor: v0.12.04
 replaces: docs/HANDOVER.md
 ---
 
@@ -13,8 +13,8 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Baseline
 
-- Date baseline: 2026-04-22
-- Version baseline: v0.12.03
+- Date baseline: 2026-04-23
+- Version baseline: v0.12.04
 - Platform baseline: Windows desktop
 - Engine stack: Java 21 + libGDX + Netty
 - Source of truth for release metadata: `version.json`
@@ -25,7 +25,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.12.04 (post-release stabilization follow-up).
+- Next release candidate: v0.12.05 (post-release stabilization follow-up).
 - Latest release verification (`2026-04-22`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
   - Tag target: v0.12.03

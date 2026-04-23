@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.12.03** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.12.04** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,11 +17,12 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.12.03 (hosted mission pickup authority + late-join convergence stabilization)
+## What's in v0.12.04 (mission pickup contract lifecycle hardening)
 
-- Late-join bootstrap now forces the next authoritative world broadcast to a full snapshot for immediate state convergence.
-- Mission-seeded objective pickups are now owner-scoped in hosted multiplayer to prevent non-owner consumption races.
-- Server regression coverage expanded for full-snapshot forcing and mission pickup owner-scoping behavior.
+- Disconnect cleanup now clears stale mission pickup contracts while retaining current-hub contract reseed behavior for safe rejoin.
+- Mission switch/restart now clears prior mission pickup contract state and prevents cross-mission carry-over.
+- Mission-return portal travel now clears mission pickup contracts and skips destination reseed in return hubs.
+- Server regression coverage expanded for disconnect, mission-switch, and mission-return lifecycle paths.
 
 | System | Status |
 | ------ | ------ |
@@ -110,9 +111,9 @@ Single source of truth: [`version.json`](version.json)
 
 ```json
 {
-  "version": "0.12.00",
+  "version": "0.12.04",
   "build": "production",
-  "build_date": "2026-04-21",
+  "build_date": "2026-04-23",
   "min_launcher_version": "1.1.0"
 }
 ```

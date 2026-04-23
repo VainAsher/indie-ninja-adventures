@@ -1,7 +1,7 @@
 {
-  "generated": "2026-04-21T00:06:00.034772+00:00",
+  "generated": "2026-04-23T08:09:47.310583+00:00",
   "root": "assets",
-  "count": 512,
+  "count": 513,
   "files": [
     {
       "path": "animations/manifest.json",
@@ -10,8 +10,8 @@
     },
     {
       "path": "asset_manifest.json",
-      "size": 81415,
-      "sha256": "173323845d7249a319b8eb320a6d095283e99904baa05a86b2bbf58b6fcf6ee7"
+      "size": 92615,
+      "sha256": "05ea634931cf8080eaeb60b3ec4ed44f03b7c6c0d0973a06fca83a192762faa2"
     },
     {
       "path": "audio/sfx/dash.wav",
@@ -457,6 +457,11 @@
       "path": "splash/landing.png",
       "size": 11977,
       "sha256": "c54890f7d788357208ab1efd2e8982c4415c6e0546835846bbfe5b75722a9e7f"
+    },
+    {
+      "path": "sprites/player/attack-sword_spritesheet.png",
+      "size": 4685,
+      "sha256": "c59f2eb9eba3e4cfabf754836cee6d16742312aeb43f22eb307a2c847cfc07b6"
     },
     {
       "path": "sprites/player/attack1_spritesheet.png",

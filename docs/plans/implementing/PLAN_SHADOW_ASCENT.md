@@ -3,11 +3,11 @@ doc_type: plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-23
-version_anchor: v0.12.03
+version_anchor: v0.12.04
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-23 | **Codebase version:** v0.12.03 | **Next release target:** v0.12.04 (stabilization follow-up)
+**Created:** 2026-04-10 | **Last updated:** 2026-04-23 | **Codebase version:** v0.12.04 | **Next release target:** v0.12.05 (stabilization follow-up)
 
 ---
 
@@ -93,6 +93,19 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-23 09:10:21 +01:00`
+
+- `v0.12.04` release-loop metadata sync and gate pass (`ITERATION_RELEASE_PROTOCOL` step 8 prep).
+  - Release parity targets updated to `v0.12.04`: `version.json`, `java/build.gradle.kts`, `README.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`.
+  - Active plan + current-state anchors updated for `v0.12.04` baseline continuity.
+- Validation:
+  - `python tools/check_version_sync.py --tag v0.12.04` ✅
+  - `python tools/check_docs_freshness.py --emit-report` ✅
+  - `./gradlew :server:test :client:test --no-daemon` ✅
+  - `./gradlew :server:shadowJar :client:shadowJar --no-daemon` ✅
+- Compatibility classification:
+  - replay=`no`, save=`no`, protocol=`no`.
 
 `2026-04-23 08:36:53 +01:00`
 
