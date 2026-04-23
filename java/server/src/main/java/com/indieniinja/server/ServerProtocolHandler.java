@@ -146,6 +146,35 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
                 playerId, sessionId, version, MessageType.PROTOCOL_VERSION);
         }
 
+        PlayerRecord existing = session.players.get(playerId);
+        if (existing != null) {
+            String incomingChannelId = ctx.channel().id().asShortText();
+            String existingChannelId = existing.channel == null
+                ? ""
+                : existing.channel.id().asShortText();
+            boolean sameChannel = existing.channel == ctx.channel();
+
+            // Duplicate hello on the same channel should be idempotent.
+            if (sameChannel) {
+                log.info("Duplicate CLIENT_HELLO ignored: player={} session={} slot={} channel={}",
+                    playerId, existing.sessionId, existing.slot, incomingChannelId);
+                sendServerHello(ctx.channel(), playerId, existing.sessionId, existing.slot);
+                return;
+            }
+
+            // Different channel with the same player_id means overlap/takeover.
+            // Force cleanup of old channel ownership before admitting the new one.
+            log.info("CLIENT_HELLO takeover: player={} old_channel={} new_channel={} old_slot={}",
+                playerId, existingChannelId, incomingChannelId, existing.slot);
+            if (!existingChannelId.isBlank()) {
+                channelToPlayer.remove(existingChannelId);
+            }
+            handleDisconnect(playerId, existing.channel);
+            if (existing.channel != null && existing.channel.isActive()) {
+                existing.channel.close();
+            }
+        }
+
         int slot = session.claimSlot(playerId);
         if (slot < 0) {
             sendMessage(ctx.channel(), MessageType.ERROR,
@@ -164,14 +193,7 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
             playerId, sessionId, slot, session.gameMode.wire, ctx.channel().remoteAddress());
 
         // SERVER_HELLO
-        sendMessage(ctx.channel(), MessageType.SERVER_HELLO, Map.of(
-            "player_id",   playerId,
-            "session_id",  sessionId,
-            "slot",        slot,
-            "frame",       0,
-            "seed",        session.worldSeed,
-            "max_players", GameSession.MAX_PLAYERS
-        ));
+        sendServerHello(ctx.channel(), playerId, sessionId, slot);
 
         // LOBBY_UPDATE → all
         broadcastAll(MessageType.LOBBY_UPDATE, Map.of(
@@ -196,6 +218,18 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     }
 
     // ── Handler: INPUT ────────────────────────────────────────────────────────
+
+    private void sendServerHello(Channel channel, String playerId, String sessionId, int slot)
+            throws Exception {
+        sendMessage(channel, MessageType.SERVER_HELLO, Map.of(
+            "player_id",   playerId,
+            "session_id",  sessionId,
+            "slot",        slot,
+            "frame",       0,
+            "seed",        session.worldSeed,
+            "max_players", GameSession.MAX_PLAYERS
+        ));
+    }
 
     @SuppressWarnings("unchecked")
     private void handleInput(ChannelHandlerContext ctx, WireMessage msg) {

@@ -210,6 +210,48 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`low-risk payload correction + additive field`.
 - First action next session: continue cleanup-lane rubric coverage on remaining `ServerProtocolHandler` race/order surfaces by hardening duplicate `CLIENT_HELLO` channel overlap handling and adding targeted lifecycle regression coverage.
 
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - CLIENT_HELLO Overlap Ordering)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master` (CRCL-18 local slice committed in-session)
+- Current version: `v0.12.05`
+- Systems touched: `ServerProtocolHandler.handleClientHello` overlap/idempotency guard path, `sendServerHello` helper extraction, and new `ServerProtocolHandlerClientHelloOrderingTest`.
+- Validation run:
+  - `./gradlew :server:test --tests com.indieniinja.server.ServerProtocolHandlerClientHelloOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS)
+  - `python tools/check_version_sync.py` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+- Known issue or risk: takeover path currently presents as disconnect/rejoin from other clients' perspective (`leave` then `join` event pair).
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no wire-format change`.
+- First action next session: harden replay determinism by removing concurrent-set iteration order from `ZoneSimulationLoop` per-tick input collection.
+
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Replay Input Ordering Determinism)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master` (CRCL-19 local slice committed in-session)
+- Current version: `v0.12.05`
+- Systems touched: `ZoneSimulationLoop` ordered zone-player snapshot usage in `simulateTick`, slot-ordered `playersInZone`, and regression coverage in `ZoneSimulationLoopScriptedLossOrderingTest`.
+- Validation run:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerClientHelloOrderingTest --tests com.indieniinja.server.ServerProtocolHandlerMissionPickupSeedTest --no-daemon` (PASS)
+  - `python tools/check_version_sync.py` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+- Known issue or risk: no new blocker identified in this slice.
+- Compatibility impact: replay=`yes` (determinism hardening; no format change), save=`no`, protocol=`no`.
+- First action next session: run cleanup-lane checklist closure pass and defer any remaining non-critical items with owner/date.
+
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Checklist Closure)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master` (CRCL-20 local slice committed in-session)
+- Current version: `v0.12.05`
+- Systems touched: cleanup-lane checklist bookkeeping (`PLAN_CODE_REVIEW_AND_CLEANUP.md`) + closeout status notes.
+- Validation run:
+  - `python tools/check_version_sync.py` (PASS)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS)
+  - `python tools/run_p0_regression_suite.py` (PASS)
+- Known issue or risk: full interactive smoke/golden workflow evidence is still pending because launcher/client interactive paths are not runnable in this terminal slice.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: execute interactive `Daily Smoke` and relevant golden routes, then attach evidence; code cleanup slices are otherwise complete.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22

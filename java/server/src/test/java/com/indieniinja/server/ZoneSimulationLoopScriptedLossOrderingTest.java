@@ -2,9 +2,11 @@ package com.indieniinja.server;
 
 import com.indieniinja.network.MessageType;
 import com.indieniinja.network.WireCodec;
+import com.indieniinja.network.InputCommand;
 import com.indieniinja.network.WireMessage;
 import com.indieniinja.network.WorldSnapshot;
 import com.indieniinja.sim.GameSimulator;
+import com.indieniinja.sim.InputRecorder;
 import com.indieniinja.sim.LevelLayout;
 import com.indieniinja.sim.SimPlayer;
 import com.indieniinja.sim.SimPickup;
@@ -349,6 +351,59 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         }
     }
 
+    @Test
+    void simulateTickRecordsReplayInputsInSlotOrder() throws Exception {
+        GameSession session = new GameSession(42345L);
+        ZoneInstance zone = new ZoneInstance(
+            "central_hub:2:0", "central_hub", 42345L, "blob", 12, 42345L, 256f, 256f);
+        zone.simulator = new GameSimulator(zone.seed, zone.hubId, LevelLayout.buildTestLayout(zone.seed));
+
+        // Insert player ids in non-slot order; recorder output should still be slot-ordered.
+        EmbeddedChannel channel1 = new EmbeddedChannel();
+        EmbeddedChannel channel2 = new EmbeddedChannel();
+        PlayerRecord p1 = new PlayerRecord("p1", 1, channel1);
+        PlayerRecord p2 = new PlayerRecord("p2", 0, channel2);
+        p1.hubId = zone.hubId;
+        p2.hubId = zone.hubId;
+        session.players.put(p1.playerId, p1);
+        session.players.put(p2.playerId, p2);
+        zone.playerIds.add("p1");
+        zone.playerIds.add("p2");
+
+        InputCommand input1 = InputCommand.neutral(0);
+        input1.right = true;
+        InputCommand input2 = InputCommand.neutral(0);
+        input2.left = true;
+        p1.latestInput.set(input1);
+        p2.latestInput.set(input2);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ZoneSimulationLoop loop = new ZoneSimulationLoop(
+            zone,
+            session,
+            new AtomicBoolean(false),
+            new ConcurrentHashMap<>(Map.of(zone.hubId, zone)),
+            executor
+        );
+        try {
+            InputRecorder recorder = (InputRecorder) getField(loop, "recorder");
+            recorder.startRecording(zone.seed);
+
+            invokeSimulateTick(loop);
+
+            @SuppressWarnings("unchecked")
+            List<InputRecorder.FrameEntry> entries =
+                (List<InputRecorder.FrameEntry>) getField(recorder, "buffer");
+            assertThat(entries).hasSize(2);
+            assertThat(entries.get(0).slot()).isEqualTo(0);
+            assertThat(entries.get(1).slot()).isEqualTo(1);
+        } finally {
+            executor.shutdownNow();
+            channel1.close();
+            channel2.close();
+        }
+    }
+
     private static TestHarness createHarness() {
         GameSession session = new GameSession(12345L);
         ZoneInstance zone = new ZoneInstance(
@@ -445,6 +500,12 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         Field f = GameSimulator.class.getDeclaredField("pendingBossDefeatIds");
         f.setAccessible(true);
         ((List<String>) f.get(sim)).add(bossId);
+    }
+
+    private static Object getField(Object target, String fieldName) throws Exception {
+        Field f = target.getClass().getDeclaredField(fieldName);
+        f.setAccessible(true);
+        return f.get(target);
     }
 
     private static void invokeSimulateTick(ZoneSimulationLoop loop) throws Exception {

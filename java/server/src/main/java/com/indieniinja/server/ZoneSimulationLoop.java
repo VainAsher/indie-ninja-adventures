@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -297,14 +298,13 @@ public final class ZoneSimulationLoop implements Runnable {
         GameSimulator sim = zone.simulator;
         if (sim == null) return;
         drainPendingMissionPickupSeedRequests(sim);
+        List<PlayerRecord> zonePlayers = playersInZone();
 
         // Server-authoritative physics: player positions are owned by the server sim.
         // PlayerRecord.posX/Y is only used for the initial spawn — after that the
         // sim drives positions, and we write results BACK to PlayerRecord for broadcast.
         java.util.Map<Integer, InputCommand> inputs = new java.util.LinkedHashMap<>();
-        for (String pid : zone.playerIds) {
-            PlayerRecord pr = session.players.get(pid);
-            if (pr == null) continue;
+        for (PlayerRecord pr : zonePlayers) {
 
             SimPlayer sp = sim.getPlayers().get(pr.slot);
             if (sp == null) {
@@ -320,7 +320,7 @@ public final class ZoneSimulationLoop implements Runnable {
                     sx = zone.spawnX;
                     sy = zone.spawnY;
                 }
-                SimPlayer newSp = new SimPlayer(pid, pr.slot, sx, sy);
+                SimPlayer newSp = new SimPlayer(pr.playerId, pr.slot, sx, sy);
                 newSp.health    = pr.health;
                 newSp.facing    = pr.facing;
                 newSp.animState = pr.animState;
@@ -355,9 +355,7 @@ public final class ZoneSimulationLoop implements Runnable {
         }
 
         // Write authoritative physics results back to PlayerRecords for broadcast
-        for (String pid : zone.playerIds) {
-            PlayerRecord pr = session.players.get(pid);
-            if (pr == null) continue;
+        for (PlayerRecord pr : zonePlayers) {
             SimPlayer sp = sim.getPlayers().get(pr.slot);
             if (sp == null) continue;
             pr.posX     = sp.physics.x;
@@ -905,6 +903,10 @@ public final class ZoneSimulationLoop implements Runnable {
             PlayerRecord pr = session.players.get(pid);
             if (pr != null) result.add(pr);
         }
+        result.sort(
+            Comparator.comparingInt((PlayerRecord p) -> p.slot)
+                .thenComparing(p -> p.playerId == null ? "" : p.playerId)
+        );
         return result;
     }
 }
