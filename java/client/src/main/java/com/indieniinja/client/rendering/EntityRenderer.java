@@ -158,9 +158,7 @@ public final class EntityRenderer {
     private static final float FPS_JUMP       = 10f;
     private static final float FPS_ATTACK     = 15f;
     private static final float FPS_THROW      = 12f;
-    private static final float FPS_HURT       = 12f;
     private static final float FPS_DEATH      = 12f;
-    private static final float FPS_WALL_SLIDE = 8f;
     private static final float PICKUP_ANIM_FPS= 4f;
 
     /**

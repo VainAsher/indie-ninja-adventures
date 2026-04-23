@@ -100,9 +100,9 @@ Cleanup categories:
 - [x] Correctness fixes found during review
 - [x] Naming/readability cleanup
 - [x] Method extraction and de-duplication
-- [ ] Dead code/path removal
+- [x] Dead code/path removal
 - [x] Null safety and guard-rail hardening
-- [ ] Logging clarity for debugging and support
+- [x] Logging clarity for debugging and support
 
 ## Phase C - Quality Gates Per Loop
 
@@ -155,7 +155,7 @@ Reliability:
 Maintainability:
 - [x] repeated logic that should be centralized
 - [ ] confusing method names or mixed responsibilities
-- [ ] dead or unreachable code
+- [x] dead or unreachable code
 
 Performance:
 - [ ] hot-path allocations
@@ -421,3 +421,111 @@ Known issues/risks:
 
 First action next session:
 - Run the dead-code/path-removal cleanup slice for unused UI fields/helpers and verify no render/input behavior changes.
+
+### Loop ID: CRCL-2026-04-23-05
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: dead-code/path-removal cleanup for unused client UI/render helpers.
+- Supporting tasks: verify symbol usage before deletion, run full client validation, refresh version/docs/CI evidence.
+- First validation command: `./gradlew :client:test --no-daemon`
+- Resume risk notes: `env` (sandbox network/cache constraints for Gradle wrapper/dependency fetch).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: remove unused helper/constant declarations in client visual code without changing render/input behavior.
+- Player-facing impact: none.
+- Systems touched: `java/client` (`DevConsole`, `EntityRenderer`).
+- Risks: low; removed members were unreferenced.
+- Required tests: full `:client:test`.
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: restore removed helper/constants in touched files.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- Removed dead UI helper `DevConsole.logInfo(String)` (private, unreferenced).
+- Removed dead renderer constants `EntityRenderer.FPS_HURT` and `EntityRenderer.FPS_WALL_SLIDE` (private, unreferenced).
+- No call-path or runtime-behavior changes.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp5`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-5`
+  `./gradlew :client:test --no-daemon` -> PASS.
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.04` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `gh run list --limit 3 --json status,conclusion,name,headSha` -> latest `CI` and `Release` are `success`.
+
+Known issues/risks:
+- Initial in-sandbox Gradle run failed due blocked socket access while fetching wrapper; rerun outside sandbox succeeded.
+- Commit status: intentionally left uncommitted (user requested batching and committing at end).
+
+First action next session:
+- Run the logging-clarity slice: tighten high-signal client runtime logs for debugging/support while keeping gameplay behavior unchanged.
+
+### Loop ID: CRCL-2026-04-23-06
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.04`
+- Primary target: improve network-client logging clarity with structured, high-signal event labels.
+- Supporting tasks: keep behavior unchanged, run full `:client:test`, refresh docs/version/CI evidence.
+- First validation command: `./gradlew :client:test --no-daemon`
+- Resume risk notes: `env` (encoding and sandbox/network constraints when editing/running local tooling).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: make `NetworkClientThread` logs easier to scan/correlate during support triage by standardizing event naming and key/value fields.
+- Player-facing impact: none.
+- Systems touched: `java/client` network runtime (`NetworkClientThread`).
+- Risks: low; string-only log changes.
+- Required tests: full `:client:test`.
+- Docs to update: this cleanup plan execution log.
+- Rollback plan: revert `NetworkClientThread` log-line edits.
+
+Implemented cleanup (`behavior-change`: no-behavior-change):
+- Standardized network connection lifecycle logs to structured event-style forms:
+  - `connect_start`, `connect_success`, `reconnect_scheduled`, `client_thread_stopped`.
+- Standardized inbound message logs:
+  - `server_hello`, `world_transition`, `scripted_loss_received`, `ignored_message`.
+- Added host/port/backoff context to reconnect logs for support debugging.
+- Encoding fix during implementation:
+  - Removed accidental UTF-8 BOM introduced during intermediate file write (compile restored immediately).
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp5`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-5`
+  `./gradlew :client:test --no-daemon` -> PASS.
+- `LOCALAPPDATA=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-localapp5`
+  `GRADLE_USER_HOME=C:\\Users\\asher\\AppData\\Local\\Temp\\codex-gradle-user-home-5`
+  `./gradlew :client:compileJava --no-daemon` -> PASS (outside sandbox rerun).
+- `C:\\Users\\asher\\AppData\\Local\\Programs\\Python\\Python312\\python.exe tools/check_version_sync.py --tag v0.12.04` -> PASS.
+- `python tools/check_docs_freshness.py --emit-report` -> PASS.
+- `gh run list --limit 3 --json status,conclusion,name,headSha` -> latest `CI` and `Release` are `success`.
+
+Known issues/risks:
+- One intermediate compile failure was caused by an accidental UTF-8 BOM; fixed by rewriting file without BOM.
+- In-sandbox `:client:compileJava` hit transient Gradle cache `AccessDeniedException`; outside-sandbox rerun passed.
+- Commit status: intentionally left uncommitted (user requested batching and committing at end).
+
+First action next session:
+- Run a focused performance-review slice on client hot-path allocations (`GameScreen`/`HudRenderer`) and capture before/after evidence if any low-risk reductions are applied.

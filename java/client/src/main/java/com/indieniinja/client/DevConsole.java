@@ -232,7 +232,6 @@ public final class DevConsole {
 
     private void log(String msg)      { addLine(msg); }
     private void logError(String msg) { addLine("[ERR] " + msg); }
-    private void logInfo(String msg)  { addLine("[INFO] " + msg); }
 
     private void addLine(String line) {
         logLines.addLast(line);

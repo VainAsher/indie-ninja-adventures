@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  * Background thread that maintains a persistent TCP connection to the Java server.
  *
  * Protocol: 4-byte big-endian length-prefix + msgpack body (same as server side).
- * Uses plain Java Socket (not Netty) — a single client connection doesn't need
+ * Uses plain Java Socket (not Netty) - a single client connection doesn't need
  * the full pipeline overhead.
  *
  * Thread model:
@@ -61,7 +61,7 @@ public final class NetworkClientThread extends Thread {
     private final GameStateBuffer buffer;
     private volatile String       gameMode = "arcade";
 
-    /** Latest input command for the next send cycle — written by render thread. */
+    /** Latest input command for the next send cycle - written by render thread. */
     private final AtomicReference<InputCommand> pendingInput = new AtomicReference<>();
 
     /** Output stream guarded for thread safety between render thread and this thread. */
@@ -80,11 +80,11 @@ public final class NetworkClientThread extends Thread {
         this.buffer    = buffer;
     }
 
-    // ── Public API (render thread) ────────────────────────────────────────────
+    // -- Public API (render thread) -----------------------------------------------
 
     /**
      * Queue an input command to be sent on the next write opportunity.
-     * Non-blocking — stores the command and returns immediately.
+     * Non-blocking - stores the command and returns immediately.
      * Called from the libGDX render thread every frame.
      */
     public void sendInput(InputCommand cmd) {
@@ -94,7 +94,7 @@ public final class NetworkClientThread extends Thread {
 
     /**
      * Send an arbitrary message to the server (e.g. TRADE_REQUEST).
-     * Non-blocking best-effort — dropped silently if not connected.
+     * Non-blocking best-effort - dropped silently if not connected.
      */
     public void sendMessage(String msgType, java.util.Map<String, Object> payload) {
         java.io.DataOutputStream os;
@@ -110,7 +110,7 @@ public final class NetworkClientThread extends Thread {
         interrupt();
     }
 
-    // ── Receive loop ──────────────────────────────────────────────────────────
+    // -- Receive loop --------------------------------------------------------------
 
     @Override
     public void run() {
@@ -118,7 +118,7 @@ public final class NetworkClientThread extends Thread {
 
         while (running && !isInterrupted()) {
             try {
-                log.info("[Net] Connecting to {}:{}…", host, port);
+                log.info("[Net] connect_start host={} port={}", host, port);
                 try (Socket socket = new Socket(host, port)) {
                     socket.setTcpNoDelay(true);
                     socket.setSoTimeout(60_000);  // 60s idle timeout
@@ -130,7 +130,7 @@ public final class NetworkClientThread extends Thread {
                     buffer.markDisconnected();
 
                     sendHello(os);
-                    log.info("[Net] Connected — player_id={} session_id={}", playerId, sessionId);
+                    log.info("[Net] connect_success host={} port={} player_id={} session_id={}", host, port, playerId, sessionId);
                     backoff = RECONNECT_BASE_MS;  // reset on success
 
                     // Receive loop
@@ -149,15 +149,15 @@ public final class NetworkClientThread extends Thread {
                 synchronized (writeLock) { this.out = null; }
                 buffer.markDisconnected();
                 if (!running) break;
-                log.warn("[Net] Disconnected: {} — reconnecting in {}ms", ex.getMessage(), backoff);
+                log.warn("[Net] reconnect_scheduled host={} port={} backoff_ms={} reason={}", host, port, backoff, ex.getMessage());
                 try { Thread.sleep(backoff); } catch (InterruptedException ie) { break; }
                 backoff = Math.min(backoff * 2, RECONNECT_MAX_MS);
             }
         }
-        log.info("[Net] Client thread stopped.");
+        log.info("[Net] client_thread_stopped");
     }
 
-    // ── Message handling ──────────────────────────────────────────────────────
+    // -- Message handling ----------------------------------------------------------
 
     private void handleMessage(WireMessage msg) {
         switch (msg.type()) {
@@ -169,7 +169,7 @@ public final class NetworkClientThread extends Thread {
                 String ver  = msg.getString("version", "?");
                 int    slot = (int) msg.getLong("slot", 0L);
                 String serverSession = msg.getString("session_id", "unknown");
-                log.info("[Net] SERVER_HELLO version={} slot={} session_id={}", ver, slot, serverSession);
+                log.info("[Net] server_hello version={} slot={} session_id={}", ver, slot, serverSession);
                 buffer.setPendingLocalSlot(slot);
                 buffer.markConnected();  // HUD goes Online as soon as handshake completes
             }
@@ -177,30 +177,30 @@ public final class NetworkClientThread extends Thread {
                 // Player has been moved to a new zone/hub. Reset all client world state so
                 // the next WORLD_STATE full snapshot re-initialises tiles and megamap.
                 String newHubId = msg.getString("hub_id", "?");
-                log.info("[Net] WORLD_TRANSITION → hub={}", newHubId);
+                log.info("[Net] world_transition hub_id={}", newHubId);
                 buffer.resetForZoneTransition();
             }
             case MessageType.SCRIPTED_LOSS -> {
-                log.info("[Net] SCRIPTED_LOSS received session_id={} player_id={}", sessionId, playerId);
+                log.info("[Net] scripted_loss_received session_id={} player_id={}", sessionId, playerId);
                 buffer.markScriptedLoss();
             }
-            default -> log.debug("[Net] Ignored message type: {}", msg.type());
+            default -> log.debug("[Net] ignored_message type={}", msg.type());
         }
     }
 
-    // ── Wire helpers ──────────────────────────────────────────────────────────
+    // -- Wire helpers --------------------------------------------------------------
 
     private void sendHello(DataOutputStream os) throws IOException {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("player_id", playerId);
         payload.put("session_id", sessionId);
-        payload.put("version",   MessageType.PROTOCOL_VERSION);  // "2" — matches server
+        payload.put("version",   MessageType.PROTOCOL_VERSION);  // "2" - matches server
         payload.put("protocol",  MessageType.PROTOCOL_VERSION);
         payload.put("game_mode", gameMode);
         sendRaw(os, MessageType.CLIENT_HELLO, payload);
     }
 
-    /** Set game mode before connecting — must be called before the thread is started. */
+    /** Set game mode before connecting - must be called before the thread is started. */
     public void setGameMode(String mode) { this.gameMode = mode; }
 
     /** Drain the pending input reference and send it if non-null. */
