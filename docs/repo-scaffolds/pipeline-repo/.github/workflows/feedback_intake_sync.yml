@@ -13,7 +13,7 @@ on:
 
 env:
   FEEDBACK_REPO: VainAsher/indie-ninja-feedback
-  INTAKE_ISSUE_NUMBER: 1  # Set to the intake tracking issue in this repo
+  INTAKE_ISSUE_NUMBER: 2  # Intake tracking issue in indie-ninja-pipeline
 
 jobs:
   sync-intake:
