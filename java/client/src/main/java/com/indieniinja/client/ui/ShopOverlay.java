@@ -55,8 +55,13 @@ public final class ShopOverlay {
     private static final float ROW_H   = 18f;
 
     public ShopOverlay() {
-        font   = new BitmapFont();
-        shapes = new ShapeRenderer();
+        if (Gdx.app != null) {
+            font   = new BitmapFont();
+            shapes = new ShapeRenderer();
+        } else {
+            font = null;
+            shapes = null;
+        }
     }
 
     public void setOnTrade(Consumer<TradeRequest> handler) { this.onTrade = handler; }
@@ -78,6 +83,7 @@ public final class ShopOverlay {
      * Returns true if input was consumed.
      */
     public boolean handleInput(PlayerState localPlayer) {
+        if (Gdx.app == null || Gdx.input == null) return false;
         if (!visible) return false;
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
@@ -134,6 +140,7 @@ public final class ShopOverlay {
      * @param batch SpriteBatch with screen-space projection set. Caller handles begin/end.
      */
     public void render(SpriteBatch batch, PlayerState localPlayer) {
+        if (font == null || shapes == null || Gdx.app == null || Gdx.graphics == null) return;
         if (!visible || activeShop == null) return;
 
         float sw = Gdx.graphics.getWidth();
@@ -271,7 +278,7 @@ public final class ShopOverlay {
     }
 
     public void dispose() {
-        font.dispose();
-        shapes.dispose();
+        if (font != null) font.dispose();
+        if (shapes != null) shapes.dispose();
     }
 }

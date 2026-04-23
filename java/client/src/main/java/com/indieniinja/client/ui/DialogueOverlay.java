@@ -49,8 +49,13 @@ public final class DialogueOverlay {
 
     public DialogueOverlay(DialogueManager dialogueManager) {
         this.dialogueManager = dialogueManager;
-        this.font   = new BitmapFont();    // libGDX built-in Arial 15px
-        this.shapes = new ShapeRenderer();
+        if (Gdx.app != null) {
+            this.font   = new BitmapFont();    // libGDX built-in Arial 15px
+            this.shapes = new ShapeRenderer();
+        } else {
+            this.font = null;
+            this.shapes = null;
+        }
     }
 
     /**
@@ -58,6 +63,7 @@ public final class DialogueOverlay {
      * Returns true if the event was consumed by dialogue (caller should not process it).
      */
     public boolean handleInput() {
+        if (dialogueManager == null || Gdx.app == null || Gdx.input == null) return false;
         if (!dialogueManager.isActive()) return false;
 
         DialogueNode node = dialogueManager.currentNode();
@@ -119,6 +125,8 @@ public final class DialogueOverlay {
      *              Caller must begin/end the batch around this call.
      */
     public void render(SpriteBatch batch) {
+        if (dialogueManager == null || font == null || shapes == null
+            || Gdx.app == null || Gdx.graphics == null) return;
         if (!dialogueManager.isActive()) return;
 
         DialogueNode node = dialogueManager.currentNode();
@@ -191,7 +199,7 @@ public final class DialogueOverlay {
     }
 
     public void dispose() {
-        font.dispose();
-        shapes.dispose();
+        if (font != null) font.dispose();
+        if (shapes != null) shapes.dispose();
     }
 }

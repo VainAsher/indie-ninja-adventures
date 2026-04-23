@@ -70,23 +70,34 @@ public final class ModeSelectScreen implements Screen {
         this.port     = port;
         this.saveSlot = saveSlot;
 
-        batch     = new SpriteBatch();
-        shapes    = new ShapeRenderer();
-        fontLarge = new BitmapFont();
-        fontLarge.getData().setScale(1.8f);
-        fontSmall = new BitmapFont();
-        fontSmall.getData().setScale(0.9f);
+        if (Gdx.app != null) {
+            batch     = new SpriteBatch();
+            shapes    = new ShapeRenderer();
+            fontLarge = new BitmapFont();
+            fontLarge.getData().setScale(1.8f);
+            fontSmall = new BitmapFont();
+            fontSmall.getData().setScale(0.9f);
+        } else {
+            batch = null;
+            shapes = null;
+            fontLarge = null;
+            fontSmall = null;
+        }
     }
 
     // ── Screen lifecycle ──────────────────────────────────────────────────────
 
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(null);  // manual input polling
+        if (Gdx.input != null) {
+            Gdx.input.setInputProcessor(null);  // manual input polling
+        }
     }
 
     @Override
     public void render(float delta) {
+        if (batch == null || shapes == null || fontLarge == null || fontSmall == null
+            || Gdx.app == null || Gdx.graphics == null) return;
         handleInput();
 
         int sw = Gdx.graphics.getWidth();
@@ -196,15 +207,16 @@ public final class ModeSelectScreen implements Screen {
 
     @Override
     public void dispose() {
-        batch.dispose();
-        shapes.dispose();
-        fontLarge.dispose();
-        fontSmall.dispose();
+        if (batch != null) batch.dispose();
+        if (shapes != null) shapes.dispose();
+        if (fontLarge != null) fontLarge.dispose();
+        if (fontSmall != null) fontSmall.dispose();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void handleInput() {
+        if (Gdx.input == null) return;
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)  || Gdx.input.isKeyJustPressed(Input.Keys.A))
             selectedIndex = (selectedIndex + MODE_COUNT - 1) % MODE_COUNT;
         if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D))

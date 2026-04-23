@@ -82,13 +82,29 @@ public final class HudRenderer {
     private float scriptedLossBtnH = 0f;
 
     public HudRenderer() {
-        shapes    = new ShapeRenderer();
-        hudBatch  = new SpriteBatch();
-        font      = new BitmapFont();   // built-in libGDX 15px font
-        font.setColor(Color.WHITE);
+        if (Gdx.app != null) {
+            shapes    = new ShapeRenderer();
+            hudBatch  = new SpriteBatch();
+            font      = new BitmapFont();   // built-in libGDX 15px font
+            font.setColor(Color.WHITE);
 
-        screenCam = new OrthographicCamera();
-        screenCam.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            screenCam = new OrthographicCamera();
+            screenCam.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        } else {
+            shapes = null;
+            hudBatch = null;
+            font = null;
+            screenCam = null;
+        }
+    }
+
+    private boolean rendererReady() {
+        return Gdx.app != null
+            && Gdx.graphics != null
+            && shapes != null
+            && hudBatch != null
+            && font != null
+            && screenCam != null;
     }
 
     /**
@@ -100,6 +116,7 @@ public final class HudRenderer {
      * @param localSlot   which player slot belongs to this client (for highlighting)
      */
     public void render(WorldSnapshot snap, boolean connected, int fps, int localSlot) {
+        if (!rendererReady()) return;
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
 
@@ -493,6 +510,7 @@ public final class HudRenderer {
      * Must be called inside a hudBatch.begin() / end() block on the screen projection.
      */
     public void renderToasts(float delta) {
+        if (!rendererReady()) return;
         if (toastTexts.isEmpty()) return;
 
         int sw = Gdx.graphics.getWidth();
@@ -522,6 +540,7 @@ public final class HudRenderer {
     }
 
     public void resize(int w, int h) {
+        if (!rendererReady()) return;
         screenCam.setToOrtho(false, w, h);
         screenCam.update();
     }
@@ -535,6 +554,7 @@ public final class HudRenderer {
 
     /** Screen-space projection matrix — use for overlays rendered over the HUD. */
     public com.badlogic.gdx.math.Matrix4 screenProjection() {
+        if (!rendererReady()) return new com.badlogic.gdx.math.Matrix4().idt();
         return screenCam.combined;
     }
 
@@ -544,6 +564,7 @@ public final class HudRenderer {
      * Caller must ensure it is used outside any active begin/end block.
      */
     public ShapeRenderer shapeRenderer() {
+        if (!rendererReady()) return null;
         shapes.setProjectionMatrix(screenCam.combined);
         return shapes;
     }
@@ -558,6 +579,7 @@ public final class HudRenderer {
      * @param respawnTimer seconds remaining; ≤ 0 means just respawned (overlay hidden)
      */
     public void renderDeathOverlay(float respawnTimer) {
+        if (!rendererReady()) return;
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
         screenCam.setToOrtho(false, sw, sh);
@@ -603,6 +625,7 @@ public final class HudRenderer {
     }
 
     public void renderScriptedLossOverlay() {
+        if (!rendererReady()) return;
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
         screenCam.setToOrtho(false, sw, sh);
@@ -669,6 +692,7 @@ public final class HudRenderer {
     }
 
     public boolean scriptedLossButtonHit(int screenX, int screenY) {
+        if (!rendererReady()) return false;
         int sh = Gdx.graphics.getHeight();
         float yUp = sh - screenY;
         return screenX >= scriptedLossBtnX
@@ -682,6 +706,7 @@ public final class HudRenderer {
      * Intended for first-time users with no external documentation.
      */
     public void renderControlsOverlay(KeyBindings keys) {
+        if (!rendererReady()) return;
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
         screenCam.setToOrtho(false, sw, sh);
@@ -759,6 +784,7 @@ public final class HudRenderer {
     public void renderDebugOverlay(
         WorldSnapshot snap, int localSlot, boolean connected, String gameMode
     ) {
+        if (!rendererReady()) return;
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
         screenCam.setToOrtho(false, sw, sh);
@@ -831,9 +857,9 @@ public final class HudRenderer {
     }
 
     public void dispose() {
-        shapes.dispose();
-        hudBatch.dispose();
-        font.dispose();
+        if (shapes != null) shapes.dispose();
+        if (hudBatch != null) hudBatch.dispose();
+        if (font != null) font.dispose();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

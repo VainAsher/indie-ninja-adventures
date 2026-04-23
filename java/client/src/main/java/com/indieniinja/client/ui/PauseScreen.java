@@ -30,9 +30,14 @@ public final class PauseScreen {
 
     public PauseScreen(NinjaGameClient game, ResumeCallback onResume) {
         this.game = game;
-        stage = new Stage(new ScreenViewport());
-        skin  = UiStyle.build();
-        buildUi(onResume);
+        if (Gdx.app != null) {
+            stage = new Stage(new ScreenViewport());
+            skin  = UiStyle.build();
+            buildUi(onResume);
+        } else {
+            stage = null;
+            skin = null;
+        }
     }
 
     private void buildUi(ResumeCallback onResume) {
@@ -78,21 +83,25 @@ public final class PauseScreen {
 
     /** Hand input to this overlay — call when transitioning to paused state. */
     public void activate() {
-        Gdx.input.setInputProcessor(stage);
+        if (stage != null && Gdx.input != null) {
+            Gdx.input.setInputProcessor(stage);
+        }
     }
 
     /** Render the dim overlay + pause menu (call after game world is drawn). */
     public void render(float delta) {
+        if (stage == null) return;
         stage.act(delta);
         stage.draw();
     }
 
     public void resize(int w, int h) {
+        if (stage == null) return;
         stage.getViewport().update(w, h, true);
     }
 
     public void dispose() {
-        stage.dispose();
-        skin.dispose();
+        if (stage != null) stage.dispose();
+        if (skin != null) skin.dispose();
     }
 }

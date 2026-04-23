@@ -135,9 +135,14 @@ public final class MinimapRenderer {
     public record ObjectiveMarker(float worldX, float worldY, String markerType) {}
 
     public MinimapRenderer() {
-        shapes = new ShapeRenderer();
-        font   = new BitmapFont();
-        font.getData().setScale(0.85f);
+        if (Gdx.app != null) {
+            shapes = new ShapeRenderer();
+            font   = new BitmapFont();
+            font.getData().setScale(0.85f);
+        } else {
+            shapes = null;
+            font = null;
+        }
     }
 
     public boolean isVisible() { return visible; }
@@ -188,6 +193,7 @@ public final class MinimapRenderer {
      * Returns true if the event was consumed.
      */
     public boolean handleInput() {
+        if (Gdx.app == null || Gdx.input == null || Gdx.graphics == null) return false;
         if (!visible) return false;
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { hide(); return true; }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) { showTileDetail = !showTileDetail; return true; }
@@ -310,6 +316,7 @@ public final class MinimapRenderer {
                        List<PortalState> cachedPortals,
                        int localSlot,
                        List<ObjectiveMarker> objectiveMarkers) {
+        if (Gdx.app == null || Gdx.graphics == null || shapes == null || font == null) return;
         if (!visible || rooms == null || rooms.isEmpty()) return;
 
         float sw = Gdx.graphics.getWidth();
@@ -793,8 +800,8 @@ public final class MinimapRenderer {
     }
 
     public void dispose() {
-        shapes.dispose();
-        font.dispose();
+        if (shapes != null) shapes.dispose();
+        if (font != null) font.dispose();
         clearState();
     }
 }

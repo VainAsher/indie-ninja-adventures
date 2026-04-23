@@ -40,7 +40,9 @@ public final class MissionManager {
     private java.util.function.Consumer<String> onObjectiveComplete;
 
     public MissionManager() {
-        this(MissionDefinition.loadAll(Gdx.files.internal("data/missions.json")));
+        this(Gdx.app != null && Gdx.files != null
+            ? MissionDefinition.loadAll(Gdx.files.internal("data/missions.json"))
+            : java.util.Map.of());
     }
 
     /** Test-friendly constructor for injecting mission definitions directly. */

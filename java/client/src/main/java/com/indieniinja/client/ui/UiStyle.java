@@ -1,5 +1,6 @@
 package com.indieniinja.client.ui;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -34,6 +35,7 @@ public final class UiStyle {
 
     /** Build and return a programmatic Skin. Caller must dispose() it when done. */
     public static Skin build() {
+        if (Gdx.app == null) return new Skin();
         Skin skin = new Skin();
 
         // ── Fonts ─────────────────────────────────────────────────────────────

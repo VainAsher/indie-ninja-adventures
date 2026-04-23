@@ -824,13 +824,16 @@ public final class ServerProtocolHandler extends SimpleChannelInboundHandler<Byt
     }
 
     private static String normalizePortalTransitionType(String raw) {
-        if (PORTAL_TRANSITION_MISSION_RETURN.equals(raw)) return PORTAL_TRANSITION_MISSION_RETURN;
+        if (raw == null) return PORTAL_TRANSITION_INTER_HUB;
+        String normalized = raw.trim().toLowerCase(java.util.Locale.ROOT);
+        if (PORTAL_TRANSITION_MISSION_RETURN.equals(normalized)) return PORTAL_TRANSITION_MISSION_RETURN;
         return PORTAL_TRANSITION_INTER_HUB;
     }
 
     private static String normalizeSessionId(String raw) {
         if (raw == null) return "missing";
         String s = raw.trim();
-        return s.isEmpty() ? "missing" : s;
+        if (s.isEmpty()) return "missing";
+        return s.length() <= 128 ? s : s.substring(0, 128);
     }
 }

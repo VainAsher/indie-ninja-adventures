@@ -96,6 +96,12 @@ public final class SaveManager {
      */
     public static SlotInfo[] listSlots() {
         SlotInfo[] result = new SlotInfo[MAX_SLOTS];
+        if (Gdx.app == null || Gdx.files == null) {
+            for (int i = 0; i < MAX_SLOTS; i++) {
+                result[i] = new SlotInfo(i + 1, null, 0f, null);
+            }
+            return result;
+        }
         Json json = new Json();
         json.setOutputType(JsonWriter.OutputType.json);
         for (int i = 1; i <= MAX_SLOTS; i++) {

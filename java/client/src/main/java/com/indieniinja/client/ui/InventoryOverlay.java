@@ -44,8 +44,13 @@ public final class InventoryOverlay {
     private final GlyphLayout   layout = new GlyphLayout();
 
     public InventoryOverlay() {
-        font   = new BitmapFont();
-        shapes = new ShapeRenderer();
+        if (Gdx.app != null) {
+            font   = new BitmapFont();
+            shapes = new ShapeRenderer();
+        } else {
+            font = null;
+            shapes = null;
+        }
     }
 
     public void setOnUseItem(Consumer<String> cb)   { this.onUseItem   = cb; }
@@ -67,6 +72,7 @@ public final class InventoryOverlay {
      * Returns true if input was consumed by the overlay.
      */
     public boolean handleInput() {
+        if (Gdx.app == null || Gdx.input == null) return false;
         if (!visible) return false;
 
         // Navigation
@@ -109,6 +115,7 @@ public final class InventoryOverlay {
      * @param snap  Latest player state for the local player slot; may be null.
      */
     public void render(SpriteBatch batch, PlayerState snap) {
+        if (font == null || shapes == null || Gdx.app == null || Gdx.graphics == null) return;
         if (!visible || snap == null) return;
 
         InventoryState inv = snap.inventory;
@@ -298,7 +305,7 @@ public final class InventoryOverlay {
     }
 
     public void dispose() {
-        font.dispose();
-        shapes.dispose();
+        if (font != null) font.dispose();
+        if (shapes != null) shapes.dispose();
     }
 }

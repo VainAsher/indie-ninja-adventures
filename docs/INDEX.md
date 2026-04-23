@@ -25,6 +25,7 @@ This index tracks only the active documentation system for the Java v0.12.x line
 
 - Developing:
   - [plans/developing/PLAN_ANIMATION_INTEGRATION.md](plans/developing/PLAN_ANIMATION_INTEGRATION.md)
+  - [plans/developing/PLAN_CODE_REVIEW_AND_CLEANUP.md](plans/developing/PLAN_CODE_REVIEW_AND_CLEANUP.md)
   - [plans/developing/PLAN_WORKFLOW_ALIGNED_IMPROVEMENT_CHECKLIST.md](plans/developing/PLAN_WORKFLOW_ALIGNED_IMPROVEMENT_CHECKLIST.md)
   - [plans/developing/PLAN_ENEMY_ANIMATION.md](plans/developing/PLAN_ENEMY_ANIMATION.md)
   - [plans/developing/animation_pipeline_plan.md](plans/developing/animation_pipeline_plan.md)

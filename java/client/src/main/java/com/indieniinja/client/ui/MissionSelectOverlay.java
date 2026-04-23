@@ -44,8 +44,13 @@ public final class MissionSelectOverlay {
 
     public MissionSelectOverlay(MissionManager missionManager) {
         this.missionManager = missionManager;
-        this.font = new BitmapFont();
-        this.shapes = new ShapeRenderer();
+        if (Gdx.app != null) {
+            this.font = new BitmapFont();
+            this.shapes = new ShapeRenderer();
+        } else {
+            this.font = null;
+            this.shapes = null;
+        }
     }
 
     public boolean isVisible() { return visible; }
@@ -67,6 +72,7 @@ public final class MissionSelectOverlay {
     }
 
     public boolean handleInput(int currentAct) {
+        if (Gdx.app == null || Gdx.input == null || missionManager == null) return false;
         if (!visible) return false;
         refresh(currentAct);
 
@@ -100,6 +106,7 @@ public final class MissionSelectOverlay {
     }
 
     public void render(SpriteBatch batch, int currentAct) {
+        if (font == null || shapes == null || Gdx.app == null || Gdx.graphics == null) return;
         if (!visible) return;
         refresh(currentAct);
 
@@ -196,6 +203,10 @@ public final class MissionSelectOverlay {
 
     private void refresh(int currentAct) {
         visibleMissions.clear();
+        if (missionManager == null) {
+            selected = 0;
+            return;
+        }
         visibleMissions.addAll(missionManager.availableMissions(currentAct));
         if (visibleMissions.isEmpty()) {
             selected = 0;
@@ -206,7 +217,7 @@ public final class MissionSelectOverlay {
     }
 
     public void dispose() {
-        font.dispose();
-        shapes.dispose();
+        if (font != null) font.dispose();
+        if (shapes != null) shapes.dispose();
     }
 }

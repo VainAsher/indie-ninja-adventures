@@ -43,9 +43,14 @@ public final class CraftingOverlay {
     private java.util.function.Consumer<String> onCraft = recipeId -> {};
 
     public CraftingOverlay() {
-        shapes = new ShapeRenderer();
-        font   = new BitmapFont();
-        font.getData().setScale(0.9f);
+        if (Gdx.app != null) {
+            shapes = new ShapeRenderer();
+            font   = new BitmapFont();
+            font.getData().setScale(0.9f);
+        } else {
+            shapes = null;
+            font = null;
+        }
     }
 
     public void setOnCraft(java.util.function.Consumer<String> cb) { this.onCraft = cb; }
@@ -59,6 +64,7 @@ public final class CraftingOverlay {
      * Call with the current local PlayerState so ingredient checks are live.
      */
     public boolean handleInputAndRender(SpriteBatch batch, PlayerState player, float delta) {
+        if (Gdx.app == null || Gdx.input == null || font == null || shapes == null) return false;
         if (!visible) return false;
         cachedPlayer = player;
 
@@ -101,6 +107,7 @@ public final class CraftingOverlay {
     }
 
     private void render(SpriteBatch batch) {
+        if (Gdx.graphics == null || font == null || shapes == null) return;
         int sw = Gdx.graphics.getWidth();
         int sh = Gdx.graphics.getHeight();
         float ox = (sw - OV_W) * 0.5f;
@@ -221,7 +228,7 @@ public final class CraftingOverlay {
     }
 
     public void dispose() {
-        shapes.dispose();
-        font.dispose();
+        if (shapes != null) shapes.dispose();
+        if (font != null) font.dispose();
     }
 }

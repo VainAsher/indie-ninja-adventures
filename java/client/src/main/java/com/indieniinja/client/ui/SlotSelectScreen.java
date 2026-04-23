@@ -46,20 +46,35 @@ public final class SlotSelectScreen implements Screen {
         this.game  = game;
         this.host  = host;
         this.port  = port;
-        this.slots = SaveManager.listSlots();
+        if (Gdx.app != null) {
+            this.slots = SaveManager.listSlots();
 
-        batch     = new SpriteBatch();
-        shapes    = new ShapeRenderer();
-        fontLarge = new BitmapFont();
-        fontLarge.getData().setScale(1.8f);
-        fontSmall = new BitmapFont();
-        fontSmall.getData().setScale(0.9f);
+            batch     = new SpriteBatch();
+            shapes    = new ShapeRenderer();
+            fontLarge = new BitmapFont();
+            fontLarge.getData().setScale(1.8f);
+            fontSmall = new BitmapFont();
+            fontSmall.getData().setScale(0.9f);
+        } else {
+            this.slots = new SaveManager.SlotInfo[SaveManager.MAX_SLOTS];
+            for (int i = 0; i < this.slots.length; i++) {
+                this.slots[i] = new SaveManager.SlotInfo(i + 1, null, 0f, null);
+            }
+            batch = null;
+            shapes = null;
+            fontLarge = null;
+            fontSmall = null;
+        }
     }
 
-    @Override public void show() { Gdx.input.setInputProcessor(null); }
+    @Override public void show() {
+        if (Gdx.input != null) Gdx.input.setInputProcessor(null);
+    }
 
     @Override
     public void render(float delta) {
+        if (batch == null || shapes == null || fontLarge == null || fontSmall == null
+            || Gdx.app == null || Gdx.graphics == null) return;
         handleInput();
 
         int sw = Gdx.graphics.getWidth();
@@ -144,6 +159,7 @@ public final class SlotSelectScreen implements Screen {
     }
 
     private void handleInput() {
+        if (Gdx.input == null) return;
         int count = SaveManager.MAX_SLOTS;
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)  || Gdx.input.isKeyJustPressed(Input.Keys.A))
@@ -170,9 +186,9 @@ public final class SlotSelectScreen implements Screen {
 
     @Override
     public void dispose() {
-        batch.dispose();
-        shapes.dispose();
-        fontLarge.dispose();
-        fontSmall.dispose();
+        if (batch != null) batch.dispose();
+        if (shapes != null) shapes.dispose();
+        if (fontLarge != null) fontLarge.dispose();
+        if (fontSmall != null) fontSmall.dispose();
     }
 }

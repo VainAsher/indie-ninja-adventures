@@ -33,9 +33,14 @@ public final class MainMenuScreen implements Screen {
         this.host = host;
         this.port = port;
 
-        stage = new Stage(new ScreenViewport());
-        skin  = UiStyle.build();
-        buildUi();
+        if (Gdx.app != null) {
+            stage = new Stage(new ScreenViewport());
+            skin  = UiStyle.build();
+            buildUi();
+        } else {
+            stage = null;
+            skin = null;
+        }
     }
 
     // ── UI layout ─────────────────────────────────────────────────────────────
@@ -81,11 +86,14 @@ public final class MainMenuScreen implements Screen {
 
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(stage);
+        if (stage != null && Gdx.input != null) {
+            Gdx.input.setInputProcessor(stage);
+        }
     }
 
     @Override
     public void render(float delta) {
+        if (stage == null || skin == null || Gdx.app == null || Gdx.gl == null) return;
         Gdx.gl.glClearColor(UiStyle.BG.r, UiStyle.BG.g, UiStyle.BG.b, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.act(delta);
@@ -94,6 +102,7 @@ public final class MainMenuScreen implements Screen {
 
     @Override
     public void resize(int w, int h) {
+        if (stage == null) return;
         stage.getViewport().update(w, h, true);
     }
 
@@ -103,7 +112,7 @@ public final class MainMenuScreen implements Screen {
 
     @Override
     public void dispose() {
-        stage.dispose();
-        skin.dispose();
+        if (stage != null) stage.dispose();
+        if (skin != null) skin.dispose();
     }
 }

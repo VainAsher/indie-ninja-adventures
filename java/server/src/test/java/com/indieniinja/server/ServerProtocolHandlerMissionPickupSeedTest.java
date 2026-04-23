@@ -598,6 +598,45 @@ class ServerProtocolHandlerMissionPickupSeedTest {
         }
     }
 
+    @Test
+    void normalizePortalTransitionTypeAcceptsCaseAndWhitespaceVariants() throws Exception {
+        Method normalizePortalTransitionType = ServerProtocolHandler.class.getDeclaredMethod(
+            "normalizePortalTransitionType",
+            String.class
+        );
+        normalizePortalTransitionType.setAccessible(true);
+
+        assertThat((String) normalizePortalTransitionType.invoke(null, "mission_return"))
+            .isEqualTo("mission_return");
+        assertThat((String) normalizePortalTransitionType.invoke(null, " MISSION_RETURN "))
+            .isEqualTo("mission_return");
+        assertThat((String) normalizePortalTransitionType.invoke(null, "inter_hub"))
+            .isEqualTo("inter_hub");
+        assertThat((String) normalizePortalTransitionType.invoke(null, "something_else"))
+            .isEqualTo("inter_hub");
+        assertThat((String) normalizePortalTransitionType.invoke(null, new Object[] { null }))
+            .isEqualTo("inter_hub");
+    }
+
+    @Test
+    void normalizeSessionIdTrimsAndClampsLength() throws Exception {
+        Method normalizeSessionId = ServerProtocolHandler.class.getDeclaredMethod(
+            "normalizeSessionId",
+            String.class
+        );
+        normalizeSessionId.setAccessible(true);
+
+        String longSessionId = "x".repeat(256);
+        assertThat((String) normalizeSessionId.invoke(null, "  session-123  "))
+            .isEqualTo("session-123");
+        assertThat((String) normalizeSessionId.invoke(null, "   "))
+            .isEqualTo("missing");
+        assertThat((String) normalizeSessionId.invoke(null, new Object[] { null }))
+            .isEqualTo("missing");
+        assertThat(((String) normalizeSessionId.invoke(null, longSessionId)).length())
+            .isEqualTo(128);
+    }
+
     private static Object getField(Object target, String fieldName) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
