@@ -158,6 +158,19 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
 - First action next session: continue cleanup-lane rubric coverage on remaining race/order and disconnect/reconnect lifecycle surfaces (`ServerProtocolHandler` + `ZoneSimulationLoop`), and capture smoke/golden evidence if a slice changes player-visible behavior.
 
+## Session Close-Out (2026-04-23, Cleanup Rubric Slice - Zone Room-Authority Ordering)
+
+- Date: 2026-04-23
+- Branch + HEAD: `master @ a47c80d` (working tree dirty; local CRCL-14 slice not yet committed)
+- Current version: `v0.12.05`
+- Systems touched: `ZoneSimulationLoop` room-authority ordering (`selectRoomAnchorPlayer` deterministic slot selection + `updateCurrentRoom` usage), ordering regression coverage in `ZoneSimulationLoopScriptedLossOrderingTest`.
+- Validation run:
+  - `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --no-daemon` (PASS)
+  - `python tools/run_p0_regression_suite.py` (FAIL: Data Integrity command references missing `tests/test_data_integrity.py`; Version Sync + Java Server/Client tests PASS; report emitted at `docs/reports/P0_REGRESSION_REPORT.md`)
+- Known issue or risk: `tools/run_p0_regression_suite.py` currently contains a stale data-integrity path and fails before full PASS despite relevant Java test lanes succeeding.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: continue remaining cleanup-lane disconnect/reconnect lifecycle ordering pass in `ServerProtocolHandler` and capture manual smoke/golden evidence if player-visible behavior changes.
+
 ## Session Start (2026-04-22, v0.12.04 Loop Kickoff)
 
 - Date: 2026-04-22

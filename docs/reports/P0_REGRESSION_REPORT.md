@@ -1,52 +1,38 @@
 # P0 Regression Report
 
-Generated: `2026-04-14 19:35:06 +0100`
-Overall: **PASS**
+Generated: `2026-04-23 19:20:16 +0100`
+Overall: **FAIL**
 
 ## Summary
 
 | Check | Status | Duration (s) |
 |-------|--------|--------------|
-| `Version Sync` | `PASS` | `0.08` |
-| `Data Integrity` | `PASS` | `0.26` |
-| `Java Server/Client Tests` | `PASS` | `28.88` |
+| `Version Sync` | `PASS` | `0.11` |
+| `Data Integrity` | `FAIL` | `0.08` |
+| `Java Server/Client Tests` | `PASS` | `93.02` |
 
 ## Details
 
 ### Version Sync
 
-- Command: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\.venv\Scripts\python.exe tools/check_version_sync.py`
+- Command: `C:\Users\asher\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\python.exe tools/check_version_sync.py`
 - Working directory: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures`
 - Status: `PASS`
-- Duration: `0.08s`
+- Duration: `0.11s`
 
 ```text
-Version synchronization OK: v0.11.36
+Version synchronization OK: v0.12.05
 ```
 
 ### Data Integrity
 
-- Command: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\.venv\Scripts\python.exe tests/test_data_integrity.py`
+- Command: `C:\Users\asher\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\python.exe tests/test_data_integrity.py`
 - Working directory: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures`
-- Status: `PASS`
-- Duration: `0.26s`
+- Status: `FAIL`
+- Duration: `0.08s`
 
 ```text
-pygame 2.6.1 (SDL 2.28.4, Python 3.12.0)
-Hello from the pygame community. https://www.pygame.org/contribute.html
-test_dialogue_events_requiring_arguments_include_argument (__main__.TestDataIntegrity.test_dialogue_events_requiring_arguments_include_argument) ... ok
-test_dialogue_events_supported_by_runtime_router (__main__.TestDataIntegrity.test_dialogue_events_supported_by_runtime_router) ... ok
-test_legacy_mission_system_ids_match (__main__.TestDataIntegrity.test_legacy_mission_system_ids_match) ... ok
-test_mission_boss_ids_exist (__main__.TestDataIntegrity.test_mission_boss_ids_exist) ... ok
-test_mission_boss_ids_runtime_compatible (__main__.TestDataIntegrity.test_mission_boss_ids_runtime_compatible) ... ok
-test_mission_enemy_types_exist (__main__.TestDataIntegrity.test_mission_enemy_types_exist) ... ok
-test_mission_hazards_exist (__main__.TestDataIntegrity.test_mission_hazards_exist) ... ok
-test_mission_objective_items_exist (__main__.TestDataIntegrity.test_mission_objective_items_exist) ... ok
-test_mission_reward_items_exist (__main__.TestDataIntegrity.test_mission_reward_items_exist) ... ok
-test_shop_pool_items_exist (__main__.TestDataIntegrity.test_shop_pool_items_exist) ... ok
-----------------------------------------------------------------------
-Ran 10 tests in 0.002s
-OK
+C:\Users\asher\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\python.exe: can't open file 'C:\\Users\\asher\\OneDrive\\Documents\\GitHub\\indie-ninja-adventures\\tests\\test_data_integrity.py': [Errno 2] No such file or directory
 ```
 
 ### Java Server/Client Tests
@@ -54,27 +40,27 @@ OK
 - Command: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\java\gradlew.bat :server:test :client:test --console=plain --no-daemon`
 - Working directory: `C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\java`
 - Status: `PASS`
-- Duration: `28.88s`
+- Duration: `93.02s`
 
 ```text
-> Task :core:processResources NO-SOURCE
-> Task :core:classes UP-TO-DATE
-> Task :core:jar
-> Task :server:compileJava UP-TO-DATE
-> Task :server:processResources UP-TO-DATE
-> Task :server:classes UP-TO-DATE
-> Task :server:compileTestJava UP-TO-DATE
-> Task :server:processTestResources NO-SOURCE
-> Task :server:testClasses UP-TO-DATE
-> Task :server:test UP-TO-DATE
-> Task :client:compileJava UP-TO-DATE
-> Task :client:processResources UP-TO-DATE
-> Task :client:classes UP-TO-DATE
-> Task :client:compileTestJava UP-TO-DATE
-> Task :client:processTestResources NO-SOURCE
-> Task :client:testClasses UP-TO-DATE
-> Task :client:test UP-TO-DATE
-BUILD SUCCESSFUL in 28s
-10 actionable tasks: 1 executed, 9 up-to-date
+SaveManagerMigrationTest > clampStoryActOrdinalSupportsAllSevenActs() PASSED
+SaveManagerRoundtripTest > buildWriteSnapshotOverlaysCurrentManagerStateOverLiveData() PASSED
+SaveManagerRoundtripTest > loadThenBuildWriteSnapshotPreservesLiveDataAndManagerState() PASSED
+StoryManagerScriptedLossTest > restoreSnapshotRehydratesSavedHubState() PASSED
+StoryManagerScriptedLossTest > scriptedLossCollapsesHubAndForcesActThreeMinimum() PASSED
+ScriptedLossMessageFlowTest > gameStateBufferScriptedLossFlagIsSingleUse() PASSED
+ScriptedLossMessageFlowTest > networkMessageHandlerMarksScriptedLossInBuffer() PASSED
+ClientConstructorGuardTest > overlayConstructorsAreHeadlessSafe() PASSED
+ClientConstructorGuardTest > screenConstructorsAreHeadlessSafe() PASSED
+ItemLabelFormatterTest > inventoryAbbreviationMatchesLegacyFormatting() PASSED
+ItemLabelFormatterTest > inventorySellLineMatchesLegacyFormatting() PASSED
+ItemLabelFormatterTest > shopAbbreviationMatchesLegacyFormatting() PASSED
+ItemLabelFormatterTest > shopBuyLineMatchesLegacyFormatting() PASSED
+ItemLabelFormatterTest > sellPriceMatchesLegacyTable() PASSED
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/8.7/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+BUILD SUCCESSFUL in 1m 32s
+12 actionable tasks: 4 executed, 8 up-to-date
 C:\Users\asher\OneDrive\Documents\GitHub\indie-ninja-adventures\java>endlocal
 ```

@@ -629,43 +629,72 @@ public final class ZoneSimulationLoop implements Runnable {
      */
     private static final float ROOM_HYSTERESIS_PX = 64f;   // 2 tiles past boundary
 
-    private void updateCurrentRoom() {
-        if (zone.simulator == null || zone.worldGraph == null) return;
+    /**
+     * Select one deterministic room-authority player for room-grid tracking.
+     *
+     * Iteration over ConcurrentHashMap key sets is not stable; picking "first"
+     * introduces room-grid jitter and ordering races when multiple players occupy
+     * different rooms. The lowest active slot is deterministic across ticks.
+     */
+    private PlayerRecord selectRoomAnchorPlayer() {
+        GameSimulator sim = zone.simulator;
+        if (sim == null) return null;
+
+        PlayerRecord best = null;
+        int bestSlot = Integer.MAX_VALUE;
+        String bestPlayerId = null;
 
         for (String pid : zone.playerIds) {
             PlayerRecord pr = session.players.get(pid);
             if (pr == null) continue;
-            SimPlayer sp = zone.simulator.getPlayers().get(pr.slot);
-            if (sp == null) continue;
+            if (sim.getPlayers().get(pr.slot) == null) continue;
 
-            int newGX = (int) Math.floor(sp.physics.x / ROOM_PX) + zone.megamapMinGridX;
-            int newGY = (int) Math.floor(sp.physics.y / ROOM_PX) + zone.megamapMinGridY;
-
-            // No change — fast path
-            if (newGX == zone.currentRoomGridX && newGY == zone.currentRoomGridY) break;
-
-            // Hysteresis: player must be HYSTERESIS_PX past the entry edge.
-            // For a rightward crossing into newGX: local x from room origin ≥ HYSTERESIS.
-            // For a leftward crossing into newGX:  local x from room origin ≤ ROOM_PX − HYSTERESIS.
-            float localX = sp.physics.x - (newGX - zone.megamapMinGridX) * (float) ROOM_PX;
-            float localY = sp.physics.y - (newGY - zone.megamapMinGridY) * (float) ROOM_PX;
-            boolean xOk = newGX == zone.currentRoomGridX
-                || (newGX > zone.currentRoomGridX && localX >= ROOM_HYSTERESIS_PX)
-                || (newGX < zone.currentRoomGridX && localX <= ROOM_PX - ROOM_HYSTERESIS_PX);
-            boolean yOk = newGY == zone.currentRoomGridY
-                || (newGY > zone.currentRoomGridY && localY >= ROOM_HYSTERESIS_PX)
-                || (newGY < zone.currentRoomGridY && localY <= ROOM_PX - ROOM_HYSTERESIS_PX);
-            if (!xOk || !yOk) break;  // not far enough past boundary yet
-
-            WorldGraph.RoomNode room = zone.worldGraph.roomAt(newGX, newGY);
-            if (room != null) {
-                zone.currentRoomGridX    = newGX;
-                zone.currentRoomGridY    = newGY;
-                zone.currentRoomSeed     = room.seed;
-                zone.currentRoomType     = room.type.wire();
-                zone.currentNeighborDirs = new java.util.ArrayList<>(room.neighborDirs());
+            boolean lowerSlot = pr.slot < bestSlot;
+            boolean tieBreakLowerPlayerId = pr.slot == bestSlot
+                && bestPlayerId != null
+                && pr.playerId.compareTo(bestPlayerId) < 0;
+            if (best == null || lowerSlot || tieBreakLowerPlayerId) {
+                best = pr;
+                bestSlot = pr.slot;
+                bestPlayerId = pr.playerId;
             }
-            break;  // one player is enough
+        }
+        return best;
+    }
+
+    private void updateCurrentRoom() {
+        if (zone.simulator == null || zone.worldGraph == null) return;
+        PlayerRecord anchor = selectRoomAnchorPlayer();
+        if (anchor == null) return;
+        SimPlayer sp = zone.simulator.getPlayers().get(anchor.slot);
+        if (sp == null) return;
+
+        int newGX = (int) Math.floor(sp.physics.x / ROOM_PX) + zone.megamapMinGridX;
+        int newGY = (int) Math.floor(sp.physics.y / ROOM_PX) + zone.megamapMinGridY;
+
+        // No change — fast path
+        if (newGX == zone.currentRoomGridX && newGY == zone.currentRoomGridY) return;
+
+        // Hysteresis: player must be HYSTERESIS_PX past the entry edge.
+        // For a rightward crossing into newGX: local x from room origin ≥ HYSTERESIS.
+        // For a leftward crossing into newGX:  local x from room origin ≤ ROOM_PX − HYSTERESIS.
+        float localX = sp.physics.x - (newGX - zone.megamapMinGridX) * (float) ROOM_PX;
+        float localY = sp.physics.y - (newGY - zone.megamapMinGridY) * (float) ROOM_PX;
+        boolean xOk = newGX == zone.currentRoomGridX
+            || (newGX > zone.currentRoomGridX && localX >= ROOM_HYSTERESIS_PX)
+            || (newGX < zone.currentRoomGridX && localX <= ROOM_PX - ROOM_HYSTERESIS_PX);
+        boolean yOk = newGY == zone.currentRoomGridY
+            || (newGY > zone.currentRoomGridY && localY >= ROOM_HYSTERESIS_PX)
+            || (newGY < zone.currentRoomGridY && localY <= ROOM_PX - ROOM_HYSTERESIS_PX);
+        if (!xOk || !yOk) return;  // not far enough past boundary yet
+
+        WorldGraph.RoomNode room = zone.worldGraph.roomAt(newGX, newGY);
+        if (room != null) {
+            zone.currentRoomGridX    = newGX;
+            zone.currentRoomGridY    = newGY;
+            zone.currentRoomSeed     = room.seed;
+            zone.currentRoomType     = room.type.wire();
+            zone.currentNeighborDirs = new java.util.ArrayList<>(room.neighborDirs());
         }
     }
 

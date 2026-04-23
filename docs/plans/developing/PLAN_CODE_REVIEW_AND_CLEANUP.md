@@ -935,3 +935,62 @@ Known issues/risks:
 
 First action next session:
 - Continue rubric pass on remaining `race/order` and `disconnect/reconnect safety` surfaces in world/zone transition lifecycle (`ServerProtocolHandler` + `ZoneSimulationLoop`), and run smoke/golden evidence if a slice changes player-visible behavior.
+
+### Loop ID: CRCL-2026-04-23-14
+
+Session start note (per `SESSION_START_WORKFLOW.md`):
+- Date: 2026-04-23
+- Branch: `master`
+- Current version: `v0.12.05`
+- Primary target: execute next queued race/order slice by removing nondeterministic room-authority selection in `ZoneSimulationLoop.updateCurrentRoom()`.
+- Supporting tasks: lock deterministic player-anchor selection for room metadata and add regression coverage for multiplayer mixed-room state.
+- First validation command: `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --no-daemon`
+- Resume risk notes: `runtime` (touches live room-grid/seed metadata selection path in server snapshot loop).
+
+Task intake brief (per `TASK_INTAKE_AND_IMPLEMENTATION_BRIEF.md`):
+- Goal: eliminate ordering race where concurrent-set iteration order (`zone.playerIds`) could drive inconsistent room metadata updates across ticks.
+- Player-facing impact: expected improvement in multiplayer room metadata stability (minimap/current-room context) when players occupy different rooms.
+- Systems touched: `java/server` (`ZoneSimulationLoop`), `java/server` tests (`ZoneSimulationLoopScriptedLossOrderingTest`).
+- Risks: medium-low; behavioral adjustment in room-authority selection logic.
+- Required tests: `:server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest`.
+- Docs to update: this cleanup plan execution log and `docs/CURRENT_STATE.md`.
+- Rollback plan: revert deterministic anchor selection path and the new ordering regression test.
+
+Review map and findings:
+- `java/server`: P1 finding - `updateCurrentRoom()` selected the first iterated player from a concurrent key set and broke early, making room-grid updates iteration-order dependent under multiplayer mixed-room states.
+- `java/core`: no edits.
+- `java/client`: no edits.
+- `java/shadowascent`: no edits.
+
+Implemented cleanup (`behavior-change`: deterministic-authority hardening):
+- Added deterministic room-anchor selection in `ZoneSimulationLoop`:
+  - new `selectRoomAnchorPlayer()` chooses the lowest active slot (with player-id tiebreak).
+  - `updateCurrentRoom()` now derives room metadata from this deterministic anchor instead of first-set-iteration order.
+- Preserved existing hysteresis and room-existence checks.
+- Added regression:
+  - `updateCurrentRoomUsesLowestActiveSlotAnchor` in `ZoneSimulationLoopScriptedLossOrderingTest`.
+
+Smoke/golden result:
+- Manual smoke/golden route not executed in this terminal slice (non-interactive runtime path).
+- Added automated evidence via targeted server test lane and P0 regression suite execution.
+
+Compatibility classification (`COMPATIBILITY_AND_MIGRATION_WORKFLOW.md`):
+- save: no impact
+- replay: no impact
+- protocol: no impact
+- schema: no impact
+- migration/version gate: not required
+
+Cross-repo coordination check (`CROSS_REPO_COORDINATION.md`):
+- trigger conditions reviewed; no cross-repo changes required (`game repo only`).
+
+Validation evidence:
+- `./gradlew :server:test --tests com.indieniinja.server.ZoneSimulationLoopScriptedLossOrderingTest --no-daemon` -> PASS.
+- `python tools/run_p0_regression_suite.py` -> FAIL (`Data Integrity` step references missing `tests/test_data_integrity.py`; Java Server/Client tests and Version Sync pass; report written to `docs/reports/P0_REGRESSION_REPORT.md`).
+
+Known issues/risks:
+- `tools/run_p0_regression_suite.py` currently has a stale data-integrity check path (`tests/test_data_integrity.py` not present in repo), producing a non-behavioral suite failure.
+- Work remains intentionally uncommitted pending user direction for commit/release loop timing.
+
+First action next session:
+- Continue remaining queued lifecycle/reliability rubric surfaces on disconnect/reconnect flow integrity (`ServerProtocolHandler` contract/zone handoff ordering) and capture manual smoke/golden evidence if a slice changes player-visible routing.

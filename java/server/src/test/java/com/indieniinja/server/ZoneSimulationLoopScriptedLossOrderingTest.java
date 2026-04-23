@@ -10,12 +10,14 @@ import com.indieniinja.sim.SimPlayer;
 import com.indieniinja.sim.SimPickup;
 import com.indieniinja.world.HubState;
 import com.indieniinja.world.HubStateMachine;
+import com.indieniinja.world.WorldGraph;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -285,6 +287,68 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         }
     }
 
+    @Test
+    void updateCurrentRoomUsesLowestActiveSlotAnchor() throws Exception {
+        GameSession session = new GameSession(32345L);
+        ZoneInstance zone = new ZoneInstance(
+            "central_hub:0:0", "central_hub", 32345L, "blob", 12, 32345L, 128f, 128f);
+        zone.simulator = new GameSimulator(zone.seed, zone.hubId, LevelLayout.buildTestLayout(zone.seed));
+        zone.worldGraph = buildTwoRoomHorizontalGraph();
+        zone.megamapMinGridX = 0;
+        zone.megamapMinGridY = 0;
+        zone.currentRoomGridX = 0;
+        zone.currentRoomGridY = 0;
+        zone.currentRoomSeed = zone.worldGraph.roomAt(0, 0).seed;
+        zone.currentRoomType = zone.worldGraph.roomAt(0, 0).type.wire();
+        zone.currentNeighborDirs = List.copyOf(zone.worldGraph.roomAt(0, 0).neighborDirs());
+
+        EmbeddedChannel channel1 = new EmbeddedChannel();
+        EmbeddedChannel channel2 = new EmbeddedChannel();
+        PlayerRecord p1 = new PlayerRecord("p1", 1, channel1);
+        PlayerRecord p2 = new PlayerRecord("p2", 0, channel2);
+        p1.hubId = zone.hubId;
+        p2.hubId = zone.hubId;
+        session.players.put(p1.playerId, p1);
+        session.players.put(p2.playerId, p2);
+
+        // Concurrent set iteration is intentionally non-deterministic. Slot ordering must be authoritative.
+        zone.playerIds.add("p1");
+        zone.playerIds.add("p2");
+
+        SimPlayer simP1 = new SimPlayer("p1", 1, 128f, 128f);
+        SimPlayer simP2 = new SimPlayer("p2", 0, roomPx() + 128f, 128f);
+        zone.simulator.addPlayer(simP1);
+        zone.simulator.addPlayer(simP2);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ZoneSimulationLoop loop = new ZoneSimulationLoop(
+            zone,
+            session,
+            new AtomicBoolean(false),
+            new ConcurrentHashMap<>(Map.of(zone.hubId, zone)),
+            executor
+        );
+        try {
+            PlayerRecord anchor = invokeSelectRoomAnchorPlayer(loop);
+            assertThat(anchor).isNotNull();
+            assertThat(anchor.playerId).isEqualTo("p2");
+            assertThat(anchor.slot).isEqualTo(0);
+
+            invokeUpdateCurrentRoom(loop);
+
+            assertThat(zone.currentRoomGridX).isEqualTo(1);
+            assertThat(zone.currentRoomGridY).isEqualTo(0);
+            assertThat(zone.currentRoomSeed).isEqualTo(zone.worldGraph.roomAt(1, 0).seed);
+            assertThat(zone.currentRoomType).isEqualTo(zone.worldGraph.roomAt(1, 0).type.wire());
+            assertThat(zone.currentNeighborDirs)
+                .containsExactlyInAnyOrderElementsOf(zone.worldGraph.roomAt(1, 0).neighborDirs());
+        } finally {
+            executor.shutdownNow();
+            channel1.close();
+            channel2.close();
+        }
+    }
+
     private static TestHarness createHarness() {
         GameSession session = new GameSession(12345L);
         ZoneInstance zone = new ZoneInstance(
@@ -389,6 +453,18 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
         simulate.invoke(loop);
     }
 
+    private static void invokeUpdateCurrentRoom(ZoneSimulationLoop loop) throws Exception {
+        Method update = ZoneSimulationLoop.class.getDeclaredMethod("updateCurrentRoom");
+        update.setAccessible(true);
+        update.invoke(loop);
+    }
+
+    private static PlayerRecord invokeSelectRoomAnchorPlayer(ZoneSimulationLoop loop) throws Exception {
+        Method select = ZoneSimulationLoop.class.getDeclaredMethod("selectRoomAnchorPlayer");
+        select.setAccessible(true);
+        return (PlayerRecord) select.invoke(loop);
+    }
+
     private static WorldSnapshot invokeBuildSnapshot(ZoneSimulationLoop loop, PlayerRecord player)
         throws Exception {
         return invokeBuildSnapshot(loop, List.of(player));
@@ -417,6 +493,28 @@ class ZoneSimulationLoopScriptedLossOrderingTest {
             }
         }
         return out;
+    }
+
+    private static WorldGraph buildTwoRoomHorizontalGraph() {
+        WorldGraph.RoomNode start = new WorldGraph.RoomNode(
+            0, 0, WorldGraph.RoomType.START, 1001L, 0, List.of("right")
+        );
+        WorldGraph.RoomNode exit = new WorldGraph.RoomNode(
+            1, 0, WorldGraph.RoomType.EXIT, 1002L, 0, List.of("left")
+        );
+        Map<Long, WorldGraph.RoomNode> rooms = new LinkedHashMap<>();
+        rooms.put(worldKey(0, 0), start);
+        rooms.put(worldKey(1, 0), exit);
+        return WorldGraph.fromRooms(rooms, start, exit);
+    }
+
+    private static long worldKey(int x, int y) {
+        return (long) (x + 50000) * 100000L + (y + 50000);
+    }
+
+    private static int roomPx() {
+        return com.indieniinja.physics.PhysicsConstants.ROOM_WIDTH_TILES
+            * com.indieniinja.physics.PhysicsConstants.TILE_SIZE;
     }
 
     private record TestHarness(
