@@ -98,25 +98,38 @@ These are ongoing process gates applied every session and loop, not one-time che
 
 ---
 
-## Phase 2 — Gameplay Identity Lock ← ACTIVE NEXT PHASE (Weeks 3–5)
+## Phase 2 — Gameplay Identity Lock ← ACTIVE (Weeks 3–5)
 
-**Status:** Not formally started. Phase 1 exit gate is now clear. This is the current work frontier.
+**Status:** Formally started 2026-04-24. P2-01 complete. Baseline tuning loop (LOOP-P2-01) is the current action.
 
 ### Goals
 - Lock Passive/Aggressive readability and Flow clarity in runtime behavior.
 - Define and verify measurable feel targets before expanding content.
 
 ### Checklist
-- [ ] P2-01 Define measurable tuning KPIs (stance readability, Flow activation clarity, unfair-death rate) — no KPI document exists yet; PLAN_SHADOW_ASCENT.md has design intent but no numeric targets
-- [ ] P2-02 Run two tuning loops with explicit feel notes (Passive/Aggressive/Flow impact per loop)
-- [ ] P2-03 Verify multi-state readiness requirements for touched systems (no partial-state signoff per READY_DONE_WORKFLOW)
-- [ ] P2-04 Run stance/animation golden verification (`G4`) whenever renderer/stance changes
-- [ ] P2-05 Capture playtest evidence bundles for clarity issues (logs + replay + expected vs actual)
-- [ ] P2-06 Feed tuning outcomes into plan and changelog/devlog decisions
+
+- [x] P2-01 KPI document written — `docs/GAMEPLAY_KPI_TARGETS.md` created 2026-04-24 with numeric targets for stance readability (§1), Flow clarity (§2), and unfair-death rate (§3). `docs/BALANCE_LOG.md` created as the tuning loop record.
+
+- [ ] P2-02 Run two tuning loops with explicit feel notes — LOOP-P2-01 (baseline, no changes) and LOOP-P2-02 (first targeted change) defined in `BALANCE_LOG.md`. Neither executed yet — requires one runtime playtest session.
+
+- [x] P2-03 Multi-state readiness verified (2026-04-24 via codebase audit):
+  - `stanceMode` ("yin"/"yang") flows: SimPlayer → PlayerState wire → EntityRenderer — all three states implemented and connected
+  - Flow: `YinYangComponent.isBalanced()` (`|yin-yang| < 0.15f`) sets `flowMode` on PlayerState snapshot
+  - Balance indicator: HudRenderer circular gauge with white glow ring when flowMode active
+  - **Gap noted:** No automated test for Flow activation logic; G4 is manual only — both acceptable for Phase 2 start
+  - No partial-state signoff issues — system is structurally complete
+
+- [ ] P2-04 G4 golden verification — required before any renderer/stance change ships. Definition in `GOLDEN_PATH_REGRESSION.md`: both stances correct in idle, walk, jump, crouch, attack. Not yet run against v0.12.07.
+
+- [ ] P2-05 Playtest evidence bundles — `PLAYTEST_PACKET_WORKFLOW.md` defines the packet structure. §4.1 observer template in `GAMEPLAY_KPI_TARGETS.md` defines what to capture. First bundle depends on LOOP-P2-01 session.
+
+- [ ] P2-06 Feed tuning outcomes into plan — will update this checklist and CHANGELOG after each BALANCE_LOG entry is complete.
 
 ### Exit Gate
-- [ ] Testers can explain stance and Flow behavior without external explanation
-- [ ] G4/G3 pass for touched movement/animation surfaces
+
+- [ ] ≥ 80% stance comprehension rate across two consecutive tuning loops
+- [ ] ≥ 65% Flow comprehension rate across two consecutive tuning loops
+- [ ] G4 pass on the current build
 
 ### Entry condition
 Phase 1 exit gate is met ✅ — Phase 2 is unblocked.

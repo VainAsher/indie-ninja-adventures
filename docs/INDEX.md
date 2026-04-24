@@ -18,6 +18,8 @@ This index tracks only the active documentation system for the Java v0.12.x line
 - [CHANGELOG.md](CHANGELOG.md)
 - [GDD.md](GDD.md)
 - [PLAYER_EXPECTATIONS.md](PLAYER_EXPECTATIONS.md)
+- [GAMEPLAY_KPI_TARGETS.md](GAMEPLAY_KPI_TARGETS.md) — Phase 2 stance/Flow numeric KPI targets (living, update each tuning loop)
+- [BALANCE_LOG.md](BALANCE_LOG.md) — tuning loop entries; one per loop, referenced from KPI targets
 - [RELEASE_VERSION_SYNC_CHECKLIST.md](RELEASE_VERSION_SYNC_CHECKLIST.md)
 - [PLAYTEST_HANDOVER_v0.11.69.md](PLAYTEST_HANDOVER_v0.11.69.md) — active playtest handover (v0.11.69)
 
