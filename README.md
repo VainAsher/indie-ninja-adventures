@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.12.07** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.12.08** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,7 +17,7 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.12.07 (dash wall-cancel physics fix)
+## What's in v0.12.08 (Yin/Yang stance movement + duality prototype)
 
 - Dash no longer sticks or tunnels up wall faces: `isDashing` is now cleared on wall contact, preventing the next frame from re-applying dash velocity after `CollisionSystem` has zeroed it. (feedback#4)
 

@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-24
-version_anchor: v0.12.07
+version_anchor: v0.12.08
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -16,7 +16,7 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
-## [Unreleased] — targeting v0.12.08 (Yin/Yang stance movement + duality prototype)
+## [0.12.08] - 2026-04-24 (Yin/Yang stance movement + duality prototype)
 
 ### Added
 
