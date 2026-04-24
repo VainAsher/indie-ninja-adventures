@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.12.06** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.12.07** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,12 +17,9 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.12.06 (server lifecycle + replay determinism cleanup lane closure)
+## What's in v0.12.07 (dash wall-cancel physics fix)
 
-- Zone room-authority and player ordering paths are now deterministic across simulation ticks, removing concurrent-set iteration order drift in room updates and replay input capture.
-- Join/rejoin lifecycle hardening now treats duplicate `CLIENT_HELLO` on the same channel as idempotent and safely cleans overlap/takeover channel state before re-admission.
-- Disconnect/reconnect and portal handoff cleanup slices from CRCL-13 through CRCL-21 are now shipped with targeted server regression coverage.
-- Cleanup-lane manual runtime gates were completed with interactive Daily Smoke plus Golden G7/G8 evidence capture.
+- Dash no longer sticks or tunnels up wall faces: `isDashing` is now cleared on wall contact, preventing the next frame from re-applying dash velocity after `CollisionSystem` has zeroed it. (feedback#4)
 
 | System | Status |
 | ------ | ------ |
@@ -111,7 +108,7 @@ Single source of truth: [`version.json`](version.json)
 
 ```json
 {
-  "version": "0.12.06",
+  "version": "0.12.07",
   "build": "production",
   "build_date": "2026-04-24",
   "min_launcher_version": "1.1.0"

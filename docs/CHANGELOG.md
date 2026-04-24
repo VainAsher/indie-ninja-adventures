@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-24
-version_anchor: v0.12.06
+version_anchor: v0.12.07
 ---
 # Changelog â€” Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.07] - 2026-04-24 (dash wall-cancel fix)
+
+### Fixed
+
+- **Dash sticking/tunnelling on wall contact** (`GameSimulator`):
+  - `isDashing` is now cleared immediately when the player contacts a wall mid-dash.
+  - Previously the flag was only cleared on timer expiry, teleport, or respawn — leaving the dash velocity re-applied on the next frame and causing the player to stick against or tunnel up the wall face.
+  - Regression test added: `GameSimulatorTest.dashCancelledOnWallContact`. (feedback#4)
 
 ---
 
