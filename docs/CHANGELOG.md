@@ -16,6 +16,45 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [Unreleased] — targeting v0.12.08 (Yin/Yang stance movement + duality prototype)
+
+### Added
+
+- **Stance-driven movement modifiers** (`GameSimulator`, `GameConfig` — GDD §3.3 / P1-03A):
+  - Run speed, dash distance, and wall-jump horizontal power now scale by stance (`YIN_*_MULT`, `YANG_*_MULT`, `FLOW_*_MULT` constants).
+  - Flow multipliers apply only when `isInFlow()` is true: balance threshold met AND a meaningful action (dash/attack/shuriken/teleport) was performed within `FLOW_RECENCY_WINDOW` (2s). Idle balance drift no longer grants Flow.
+  - `lastMeaningfulActionTimer` field on `SimPlayer`; stamped by all four meaningful action sites.
+  - Test: `GameSimulatorStanceMovementTest` (9 tests), `FlowRecencyTest` (5 tests).
+
+- **Noise emission + enemy awareness FSM** (`GameSimulator`, `SimPlayer`, `SimEnemy` — P1-03A):
+  - `noiseLevel` (0..1) and `noiseRadius` fields on `SimPlayer`; `emitNoise()` sets on dash/attack/shuriken/land; `tickNoise()` decays at 2.5/s.
+  - `EnemyAwarenessState` enum: `UNAWARE → SUSPICIOUS → ALERTED → SEARCHING`.
+  - `tickEnemyAwareness()` checks all player noiseRadii each tick; SUSPICIOUS escalates to ALERTED on direct detection range; both states time out.
+  - Noise constants in `GameConfig`: `NOISE_YIN_DASH`, `NOISE_YANG_DASH`, `NOISE_ATTACK_MELEE`, etc.
+  - Test: `EnemyAwarenessTest` (8 tests).
+
+- **Phase Teleport stance variants** (`GameSimulator`, `SimPlayer`, `PlayerState` — P1-03A):
+  - `teleportType` field on `SimPlayer` and `PlayerState` wire (`"shadow"` / `"thunder"` / `"harmonic"`), resolved at phase-start from stance.
+  - ShadowStep (Yin): silent, `SHADOW_STEP_COOLDOWN_MULT` (×1.10). ThunderStep (Yang): emits noise, AoE stuns enemies in `THUNDER_STEP_STUN_RADIUS` (96 px) for `THUNDER_STEP_STUN_DURATION` (0.8 s), `THUNDER_STEP_COOLDOWN_MULT` (×1.40). HarmonicStep (Flow): `HARMONIC_STEP_COOLDOWN_MULT` (×0.60).
+  - Test: `GameSimulatorTeleportStanceTest` (11 tests).
+
+- **Echo Art stance types** (`SimEcho`, `EchoState`, `GameSimulator` — P1-03A):
+  - `echoType` field on `SimEcho` and `EchoState` wire (`"silent"` / `"riot"` / `"resonant"`), resolved at spawn from stance.
+  - Riot Echo (Yang): emits `NOISE_ECHO_RIOT` (0.60) on spawn. Silent/Resonant: no noise.
+  - Test: `SimEchoTypeTest` (7 tests).
+
+- **Duality test room** (`assets/rooms/templates/duality_test.tmx` — P1-03A):
+  - 128×128 TMX terrain room with flat floor (row 112), three one-way platforms (rows 65/75/90), climbable shadow-path wall (col 88, 30 tiles), and a raised blocker column for ThunderStep scenarios.
+  - Validated by `DualityTestRoomTest` (6 tests).
+
+### Compatibility
+
+- replay=`BREAKING` — dash speed, run speed, wall-jump power, and teleport cooldown now vary by stance; replays from v0.12.07 and earlier will desync.
+- save=`no`
+- protocol=`ADDITIVE` — `teleportType` and `echoType` are new optional wire fields with `"shadow"`/`"silent"` defaults; Python clients on v0.12.07 will ignore them gracefully.
+
+---
+
 ## [0.12.07] - 2026-04-24 (dash wall-cancel fix)
 
 ### Fixed

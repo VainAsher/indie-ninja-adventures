@@ -67,6 +67,12 @@ public final class GameConfig {
     // ── Stance / Flow / Lantern ───────────────────────────────────────────────
     /** Balance threshold below which stance is considered neutral. */
     public static final float FLOW_BALANCE_THRESHOLD        = 0.15f;
+    /**
+     * Seconds after a meaningful action (dash, attack, shuriken, teleport) during
+     * which the player remains eligible to enter Flow.  Prevents idle players
+     * from accidentally entering Flow simply by letting both values drift to 0.5.
+     */
+    public static final float FLOW_RECENCY_WINDOW           = 2.0f;
     /** Stance drift toward neutral per second. */
     public static final float STANCE_DRIFT_PER_SECOND       = 0.09f;
     /** Balance boost per stance-switch input. */
@@ -117,11 +123,29 @@ public final class GameConfig {
     public static final float NOISE_ATTACK_SHURIKEN    = 0.20f;
     public static final float NOISE_LAND_YIN           = 0.10f; // soft landing
     public static final float NOISE_LAND_YANG          = 0.50f; // heavy landing
+    public static final float NOISE_ECHO_RIOT          = 0.60f; // Yang Riot Echo spawn burst
 
     /** Time an enemy stays SUSPICIOUS before reverting to UNAWARE (seconds). */
     public static final float AWARENESS_SUSPICIOUS_DURATION = 3.0f;
     /** Time an enemy stays SEARCHING before reverting to PATROL (seconds). */
     public static final float AWARENESS_SEARCHING_DURATION  = 5.0f;
+
+    // ── Phase Teleport stance variants (P1-03A / GDD §3.3) ───────────────────
+    // ShadowStep (Yin): short, silent, no side-effects.
+    // ThunderStep (Yang): loud, stuns enemies in AoE on arrival.
+    // HarmonicStep (Flow): neutral range, reduced cooldown, brief chaining window.
+    /** Noise emitted on Yang ThunderStep arrival (felt by nearby enemies). */
+    public static final float THUNDER_STEP_NOISE          = 0.65f;
+    /** Radius of ThunderStep AoE stun on arrival (px). */
+    public static final float THUNDER_STEP_STUN_RADIUS    = 96f;
+    /** Duration of ThunderStep AoE stun (seconds). */
+    public static final float THUNDER_STEP_STUN_DURATION  = 0.8f;
+    /** Cooldown multiplier for ShadowStep (Yin) — slightly longer than base. */
+    public static final float SHADOW_STEP_COOLDOWN_MULT   = 1.10f;
+    /** Cooldown multiplier for ThunderStep (Yang) — longer to offset AoE power. */
+    public static final float THUNDER_STEP_COOLDOWN_MULT  = 1.40f;
+    /** Cooldown multiplier for HarmonicStep (Flow) — reward for balance. */
+    public static final float HARMONIC_STEP_COOLDOWN_MULT = 0.60f;
 
     // ── World Generation ──────────────────────────────────────────────────────
     /** World room count for acts 1-2. */

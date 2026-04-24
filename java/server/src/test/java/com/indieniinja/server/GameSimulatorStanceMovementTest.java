@@ -46,12 +46,13 @@ class GameSimulatorStanceMovementTest {
         return p;
     }
 
-    /** Put a player in Flow (balanced yin/yang within threshold). */
+    /** Put a player in Flow (balanced yin/yang + recent meaningful action). */
     private static SimPlayer flowPlayer(String id, int slot, float x, float y) {
         SimPlayer p = new SimPlayer(id, slot, x, y);
         p.stanceMode    = "yang";
         p.yinYang.yin   = 0.5f;
         p.yinYang.yang  = 0.5f;  // |0.5 - 0.5| = 0 < BALANCE_THRESHOLD
+        p.lastMeaningfulActionTimer = com.indieniinja.content.GameConfig.FLOW_RECENCY_WINDOW;
         return p;
     }
 

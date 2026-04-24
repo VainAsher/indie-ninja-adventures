@@ -23,6 +23,7 @@ public final class PlayerState {
     public boolean teleportPhaseMode;  // cursor is active (hold-to-phase mode)
     public float   teleportCursorX;    // ghost cursor world X (only valid when phaseMode)
     public float   teleportCursorY;    // ghost cursor world Y
+    public String  teleportType = "shadow"; // "shadow" | "thunder" | "harmonic"
     public float   stamina;            // 0–maxStamina; drains while running, regens otherwise
     public float   mana;               // 0–maxMana; regens passively, spent on ninjutsu
     public int     maxMana     = 30;   // scales up with level (Loop 28)
@@ -68,6 +69,7 @@ public final class PlayerState {
         m.put("teleport_phase_mode",  teleportPhaseMode);
         m.put("teleport_cursor_x",    teleportCursorX);
         m.put("teleport_cursor_y",    teleportCursorY);
+        m.put("teleport_type",        teleportType != null ? teleportType : "shadow");
         m.put("stamina",              stamina);
         m.put("mana",                 mana);
         m.put("max_mana",             maxMana);
@@ -107,6 +109,7 @@ public final class PlayerState {
         s.teleportPhaseMode   = bool(m, "teleport_phase_mode");
         s.teleportCursorX     = flt2(m, "teleport_cursor_x", 0f);
         s.teleportCursorY     = flt2(m, "teleport_cursor_y", 0f);
+        s.teleportType        = str(m,  "teleport_type",     "shadow");
         s.stamina             = flt2(m, "stamina",      30f);
         s.mana                = flt2(m, "mana",         30f);
         s.maxMana             = num(m,  "max_mana",      30);

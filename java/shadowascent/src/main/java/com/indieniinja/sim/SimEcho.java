@@ -29,6 +29,9 @@ public final class SimEcho {
     /** If false, recalling before playback completes fails the puzzle. */
     public final boolean recallable;
 
+    /** Stance variant at spawn time: "silent" (Yin) | "riot" (Yang) | "resonant" (Flow). */
+    public final String echoType;
+
     /** True while this echo can continue replaying commands. */
     public boolean active = true;
     /** True once replay reaches end-of-log naturally. */
@@ -40,7 +43,7 @@ public final class SimEcho {
     private InputCommand currentInput = InputCommand.neutral(0);
 
     public SimEcho(String echoId, int ownerSlot, float startX, float startY,
-                   ReplayPlayer replay, boolean recallable, String weaponState) {
+                   ReplayPlayer replay, boolean recallable, String weaponState, String echoType) {
         this.echoId      = echoId;
         this.ownerSlot   = ownerSlot;
         this.x           = startX;
@@ -48,6 +51,7 @@ public final class SimEcho {
         this.replay      = replay;
         this.recallable  = recallable;
         this.weaponState = weaponState != null ? weaponState : "unarmed";
+        this.echoType    = echoType != null ? echoType : "silent";
     }
 
     /** Advance replay by one tick. */

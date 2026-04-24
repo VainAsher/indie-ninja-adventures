@@ -27,6 +27,8 @@ public final class EchoState {
     public String  weaponState = "unarmed";
     /** False once the echo replay is complete or has been recalled. */
     public boolean active      = true;
+    /** Stance variant at spawn: "silent" (Yin) | "riot" (Yang) | "resonant" (Flow). */
+    public String  echoType    = "silent";
 
     public EchoState() {}
 
@@ -40,6 +42,7 @@ public final class EchoState {
         m.put("anim_state",   animState);
         m.put("weapon_state", weaponState);
         m.put("active",       active);
+        m.put("echo_type",    echoType != null ? echoType : "silent");
         return m;
     }
 
@@ -54,6 +57,7 @@ public final class EchoState {
         s.animState   = str(map, "anim_state",   "idle");
         s.weaponState = str(map, "weapon_state", "unarmed");
         s.active      = bool(map, "active",       true);
+        s.echoType    = str(map, "echo_type",    "silent");
         return s;
     }
 

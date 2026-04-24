@@ -249,12 +249,24 @@ public final class SimPlayer {
     /** Active stance mode for P0 readability bridge: "yin" | "yang". */
     public String stanceMode = "yin";
 
+    // ── Flow recency (P1-03A / GDD §3.3) ─────────────────────────────────────
+    /**
+     * Counts down from FLOW_RECENCY_WINDOW after each meaningful action (dash,
+     * attack, shuriken, teleport).  Flow state is only eligible while > 0,
+     * preventing accidental passive flow from idle balance drift.
+     */
+    public float lastMeaningfulActionTimer = 0f;
+
     // ── Noise / stealth (P1-03A) ──────────────────────────────────────────────
     // noiseLevel decays to 0 over ~0.4s; enemies check it against their detection radius.
     /** Current noise intensity 0..1. Set by actions; decays per tick. */
     public float noiseLevel  = 0f;
     /** World-space noise radius derived from noiseLevel * MAX_NOISE_RADIUS. */
     public float noiseRadius = 0f;
+
+    // ── Phase Teleport variant (P1-03A / GDD §3.3) ───────────────────────────
+    /** Resolved on phase-start from stance: "shadow" | "thunder" | "harmonic". */
+    public String teleportType = "shadow";
 
     // ── Weapon / animation state ──────────────────────────────────────────────
     /** Current weapon set wire string: "unarmed" | "sword" | "pistol".

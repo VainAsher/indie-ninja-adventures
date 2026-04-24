@@ -23,7 +23,7 @@ class SimEchoTest {
         c1.right = true;
 
         ReplayPlayer replay = ReplayPlayer.fromInputSequence(7L, 0, List.of(c0, c1));
-        SimEcho echo = new SimEcho("echo_0", 0, 0f, 0f, replay, false, "unarmed");
+        SimEcho echo = new SimEcho("echo_0", 0, 0f, 0f, replay, false, "unarmed", "silent");
 
         echo.step();
         boolean recallOk = echo.recall();
@@ -42,7 +42,7 @@ class SimEchoTest {
         c1.right = true;
 
         ReplayPlayer replay = ReplayPlayer.fromInputSequence(7L, 0, List.of(c0, c1));
-        SimEcho echo = new SimEcho("echo_1", 0, 0f, 0f, replay, false, "unarmed");
+        SimEcho echo = new SimEcho("echo_1", 0, 0f, 0f, replay, false, "unarmed", "silent");
 
         echo.step();
         assertThat(echo.facing).isEqualTo(-1);

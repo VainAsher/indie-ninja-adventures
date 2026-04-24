@@ -328,6 +328,7 @@ public final class GameSimulator {
             return null;
         }
         ReplayPlayer replay = ReplayPlayer.fromInputSequence(seed, slot, recorded);
+        String echoType = resolveEchoType(owner);
         SimEcho echo = new SimEcho(
             hubId + "_echo_" + echoSeq++,
             slot,
@@ -335,11 +336,15 @@ public final class GameSimulator {
             owner.physics.y,
             replay,
             recallable,
-            owner.weaponState
+            owner.weaponState,
+            echoType
         );
+        if ("riot".equals(echoType)) {
+            emitNoise(owner, GameConfig.NOISE_ECHO_RIOT);
+        }
         echoes.add(echo);
-        log.info("[Playtest][Echo] event=spawn player={} slot={} echo={} recallable={} entries={} hub={} pos=({}, {})",
-            owner.playerId, owner.slot, echo.echoId, recallable, recorded.size(),
+        log.info("[Playtest][Echo] event=spawn player={} slot={} echo={} type={} recallable={} entries={} hub={} pos=({}, {})",
+            owner.playerId, owner.slot, echo.echoId, echoType, recallable, recorded.size(),
             hubId, (int) owner.physics.x, (int) owner.physics.y);
         return echo;
     }
@@ -405,6 +410,8 @@ public final class GameSimulator {
         for (SimPlayer p : players.values()) {
             p.tickInvincibility();
             tickNoise(p);
+            if (p.lastMeaningfulActionTimer > 0f)
+                p.lastMeaningfulActionTimer = Math.max(0f, p.lastMeaningfulActionTimer - DT);
         }
 
         // 2. Rebuild dynamic tile list so CollisionSystem sees current platform positions.
@@ -492,7 +499,7 @@ public final class GameSimulator {
             } else {
                 p.abilityFlags &= ~PhysicsConstants.ABILITY_YIN_SIGHT;
             }
-            boolean flowNow = yy.isBalanced();
+            boolean flowNow = isInFlow(sp);
             Boolean prevFlow = loggedFlowBySlot.put(sp.slot, flowNow);
             if (prevFlow == null || prevFlow != flowNow) {
                 log.info("[Playtest][Flow] player={} slot={} active={} stance={} yin={} yang={} pos=({}, {})",
@@ -552,7 +559,7 @@ public final class GameSimulator {
             // Fallback: treat non-hub hubIds as dark (multiplayer server path).
             boolean inDark = isDarkArea || !hubId.contains("hub");
             lc.decay(DT, inDark);
-            if (sp.yinYang != null && sp.yinYang.isBalanced()) {
+            if (sp.yinYang != null && isInFlow(sp)) {
                 lc.restore(FLOW_LANTERN_RESTORE_PER_SECOND * DT);
             }
             int bandNow = lanternBand(lc.value);
@@ -560,7 +567,7 @@ public final class GameSimulator {
             if (prevBand == null || prevBand != bandNow) {
                 log.info("[Playtest][Lantern] player={} slot={} band={} value={} dark={} flow={} pos=({}, {})",
                     sp.playerId, sp.slot, lanternBandLabel(bandNow), fmt(lc.value), inDark,
-                    sp.yinYang != null && sp.yinYang.isBalanced(),
+                    sp.yinYang != null && isInFlow(sp),
                     (int) sp.physics.x, (int) sp.physics.y);
             }
             // High lantern bonus — applied via applyPlayerInput on next tick
@@ -601,6 +608,7 @@ public final class GameSimulator {
             ps.teleportPhaseMode = p.teleportPhaseMode;
             ps.teleportCursorX   = p.teleportCursorX;
             ps.teleportCursorY   = p.teleportCursorY;
+            ps.teleportType      = p.teleportType;
             ps.stamina           = p.stamina;
             ps.mana              = p.mana;
             ps.maxMana           = p.maxMana;
@@ -616,7 +624,7 @@ public final class GameSimulator {
             ps.yinValue     = p.yinYang.yin;
             ps.yangValue    = p.yinYang.yang;
             ps.stanceMode   = p.stanceMode;
-            ps.flowMode     = p.yinYang.isBalanced();
+            ps.flowMode     = isInFlow(p);
             ps.lanternValue = p.lantern.value;
             ps.weaponState    = p.weaponState;
             ps.respawnTimer   = p.respawnTimer;
@@ -733,6 +741,7 @@ public final class GameSimulator {
             es.animState   = echo.animState != null ? echo.animState : "idle";
             es.weaponState = echo.weaponState != null ? echo.weaponState : "unarmed";
             es.active      = echo.active;
+            es.echoType    = echo.echoType != null ? echo.echoType : "silent";
             snap.echoes.add(es);
         }
 
@@ -950,6 +959,7 @@ public final class GameSimulator {
         // ── Dash initiation ───────────────────────────────────────────────────
         if (dashJustPressed && sp.dashCooldown <= 0f && !sp.isDashing) {
             sp.isDashing = true;
+            sp.lastMeaningfulActionTimer = GameConfig.FLOW_RECENCY_WINDOW;
             sp.dashTimer = PhysicsConstants.DASH_DURATION;
             p.vy = 0f;  // cancel vertical momentum for horizontal dash
             float dashNoise = "yang".equals(sp.stanceMode)
@@ -1133,15 +1143,17 @@ public final class GameSimulator {
         boolean teleportJustPressed = teleportHeld && !sp.prevTeleport;
         sp.prevTeleport = teleportHeld;
 
-        // Enter phase on key press edge
+        // Enter phase on key press edge — resolve stance variant at cast time
         if (teleportJustPressed && sp.teleportCooldown <= 0f
                 && !sp.isTeleporting && !sp.teleportPhaseMode) {
             sp.teleportPhaseMode  = true;
+            sp.lastMeaningfulActionTimer = GameConfig.FLOW_RECENCY_WINDOW;
             sp.teleportPhaseTimer = SimPlayer.TELEPORT_PHASE_TIME;
             sp.teleportOriginX    = p.x;
             sp.teleportOriginY    = p.y;
             sp.teleportCursorX    = p.x;
             sp.teleportCursorY    = p.y;
+            sp.teleportType       = resolveTeleportType(sp);
             p.vx = 0f;
             p.vy = 0f;
         }
@@ -1187,11 +1199,12 @@ public final class GameSimulator {
                     p.y  = cy;
                     p.vx = 0f;
                     p.vy = 0f;
+                    applyTeleportArrivalEffects(sp, cx, cy);
                 }
                 sp.teleportPhaseMode   = false;
                 sp.isTeleporting       = true;
                 sp.teleportInvulnTimer = SimPlayer.TELEPORT_INVULN;
-                sp.teleportCooldown    = SimPlayer.TELEPORT_COOLDOWN;
+                sp.teleportCooldown    = SimPlayer.TELEPORT_COOLDOWN * teleportCooldownMult(sp);
                 sp.isDashing           = false;
             }
         }
@@ -1202,6 +1215,7 @@ public final class GameSimulator {
             sp.attackActiveTicks = SimPlayer.MELEE_ACTIVE_TICKS;
             sp.attackCooldown   = SimPlayer.MELEE_COOLDOWN;
             emitNoise(sp, GameConfig.NOISE_ATTACK_MELEE);
+            sp.lastMeaningfulActionTimer = GameConfig.FLOW_RECENCY_WINDOW;
         }
 
         // ── Shuriken throw ────────────────────────────────────────────────────
@@ -1212,6 +1226,7 @@ public final class GameSimulator {
             // Actual SimShuriken is spawned by the outer GameSimulator (needs list access)
             sp.pendingShuriken = true;
             emitNoise(sp, GameConfig.NOISE_ATTACK_SHURIKEN);
+            sp.lastMeaningfulActionTimer = GameConfig.FLOW_RECENCY_WINDOW;
         }
 
         // ── Wall slide ────────────────────────────────────────────────────────
@@ -1381,18 +1396,77 @@ public final class GameSimulator {
     // ── Stance movement multipliers (GDD §3.3 / P1-03A) ─────────────────────
 
     private static float stanceSpeedMult(SimPlayer sp) {
-        if (sp.yinYang.isBalanced()) return GameConfig.FLOW_SPEED_MULT;
+        if (isInFlow(sp)) return GameConfig.FLOW_SPEED_MULT;
         return "yang".equals(sp.stanceMode) ? GameConfig.YANG_SPEED_MULT : GameConfig.YIN_SPEED_MULT;
     }
 
     private static float stanceDashMult(SimPlayer sp) {
-        if (sp.yinYang.isBalanced()) return GameConfig.FLOW_DASH_SPEED_MULT;
+        if (isInFlow(sp)) return GameConfig.FLOW_DASH_SPEED_MULT;
         return "yang".equals(sp.stanceMode) ? GameConfig.YANG_DASH_SPEED_MULT : GameConfig.YIN_DASH_SPEED_MULT;
     }
 
     private static float stanceWallJumpXMult(SimPlayer sp) {
-        if (sp.yinYang.isBalanced()) return GameConfig.FLOW_WALL_JUMP_X_MULT;
+        if (isInFlow(sp)) return GameConfig.FLOW_WALL_JUMP_X_MULT;
         return "yang".equals(sp.stanceMode) ? GameConfig.YANG_WALL_JUMP_X_MULT : GameConfig.YIN_WALL_JUMP_X_MULT;
+    }
+
+    // ── Phase Teleport stance variants (P1-03A / GDD §3.3) ───────────────────
+
+    /**
+     * True when the player satisfies both Flow conditions:
+     * (1) balance threshold met — |yin−yang| < FLOW_BALANCE_THRESHOLD, AND
+     * (2) performed a meaningful action recently (timer still counting down).
+     * Prevents passive idle drift from accidentally granting Flow rewards.
+     */
+    private static boolean isInFlow(SimPlayer sp) {
+        return sp.yinYang.isBalanced() && sp.lastMeaningfulActionTimer > 0f;
+    }
+
+    /** Resolve teleport variant from current stance at cast time. */
+    private static String resolveTeleportType(SimPlayer sp) {
+        if (isInFlow(sp)) return "harmonic";
+        return "yang".equals(sp.stanceMode) ? "thunder" : "shadow";
+    }
+
+    /** Resolve echo art variant from current stance at spawn time. */
+    private static String resolveEchoType(SimPlayer sp) {
+        if (isInFlow(sp)) return "resonant";
+        return "yang".equals(sp.stanceMode) ? "riot" : "silent";
+    }
+
+    /** Cooldown multiplier for the resolved teleport type. */
+    private static float teleportCooldownMult(SimPlayer sp) {
+        return switch (sp.teleportType != null ? sp.teleportType : "shadow") {
+            case "thunder"  -> GameConfig.THUNDER_STEP_COOLDOWN_MULT;
+            case "harmonic" -> GameConfig.HARMONIC_STEP_COOLDOWN_MULT;
+            default         -> GameConfig.SHADOW_STEP_COOLDOWN_MULT;  // "shadow"
+        };
+    }
+
+    /**
+     * Apply arrival effects for ThunderStep (Yang) and HarmonicStep (Flow).
+     * ShadowStep (Yin) is silent — no side-effects.
+     */
+    private void applyTeleportArrivalEffects(SimPlayer sp, float ax, float ay) {
+        switch (sp.teleportType != null ? sp.teleportType : "shadow") {
+            case "thunder" -> {
+                emitNoise(sp, GameConfig.THUNDER_STEP_NOISE);
+                float r = GameConfig.THUNDER_STEP_STUN_RADIUS;
+                for (SimEnemy en : enemies) {
+                    if (!en.isAlive()) continue;
+                    float dx = (en.physics.x + en.physics.width  * 0.5f) - ax;
+                    float dy = (en.physics.y + en.physics.height * 0.5f) - ay;
+                    if (dx * dx + dy * dy <= r * r) {
+                        en.aiState   = EnemyAIState.STUNNED;
+                        en.stunTimer = Math.max(en.stunTimer, GameConfig.THUNDER_STEP_STUN_DURATION);
+                        log.info("[Playtest][Teleport] ThunderStep stunned enemy={} dist={}",
+                            en.enemyId, fmt((float) Math.sqrt(dx * dx + dy * dy)));
+                    }
+                }
+            }
+            case "harmonic" -> { /* Flow: reduced cooldown handled in teleportCooldownMult, no AoE */ }
+            default -> { /* shadow: silent, no effects */ }
+        }
     }
 
     private static void syncWeaponStateForStance(SimPlayer sp) {
