@@ -962,8 +962,9 @@ public final class GameSimulator {
         }
 
         if (sp.isDashing) {
-            // Dash overrides normal velocity; direction locked to current facing
-            p.vx = PhysicsConstants.DASH_SPEED * sp.facing;
+            // Dash overrides normal velocity; direction locked to current facing.
+            // Stance multiplier: Yin = short silent slip, Yang = long forceful burst.
+            p.vx = PhysicsConstants.DASH_SPEED * stanceDashMult(sp) * sp.facing;
         } else if (sp.wallJumpLockTimer > 0f) {
             // Wall-jump input lock — preserve the launch vx so momentum carries the
             // player away from the wall.  Mirrors Python entities/player.py line 260:
@@ -974,8 +975,9 @@ public final class GameSimulator {
         } else {
             // Default: walk at 0.6× speed (no ALT).  ALT (cmd.slowWalk) = run at full speed.
             // Mirrors Python entities/player.py: is_running = ALT key; else slow_walk 0.6×
+            // Stance multiplier applied on top: Yin = precise/slower, Yang = committed/faster.
             float speedMult = cmd.slowWalk ? 1.0f : 0.6f;
-            float maxSpeed  = PhysicsConstants.MAX_RUN_SPEED * speedMult;
+            float maxSpeed  = PhysicsConstants.MAX_RUN_SPEED * speedMult * stanceSpeedMult(sp);
             float targetVx  = 0f;
             if (cmd.right) targetVx =  maxSpeed;
             if (cmd.left)  targetVx = -maxSpeed;
@@ -1033,7 +1035,8 @@ public final class GameSimulator {
                         : (sp.lastWallDir != 0) ? sp.lastWallDir
                         : (sp.facing >= 0 ? -1 : 1);
             p.vy         = -PhysicsConstants.WALL_JUMP_POWER_Y * 1.6f;
-            p.vx         = -wallDir * PhysicsConstants.WALL_JUMP_POWER_X;  // full power away from wall
+            // Stance multiplier: Yin = stable controlled push-off, Yang = forceful launch.
+            p.vx         = -wallDir * PhysicsConstants.WALL_JUMP_POWER_X * stanceWallJumpXMult(sp);
             sp.facing    = -wallDir;
             sp.jumpCount = 0;
             sp.jumpBuffer= 0f;
@@ -1270,6 +1273,23 @@ public final class GameSimulator {
      * Keep stance readability deterministic: Yin defaults to unarmed posture,
      * Yang defaults to armed posture (sword unless an equipped weapon implies pistol).
      */
+    // ── Stance movement multipliers (GDD §3.3 / P1-03A) ─────────────────────
+
+    private static float stanceSpeedMult(SimPlayer sp) {
+        if (sp.yinYang.isBalanced()) return GameConfig.FLOW_SPEED_MULT;
+        return "yang".equals(sp.stanceMode) ? GameConfig.YANG_SPEED_MULT : GameConfig.YIN_SPEED_MULT;
+    }
+
+    private static float stanceDashMult(SimPlayer sp) {
+        if (sp.yinYang.isBalanced()) return GameConfig.FLOW_DASH_SPEED_MULT;
+        return "yang".equals(sp.stanceMode) ? GameConfig.YANG_DASH_SPEED_MULT : GameConfig.YIN_DASH_SPEED_MULT;
+    }
+
+    private static float stanceWallJumpXMult(SimPlayer sp) {
+        if (sp.yinYang.isBalanced()) return GameConfig.FLOW_WALL_JUMP_X_MULT;
+        return "yang".equals(sp.stanceMode) ? GameConfig.YANG_WALL_JUMP_X_MULT : GameConfig.YIN_WALL_JUMP_X_MULT;
+    }
+
     private static void syncWeaponStateForStance(SimPlayer sp) {
         String next = preferredWeaponStateForStance(sp);
         if (!next.equals(sp.weaponState)) {

@@ -76,6 +76,31 @@ public final class GameConfig {
     /** Lantern restore rate per second while in Flow state. */
     public static final float LANTERN_FLOW_RESTORE_RATE     = 0.012f;
 
+    // ── Stance movement modifiers (GDD §3.3 / design-request P1-03A) ─────────
+    // Applied as multipliers over base PhysicsConstants values.
+    // Yin = precision/stealth; Yang = force/speed; Flow = neutral but smooth.
+
+    /** Yin run speed multiplier — tighter, quieter, more controlled. */
+    public static final float YIN_SPEED_MULT        = 0.88f;
+    /** Yang run speed multiplier — faster, committed, louder. */
+    public static final float YANG_SPEED_MULT       = 1.10f;
+    /** Flow run speed multiplier — neutral baseline, smoothing deferred to animation pass. */
+    public static final float FLOW_SPEED_MULT       = 1.00f;
+
+    /** Yin dash speed multiplier — short silent slip. */
+    public static final float YIN_DASH_SPEED_MULT   = 0.75f;
+    /** Yang dash speed multiplier — long forceful burst. */
+    public static final float YANG_DASH_SPEED_MULT  = 1.20f;
+    /** Flow dash speed multiplier — neutral. */
+    public static final float FLOW_DASH_SPEED_MULT  = 1.00f;
+
+    /** Yin wall-jump horizontal power multiplier — stable, controlled push-off. */
+    public static final float YIN_WALL_JUMP_X_MULT  = 0.90f;
+    /** Yang wall-jump horizontal power multiplier — forceful launch. */
+    public static final float YANG_WALL_JUMP_X_MULT = 1.15f;
+    /** Flow wall-jump horizontal power multiplier — neutral. */
+    public static final float FLOW_WALL_JUMP_X_MULT = 1.00f;
+
     // ── World Generation ──────────────────────────────────────────────────────
     /** World room count for acts 1-2. */
     public static final int   DEFAULT_WORLD_SIZE_ACT_1_2    = 6;

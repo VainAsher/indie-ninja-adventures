@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-24
-version_anchor: v0.12.06
+version_anchor: v0.12.07
 replaces: docs/HANDOVER.md
 ---
 
@@ -266,6 +266,20 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Known issue or risk: no new blocker identified; cleanup-lane manual runtime gates are now satisfied.
 - Compatibility impact: replay=`no` (validation-only), save=`no`, protocol=`no`.
 - First action next session: cleanup lane complete; continue with the next highest-priority implementing slice from `PLAN_SHADOW_ASCENT.md` after running `SESSION_START_WORKFLOW.md`.
+
+## Session Close-Out (2026-04-24, v0.12.07 Release + Phase 2 Bootstrap)
+
+- Date: 2026-04-24
+- Branch + HEAD: `master @ 1cbd296`
+- Current version: `v0.12.07`
+- Systems touched: dash wall-cancel physics fix (`isDashing` cleared on wall contact, `feedback#4`); Phase 2 gameplay identity lock bootstrap (`GAMEPLAY_KPI_TARGETS.md`, `BALANCE_LOG.md`, P2-01 ✅, P2-03 ✅ readiness audit).
+- Validation run:
+  - `python tools/check_version_sync.py` (PASS — v0.12.07)
+  - `./gradlew :server:test --tests com.indieniinja.server.GameSimulatorTest --no-daemon` (PASS)
+  - CI green on `5b80603` (Release workflow success for v0.12.07 tag)
+- Known issue or risk: none blocking.
+- Compatibility impact: replay=`no`, save=`no`, protocol=`no`.
+- First action next session: begin Slice 1 of Yin/Yang stance-driven movement feature (P1-03A) — stance speed/dash multipliers in `GameConfig` + `GameSimulator`.
 
 ## Session Close-Out (2026-04-24, Final v0.12.06 Release Loop)
 
