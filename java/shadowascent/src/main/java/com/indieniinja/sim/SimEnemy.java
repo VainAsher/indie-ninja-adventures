@@ -55,6 +55,16 @@ public final class SimEnemy {
     public boolean knockedOut     = false;
     public float   knockoutTimer  = 0f;
 
+    // ── Awareness FSM (P1-03A / GDD §3.3) ────────────────────────────────────
+    // Parallel to aiState — driven by player noise radius, not direct line-of-sight.
+    public EnemyAwarenessState awarenessState = EnemyAwarenessState.UNAWARE;
+    /** Countdown while SUSPICIOUS before returning to UNAWARE (seconds). */
+    public float awarenessTimer  = 0f;
+    /** World-X where noise was last heard — enemy investigates this position. */
+    public float lastHeardNoiseX = 0f;
+    /** World-Y where noise was last heard. */
+    public float lastHeardNoiseY = 0f;
+
     // ── Constants (from Python ENEMY_DEFINITIONS) ─────────────────────────────
     public static final float ATTACK_WINDUP_TIME   = 0.6f;
     public static final float ATTACK_ACTIVE_TIME   = 0.15f;

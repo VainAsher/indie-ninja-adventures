@@ -101,6 +101,28 @@ public final class GameConfig {
     /** Flow wall-jump horizontal power multiplier — neutral. */
     public static final float FLOW_WALL_JUMP_X_MULT = 1.00f;
 
+    // ── Noise / stealth model (P1-03A) ───────────────────────────────────────
+    /** Max world-space radius (px) that a fully-loud action is heard within. */
+    public static final float MAX_NOISE_RADIUS         = 320f;
+    /** Noise level decays by this much per second (reaches 0 in ~0.4 s). */
+    public static final float NOISE_DECAY_RATE         = 2.5f;
+
+    // Emitted noiseLevel per action (0 = silent, 1 = maximum):
+    public static final float NOISE_YIN_CROUCH_WALK    = 0.00f; // silent
+    public static final float NOISE_YIN_WALK           = 0.15f;
+    public static final float NOISE_NEUTRAL_RUN        = 0.40f;
+    public static final float NOISE_YIN_DASH           = 0.15f; // short quiet slip
+    public static final float NOISE_YANG_DASH          = 0.80f; // forceful burst
+    public static final float NOISE_ATTACK_MELEE       = 0.70f;
+    public static final float NOISE_ATTACK_SHURIKEN    = 0.20f;
+    public static final float NOISE_LAND_YIN           = 0.10f; // soft landing
+    public static final float NOISE_LAND_YANG          = 0.50f; // heavy landing
+
+    /** Time an enemy stays SUSPICIOUS before reverting to UNAWARE (seconds). */
+    public static final float AWARENESS_SUSPICIOUS_DURATION = 3.0f;
+    /** Time an enemy stays SEARCHING before reverting to PATROL (seconds). */
+    public static final float AWARENESS_SEARCHING_DURATION  = 5.0f;
+
     // ── World Generation ──────────────────────────────────────────────────────
     /** World room count for acts 1-2. */
     public static final int   DEFAULT_WORLD_SIZE_ACT_1_2    = 6;

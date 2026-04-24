@@ -401,8 +401,11 @@ public final class GameSimulator {
             p.echoRecorder.record(p.latestInput);
         }
 
-        // Tick invincibility timers
-        for (SimPlayer p : players.values()) p.tickInvincibility();
+        // Tick invincibility timers and noise decay
+        for (SimPlayer p : players.values()) {
+            p.tickInvincibility();
+            tickNoise(p);
+        }
 
         // 2. Rebuild dynamic tile list so CollisionSystem sees current platform positions.
         rebuildDynamicTiles();
@@ -850,11 +853,14 @@ public final class GameSimulator {
         boolean justLanded    = !sp.wasOnGround && p.onGround;
         boolean justLeftGround = sp.wasOnGround  && !p.onGround;
 
-        // ── Landing: reset jump state ─────────────────────────────────────────
+        // ── Landing: reset jump state + emit landing noise ───────────────────
         if (justLanded) {
             sp.jumpCount   = 0;
             sp.coyoteTimer = 0f;
             sp.jumpBuffer  = 0f;
+            float landNoise = "yang".equals(sp.stanceMode)
+                ? GameConfig.NOISE_LAND_YANG : GameConfig.NOISE_LAND_YIN;
+            emitNoise(sp, landNoise);
         }
 
         // ── Coyote time: walking off an edge without jumping ──────────────────
@@ -946,6 +952,9 @@ public final class GameSimulator {
             sp.isDashing = true;
             sp.dashTimer = PhysicsConstants.DASH_DURATION;
             p.vy = 0f;  // cancel vertical momentum for horizontal dash
+            float dashNoise = "yang".equals(sp.stanceMode)
+                ? GameConfig.NOISE_YANG_DASH : GameConfig.NOISE_YIN_DASH;
+            emitNoise(sp, dashNoise);
         }
 
         // ── Horizontal movement ───────────────────────────────────────────────
@@ -978,6 +987,18 @@ public final class GameSimulator {
             // Stance multiplier applied on top: Yin = precise/slower, Yang = committed/faster.
             float speedMult = cmd.slowWalk ? 1.0f : 0.6f;
             float maxSpeed  = PhysicsConstants.MAX_RUN_SPEED * speedMult * stanceSpeedMult(sp);
+            // Emit footstep noise while actively moving (only when making ground contact)
+            if ((cmd.left || cmd.right) && p.onGround) {
+                float moveNoise;
+                if (cmd.crouch && "yin".equals(sp.stanceMode)) {
+                    moveNoise = GameConfig.NOISE_YIN_CROUCH_WALK;
+                } else if (!cmd.slowWalk && "yin".equals(sp.stanceMode)) {
+                    moveNoise = GameConfig.NOISE_YIN_WALK;
+                } else {
+                    moveNoise = GameConfig.NOISE_NEUTRAL_RUN;
+                }
+                emitNoise(sp, moveNoise);
+            }
             float targetVx  = 0f;
             if (cmd.right) targetVx =  maxSpeed;
             if (cmd.left)  targetVx = -maxSpeed;
@@ -1180,6 +1201,7 @@ public final class GameSimulator {
             sp.isAttacking      = true;
             sp.attackActiveTicks = SimPlayer.MELEE_ACTIVE_TICKS;
             sp.attackCooldown   = SimPlayer.MELEE_COOLDOWN;
+            emitNoise(sp, GameConfig.NOISE_ATTACK_MELEE);
         }
 
         // ── Shuriken throw ────────────────────────────────────────────────────
@@ -1189,6 +1211,7 @@ public final class GameSimulator {
             sp.throwCooldown = SimPlayer.SHURIKEN_COOLDOWN;
             // Actual SimShuriken is spawned by the outer GameSimulator (needs list access)
             sp.pendingShuriken = true;
+            emitNoise(sp, GameConfig.NOISE_ATTACK_SHURIKEN);
         }
 
         // ── Wall slide ────────────────────────────────────────────────────────
@@ -1273,6 +1296,88 @@ public final class GameSimulator {
      * Keep stance readability deterministic: Yin defaults to unarmed posture,
      * Yang defaults to armed posture (sword unless an equipped weapon implies pistol).
      */
+    // ── Noise / stealth model (P1-03A) ───────────────────────────────────────
+
+    /**
+     * Update enemy awareness state from player noise radii (P1-03A).
+     * UNAWARE  → SUSPICIOUS when a player's noiseRadius reaches the enemy.
+     * SUSPICIOUS timer counts down; if player enters detection radius → ALERTED.
+     * ALERTED overrides aiState to CHASE on next stepEnemyAI call.
+     */
+    private static void tickEnemyAwareness(SimEnemy en,
+                                           java.util.Collection<SimPlayer> players) {
+        float ex = en.physics.x + en.physics.width * 0.5f;
+        float ey = en.physics.y + en.physics.height * 0.5f;
+
+        switch (en.awarenessState) {
+            case UNAWARE -> {
+                for (SimPlayer sp : players) {
+                    if (!sp.isAlive() || sp.noiseRadius <= 0f) continue;
+                    float dx = (sp.physics.x + sp.physics.width * 0.5f) - ex;
+                    float dy = (sp.physics.y + sp.physics.height * 0.5f) - ey;
+                    float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                    if (dist <= sp.noiseRadius) {
+                        en.awarenessState  = EnemyAwarenessState.SUSPICIOUS;
+                        en.awarenessTimer  = GameConfig.AWARENESS_SUSPICIOUS_DURATION;
+                        en.lastHeardNoiseX = sp.physics.x + sp.physics.width * 0.5f;
+                        en.lastHeardNoiseY = sp.physics.y + sp.physics.height * 0.5f;
+                        log.info("[Playtest][Awareness] enemy={} UNAWARE->SUSPICIOUS noise={} dist={}",
+                            en.enemyId, fmt(sp.noiseLevel), fmt(dist));
+                        break;
+                    }
+                }
+            }
+            case SUSPICIOUS -> {
+                en.awarenessTimer -= DT;
+                // Direct sight range escalates to ALERTED
+                for (SimPlayer sp : players) {
+                    if (!sp.isAlive()) continue;
+                    float dx = (sp.physics.x + sp.physics.width * 0.5f) - ex;
+                    float dy = (sp.physics.y + sp.physics.height * 0.5f) - ey;
+                    float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                    if (dist < en.detectionRadius) {
+                        en.awarenessState = EnemyAwarenessState.ALERTED;
+                        en.aiState        = EnemyAIState.CHASE;
+                        log.info("[Playtest][Awareness] enemy={} SUSPICIOUS->ALERTED dist={}", en.enemyId, fmt(dist));
+                        return;
+                    }
+                }
+                if (en.awarenessTimer <= 0f) {
+                    en.awarenessState = EnemyAwarenessState.UNAWARE;
+                }
+            }
+            case SEARCHING -> {
+                en.awarenessTimer -= DT;
+                if (en.awarenessTimer <= 0f) {
+                    en.awarenessState = EnemyAwarenessState.UNAWARE;
+                    if (en.aiState == EnemyAIState.CHASE) en.aiState = EnemyAIState.PATROL;
+                }
+            }
+            case ALERTED -> {
+                // Remain ALERTED while aiState is CHASE/ATTACK; drop to SEARCHING on retreat
+                if (en.aiState == EnemyAIState.PATROL || en.aiState == EnemyAIState.IDLE) {
+                    en.awarenessState = EnemyAwarenessState.SEARCHING;
+                    en.awarenessTimer = GameConfig.AWARENESS_SEARCHING_DURATION;
+                }
+            }
+        }
+    }
+
+    /** Set player noise to max(current, level) and derive noiseRadius. */
+    private static void emitNoise(SimPlayer sp, float level) {
+        if (level <= 0f) return;
+        sp.noiseLevel  = Math.max(sp.noiseLevel, level);
+        sp.noiseRadius = sp.noiseLevel * GameConfig.MAX_NOISE_RADIUS;
+    }
+
+    /** Decay noise toward zero and update noiseRadius. Called once per tick. */
+    private static void tickNoise(SimPlayer sp) {
+        if (sp.noiseLevel > 0f) {
+            sp.noiseLevel  = Math.max(0f, sp.noiseLevel - GameConfig.NOISE_DECAY_RATE * DT);
+            sp.noiseRadius = sp.noiseLevel * GameConfig.MAX_NOISE_RADIUS;
+        }
+    }
+
     // ── Stance movement multipliers (GDD §3.3 / P1-03A) ─────────────────────
 
     private static float stanceSpeedMult(SimPlayer sp) {
@@ -1821,6 +1926,7 @@ public final class GameSimulator {
             }
             if (!en.isAlive()) continue;
             float[] nearest = nearestPlayerCenter(en, playerCenters);
+            tickEnemyAwareness(en, players.values());
             stepEnemyAI(en, nearest);
             // Flying enemies manage their own vertical movement (no CollisionSystem for them)
             if (en.canFly) applyFlyingEnemyMovement(en);

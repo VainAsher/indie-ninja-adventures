@@ -249,6 +249,13 @@ public final class SimPlayer {
     /** Active stance mode for P0 readability bridge: "yin" | "yang". */
     public String stanceMode = "yin";
 
+    // ── Noise / stealth (P1-03A) ──────────────────────────────────────────────
+    // noiseLevel decays to 0 over ~0.4s; enemies check it against their detection radius.
+    /** Current noise intensity 0..1. Set by actions; decays per tick. */
+    public float noiseLevel  = 0f;
+    /** World-space noise radius derived from noiseLevel * MAX_NOISE_RADIUS. */
+    public float noiseRadius = 0f;
+
     // ── Weapon / animation state ──────────────────────────────────────────────
     /** Current weapon set wire string: "unarmed" | "sword" | "pistol".
      *  Drives animation key prefix in EntityRenderer (animation Phase 4). */
