@@ -556,6 +556,36 @@ class GameSimulatorTest {
         return attacker;
     }
 
+    // ── Dash wall-cancel: feedback#4 regression guard ─────────────────────────
+
+    @Test
+    void dashCancelledOnWallContact() {
+        // Reproduce the feedback#4 bug: dash sticks to wall or tunnels upward.
+        // Root cause: isDashing was never cleared on wall contact, so dash speed
+        // was re-applied every frame after CollisionSystem zeroed vx.
+        //
+        // This test injects the wall-contact state that CollisionSystem sets at
+        // the end of a tick, then verifies the NEXT step cancels the dash before
+        // re-applying vx.
+        GameSimulator sim = buildSim(42L);
+        SimPlayer sp = new SimPlayer("p1", 0, 200f, 800f);
+        sim.addPlayer(sp);
+
+        // Simulate state after last tick's collision detected a right wall
+        sp.isDashing          = true;
+        sp.dashTimer          = 0.2f;
+        sp.facing             = 1;
+        sp.physics.onWall     = true;   // set by CollisionSystem in previous tick
+        sp.physics.wallDir    = 1;
+
+        sim.step(Map.of(0, new InputCommand(0)));
+
+        // Dash must be cancelled — velocity must not be re-applied into the wall
+        assertThat(sp.isDashing).isFalse();
+        assertThat(sp.dashTimer).isCloseTo(0f, within(0.01f));
+        assertThat(sp.dashCooldown).isGreaterThan(0f);
+    }
+
     private static long findBossSeed(String bossWire) {
         for (long seed = 0; seed < 1024; seed++) {
             LevelLayout layout = LevelLayout.buildProceduralLayout(

@@ -951,6 +951,16 @@ public final class GameSimulator {
         // ── Horizontal movement ───────────────────────────────────────────────
         if (sp.wallJumpLockTimer > 0f) sp.wallJumpLockTimer -= DT;
 
+        // Cancel dash on wall contact. CollisionSystem zeroes vx when the player
+        // hits a wall, but isDashing stays true — so without this check the next
+        // frame re-applies dash speed and the player sticks/tunnels upward along
+        // the wall face. (feedback#4 — v0.12.02)
+        if (sp.isDashing && p.onWall) {
+            sp.isDashing    = false;
+            sp.dashTimer    = 0f;
+            sp.dashCooldown = PhysicsConstants.DASH_COOLDOWN;
+        }
+
         if (sp.isDashing) {
             // Dash overrides normal velocity; direction locked to current facing
             p.vx = PhysicsConstants.DASH_SPEED * sp.facing;
