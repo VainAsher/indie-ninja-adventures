@@ -74,16 +74,23 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Archive ZIP snapshots are kept in `docs/archive/zips/` and mirrored to release assets.
 - Docs freshness checks are warning-only in CI unless explicitly run in strict mode.
 
-## Session Close-Out (2026-04-24, v0.12.07 → v0.12.08 in progress)
+## Session Close-Out (2026-04-24, v0.12.08 — P1-03A Yin/Yang stance movement + duality prototype)
 
 - Date: 2026-04-24
-- Branch + HEAD: `master @ 1cbd296` (pre-commit; slices 1-6 staged)
-- Current version: `v0.12.07` (uncommitted work targets v0.12.08)
-- Systems touched: `GameConfig`, `SimPlayer`, `SimEnemy`, `EnemyAwarenessState` (new), `GameSimulator`, `PlayerState`, `EchoState`, `SimEcho`, `duality_test.tmx`.
-- Changes: Yin/Yang stance movement modifiers; noise emission + enemy awareness FSM (UNAWARE/SUSPICIOUS/ALERTED/SEARCHING); Phase Teleport stance variants (ShadowStep/ThunderStep/HarmonicStep); Echo Art types (Silent/Riot/Resonant); Flow recency gate; duality test room.
-- Test evidence: 56 new tests across 6 new test classes; all existing server tests pass (BUILD SUCCESSFUL).
-- Compatibility impact: replay=`BREAKING`, save=`no`, protocol=`ADDITIVE`.
-- First action next session: commit slices 1-6, bump version to v0.12.08, tag release; then begin animation/VFX pass (Slice 7) and balance pass (Slice 8).
+- Branch + HEAD: `master @ 310bf8f` (tag: v0.12.08)
+- Current version: `v0.12.08`
+- Systems touched: `GameConfig`, `SimPlayer`, `SimEnemy`, `EnemyAwarenessState` (new), `GameSimulator`, `PlayerState`, `EchoState`, `SimEcho`, `assets/rooms/templates/duality_test.tmx`.
+- Changes: Yin/Yang stance movement modifiers (run/dash/wall-jump by stance); noise emission + enemy awareness FSM (UNAWARE/SUSPICIOUS/ALERTED/SEARCHING); Phase Teleport variants (ShadowStep/ThunderStep/HarmonicStep); Echo Art types (Silent/Riot/Resonant); Flow recency gate (`lastMeaningfulActionTimer`); duality test room (128×128 TMX).
+- Test evidence: 56 new tests across 6 new test classes (`GameSimulatorStanceMovementTest`, `EnemyAwarenessTest`, `GameSimulatorTeleportStanceTest`, `SimEchoTypeTest`, `FlowRecencyTest`, `DualityTestRoomTest`). All server tests pass (BUILD SUCCESSFUL).
+- Validation run:
+  - `python tools/check_version_sync.py` (PASS — v0.12.08)
+  - `python tools/check_docs_freshness.py --emit-report` (PASS — 32 docs, no warnings)
+  - `./gradlew :server:shadowJar :client:shadowJar` (PASS)
+  - CI=success + Release=success for `310bf8f` on GitHub
+  - `gh release view v0.12.08` — 3 assets confirmed (client JAR, server JAR, docs archive ZIP)
+- Known issue or risk: combined local Gradle lane (`:server:test :client:test :server:shadowJar :client:shadowJar`) still trips `:client:copyJarToRoot` task-order validation; split-lane command remains the local workaround. `:client:test` was green on CI.
+- Compatibility impact: replay=`BREAKING` (stance multipliers change physics outputs; replays from ≤v0.12.07 desync), save=`no`, protocol=`ADDITIVE` (new wire fields `teleportType`/`echoType` default gracefully).
+- First action next session: full playtest guide + launcher distribution pack for v0.12.08 (session confirmed); then animation art style planning and inspiration pass.
 
 ## Session Close-Out (2026-04-22)
 
