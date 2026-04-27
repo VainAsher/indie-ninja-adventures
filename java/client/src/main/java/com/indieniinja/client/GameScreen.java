@@ -30,6 +30,7 @@ import com.indieniinja.client.rendering.BlobTileSet;
 import com.indieniinja.client.rendering.ChunkRenderer;
 import com.indieniinja.client.rendering.EntityRenderer;
 import com.indieniinja.client.rendering.HudRenderer;
+import com.indieniinja.client.rendering.ParallaxRenderer;
 import com.indieniinja.client.rendering.ParticleSystem;
 import com.indieniinja.client.ui.DialogueOverlay;
 import com.indieniinja.client.ui.InventoryOverlay;
@@ -138,6 +139,7 @@ public final class GameScreen implements Screen {
     private int               currentBiomeIndex = 0;  // active biome for current room (S0)
     private byte[][]          currentTileGrid;         // tile grid for current room (S0)
     private ChunkRenderer     chunkRenderer;
+    private ParallaxRenderer  parallaxRenderer;
     private EntityRenderer    entityRenderer;
     private HudRenderer       hudRenderer;
     private ParticleSystem    particleSystem;
@@ -379,7 +381,8 @@ public final class GameScreen implements Screen {
             blobTileSet = new BlobTileSet(blobPng, blobJson);
         }
 
-        chunkRenderer = new ChunkRenderer();
+        chunkRenderer    = new ChunkRenderer();
+        parallaxRenderer = new ParallaxRenderer();
         chunkRenderer.loadPlaceholderLayout(LEVEL_COLS, LEVEL_ROWS);
 
         particleSystem = new ParticleSystem();
@@ -935,6 +938,9 @@ public final class GameScreen implements Screen {
                         currentBiomeIndex = biomeIdx;
                         currentTileGrid   = grid2d;
                         chunkRenderer.loadBlobTiles(blobTileSet, biomeIdx, grid2d, LEVEL_COLS, LEVEL_ROWS);
+                        parallaxRenderer.loadBiome(
+                            parallaxSetFor(biomeIdx),
+                            com.badlogic.gdx.Gdx.files.internal("assets"));
                     } else {
                         byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
                         for (int r = 0; r < LEVEL_ROWS; r++)
@@ -974,7 +980,12 @@ public final class GameScreen implements Screen {
             }
         }
 
+        // Pass 0b — parallax background (S3): screen-space strips behind all world content.
+        // ParallaxRenderer wraps its own begin/end and restores the projection afterward.
+        parallaxRenderer.render(batch, camera);
+
         // Pass 1 — tiles: megamap tiles are already in world-space coords, identity transform.
+        batch.setProjectionMatrix(camera.cam.combined);
         batch.setTransformMatrix(entityTransform.idt());
         batch.begin();
             chunkRenderer.render(batch, camera);
@@ -2629,7 +2640,8 @@ public final class GameScreen implements Screen {
         if (batch          != null) batch.dispose();
         if (anims          != null) anims.dispose();
         if (blobTileSet    != null) blobTileSet.dispose();
-        if (chunkRenderer  != null) chunkRenderer.dispose();
+        if (chunkRenderer    != null) chunkRenderer.dispose();
+        if (parallaxRenderer != null) parallaxRenderer.dispose();
         if (particleSystem != null) particleSystem.dispose();
         if (hudRenderer    != null) hudRenderer.dispose();
         if (pauseScreen    != null) pauseScreen.dispose();
@@ -2800,6 +2812,20 @@ public final class GameScreen implements Screen {
         return dst;
     }
 
+    // ── S3 — Parallax helpers ─────────────────────────────────────────────────
+
+    // Maps biome index (0-11) to the parallax set name in parallax.json.
+    private static final String[] BIOME_PARALLAX = {
+        "earth", "forest", "snow", "ruins", "dungeon",  // 0-4 primary
+        "earth", "forest", "snow", "ruins",              // 5-8 alt variants
+        "spirit", "hub", "hub"                           // 9-11
+    };
+
+    private static String parallaxSetFor(int biomeIndex) {
+        int b = Math.max(0, Math.min(BIOME_PARALLAX.length - 1, biomeIndex));
+        return BIOME_PARALLAX[b];
+    }
+
     // ── S0 — Visual dev commands ──────────────────────────────────────────────
 
     private void registerVisualDevCommands() {
@@ -2851,7 +2877,9 @@ public final class GameScreen implements Screen {
                 currentBiomeIndex = idx;
                 chunkRenderer.loadBlobTiles(blobTileSet, currentBiomeIndex,
                     currentTileGrid, LEVEL_COLS, LEVEL_ROWS);
-                log.accept("[INFO] set_biome=" + args[0] + " (index=" + idx + ") — tiles rebuilt");
+                parallaxRenderer.loadBiome(parallaxSetFor(currentBiomeIndex),
+                    com.badlogic.gdx.Gdx.files.internal("assets"));
+                log.accept("[INFO] set_biome=" + args[0] + " (index=" + idx + ") — tiles+parallax rebuilt");
             });
 
         devConsole.register("regen_room",
