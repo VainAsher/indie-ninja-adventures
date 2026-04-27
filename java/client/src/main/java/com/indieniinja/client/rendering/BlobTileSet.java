@@ -28,15 +28,24 @@ import com.badlogic.gdx.utils.JsonValue;
 public final class BlobTileSet {
 
     // ── Biome constants (caller-friendly names) ───────────────────────────────
+    // Named biomes — these select the primary blob-set for each visual theme.
     public static final int BIOME_EARTH = 0;
     public static final int BIOME_GRASS = 1;
     public static final int BIOME_SNOW  = 2;
     public static final int BIOME_SAND  = 3;
     public static final int BIOME_STONE = 4;
-    public static final int BIOME_COUNT = 5;
+    // S2 — named expansion biomes (blob-sets 1/3/5/7/9/10/11)
+    public static final int BIOME_EARTH_ALT = 5;   // blob-set 1  (earth variant)
+    public static final int BIOME_GRASS_ALT = 6;   // blob-set 3  (grass variant)
+    public static final int BIOME_SNOW_ALT  = 7;   // blob-set 5  (snow variant)
+    public static final int BIOME_SAND_ALT  = 8;   // blob-set 7  (sand variant)
+    public static final int BIOME_SPIRIT    = 9;   // blob-set 9  (spirit realm)
+    public static final int BIOME_HUB       = 10;  // blob-set 10 (bamboo hub)
+    public static final int BIOME_HUB_ALT   = 11;  // blob-set 11 (hub variant)
+    public static final int BIOME_COUNT = 12;
 
-    // Maps biome 0-4 to JSON blob-set index 0-11
-    private static final int[] BIOME_TO_BLOB_SET = { 0, 2, 4, 6, 8 };
+    // Maps biome 0-11 to JSON blob-set index 0-11
+    private static final int[] BIOME_TO_BLOB_SET = { 0, 2, 4, 6, 8, 1, 3, 5, 7, 9, 10, 11 };
 
     // ── Spritesheet geometry ──────────────────────────────────────────────────
     private static final int TILE_PX    = 16;   // source tile size in pixels
@@ -132,19 +141,40 @@ public final class BlobTileSet {
     }
 
     /**
+     * Platform tile with horizontal cap/join awareness.
+     *
+     * Maps adjacency to the bitmask subset used by the blob autotile system:
+     *   W=128 (left neighbour), E=8 (right neighbour).
+     * Roles covered: 0 (isolated), 8 (right-cap), 128 (left-cap), 136 (middle).
+     * Falls back to role=0 when the computed role is absent in the set.
+     *
+     * @param biomeIndex    game biome index (0–4)
+     * @param leftNeighbour true if the tile immediately to the left is also PLATFORM
+     * @param rightNeighbour true if the tile immediately to the right is also PLATFORM
+     */
+    public TextureRegion getPlatformFrame(int biomeIndex,
+                                          boolean leftNeighbour, boolean rightNeighbour) {
+        int role = (leftNeighbour ? 128 : 0) | (rightNeighbour ? 8 : 0);
+        int si = blobSetFor(biomeIndex);
+        TextureRegion r = lookup[si][role];
+        return r != null ? r : fallback[si];
+    }
+
+    /**
      * Derive a biome index (0–4) deterministically from a zone seed.
-     * Both client (ChunkRenderer) and server (WorldGenerator) call this so
-     * they agree on the biome without extra wire data.
+     * Capped at 5 (original biome count) until S5 wires world regions to biomes —
+     * this keeps existing rooms visually stable while constants for S2–S4 biomes
+     * are available for DevConsole set_biome and future region assignment.
      */
     public static int biomeFromSeed(long seed) {
-        return (int)(Math.abs(seed) % BIOME_COUNT);
+        return (int)(Math.abs(seed) % 5);  // 0-4: original biomes only until S5
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Map game biome 0-4 to JSON blob-set index 0-11. */
+    /** Map game biome 0-11 to JSON blob-set index 0-11. */
     private int blobSetFor(int biomeIndex) {
-        int b = Math.max(0, Math.min(BIOME_COUNT - 1, biomeIndex));
+        int b = Math.max(0, Math.min(BIOME_TO_BLOB_SET.length - 1, biomeIndex));
         int si = BIOME_TO_BLOB_SET[b];
         return Math.min(si, numBlobSets - 1);
     }

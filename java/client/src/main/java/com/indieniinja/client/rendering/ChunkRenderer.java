@@ -206,7 +206,9 @@ public final class ChunkRenderer {
                     int role = AutotileResolver.computeRole(grid2d, r, c, rows, cols);
                     tileMap[r][c] = blobTiles.getFrame(biomeIndex, role);
                 } else if (tile == WorldGenerator.PLATFORM) {
-                    tileMap[r][c] = blobTiles.getPlatformFrame(biomeIndex);
+                    boolean leftP  = c > 0        && grid2d[r][c - 1] == WorldGenerator.PLATFORM;
+                    boolean rightP = c < cols - 1 && grid2d[r][c + 1] == WorldGenerator.PLATFORM;
+                    tileMap[r][c] = blobTiles.getPlatformFrame(biomeIndex, leftP, rightP);
                 } else {
                     // Hazard tiles fall back to colour-coded placeholders
                     tileMap[r][c] = tileTexture(tile);
