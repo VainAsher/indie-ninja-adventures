@@ -1,0 +1,88 @@
+{
+  "biomes": [
+    {
+      "id": "earth",
+      "displayName": "Earth Caves",
+      "blobSetIndex": 0,
+      "parallaxSet": "earth",
+      "decoRuleSet": "earth",
+      "zoneTemplateWeights": {
+        "fill": { "full": 0.20, "pillar": 0.20, "overhang": 0.20, "tooth": 0.20, "arch": 0.10, "l_block": 0.10 },
+        "plat": { "full_bar": 0.20, "left_ledge": 0.15, "right_ledge": 0.15, "step_left": 0.15, "step_right": 0.15, "centre_island": 0.10, "split": 0.10 }
+      },
+      "features": ["stalactite_column", "underground_pool", "cave_bridge"]
+    },
+    {
+      "id": "grass",
+      "displayName": "Forest",
+      "blobSetIndex": 1,
+      "parallaxSet": "forest",
+      "decoRuleSet": "forest",
+      "zoneTemplateWeights": {
+        "fill": { "full": 0.15, "pillar": 0.30, "l_block": 0.25, "steps": 0.15, "arch": 0.15 },
+        "plat": { "full_bar": 0.15, "left_ledge": 0.15, "right_ledge": 0.15, "step_left": 0.20, "step_right": 0.20, "double_ledge": 0.15 }
+      },
+      "features": ["tree_trunk", "root_tangle", "branch_cluster"]
+    },
+    {
+      "id": "snow",
+      "displayName": "Ice Cavern",
+      "blobSetIndex": 2,
+      "parallaxSet": "snow",
+      "decoRuleSet": "snow",
+      "zoneTemplateWeights": {
+        "fill": { "full": 0.25, "overhang": 0.25, "tooth": 0.25, "pillar": 0.15, "l_block": 0.10 },
+        "plat": { "full_bar": 0.25, "left_ledge": 0.15, "right_ledge": 0.15, "centre_island": 0.20, "split": 0.15, "double_ledge": 0.10 }
+      },
+      "features": ["stalactite_column", "ice_pillar"]
+    },
+    {
+      "id": "sand",
+      "displayName": "Ruins",
+      "blobSetIndex": 3,
+      "parallaxSet": "ruins",
+      "decoRuleSet": "ruins",
+      "zoneTemplateWeights": {
+        "fill": { "full": 0.20, "arch": 0.25, "steps": 0.20, "l_block": 0.20, "hollow": 0.15 },
+        "plat": { "full_bar": 0.20, "left_ledge": 0.15, "right_ledge": 0.15, "step_left": 0.15, "step_right": 0.15, "centre_island": 0.20 }
+      },
+      "features": ["arch_gate", "raised_dais", "stone_pillar_pair"]
+    },
+    {
+      "id": "stone",
+      "displayName": "Bone Dungeon",
+      "blobSetIndex": 4,
+      "parallaxSet": "dungeon",
+      "decoRuleSet": "dungeon",
+      "zoneTemplateWeights": {
+        "fill": { "full": 0.25, "arch": 0.25, "steps": 0.20, "hollow": 0.15, "l_block": 0.15 },
+        "plat": { "full_bar": 0.25, "left_ledge": 0.15, "right_ledge": 0.15, "step_left": 0.15, "step_right": 0.15, "split": 0.15 }
+      },
+      "features": ["stone_pillar_pair", "raised_dais", "arch_gate"]
+    },
+    {
+      "id": "spirit",
+      "displayName": "Spirit Realm",
+      "blobSetIndex": 6,
+      "parallaxSet": "spirit",
+      "decoRuleSet": "spirit",
+      "zoneTemplateWeights": {
+        "fill": { "full": 0.20, "pillar": 0.20, "arch": 0.25, "hollow": 0.20, "l_block": 0.15 },
+        "plat": { "full_bar": 0.20, "centre_island": 0.25, "split": 0.20, "double_ledge": 0.20, "left_ledge": 0.15 }
+      },
+      "features": ["spirit_glyph_pillar", "void_bridge"]
+    },
+    {
+      "id": "hub",
+      "displayName": "Bamboo Hub",
+      "blobSetIndex": 8,
+      "parallaxSet": "hub",
+      "decoRuleSet": "hub",
+      "zoneTemplateWeights": {
+        "fill": { "full": 0.40, "arch": 0.30, "steps": 0.30 },
+        "plat": { "full_bar": 0.40, "left_ledge": 0.20, "right_ledge": 0.20, "centre_island": 0.20 }
+      },
+      "features": ["decorative_pillar_pair", "water_feature", "gate_arch"]
+    }
+  ]
+}

@@ -135,6 +135,8 @@ public final class GameScreen implements Screen {
     // ── Rendering subsystems ──────────────────────────────────────────────────
     private AnimationRegistry anims;
     private BlobTileSet       blobTileSet;
+    private int               currentBiomeIndex = 0;  // active biome for current room (S0)
+    private byte[][]          currentTileGrid;         // tile grid for current room (S0)
     private ChunkRenderer     chunkRenderer;
     private EntityRenderer    entityRenderer;
     private HudRenderer       hudRenderer;
@@ -387,6 +389,7 @@ public final class GameScreen implements Screen {
         devConsole.setAnimationRegistry(anims);
         devConsole.setContentRegistry(clientContentRegistry);
         devConsole.setMultiplayer(!"solo".equals(gameMode) && replayPath == null);
+        registerVisualDevCommands();
         hudRenderer    = new HudRenderer();
         hitboxRenderer = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
 
@@ -929,6 +932,8 @@ public final class GameScreen implements Screen {
                         snap.seed, rType, snap.neighborDirs);
                     if (blobTileSet != null) {
                         int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);
+                        currentBiomeIndex = biomeIdx;
+                        currentTileGrid   = grid2d;
                         chunkRenderer.loadBlobTiles(blobTileSet, biomeIdx, grid2d, LEVEL_COLS, LEVEL_ROWS);
                     } else {
                         byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
@@ -2793,6 +2798,72 @@ public final class GameScreen implements Screen {
         dst.selectWeapon1 = src.selectWeapon1;
         dst.selectWeapon2 = src.selectWeapon2;
         return dst;
+    }
+
+    // ── S0 — Visual dev commands ──────────────────────────────────────────────
+
+    private void registerVisualDevCommands() {
+        if (!DevConsole.ENABLED) return;
+
+        devConsole.register("reload_visual",
+            "Reload visual config JSONs (biomes, parallax, deco_rules)",
+            (args, log) -> {
+                com.badlogic.gdx.utils.JsonReader reader = new com.badlogic.gdx.utils.JsonReader();
+                int biomeCount = 0, parallaxCount = 0, decoCount = 0;
+                try {
+                    com.badlogic.gdx.files.FileHandle biomeFh =
+                        com.badlogic.gdx.Gdx.files.local("assets/visual/biomes.json");
+                    if (biomeFh.exists()) biomeCount = reader.parse(biomeFh).get("biomes").size;
+                    com.badlogic.gdx.files.FileHandle parallaxFh =
+                        com.badlogic.gdx.Gdx.files.local("assets/visual/parallax.json");
+                    if (parallaxFh.exists()) parallaxCount = reader.parse(parallaxFh).get("sets").size;
+                    com.badlogic.gdx.files.FileHandle decoFh =
+                        com.badlogic.gdx.Gdx.files.local("assets/visual/deco_rules.json");
+                    if (decoFh.exists()) decoCount = reader.parse(decoFh).get("sets").size;
+                    log.accept("[INFO] reload_visual: " + biomeCount + " biomes, "
+                        + parallaxCount + " parallax sets, " + decoCount + " deco rule sets");
+                } catch (Exception e) {
+                    log.accept("[ERR] reload_visual: " + e.getMessage());
+                }
+            });
+
+        devConsole.register("set_biome",
+            "Force room biome: set_biome <earth|grass|snow|sand|stone|spirit|hub|0-11>",
+            (args, log) -> {
+                if (args.length < 1) { log.accept("[ERR] Usage: set_biome <name|index>"); return; }
+                if (blobTileSet == null)    { log.accept("[ERR] blobTileSet not loaded"); return; }
+                if (currentTileGrid == null) { log.accept("[ERR] no room grid loaded yet"); return; }
+                int idx;
+                try {
+                    idx = switch (args[0].toLowerCase()) {
+                        case "earth"            -> BlobTileSet.BIOME_EARTH;
+                        case "grass", "forest"  -> BlobTileSet.BIOME_GRASS;
+                        case "snow", "ice"      -> BlobTileSet.BIOME_SNOW;
+                        case "sand", "ruins"    -> BlobTileSet.BIOME_SAND;
+                        case "stone", "dungeon" -> BlobTileSet.BIOME_STONE;
+                        case "spirit"           -> 6;
+                        case "hub"              -> 8;
+                        default                 -> Integer.parseInt(args[0]);
+                    };
+                } catch (NumberFormatException e) {
+                    log.accept("[ERR] unknown biome: " + args[0]); return;
+                }
+                currentBiomeIndex = idx;
+                chunkRenderer.loadBlobTiles(blobTileSet, currentBiomeIndex,
+                    currentTileGrid, LEVEL_COLS, LEVEL_ROWS);
+                log.accept("[INFO] set_biome=" + args[0] + " (index=" + idx + ") — tiles rebuilt");
+            });
+
+        devConsole.register("regen_room",
+            "Rebuild room visual layer from current biome: regen_room",
+            (args, log) -> {
+                if (currentTileGrid == null) { log.accept("[ERR] no room grid loaded yet"); return; }
+                if (blobTileSet == null)     { log.accept("[ERR] blobTileSet not loaded"); return; }
+                chunkRenderer.loadBlobTiles(blobTileSet, currentBiomeIndex,
+                    currentTileGrid, LEVEL_COLS, LEVEL_ROWS);
+                log.accept("[INFO] regen_room: terrain rebuilt (biome=" + currentBiomeIndex
+                    + "). Decoration layer available in S4.");
+            });
     }
 
     private static ContentRegistry loadClientContentRegistry() {

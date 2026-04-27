@@ -1,0 +1,54 @@
+{
+  "_comment": "Decoration probability tables per biome. ceilingProb = prob of deco tile in air directly above a solid ceiling. wallProb = prob of deco on exposed solid wall face. floorEdgeProb = prob of deco at top of solid surface tile. tileOffset = first tile index in the decoration spritesheet row for this biome (placeholder: 0 until deco spritesheet exists).",
+  "sets": {
+    "earth": {
+      "ceilingProb":   0.35,
+      "wallProb":      0.18,
+      "floorEdgeProb": 0.20,
+      "tileOffset":    0,
+      "description":   "Stalactites, drip marks, moss patches on wall faces, rubble at base"
+    },
+    "forest": {
+      "ceilingProb":   0.15,
+      "wallProb":      0.25,
+      "floorEdgeProb": 0.35,
+      "tileOffset":    8,
+      "description":   "Root hangs from ceiling gaps, vine scatter on walls, dense floor-edge roots and leaf litter"
+    },
+    "snow": {
+      "ceilingProb":   0.40,
+      "wallProb":      0.15,
+      "floorEdgeProb": 0.15,
+      "tileOffset":    16,
+      "description":   "Icicle formations, frost patches on wall faces, snow caps on solid surface tops"
+    },
+    "ruins": {
+      "ceilingProb":   0.10,
+      "wallProb":      0.30,
+      "floorEdgeProb": 0.20,
+      "tileOffset":    24,
+      "description":   "Crumbled brick scatter on walls, floor rubble, worn surface texture at ground level"
+    },
+    "dungeon": {
+      "ceilingProb":   0.08,
+      "wallProb":      0.35,
+      "floorEdgeProb": 0.15,
+      "tileOffset":    32,
+      "description":   "Torch sconces and glyphs on walls, cobweb clusters in corners, stone-crack texture"
+    },
+    "spirit": {
+      "ceilingProb":   0.20,
+      "wallProb":      0.25,
+      "floorEdgeProb": 0.25,
+      "tileOffset":    40,
+      "description":   "Glyph marks on walls, ambient glow patches in open space, ethereal wisp scatter"
+    },
+    "hub": {
+      "ceilingProb":   0.05,
+      "wallProb":      0.20,
+      "floorEdgeProb": 0.25,
+      "tileOffset":    48,
+      "description":   "Lantern posts above platforms, banner anchor points on walls, lush ground-edge growth"
+    }
+  }
+}

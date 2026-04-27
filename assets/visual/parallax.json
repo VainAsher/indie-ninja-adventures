@@ -1,0 +1,40 @@
+{
+  "_comment": "Parallax layer definitions per biome set. Texture paths are relative to assets/. Missing textures fall back to placeholder colour strips.",
+  "sets": {
+    "earth": {
+      "far":  { "texturePath": "visual/parallax/earth_far.png",  "scrollX": 0.10, "scrollY": 0.05, "tintR": 0.15, "tintG": 0.10, "tintB": 0.10, "tintA": 1.0 },
+      "mid":  { "texturePath": "visual/parallax/earth_mid.png",  "scrollX": 0.25, "scrollY": 0.10, "tintR": 0.20, "tintG": 0.15, "tintB": 0.12, "tintA": 1.0 },
+      "near": { "texturePath": "visual/parallax/earth_near.png", "scrollX": 0.50, "scrollY": 0.20, "tintR": 0.25, "tintG": 0.18, "tintB": 0.14, "tintA": 1.0 }
+    },
+    "forest": {
+      "far":  { "texturePath": "visual/parallax/forest_far.png",  "scrollX": 0.10, "scrollY": 0.05, "tintR": 0.10, "tintG": 0.18, "tintB": 0.10, "tintA": 1.0 },
+      "mid":  { "texturePath": "visual/parallax/forest_mid.png",  "scrollX": 0.25, "scrollY": 0.10, "tintR": 0.12, "tintG": 0.22, "tintB": 0.12, "tintA": 1.0 },
+      "near": { "texturePath": "visual/parallax/forest_near.png", "scrollX": 0.50, "scrollY": 0.20, "tintR": 0.14, "tintG": 0.28, "tintB": 0.14, "tintA": 1.0 }
+    },
+    "snow": {
+      "far":  { "texturePath": "visual/parallax/snow_far.png",  "scrollX": 0.10, "scrollY": 0.04, "tintR": 0.55, "tintG": 0.70, "tintB": 0.85, "tintA": 1.0 },
+      "mid":  { "texturePath": "visual/parallax/snow_mid.png",  "scrollX": 0.25, "scrollY": 0.08, "tintR": 0.60, "tintG": 0.75, "tintB": 0.90, "tintA": 1.0 },
+      "near": { "texturePath": "visual/parallax/snow_near.png", "scrollX": 0.50, "scrollY": 0.16, "tintR": 0.65, "tintG": 0.80, "tintB": 0.95, "tintA": 1.0 }
+    },
+    "ruins": {
+      "far":  { "texturePath": "visual/parallax/ruins_far.png",  "scrollX": 0.10, "scrollY": 0.05, "tintR": 0.35, "tintG": 0.28, "tintB": 0.18, "tintA": 1.0 },
+      "mid":  { "texturePath": "visual/parallax/ruins_mid.png",  "scrollX": 0.25, "scrollY": 0.10, "tintR": 0.40, "tintG": 0.32, "tintB": 0.20, "tintA": 1.0 },
+      "near": { "texturePath": "visual/parallax/ruins_near.png", "scrollX": 0.50, "scrollY": 0.20, "tintR": 0.45, "tintG": 0.36, "tintB": 0.22, "tintA": 1.0 }
+    },
+    "dungeon": {
+      "far":  { "texturePath": "visual/parallax/dungeon_far.png",  "scrollX": 0.10, "scrollY": 0.04, "tintR": 0.08, "tintG": 0.08, "tintB": 0.10, "tintA": 1.0 },
+      "mid":  { "texturePath": "visual/parallax/dungeon_mid.png",  "scrollX": 0.25, "scrollY": 0.08, "tintR": 0.10, "tintG": 0.10, "tintB": 0.12, "tintA": 1.0 },
+      "near": { "texturePath": "visual/parallax/dungeon_near.png", "scrollX": 0.50, "scrollY": 0.16, "tintR": 0.12, "tintG": 0.12, "tintB": 0.15, "tintA": 1.0 }
+    },
+    "spirit": {
+      "far":  { "texturePath": "visual/parallax/spirit_far.png",  "scrollX": 0.08, "scrollY": 0.03, "tintR": 0.20, "tintG": 0.10, "tintB": 0.35, "tintA": 1.0 },
+      "mid":  { "texturePath": "visual/parallax/spirit_mid.png",  "scrollX": 0.20, "scrollY": 0.07, "tintR": 0.25, "tintG": 0.12, "tintB": 0.45, "tintA": 1.0 },
+      "near": { "texturePath": "visual/parallax/spirit_near.png", "scrollX": 0.40, "scrollY": 0.14, "tintR": 0.30, "tintG": 0.15, "tintB": 0.55, "tintA": 1.0 }
+    },
+    "hub": {
+      "far":  { "texturePath": "visual/parallax/hub_far.png",  "scrollX": 0.08, "scrollY": 0.03, "tintR": 0.30, "tintG": 0.35, "tintB": 0.25, "tintA": 1.0 },
+      "mid":  { "texturePath": "visual/parallax/hub_mid.png",  "scrollX": 0.20, "scrollY": 0.07, "tintR": 0.35, "tintG": 0.40, "tintB": 0.28, "tintA": 1.0 },
+      "near": { "texturePath": "visual/parallax/hub_near.png", "scrollX": 0.40, "scrollY": 0.12, "tintR": 0.40, "tintG": 0.45, "tintB": 0.30, "tintA": 1.0 }
+    }
+  }
+}
