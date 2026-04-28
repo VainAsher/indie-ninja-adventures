@@ -1,9 +1,9 @@
 ---
 doc_type: plan
-status: done
+status: completed
 owner: core-team
 last_updated: 2026-04-28
-version_anchor: v0.12.10
+version_anchor: v0.13.0
 slices_done: S0, S1, S2, S3, S4, S5, S6, S7, S8
 slices_remaining: none
 ---
