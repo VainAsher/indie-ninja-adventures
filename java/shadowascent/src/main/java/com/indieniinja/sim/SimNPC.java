@@ -29,7 +29,9 @@ public final class SimNPC {
 
     // ── Fixed identity ────────────────────────────────────────────────────────
     public final String id;
-    public final String type;   // e.g. "lore", "shop", "mission_giver", "tutorial", "siren"
+    public final String type;        // e.g. "lore", "shop", "mission_giver", "tutorial", "siren"
+    /** Named character identity — non-empty for authored characters (samson, linzi, etc.). */
+    public final String characterId; // "" for generic NPCs
 
     /**
      * Physics state — position, velocity, collision flags.
@@ -57,11 +59,18 @@ public final class SimNPC {
     public SimNPC(String id, String type, float x, float y,
                   int width, int height,
                   float patrolMinX, float patrolMaxX) {
-        this.id         = id;
-        this.type       = type;
-        this.physics    = new PhysicsState(x, y, width, height);
-        this.patrolMinX = patrolMinX;
-        this.patrolMaxX = patrolMaxX;
+        this(id, type, "", x, y, width, height, patrolMinX, patrolMaxX);
+    }
+
+    public SimNPC(String id, String type, String characterId, float x, float y,
+                  int width, int height,
+                  float patrolMinX, float patrolMaxX) {
+        this.id          = id;
+        this.type        = type;
+        this.characterId = characterId != null ? characterId : "";
+        this.physics     = new PhysicsState(x, y, width, height);
+        this.patrolMinX  = patrolMinX;
+        this.patrolMaxX  = patrolMaxX;
     }
 
     /**

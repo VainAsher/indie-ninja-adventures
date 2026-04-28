@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/npc_def_schema.json",
+  "id": "samson",
+  "character_id": "samson",
+  "displayName": "Samson",
+  "width": 32,
+  "height": 64,
+  "animationKey": "npc_samson",
+  "dialogueTreeId": "samson_act0",
+  "isQuestGiver": true,
+  "isShop": false,
+  "isBoss": false,
+  "hubPresenceByState": {
+    "FULL": true,
+    "CORRUPTED": true,
+    "EMPTY": false,
+    "FRACTURED": false,
+    "RECOVERING": false,
+    "WHOLE": false
+  }
+}

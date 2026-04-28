@@ -703,6 +703,7 @@ public final class GameSimulator {
             com.indieniinja.network.NPCState ns = new com.indieniinja.network.NPCState();
             ns.npcId          = npc.id;
             ns.npcType        = npc.type;
+            ns.characterId    = npc.characterId;
             ns.x              = npc.physics.x;
             ns.y              = npc.physics.y;
             ns.width          = npc.physics.width;

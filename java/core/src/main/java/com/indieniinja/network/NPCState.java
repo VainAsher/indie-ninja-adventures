@@ -16,6 +16,8 @@ public final class NPCState {
 
     public String  npcId;
     public String  npcType;        // e.g. "lore", "shop", "mission_giver", "tutorial", "siren"
+    /** Named character identity — non-empty for authored characters (samson, sophia, linzi, etc.). */
+    public String  characterId = "";
     public float   x;
     public float   y;
     public int     width;          // physics hitbox width (world px)
@@ -30,6 +32,7 @@ public final class NPCState {
         NPCState n = new NPCState();
         n.npcId          = str(m, "npc_id",         "");
         n.npcType        = str(m, "npc_type",        "lore");
+        n.characterId    = str(m, "character_id",    "");
         n.x              = num(m, "x",               0f);
         n.y              = num(m, "y",               0f);
         n.width          = (int) num(m, "width",     48f);
@@ -44,6 +47,7 @@ public final class NPCState {
         Map<String, Object> m = new LinkedHashMap<>(9);
         m.put("npc_id",          npcId);
         m.put("npc_type",        npcType);
+        if (characterId != null && !characterId.isEmpty()) m.put("character_id", characterId);
         m.put("x",               x);
         m.put("y",               y);
         m.put("width",           width);

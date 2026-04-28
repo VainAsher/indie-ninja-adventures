@@ -70,7 +70,7 @@ public final class HubStateMachine {
 
     public HubStateMachine(String hubId) {
         this.hubId = hubId;
-        // Hub 2 starts FRACTURED; all others start FULL
+        // Hub 2 (Chasm of Still Shadows) starts FRACTURED; all others (including Lantern Heights) start FULL
         this.state = hubId.contains("chasm") || hubId.contains("hub2")
             ? HubState.FRACTURED : HubState.FULL;
         this.bossesDefeated = 0;
@@ -166,6 +166,7 @@ public final class HubStateMachine {
 
     private List<NpcSlot> rosterForHub() {
         if (hubId.contains("chasm") || hubId.contains("hub2")) return HUB2_ROSTER;
+        // lantern_heights, central_hub, and all other hubs use the Hub 1 roster
         return HUB1_ROSTER;
     }
 

@@ -253,8 +253,23 @@ public final class GameScreen implements Screen {
     /** Active multiplayer mission pickup seed contract tracked client-side for lifecycle clear events. */
     private String multiplayerMissionPickupSeedMissionId = "";
 
-    /** NPC type → default dialogue id (Python: NPCDefinition.dialogue_id). */
-    private static String npcDialogueId(String npcType) {
+    /**
+     * Resolve dialogue tree id for an NPC.
+     * Named characters (characterId non-empty) use their authored dialogue directly.
+     * Generic role types fall back to the type-based routing table.
+     */
+    private static String npcDialogueId(String npcType, String characterId) {
+        if (characterId != null && !characterId.isEmpty()) {
+            return switch (characterId) {
+                case "samson"         -> "samson_act0";
+                case "sophia"         -> "sophia_act0";
+                case "marcel"         -> "marcel_act0";
+                case "hazel"          -> "hazel_act0";
+                case "linzi"          -> "linzi_hub_early";
+                case "instructor_tai" -> "tutorial_elder";
+                default               -> characterId;  // fall through to authored tree by id
+            };
+        }
         return switch (npcType != null ? npcType : "lore") {
             case "shop"          -> "shop_keeper";
             case "mission_giver" -> "forest_ranger";
@@ -264,9 +279,10 @@ public final class GameScreen implements Screen {
                  "siren_phase3",
                  "siren_phase4"  -> "siren_first_quest";
             case "tutorial"      -> "tutorial_elder";
-            default              -> "tutorial_elder";   // "lore" and unknown
+            default              -> "tutorial_elder";
         };
     }
+
 
     // ── Fixed-timestep state ──────────────────────────────────────────────────
     private float accumulator     = 0f;
@@ -828,7 +844,7 @@ public final class GameScreen implements Screen {
                     } else if ("mission_giver".equals(closestNpc.npcType)) {
                         openMissionSelectOverlay("npc_mission_giver");
                     } else {
-                        String dialogueId = npcDialogueId(closestNpc.npcType);
+                        String dialogueId = npcDialogueId(closestNpc.npcType, closestNpc.characterId);
                         dialogueManager.setStoryContext(storyManager.toConditionContext());
                         dialogueManager.startNpcDialogue(dialogueId);
                     }
@@ -1860,13 +1876,13 @@ public final class GameScreen implements Screen {
     // ── Solo-mode helpers ─────────────────────────────────────────────────────
 
     private void initializeSoloSimulation(long seed, boolean startRecording) {
-        initializeSoloSimulation(seed, startRecording, 12, WorldGraph.WorldShape.BLOB, "central_hub");
+        initializeSoloSimulation(seed, startRecording, 10, WorldGraph.WorldShape.BLOB, "lantern_heights");
     }
 
     private void initializeSoloSimulation(
         long seed, boolean startRecording, int roomCount, WorldGraph.WorldShape worldShape
     ) {
-        initializeSoloSimulation(seed, startRecording, roomCount, worldShape, "central_hub");
+        initializeSoloSimulation(seed, startRecording, roomCount, worldShape, "lantern_heights");
     }
 
     private void initializeSoloSimulation(

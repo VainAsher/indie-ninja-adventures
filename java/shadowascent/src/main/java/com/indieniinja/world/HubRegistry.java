@@ -52,7 +52,9 @@ public final class HubRegistry {
 
     /** All hub definitions — order is stable (display order in portal UI). */
     public static final List<HubDef> ALL = Collections.unmodifiableList(Arrays.asList(
-        new HubDef("central_hub",    "Central Hub",    "earth",  "",             0x0000L, "BLOB",    12),
+        // Act I starting hub — Lantern Heights (warm village, Aen's home before the hollowing)
+        new HubDef("lantern_heights", "Lantern Heights", "grass", "",             0x0000L, "BLOB",    10),
+        new HubDef("central_hub",    "Central Hub",    "earth",  "",             0x1111L, "BLOB",    12),
         new HubDef("forest_hub",     "Forest",         "grass",  "",             0xABCDL, "BLOB",    10),
         new HubDef("town_hub",       "Town",           "earth",  "double_jump",  0x1234L, "GRID",     8),
         new HubDef("cave_hub",       "Cave",           "stone",  "dash",         0x5678L, "SNAKE",   12),
@@ -70,7 +72,7 @@ public final class HubRegistry {
         for (HubDef h : ALL) {
             if (h.id().equals(hubId)) return h;
         }
-        return ALL.get(0);  // fallback: central hub
+        return ALL.get(0);  // fallback: lantern_heights (Act I starting hub)
     }
 
     /**

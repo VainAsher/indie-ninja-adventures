@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/npc_def_schema.json",
+  "id": "instructor_tai",
+  "character_id": "instructor_tai",
+  "displayName": "Instructor Tai",
+  "width": 32,
+  "height": 64,
+  "animationKey": "npc_instructor_tai",
+  "dialogueTreeId": "tutorial_elder",
+  "isQuestGiver": true,
+  "isShop": false,
+  "isBoss": false,
+  "hubPresenceByState": {
+    "FULL": true,
+    "CORRUPTED": true,
+    "EMPTY": false,
+    "FRACTURED": false,
+    "RECOVERING": false,
+    "WHOLE": false
+  }
+}
