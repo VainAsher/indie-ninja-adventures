@@ -96,6 +96,14 @@ public final class RoomGenerator {
 
     public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
                                      long roomSeed, String roomType, int biomeIndex) {
+        // Template-first: any room type that has a matching .tmx file uses it.
+        // Falls through to procedural generation when no template is found.
+        byte[][] template = TmxRoomLoader.loadTemplate(roomType);
+        if (template != null) {
+            carveDoors(template, neighborDirs);
+            return template;
+        }
+
         byte[][] grid = new byte[ROWS][COLS];
 
         boolean hasUp    = neighborDirs.contains("up");

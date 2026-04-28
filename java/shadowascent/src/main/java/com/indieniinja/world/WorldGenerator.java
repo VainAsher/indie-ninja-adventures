@@ -90,7 +90,8 @@ public final class WorldGenerator {
      * @param cols         must equal ROOM_WIDTH_TILES (128) — kept for API compat
      * @param rows         must equal ROOM_HEIGHT_TILES (128)
      * @param neighborDirs connected directions ("up","down","left","right")
-     * @param roomType     wire string: "start","exit","shop","combat","platform","treasure","boss"
+     * @param roomType     wire string: "start","exit","shop","shop_interior","combat","combat_standard",
+     *                     "platform","platform_ascent","treasure","treasure_maze","boss"
      * @return byte[rows][cols] tile grid
      */
     public static byte[][] generate(long seed, int cols, int rows,

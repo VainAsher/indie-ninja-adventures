@@ -20,7 +20,13 @@ public final class WorldGraph {
     // ── Enums ─────────────────────────────────────────────────────────────────
 
     public enum RoomType {
-        START, EXIT, SHOP, COMBAT, PLATFORM, TREASURE, BOSS;
+        START, EXIT,
+        SHOP, SHOP_INTERIOR,
+        COMBAT, COMBAT_STANDARD,
+        PLATFORM, PLATFORM_ASCENT,
+        TREASURE, TREASURE_MAZE,
+        BOSS;
+
         public String wire() { return name().toLowerCase(); }
         /** ContentRegistry key matching the room type's JSON definition id. */
         public String id()   { return wire(); }
@@ -274,6 +280,13 @@ public final class WorldGraph {
         Collections.shuffle(candidates, rng);
 
         int n = rooms.size();
+        // Template-variant types drawn first — they carve from the same candidate pool
+        // as their base type and fall back to procedural if no .tmx is found at runtime.
+        assignTypes(rooms, candidates, RoomType.SHOP_INTERIOR,   Math.max(0, n / 25));
+        assignTypes(rooms, candidates, RoomType.TREASURE_MAZE,   Math.max(0, n / 20));
+        assignTypes(rooms, candidates, RoomType.COMBAT_STANDARD, Math.max(0, n / 10));
+        assignTypes(rooms, candidates, RoomType.PLATFORM_ASCENT, Math.max(0, n / 12));
+        // Base types for the remainder
         assignTypes(rooms, candidates, RoomType.SHOP,      Math.max(1, n / 10));
         assignTypes(rooms, candidates, RoomType.TREASURE,  Math.max(1, n / 12));
         assignTypes(rooms, candidates, RoomType.BOSS,      Math.max(1, n / 16));

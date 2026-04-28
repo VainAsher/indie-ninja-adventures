@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-28
-version_anchor: v0.12.10
+version_anchor: v0.12.11
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.11] - 2026-04-28 (Template room types — replay=BREAKING)
+
+### Added
+
+- **4 new template-backed room types** (`WorldGraph.RoomType`, `WorldGraph.generate()`, `RoomGenerator.generate()`):
+  - `COMBAT_STANDARD` / `combat_standard` — authored combat chamber (Tiled template).
+  - `PLATFORM_ASCENT` / `platform_ascent` — vertical staggered-platform climb (Tiled template).
+  - `SHOP_INTERIOR` / `shop_interior` — merchant room with architectural interior (Tiled template).
+  - `TREASURE_MAZE` / `treasure_maze` — maze + high-loot room (Tiled template, `hasPuzzle: true`).
+- **Template-first generation in the String-based path** (`RoomGenerator.generate(..., String roomType, int biomeIndex)`): attempts `TmxRoomLoader.loadTemplate(roomType)` before procedural generation. Any room type with a matching `.tmx` in `java/assets/rooms/templates/` uses the authored layout automatically.
+- **Room template authoring migration**: `java/assets/rooms/templates/` is now the canonical Tiled authoring and runtime path. All 9 templates committed there. Tileset expanded to 568-tile autotile atlas (128×1136 px, 8 col × 71 rows).
+- **4 room type JSON definitions**: `data/entities/rooms/types/combat_standard.json`, `platform_ascent.json`, `shop_interior.json`, `treasure_maze.json`.
+
+### Changed
+
+- `WorldGraph.generate()` assignment: template-variant types (`SHOP_INTERIOR`, `TREASURE_MAZE`, `COMBAT_STANDARD`, `PLATFORM_ASCENT`) assigned first from the shuffled candidate pool, then base types.
+
+### Compatibility
+
+- **replay=BREAKING**: room type assignment and tile grids change. Replays from ≤v0.12.10 are incompatible.
+- **save**: no schema change.
+- **protocol**: additive — new `roomType` wire strings appear in snapshots.
 
 ---
 
