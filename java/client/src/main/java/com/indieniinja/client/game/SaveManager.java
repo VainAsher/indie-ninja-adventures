@@ -59,6 +59,11 @@ public final class SaveManager {
     private SaveData liveData   = new SaveData();
     /** Optional callback invoked immediately before serializing save data. */
     private Runnable preSaveSync;
+    /**
+     * Live completed-cutscene set. Survives liveData replacement on reload.
+     * CutsceneManager holds a reference to this object directly and mutates it.
+     */
+    private final java.util.Set<String> completedCutscenesSet = new java.util.HashSet<>();
 
     /**
      * Create a SaveManager for the given slot (1–MAX_SLOTS).
@@ -212,6 +217,14 @@ public final class SaveManager {
     /** The slot index (1–MAX_SLOTS) this manager operates on. */
     public int getSlotIndex() { return slotIndex; }
 
+    /**
+     * Returns the live completed-cutscene set.
+     * CutsceneManager holds a reference to this and mutates it directly;
+     * save/load keep it in sync with SaveData.completedCutscenes.
+     */
+    public java.util.Set<String> completedCutscenes() { return completedCutscenesSet; }
+
+
     /** Mark the save data as dirty (triggers auto-save at next interval). */
     public void markDirty() { needsSave = true; }
 
@@ -312,6 +325,10 @@ public final class SaveManager {
         SaveData migrated = migrate(deepCopy(loaded));
         migrated.restore(story, missions);
         liveData = deepCopy(migrated);
+        // Sync live cutscene set from loaded data (survives liveData replacement)
+        completedCutscenesSet.clear();
+        if (liveData.completedCutscenes != null)
+            completedCutscenesSet.addAll(liveData.completedCutscenes);
     }
 
     /**
@@ -326,6 +343,8 @@ public final class SaveManager {
         SaveData data = deepCopy(liveData);
         SaveData captured = SaveData.capture(story, missions);
         overlayCapturedManagerState(data, captured);
+        // Write live cutscene set back into the snapshot
+        data.completedCutscenes = new java.util.ArrayList<>(completedCutscenesSet);
         return data;
     }
 
@@ -367,6 +386,7 @@ public final class SaveManager {
         d.storyFlags = mutableMap(d.storyFlags);
         d.missionStates = mutableMap(d.missionStates);
         d.activeMissionObjectiveProgress = mutableMap(d.activeMissionObjectiveProgress);
+        d.completedCutscenes = mutableList(d.completedCutscenes);
     }
 
     private static <T> java.util.ArrayList<T> mutableList(java.util.List<T> in) {

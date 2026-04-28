@@ -158,6 +158,8 @@ public final class GameScreen implements Screen {
     private DialogueOverlay dialogueOverlay;
     private MissionSelectOverlay missionSelectOverlay;
     private com.indieniinja.client.game.SaveManager saveManager;
+    private com.indieniinja.client.game.cutscene.CutsceneManager cutsceneManager;
+    private boolean cutscenePlayerLocked = false;
 
     // ── Inventory / shop / minimap overlays ──────────────────────────────────
     private InventoryOverlay inventoryOverlay;
@@ -461,7 +463,15 @@ public final class GameScreen implements Screen {
         saveManager     = new com.indieniinja.client.game.SaveManager(saveSlot, storyManager, missionManager);
         saveManager.setPreSaveSync(this::syncSaveState);
         saveManager.load();
+        cutscenePlayerLocked = false; // safety: never carry a lock across load
         dialogueManager.setStoryContext(storyManager.toConditionContext());
+        // CutsceneManager — completedIds wired to SaveData in CS-07; empty set for now
+        var cutsceneDefs = com.indieniinja.client.game.cutscene.CutsceneLoader.loadAll();
+        cutsceneManager = new com.indieniinja.client.game.cutscene.CutsceneManager(
+                cutsceneDefs, storyManager, dialogueManager,
+                lock -> cutscenePlayerLocked = lock,
+                saveManager.completedCutscenes());
+        registerCutsceneDevCommands();
         missionManager.setOnMissionComplete(() -> {
             requestMultiplayerMissionObjectivePickupClear(
                 multiplayerMissionPickupSeedMissionId,
@@ -661,7 +671,8 @@ public final class GameScreen implements Screen {
             && !dialogueConsumed
             && !missionOverlayConsumed
             && !scriptedLossConsumed
-            && !consoleVisible;
+            && !consoleVisible
+            && !cutscenePlayerLocked;
 
         if (soloReplay != null || !gameplayInputEnabled) {
             clearLatchedRealtimeInput();
@@ -742,6 +753,7 @@ public final class GameScreen implements Screen {
 
         // ── Mission timer + auto-save ─────────────────────────────────────────
         missionManager.tick(delta);
+        if (cutsceneManager != null) cutsceneManager.tick(delta);
         saveManager.tick(delta);
 
         // ── Audio: state-transition SFX ──────────────────────────────────────
@@ -2964,6 +2976,41 @@ public final class GameScreen implements Screen {
                     currentTileGrid, loadedSeed, currentBiomeIndex, rules, LEVEL_COLS, LEVEL_ROWS);
                 chunkRenderer.loadDecoMap(decoGrid, blobTileSet, currentBiomeIndex);
                 log.accept("[INFO] regen_room: terrain+deco rebuilt (biome=" + currentBiomeIndex + ")");
+            });
+    }
+
+    private void registerCutsceneDevCommands() {
+        devConsole.register("cutscene",
+            "Cutscene tools: cutscene list | play <id> | reset <id> | flags",
+            (args, out) -> {
+                if (cutsceneManager == null) { out.accept("[ERR] cutsceneManager not initialised"); return; }
+                if (args.length == 0) { out.accept("[ERR] usage: cutscene list|play|reset|flags"); return; }
+                switch (args[0]) {
+                    case "list" -> {
+                        var defs = cutsceneManager.definitions();
+                        var done = cutsceneManager.completedIds();
+                        if (defs.isEmpty()) { out.accept("[INFO] no cutscenes loaded"); return; }
+                        defs.forEach((id, def) -> {
+                            String status = done.contains(id) ? "[done]" : "[unseen]";
+                            out.accept(status + " " + id + " (" + def.steps.size() + " steps, " + def.skipPolicy + ")");
+                        });
+                    }
+                    case "play" -> {
+                        if (args.length < 2) { out.accept("[ERR] usage: cutscene play <id>"); return; }
+                        boolean started = cutsceneManager.start(args[1], true);
+                        out.accept(started ? "[OK] playing " + args[1] : "[ERR] unknown id: " + args[1]);
+                    }
+                    case "reset" -> {
+                        if (args.length < 2) { out.accept("[ERR] usage: cutscene reset <id>"); return; }
+                        cutsceneManager.resetCompleted(args[1]);
+                        out.accept("[OK] reset: " + args[1]);
+                    }
+                    case "flags" -> {
+                        var ctx = storyManager.toConditionContext();
+                        ctx.forEach((k, v) -> out.accept(k + " = " + v));
+                    }
+                    default -> out.accept("[ERR] unknown subcommand: " + args[0]);
+                }
             });
     }
 

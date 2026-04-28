@@ -93,6 +93,28 @@ public final class DialogueManager {
         return startDialogue(npcId);
     }
 
+    /**
+     * Start a single-line cutscene dialogue without a pre-authored Yarn/JSON tree.
+     * Synthesises a minimal single-node tree so the existing DialogueOverlay
+     * renders it normally. The player advances it via the normal advance() path.
+     *
+     * @param speaker display name shown in the dialogue box (e.g. "Linzi")
+     * @param text    the line of dialogue (inline text or a localisation key)
+     */
+    public void startInline(String speaker, String text) {
+        String nodeId = "__cutscene_inline__";
+        // DialogueNode(nodeId, speaker, text, choices, nextNodeId, onExitEvent)
+        // Empty choices + null nextNodeId → dialogue ends after player advances once.
+        DialogueNode node = new DialogueNode(nodeId, speaker, text,
+                java.util.List.of(), null, null);
+        DialogueTree tree = new DialogueTree("__cutscene__", nodeId,
+                java.util.Map.of(nodeId, node));
+        currentTree = tree;
+        currentNode = node;
+        history.clear();
+        history.add(nodeId);
+    }
+
     public boolean isActive()                { return currentNode != null; }
     public DialogueNode currentNode()        { return currentNode; }
     public DialogueTree currentTree()        { return currentTree; }

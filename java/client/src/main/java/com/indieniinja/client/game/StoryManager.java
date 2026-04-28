@@ -89,6 +89,7 @@ public final class StoryManager {
 
     public void setFlag(String key, String value)  { flags.put(key, value); }
     public String getFlag(String key, String def)  { return flags.getOrDefault(key, def); }
+    public boolean hasFlag(String key)             { return "true".equals(flags.get(key)); }
 
     public void missionCompleted(String missionId) { completedMissions.add(missionId); }
     public boolean isMissionCompleted(String id)   { return completedMissions.contains(id); }

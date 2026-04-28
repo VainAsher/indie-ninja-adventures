@@ -93,6 +93,10 @@ public final class SaveData {
     public boolean           yinYangPresent = true;
     public Map<String,String> storyFlags         = new HashMap<>();
 
+    // ── Cutscene state ────────────────────────────────────────────────────────
+    /** Ids of cutscenes fully completed by the player. Additive-safe: missing field → empty list. */
+    public List<String>      completedCutscenes  = new ArrayList<>();
+
     // ── Mission manager state ─────────────────────────────────────────────────
     /** Active mission id at time of save, or null. */
     public String            activeMissionId     = null;

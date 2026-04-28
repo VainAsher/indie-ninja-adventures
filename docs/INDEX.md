@@ -36,6 +36,7 @@ This index tracks only the active documentation system for the Java v0.12.x line
   - [plans/developing/perf_render_gap_plan.md](plans/developing/perf_render_gap_plan.md)
 - Implementing:
   - [plans/implementing/PLAN_SHADOW_ASCENT.md](plans/implementing/PLAN_SHADOW_ASCENT.md)
+  - [plans/implementing/PLAN_CUTSCENE_MANAGER.md](plans/implementing/PLAN_CUTSCENE_MANAGER.md)
 - Completed:
   - [plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md](plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md)
   - [plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md](plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md)

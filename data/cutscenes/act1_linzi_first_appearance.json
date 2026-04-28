@@ -1,0 +1,36 @@
+{
+  "id": "act1_linzi_first_appearance",
+  "version": 1,
+  "mode": "campaign",
+  "act": 1,
+  "blocking": true,
+  "skip_policy": "allow_after_first_view",
+  "start_conditions": [
+    { "flag_not_set": "act1_linzi_met" }
+  ],
+  "completion_flags": [
+    "act1_linzi_met",
+    "linzi_arrived"
+  ],
+  "steps": [
+    { "type": "lock_player" },
+    {
+      "type": "dialogue",
+      "speaker": "Linzi",
+      "text_key": "You carry something rare in this age. I could feel it before I saw you."
+    },
+    {
+      "type": "dialogue",
+      "speaker": "Linzi",
+      "text_key": "I know a path through the Veiled Vale. Not many are ready for it — but you might be."
+    },
+    {
+      "type": "dialogue",
+      "speaker": "Linzi",
+      "text_key": "I will be near the mission board if you wish to speak further. Take your time."
+    },
+    { "type": "set_flag", "flag": "act1_linzi_met",  "value": "true" },
+    { "type": "set_flag", "flag": "linzi_arrived",   "value": "true" },
+    { "type": "unlock_player" }
+  ]
+}
