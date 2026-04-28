@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-28
-version_anchor: v0.12.09
+version_anchor: v0.12.10
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.10] - 2026-04-28 (Visual World System — S6–S8, replay=BREAKING)
+
+### Added
+
+- **Zone template library (S6)** (`ZoneTemplateLibrary`, `RoomGenerator`, `WorldGenerator`):
+  - Replaces single fixed expansion for FILL and PLAT zone roles with a weighted pool of 8 named 8×8 tile patterns each.
+  - FILL pool: `full`, `arch`, `pillar`, `overhang`, `tooth`, `l_block`, `steps`, `hollow`.
+  - PLAT pool: `full_bar`, `left_ledge`, `right_ledge`, `centre_island`, `step_left`, `step_right`, `split`, `double_ledge`.
+  - Biome weights (0–11) mirror `biomes.json#zoneTemplateWeights`; per-zone RNG seeded from `roomSeed × 31 + zone_position`.
+  - `WorldGenerator.generate()` and `RoomGenerator.generate()` gain `int biomeIndex` overloads; existing callers default to biomeIndex=0.
+  - Test: `ZoneTemplateLibraryTest` (7 tests).
+
+- **Feature placer (S7)** (`FeaturePlacer`, `RoomGenerator`):
+  - Places 1–2 named multi-tile structural stamps after door carving, before blob variation.
+  - 13 stamp types: stalactite columns, underground pools, cave bridges, ice pillars, tree trunks, root tangles, branch clusters, pillar pairs, raised daises, arch gates, water features, gate arches.
+  - Biome → stamp pool: cave (0,5), forest (1,10), snow (2), ruins (3), dungeon (4,6), crystal/lava (7,8), ice (9), hub (11).
+  - Door corridor exclusion: stamps are rejected if any tile overlaps the carved door opening.
+  - Test: `FeaturePlacerTest` (8 tests).
+
+- **Terrain smoothing (S8)** (`RoomGenerator.smoothCaveTerrain()`):
+  - Single cellular automata pass applied only to EARTH (biomeIndex 0) and EARTH_ALT (biomeIndex 5).
+  - Removes isolated SOLID tiles (< 3 SOLID 8-neighbours → AIR); fills tiny air pockets (> 5 SOLID neighbours → SOLID).
+  - Runs after FeaturePlacer and before blob variation; boundary tiles never modified.
+  - All other biomes are unchanged.
+  - Test: `TerrainSmoothingTest` (8 tests).
+
+### Compatibility
+
+- replay=`BREAKING` — zone template selection, feature stamps, and cave smoothing all change tile grid output; replays from v0.12.09 and earlier will desync.
+- save=`no`
+- protocol=`no`
 
 ---
 

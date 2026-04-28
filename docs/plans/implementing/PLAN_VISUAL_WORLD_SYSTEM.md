@@ -1,17 +1,17 @@
 ---
 doc_type: plan
-status: implementing
+status: done
 owner: core-team
 last_updated: 2026-04-28
-version_anchor: v0.12.09
-slices_done: S0, S1, S2, S3, S4, S5
-slices_remaining: S6, S7, S8
+version_anchor: v0.12.10
+slices_done: S0, S1, S2, S3, S4, S5, S6, S7, S8
+slices_remaining: none
 ---
 
 # PLAN — Visual World System
 ## Autotile · Decoration · Parallax · Terrain Features · Hot-Reload
 
-**Created:** 2026-04-28 | **Codebase version:** v0.12.09 | **Next release target:** v0.12.10
+**Created:** 2026-04-28 | **Codebase version:** v0.12.10 | **Status: COMPLETE**
 
 ## Slice Status
 
@@ -23,11 +23,9 @@ slices_remaining: S6, S7, S8
 | S3 — Parallax Renderer | **DONE** | `78c4b57` |
 | S4 — Decoration Layer | **DONE** | `1349736` |
 | S5 — Biome → World Region Wiring | **DONE** | `face2af` |
-| S6 — Zone Template Library | PENDING — replay=BREAKING, bundle with S7+S8 | — |
-| S7 — Feature Placer | PENDING — replay=BREAKING | — |
-| S8 — Terrain Smoothing | PENDING — replay=BREAKING | — |
-
-**S6–S8 note:** All three slices are replay=BREAKING and must ship together in a single version bump to minimize replay-break events.
+| S6 — Zone Template Library | **DONE** | `ceff1c1` |
+| S7 — Feature Placer | **DONE** | `d71d63a` |
+| S8 — Terrain Smoothing | **DONE** | `6ddaab7` |
 
 ---
 
