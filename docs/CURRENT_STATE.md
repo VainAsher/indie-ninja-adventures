@@ -56,6 +56,25 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Engine Platform Phases A-C complete (2026-04-19)**: Content definition system (`ContentLoader`, `ContentRegistry`, JSON-schema-validated definitions), `GameConfig` balance constants, animation manifest + hot-reload, Tiled TMX room loader (4 templates), Yarn Spinner dialogue format (23 files), in-game DevConsole (backtick toggle, 14 commands), Gradle `buildAssets` pipeline (436 files, SHA-256). Module extraction: `:shadowascent` module created - `sim.*` and `world.*` moved out of `:core`; `EntityTypeRegistry` + `ShadowAscentEntityTypeBootstrap` added; `:core` published as `engine-core` Maven artifact to GitHub Packages. All server tests pass.
 - **Engine Platform Phase D complete (2026-04-19)**: Save checksums (`savegame.sha256` SHA-256 sidecar, verified on load with corrupt-save fallback). Perf regression gate (`TickDurationRegressionTest` â€” 2000-tick run, 5 ms ceiling, `perf_baseline.json`). Multi-slot save support (`user_data/saves/slot_N/`, `SlotSelectScreen`, legacy single-slot auto-migration). `tools/validate_animation_manifest.py` validates manifest against registry at authoring time.
 
+## Session Handover — 2026-04-28
+
+- **Date:** 2026-04-28
+- **Branch:** master | **HEAD:** adbb01a
+- **Version:** v0.13.1
+- **Systems touched:** `GameSimulator` (NPC spawning), `GameScreen` (NPC interaction handler), CHANGELOG, ROADMAP, README, devlog, version.json, build.gradle.kts
+- **Validation run:**
+  - `.\gradlew.bat :shadowascent:compileJava :client:compileJava :client:shadowJar` — BUILD SUCCESSFUL
+  - `python tools/check_version_sync.py` — OK v0.13.1
+  - `python tools/check_docs_freshness.py --emit-report` — PASS (0 warnings)
+  - G0 smoke (manual-20260428-190000) — PASS: named NPCs spawned across map, TALK_TO_NPC objectives advance, no softlock, save/reload stable
+  - CI: success (`adbb01a`) | Release: success — assets: ninja-server-all.jar, ninja-client-all.jar, docs-archive-2026-04-28-v0.13.1.zip
+- **Known issues / risks:**
+  - No formal hub visual confirmation that spawn is in Lantern Heights (step 1 of G0 was PARTIAL in v0.13.0 smoke — hub name HUD not implemented).
+  - Zero first-session test records beyond internal smoke; 5 external records required before v0.13.2.
+  - `buildAll` Gradle task has a pre-existing undeclared dependency (`server:compileJava` → `client:copyJarToRoot`); workaround is `:shadowascent:compileJava :client:compileJava :client:shadowJar`.
+- **Compatibility:** replay: no | save: no | protocol: no
+- **First action next session:** Run 5 first-session tests recording the G0 metrics (time-to-objective, first confusion point, Yin/Yang readability, Linzi legibility, hub change noticed). Then address Lantern Heights hub name display (step 1 HUD).
+
 ## Canonical Documentation Set
 
 - [PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md) - honest playable state, G0 golden route, tester scope
