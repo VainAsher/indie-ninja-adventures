@@ -935,7 +935,12 @@ public final class GameScreen implements Screen {
                     log.info("[GameScreen] single-room grid seed={} type={} dirs={}",
                         snap.seed, rType, snap.neighborDirs);
                     if (blobTileSet != null) {
-                        int biomeIdx = BlobTileSet.biomeFromSeed(snap.seed);
+                        // S5: use biomeIndex from snapshot (set by server from WorldGraph).
+                        // biomeFromSeed() is the pre-S5 fallback; snapshot field defaults to 0
+                        // for old servers so the terrain stays stable on mixed-version connects.
+                        int biomeIdx = snap.biomeIndex > 0
+                            ? snap.biomeIndex
+                            : BlobTileSet.biomeFromSeed(snap.seed);
                         currentBiomeIndex = biomeIdx;
                         currentTileGrid   = grid2d;
                         chunkRenderer.loadBlobTiles(blobTileSet, biomeIdx, grid2d, LEVEL_COLS, LEVEL_ROWS);
@@ -2264,7 +2269,9 @@ public final class GameScreen implements Screen {
                             int role = AutotileResolver.computeRole(grid, r, c, LEVEL_ROWS, LEVEL_COLS);
                             mega[offY + r][offX + c] = blobTileSet.getFrame(room.biomeIndex, role);
                         } else if (tile == WorldGenerator.PLATFORM) {
-                            mega[offY + r][offX + c] = blobTileSet.getPlatformFrame(room.biomeIndex);
+                            boolean lP = c > 0         && grid[r][c - 1] == WorldGenerator.PLATFORM;
+                            boolean rP = c < LEVEL_COLS - 1 && grid[r][c + 1] == WorldGenerator.PLATFORM;
+                            mega[offY + r][offX + c] = blobTileSet.getPlatformFrame(room.biomeIndex, lP, rP);
                         } else {
                             // Hazard tiles (ICE, WATER, LAVA) use colour-coded placeholders
                             mega[offY + r][offX + c] = chunkRenderer.tileTexture(tile);

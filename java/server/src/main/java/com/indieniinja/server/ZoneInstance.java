@@ -88,6 +88,8 @@ public final class ZoneInstance {
     public volatile java.util.List<String> currentNeighborDirs = java.util.List.of();
     /** Room type for the current room (wire string: combat/start/exit/shop/etc.). */
     public volatile String currentRoomType = "combat";
+    /** Biome index for the current room (S5 — from WorldGraph.RoomNode.biomeIndex). */
+    public volatile int currentRoomBiomeIndex = 0;
 
     /**
      * Top-left grid coordinates of the unified megamap world.

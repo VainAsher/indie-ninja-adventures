@@ -55,6 +55,14 @@ public final class WorldSnapshot {
      */
     public List<String> neighborDirs = new ArrayList<>();
 
+    /**
+     * Biome index for the current room (S5 — additive field, defaults to 0).
+     * Matches WorldGraph.RoomNode.biomeIndex; client uses this in the single-room
+     * fallback path to select terrain tiles, parallax set, and decoration rules.
+     * Old servers omit the field; old clients ignore it — both sides are safe.
+     */
+    public int biomeIndex = 0;
+
     // Always sent (not delta'd)
     public List<PlayerState>   players        = new ArrayList<>();
 
@@ -148,6 +156,7 @@ public final class WorldSnapshot {
         s.roomGridX  = (int) num(m, "room_grid_x", 0L);
         s.roomGridY  = (int) num(m, "room_grid_y", 0L);
         s.roomType   = str(m, "room_type", "combat");
+        s.biomeIndex = (int) num(m, "biome_index", 0L);
         for (Object d : list(m, "neighbor_dirs")) s.neighborDirs.add(d.toString());
 
         for (Object p : list(m, "players"))
@@ -248,6 +257,7 @@ public final class WorldSnapshot {
         m.put("room_grid_x",  roomGridX);
         m.put("room_grid_y",  roomGridY);
         m.put("room_type",    roomType);
+        m.put("biome_index",  biomeIndex);
         m.put("neighbor_dirs", neighborDirs);
         m.put("players",      playerList());
 

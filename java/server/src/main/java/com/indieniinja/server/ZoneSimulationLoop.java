@@ -171,11 +171,12 @@ public final class ZoneSimulationLoop implements Runnable {
 
         // Set current room from start room
         WorldGraph.RoomNode startRoom = graph.startRoom();
-        zone.currentRoomSeed     = startRoom.seed;
-        zone.currentRoomGridX    = startRoom.gridX;
-        zone.currentRoomGridY    = startRoom.gridY;
-        zone.currentNeighborDirs = new java.util.ArrayList<>(startRoom.neighborDirs());
-        zone.currentRoomType     = startRoom.type.wire();
+        zone.currentRoomSeed        = startRoom.seed;
+        zone.currentRoomGridX       = startRoom.gridX;
+        zone.currentRoomGridY       = startRoom.gridY;
+        zone.currentNeighborDirs    = new java.util.ArrayList<>(startRoom.neighborDirs());
+        zone.currentRoomType        = startRoom.type.wire();
+        zone.currentRoomBiomeIndex  = startRoom.biomeIndex;
 
         log.info("[Zone {}] unified world: {} rooms, megamapMin=({},{}), spawn=({},{})",
             zone.hubId, graph.size(), minGX, minGY, (int)zone.spawnX, (int)zone.spawnY);
@@ -688,11 +689,12 @@ public final class ZoneSimulationLoop implements Runnable {
 
         WorldGraph.RoomNode room = zone.worldGraph.roomAt(newGX, newGY);
         if (room != null) {
-            zone.currentRoomGridX    = newGX;
-            zone.currentRoomGridY    = newGY;
-            zone.currentRoomSeed     = room.seed;
-            zone.currentRoomType     = room.type.wire();
-            zone.currentNeighborDirs = new java.util.ArrayList<>(room.neighborDirs());
+            zone.currentRoomGridX       = newGX;
+            zone.currentRoomGridY       = newGY;
+            zone.currentRoomSeed        = room.seed;
+            zone.currentRoomType        = room.type.wire();
+            zone.currentNeighborDirs    = new java.util.ArrayList<>(room.neighborDirs());
+            zone.currentRoomBiomeIndex  = room.biomeIndex;
         }
     }
 
@@ -774,6 +776,7 @@ public final class ZoneSimulationLoop implements Runnable {
         snap.roomGridY    = zone.currentRoomGridY;
         snap.roomType     = zone.currentRoomType;
         snap.neighborDirs = zone.currentNeighborDirs;
+        snap.biomeIndex   = zone.currentRoomBiomeIndex;  // S5
         // Keep seed = zone seed (megamap is built from worldRooms list, not single room seed)
         snap.isDelta = !full;
 
