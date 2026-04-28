@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-28
-version_anchor: v0.13.0
+version_anchor: v0.13.1
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.1] - 2026-04-28 (G0 NPC spawn + mission progression fix — P0)
+
+### Fixed
+
+- **Named NPC spawning** (`GameSimulator.spawnLanternHeightsCompanions`): replaced fixed tile-offset spawn at player start with zone-based floor detection — world width divided into n+1 equal zones, one companion placed at the first valid floor position per zone via spatial-hash scan; companions register with EntityManager and receive full gravity/physics. Named NPCs (Instructor Tai, Samson, Hazel, Sophia, Marcel) now spread across the map and land on valid floors instead of falling out of the world.
+- **TALK_TO_NPC mission progression** (`GameScreen` NPC interaction handler): `missionManager.onNpcTalkedTo(characterId)` was never called from the client interaction else-branch; added the call immediately after `dialogueManager.startNpcDialogue()`. `act1_social_grounding` objectives now advance when the player interacts with a named NPC.
+
+### Compatibility
+
+- **replay**: no change.
+- **save**: no change (NPC placement is re-derived each session).
+- **protocol**: no change.
 
 ---
 

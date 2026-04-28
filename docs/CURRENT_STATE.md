@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-28
-version_anchor: v0.13.0
+version_anchor: v0.13.1
 replaces: docs/HANDOVER.md
 ---
 
@@ -25,11 +25,12 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 — Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next release candidate: v0.13.1 (G0 route verified, 5 first-session test records).
+- Next release candidate: v0.13.2 (5 first-session test records; hub social change tuning).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-28`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
-  - Tag target: v0.12.10
+  - G0 smoke PASS: named NPCs spawned across map, TALK_TO_NPC objectives advance, no softlock
+  - Tag target: v0.13.1
 
 ## Runtime Reality (Implemented)
 

@@ -847,6 +847,12 @@ public final class GameScreen implements Screen {
                         String dialogueId = npcDialogueId(closestNpc.npcType, closestNpc.characterId);
                         dialogueManager.setStoryContext(storyManager.toConditionContext());
                         dialogueManager.startNpcDialogue(dialogueId);
+                        // Advance TALK_TO_NPC objectives for named characters.
+                        // characterId matches the location field in mission objectives
+                        // (e.g. "instructor_tai", "samson", "hazel").
+                        if (closestNpc.characterId != null && !closestNpc.characterId.isEmpty()) {
+                            missionManager.onNpcTalkedTo(closestNpc.characterId);
+                        }
                     }
                 }
             }

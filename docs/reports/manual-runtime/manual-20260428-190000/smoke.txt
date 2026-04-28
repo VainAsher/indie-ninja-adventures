@@ -1,0 +1,20 @@
+smoke-report
+version: v0.13.1
+date: 2026-04-28
+route: G0 — Act I Lantern Dawn
+mode: campaign / solo
+result: PASS
+
+step-results:
+  1-spawn:         PASS — hub world loads
+  2-yin-yang:      PASS — silver + gold companion orbs visible and orbiting Aen
+  3-named-npcs:    PASS — named NPCs (Instructor Tai, Samson, Hazel, Sophia, Marcel) spawned and distributed across map
+  4-missions:      PASS — act1_social_grounding and linzi_q1 appear on mission board
+  5-tracker:       PASS — "Speak with …" objective label renders correctly in HUD
+  6-npc-interact:  PASS — TALK_TO_NPC objectives advance on NPC interaction
+  7-softlock:      NO — act1_social_grounding completable; exit condition reachable
+  8-save-reload:   PASS — progress and hub state persist across save/quit/reload
+
+first-failure-point: none
+severity: none
+fixes-verified: zone-based NPC spawn (GameSimulator), onNpcTalkedTo hook (GameScreen)

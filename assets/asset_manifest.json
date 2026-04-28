@@ -1,7 +1,7 @@
 {
-  "generated": "2026-04-24T17:17:41.387258+00:00",
+  "generated": "2026-04-28T19:20:23.779536+00:00",
   "root": "assets",
-  "count": 513,
+  "count": 516,
   "files": [
     {
       "path": "animations/manifest.json",
@@ -10,8 +10,8 @@
     },
     {
       "path": "asset_manifest.json",
-      "size": 95364,
-      "sha256": "80b31e6dfec3bfb9cb0d88e6b75575fc3a54b90e8fb3ce17c2d2db00772dd987"
+      "size": 95841,
+      "sha256": "3b0cb32f18095e5ec200421c14c2ab6fe4295e29ff76342775d78cba82f5e830"
     },
     {
       "path": "audio/sfx/dash.wav",
@@ -435,23 +435,23 @@
     },
     {
       "path": "rooms/templates/boss.tmx",
-      "size": 33419,
-      "sha256": "1402d2f66f5aea0ff459bb26b55b407c5b15ee273e7eab413dfbdd6877752678"
+      "size": 33420,
+      "sha256": "c670b1277a1b4703d5329b44b362fe0c62e0f36398dce223e41d6ae0cfde7841"
     },
     {
       "path": "rooms/templates/exit.tmx",
-      "size": 33419,
-      "sha256": "9d11ecf308e7506eb9215fd1a0dbbbfbbf8ef2c56cd54e0fda8f55ba6fa96c4e"
+      "size": 33420,
+      "sha256": "e0563a363d1f464940fe31cf7a27e96e275949cbb2ad7db187f043a18304ae98"
     },
     {
       "path": "rooms/templates/shop.tmx",
-      "size": 33419,
-      "sha256": "26f6d34025b1505e9b7c106378125855bb5b275a78ce97889a8b48e67c725496"
+      "size": 33420,
+      "sha256": "f6c2f5cb1bf4228ebe62d676df35ab5ae99fe72b0301e9d361a91852e4d59573"
     },
     {
       "path": "rooms/templates/start.tmx",
-      "size": 33419,
-      "sha256": "63297696af4066bc8815bd4d6adff6a8cb42e6b8ce882b1ede926227a42489c0"
+      "size": 33420,
+      "sha256": "f225e85a8d5732d29041051cb5bf9ee45e3694fec4e6662b9b4a642a812ca01b"
     },
     {
       "path": "splash/landing.png",
@@ -2567,6 +2567,21 @@
       "path": "tileset/shadow_ascent_tiles.png",
       "size": 46763,
       "sha256": "30631d8492b5eb65855d2a2d9eb8b03bc2154a5d484c7d519b8e7d921cd16002"
+    },
+    {
+      "path": "visual/biomes.json",
+      "size": 3421,
+      "sha256": "cd9de015e2432cb353713e2944f3c462024408fc27e20a789bb7bae0ba2a4d27"
+    },
+    {
+      "path": "visual/deco_rules.json",
+      "size": 2085,
+      "sha256": "77ef9dcd8dbd4171e0b9ba705a9c17633bc8ebbe57f03baea956f7f82b264abb"
+    },
+    {
+      "path": "visual/parallax.json",
+      "size": 3685,
+      "sha256": "a7a74485bfc39ac4724ded527de7feb1df79fc754a96119a3abb8ca9f737a665"
     }
   ]
 }

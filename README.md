@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.13.0** | Status: Controlled Act I vertical-slice playtest | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.13.1** | Status: Controlled Act I vertical-slice playtest | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,7 +17,7 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.13.0 (Act I Lantern Dawn vertical slice)
+## What's in v0.13.1 (G0 NPC spawn + mission progression fix)
 
 Act I vertical slice: Lantern Heights hub, named NPCs (Samson, Sophia, Marcel, Hazel, Linzi/Veil Maiden, Instructor Tai), Act I emotional missions, Yin/Yang companion orb rendering, hub social consequence after Linzi's influence.
 

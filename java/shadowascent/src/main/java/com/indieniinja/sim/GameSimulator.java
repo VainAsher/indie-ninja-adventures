@@ -279,34 +279,82 @@ public final class GameSimulator {
      * the player spawn so they land on the hub floor.
      */
     private void spawnLanternHeightsCompanions(LevelLayout layout) {
-        final float T       = com.indieniinja.physics.PhysicsConstants.TILE_SIZE; // 32px
-        final float refX    = layout.spawnX;
-        final float refY    = layout.spawnY;
+        final float T       = com.indieniinja.physics.PhysicsConstants.TILE_SIZE;
         final float patrol  = 2 * T;
+        final float worldW  = layout.widthTiles * T;
 
-        // [characterId, npcType, offsetXInTiles]
+        // [characterId, npcType] — one per zone, spread across the hub world.
         String[][] companions = {
-            {"instructor_tai", "tutorial",       "0"},
-            {"samson",         "lore",           "-8"},
-            {"hazel",          "lore",           "-4"},
-            {"sophia",         "mission_giver",   "4"},
-            {"marcel",         "lore",            "8"},
+            {"instructor_tai", "tutorial"},
+            {"samson",         "lore"},
+            {"hazel",          "lore"},
+            {"sophia",         "mission_giver"},
+            {"marcel",         "lore"},
         };
 
-        for (String[] c : companions) {
-            String charId  = c[0];
-            String npcType = c[1];
-            float  nx      = refX + Float.parseFloat(c[2]) * T;
+        int n = companions.length;
+        int spawned = 0;
+        for (int i = 0; i < n; i++) {
+            // Divide world width into n+1 equal zones; place companion at centre of zone i+1.
+            float zoneStart = worldW * i       / (n + 1f);
+            float zoneEnd   = worldW * (i + 1f) / (n + 1f);
+            float[] pos = findGroundInZone(zoneStart, zoneEnd, T);
+            if (pos == null) {
+                log.warn("[GameSimulator] no floor in zone [{},{}] for companion {}; skipping",
+                    (int) zoneStart, (int) zoneEnd, companions[i][0]);
+                continue;
+            }
+            String charId  = companions[i][0];
+            String npcType = companions[i][1];
             String npcId   = hubId + "_named_" + charId;
-            SimNPC npc = new SimNPC(
-                npcId, npcType, charId, nx, refY,
+            SimNPC npc = new SimNPC(npcId, npcType, charId, pos[0], pos[1],
                 SimNPC.DEFAULT_WIDTH, SimNPC.DEFAULT_HEIGHT,
-                nx - patrol, nx + patrol
-            );
+                pos[0] - patrol, pos[0] + patrol);
             npcs.add(npc);
             var entity = entityManager.create(com.indieniinja.core.EntityType.NPC, npc.physics);
             entity.addTag("npc");
+            log.info("[GameSimulator] named NPC {} at ({},{})", charId, (int) pos[0], (int) pos[1]);
+            spawned++;
         }
+        log.info("[GameSimulator] lantern_heights companions: {}/{} spawned", spawned, n);
+    }
+
+    /**
+     * Scan a world-X zone for a valid floor position (solid tile with air directly above).
+     * Tries zone centre first, then steps through the zone at 4-tile increments.
+     * Returns [x, floorTileY] or null if no floor found anywhere in the zone.
+     */
+    private float[] findGroundInZone(float zoneStart, float zoneEnd, float T) {
+        float centre = (zoneStart + zoneEnd) * 0.5f;
+        float y = findGroundYAt(centre, T);
+        if (y >= 0f) return new float[]{centre, y};
+        float step = T * 4;
+        for (float x = zoneStart + step; x < zoneEnd; x += step) {
+            y = findGroundYAt(x, T);
+            if (y >= 0f) return new float[]{x, y};
+        }
+        return null;
+    }
+
+    /**
+     * Scan downward from world top at the given X to find the first solid tile
+     * that has air directly above it (i.e. a walkable floor surface).
+     * Returns the tile's top-edge Y (matching buildProceduralLayout groundPos convention),
+     * or -1 if no floor exists in this column.
+     */
+    private float findGroundYAt(float x, float T) {
+        float probe = T * 0.4f;
+        for (float y = T; y < worldHeightPx - T; y += T) {
+            if (hasSolidAt(x, y, probe) && !hasSolidAt(x, y - T, probe)) return y;
+        }
+        return -1f;
+    }
+
+    private boolean hasSolidAt(float x, float y, float probe) {
+        for (var tile : spatialHash.candidates(x, y, probe, probe)) {
+            if (!tile.isPlatform() && tile.overlaps(x, y, probe, probe)) return true;
+        }
+        return false;
     }
 
     // ── Public API ────────────────────────────────────────────────────────────

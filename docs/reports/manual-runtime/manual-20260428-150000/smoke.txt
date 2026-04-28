@@ -1,0 +1,19 @@
+smoke-report
+version: v0.13.0
+date: 2026-04-28
+route: G0 — Act I Lantern Dawn
+mode: campaign / solo
+result: FAIL
+
+step-results:
+  1-spawn:         PARTIAL — hub world loads, no visual confirmation it is Lantern Heights
+  2-yin-yang:      PASS — silver + gold companion orbs visible and orbiting Aen
+  3-named-npcs:    FAIL — instructor_tai, samson, hazel, sophia, marcel, linzi did not spawn
+  4-missions:      PASS — act1_social_grounding and linzi_q1 appear on mission board
+  5-tracker:       PASS — "Speak with …" objective label renders correctly in HUD
+  6-npc-interact:  BLOCKED — cannot complete TALK_TO_NPC objectives; NPCs absent
+  7-softlock:      YES — act1_social_grounding is uncompletable; exit condition unreachable
+  8-save-reload:   NOT REACHED
+
+first-failure-point: step 3 — named NPC spawning in lantern_heights hub
+severity: P0 — G0 golden route is softlocked
