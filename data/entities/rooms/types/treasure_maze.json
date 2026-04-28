@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schemas/room_type_schema.json",
+  "id": "treasure_maze",
+  "displayName": "Treasure Maze",
+  "enemyDensity": 1,
+  "hasPortal": false,
+  "hasPuzzle": true,
+  "hasShop": false,
+  "lootTier": 3,
+  "terrainDensity": 3,
+  "allowedBiomes": ["any"],
+  "spawnableEnemyTags": ["grounded"],
+  "environmentHazards": [],
+  "minRoomSize": [64, 64],
+  "requiresTemplate": true
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schemas/room_type_schema.json",
+  "id": "shop_interior",
+  "displayName": "Shop Interior",
+  "enemyDensity": 0,
+  "hasPortal": false,
+  "hasPuzzle": false,
+  "hasShop": true,
+  "lootTier": 1,
+  "terrainDensity": 0,
+  "allowedBiomes": ["any"],
+  "spawnableEnemyTags": [],
+  "environmentHazards": [],
+  "minRoomSize": [32, 32],
+  "requiresTemplate": true
+}
