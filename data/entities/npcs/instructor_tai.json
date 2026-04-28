@@ -1,7 +1,6 @@
 {
   "$schema": "../../schemas/npc_def_schema.json",
   "id": "instructor_tai",
-  "character_id": "instructor_tai",
   "displayName": "Instructor Tai",
   "width": 32,
   "height": 64,

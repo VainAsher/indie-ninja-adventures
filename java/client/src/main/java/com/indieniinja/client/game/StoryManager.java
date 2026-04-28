@@ -152,6 +152,16 @@ public final class StoryManager {
         flags.put("hub_degradation_level", String.valueOf(hubDegradationLevel));
     }
 
+    /** Linzi has arrived in Lantern Heights — hub social shift begins. */
+    public void onLinziArrived() {
+        flags.put("linzi_arrived", "true");
+        log.info("[StoryManager] linzi_arrived flag set");
+    }
+
+    public boolean isLinziArrived() {
+        return "true".equals(flags.get("linzi_arrived"));
+    }
+
     /** Increments NPC-met counter used to track Act V progress. */
     public void onNpcMet(String npcId) {
         lanternsMetCount = Math.min(5, lanternsMetCount + 1);

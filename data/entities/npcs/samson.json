@@ -1,7 +1,6 @@
 {
   "$schema": "../../schemas/npc_def_schema.json",
   "id": "samson",
-  "character_id": "samson",
   "displayName": "Samson",
   "width": 32,
   "height": 64,

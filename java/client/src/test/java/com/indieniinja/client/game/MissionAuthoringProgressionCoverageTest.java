@@ -25,13 +25,14 @@ class MissionAuthoringProgressionCoverageTest {
         ObjectiveType.REACH_LOCATION,
         ObjectiveType.TIME_CHALLENGE,
         ObjectiveType.DEFEAT_BOSS,
-        ObjectiveType.KILL_ALL_ENEMIES
+        ObjectiveType.KILL_ALL_ENEMIES,
+        ObjectiveType.TALK_TO_NPC
     );
 
     @Test
     void allAuthoredMissionsProgressThroughObjectiveAdaptersAndUnlockExit() throws Exception {
         Map<String, MissionDefinition> definitions = loadDefinitionsFromAuthoredMissions();
-        assertEquals(43, definitions.size(), "Expected authored campaign mission count to remain 43");
+        assertEquals(45, definitions.size(), "Expected authored campaign mission count to remain 45");
 
         int progressed = 0;
         EnumSet<ObjectiveType> seenTypes = EnumSet.noneOf(ObjectiveType.class);
@@ -87,6 +88,10 @@ class MissionAuthoringProgressionCoverageTest {
                 mgr.onBossDefeated(boss);
             }
             case KILL_ALL_ENEMIES -> mgr.onEnemyKilled(Math.max(1, obj.target));
+            case TALK_TO_NPC -> {
+                String npcId = requireNonBlank(obj.location, def.missionId, "talk_to_npc");
+                mgr.onNpcTalkedTo(npcId);
+            }
         }
     }
 

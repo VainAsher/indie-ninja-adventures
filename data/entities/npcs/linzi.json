@@ -1,7 +1,6 @@
 {
   "$schema": "../../schemas/npc_def_schema.json",
   "id": "linzi",
-  "character_id": "linzi",
   "displayName": "Linzi",
   "width": 32,
   "height": 64,

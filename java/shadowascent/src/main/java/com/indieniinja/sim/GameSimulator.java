@@ -247,8 +247,11 @@ public final class GameSimulator {
         int npcIdx = 0;
         for (LevelLayout.NPCSpawn spec : layout.npcSpawns) {
             String npcId = hubId + "_npc_" + npcIdx++;
+            // In lantern_heights, the procedural "siren" slot is Linzi (Act I narrative NPC).
+            String characterId = ("lantern_heights".equals(hubId) && "siren".equals(spec.type()))
+                ? "linzi" : "";
             SimNPC npc = new SimNPC(
-                npcId, spec.type(), spec.x(), spec.y(),
+                npcId, spec.type(), characterId, spec.x(), spec.y(),
                 SimNPC.DEFAULT_WIDTH, SimNPC.DEFAULT_HEIGHT,
                 spec.patrolMinX(), spec.patrolMaxX()
             );
@@ -260,6 +263,49 @@ public final class GameSimulator {
                 int shopTier = 1 + (int)(Math.abs(seed ^ npcId.hashCode()) % 3); // tier 1-3
                 shops.put(npcId, new SimShop(npcId, shopTier, seed ^ npcId.hashCode()));
             }
+        }
+
+        // Lantern Heights Act I companion NPCs — authored named characters
+        // placed at authored offsets around the player spawn.
+        if ("lantern_heights".equals(hubId)) {
+            spawnLanternHeightsCompanions(layout);
+        }
+    }
+
+    /**
+     * Spawn named companion NPCs for the Act I Lantern Heights hub.
+     * These are authored characters with fixed characterIds so dialogue routing
+     * works without procedural fallbacks. Positions are authored offsets from
+     * the player spawn so they land on the hub floor.
+     */
+    private void spawnLanternHeightsCompanions(LevelLayout layout) {
+        final float T       = com.indieniinja.physics.PhysicsConstants.TILE_SIZE; // 32px
+        final float refX    = layout.spawnX;
+        final float refY    = layout.spawnY;
+        final float patrol  = 2 * T;
+
+        // [characterId, npcType, offsetXInTiles]
+        String[][] companions = {
+            {"instructor_tai", "tutorial",       "0"},
+            {"samson",         "lore",           "-8"},
+            {"hazel",          "lore",           "-4"},
+            {"sophia",         "mission_giver",   "4"},
+            {"marcel",         "lore",            "8"},
+        };
+
+        for (String[] c : companions) {
+            String charId  = c[0];
+            String npcType = c[1];
+            float  nx      = refX + Float.parseFloat(c[2]) * T;
+            String npcId   = hubId + "_named_" + charId;
+            SimNPC npc = new SimNPC(
+                npcId, npcType, charId, nx, refY,
+                SimNPC.DEFAULT_WIDTH, SimNPC.DEFAULT_HEIGHT,
+                nx - patrol, nx + patrol
+            );
+            npcs.add(npc);
+            var entity = entityManager.create(com.indieniinja.core.EntityType.NPC, npc.physics);
+            entity.addTag("npc");
         }
     }
 

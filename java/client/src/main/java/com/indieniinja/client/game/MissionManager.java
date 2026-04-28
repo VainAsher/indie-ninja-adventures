@@ -167,6 +167,12 @@ public final class MissionManager {
         progressObjective(objectiveKey(ObjectiveType.REACH_LOCATION, locationId), 1);
     }
 
+    /** Objective adapter used when the player talks to a named NPC. */
+    public void onNpcTalkedTo(String npcId) {
+        if (npcId == null || npcId.isBlank()) return;
+        progressObjective(objectiveKey(ObjectiveType.TALK_TO_NPC, npcId), 1);
+    }
+
     /**
      * Complete the active mission (Python: MissionManager.complete_mission).
      * Records best time, distributes rewards, emits callback.
@@ -321,6 +327,7 @@ public final class MissionManager {
             case COLLECT_ITEMS     -> objectiveKey(obj.type, obj.item);
             case REACH_LOCATION    -> objectiveKey(obj.type, obj.location);
             case DEFEAT_BOSS       -> objectiveKey(obj.type, obj.boss);
+            case TALK_TO_NPC       -> objectiveKey(obj.type, obj.location); // location field holds npcId
             default                -> objectiveKey(obj.type, null);
         };
     }

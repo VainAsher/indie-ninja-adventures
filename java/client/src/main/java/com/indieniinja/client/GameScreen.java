@@ -1488,6 +1488,7 @@ public final class GameScreen implements Screen {
                 case REACH_LOCATION -> "Reach " + (obj.location == null ? "target" : obj.location);
                 case DEFEAT_BOSS -> "Defeat boss";
                 case TIME_CHALLENGE -> "Beat timer";
+                case TALK_TO_NPC -> "Speak with " + (obj.location == null ? "NPC" : obj.location);
             };
 
         String suffix = "";
@@ -1528,7 +1529,8 @@ public final class GameScreen implements Screen {
             case ACTIVATE_SWITCHES -> Math.max(1, obj.count > 0 ? obj.count : obj.target);
             case REACH_LOCATION,
                  DEFEAT_BOSS,
-                 TIME_CHALLENGE    -> 1;
+                 TIME_CHALLENGE,
+                 TALK_TO_NPC       -> 1;
         };
     }
 

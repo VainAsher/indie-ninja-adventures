@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.13.0",
   "regions": {
     "forest": {
       "display_name": "Whispering Forest",
@@ -2346,6 +2346,71 @@
           "hazel": 3
         },
         "beacon_lantern_lit": true
+      }
+    },
+    {
+      "mission_id": "act1_social_grounding",
+      "mission_name": "Lantern Dawn — Welcome Home",
+      "region": "lantern_heights",
+      "difficulty": 1,
+      "room_count": 1,
+      "shape": "blob",
+      "description": "Aen is home. Greet the clan and feel the warmth of Lantern Heights at dawn. Yin and Yang orbit close.",
+      "objectives": [
+        {
+          "type": "talk_to_npc",
+          "description": "Speak with Instructor Tai",
+          "location": "instructor_tai"
+        },
+        {
+          "type": "talk_to_npc",
+          "description": "Greet Samson",
+          "location": "samson"
+        },
+        {
+          "type": "talk_to_npc",
+          "description": "Say hello to Hazel",
+          "location": "hazel"
+        }
+      ],
+      "required_abilities": ["basic_movement"],
+      "unlock_abilities": [],
+      "rewards": { "currency": 0, "items": [] },
+      "enemy_types": [],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": [],
+      "act": 0,
+      "story_trigger": "act1_grounding_complete",
+      "hub_impact": null
+    },
+    {
+      "mission_id": "linzi_q1",
+      "mission_name": "A Voice Worth Following",
+      "region": "lantern_heights",
+      "difficulty": 1,
+      "room_count": 3,
+      "shape": "linear",
+      "description": "A graceful stranger near the mission board offers Aen a simple task. Her praise is effortless. Her eyes are careful.",
+      "objectives": [
+        {
+          "type": "reach_location",
+          "description": "Reach the waypoint Linzi marked",
+          "location": "lantern_waypoint"
+        }
+      ],
+      "required_abilities": ["basic_movement"],
+      "unlock_abilities": [],
+      "rewards": { "currency": 30, "items": [] },
+      "enemy_types": [],
+      "hazards": [],
+      "time_limit": null,
+      "unlock_requirements": ["act1_social_grounding"],
+      "act": 0,
+      "story_trigger": "linzi_arrived",
+      "hub_impact": {
+        "linzi_arrived": true,
+        "hub_shadow_seed": 1
       }
     }
   ]

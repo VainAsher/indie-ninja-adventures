@@ -1,7 +1,6 @@
 {
   "$schema": "../../schemas/npc_def_schema.json",
   "id": "hazel",
-  "character_id": "hazel",
   "displayName": "Hazel",
   "width": 32,
   "height": 64,
