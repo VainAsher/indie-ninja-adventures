@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-28
-version_anchor: v0.12.11
+version_anchor: v0.13.0
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.0] - 2026-04-28 (Act I Lantern Dawn vertical slice)
+
+### Added
+
+- **Act I missions** (`data/missions.json`): `act1_social_grounding` (greet Instructor Tai, Samson, Hazel via TALK_TO_NPC objectives) and `linzi_q1` (REACH_LOCATION: lantern_waypoint; story_trigger: linzi_arrived; hub_impact: linzi_arrived + hub_shadow_seed). Mission total: 43 → 45.
+- **TALK_TO_NPC objective type** (`ObjectiveType`, `MissionManager.onNpcTalkedTo()`): new objective kind for social NPC greetings; keyed via `location` field as npcId qualifier; HUD label renders "Speak with {npc}".
+- **linzi_arrived story flag** (`StoryManager.onLinziArrived()` / `isLinziArrived()`): marks the moment Linzi's influence begins in the hub; persisted in StoryManager flags map.
+- **Named NPC spawning for lantern_heights** (`GameSimulator`): injects Instructor Tai, Samson, Hazel, Sophia, Marcel as named companion NPCs at tile-offset positions around spawn; assigns `characterId="linzi"` to the procedural siren NPC in that hub.
+- **HubRegistry entry: lantern_heights** (Phase 1, committed 65e5b64): Act I starting hub registered as first entry (seedOffset 0x0000L, 10 rooms).
+- **characterId routing** (Phase 1): `SimNPC.characterId`, `NPCState.characterId`, `npcDialogueId()` in GameScreen — dialogue now routes by characterId when set.
+- **Companion orbs** (pre-existing): `EntityRenderer.renderCompanions()` confirmed fully implemented — Yin (silver, leads) and Yang (gold, trails), driven by PlayerState.yinValue/yangValue.
+
+### Changed
+
+- NPC JSON files (instructor_tai, samson, sophia, marcel, hazel, linzi): removed `character_id` field (not in schema); `id` already serves as the characterId.
+- `MissionAuthoringProgressionCoverageTest`: count 43→45, TALK_TO_NPC added to EXPECTED_TYPES coverage set.
+- `data/missions.json` internal version: 0.7.0 → 0.13.0.
+
+### Compatibility
+
+- **replay**: no change (new missions only affect fresh session starts).
+- **save**: additive — new story flags and mission states ignored by older saves.
+- **protocol**: additive — characterId wire field only serialised when non-empty.
 
 ---
 
