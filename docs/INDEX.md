@@ -97,6 +97,14 @@ This index tracks only the active documentation system for the Java v0.12.x line
 
 - [workflow/WORKFLOW_AUDIT_2026-04-17.md](workflow/WORKFLOW_AUDIT_2026-04-17.md)
 
+## Inspiration Studies
+
+- [inspiration/INSPIRATION_SYNTHESIS.md](inspiration/INSPIRATION_SYNTHESIS.md) — **Master synthesis: all four games, all lessons, organised by design domain — start here**
+- [inspiration/INSPIRATION_PRINCE_OF_PERSIA_TRILOGY.md](inspiration/INSPIRATION_PRINCE_OF_PERSIA_TRILOGY.md) — PoP Sands of Time trilogy: movement grammar, flow protection, combat integration, tonal spine, architectural memory
+- [inspiration/INSPIRATION_CASTLEVANIA_SYMPHONY_OF_THE_NIGHT.md](inspiration/INSPIRATION_CASTLEVANIA_SYMPHONY_OF_THE_NIGHT.md) — SOTN: place as protagonist, Alucard/Aen parallel, ability callbacks, gothic contrast, layered secrets, expressive progression
+- [inspiration/INSPIRATION_GOD_OF_WAR.md](inspiration/INSPIRATION_GOD_OF_WAR.md) — GoW: weight as philosophy, weapon identity, mythic bosses as arguments, controlled rage, companion as character reveal, power with consequence
+- [inspiration/INSPIRATION_SHINOBI_SERIES.md](inspiration/INSPIRATION_SHINOBI_SERIES.md) — Shinobi: fragile lethality, target priority, controlled aggression, Akujiki philosophy, silhouette clarity, three-beat combat loop
+
 ## Skills and Workflow Guide
 
 - [WORKFLOW_AND_SKILLS_GUIDE.md](WORKFLOW_AND_SKILLS_GUIDE.md) — how to use skills, workflows, and agents with Claude Code / Codex
