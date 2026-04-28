@@ -28,6 +28,7 @@ import com.indieniinja.sim.SimPlayer;
 import com.indieniinja.client.rendering.AnimationRegistry;
 import com.indieniinja.client.rendering.BlobTileSet;
 import com.indieniinja.client.rendering.ChunkRenderer;
+import com.indieniinja.client.rendering.DecorationGenerator;
 import com.indieniinja.client.rendering.EntityRenderer;
 import com.indieniinja.client.rendering.HudRenderer;
 import com.indieniinja.client.rendering.ParallaxRenderer;
@@ -941,6 +942,12 @@ public final class GameScreen implements Screen {
                         parallaxRenderer.loadBiome(
                             parallaxSetFor(biomeIdx),
                             com.badlogic.gdx.Gdx.files.internal("assets"));
+                        // S4 — decoration layer (client-side only, never sent over wire)
+                        DecorationGenerator.DecoRuleSet decoRules =
+                            loadDecoRuleSet(decoSetFor(biomeIdx));
+                        byte[][] decoGrid = DecorationGenerator.generate(
+                            grid2d, snap.seed, biomeIdx, decoRules, LEVEL_COLS, LEVEL_ROWS);
+                        chunkRenderer.loadDecoMap(decoGrid, blobTileSet, biomeIdx);
                     } else {
                         byte[] flat = new byte[LEVEL_ROWS * LEVEL_COLS];
                         for (int r = 0; r < LEVEL_ROWS; r++)
@@ -2826,6 +2833,34 @@ public final class GameScreen implements Screen {
         return BIOME_PARALLAX[b];
     }
 
+    // Maps biome index (0-11) to deco rule set name in deco_rules.json.
+    private static final String[] BIOME_DECO = {
+        "earth", "forest", "snow", "ruins", "dungeon",  // 0-4 primary
+        "earth", "forest", "snow", "ruins",              // 5-8 alt variants
+        "spirit", "hub", "hub"                           // 9-11
+    };
+
+    private static String decoSetFor(int biomeIndex) {
+        int b = Math.max(0, Math.min(BIOME_DECO.length - 1, biomeIndex));
+        return BIOME_DECO[b];
+    }
+
+    private static DecorationGenerator.DecoRuleSet loadDecoRuleSet(String setName) {
+        com.badlogic.gdx.files.FileHandle fh =
+            com.badlogic.gdx.Gdx.files.internal("assets/visual/deco_rules.json");
+        if (!fh.exists()) return DecorationGenerator.DecoRuleSet.defaultRules();
+        try {
+            com.badlogic.gdx.utils.JsonValue sets =
+                new com.badlogic.gdx.utils.JsonReader().parse(fh).get("sets");
+            com.badlogic.gdx.utils.JsonValue node = sets != null ? sets.get(setName) : null;
+            return node != null
+                ? DecorationGenerator.DecoRuleSet.fromJson(node)
+                : DecorationGenerator.DecoRuleSet.defaultRules();
+        } catch (Exception e) {
+            return DecorationGenerator.DecoRuleSet.defaultRules();
+        }
+    }
+
     // ── S0 — Visual dev commands ──────────────────────────────────────────────
 
     private void registerVisualDevCommands() {
@@ -2879,7 +2914,11 @@ public final class GameScreen implements Screen {
                     currentTileGrid, LEVEL_COLS, LEVEL_ROWS);
                 parallaxRenderer.loadBiome(parallaxSetFor(currentBiomeIndex),
                     com.badlogic.gdx.Gdx.files.internal("assets"));
-                log.accept("[INFO] set_biome=" + args[0] + " (index=" + idx + ") — tiles+parallax rebuilt");
+                DecorationGenerator.DecoRuleSet rules = loadDecoRuleSet(decoSetFor(currentBiomeIndex));
+                byte[][] decoGrid = DecorationGenerator.generate(
+                    currentTileGrid, loadedSeed, currentBiomeIndex, rules, LEVEL_COLS, LEVEL_ROWS);
+                chunkRenderer.loadDecoMap(decoGrid, blobTileSet, currentBiomeIndex);
+                log.accept("[INFO] set_biome=" + args[0] + " (index=" + idx + ") — terrain+parallax+deco rebuilt");
             });
 
         devConsole.register("regen_room",
@@ -2889,8 +2928,11 @@ public final class GameScreen implements Screen {
                 if (blobTileSet == null)     { log.accept("[ERR] blobTileSet not loaded"); return; }
                 chunkRenderer.loadBlobTiles(blobTileSet, currentBiomeIndex,
                     currentTileGrid, LEVEL_COLS, LEVEL_ROWS);
-                log.accept("[INFO] regen_room: terrain rebuilt (biome=" + currentBiomeIndex
-                    + "). Decoration layer available in S4.");
+                DecorationGenerator.DecoRuleSet rules = loadDecoRuleSet(decoSetFor(currentBiomeIndex));
+                byte[][] decoGrid = DecorationGenerator.generate(
+                    currentTileGrid, loadedSeed, currentBiomeIndex, rules, LEVEL_COLS, LEVEL_ROWS);
+                chunkRenderer.loadDecoMap(decoGrid, blobTileSet, currentBiomeIndex);
+                log.accept("[INFO] regen_room: terrain+deco rebuilt (biome=" + currentBiomeIndex + ")");
             });
     }
 

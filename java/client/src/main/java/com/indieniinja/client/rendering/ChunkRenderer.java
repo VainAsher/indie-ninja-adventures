@@ -29,6 +29,8 @@ public final class ChunkRenderer {
 
     // Tile map — row-major [row][col], null = empty (air)
     private TextureRegion[][] tileMap;
+    // Decoration map — visual-only pass rendered before terrain (S4)
+    private TextureRegion[][] decoMap;
     private int mapCols;
     private int mapRows;
 
@@ -217,6 +219,33 @@ public final class ChunkRenderer {
         }
     }
 
+    /**
+     * Load the decoration grid produced by {@link DecorationGenerator}.
+     *
+     * Decoration tiles use the blob-set fallback (role=0) tinted at reduced
+     * alpha to distinguish them from structural terrain. The decoMap is
+     * rendered before the terrain pass — purely visual, no collision.
+     *
+     * @param decoGrid   byte[rows][cols] from DecorationGenerator.generate()
+     * @param blobTiles  loaded BlobTileSet (for texture lookup)
+     * @param biomeIndex biome constant from BlobTileSet (0–11)
+     */
+    public void loadDecoMap(byte[][] decoGrid, BlobTileSet blobTiles, int biomeIndex) {
+        if (decoGrid == null) { this.decoMap = null; return; }
+        int rows = decoGrid.length;
+        int cols = rows > 0 ? decoGrid[0].length : 0;
+        this.decoMap = new TextureRegion[rows][cols];
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                byte d = decoGrid[r][c];
+                if (d == DecorationGenerator.DECO_NONE) continue;
+                // All deco types use the biome's fallback tile (role=0) as a stand-in
+                // until a dedicated deco spritesheet is available (tileOffset from json).
+                this.decoMap[r][c] = blobTiles.getFrame(biomeIndex, 0);
+            }
+        }
+    }
+
     /** Expose placeholder textures so callers can build stitched megamap arrays. */
     public TextureRegion placeholderSolid()    { return placeholderSolid; }
     public TextureRegion placeholderPlatform() { return placeholderPlatform; }
@@ -279,6 +308,20 @@ public final class ChunkRenderer {
         int rowMin = Math.max(0,          (int) Math.floor(frustum.y / TILE) - 1);
         int rowMax = Math.min(mapRows - 1,(int) Math.ceil((frustum.y + frustum.height) / TILE) + 1);
 
+        // Decoration pass (S4) — drawn at reduced alpha before terrain tiles
+        if (decoMap != null) {
+            batch.setColor(1f, 1f, 1f, 0.45f);
+            for (int r = rowMin; r <= rowMax; r++) {
+                for (int c = colMin; c <= colMax; c++) {
+                    TextureRegion d = decoMap[r][c];
+                    if (d == null) continue;
+                    batch.draw(d, c * TILE, r * TILE, TILE, TILE);
+                }
+            }
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        // Terrain pass
         for (int r = rowMin; r <= rowMax; r++) {
             for (int c = colMin; c <= colMax; c++) {
                 TextureRegion tile = tileMap[r][c];
