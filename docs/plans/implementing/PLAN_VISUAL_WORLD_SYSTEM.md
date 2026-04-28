@@ -2,16 +2,16 @@
 doc_type: plan
 status: implementing
 owner: core-team
-last_updated: 2026-04-27
-version_anchor: v0.12.08
-slices_done: S0, S1, S2, S3, S4
-slices_remaining: S5, S6, S7, S8
+last_updated: 2026-04-28
+version_anchor: v0.12.09
+slices_done: S0, S1, S2, S3, S4, S5
+slices_remaining: S6, S7, S8
 ---
 
 # PLAN — Visual World System
 ## Autotile · Decoration · Parallax · Terrain Features · Hot-Reload
 
-**Created:** 2026-04-28 | **Codebase version:** v0.12.08 | **Next release target:** v0.12.09
+**Created:** 2026-04-28 | **Codebase version:** v0.12.09 | **Next release target:** v0.12.10
 
 ## Slice Status
 
@@ -22,12 +22,12 @@ slices_remaining: S5, S6, S7, S8
 | S2 — Biome Audit + Naming | **DONE** | `3e8a8d0` |
 | S3 — Parallax Renderer | **DONE** | `78c4b57` |
 | S4 — Decoration Layer | **DONE** | `1349736` |
-| S5 — Biome → World Region Wiring | PENDING — classify protocol impact before coding | — |
+| S5 — Biome → World Region Wiring | **DONE** | `face2af` |
 | S6 — Zone Template Library | PENDING — replay=BREAKING, bundle with S7+S8 | — |
 | S7 — Feature Placer | PENDING — replay=BREAKING | — |
 | S8 — Terrain Smoothing | PENDING — replay=BREAKING | — |
 
-**S5 stop condition:** `WorldGraph.biome` field persistence in PostgreSQL must be classified (additive schema change vs. ignored field) before S5 code is written.
+**S6–S8 note:** All three slices are replay=BREAKING and must ship together in a single version bump to minimize replay-break events.
 
 ---
 

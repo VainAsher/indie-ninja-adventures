@@ -2,10 +2,10 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-24
-version_anchor: v0.12.08
+last_updated: 2026-04-28
+version_anchor: v0.12.09
 ---
-# Changelog â€” Shadow Ascent: The Hollowed Ninja
+# Changelog — Shadow Ascent: The Hollowed Ninja
 
 All notable changes to this project will be documented in this file.
 
@@ -13,6 +13,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.12.09] - 2026-04-28 (Visual World System — S0–S5)
+
+### Added
+
+- **Visual config hot-reload (S0)** (`assets/visual/biomes.json`, `assets/visual/parallax.json`, `assets/visual/deco_rules.json`):
+  - 7 biome entries covering all current blob-sets; each entry declares `blobSetIndex`, `parallaxSet`, `decoRuleSet`, `zoneTemplateWeights`, and `features`.
+  - DevConsole commands `reload_visual` and `set_biome <n>` hot-swap the active biome at runtime without JAR restart.
+  - Test: `VisualConfigParseTest` (8 tests).
+
+- **Platform cap/join variants (S1)** (`BlobTileSet`, `ChunkRenderer`):
+  - `getPlatformFrame(biomeIndex, leftNeighbour, rightNeighbour)` overload uses role bits W=128, E=8 to select left-cap, right-cap, standalone, or joined platform tiles from the blob-set.
+  - `ChunkRenderer.loadBlobTiles()` now samples left/right neighbours for every PLATFORM tile and calls the cap-aware overload.
+  - Test: `BlobTileSetPlatformCapTest` (6 tests).
+
+- **Biome naming expansion (S2)** (`BlobTileSet`):
+  - Seven new `BIOME_*` constants (indices 5–11): `BIOME_EARTH_ALT`, `BIOME_STONE_ALT`, `BIOME_CRYSTAL_ALT`, `BIOME_LAVA_ALT`, `BIOME_ICE_ALT`, `BIOME_NATURE_ALT`, `BIOME_HUB_ALT`.
+  - `BIOME_COUNT = 12`; `BIOME_TO_BLOB_SET` expanded to cover all 12 indices; `blobSetFor()` clamps safely.
+  - Test: `BlobTileSetBiomeIndexTest` (6 tests).
+
+- **Parallax renderer (S3)** (`ParallaxRenderer`, `GameScreen`):
+  - Three-layer tiling background driven by `assets/visual/parallax.json`; layers scroll at independent fractions of `camera.x` for depth illusion.
+  - Manages its own `OrthographicCamera` (screen-space); saves and restores the batch projection matrix so callers need no projection management.
+  - Falls back to 2×2 colour-fill textures when parallax assets are absent.
+  - Rendered before terrain pass in `GameScreen`.
+  - Test: `ParallaxLayerScrollTest` (5 tests).
+
+- **Decoration layer (S4)** (`DecorationGenerator`, `ChunkRenderer`):
+  - `DecorationGenerator.generate()` produces a deterministic `byte[][]` deco grid seeded from `roomSeed XOR (biomeIndex << 32)`.
+  - Three placement passes: ceiling drips, wall attachments, floor-edge details; spawn positions are excluded via `WorldGenerator.collectGroundPositions()`.
+  - `ChunkRenderer.loadDecoMap()` + alpha-blended deco render pass at 0.45 alpha before the terrain pass.
+  - DevConsole `regen_room` and `set_biome` now regenerate the deco grid alongside terrain and parallax.
+  - Test: `DecorationGeneratorTest` (8 tests).
+
+- **Biome → world region wiring (S5)** (`WorldSnapshot`, `ZoneInstance`, `ZoneSimulationLoop`, `GameScreen`):
+  - `WorldSnapshot.biomeIndex` — additive wire field (defaults to 0 on old servers; no protocol break).
+  - `ZoneInstance.currentRoomBiomeIndex` — volatile field updated at zone startup and on every room crossing.
+  - `ZoneSimulationLoop` writes `biomeIndex` into every snapshot broadcast.
+  - Client single-room path reads `snap.biomeIndex` when > 0; falls back to `biomeFromSeed(seed)` for old-server compatibility.
+  - `buildMegamap()` upgraded to cap-aware `getPlatformFrame(room.biomeIndex, lP, rP)` across the full stitched world.
+  - Test: `WorldGraphBiomeAssignmentTest` (7 tests).
+
+### Compatibility
+
+- replay=`no` — no simulation logic changed; terrain generation is seeded-deterministic and unchanged.
+- save=`no`
+- protocol=`ADDITIVE` — `biome_index` is a new optional field in `WorldSnapshot`; old clients ignore it, old servers omit it (client falls back to seed-derived biome).
 
 ---
 

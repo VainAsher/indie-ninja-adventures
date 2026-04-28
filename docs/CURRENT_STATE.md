@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-24
-version_anchor: v0.12.08
+last_updated: 2026-04-28
+version_anchor: v0.12.09
 replaces: docs/HANDOVER.md
 ---
 
@@ -25,10 +25,10 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.12.07 (post-release stabilization follow-up).
-- Latest release verification (`2026-04-24`):
+- Next release candidate: v0.12.10 (S6–S8 Visual World System, replay=BREAKING bundle).
+- Latest release verification (`2026-04-28`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
-  - Tag target: v0.12.06
+  - Tag target: v0.12.09
 
 ## Runtime Reality (Implemented)
 
