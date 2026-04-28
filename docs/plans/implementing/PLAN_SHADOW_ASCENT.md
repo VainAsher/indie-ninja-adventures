@@ -2,12 +2,41 @@
 doc_type: plan
 status: implementing
 owner: core-team
-last_updated: 2026-04-24
-version_anchor: v0.12.08
+last_updated: 2026-04-28
+version_anchor: v0.13.0
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-24 | **Codebase version:** v0.12.08 | **Next release target:** v0.12.09
+**Created:** 2026-04-10 | **Last updated:** 2026-04-28 | **Codebase version:** v0.13.0 | **Next release target:** v0.13.1
+
+---
+
+## PIVOT — Act I Lantern Dawn Vertical Slice
+**Pivot effective from:** 2026-04-28
+**Pivot type:** product scope focus — from broad systems expansion to Act I vertical slice proof
+
+Stop building the whole game at once.
+Build the first 20-30 minutes so well that a player who knows nothing about the developer,
+the GDD, or internal systems still understands:
+
+- Aen has a home.
+- Yin and Yang matter.
+- Lantern Heights is alive.
+- Linzi's praise feels good before it becomes dangerous.
+- The first signs of isolation are beginning.
+
+**Active golden path: G0 — Act I Lantern Dawn first-session route.**
+See `docs/PLAYABLE_TRUTH.md` for the approved route and tester scope.
+
+**Freeze in effect (until G0 is verified playable and emotionally legible):**
+Arcade mode, co-op expansion, boss roster, biome variety, Echo Art, Traversal Art,
+Proof Tokens, Labyrinth Court, Ember Monastery, Winding Skyroad, advanced Lantern recovery.
+
+**Core campaign truth to preserve:**
+The game is not about defeating a villain and getting back what was taken.
+It is about becoming whole while still living with absence.
+Yin and Yang are never reclaimed. Aen lights the Beacon of Return and waits.
+This slice exists to make that future loss matter.
 
 ---
 

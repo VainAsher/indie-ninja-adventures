@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.12.11** | Status: External playtest ready | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.13.0** | Status: Controlled Act I vertical-slice playtest | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 
@@ -17,9 +17,11 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 
 ---
 
-## What's in v0.12.11 (Template room types — replay=BREAKING)
+## What's in v0.13.0 (Act I Lantern Dawn vertical slice)
 
-- Dash no longer sticks or tunnels up wall faces: `isDashing` is now cleared on wall contact, preventing the next frame from re-applying dash velocity after `CollisionSystem` has zeroed it. (feedback#4)
+Act I vertical slice: Lantern Heights hub, named NPCs (Samson, Sophia, Marcel, Hazel, Linzi/Veil Maiden, Instructor Tai), Act I emotional missions, Yin/Yang companion orb rendering, hub social consequence after Linzi's influence.
+
+> **Playtest scope:** Controlled Act I first-session route only. See [docs/PLAYABLE_TRUTH.md](docs/PLAYABLE_TRUTH.md) for the approved G0 golden route and what feedback is in scope.
 
 | System | Status |
 | ------ | ------ |
@@ -37,11 +39,14 @@ VainAsher/indie-ninja-pipeline   (PRIVATE) — Dev triage, sprint planning, rele
 | libGDX rendering pipeline (chunk, entity, HUD renderers) | Done |
 | Dialogue + missions + story manager stubs | Done |
 | 13 test files (physics, world gen, inventory, networking, collision edge cases) | Done |
-| Solo/offline mode (no server required) | Milestone 2 — next |
-| Yin/Yang + Lantern emotional mechanics | Milestone 4 |
-| Hub evolution state machine (FSM, NPC presence) | Milestone 3 |
-| Narrative Act FSM (7 acts, Act IV depression mechanics) | Milestone 7 |
-| Boss AI psychological patterns (Siren, Echo Warden, Time Leech, Memory Eater) | Milestone 5 |
+| Solo/offline mode (no server required) | Done |
+| Yin/Yang companion orbs (visible silver/gold orbiting Aen) | Done — Act I |
+| Hub evolution state machine (FSM, NPC presence) | Done |
+| Narrative Act FSM (7 acts, Act IV depression mechanics) | Done |
+| Named NPC cast (Samson, Sophia, Marcel, Hazel, Linzi, Instructor Tai) | Done — Act I |
+| Act I emotional missions (social grounding, sparring, Linzi first mission) | Done — Act I |
+| Hub social consequence (subtle shift after Linzi's influence begins) | Done — Act I |
+| Boss AI psychological patterns (Siren, Echo Warden, Time Leech, Memory Eater) | Done — deferred post-Act I |
 
 ---
 
@@ -92,6 +97,7 @@ indie-ninja-adventures/
 
 ## Documentation
 
+- [docs/PLAYABLE_TRUTH.md](docs/PLAYABLE_TRUTH.md) — **start here** — what is actually playable, G0 golden route, tester scope
 - [docs/INDEX.md](docs/INDEX.md) — canonical documentation routing
 - [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) — runtime/handover truth
 - [docs/plans/implementing/PLAN_SHADOW_ASCENT.md](docs/plans/implementing/PLAN_SHADOW_ASCENT.md) — GDD alignment plan and milestone checklist

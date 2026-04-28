@@ -2,30 +2,45 @@
 doc_type: playtest_contract
 status: living
 owner: qa-team
-last_updated: 2026-04-18
-version_anchor: v0.11.65
+last_updated: 2026-04-28
+version_anchor: v0.13.0
 ---
-# Shadow Ascent - Launcher-Only Playtest Pack
-## End-to-End UX Validation for Solo and Multiplayer
+# Shadow Ascent - Playtest Pack
 
-**Target build:** `v0.11.65`
-**Last updated:** `2026-04-18`
-**Audience:** Testers with `launcher.exe` only, no IDE, no terminal setup
-**Primary goal:** Verify portal travel stability, stance readability, and campaign flow before external tester arrivals
+## Controlled Act I Vertical Slice — Lantern Heights First Session
+
+**Target build:** `v0.13.0`
+**Last updated:** `2026-04-28`
+**Audience:** Internal QA and controlled first-session testers
+**Primary goal:** Prove the G0 golden route (Act I Lantern Dawn) is playable, emotionally legible, and stable
+
+> **External testers: read [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md) first.**
+> That document has the approved G0 route, what feedback is in scope, and what to ignore.
+> This document is the full internal QA reference.
 
 ---
 
 ## 1. Scope and intent
 
-This document is the canonical launcher-only playtest pack for Shadow Ascent.
+This document is the canonical playtest reference for Shadow Ascent v0.13.0.
 
-Use it to answer three release questions:
+Current scope: **Act I Lantern Dawn vertical slice only.**
 
-1. Can a new player install and play without hidden setup knowledge?
-2. Do core systems behave consistently enough to start P1 balancing and tuning?
-3. Are findings captured in a form that maps directly to design goals in `docs/GDD.md`?
+The approved test route (G0) covers the first 20–30 minutes: spawn in Lantern Heights,
+meet Yin and Yang as companions, greet the core NPC cast, complete one social and one
+movement objective, meet Linzi, accept her first mission, return to see one subtle hub
+change, then save/load to confirm state persists.
 
-This pack assumes the tester starts from launcher only.
+Use this document to answer:
+
+1. Can a new player reach the end of the G0 route without external help?
+2. Does Lantern Heights feel like a home, not a menu?
+3. Do Yin and Yang feel like companions, not meters?
+4. Does Linzi feel flattering and useful before she feels dangerous?
+5. Is at least one hub/social change visible without debug tools?
+
+**External tester path:** follow [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md) only.
+**Internal QA path:** this full document.
 
 ---
 
@@ -95,21 +110,17 @@ If control understanding is poor, tag finding with `UX-CONTROLS`.
 
 ## 5. Lore primer for playtest context
 
-Give testers this short framing before first run:
+Give testers this short framing before first run. Do not preload spoilers beyond this.
 
-- You are the Hollowed Ninja reclaiming balance.
-- In Act I, the Siren is the explicit first quest giver and mission handoff NPC.
-- The game expresses identity through movement, stance pressure, and recovery loops.
-- Hub progression and scripted loss are intended narrative beats, not random failures.
-- Yin, Yang, Lantern, and Flow are intended to be felt in play, not explained by long text.
-- Early mission worlds are intentionally compact (4-9 rooms) for onboarding readability.
-- The hub contains Lantern NPCs — **Samson, Sophia, Marcel, Hazel** — each with their own quest chain and emotional arc. They appear in early Acts, and some will disappear from the hub as the story progresses. This is intentional.
-- **Linzi** is an early hub NPC who offers guidance. Her tone is warm but careful. Note your first impression.
-- NPCs sometimes speak as **shadow-echoes** in dark zones. These echoes mourn — they do not accuse. They are memory fragments, not judgment.
-- Zone **music cross-fades** when the hub or act changes. This is intentional atmospheric layering, not a bug.
-- **Trial rooms** (marked as `TRIAL` on the minimap) are optional high-skill challenge areas. They are harder than standard rooms and gate specific quest rewards. They cannot be failed permanently.
-
-Do not preload mechanical spoilers beyond this.
+- You are Aen of the Lantern Clan — newly ranked, not yet hollowed.
+- Lantern Heights is your home. The people here know you and care about you.
+- Two spirit companions orbit you: **Yin** (silver, gentle) and **Yang** (gold, bold). They are yours. They matter.
+- **Instructor Tai** greets you at the start. Follow his prompt.
+- The village has friends: **Samson** (loyal sparring partner), **Sophia** (cartographer, careful), **Marcel** (practical, blunt), **Hazel** (warm, lantern-weaver).
+- **Linzi** appears near the mission board. She is beautiful and perceptive. She says you are different. Note your first impression — do not second-guess it.
+- The village will feel subtly different after you accept Linzi's first mission. Notice what changed.
+- Yin and Yang may react to things before Aen does. Pay attention to them.
+- The game expresses feeling through movement and social presence — not through long text.
 
 ---
 

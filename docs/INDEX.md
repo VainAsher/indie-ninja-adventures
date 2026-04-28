@@ -13,6 +13,7 @@ This index tracks only the active documentation system for the Java v0.12.x line
 
 ## Core Canonical
 
+- [PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md) — honest playable state, G0 golden route, tester scope
 - [CURRENT_STATE.md](CURRENT_STATE.md)
 - [ROADMAP.md](ROADMAP.md)
 - [CHANGELOG.md](CHANGELOG.md)

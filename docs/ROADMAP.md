@@ -42,6 +42,34 @@ Architecture reference: [docs/dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md
 
 ---
 
+## Milestone 0 -- Act I Lantern Dawn Vertical Slice (v0.13.0) IN PROGRESS
+
+*The first 20-30 minutes are playable, emotionally legible, and stable.*
+
+Pivot direction: stop expanding systems, prove the emotional core first.
+The player must feel home, companionship, belonging, Linzi's first flattery,
+and the earliest hint of isolation — before any post-hollowing mechanic is shown.
+
+- [x] `docs/PLAYABLE_TRUTH.md` created — G0 golden route, tester scope, honest playable state
+- [x] README and playtest docs narrow to "Controlled Act I vertical-slice playtest"
+- [x] `lantern_heights` added as the Act I starting hub in `HubRegistry.java`
+- [x] Named NPC definitions: Samson, Sophia, Marcel, Hazel, Linzi, Instructor Tai
+- [x] `character_id` routing in `npcDialogueId()` — dialogue reaches named characters
+- [x] Act I missions authored: social grounding, Samson sparring, Linzi first mission
+- [x] `linzi_arrived` story flag in `StoryManager` + hub social consequence
+- [x] Lantern Heights hub template (`.tmx`) with authored NPC spawn points
+- [x] Yin/Yang companion orbs visible as silver/gold orbiting entities in `EntityRenderer`
+- [ ] G0 golden route verified — 5 first-session test records
+
+**Freeze in effect:** Arcade expansion, sandbox, co-op features, new boss roster,
+new biomes, Echo Art, Traversal Art, Proof Tokens, Labyrinth Court, Ember Monastery,
+Winding Skyroad — all frozen until G0 is verified.
+
+**Deliverable:** A tester who knows nothing about the project understands Aen has a home,
+Yin and Yang matter, Linzi's praise feels good before it feels dangerous.
+
+---
+
 ## Milestone 1 -- Foundation Close (v0.10.84) COMPLETE
 
 *Physics regression-proof. Version numbers honest. No known correctness bugs.*

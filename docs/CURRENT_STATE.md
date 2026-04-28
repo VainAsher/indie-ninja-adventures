@@ -24,8 +24,9 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
-- Current milestone lane: P0 stabilization and onboarding/runtime evidence hardening.
-- Next release candidate: v0.12.11 (TBD).
+- Current milestone lane: M0 — Act I Lantern Dawn vertical slice (G0 golden route proof).
+- Next release candidate: v0.13.1 (G0 route verified, 5 first-session test records).
+- Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-28`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
   - Tag target: v0.12.10
@@ -56,6 +57,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Canonical Documentation Set
 
+- [PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md) - honest playable state, G0 golden route, tester scope
 - [INDEX.md](INDEX.md) - top-level documentation routing
 - [ROADMAP.md](ROADMAP.md) - milestone sequencing and current targets
 - [CHANGELOG.md](CHANGELOG.md) - release-facing version history
