@@ -95,10 +95,19 @@ public final class WorldGenerator {
      */
     public static byte[][] generate(long seed, int cols, int rows,
                                     Collection<String> neighborDirs, String roomType) {
-        // ZonePlanner → 16×16 zone grid
+        return generate(seed, cols, rows, neighborDirs, roomType, 0);
+    }
+
+    /**
+     * Full zone-planned generation with biome index (S6–S8 path).
+     *
+     * @param biomeIndex 0–11; selects zone templates, features, and cave smoothing
+     */
+    public static byte[][] generate(long seed, int cols, int rows,
+                                    Collection<String> neighborDirs, String roomType,
+                                    int biomeIndex) {
         byte[][] zones = ZonePlanner.plan(seed, roomType, neighborDirs);
-        // RoomGenerator → 128×128 tile grid (pass roomType for blob-variation scaling)
-        byte[][] grid = RoomGenerator.generate(zones, neighborDirs, seed, roomType);
+        byte[][] grid  = RoomGenerator.generate(zones, neighborDirs, seed, roomType, biomeIndex);
         tagClimbableSurfaces(grid, cols, rows);
         return grid;
     }

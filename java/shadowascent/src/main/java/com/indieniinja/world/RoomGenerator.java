@@ -52,6 +52,11 @@ public final class RoomGenerator {
 
     public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
                                      long roomSeed, RoomTypeDefinition def) {
+        return generate(zones, neighborDirs, roomSeed, def, 0);
+    }
+
+    public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
+                                     long roomSeed, RoomTypeDefinition def, int biomeIndex) {
         // Template-first: rooms that require a template try to load it before generating.
         if (def.requiresTemplate()) {
             byte[][] template = TmxRoomLoader.loadTemplate(def.id());
@@ -73,15 +78,24 @@ public final class RoomGenerator {
                     grid[ROWS - 2][c] = WorldGenerator.PLATFORM;
         }
         for (int zy = 0; zy < ZonePlanner.H; zy++)
-            for (int zx = 0; zx < ZonePlanner.W; zx++)
-                expandZone(grid, zx, zy, zones[zy][zx], hasUp, hasDown, hasLeft, hasRight);
+            for (int zx = 0; zx < ZonePlanner.W; zx++) {
+                Random zoneRng = new Random(roomSeed * 31L + (long) zy * ZonePlanner.W + zx);
+                expandZone(grid, zx, zy, zones[zy][zx], biomeIndex, zoneRng, hasUp, hasDown, hasLeft, hasRight);
+            }
         carveDoors(grid, neighborDirs);
+        FeaturePlacer.place(grid, biomeIndex, roomSeed, neighborDirs);
+        smoothCaveTerrain(grid, biomeIndex);
         addBlobVariationFromDef(grid, zones, roomSeed, def);
         return grid;
     }
 
     public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
                                      long roomSeed, String roomType) {
+        return generate(zones, neighborDirs, roomSeed, roomType, 0);
+    }
+
+    public static byte[][] generate(byte[][] zones, Collection<String> neighborDirs,
+                                     long roomSeed, String roomType, int biomeIndex) {
         byte[][] grid = new byte[ROWS][COLS];
 
         boolean hasUp    = neighborDirs.contains("up");
@@ -89,10 +103,8 @@ public final class RoomGenerator {
         boolean hasLeft  = neighborDirs.contains("left");
         boolean hasRight = neighborDirs.contains("right");
 
-        // Step 1 — room boundaries (only on unconnected edges)
         addBoundaries(grid, hasUp, hasDown, hasLeft, hasRight);
 
-        // Step 2 — base floor platform (row ROWS-2), only if not connected down
         if (!hasDown) {
             for (int c = 1; c < COLS - 1; c++) {
                 if (grid[ROWS - 2][c] == WorldGenerator.AIR)
@@ -100,17 +112,16 @@ public final class RoomGenerator {
             }
         }
 
-        // Step 3 — expand zones to tiles
         for (int zy = 0; zy < ZonePlanner.H; zy++) {
             for (int zx = 0; zx < ZonePlanner.W; zx++) {
-                expandZone(grid, zx, zy, zones[zy][zx], hasUp, hasDown, hasLeft, hasRight);
+                Random zoneRng = new Random(roomSeed * 31L + (long) zy * ZonePlanner.W + zx);
+                expandZone(grid, zx, zy, zones[zy][zx], biomeIndex, zoneRng, hasUp, hasDown, hasLeft, hasRight);
             }
         }
 
-        // Step 4 — carve door openings
         carveDoors(grid, neighborDirs);
-
-        // Step 5 — blob variation for visual richness
+        FeaturePlacer.place(grid, biomeIndex, roomSeed, neighborDirs);
+        smoothCaveTerrain(grid, biomeIndex);
         addBlobVariation(grid, zones, roomSeed, roomType);
 
         return grid;
@@ -141,7 +152,17 @@ public final class RoomGenerator {
 
     // ── Step 3 — Zone expansion ───────────────────────────────────────────────
 
+    private static void stampTemplate(byte[][] g, int zx, int zy, byte[][] t) {
+        int txStart = zx * TPZ;
+        int tyStart = zy * TPZ;
+        for (int r = 0; r < TPZ; r++)
+            for (int c = 0; c < TPZ; c++)
+                if (inBounds(txStart + c, tyStart + r))
+                    g[tyStart + r][txStart + c] = t[r][c];
+    }
+
     private static void expandZone(byte[][] g, int zx, int zy, byte role,
+                                    int biomeIndex, Random zoneRng,
                                     boolean hasUp, boolean hasDown,
                                     boolean hasLeft, boolean hasRight) {
         int txStart = zx * TPZ;
@@ -154,16 +175,12 @@ public final class RoomGenerator {
 
         switch (role) {
             case ZonePlanner.FILL -> {
-                // Solid terrain — fill entire zone
-                for (int ty = tyStart; ty < tyEnd; ty++)
-                    for (int tx = txStart; tx < txEnd; tx++)
-                        if (inBounds(tx, ty)) g[ty][tx] = WorldGenerator.SOLID;
+                // S6: pick from template pool instead of always filling solid
+                stampTemplate(g, zx, zy, ZoneTemplateLibrary.pick(ZonePlanner.FILL, biomeIndex, zoneRng));
             }
             case ZonePlanner.PLAT, ZonePlanner.CONN -> {
-                // Horizontal platform at zone middle row
-                int platY = tyStart + TPZ / 2;
-                for (int tx = txStart; tx < txEnd; tx++)
-                    if (inBounds(tx, platY)) g[platY][tx] = WorldGenerator.PLATFORM;
+                // S6: pick from template pool instead of always placing a full-bar platform
+                stampTemplate(g, zx, zy, ZoneTemplateLibrary.pick(ZonePlanner.PLAT, biomeIndex, zoneRng));
             }
             case ZonePlanner.WALK, ZonePlanner.DOOR, ZonePlanner.SAVE,
                  ZonePlanner.SHOP, ZonePlanner.LOOT, ZonePlanner.DECOR -> {
@@ -302,6 +319,50 @@ public final class RoomGenerator {
 
             stampBlob(g, zones, cx, cy, blobW, blobH, density, carve, rng);
         }
+    }
+
+    // ── S8 — Terrain Smoothing (cave biomes) ─────────────────────────────────
+
+    /**
+     * Single cellular automata pass to smooth jagged cave terrain.
+     * Only applied to earth biomes (index 0 and 5); all others are unchanged.
+     *
+     * Rules:
+     *   SOLID tile with fewer than 3 SOLID 8-neighbours → AIR  (remove isolated tile)
+     *   AIR   tile with more than 5 SOLID 8-neighbours → SOLID (fill tiny pocket)
+     *
+     * Boundary rows/cols (index 0 and ROWS/COLS-1) are never modified.
+     * replay=BREAKING from v0.12.09.
+     */
+    public static void smoothCaveTerrain(byte[][] grid, int biomeIndex) {
+        // Cave smoothing only for EARTH (0) and EARTH_ALT (5)
+        if (biomeIndex != 0 && biomeIndex != 5) return;
+
+        byte[][] next = new byte[ROWS][COLS];
+        for (int r = 0; r < ROWS; r++) next[r] = grid[r].clone();
+
+        for (int r = 1; r < ROWS - 1; r++) {
+            for (int c = 1; c < COLS - 1; c++) {
+                int solidNeighbours = 0;
+                for (int dr = -1; dr <= 1; dr++)
+                    for (int dc = -1; dc <= 1; dc++) {
+                        if (dr == 0 && dc == 0) continue;
+                        byte nb = grid[r + dr][c + dc];
+                        if (nb == WorldGenerator.SOLID || nb == WorldGenerator.CLIMBABLE) solidNeighbours++;
+                    }
+
+                byte cur = grid[r][c];
+                if (cur == WorldGenerator.SOLID && solidNeighbours < 3) {
+                    next[r][c] = WorldGenerator.AIR;
+                } else if (cur == WorldGenerator.AIR && solidNeighbours > 5) {
+                    next[r][c] = WorldGenerator.SOLID;
+                }
+            }
+        }
+
+        for (int r = 1; r < ROWS - 1; r++)
+            for (int c = 1; c < COLS - 1; c++)
+                grid[r][c] = next[r][c];
     }
 
     private static void stampBlob(byte[][] g, byte[][] zones,
