@@ -2,8 +2,8 @@
 doc_type: playable_truth
 status: living
 owner: qa-team
-last_updated: 2026-04-28
-version_anchor: v0.13.0
+last_updated: 2026-04-29
+version_anchor: v0.13.4
 ---
 
 # Playable Truth
@@ -16,7 +16,7 @@ Read this before running any test. Read this before sending any feedback. Read t
 
 ## Current build
 
-Version: **v0.13.0**
+Version: **v0.13.4**
 Platform: Windows desktop — launcher install only
 Audience: Internal QA and controlled first-session testers
 Mode: Campaign (solo, no server required)

@@ -21,16 +21,22 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
+- Current release truth (2026-04-29): v0.13.4 is shipped and verified. v0.13.5 is reserved for G0 signoff evidence/state sync and any G0-only blocker fixes.
+- Release assets verified for v0.13.4: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.4.zip`.
+- G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
+- G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
-- Current milestone lane: M0 — Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next release candidate: v0.13.4 (Phase 2 CutsceneManager — camera + entity steps + Act I scene authoring).
+- Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
+- Next release candidate: v0.13.5 (G0 signoff evidence + state sync; code changes only for G0 blockers).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
-- Latest release verification (`2026-04-28`):
-  - Tests green locally (BUILD SUCCESSFUL - all modules)
-  - G0 smoke PASS: named NPCs spawned across map, TALK_TO_NPC objectives advance, no softlock
-  - Tag target: v0.13.1
+- Latest release verification (`2026-04-29`):
+  - CI green for `2439062` (`v0.13.4`)
+  - Release workflow green for tag `v0.13.4`
+  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.4.zip`
+  - Local gates passed: version sync, docs freshness, client/server tests, client/server shadow JARs
+  - G0 signoff still requires 5 first-session records before P0-10 can close
 
 ## Runtime Reality (Implemented)
 
@@ -55,6 +61,19 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Pygame prototype extraction phase-4 cutover is complete in this repo: launcher fallback to `demo_game.py` is removed, CI/release default lanes are Java-first, and migrated prototype runtime paths now live in `VainAsher/indie-ninja-prototype`.
 - **Engine Platform Phases A-C complete (2026-04-19)**: Content definition system (`ContentLoader`, `ContentRegistry`, JSON-schema-validated definitions), `GameConfig` balance constants, animation manifest + hot-reload, Tiled TMX room loader (4 templates), Yarn Spinner dialogue format (23 files), in-game DevConsole (backtick toggle, 14 commands), Gradle `buildAssets` pipeline (436 files, SHA-256). Module extraction: `:shadowascent` module created - `sim.*` and `world.*` moved out of `:core`; `EntityTypeRegistry` + `ShadowAscentEntityTypeBootstrap` added; `:core` published as `engine-core` Maven artifact to GitHub Packages. All server tests pass.
 - **Engine Platform Phase D complete (2026-04-19)**: Save checksums (`savegame.sha256` SHA-256 sidecar, verified on load with corrupt-save fallback). Perf regression gate (`TickDurationRegressionTest` â€” 2000-tick run, 5 ms ceiling, `perf_baseline.json`). Multi-slot save support (`user_data/saves/slot_N/`, `SlotSelectScreen`, legacy single-slot auto-migration). `tools/validate_animation_manifest.py` validates manifest against registry at authoring time.
+
+## Session Handover - 2026-04-29 (v0.13.4 - Phase 2 CutsceneManager shipped)
+
+- **Date:** 2026-04-29
+- **Branch:** master | **HEAD:** 2439062 | **Tag:** v0.13.4
+- **Version:** v0.13.4 - released and verified (CI pass, Release pass, 3 assets)
+- **Active plan:** [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
+- **Completed:** Cutscene Phase 2 (CS-11 through CS-18): camera focus/pan/restore, marker registry, entity step controller/overrides, trigger parsing/router, GameScreen trigger wiring, save-load camera/entity reset, six Act I cutscene JSON files, `docs/systems/CUTSCENE.md`, and G0 route integration coverage.
+- **Validation:** `.\gradlew.bat :client:test --no-daemon` PASS; `.\gradlew.bat :server:test :client:test --no-daemon` PASS; `.\gradlew.bat :server:shadowJar :client:shadowJar --no-daemon` PASS; `python tools/check_version_sync.py` PASS; `python tools/check_docs_freshness.py --emit-report` PASS; GitHub CI and Release PASS for `v0.13.4`.
+- **Next target:** v0.13.5 - G0 signoff + state sync. Collect 5 first-session records for the `docs/PLAYABLE_TRUTH.md` G0 route, fix only G0 blockers, then close P0-10 if evidence supports it.
+- **Known G0 gap:** no formal 5-record first-session evidence set yet; do not mark ROADMAP G0 complete or close P0-10 until those records exist.
+
+---
 
 ## Session Handover — 2026-04-29 (v0.13.3 — Phase 1 CutsceneManager + JAR fix)
 

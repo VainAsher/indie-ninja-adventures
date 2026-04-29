@@ -2,12 +2,12 @@
 doc_type: plan
 status: implementing
 owner: core-team
-last_updated: 2026-04-28
-version_anchor: v0.13.0
+last_updated: 2026-04-29
+version_anchor: v0.13.4
 ---
 # PLAN â€” Shadow Ascent: The Hollowed Ninja
 ## GDD Alignment & Implementation Roadmap
-**Created:** 2026-04-10 | **Last updated:** 2026-04-28 | **Codebase version:** v0.13.0 | **Next release target:** v0.13.1
+**Created:** 2026-04-10 | **Last updated:** 2026-04-29 | **Codebase version:** v0.13.4 | **Next release target:** v0.13.5
 
 ---
 
@@ -122,6 +122,13 @@ Any loop that changes movement, combat, stance, Flow, Lantern readability, or Tr
 The original workloop is excellent for implementation discipline, but the new direction introduces a stronger feel-first design layer. Without this addition, core combat/stealth tuning could drift while still appearing operationally complete.
 
 ### Latest loop note
+
+`2026-04-29 11:30:00 +01:00`
+
+- State sync after v0.13.4 release: CutsceneManager Phase 2 has shipped, and this document remains the active implementation plan.
+- Current implementation lane remains `P0-10`: G0 signoff playtest pack, controls/readability traceability, blocker triage, and evidence-backed handoff to P1.
+- v0.13.5 scope is intentionally narrow: collect 5 first-session G0 records, fix only G0 blockers, update `ROADMAP.md` only if evidence supports closing the G0 checkbox, then release.
+- Do not start `P1-01` data-driven tuning until P0-10 is closed or explicitly accepted as blocked with owner/date.
 
 `2026-04-24 00:13:12 +01:00`
 

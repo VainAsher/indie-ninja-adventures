@@ -59,7 +59,7 @@ and the earliest hint of isolation — before any post-hollowing mechanic is sho
 - [x] `linzi_arrived` story flag in `StoryManager` + hub social consequence
 - [x] Lantern Heights hub template (`.tmx`) with authored NPC spawn points
 - [x] Yin/Yang companion orbs visible as silver/gold orbiting entities in `EntityRenderer`
-- [ ] G0 golden route verified — 5 first-session test records
+- [ ] G0 golden route verified — 5 first-session test records (packet: `docs/reports/manual-runtime/g0-v0.13.5-signoff.md`)
 
 **Freeze in effect:** Arcade expansion, sandbox, co-op features, new boss roster,
 new biomes, Echo Art, Traversal Art, Proof Tokens, Labyrinth Court, Ember Monastery,

@@ -1,6 +1,6 @@
 # Docs Freshness Report
 
-- Generated: 2026-04-29T10:09:46.627621+00:00
+- Generated: 2026-04-29T11:17:07.397412+00:00
 - Version anchor target: v0.13.4
 - Documents checked: 34
 - Status: PASS

@@ -189,7 +189,7 @@ Every implementation cycle must follow this exact order:
 ## Phase 2 — Camera + Entity + Act I Authoring
 
 **Target:** v0.13.4
-**Status:** IN PROGRESS
+**Status:** COMPLETE - released v0.13.4, 2026-04-29
 
 ### Phase 2 checklist
 
@@ -282,6 +282,12 @@ Every implementation cycle must follow this exact order:
 ---
 
 ## Latest loop note
+
+`2026-04-29 11:30:00 +01:00`
+
+- State-sync follow-up: Phase 2 remains recorded as complete by the authoritative 11:01 loop note below. `PLAN_SHADOW_ASCENT.md` remains the active implementation plan for G0/P0-10 and later P1 work.
+- The legacy Phase 2 checkbox block is intentionally left as historical markdown because this file contains pre-existing mojibake around dash characters; the completion note below is the source of truth.
+- Next cutscene-related work is not more sequencing infrastructure; it is G0 first-session evidence collection and any blocker fixes discovered there.
 
 `2026-04-29 11:01:32 +01:00`
 
