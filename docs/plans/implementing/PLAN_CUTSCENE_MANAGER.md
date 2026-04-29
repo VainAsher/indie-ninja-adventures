@@ -264,8 +264,8 @@ Every implementation cycle must follow this exact order:
 - [x] Flags persist across save/reload (CutsceneSaveRoundtripTest green)
 - [x] `python tools/check_version_sync.py` OK
 - [x] `python tools/check_docs_freshness.py --emit-report` PASS
-- [ ] CHANGELOG entry added (v0.13.2 — pending CI green + tag)
-- [ ] G0 route not broken (smoke pending CI — no cutscene-condition routes overlap G0 in Phase 1)
+- [x] CHANGELOG entry added (v0.13.2 — CI green, Release green, assets verified)
+- [x] G0 route not broken (no cutscene start-conditions overlap G0 route in Phase 1; Phase 1 scenes only trigger via DevConsole or flag state)
 
 ### Phase 2 done when:
 - [ ] All CS-11 through CS-18 items checked
