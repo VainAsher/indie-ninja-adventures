@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.2
+version_anchor: v0.13.3
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.3] - 2026-04-29 (CutsceneLoader JAR runtime fix — P0)
+
+### Fixed
+
+- **CutsceneLoader JAR runtime load** (`CutsceneLoader.loadAll()`): `Gdx.files.internal().isDirectory()` always returns `false` for classpath paths inside a fat JAR, causing the loader to silently return an empty map and every `cutscene play <id>` DevConsole command to fail with `[ERR] unknown id`. Replaced directory-listing approach with an explicit index file (`data/cutscenes/index.json`) — individual `Gdx.files.internal(path)` calls resolve correctly from the JAR classpath. Added `data/cutscenes/index.json` listing the first authored scene.
+
+### Compatibility
+
+- **replay**: no change.
+- **save**: no change.
+- **protocol**: no change.
 
 ---
 

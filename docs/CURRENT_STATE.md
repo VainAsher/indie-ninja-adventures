@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.2
+version_anchor: v0.13.3
 replaces: docs/HANDOVER.md
 ---
 
@@ -25,7 +25,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 — Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next release candidate: v0.13.3 (Phase 2 CutsceneManager — camera + entity steps + Act I scene authoring).
+- Next release candidate: v0.13.4 (Phase 2 CutsceneManager — camera + entity steps + Act I scene authoring).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-28`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
