@@ -1,0 +1,36 @@
+{
+  "id": "act1_linzi_guiding_voice",
+  "version": 1,
+  "mode": "campaign",
+  "act": 1,
+  "blocking": true,
+  "skip_policy": "allow_after_first_view",
+  "triggers": [
+    { "event": "flag_change", "id": "linzi_guide_accepted" },
+    { "event": "npc_interact", "id": "linzi" }
+  ],
+  "start_conditions": [
+    { "flag_set": "linzi_arrived" },
+    { "flag_not_set": "act1_linzi_guiding_voice_seen" }
+  ],
+  "completion_flags": [
+    "act1_linzi_guiding_voice_seen"
+  ],
+  "steps": [
+    { "type": "lock_player" },
+    { "type": "camera_focus", "target": "marker_mission_board" },
+    { "type": "entity_face", "entity": "linzi", "target": "marker_aen_home" },
+    {
+      "type": "dialogue",
+      "speaker": "Linzi",
+      "text_key": "You do not have to carry every small need in this place. Let me narrow the noise for you."
+    },
+    {
+      "type": "dialogue",
+      "speaker": "Linzi",
+      "text_key": "One errand. One clean success. Then they will see what I already see."
+    },
+    { "type": "camera_restore_player" },
+    { "type": "unlock_player" }
+  ]
+}

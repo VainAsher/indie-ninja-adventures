@@ -159,6 +159,9 @@ public final class GameScreen implements Screen {
     private MissionSelectOverlay missionSelectOverlay;
     private com.indieniinja.client.game.SaveManager saveManager;
     private com.indieniinja.client.game.cutscene.CutsceneManager cutsceneManager;
+    private com.indieniinja.client.game.cutscene.CutsceneTriggerRouter cutsceneTriggerRouter;
+    private final com.indieniinja.client.game.cutscene.CutsceneEntityOverrides cutsceneEntityOverrides =
+            new com.indieniinja.client.game.cutscene.CutsceneEntityOverrides();
     private boolean cutscenePlayerLocked = false;
 
     // ── Inventory / shop / minimap overlays ──────────────────────────────────
@@ -464,13 +467,20 @@ public final class GameScreen implements Screen {
         saveManager.setPreSaveSync(this::syncSaveState);
         saveManager.load();
         cutscenePlayerLocked = false; // safety: never carry a lock across load
+        if (camera != null) camera.restorePlayerFollow();
+        cutsceneEntityOverrides.clear();
         dialogueManager.setStoryContext(storyManager.toConditionContext());
         // CutsceneManager — completedIds wired to SaveData in CS-07; empty set for now
         var cutsceneDefs = com.indieniinja.client.game.cutscene.CutsceneLoader.loadAll();
+        var cutsceneMarkers = com.indieniinja.client.game.cutscene.CutsceneMarkerRegistry.load();
         cutsceneManager = new com.indieniinja.client.game.cutscene.CutsceneManager(
                 cutsceneDefs, storyManager, dialogueManager,
                 lock -> cutscenePlayerLocked = lock,
-                saveManager.completedCutscenes());
+                saveManager.completedCutscenes(),
+                camera,
+                cutsceneMarkers,
+                cutsceneEntityOverrides);
+        cutsceneTriggerRouter = new com.indieniinja.client.game.cutscene.CutsceneTriggerRouter(cutsceneManager);
         registerCutsceneDevCommands();
         missionManager.setOnMissionComplete(() -> {
             requestMultiplayerMissionObjectivePickupClear(
@@ -749,6 +759,7 @@ public final class GameScreen implements Screen {
         }
 
         WorldSnapshot snap = stateBuffer.poll();
+        if (snap != null) cutsceneEntityOverrides.apply(snap);
         applyScriptedLossCollapseState(snap, delta);
 
         // ── Mission timer + auto-save ─────────────────────────────────────────
@@ -790,7 +801,7 @@ public final class GameScreen implements Screen {
                                 portalTriggered = true;
                                 break;
                             }
-                            missionManager.completeMission();
+                            completeActiveMissionWithCutsceneTrigger();
                             if (saveManager != null) saveManager.markDirty();
                             missionReachedLocations.clear();
                             missionActivatedSwitches.clear();
@@ -857,8 +868,11 @@ public final class GameScreen implements Screen {
                         openMissionSelectOverlay("npc_mission_giver");
                     } else {
                         String dialogueId = npcDialogueId(closestNpc.npcType, closestNpc.characterId);
-                        dialogueManager.setStoryContext(storyManager.toConditionContext());
-                        dialogueManager.startNpcDialogue(dialogueId);
+                        boolean cutsceneStarted = triggerNpcCutscene(closestNpc);
+                        if (!cutsceneStarted) {
+                            dialogueManager.setStoryContext(storyManager.toConditionContext());
+                            dialogueManager.startNpcDialogue(dialogueId);
+                        }
                         // Advance TALK_TO_NPC objectives for named characters.
                         // characterId matches the location field in mission objectives
                         // (e.g. "instructor_tai", "samson", "hazel").
@@ -1000,7 +1014,9 @@ public final class GameScreen implements Screen {
             // Entities and player are in world-space — follow posX/Y directly.
             if (!snap.players.isEmpty()) {
                 PlayerState local = findPlayerBySlotOrFirst(snap.players, localSlot);
-                camera.follow(local.posX, local.posY);
+                if (!camera.isCutsceneOverrideActive()) {
+                    camera.follow(local.posX, local.posY);
+                }
                 camera.clampToBounds(
                     megamapW * PhysicsConstants.TILE_SIZE,
                     megamapH * PhysicsConstants.TILE_SIZE
@@ -1232,6 +1248,31 @@ public final class GameScreen implements Screen {
             source, missionId, def.roomCount, def.shape);
     }
 
+    private boolean triggerNpcCutscene(NPCState npc) {
+        if (cutsceneTriggerRouter == null || npc == null) return false;
+        if (npc.characterId != null && !npc.characterId.isBlank()
+                && cutsceneTriggerRouter.onNpcInteract(npc.characterId)) {
+            return true;
+        }
+        return npc.npcId != null && !npc.npcId.isBlank()
+                && cutsceneTriggerRouter.onNpcInteract(npc.npcId);
+    }
+
+    private void completeActiveMissionWithCutsceneTrigger() {
+        String missionId = missionManager.getActiveMissionId();
+        missionManager.completeMission();
+        if (cutsceneTriggerRouter != null && missionId != null && !missionId.isBlank()) {
+            cutsceneTriggerRouter.onMissionComplete(missionId);
+        }
+    }
+
+    private void setStoryFlagAndTriggerCutscene(String key, String value) {
+        storyManager.setFlag(key, value);
+        if (cutsceneTriggerRouter != null) {
+            cutsceneTriggerRouter.onFlagChange(key);
+        }
+    }
+
     /**
      * Mission switch hardening for hosted sessions.
      * Consecutive mission starts (A -> B) must clear any prior mission pickup
@@ -1459,7 +1500,7 @@ public final class GameScreen implements Screen {
         }
 
         if (!missionManager.isExitLocked() && playerOverlapsVolume("exit", px, py)) {
-            missionManager.completeMission();
+            completeActiveMissionWithCutsceneTrigger();
             if (saveManager != null) saveManager.markDirty();
             missionReachedLocations.clear();
             missionActivatedSwitches.clear();
@@ -2406,13 +2447,13 @@ public final class GameScreen implements Screen {
             case "open_shop"     -> { /* stub — shop UI not yet implemented */ }
             case "advance_act"   -> storyManager.advanceAct();
             case "siren_start_first_trial" -> {
-                storyManager.setFlag("siren_intro_seen", "true");
-                storyManager.setFlag("siren_onboarding_complete", "true");
+                setStoryFlagAndTriggerCutscene("siren_intro_seen", "true");
+                setStoryFlagAndTriggerCutscene("siren_onboarding_complete", "true");
                 startMissionFlow("demo_coin_run", "siren_dialogue");
             }
             case "siren_open_mission_board" -> {
-                storyManager.setFlag("siren_intro_seen", "true");
-                storyManager.setFlag("siren_onboarding_complete", "true");
+                setStoryFlagAndTriggerCutscene("siren_intro_seen", "true");
+                setStoryFlagAndTriggerCutscene("siren_onboarding_complete", "true");
                 openMissionSelectOverlay("siren_dialogue");
             }
             // Known authored narrative events from data/dialogues.json.
@@ -2425,10 +2466,10 @@ public final class GameScreen implements Screen {
                  "act2_elder_patience_shown",
                  "act3_final_blessing_received",
                  "act3_elder_final_conversation" -> {
-                storyManager.setFlag(key, "true");
+                setStoryFlagAndTriggerCutscene(key, "true");
             }
             case "open_mission_menu" -> {
-                storyManager.setFlag(key, "true");
+                setStoryFlagAndTriggerCutscene(key, "true");
                 openMissionSelectOverlay("dialogue_event");
             }
             // Generic mission adapters (optional authored dialogue hooks).
@@ -2437,7 +2478,7 @@ public final class GameScreen implements Screen {
             case "collect_item" -> missionManager.onItemCollected(arg, 1);
             default -> {
                 String value = arg.isBlank() ? "true" : arg;
-                storyManager.setFlag(key, value);
+                setStoryFlagAndTriggerCutscene(key, value);
                 log.warn("[Dialogue] unknown event '{}'; stored as story flag='{}' (count={})",
                     key, value, dialogueEventCounts.getOrDefault(key, 1));
             }

@@ -32,6 +32,9 @@ public final class CutsceneManager {
     private final Map<String, CutsceneDefinition> definitions;
     private final StoryManager   story;
     private final DialogueManager dialogue;
+    private final CutsceneCameraController camera;
+    private final CutsceneMarkerRegistry markers;
+    private final CutsceneEntityController entities;
 
     /** Called with true to lock player input, false to unlock. */
     private final Consumer<Boolean> playerLockCallback;
@@ -50,6 +53,8 @@ public final class CutsceneManager {
     private int                stepIndex  = 0;
     private float              waitTimer  = 0f;
     private boolean            waitingForDialogue = false;
+    private boolean            waitingForCameraPan = false;
+    private String             waitingForEntityMove = null;
     private boolean            firstViewComplete  = false; // tracks first-view for ALLOW_AFTER_FIRST_VIEW
 
     public CutsceneManager(Map<String, CutsceneDefinition> definitions,
@@ -57,11 +62,46 @@ public final class CutsceneManager {
                            DialogueManager dialogue,
                            Consumer<Boolean> playerLockCallback,
                            Set<String> completedIds) {
+        this(definitions, story, dialogue, playerLockCallback, completedIds,
+                null, CutsceneMarkerRegistry.empty(), null);
+    }
+
+    public CutsceneManager(Map<String, CutsceneDefinition> definitions,
+                           StoryManager story,
+                           DialogueManager dialogue,
+                           Consumer<Boolean> playerLockCallback,
+                           Set<String> completedIds,
+                           CutsceneCameraController camera) {
+        this(definitions, story, dialogue, playerLockCallback, completedIds,
+                camera, CutsceneMarkerRegistry.empty(), null);
+    }
+
+    public CutsceneManager(Map<String, CutsceneDefinition> definitions,
+                           StoryManager story,
+                           DialogueManager dialogue,
+                           Consumer<Boolean> playerLockCallback,
+                           Set<String> completedIds,
+                           CutsceneCameraController camera,
+                           CutsceneMarkerRegistry markers) {
+        this(definitions, story, dialogue, playerLockCallback, completedIds, camera, markers, null);
+    }
+
+    public CutsceneManager(Map<String, CutsceneDefinition> definitions,
+                           StoryManager story,
+                           DialogueManager dialogue,
+                           Consumer<Boolean> playerLockCallback,
+                           Set<String> completedIds,
+                           CutsceneCameraController camera,
+                           CutsceneMarkerRegistry markers,
+                           CutsceneEntityController entities) {
         this.definitions        = definitions;
         this.story              = story;
         this.dialogue           = dialogue;
         this.playerLockCallback = playerLockCallback;
         this.completedIds       = completedIds;
+        this.camera             = camera;
+        this.markers            = markers != null ? markers : CutsceneMarkerRegistry.empty();
+        this.entities           = entities;
     }
 
     public void setOnCompleteCallback(Consumer<String> cb) {
@@ -117,6 +157,8 @@ public final class CutsceneManager {
         stepIndex         = 0;
         waitTimer         = 0f;
         waitingForDialogue = false;
+        waitingForCameraPan = false;
+        waitingForEntityMove = null;
         firstViewComplete = completedIds.contains(id);
         log.info("[CutsceneManager] starting '{}'", id);
         advanceToNextReady();
@@ -137,6 +179,38 @@ public final class CutsceneManager {
         if (waitingForDialogue) {
             if (!dialogue.isActive()) {
                 waitingForDialogue = false;
+                stepIndex++;
+                advanceToNextReady();
+            }
+            return;
+        }
+
+        if (waitingForCameraPan) {
+            if (camera != null) {
+                camera.updateCutscene(delta);
+                if (!camera.isCutscenePanActive()) {
+                    waitingForCameraPan = false;
+                    stepIndex++;
+                    advanceToNextReady();
+                }
+            } else {
+                waitingForCameraPan = false;
+                stepIndex++;
+                advanceToNextReady();
+            }
+            return;
+        }
+
+        if (waitingForEntityMove != null) {
+            if (entities != null) {
+                entities.updateCutsceneEntities(delta);
+                if (!entities.isEntityMoveActive(waitingForEntityMove)) {
+                    waitingForEntityMove = null;
+                    stepIndex++;
+                    advanceToNextReady();
+                }
+            } else {
+                waitingForEntityMove = null;
                 stepIndex++;
                 advanceToNextReady();
             }
@@ -199,10 +273,13 @@ public final class CutsceneManager {
         }
         dialogue.endDialogue();
         playerLockCallback.accept(false);
+        restoreCamera();
         active            = null;
         stepIndex         = 0;
         waitTimer         = 0f;
         waitingForDialogue = false;
+        waitingForCameraPan = false;
+        waitingForEntityMove = null;
     }
 
     /** Remove a completed id so the cutscene can replay. (DevConsole reset.) */
@@ -271,10 +348,83 @@ public final class CutsceneManager {
                 yield false; // async
             }
 
-            // Phase 2 step types: log and skip gracefully
-            case CAMERA_FOCUS, CAMERA_PAN, CAMERA_RESTORE_PLAYER,
-                 ENTITY_FACE, ENTITY_MOVE_TO, ENTITY_SET_VISIBLE, ENTITY_PLAY_ANIM,
-                 FADE_IN, FADE_OUT, TITLE_CARD, HUB_CHANGE, START_MISSION -> {
+            case CAMERA_FOCUS -> {
+                float[] target = coordinateTarget(step.target);
+                if (camera != null && target != null) {
+                    camera.setCutsceneFocus(target[0], target[1]);
+                } else {
+                    log.warn("[CutsceneManager] camera_focus target '{}' could not be resolved", step.target);
+                }
+                stepIndex++;
+                yield true;
+            }
+
+            case CAMERA_PAN -> {
+                float[] target = coordinateTarget(step.target);
+                if (camera != null && target != null) {
+                    camera.panTo(target[0], target[1], step.duration);
+                    if (camera.isCutscenePanActive()) {
+                        waitingForCameraPan = true;
+                        yield false;
+                    }
+                } else {
+                    log.warn("[CutsceneManager] camera_pan target '{}' could not be resolved", step.target);
+                }
+                stepIndex++;
+                yield true;
+            }
+
+            case CAMERA_RESTORE_PLAYER -> {
+                restoreCamera();
+                stepIndex++;
+                yield true;
+            }
+
+            case ENTITY_FACE -> {
+                float[] target = coordinateTarget(step.target);
+                if (entities != null && step.entity != null && target != null) {
+                    entities.faceEntity(step.entity, target[0], target[1]);
+                } else {
+                    log.warn("[CutsceneManager] entity_face target '{}' for '{}' could not be resolved",
+                            step.target, step.entity);
+                }
+                stepIndex++;
+                yield true;
+            }
+
+            case ENTITY_MOVE_TO -> {
+                float[] target = coordinateTarget(step.target);
+                if (entities != null && step.entity != null && target != null) {
+                    entities.moveEntityTo(step.entity, target[0], target[1], step.duration);
+                    if (entities.isEntityMoveActive(step.entity)) {
+                        waitingForEntityMove = step.entity;
+                        yield false;
+                    }
+                } else {
+                    log.warn("[CutsceneManager] entity_move_to target '{}' for '{}' could not be resolved",
+                            step.target, step.entity);
+                }
+                stepIndex++;
+                yield true;
+            }
+
+            case ENTITY_SET_VISIBLE -> {
+                if (entities != null && step.entity != null) {
+                    entities.setVisible(step.entity, Boolean.parseBoolean(step.value));
+                }
+                stepIndex++;
+                yield true;
+            }
+
+            case ENTITY_PLAY_ANIM -> {
+                if (entities != null && step.entity != null && step.value != null) {
+                    entities.playAnimation(step.entity, step.value);
+                }
+                stepIndex++;
+                yield true;
+            }
+
+            case FADE_IN, FADE_OUT, TITLE_CARD, HUB_CHANGE, START_MISSION -> {
                 log.warn("[CutsceneManager] step type {} not yet implemented — skipping", step.type);
                 stepIndex++;
                 yield true;
@@ -290,12 +440,41 @@ public final class CutsceneManager {
         }
         completedIds.add(id);
         playerLockCallback.accept(false);
+        restoreCamera();
         dialogue.endDialogue();
         active            = null;
         stepIndex         = 0;
         waitTimer         = 0f;
         waitingForDialogue = false;
+        waitingForCameraPan = false;
+        waitingForEntityMove = null;
         log.info("[CutsceneManager] completed '{}'", id);
         onCompleteCallback.accept(id);
+    }
+
+    private void restoreCamera() {
+        if (camera != null) {
+            camera.restorePlayerFollow();
+        }
+    }
+
+    private float[] coordinateTarget(String target) {
+        if (target == null || target.isBlank()) return null;
+        String[] parts = target.split(",");
+        if (parts.length != 2) return markerTarget(target);
+        try {
+            return new float[] {
+                    Float.parseFloat(parts[0].trim()),
+                    Float.parseFloat(parts[1].trim())
+            };
+        } catch (NumberFormatException e) {
+            return markerTarget(target);
+        }
+    }
+
+    private float[] markerTarget(String target) {
+        return markers.resolve(target)
+                .map(marker -> new float[] { marker.worldX(), marker.worldY() })
+                .orElse(null);
     }
 }

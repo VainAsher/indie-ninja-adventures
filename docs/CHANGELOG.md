@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.3
+version_anchor: v0.13.4
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.4] - 2026-04-29 (Phase 2 CutsceneManager camera/entity authoring)
+
+### Added
+
+- **Cutscene camera steps**: `camera_focus`, `camera_pan`, and `camera_restore_player` now drive `GameCamera` override state; pan steps wait for completion, and camera follow is restored on complete, skip, interrupt, and save-load reset.
+- **Cutscene marker registry**: `data/cutscenes/markers.json` defines named world positions for authored scenes; camera/entity targets can use either `"x,y"` coordinates or marker ids.
+- **Cutscene entity steps**: `entity_face`, `entity_move_to`, `entity_set_visible`, and `entity_play_anim` apply client-side NPC presentation overrides without changing server state.
+- **Cutscene triggers**: optional `triggers` blocks support `npc_interact`, `mission_complete`, and `flag_change` entry points from `GameScreen`.
+- **Act I cutscene library**: six authored Act I cutscenes are now listed in `data/cutscenes/index.json`: title sequence, Aen/Tai introduction, first patrol briefing, Linzi first appearance, Linzi guiding voice, and first thinning.
+- **Cutscene system doc**: `docs/systems/CUTSCENE.md` documents runtime wiring, authoring schema, markers, triggers, and the JAR-safe manifest rule.
+- **Tests**: added camera, marker, entity-step, trigger, and G0 route coverage for Phase 2 behavior.
+
+### Compatibility
+
+- **replay**: no change.
+- **save**: no schema change.
+- **protocol**: no change.
 
 ---
 

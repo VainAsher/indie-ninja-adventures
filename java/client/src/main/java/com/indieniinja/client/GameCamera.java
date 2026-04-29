@@ -2,6 +2,8 @@ package com.indieniinja.client;
 
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.MathUtils;
+import com.indieniinja.client.game.cutscene.CutsceneCameraController;
+import com.indieniinja.client.game.cutscene.CutsceneCameraMotion;
 
 /**
  * Camera with deadzone + spring-lerp following — direct port of Python's
@@ -11,7 +13,7 @@ import com.badlogic.gdx.math.MathUtils;
  * Movement is damped by a spring (LERP) so the camera lags slightly behind,
  * giving a fluid feel without being jarring.
  */
-public final class GameCamera {
+public final class GameCamera implements CutsceneCameraController {
 
     // Deadzone size in world pixels — matches Python CameraSystem
     private static final float DEADZONE_W = 200f;
@@ -24,6 +26,7 @@ public final class GameCamera {
 
     private float targetX;
     private float targetY;
+    private final CutsceneCameraMotion cutsceneMotion = new CutsceneCameraMotion();
 
     public GameCamera(float viewportW, float viewportH) {
         cam = new OrthographicCamera();
@@ -38,6 +41,8 @@ public final class GameCamera {
      * Call once per logic tick (not per render frame) for deterministic feel.
      */
     public void follow(float px, float py) {
+        if (cutsceneMotion.isOverrideActive()) return;
+
         float dx = px - cam.position.x;
         float dy = py - cam.position.y;
 
@@ -50,6 +55,52 @@ public final class GameCamera {
         // Spring interpolation toward target
         cam.position.x += (targetX - cam.position.x) * SPRING;
         cam.position.y += (targetY - cam.position.y) * SPRING;
+        cam.update();
+    }
+
+    @Override
+    public void setCutsceneFocus(float worldX, float worldY) {
+        cutsceneMotion.setFocus(worldX, worldY);
+        cam.position.x = cutsceneMotion.x();
+        cam.position.y = cutsceneMotion.y();
+        targetX = worldX;
+        targetY = worldY;
+        cam.update();
+    }
+
+    @Override
+    public void panTo(float worldX, float worldY, float duration) {
+        cutsceneMotion.panTo(cam.position.x, cam.position.y, worldX, worldY, duration);
+        cam.position.x = cutsceneMotion.x();
+        cam.position.y = cutsceneMotion.y();
+        cam.update();
+    }
+
+    @Override
+    public void updateCutscene(float delta) {
+        if (!cutsceneMotion.isPanActive()) return;
+        cutsceneMotion.update(delta);
+        cam.position.x = cutsceneMotion.x();
+        cam.position.y = cutsceneMotion.y();
+        targetX = cam.position.x;
+        targetY = cam.position.y;
+        cam.update();
+    }
+
+    @Override
+    public boolean isCutscenePanActive() {
+        return cutsceneMotion.isPanActive();
+    }
+
+    public boolean isCutsceneOverrideActive() {
+        return cutsceneMotion.isOverrideActive();
+    }
+
+    @Override
+    public void restorePlayerFollow() {
+        cutsceneMotion.restore(cam.position.x, cam.position.y);
+        targetX = cam.position.x;
+        targetY = cam.position.y;
         cam.update();
     }
 
@@ -74,6 +125,9 @@ public final class GameCamera {
         cam.position.y = y;
         targetX = x;
         targetY = y;
+        if (cutsceneMotion.isOverrideActive()) {
+            cutsceneMotion.restore(x, y);
+        }
         cam.update();
     }
 

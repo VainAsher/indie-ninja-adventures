@@ -2,13 +2,13 @@
 doc_type: plan
 status: implementing
 owner: core-team
-last_updated: 2026-04-28
-version_anchor: v0.13.2
+last_updated: 2026-04-29
+version_anchor: v0.13.4
 ---
 
 # PLAN — Data-Driven CutsceneManager
 ## Act I Lantern Dawn — Narrative Delivery System
-**Created:** 2026-04-28 | **Last updated:** 2026-04-29 | **Codebase version:** v0.13.2 | **Next release target:** v0.13.3
+**Created:** 2026-04-28 | **Last updated:** 2026-04-29 | **Codebase version:** v0.13.4 | **Next release target:** v0.13.4
 
 ---
 
@@ -188,8 +188,8 @@ Every implementation cycle must follow this exact order:
 
 ## Phase 2 — Camera + Entity + Act I Authoring
 
-**Target:** v0.13.3
-**Status:** NOT STARTED
+**Target:** v0.13.4
+**Status:** IN PROGRESS
 
 ### Phase 2 checklist
 
@@ -282,6 +282,31 @@ Every implementation cycle must follow this exact order:
 ---
 
 ## Latest loop note
+
+`2026-04-29 11:01:32 +01:00`
+
+- Phase 2 implementation complete for CS-11 through CS-18. The checkbox block above still contains legacy unchecked markdown markers because the file has pre-existing mojibake around dash characters that blocked precise patch replacement; this loop note is the authoritative completion note for this session.
+- Implemented marker registry, marker-backed camera target resolution, entity step controller/overrides, trigger parsing/router, GameScreen trigger wiring, save-load camera/entity reset, six Act I authored cutscene files, and `docs/systems/CUTSCENE.md`.
+- Added coverage: `CutsceneMarkerRegistryTest`, `CutsceneEntityStepTest`, `CutsceneTriggerTest`, `CutsceneG0RouteTest`, plus the earlier `CutsceneCameraTest`.
+- Validation: `.\gradlew.bat :client:test --no-daemon` PASS; `python tools/check_version_sync.py` PASS v0.13.4; `python tools/check_docs_freshness.py --emit-report` PASS; `.\gradlew.bat :shadowascent:compileJava :client:compileJava :client:shadowJar --no-daemon` PASS.
+- Compatibility: replay=no | save=no schema change | protocol=no.
+
+`2026-04-29 10:07:54 +01:00`
+
+- Completed CS-11 and most of CS-12/CS-18: `GameCamera` now exposes cutscene focus, pan, pan tick, and restore APIs through `CutsceneCameraController`; `GameScreen` skips player-follow while camera override is active.
+- `CutsceneManager` now handles `camera_focus`, `camera_pan`, and `camera_restore_player` for coordinate targets (`"x,y"`), waits for pan completion, and restores camera on complete/skip/interrupt.
+- Added `CutsceneCameraTest` coverage for pure camera motion, manager camera step dispatch, pan waiting, and restore on complete/skip/emergency stop.
+- Validation: `.\gradlew.bat :client:test --no-daemon` PASS; `.\gradlew.bat :shadowascent:compileJava :client:compileJava :client:shadowJar --no-daemon` PASS.
+- Remaining: entity/marker target resolution for `camera_focus` (CS-13/CS-14), explicit `SaveManager.load()` restore path, entity step types, trigger path, and Act I authoring.
+- Compatibility: replay=no | save=no | protocol=no.
+
+`2026-04-29 09:53:50 +01:00`
+
+- Session start: continuing from HEAD da5ce9b | Version: v0.13.3 | Branch: master.
+- Primary target: Phase 2 CS-11/CS-12 camera override slice, with CS-18 restore coverage where it naturally belongs.
+- Supporting tasks: write failing camera tests first, then implement `GameCamera` override/follow APIs and wire `camera_focus`, `camera_pan`, and `camera_restore_player` through `CutsceneManager`.
+- First validation command: `.\gradlew.bat :client:test --tests com.indieniinja.client.game.cutscene.CutsceneCameraTest`.
+- Resume risk notes: runtime/camera. Main stop condition is any unclear camera ownership or cutscene exit path that can leave player follow disabled.
 
 `2026-04-29 00:00:00 +00:00`
 

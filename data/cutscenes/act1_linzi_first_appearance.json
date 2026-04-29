@@ -5,6 +5,9 @@
   "act": 1,
   "blocking": true,
   "skip_policy": "allow_after_first_view",
+  "triggers": [
+    { "event": "npc_interact", "id": "linzi" }
+  ],
   "start_conditions": [
     { "flag_not_set": "act1_linzi_met" }
   ],
@@ -14,6 +17,8 @@
   ],
   "steps": [
     { "type": "lock_player" },
+    { "type": "camera_focus", "target": "marker_linzi_bridge" },
+    { "type": "entity_face", "entity": "linzi", "target": "marker_aen_home" },
     {
       "type": "dialogue",
       "speaker": "Linzi",
@@ -22,15 +27,11 @@
     {
       "type": "dialogue",
       "speaker": "Linzi",
-      "text_key": "I know a path through the Veiled Vale. Not many are ready for it — but you might be."
+      "text_key": "I know a path through the Veiled Vale. Not many are ready for it, but you might be."
     },
-    {
-      "type": "dialogue",
-      "speaker": "Linzi",
-      "text_key": "I will be near the mission board if you wish to speak further. Take your time."
-    },
-    { "type": "set_flag", "flag": "act1_linzi_met",  "value": "true" },
-    { "type": "set_flag", "flag": "linzi_arrived",   "value": "true" },
+    { "type": "set_flag", "flag": "act1_linzi_met", "value": "true" },
+    { "type": "set_flag", "flag": "linzi_arrived", "value": "true" },
+    { "type": "camera_restore_player" },
     { "type": "unlock_player" }
   ]
 }

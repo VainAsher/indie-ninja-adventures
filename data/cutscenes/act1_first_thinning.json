@@ -1,0 +1,36 @@
+{
+  "id": "act1_first_thinning",
+  "version": 1,
+  "mode": "campaign",
+  "act": 1,
+  "blocking": true,
+  "skip_policy": "allow_after_first_view",
+  "triggers": [
+    { "event": "mission_complete", "id": "linzi_q1" }
+  ],
+  "start_conditions": [
+    { "flag_set": "linzi_arrived" },
+    { "flag_not_set": "act1_first_thinning_seen" }
+  ],
+  "completion_flags": [
+    "act1_first_thinning_seen"
+  ],
+  "steps": [
+    { "type": "lock_player" },
+    { "type": "camera_pan", "target": "marker_thinning_notice", "duration": 1.0 },
+    { "type": "entity_set_visible", "entity": "samson", "value": "false" },
+    {
+      "type": "dialogue",
+      "speaker": "Aen",
+      "text_key": "The square feels quieter than it did this morning."
+    },
+    {
+      "type": "dialogue",
+      "speaker": "Linzi",
+      "text_key": "Peace can sound like absence at first. You did well."
+    },
+    { "type": "set_flag", "flag": "lantern_heights_first_thinning", "value": "true" },
+    { "type": "camera_restore_player" },
+    { "type": "unlock_player" }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "id": "act1_aen_of_lantern_heights",
+  "version": 1,
+  "mode": "campaign",
+  "act": 1,
+  "blocking": true,
+  "skip_policy": "allow_after_first_view",
+  "triggers": [
+    { "event": "npc_interact", "id": "instructor_tai" }
+  ],
+  "start_conditions": [
+    { "flag_not_set": "act1_aen_of_lantern_heights_seen" }
+  ],
+  "completion_flags": [
+    "act1_aen_of_lantern_heights_seen"
+  ],
+  "steps": [
+    { "type": "lock_player" },
+    { "type": "camera_focus", "target": "marker_aen_home" },
+    { "type": "entity_face", "entity": "instructor_tai", "target": "marker_aen_home" },
+    {
+      "type": "dialogue",
+      "speaker": "Instructor Tai",
+      "text_key": "Breathe, Aen. Yin and Yang are not tools at your side. They are companions at your center."
+    },
+    {
+      "type": "dialogue",
+      "speaker": "Instructor Tai",
+      "text_key": "Lantern Heights knows your footsteps. Walk it like someone who still belongs here."
+    },
+    { "type": "camera_restore_player" },
+    { "type": "unlock_player" }
+  ]
+}

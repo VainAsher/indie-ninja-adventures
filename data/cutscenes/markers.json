@@ -1,0 +1,9 @@
+[
+  { "id": "marker_title_start", "x": 360, "y": 280 },
+  { "id": "marker_title_lantern_heights", "x": 640, "y": 360 },
+  { "id": "marker_aen_home", "x": 420, "y": 420 },
+  { "id": "marker_tai_dojo", "x": 520, "y": 420 },
+  { "id": "marker_mission_board", "x": 760, "y": 420 },
+  { "id": "marker_linzi_bridge", "x": 820, "y": 420 },
+  { "id": "marker_thinning_notice", "x": 700, "y": 390 }
+]

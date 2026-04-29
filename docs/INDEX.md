@@ -122,6 +122,7 @@ This index tracks only the active documentation system for the Java v0.12.x line
 - [systems/AUDIO.md](systems/AUDIO.md)
 - [systems/CAMPAIGN.md](systems/CAMPAIGN.md)
 - [systems/COMPANIONS.md](systems/COMPANIONS.md)
+- [systems/CUTSCENE.md](systems/CUTSCENE.md)
 - [systems/ENDINGS.md](systems/ENDINGS.md)
 - [systems/LOOT.md](systems/LOOT.md)
 - [systems/MECHANICS.md](systems/MECHANICS.md)

@@ -1,0 +1,23 @@
+{
+  "id": "act1_title_sequence",
+  "version": 1,
+  "mode": "campaign",
+  "act": 1,
+  "blocking": true,
+  "skip_policy": "allow_after_first_view",
+  "start_conditions": [
+    { "flag_not_set": "act1_title_seen" }
+  ],
+  "completion_flags": [
+    "act1_title_seen"
+  ],
+  "steps": [
+    { "type": "lock_player" },
+    { "type": "camera_focus", "target": "marker_title_start" },
+    { "type": "camera_pan", "target": "marker_title_lantern_heights", "duration": 1.5 },
+    { "type": "title_card", "text_key": "Shadow Ascent: The Hollowed Ninja" },
+    { "type": "wait", "duration": 0.4 },
+    { "type": "camera_restore_player" },
+    { "type": "unlock_player" }
+  ]
+}

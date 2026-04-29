@@ -19,6 +19,7 @@ public final class CutsceneDefinition {
     public final SkipPolicy        skipPolicy;
     public final List<StartCondition> startConditions;
     public final List<String>      completionFlags;
+    public final List<CutsceneTrigger> triggers;
     public final List<CutsceneStep> steps;
 
     private CutsceneDefinition(Builder b) {
@@ -29,6 +30,7 @@ public final class CutsceneDefinition {
         this.skipPolicy      = b.skipPolicy;
         this.startConditions = List.copyOf(b.startConditions);
         this.completionFlags = List.copyOf(b.completionFlags);
+        this.triggers        = List.copyOf(b.triggers);
         this.steps           = List.copyOf(b.steps);
     }
 
@@ -38,6 +40,13 @@ public final class CutsceneDefinition {
             if (!c.isMet(story)) return false;
         }
         return true;
+    }
+
+    public boolean hasTrigger(CutsceneTriggerType type, String id) {
+        for (CutsceneTrigger trigger : triggers) {
+            if (trigger.matches(type, id)) return true;
+        }
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -68,6 +77,17 @@ public final class CutsceneDefinition {
 
         List<String> flags = (List<String>) m.getOrDefault("completion_flags", List.of());
 
+        List<CutsceneTrigger> triggers = new java.util.ArrayList<>();
+        Object triggerValue = m.get("triggers");
+        if (triggerValue instanceof List<?> rawTriggers) {
+            for (int i = 0; i < rawTriggers.size(); i++) {
+                Object raw = rawTriggers.get(i);
+                if (raw instanceof Map<?, ?> rawMap) {
+                    triggers.add(CutsceneTrigger.fromMap((Map<String, Object>) rawMap, id, i));
+                }
+            }
+        }
+
         List<Map<String, Object>> stepMaps =
                 (List<Map<String, Object>>) m.getOrDefault("steps", List.of());
         List<CutsceneStep> steps = new java.util.ArrayList<>();
@@ -77,7 +97,7 @@ public final class CutsceneDefinition {
 
         return new Builder(id)
                 .version(version).act(act).blocking(blocking).skipPolicy(skipPolicy)
-                .startConditions(conditions).completionFlags(flags).steps(steps)
+                .startConditions(conditions).completionFlags(flags).triggers(triggers).steps(steps)
                 .build();
     }
 
@@ -103,6 +123,7 @@ public final class CutsceneDefinition {
         private SkipPolicy skipPolicy = SkipPolicy.ALLOW_AFTER_FIRST_VIEW;
         private List<StartCondition> startConditions = List.of();
         private List<String>         completionFlags = List.of();
+        private List<CutsceneTrigger> triggers        = List.of();
         private List<CutsceneStep>   steps           = List.of();
 
         public Builder(String id)                               { this.id = id; }
@@ -112,6 +133,7 @@ public final class CutsceneDefinition {
         public Builder skipPolicy(SkipPolicy v)                 { this.skipPolicy = v;      return this; }
         public Builder startConditions(List<StartCondition> v)  { this.startConditions = v; return this; }
         public Builder completionFlags(List<String> v)          { this.completionFlags = v; return this; }
+        public Builder triggers(List<CutsceneTrigger> v)         { this.triggers = v;        return this; }
         public Builder steps(List<CutsceneStep> v)              { this.steps = v;           return this; }
         public CutsceneDefinition build()                       { return new CutsceneDefinition(this); }
     }

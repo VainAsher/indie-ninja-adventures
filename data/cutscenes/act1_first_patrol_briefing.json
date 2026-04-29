@@ -1,0 +1,34 @@
+{
+  "id": "act1_first_patrol_briefing",
+  "version": 1,
+  "mode": "campaign",
+  "act": 1,
+  "blocking": true,
+  "skip_policy": "allow_after_first_view",
+  "triggers": [
+    { "event": "mission_complete", "id": "act1_social_grounding" }
+  ],
+  "start_conditions": [
+    { "flag_not_set": "act1_first_patrol_briefed" }
+  ],
+  "completion_flags": [
+    "act1_first_patrol_briefed"
+  ],
+  "steps": [
+    { "type": "lock_player" },
+    { "type": "camera_focus", "target": "marker_tai_dojo" },
+    {
+      "type": "dialogue",
+      "speaker": "Instructor Tai",
+      "text_key": "Good. You greeted the people before chasing the horizon. That order matters."
+    },
+    {
+      "type": "dialogue",
+      "speaker": "Instructor Tai",
+      "text_key": "Take the lower patrol. Listen before you strike, and return with the shape of the trouble."
+    },
+    { "type": "set_flag", "flag": "act1_first_patrol_available", "value": "true" },
+    { "type": "camera_restore_player" },
+    { "type": "unlock_player" }
+  ]
+}
