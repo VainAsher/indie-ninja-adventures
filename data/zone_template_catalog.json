@@ -1,0 +1,18 @@
+{
+  "roles": {
+    "fill": {
+      "fallbackWeight": 6,
+      "templates": [
+        { "file": "fill/solid_block.tmx", "weight": 1 },
+        { "file": "fill/hollow_shell.tmx", "weight": 1 }
+      ]
+    },
+    "plat": {
+      "fallbackWeight": 6,
+      "templates": [
+        { "file": "plat/center_bar.tmx", "weight": 1 },
+        { "file": "plat/split_ledge.tmx", "weight": 1 }
+      ]
+    }
+  }
+}

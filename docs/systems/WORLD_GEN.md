@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-21
-version_anchor: v0.11.71
+version_anchor: v0.13.6
 ---
 
 # World Generation and Layout (Java)
@@ -68,6 +68,31 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
 4. Stitch unified layout for simulation and snapshot descriptors.
 5. Client renders tile output with blob autotile mapping and room metadata.
 
+## Snapshot export
+
+`WorldGenerationSnapshotCommand` exports a deterministic JSON snapshot for a
+seed, room count, and graph shape:
+
+```bash
+cd java
+./gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=20 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345.json" --no-daemon
+```
+
+The command writes:
+
+| Field | Meaning |
+| ----- | ------- |
+| `generatorSchemaVersion` | Current generator snapshot schema from `GeneratorSchemaVersion.CURRENT`. |
+| `worldSeed` / `shape` / `roomCountRequested` | Inputs used to generate the graph. |
+| `roomCountActual` | Number of generated rooms after frontier expansion. |
+| `seedStreams` | Stable stream identifiers reserved for graph, room, zone, and autotile layers. |
+| `bounds` | Min/max room-grid bounds and room-space dimensions. |
+| `rooms[]` | Stable room ids, grid coordinates, type ids, room seeds, biome indexes, sorted neighbor dirs, and tile CRC checksums. |
+
+The first snapshot schema is graph-centric. Later layered-generator slices should
+append section, socket, anchor, validator, and megamap blocks instead of
+replacing the command.
+
 ## Method-level call graphs
 
 - Hub init graph:
@@ -90,10 +115,13 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
 - Room shell safety is data-driven by `data/room_geometry_rules.json`.
 - Procedural room structure is data-driven by `data/room_structure_rules.json`.
 - Authored room template selection is data-driven by `data/room_template_catalog.json`.
+- Authored 8x8 zone patch selection is data-driven by `data/zone_template_catalog.json`.
 - Changing geometry rule values is replay-breaking because it changes deterministic tile output.
 - Changing structure rule values is replay-breaking because it changes deterministic zone plans and hazard placement.
 - Changing template catalog weights or files is replay-breaking because room seeds may resolve to different TMX layouts.
+- Changing zone patch catalog weights or files is replay-breaking because procedural zone expansion may stamp different tile patches.
 - Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
+- Authored zone patch TMX files and catalog entries can be checked with `python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json`.
 
 ## Geometry rules
 
@@ -125,6 +153,21 @@ This layer is intentionally below room grammar. It guarantees safe structure, wh
 | `centerClearRadiusZones` | Radius around the room center forced back to `WALK` after finalization; useful for boss arenas. |
 
 These rules solve a different layer from TMX templates. Procedural rooms still mix `ZoneTemplateLibrary` patterns per `FILL`/`PLAT` zone; structure rules decide how many of those roles appear and where broad room constraints apply. Authored TMX templates bypass zone planning for their interior layout, then still receive runtime geometry enforcement for doors, walls, and floors.
+
+## Zone patch catalog
+
+`data/zone_template_catalog.json` lets authored 8x8 TMX patches mix into procedural zone expansion:
+
+| Field | Meaning |
+| ----- | ------- |
+| `roles.<role>.fallbackWeight` | Relative weight reserved for the built-in `ZoneTemplateLibrary` pool. Use `0` only when the role should be fully catalog-authored. |
+| `roles.<role>.templates[].file` | TMX filename under `java/assets/rooms/zone_templates/`. |
+| `roles.<role>.templates[].weight` | Relative deterministic selection weight for that authored patch; values below 1 clamp to 1 at runtime. |
+| `roles.<role>.templates[].biomeIndexes` | Optional integer biome-index allowlist for biome-specific patches. Omit or leave empty to apply to all biomes. |
+
+The runtime loads valid catalog entries through `ZonePatchTemplateLibrary`. During `ZoneTemplateLibrary.pick(...)`, the authored catalog rolls first. If the roll lands in fallback weight, no valid patch exists, or the role has no catalog entry, generation uses the existing hardcoded weighted pool. This lets hand-authored Tiled patches improve room geometry while preserving procedural variety.
+
+Patch TMX files are 8x8, CSV-encoded, use the terrain layer, and use GIDs 0-8. They are small zone components, not full rooms, so they do not receive full-room wall/floor enforcement.
 
 ## Template catalog
 

@@ -159,6 +159,31 @@ These rules affect generated rooms only. If a `.tmx` exists for a room type, its
 
 ---
 
+## Zone Patch Templates
+
+Procedural rooms can also use authored 8x8 Tiled patches during zone expansion.
+These are smaller than room templates and live in:
+
+```text
+java/assets/rooms/zone_templates/
+```
+
+Use the same terrain GIDs as room templates, but make the map exactly `8 x 8`
+tiles. Add weighted entries in `data/zone_template_catalog.json`.
+
+`fallbackWeight` controls how often the existing built-in procedural pool remains
+eligible. For example, `fallbackWeight: 6` plus two authored templates with
+weight `1` means the legacy pool is selected six weighted rolls out of eight,
+and the authored patches are selected two weighted rolls out of eight.
+
+Validate patches and catalog entries with:
+
+```bash
+python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json
+```
+
+---
+
 ## Validation
 
 Run before committing any template change:

@@ -39,6 +39,7 @@ Core authoring data:
 data/room_geometry_rules.json
 data/room_structure_rules.json
 data/room_template_catalog.json
+data/zone_template_catalog.json
 data/entities/rooms/types/*.json
 ```
 
@@ -50,6 +51,7 @@ java/shadowascent/src/main/java/com/indieniinja/world/ZonePlanner.java
 java/shadowascent/src/main/java/com/indieniinja/world/RoomGenerator.java
 java/shadowascent/src/main/java/com/indieniinja/world/TmxRoomLoader.java
 java/shadowascent/src/main/java/com/indieniinja/world/RoomTemplateCatalog.java
+java/shadowascent/src/main/java/com/indieniinja/world/ZonePatchTemplateLibrary.java
 java/shadowascent/src/main/java/com/indieniinja/world/RoomGeometryRules.java
 java/shadowascent/src/main/java/com/indieniinja/world/RoomStructureRules.java
 ```
@@ -203,7 +205,100 @@ The important distinction:
 
 - `ZonePlanner` decides broad room shape and zone roles.
 - `ZoneTemplateLibrary` decides the 8x8 tile pattern for each fill/platform zone.
+- `ZonePatchTemplateLibrary` can mix Tiled-authored 8x8 patches into that pool.
 - `RoomGenerator` expands zones into tiles and applies geometry.
+
+## Designing Tiled Zone Patch Templates
+
+Zone patch templates are small Tiled maps used by procedural rooms. They are not
+full rooms. A patch is stamped into one 8x8 zone after `ZonePlanner` has already
+chosen a zone role.
+
+Canonical runtime patches live here:
+
+```text
+java/assets/rooms/zone_templates/
+```
+
+The root editor copy is:
+
+```text
+assets/rooms/zone_templates/
+```
+
+Patch TMX requirements:
+
+```text
+8 x 8 tiles
+16 x 16 pixel tiles
+CSV encoding
+terrain layer name
+GIDs 0-8 only
+```
+
+Add patch entries in:
+
+```text
+data/zone_template_catalog.json
+```
+
+Example:
+
+```json
+{
+  "roles": {
+    "fill": {
+      "fallbackWeight": 6,
+      "templates": [
+        { "file": "fill/solid_block.tmx", "weight": 1 },
+        { "file": "fill/hollow_shell.tmx", "weight": 1 }
+      ]
+    },
+    "plat": {
+      "fallbackWeight": 6,
+      "templates": [
+        { "file": "plat/center_bar.tmx", "weight": 1 }
+      ]
+    }
+  }
+}
+```
+
+`fallbackWeight` is the chance budget reserved for the built-in procedural pool.
+With `fallbackWeight: 6` and two authored templates at weight `1`, the legacy pool
+is selected 6 out of 8 weighted rolls and authored patches are selected 2 out of
+8. Use `fallbackWeight: 0` only when you intentionally want a role to be fully
+authored by the catalog.
+
+Optional `biomeIndexes` can restrict a patch to specific biome indexes:
+
+```json
+{ "file": "fill/crystal_pillar.tmx", "weight": 1, "biomeIndexes": [7] }
+```
+
+Validate patches and catalog entries with:
+
+```bash
+python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json
+```
+
+Changing patch files, weights, or fallback weights is replay-breaking for
+procedural rooms because the same seed can stamp different 8x8 geometry.
+
+## Inspecting Generated Maps
+
+Use the world-generation snapshot command before and after template or rule
+changes when you need a deterministic diffable export:
+
+```bash
+cd java
+./gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=20 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345.json" --no-daemon
+```
+
+The snapshot records generator schema version, seed streams, room graph data,
+neighbor directions, biome indexes, and per-room tile checksums. Use it as the
+baseline artifact for future room/zone authoring changes until the visual map
+viewer slice lands.
 
 ## Room Structure Rules
 

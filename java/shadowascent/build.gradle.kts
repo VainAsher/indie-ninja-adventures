@@ -16,3 +16,16 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.25.3")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.13")
 }
+
+tasks.register<JavaExec>("worldgenSnapshot") {
+    group = "worldgen"
+    description = "Export a deterministic world-generation JSON snapshot."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.indieniinja.world.WorldGenerationSnapshotCommand")
+    args(
+        "--seed", (findProperty("seed") as String?) ?: "1",
+        "--rooms", (findProperty("rooms") as String?) ?: "20",
+        "--shape", (findProperty("shape") as String?) ?: "BLOB",
+        "--out", (findProperty("out") as String?) ?: "build/worldgen-snapshots/snapshot.json",
+    )
+}

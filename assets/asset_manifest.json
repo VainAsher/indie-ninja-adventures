@@ -1,7 +1,7 @@
 {
-  "generated": "2026-04-29T10:12:04.220757+00:00",
+  "generated": "2026-04-29T20:15:14.391794+00:00",
   "root": "assets",
-  "count": 516,
+  "count": 520,
   "files": [
     {
       "path": "animations/manifest.json",
@@ -10,8 +10,8 @@
     },
     {
       "path": "asset_manifest.json",
-      "size": 95841,
-      "sha256": "4004e43e95be5cd95b55cb01d3f64da180d885d27a7aa6bc33a9bd70c019230f"
+      "size": 96557,
+      "sha256": "fd51a10e9bc9162f003e8c14dd93f0b42c54382f9c1c2497ea85368392ad042d"
     },
     {
       "path": "audio/sfx/dash.wav",
@@ -435,23 +435,43 @@
     },
     {
       "path": "rooms/templates/boss.tmx",
-      "size": 33420,
-      "sha256": "c670b1277a1b4703d5329b44b362fe0c62e0f36398dce223e41d6ae0cfde7841"
+      "size": 33409,
+      "sha256": "648c5c097a81138aca2bc91816af68ee109a1013da60b537b0bb125a9852a2bb"
     },
     {
       "path": "rooms/templates/exit.tmx",
-      "size": 33420,
-      "sha256": "e0563a363d1f464940fe31cf7a27e96e275949cbb2ad7db187f043a18304ae98"
+      "size": 33409,
+      "sha256": "be643407b36aadea76be5b9e9605381dc8ef0e93209833daff58bbe7d9cb41c1"
     },
     {
       "path": "rooms/templates/shop.tmx",
-      "size": 33420,
-      "sha256": "f6c2f5cb1bf4228ebe62d676df35ab5ae99fe72b0301e9d361a91852e4d59573"
+      "size": 33409,
+      "sha256": "415b33203d40a3a8ece389bbd8f5dba1dc14e280d75456475e6769d87bbd6873"
     },
     {
       "path": "rooms/templates/start.tmx",
-      "size": 33420,
-      "sha256": "f225e85a8d5732d29041051cb5bf9ee45e3694fec4e6662b9b4a642a812ca01b"
+      "size": 33409,
+      "sha256": "90664651c3d1dca95ebaffe22e29600d92303db8e2af9cb4e88dbf52f02bf217"
+    },
+    {
+      "path": "rooms/zone_templates/fill/hollow_shell.tmx",
+      "size": 435,
+      "sha256": "187c972a906347375a587a1da4f860a3ca8c7c8b77302c72b2707e09f435fc72"
+    },
+    {
+      "path": "rooms/zone_templates/fill/solid_block.tmx",
+      "size": 435,
+      "sha256": "358fb8c5a9dd46e2007e4fa251a48d97dabf678414e15f1c036972892e08daef"
+    },
+    {
+      "path": "rooms/zone_templates/plat/center_bar.tmx",
+      "size": 435,
+      "sha256": "1816f3b75d49254730bc2b1178cfa3adbb4a94d06d735c80788968dcd4be5754"
+    },
+    {
+      "path": "rooms/zone_templates/plat/split_ledge.tmx",
+      "size": 435,
+      "sha256": "cd1b70e4a43c9dd8eeb8dae3ce1b4903486d7706f0a96fe9d4c21cd761ffd3eb"
     },
     {
       "path": "splash/landing.png",

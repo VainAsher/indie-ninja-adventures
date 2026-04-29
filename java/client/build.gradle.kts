@@ -78,6 +78,7 @@ tasks.register<Copy>("copyJarToRoot") {
     from(tasks.shadowJar)
     into(repoRoot)
     dependsOn(tasks.shadowJar)
+    mustRunAfter(tasks.named("compileTestJava"))
 }
 tasks.shadowJar {
     finalizedBy("copyJarToRoot")

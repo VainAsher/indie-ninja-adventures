@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.5
+version_anchor: v0.13.6
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.6] - 2026-04-29 (Layered worldgen snapshots and zone patches)
+
+### Added
+
+- **Tiled zone patch templates**: `data/zone_template_catalog.json`, `ZonePatchTemplateLibrary`, and `java/assets/rooms/zone_templates/` let procedural rooms mix designer-authored 8x8 TMX patches into `FILL` and `PLAT` zone expansion.
+- **Zone patch validation**: `tools/validate_zone_templates.py` validates 8x8 patch TMX files, catalog shape, path safety, positive weights, optional biome indexes, CSV encoding, and GIDs 0-8.
+- **Deterministic worldgen snapshots**: `GeneratorSchemaVersion`, `WorldGenerationSnapshotCommand`, and the `:shadowascent:worldgenSnapshot` Gradle task export graph-centric JSON snapshots with seed streams, bounds, room metadata, and tile checksums.
+- **Layered hybrid generator plan**: `docs/plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md` records the roadmap from zone-patch authoring toward progression graphs, section templates, validation, repair, stitching, and viewer tooling.
+
+### Changed
+
+- `ZoneTemplateLibrary` now checks authored zone patch entries first, then falls back to the existing weighted built-in pool via per-role `fallbackWeight`.
+- Level-authoring and world-generation docs now distinguish full-room TMX templates from 8x8 zone patch TMX templates.
+- `version.json` now records `generator_schema_version` alongside the product version.
+
+### Compatibility
+
+- **replay**: replay-breaking for procedural generation when zone patch catalog weights, fallback weights, or TMX patch contents change.
+- **save**: no schema change.
+- **protocol**: no change.
 
 ---
 

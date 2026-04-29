@@ -17,6 +17,7 @@ import java.util.Random;
 public final class ZoneTemplateLibrary {
 
     private static final int TPZ = 8;  // tiles per zone
+    private static final ZonePatchTemplateLibrary AUTHORED_PATCHES = ZonePatchTemplateLibrary.loadDefault();
 
     private ZoneTemplateLibrary() {}
 
@@ -235,6 +236,17 @@ public final class ZoneTemplateLibrary {
      * @return byte[8][8] tile pattern (AIR=0, SOLID=1, PLATFORM=2)
      */
     public static byte[][] pick(byte role, int biomeIndex, Random rng) {
+        return pick(role, biomeIndex, rng, AUTHORED_PATCHES);
+    }
+
+    static byte[][] pick(byte role, int biomeIndex, Random rng, ZonePatchTemplateLibrary authoredPatches) {
+        if (authoredPatches != null) {
+            var authored = authoredPatches.pick(role, biomeIndex, rng);
+            if (authored.isPresent()) {
+                return authored.get();
+            }
+        }
+
         int bi = Math.max(0, Math.min(biomeIndex, FILL_WEIGHTS.length - 1));
         if (role == ZonePlanner.FILL) return pickFill(bi, rng);
         return pickPlat(bi, rng);
