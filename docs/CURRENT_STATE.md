@@ -59,22 +59,37 @@ Canonical runtime and handover snapshot for the active Java stack.
 ## Session Handover — 2026-04-29
 
 - **Date:** 2026-04-29
-- **Branch:** master | **HEAD:** 5c679bd (Phase 1 commit; v0.13.2 tag pending)
-- **Version:** v0.13.2
-- **Systems touched:** `cutscene` package (new), `GameScreen`, `DialogueManager`, `StoryManager`, `SaveData`, `SaveManager`, CHANGELOG, ROADMAP, README, CURRENT_STATE, PLAN_CUTSCENE_MANAGER, version.json, build.gradle.kts
+- **Branch:** master | **HEAD:** 4a54186
+- **Version:** v0.13.2 — released and verified
+- **Systems touched:** `cutscene` package (new — 8 classes), `GameScreen`, `DialogueManager`, `StoryManager`, `SaveData`, `SaveManager`, CHANGELOG, ROADMAP, README, CURRENT_STATE, PLAN_CUTSCENE_MANAGER, devlog, version.json, build.gradle.kts
+- **What was built (Phase 1 CutsceneManager — CS-01–CS-10):**
+  - `CutsceneStepType` enum, `SkipPolicy` enum, `StartCondition`, `CutsceneLoadException`
+  - `CutsceneStep` data model with `Builder` pattern (type, flag, speaker, textKey, duration, target, entity)
+  - `CutsceneDefinition` data model — id, version, act, blocking, skipPolicy, startConditions, completionFlags, steps
+  - `CutsceneLoader` — loads `data/cutscenes/*.json` via `Gdx.files.internal`; headless-safe `loadString()` for tests; skips invalid files with ERROR log; deterministic alphabetical order
+  - `CutsceneManager` — `start(id)`, `start(id, force)`, `tick(delta)`, `skip()`, `complete()`, `interrupt()`, `emergencyStop()`, `resetCompleted(id)`, `setOnCompleteCallback()`; Phase 2 step types accepted with warning log
+  - `DialogueManager.startInline(speaker, text)` — synthetic single-node dialogue tree for inline cutscene dialogue
+  - `StoryManager.hasFlag(key)` — boolean convenience wrapper
+  - `SaveData.completedCutscenes` (`List<String>`) — persisted; null-safe on old save load
+  - `SaveManager.completedCutscenes()` live `Set<String>` — survives `liveData` replacement on reload via separate `completedCutscenesSet` field
+  - `GameScreen`: `CutsceneManager` init after `saveManager.load()`, `tick()` in render loop, `cutscenePlayerLocked` gate in `gameplayInputEnabled()`, 4 DevConsole commands (`cutscene list/play/reset/flags`)
+  - `data/cutscenes/act1_linzi_first_appearance.json` — Linzi's first appearance; sets `act1_linzi_met` + `linzi_arrived` flags
+  - 36 new tests passing: `CutsceneLoaderTest`(9), `CutsceneManagerTest`(13), `CutsceneCompletionFlagTest`(4), `CutsceneSkipPolicyTest`(7), `CutsceneSaveRoundtripTest`(3)
 - **Validation run:**
-  - `.\gradlew.bat :client:shadowJar` — BUILD SUCCESSFUL (54s)
+  - `.\gradlew.bat :client:shadowJar` — BUILD SUCCESSFUL
   - `.\gradlew.bat :client:test` — 36 new cutscene tests PASS; all prior tests stable
   - `python tools/check_version_sync.py` — OK v0.13.2
   - `python tools/check_docs_freshness.py --emit-report` — PASS (0 warnings)
-  - CI: success (`5c679bd`) — green on master push
+  - CI: success (master push `5c679bd` + version bump `ebbe32e` + plan closure `4a54186`)
+  - Release: success — `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.2.zip` verified
 - **Known issues / risks:**
-  - `cutscene play act1_linzi_first_appearance` DevConsole command wired but not live-smoke-tested (requires launcher runtime).
-  - Phase 2 step types (camera/entity) accepted with warning log — not yet implemented; Phase 2 target is v0.13.3.
-  - `buildAll` Gradle task has pre-existing undeclared dependency; workaround is `:shadowascent:compileJava :client:compileJava :client:shadowJar`.
-  - No hub name HUD (step 1 of G0 PARTIAL since v0.13.0) — deferred.
-- **Compatibility:** replay: no | save: additive (completedCutscenes field added, null-safe on old saves) | protocol: no
-- **First action next session:** Tag v0.13.2 (already bumped; just need `git tag v0.13.2 && git push origin v0.13.2`). Then begin Phase 2 CutsceneManager — start with CS-11 camera override in GameCamera.
+  - `cutscene play act1_linzi_first_appearance` wired in DevConsole but not live-smoke-tested through launcher runtime — requires manual smoke next session.
+  - Phase 2 step types (camera/entity) are forwarded with a warning log but produce no effect — authoring Phase 2 scenes before CS-11–CS-13 are implemented will silently no-op those steps.
+  - No hub name HUD (step 1 of G0 PARTIAL since v0.13.0) — deferred past Phase 2.
+  - `buildAll` Gradle task has pre-existing undeclared dependency; workaround: `:shadowascent:compileJava :client:compileJava :client:shadowJar`.
+- **Compatibility:** replay: no | save: additive (`completedCutscenes` added; old saves load cleanly with empty set) | protocol: no
+- **Active plan:** [`docs/plans/implementing/PLAN_CUTSCENE_MANAGER.md`](plans/implementing/PLAN_CUTSCENE_MANAGER.md) — Phase 1 COMPLETE, Phase 2 NOT STARTED
+- **First action next session:** Begin Phase 2 — CS-11: add `setCutsceneFocus()`, `panTo()`, `restorePlayerFollow()` to `GameCamera`. Then CS-12: wire camera step types into `CutsceneManager.tick()`. Then CS-13: entity steps. Target: v0.13.3. Run `cutscene play act1_linzi_first_appearance` from DevConsole as live smoke before starting CS-11.
 
 ## Session Handover — 2026-04-28
 
