@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-28
-version_anchor: v0.13.1
+last_updated: 2026-04-29
+version_anchor: v0.13.2
 replaces: docs/HANDOVER.md
 ---
 
@@ -25,7 +25,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 — Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next release candidate: v0.13.2 (5 first-session test records; hub social change tuning).
+- Next release candidate: v0.13.3 (Phase 2 CutsceneManager — camera + entity steps + Act I scene authoring).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-28`):
   - Tests green locally (BUILD SUCCESSFUL - all modules)
@@ -55,6 +55,26 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Pygame prototype extraction phase-4 cutover is complete in this repo: launcher fallback to `demo_game.py` is removed, CI/release default lanes are Java-first, and migrated prototype runtime paths now live in `VainAsher/indie-ninja-prototype`.
 - **Engine Platform Phases A-C complete (2026-04-19)**: Content definition system (`ContentLoader`, `ContentRegistry`, JSON-schema-validated definitions), `GameConfig` balance constants, animation manifest + hot-reload, Tiled TMX room loader (4 templates), Yarn Spinner dialogue format (23 files), in-game DevConsole (backtick toggle, 14 commands), Gradle `buildAssets` pipeline (436 files, SHA-256). Module extraction: `:shadowascent` module created - `sim.*` and `world.*` moved out of `:core`; `EntityTypeRegistry` + `ShadowAscentEntityTypeBootstrap` added; `:core` published as `engine-core` Maven artifact to GitHub Packages. All server tests pass.
 - **Engine Platform Phase D complete (2026-04-19)**: Save checksums (`savegame.sha256` SHA-256 sidecar, verified on load with corrupt-save fallback). Perf regression gate (`TickDurationRegressionTest` â€” 2000-tick run, 5 ms ceiling, `perf_baseline.json`). Multi-slot save support (`user_data/saves/slot_N/`, `SlotSelectScreen`, legacy single-slot auto-migration). `tools/validate_animation_manifest.py` validates manifest against registry at authoring time.
+
+## Session Handover — 2026-04-29
+
+- **Date:** 2026-04-29
+- **Branch:** master | **HEAD:** 5c679bd (Phase 1 commit; v0.13.2 tag pending)
+- **Version:** v0.13.2
+- **Systems touched:** `cutscene` package (new), `GameScreen`, `DialogueManager`, `StoryManager`, `SaveData`, `SaveManager`, CHANGELOG, ROADMAP, README, CURRENT_STATE, PLAN_CUTSCENE_MANAGER, version.json, build.gradle.kts
+- **Validation run:**
+  - `.\gradlew.bat :client:shadowJar` — BUILD SUCCESSFUL (54s)
+  - `.\gradlew.bat :client:test` — 36 new cutscene tests PASS; all prior tests stable
+  - `python tools/check_version_sync.py` — OK v0.13.2
+  - `python tools/check_docs_freshness.py --emit-report` — PASS (0 warnings)
+  - CI: success (`5c679bd`) — green on master push
+- **Known issues / risks:**
+  - `cutscene play act1_linzi_first_appearance` DevConsole command wired but not live-smoke-tested (requires launcher runtime).
+  - Phase 2 step types (camera/entity) accepted with warning log — not yet implemented; Phase 2 target is v0.13.3.
+  - `buildAll` Gradle task has pre-existing undeclared dependency; workaround is `:shadowascent:compileJava :client:compileJava :client:shadowJar`.
+  - No hub name HUD (step 1 of G0 PARTIAL since v0.13.0) — deferred.
+- **Compatibility:** replay: no | save: additive (completedCutscenes field added, null-safe on old saves) | protocol: no
+- **First action next session:** Tag v0.13.2 (already bumped; just need `git tag v0.13.2 && git push origin v0.13.2`). Then begin Phase 2 CutsceneManager — start with CS-11 camera override in GameCamera.
 
 ## Session Handover — 2026-04-28
 

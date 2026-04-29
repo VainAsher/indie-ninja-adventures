@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-28
-version_anchor: v0.13.1
+last_updated: 2026-04-29
+version_anchor: v0.13.2
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.2] - 2026-04-29 (Phase 1 data-driven CutsceneManager)
+
+### Added
+
+- **CutsceneManager** (`com.indieniinja.client.game.cutscene`): data-driven runtime sequencer — `start(id)`, `tick(delta)`, `skip()`, `complete()`, `emergencyStop()`, `resetCompleted()`. Step types: `LOCK_PLAYER`, `UNLOCK_PLAYER`, `DIALOGUE`, `WAIT`, `SET_FLAG`; Phase 2 types (camera/entity) accepted with warning log.
+- **CutsceneLoader**: loads and validates `data/cutscenes/*.json`; headless-safe `loadString()` path for tests; unknown step type skips file with ERROR log; deterministic alphabetical load order.
+- **CutsceneDefinition / CutsceneStep / SkipPolicy / StartCondition**: full data model for authored scenes. Skip policies: `NEVER`, `ALWAYS`, `ALLOW_AFTER_FIRST_VIEW`, `DEBUG_ONLY`.
+- **DialogueManager.startInline()**: synthetic single-node dialogue tree for cutscene inline dialogue without a separate Yarn/JSON file.
+- **StoryManager.hasFlag()**: boolean convenience over `getFlag()` used by start conditions.
+- **SaveData.completedCutscenes**: persisted `List<String>` of played cutscene ids; null-safe on load from old saves.
+- **SaveManager.completedCutscenes()**: live `Set<String>` that survives `liveData` replacement on reload.
+- **GameScreen cutscene integration**: `CutsceneManager` init, `tick()` hook, `cutscenePlayerLocked` gate in `gameplayInputEnabled()`.
+- **DevConsole commands**: `cutscene list`, `cutscene play <id>`, `cutscene reset <id>`, `cutscene flags`.
+- **Act I cutscene**: `data/cutscenes/act1_linzi_first_appearance.json` — Linzi's first appearance dialogue, sets `act1_linzi_met` + `linzi_arrived` flags.
+- **Tests** (36 new, all passing): `CutsceneLoaderTest`, `CutsceneManagerTest`, `CutsceneCompletionFlagTest`, `CutsceneSkipPolicyTest`, `CutsceneSaveRoundtripTest`.
+
+### Compatibility
+
+- **replay**: no change.
+- **save**: additive — `completedCutscenes` field added; old saves without the field default to empty set on load.
+- **protocol**: no change.
 
 ---
 
