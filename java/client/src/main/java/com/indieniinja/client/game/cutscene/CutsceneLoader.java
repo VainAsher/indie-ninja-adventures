@@ -25,37 +25,72 @@ public final class CutsceneLoader {
 
     private static final Logger log = LoggerFactory.getLogger(CutsceneLoader.class);
 
-    private static final String CUTSCENE_DIR = "data/cutscenes";
+    private static final String CUTSCENE_DIR   = "data/cutscenes";
+    private static final String CUTSCENE_INDEX = "data/cutscenes/index.json";
 
     private CutsceneLoader() {}
 
     /**
-     * Load all cutscene definitions from {@code data/cutscenes/}.
-     * Returns a map of id → definition, sorted by id for determinism.
+     * Load all cutscene definitions listed in {@code data/cutscenes/index.json}.
+     *
+     * Uses an explicit index file rather than directory listing because
+     * {@code Gdx.files.internal().isDirectory()} always returns {@code false}
+     * for classpath paths inside a fat JAR.  Individual file handles DO resolve
+     * correctly from the JAR classpath, so each entry is fetched by full path.
      */
     public static Map<String, CutsceneDefinition> loadAll() {
         if (Gdx.app == null || Gdx.files == null) return Collections.emptyMap();
-        FileHandle dir = Gdx.files.internal(CUTSCENE_DIR);
-        if (!dir.exists() || !dir.isDirectory()) {
-            log.warn("[CutsceneLoader] directory not found: {}", CUTSCENE_DIR);
+        FileHandle indexFile = Gdx.files.internal(CUTSCENE_INDEX);
+        if (!indexFile.exists()) {
+            log.warn("[CutsceneLoader] index not found: {}", CUTSCENE_INDEX);
             return Collections.emptyMap();
         }
-        return loadAll(dir);
+        List<String> filenames = parseIndex(indexFile);
+        if (filenames.isEmpty()) return Collections.emptyMap();
+
+        // Sort for determinism (index order may be authoring-order, sort ensures test parity)
+        List<String> sorted = new ArrayList<>(filenames);
+        Collections.sort(sorted);
+
+        Map<String, CutsceneDefinition> out = new LinkedHashMap<>();
+        for (String filename : sorted) {
+            String path = CUTSCENE_DIR + "/" + filename;
+            FileHandle f = Gdx.files.internal(path);
+            try {
+                if (!f.exists()) {
+                    log.error("[CutsceneLoader] index references missing file: {}", path);
+                    continue;
+                }
+                CutsceneDefinition def = loadFile(f);
+                if (out.containsKey(def.id)) {
+                    log.warn("[CutsceneLoader] duplicate id '{}' in {}, skipping", def.id, filename);
+                    continue;
+                }
+                out.put(def.id, def);
+                log.debug("[CutsceneLoader] loaded '{}' ({} steps)", def.id, def.steps.size());
+            } catch (CutsceneLoadException e) {
+                log.error("[CutsceneLoader] skipping {} — {}", filename, e.getMessage());
+            } catch (Exception e) {
+                log.error("[CutsceneLoader] skipping {} — unexpected error: {}", filename, e.getMessage(), e);
+            }
+        }
+        log.info("[CutsceneLoader] loaded {}/{} cutscenes", out.size(), sorted.size());
+        return Collections.unmodifiableMap(out);
     }
 
     /**
      * Load from an explicit {@link FileHandle} directory.
-     * Exposed for testing with a local file handle.
+     * Used by tests that pass a real filesystem directory handle.
      */
     public static Map<String, CutsceneDefinition> loadAll(FileHandle dir) {
         FileHandle[] files = dir.list(".json");
         if (files == null || files.length == 0) return Collections.emptyMap();
 
-        // Sort alphabetically for determinism
         Arrays.sort(files, Comparator.comparing(FileHandle::name));
 
         Map<String, CutsceneDefinition> out = new LinkedHashMap<>();
         for (FileHandle f : files) {
+            if (f.name().equals("index.json")) continue; // skip the manifest itself
             try {
                 CutsceneDefinition def = loadFile(f);
                 if (out.containsKey(def.id)) {
@@ -70,8 +105,27 @@ public final class CutsceneLoader {
                 log.error("[CutsceneLoader] skipping {} — unexpected error: {}", f.name(), e.getMessage(), e);
             }
         }
-        log.info("[CutsceneLoader] loaded {}/{} cutscenes from {}", out.size(), files.length, CUTSCENE_DIR);
+        log.info("[CutsceneLoader] loaded {}/{} cutscenes from {}", out.size(), files.length, dir.path());
         return Collections.unmodifiableMap(out);
+    }
+
+    /** Parse {@code index.json} — a JSON array of filename strings. */
+    private static List<String> parseIndex(FileHandle f) {
+        try {
+            JsonValue root = new JsonReader().parse(f);
+            if (root.type() != JsonValue.ValueType.array) {
+                log.error("[CutsceneLoader] index.json must be a JSON array");
+                return Collections.emptyList();
+            }
+            List<String> names = new ArrayList<>();
+            for (JsonValue child = root.child; child != null; child = child.next) {
+                names.add(child.asString());
+            }
+            return names;
+        } catch (Exception e) {
+            log.error("[CutsceneLoader] failed to parse index.json: {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     /** Load a single cutscene file. Throws {@link CutsceneLoadException} on validation failure. */
