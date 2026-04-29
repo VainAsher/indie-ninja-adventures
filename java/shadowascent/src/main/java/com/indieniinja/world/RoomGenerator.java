@@ -31,9 +31,7 @@ public final class RoomGenerator {
     private static final int TPZ  = PhysicsConstants.TILES_PER_ZONE;  // 8
     private static final int COLS = PhysicsConstants.ROOM_WIDTH_TILES;  // 128
     private static final int ROWS = PhysicsConstants.ROOM_HEIGHT_TILES; // 128
-
-    /** Half-span of door opening in tiles. Total = DOOR_HALF*2+1 = 9 tiles. */
-    private static final int DOOR_HALF = TPZ / 2 + 1;  // 5
+    private static final RoomGeometryRules RULES = RoomGeometryRules.loadDefault();
 
     private RoomGenerator() {}
 
@@ -59,9 +57,9 @@ public final class RoomGenerator {
                                      long roomSeed, RoomTypeDefinition def, int biomeIndex) {
         // Template-first: rooms that require a template try to load it before generating.
         if (def.requiresTemplate()) {
-            byte[][] template = TmxRoomLoader.loadTemplate(def.id());
+            byte[][] template = TmxRoomLoader.loadTemplate(def.id(), roomSeed);
             if (template != null) {
-                carveDoors(template, neighborDirs);
+                RoomGeometryEnforcer.enforce(template, neighborDirs, RULES);
                 return template;
             }
             // No template file found — fall through to procedural generation.
@@ -71,7 +69,7 @@ public final class RoomGenerator {
         boolean hasDown  = neighborDirs.contains("down");
         boolean hasLeft  = neighborDirs.contains("left");
         boolean hasRight = neighborDirs.contains("right");
-        addBoundaries(grid, hasUp, hasDown, hasLeft, hasRight);
+        RoomGeometryEnforcer.addBoundaries(grid, neighborDirs, RULES);
         if (!hasDown) {
             for (int c = 1; c < COLS - 1; c++)
                 if (grid[ROWS - 2][c] == WorldGenerator.AIR)
@@ -82,7 +80,7 @@ public final class RoomGenerator {
                 Random zoneRng = new Random(roomSeed * 31L + (long) zy * ZonePlanner.W + zx);
                 expandZone(grid, zx, zy, zones[zy][zx], biomeIndex, zoneRng, hasUp, hasDown, hasLeft, hasRight);
             }
-        carveDoors(grid, neighborDirs);
+        RoomGeometryEnforcer.carveDoors(grid, neighborDirs, RULES);
         FeaturePlacer.place(grid, biomeIndex, roomSeed, neighborDirs);
         smoothCaveTerrain(grid, biomeIndex);
         addBlobVariationFromDef(grid, zones, roomSeed, def);
@@ -98,9 +96,9 @@ public final class RoomGenerator {
                                      long roomSeed, String roomType, int biomeIndex) {
         // Template-first: any room type that has a matching .tmx file uses it.
         // Falls through to procedural generation when no template is found.
-        byte[][] template = TmxRoomLoader.loadTemplate(roomType);
+        byte[][] template = TmxRoomLoader.loadTemplate(roomType, roomSeed);
         if (template != null) {
-            carveDoors(template, neighborDirs);
+            RoomGeometryEnforcer.enforce(template, neighborDirs, RULES);
             return template;
         }
 
@@ -111,7 +109,7 @@ public final class RoomGenerator {
         boolean hasLeft  = neighborDirs.contains("left");
         boolean hasRight = neighborDirs.contains("right");
 
-        addBoundaries(grid, hasUp, hasDown, hasLeft, hasRight);
+        RoomGeometryEnforcer.addBoundaries(grid, neighborDirs, RULES);
 
         if (!hasDown) {
             for (int c = 1; c < COLS - 1; c++) {
@@ -127,7 +125,7 @@ public final class RoomGenerator {
             }
         }
 
-        carveDoors(grid, neighborDirs);
+        RoomGeometryEnforcer.carveDoors(grid, neighborDirs, RULES);
         FeaturePlacer.place(grid, biomeIndex, roomSeed, neighborDirs);
         smoothCaveTerrain(grid, biomeIndex);
         addBlobVariation(grid, zones, roomSeed, roomType);
@@ -140,21 +138,32 @@ public final class RoomGenerator {
     private static void addBoundaries(byte[][] g,
                                        boolean hasUp, boolean hasDown,
                                        boolean hasLeft, boolean hasRight) {
+        int edge = RULES.edgeWallThickness();
+        int floor = RULES.floorThickness();
+
         // Top wall
         if (!hasUp) {
-            for (int c = 0; c < COLS; c++) g[0][c] = WorldGenerator.SOLID;
+            for (int r = 0; r < edge; r++)
+                for (int c = 0; c < COLS; c++)
+                    g[r][c] = WorldGenerator.SOLID;
         }
         // Bottom wall
         if (!hasDown) {
-            for (int c = 0; c < COLS; c++) g[ROWS - 1][c] = WorldGenerator.SOLID;
+            for (int r = ROWS - floor; r < ROWS; r++)
+                for (int c = 0; c < COLS; c++)
+                    g[r][c] = WorldGenerator.SOLID;
         }
         // Left wall
         if (!hasLeft) {
-            for (int r = 0; r < ROWS; r++) g[r][0] = WorldGenerator.SOLID;
+            for (int r = 0; r < ROWS; r++)
+                for (int c = 0; c < edge; c++)
+                    g[r][c] = WorldGenerator.SOLID;
         }
         // Right wall
         if (!hasRight) {
-            for (int r = 0; r < ROWS; r++) g[r][COLS - 1] = WorldGenerator.SOLID;
+            for (int r = 0; r < ROWS; r++)
+                for (int c = COLS - edge; c < COLS; c++)
+                    g[r][c] = WorldGenerator.SOLID;
         }
     }
 
@@ -248,28 +257,30 @@ public final class RoomGenerator {
     private static void carveDoors(byte[][] g, Collection<String> dirs) {
         int midC = COLS / 2;
         int midR = ROWS / 2;
+        int doorHalf = RULES.doorHalfSpan();
+        int horizontalDepth = RULES.horizontalDoorDepth();
+        int verticalDepth = RULES.verticalDoorDepth();
 
         for (String dir : dirs) {
             switch (dir) {
                 case "up" -> {
-                    for (int r = 0; r < 2; r++)
-                        for (int c = midC - DOOR_HALF; c <= midC + DOOR_HALF; c++)
+                    for (int r = 0; r < verticalDepth; r++)
+                        for (int c = midC - doorHalf; c <= midC + doorHalf; c++)
                             if (inBounds(c, r)) g[r][c] = WorldGenerator.AIR;
                 }
                 case "down" -> {
-                    for (int r = ROWS - 2; r < ROWS; r++)
-                        for (int c = midC - DOOR_HALF; c <= midC + DOOR_HALF; c++)
+                    for (int r = ROWS - verticalDepth; r < ROWS; r++)
+                        for (int c = midC - doorHalf; c <= midC + doorHalf; c++)
                             if (inBounds(c, r)) g[r][c] = WorldGenerator.AIR;
                 }
                 case "left" -> {
-                    // 4 tiles deep (2 wall + 2 interior) to clear approach platforms
-                    for (int r = midR - DOOR_HALF; r <= midR + DOOR_HALF; r++)
-                        for (int c = 0; c < 4; c++)
+                    for (int r = midR - doorHalf; r <= midR + doorHalf; r++)
+                        for (int c = 0; c < horizontalDepth; c++)
                             if (inBounds(c, r)) g[r][c] = WorldGenerator.AIR;
                 }
                 case "right" -> {
-                    for (int r = midR - DOOR_HALF; r <= midR + DOOR_HALF; r++)
-                        for (int c = COLS - 4; c < COLS; c++)
+                    for (int r = midR - doorHalf; r <= midR + doorHalf; r++)
+                        for (int c = COLS - horizontalDepth; c < COLS; c++)
                             if (inBounds(c, r)) g[r][c] = WorldGenerator.AIR;
                 }
             }

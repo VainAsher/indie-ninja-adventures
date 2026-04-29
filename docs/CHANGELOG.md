@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.4
+version_anchor: v0.13.5
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.5] - 2026-04-29 (World generation authoring rules and TMX validation)
+
+### Added
+
+- **Data-driven room geometry rules**: `data/room_geometry_rules.json` now controls room size, wall thickness, floor thickness, and door-corridor dimensions.
+- **Runtime geometry enforcement**: procedural rooms and authored TMX templates now share `RoomGeometryRules` / `RoomGeometryEnforcer` for walls, floors, and door openings.
+- **Data-driven room structure rules**: `data/room_structure_rules.json` now controls procedural fill counts, hazard odds, DECOR resolution, perimeter depth, and center arena clearing.
+- **Seeded template variants**: `data/room_template_catalog.json` and `RoomTemplateCatalog` allow deterministic weighted TMX variants per room type.
+- **Template catalog validation**: `tools/validate_room_templates.py --catalog data/room_template_catalog.json` validates catalog shape, local paths, file existence, and positive weights.
+- **Level authoring guide**: `docs/guides/LEVEL_AUTHORING_GUIDE.md` documents room, level, zone, template, geometry, structure, and release-validation workflows.
+
+### Changed
+
+- Authored TMX shells in `java/assets/rooms/templates/` and root editor copies in `assets/rooms/templates/` now satisfy strict geometry validation.
+- `RoomGenerator` now passes room seed into template loading so authored room variants can vary deterministically by seed.
+- `docs/systems/WORLD_GEN.md` and `docs/dev/TILED_SETUP.md` now document the data-driven authoring stack.
+
+### Compatibility
+
+- **replay**: replay-breaking for procedural generation output when geometry, structure, or template catalog data changes.
+- **save**: no schema change.
+- **protocol**: no change.
 
 ---
 

@@ -23,6 +23,7 @@ import java.util.*;
  *   7. Finalise remaining DECOR zones with room-type probabilities
  */
 public final class ZonePlanner {
+    private static final RoomStructureRules STRUCTURE_RULES = RoomStructureRules.loadDefault();
 
     // ── Zone-role byte constants ──────────────────────────────────────────────
 
@@ -68,9 +69,14 @@ public final class ZonePlanner {
         mustConnect.addAll(featureZones);
         if (mustConnect.size() >= 2) ensureConnectivity(zones, mustConnect);
         applyLogicRules(zones, def.id(), neighborDirs);
-        addFillZones(zones, def.id(), mustConnect, rng);
-        thickenPerimeter(zones, neighborDirs, mustConnect);
-        finalizeDecor(zones, def.id(), rng);
+        applyStructureRules(
+            zones,
+            def.id(),
+            neighborDirs,
+            mustConnect,
+            STRUCTURE_RULES.specFor(def.id()),
+            rng
+        );
         return zones;
     }
 
@@ -93,18 +99,29 @@ public final class ZonePlanner {
         // Step 4: context-aware logic rules
         applyLogicRules(zones, roomType, neighborDirs);
 
-        // Step 5: fill obstacles (with connectivity check)
-        addFillZones(zones, roomType, mustConnect, rng);
-
-        // Step 5b: thicken room perimeters — fill border zones that are still DECOR,
-        // except within the door corridor. This limits traversal to intentional paths
-        // and makes the dungeon feel enclosed rather than open at room edges.
-        thickenPerimeter(zones, neighborDirs, mustConnect);
-
-        // Step 6: finalize DECOR
-        finalizeDecor(zones, roomType, rng);
+        // Step 5-7: data-driven structure rules, perimeter, and DECOR finalization.
+        applyStructureRules(
+            zones,
+            roomType,
+            neighborDirs,
+            mustConnect,
+            STRUCTURE_RULES.specFor(roomType),
+            rng
+        );
 
         return zones;
+    }
+
+    static void applyStructureRules(byte[][] z,
+                                    String roomType,
+                                    Collection<String> neighborDirs,
+                                    List<int[]> mustConnect,
+                                    RoomStructureRules.RoomSpec spec,
+                                    Random rng) {
+        addFillZones(z, mustConnect, rng, spec);
+        thickenPerimeter(z, neighborDirs, mustConnect, spec);
+        finalizeDecor(z, rng, spec);
+        clearCenterArena(z, spec);
     }
 
     // ── Step 1 — Door zones ───────────────────────────────────────────────────
@@ -310,20 +327,12 @@ public final class ZonePlanner {
 
     // ── Step 5 — Fill obstacles ───────────────────────────────────────────────
 
-    private static void addFillZones(byte[][] z, String roomType,
-                                      List<int[]> mustConnect, Random rng) {
+    private static void addFillZones(byte[][] z,
+                                      List<int[]> mustConnect, Random rng,
+                                      RoomStructureRules.RoomSpec spec) {
         // Fill count by room type — significantly increased to create denser, more dungeon-like rooms.
         // Higher values mean more solid-obstacle zones placed per room, limiting open traversal paths.
-        int fillCount;
-        switch (roomType != null ? roomType : "combat") {
-            case "combat"   -> fillCount = 10 + rng.nextInt(7);  // 10-16 (dense combat arena)
-            case "platform" -> fillCount =  8 + rng.nextInt(6);  // 8-13  (multi-level obstacles)
-            case "treasure" -> fillCount = 12 + rng.nextInt(5);  // 12-16 (maze-like)
-            case "boss"     -> fillCount =  5 + rng.nextInt(4);  // 5-8   (arena, moderate clutter)
-            case "trial"    -> fillCount =  7 + rng.nextInt(4);  // 7-10  (skill room, open lanes)
-            case "shop", "start", "exit" -> fillCount = 3 + rng.nextInt(3);  // 3-5 (navigable but not empty)
-            default         -> fillCount =  8 + rng.nextInt(5);  // 8-12
-        }
+        int fillCount = spec.fillMin() + rng.nextInt(spec.fillMax() - spec.fillMin() + 1);
 
         // Candidate DECOR zones not in mustConnect
         Set<Long> mustSet = new HashSet<>();
@@ -339,15 +348,9 @@ public final class ZonePlanner {
 
         // Hazard zone probabilities by room type
         // Each placed zone has a chance to become a hazard instead of a plain FILL.
-        float lavaChance, iceChance, waterChance;
-        switch (roomType != null ? roomType : "combat") {
-            case "combat"   -> { lavaChance = 0.20f; iceChance = 0.10f; waterChance = 0.10f; }
-            case "platform" -> { lavaChance = 0.10f; iceChance = 0.25f; waterChance = 0.15f; }
-            case "boss"     -> { lavaChance = 0.35f; iceChance = 0.10f; waterChance = 0.05f; }
-            case "treasure" -> { lavaChance = 0.05f; iceChance = 0.15f; waterChance = 0.20f; }
-            case "trial"    -> { lavaChance = 0.25f; iceChance = 0.20f; waterChance = 0.10f; }
-            default         -> { lavaChance = 0.10f; iceChance = 0.10f; waterChance = 0.10f; }
-        }
+        float lavaChance = spec.lavaChance();
+        float iceChance = spec.iceChance();
+        float waterChance = spec.waterChance();
 
         int placed = 0;
         for (int[] c : candidates) {
@@ -369,7 +372,7 @@ public final class ZonePlanner {
 
     // ── Step 6 — Finalize DECOR zones ────────────────────────────────────────
 
-    private static void finalizeDecor(byte[][] z, String roomType, Random rng) {
+    private static void finalizeDecor(byte[][] z, Random rng, RoomStructureRules.RoomSpec spec) {
         // DECOR zone final resolution probabilities by room type.
         // Higher fillProb = more solid terrain; higher platProb = more one-way platforms.
         // combat:   dense solid terrain + many platforms (obstacle-rich arena)
@@ -379,16 +382,9 @@ public final class ZonePlanner {
         // shop/start: open and navigable
         // Higher fillProb = more solid walls in remaining DECOR zones after explicit fills.
         // Reduced void/walk so dungeon reads as enclosed rather than open.
-        float fillProb, platProb, walkProb;
-        switch (roomType != null ? roomType : "combat") {
-            case "platform" -> { fillProb = 0.30f; platProb = 0.50f; walkProb = 0.12f; }
-            case "combat"   -> { fillProb = 0.38f; platProb = 0.38f; walkProb = 0.14f; }
-            case "treasure" -> { fillProb = 0.45f; platProb = 0.22f; walkProb = 0.15f; }
-            case "boss"     -> { fillProb = 0.18f; platProb = 0.30f; walkProb = 0.22f; }
-            case "trial"    -> { fillProb = 0.20f; platProb = 0.55f; walkProb = 0.15f; }
-            case "shop", "start", "exit" -> { fillProb = 0.12f; platProb = 0.28f; walkProb = 0.30f; }
-            default         -> { fillProb = 0.25f; platProb = 0.30f; walkProb = 0.20f; }
-        }
+        float fillProb = spec.decorFillChance();
+        float platProb = spec.decorPlatformChance();
+        float walkProb = spec.decorWalkChance();
 
         for (int y = 0; y < H; y++) {
             for (int x = 0; x < W; x++) {
@@ -404,6 +400,23 @@ public final class ZonePlanner {
 
     // ── Step 5b — Perimeter thickening ───────────────────────────────────────
 
+    private static void clearCenterArena(byte[][] z, RoomStructureRules.RoomSpec spec) {
+        int radius = spec.centerClearRadiusZones();
+        if (radius <= 0) return;
+
+        int cx = W / 2;
+        int cy = H / 2;
+        for (int y = Math.max(0, cy - radius); y <= Math.min(H - 1, cy + radius); y++) {
+            for (int x = Math.max(0, cx - radius); x <= Math.min(W - 1, cx + radius); x++) {
+                byte role = z[y][x];
+                if (role == DOOR || role == SAVE || role == SHOP || role == LOOT || role == CONN) {
+                    continue;
+                }
+                z[y][x] = WALK;
+            }
+        }
+    }
+
     /**
      * Fill the 2-zone-deep perimeter ring with FILL wherever the zone is still DECOR,
      * skipping a ±1 zone corridor around each door opening.
@@ -411,11 +424,13 @@ public final class ZonePlanner {
      * through intentional corridors (doors) only.
      */
     private static void thickenPerimeter(byte[][] z, Collection<String> dirs,
-                                          List<int[]> mustConnect) {
+                                          List<int[]> mustConnect,
+                                          RoomStructureRules.RoomSpec spec) {
         Set<Long> mustSet = new HashSet<>();
         for (int[] c : mustConnect) mustSet.add((long) c[0] * H + c[1]);
 
-        int depth = 2;  // how many zones deep from each wall to fill
+        int depth = spec.perimeterDepth();  // how many zones deep from each wall to fill
+        if (depth <= 0) return;
 
         // Collect door centre positions so we can exempt a narrow corridor
         // Door is at (W/2, 0), (W/2, H-1), (0, H/2), (W-1, H/2) — see placeDoors()

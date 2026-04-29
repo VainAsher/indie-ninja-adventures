@@ -1,0 +1,112 @@
+{
+  "defaultRoomType": {
+    "fillMin": 10,
+    "fillMax": 16,
+    "lavaChance": 0.2,
+    "iceChance": 0.1,
+    "waterChance": 0.1,
+    "decorFillChance": 0.38,
+    "decorPlatformChance": 0.38,
+    "decorWalkChance": 0.14,
+    "perimeterDepth": 2,
+    "centerClearRadiusZones": 0
+  },
+  "roomTypes": {
+    "combat": {
+      "fillMin": 10,
+      "fillMax": 16,
+      "lavaChance": 0.2,
+      "iceChance": 0.1,
+      "waterChance": 0.1,
+      "decorFillChance": 0.38,
+      "decorPlatformChance": 0.38,
+      "decorWalkChance": 0.14,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 0
+    },
+    "platform": {
+      "fillMin": 8,
+      "fillMax": 13,
+      "lavaChance": 0.1,
+      "iceChance": 0.25,
+      "waterChance": 0.15,
+      "decorFillChance": 0.3,
+      "decorPlatformChance": 0.5,
+      "decorWalkChance": 0.12,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 0
+    },
+    "treasure": {
+      "fillMin": 12,
+      "fillMax": 16,
+      "lavaChance": 0.05,
+      "iceChance": 0.15,
+      "waterChance": 0.2,
+      "decorFillChance": 0.45,
+      "decorPlatformChance": 0.22,
+      "decorWalkChance": 0.15,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 0
+    },
+    "boss": {
+      "fillMin": 5,
+      "fillMax": 8,
+      "lavaChance": 0.35,
+      "iceChance": 0.1,
+      "waterChance": 0.05,
+      "decorFillChance": 0.18,
+      "decorPlatformChance": 0.3,
+      "decorWalkChance": 0.22,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 1
+    },
+    "trial": {
+      "fillMin": 7,
+      "fillMax": 10,
+      "lavaChance": 0.25,
+      "iceChance": 0.2,
+      "waterChance": 0.1,
+      "decorFillChance": 0.2,
+      "decorPlatformChance": 0.55,
+      "decorWalkChance": 0.15,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 0
+    },
+    "shop": {
+      "fillMin": 3,
+      "fillMax": 5,
+      "lavaChance": 0.1,
+      "iceChance": 0.1,
+      "waterChance": 0.1,
+      "decorFillChance": 0.12,
+      "decorPlatformChance": 0.28,
+      "decorWalkChance": 0.3,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 0
+    },
+    "start": {
+      "fillMin": 3,
+      "fillMax": 5,
+      "lavaChance": 0.1,
+      "iceChance": 0.1,
+      "waterChance": 0.1,
+      "decorFillChance": 0.12,
+      "decorPlatformChance": 0.28,
+      "decorWalkChance": 0.3,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 0
+    },
+    "exit": {
+      "fillMin": 3,
+      "fillMax": 5,
+      "lavaChance": 0.1,
+      "iceChance": 0.1,
+      "waterChance": 0.1,
+      "decorFillChance": 0.12,
+      "decorPlatformChance": 0.28,
+      "decorWalkChance": 0.3,
+      "perimeterDepth": 2,
+      "centerClearRadiusZones": 0
+    }
+  }
+}

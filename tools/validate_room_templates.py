@@ -21,6 +21,7 @@ Exit codes:
 import sys
 import os
 import argparse
+import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -41,8 +42,146 @@ GID_NAMES = {
     8: "CLIMBABLE",
 }
 
+DEFAULT_GEOMETRY_RULES = {
+    "roomWidthTiles": EXPECTED_WIDTH,
+    "roomHeightTiles": EXPECTED_HEIGHT,
+    "edgeWallThickness": 1,
+    "floorThickness": 2,
+    "doorHalfSpan": 5,
+    "horizontalDoorDepth": 4,
+    "verticalDoorDepth": 2,
+}
 
-def validate_tmx(path: Path) -> list[str]:
+
+def validate_template_catalog(catalog_path: Path, template_dir: Path) -> list[str]:
+    """Validate weighted template catalog entries against a template directory."""
+    if not catalog_path.exists():
+        return [f"Catalog file not found: {catalog_path}"]
+    try:
+        raw = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"Catalog parse error: {exc}"]
+
+    errors: list[str] = []
+    room_types = raw.get("roomTypes")
+    if not isinstance(room_types, dict):
+        return ["Catalog missing object field: roomTypes"]
+
+    for room_id, entries in sorted(room_types.items()):
+        if not isinstance(entries, list) or not entries:
+            errors.append(f"Catalog entry {room_id} must be a non-empty list")
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                errors.append(f"Catalog entry {room_id} contains a non-object variant")
+                continue
+            file_name = entry.get("file")
+            if not isinstance(file_name, str) or not file_name.strip():
+                errors.append(f"Catalog entry {room_id} has missing file")
+                continue
+            weight = entry.get("weight", 1)
+            if not isinstance(weight, int) or weight < 1:
+                errors.append(f"Catalog entry {room_id} -> {file_name} has invalid weight {weight}")
+            if Path(file_name).is_absolute() or ".." in Path(file_name).parts:
+                errors.append(f"Catalog entry {room_id} -> {file_name} must stay inside template dir")
+                continue
+            if not (template_dir / file_name).exists():
+                errors.append(f"Catalog entry {room_id} -> {file_name} does not exist")
+
+    return errors
+
+
+def load_geometry_rules(path: Path | None) -> dict[str, int]:
+    rules = dict(DEFAULT_GEOMETRY_RULES)
+    if path is None or not path.exists():
+        return rules
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return rules
+    for key, default in DEFAULT_GEOMETRY_RULES.items():
+        value = raw.get(key, default)
+        if isinstance(value, int):
+            rules[key] = max(1, value)
+    return rules
+
+
+def is_horizontal_door_corridor(col: int, width: int, rules: dict[str, int]) -> bool:
+    return abs(col - width // 2) <= rules["doorHalfSpan"]
+
+
+def is_vertical_door_corridor(row: int, height: int, rules: dict[str, int]) -> bool:
+    return abs(row - height // 2) <= rules["doorHalfSpan"]
+
+
+def is_standable(tile: int) -> bool:
+    return tile in {1, 2, 3, 5, 6, 8}
+
+
+def validate_geometry(gids: list[int], width: int, height: int, rules: dict[str, int]) -> list[str]:
+    errors: list[str] = []
+    edge = min(rules["edgeWallThickness"], width, height)
+    floor = min(rules["floorThickness"], height)
+
+    def tile(row: int, col: int) -> int:
+        return gids[row * width + col]
+
+    for r in range(edge):
+        for c in range(width):
+            if is_horizontal_door_corridor(c, width, rules):
+                continue
+            if tile(r, c) != 1:
+                errors.append(f"Top wall gap at row {r}, col {c}")
+                break
+        if errors and errors[-1].startswith("Top wall gap"):
+            break
+
+    for r in range(height - floor, height):
+        for c in range(width):
+            if is_horizontal_door_corridor(c, width, rules):
+                continue
+            if tile(r, c) != 1:
+                errors.append(f"Floor gap at row {r}, col {c}")
+                break
+        if errors and errors[-1].startswith("Floor gap"):
+            break
+
+    for c in range(edge):
+        for r in range(height):
+            if is_vertical_door_corridor(r, height, rules):
+                continue
+            if tile(r, c) != 1:
+                errors.append(f"Left wall gap at row {r}, col {c}")
+                break
+        if errors and errors[-1].startswith("Left wall gap"):
+            break
+
+    for c in range(width - edge, width):
+        for r in range(height):
+            if is_vertical_door_corridor(r, height, rules):
+                continue
+            if tile(r, c) != 1:
+                errors.append(f"Right wall gap at row {r}, col {c}")
+                break
+        if errors and errors[-1].startswith("Right wall gap"):
+            break
+
+    standable_count = 0
+    for r in range(1, height):
+        for c in range(width):
+            if is_standable(tile(r, c)) and tile(r - 1, c) == 0:
+                standable_count += 1
+    if standable_count == 0:
+        errors.append("No standable tile found (solid/platform with AIR above)")
+
+    return errors
+
+
+def validate_tmx(
+    path: Path,
+    strict_geometry: bool = False,
+    geometry_rules: dict[str, int] | None = None,
+) -> list[str]:
     """Return a list of error strings; empty list means the file is valid."""
     errors: list[str] = []
 
@@ -95,6 +234,7 @@ def validate_tmx(path: Path) -> list[str]:
     if len(tokens) != expected_tiles:
         errors.append(f"Tile count {len(tokens)} — expected {expected_tiles} ({width}×{height})")
 
+    gids: list[int] = []
     non_air = 0
     for i, tok in enumerate(tokens):
         try:
@@ -102,10 +242,14 @@ def validate_tmx(path: Path) -> list[str]:
         except ValueError:
             errors.append(f"Non-integer tile value at index {i}: '{tok}'")
             continue
+        gids.append(gid)
         if gid not in VALID_GIDS:
             errors.append(f"Invalid GID {gid} at index {i} — valid range is 0-8")
         if gid != 0:
             non_air += 1
+
+    if strict_geometry and not errors:
+        errors.extend(validate_geometry(gids, width, height, geometry_rules or DEFAULT_GEOMETRY_RULES))
 
     if non_air == 0:
         errors.append("Template is entirely AIR — no geometry authored")
@@ -120,7 +264,23 @@ def main() -> int:
         default="assets/rooms/templates",
         help="Directory containing .tmx template files (default: assets/rooms/templates)",
     )
+    parser.add_argument(
+        "--strict-geometry",
+        action="store_true",
+        help="Also enforce wall/floor geometry rules with standard door-corridor exemptions",
+    )
+    parser.add_argument(
+        "--rules",
+        default="data/room_geometry_rules.json",
+        help="JSON file containing geometry rule overrides (default: data/room_geometry_rules.json)",
+    )
+    parser.add_argument(
+        "--catalog",
+        default=None,
+        help="Optional room template catalog JSON to validate against --dir",
+    )
     args = parser.parse_args()
+    geometry_rules = load_geometry_rules(Path(args.rules))
 
     template_dir = Path(args.dir)
     if not template_dir.is_dir():
@@ -138,7 +298,7 @@ def main() -> int:
     for path in tmx_files:
         room_id = path.stem
         found_ids.add(room_id)
-        errors = validate_tmx(path)
+        errors = validate_tmx(path, args.strict_geometry, geometry_rules)
         if errors:
             all_valid = False
             print(f"FAIL  {path.name}")
@@ -152,6 +312,16 @@ def main() -> int:
         for m in sorted(missing):
             print(f"MISSING  {m}.tmx — required template not found")
         all_valid = False
+
+    if args.catalog:
+        catalog_errors = validate_template_catalog(Path(args.catalog), template_dir)
+        if catalog_errors:
+            all_valid = False
+            print(f"FAIL  {args.catalog}")
+            for err in catalog_errors:
+                print(f"      - {err}")
+        else:
+            print(f"OK    {args.catalog}")
 
     if all_valid:
         print(f"\nAll {len(tmx_files)} template(s) valid.")

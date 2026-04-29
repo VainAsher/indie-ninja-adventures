@@ -1,0 +1,9 @@
+{
+  "roomWidthTiles": 128,
+  "roomHeightTiles": 128,
+  "edgeWallThickness": 1,
+  "floorThickness": 2,
+  "doorHalfSpan": 5,
+  "horizontalDoorDepth": 4,
+  "verticalDoorDepth": 2
+}

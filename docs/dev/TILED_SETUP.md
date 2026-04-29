@@ -92,12 +92,37 @@ All entries with `requiresTemplate: true` in their JSON definition will load the
 
 ---
 
+## Template Variants
+
+Authored room types can have multiple deterministic variants. The runtime checks `data/room_template_catalog.json` first:
+
+```json
+{
+  "roomTypes": {
+    "start": [
+      { "file": "start.tmx", "weight": 1 },
+      { "file": "start_alt.tmx", "weight": 2 }
+    ]
+  }
+}
+```
+
+The room seed chooses one existing entry by weight. If the catalog is absent, has no entry for the room type, or points only at missing files, the loader falls back to filename conventions in `java/assets/rooms/templates/`:
+
+- `<room_type>.tmx`
+- `<room_type>_*.tmx`
+- `<room_type>-*.tmx`
+
+Convention variants are sorted by filename and selected deterministically from the room seed. The chosen TMX still receives runtime geometry enforcement for walls, floors, and door corridors.
+
+---
+
 ## How Templates Are Loaded
 
 `RoomGenerator.generate()` checks `RoomTypeDefinition.requiresTemplate()` first:
 
-1. If `requiresTemplate: true`, calls `TmxRoomLoader.loadTemplate(def.id())`.
-2. If the `.tmx` file exists: loads it, carves door openings, returns the grid.
+1. If `requiresTemplate: true`, calls `TmxRoomLoader.loadTemplate(def.id(), roomSeed)`.
+2. If a catalog or convention variant exists: loads it, carves door openings, returns the grid.
 3. If the file is absent: falls back to procedural generation silently.
 
 This means templates can be removed without breaking the game — it just reverts to procedural.
@@ -120,6 +145,20 @@ This means templates define the interior geometry; the engine handles connectivi
 
 ---
 
+## Procedural Structure Rules
+
+TMX templates are full-room overrides. Procedural rooms use `data/room_structure_rules.json` instead:
+
+- `fillMin` / `fillMax` control how many obstacle or hazard zones are placed.
+- hazard chance fields control lava, ice, and water role selection.
+- DECOR chance fields control how unresolved zones become fill, platforms, walkable space, or void.
+- `perimeterDepth` controls zone-level wall thickness around procedural rooms.
+- `centerClearRadiusZones` keeps central arena space open for rooms such as `boss`.
+
+These rules affect generated rooms only. If a `.tmx` exists for a room type, its authored interior wins, then runtime geometry enforcement still normalizes walls, floors, and door corridors.
+
+---
+
 ## Validation
 
 Run before committing any template change:
@@ -137,6 +176,29 @@ This checks:
 - At least one non-AIR tile
 
 Exit code 0 = all valid. Exit code 1 = one or more errors.
+
+For structural checks, run strict geometry validation:
+
+```bash
+python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry
+```
+
+When changing `data/room_template_catalog.json`, validate the catalog against the canonical Java template set:
+
+```bash
+python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json
+```
+
+The root `assets/rooms/templates/` directory can be strict-geometry checked when editing those copies, but it does not contain every catalog template. Use the Java directory for catalog validation.
+
+Strict geometry uses `data/room_geometry_rules.json` by default. It checks the same core assumptions the Java runtime now enforces around room shell safety:
+
+- wall thickness on room edges
+- floor thickness on bottom rows
+- standard door-corridor exceptions at each edge midpoint
+- at least one standable tile with AIR above it
+
+If strict geometry fails, the room can still pass basic TMX compatibility, but the authored shape is outside the current runtime geometry contract. Fix the TMX when the gap is unintentional; otherwise update the geometry rules only when the new structure is a deliberate design change.
 
 ---
 

@@ -32,6 +32,7 @@ public final class TmxRoomLoader {
 
     /** Root path for room templates, resolved relative to the working directory. */
     private static final Path TEMPLATE_ROOT = Paths.get("assets", "rooms", "templates");
+    private static final RoomTemplateCatalog TEMPLATE_CATALOG = RoomTemplateCatalog.loadDefault();
 
     private TmxRoomLoader() {}
 
@@ -40,8 +41,19 @@ public final class TmxRoomLoader {
      * Returns null if no template file is found — caller should generate procedurally.
      */
     public static byte[][] loadTemplate(String roomTypeId) {
-        Path path = TEMPLATE_ROOT.resolve(roomTypeId + ".tmx");
-        if (!Files.exists(path)) return null;
+        return loadTemplate(roomTypeId, 0L);
+    }
+
+    /**
+     * Load a deterministic template variant for a room type and room seed.
+     */
+    public static byte[][] loadTemplate(String roomTypeId, long roomSeed) {
+        return loadTemplate(roomTypeId, roomSeed, TEMPLATE_ROOT, TEMPLATE_CATALOG);
+    }
+
+    static byte[][] loadTemplate(String roomTypeId, long roomSeed, Path templateRoot, RoomTemplateCatalog catalog) {
+        Path path = catalog.selectTemplate(roomTypeId, roomSeed, templateRoot).orElse(null);
+        if (path == null || !Files.exists(path)) return null;
         try {
             return load(path);
         } catch (Exception e) {

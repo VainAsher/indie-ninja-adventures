@@ -1,0 +1,31 @@
+{
+  "roomTypes": {
+    "start": [
+      { "file": "start.tmx", "weight": 1 }
+    ],
+    "shop": [
+      { "file": "shop.tmx", "weight": 1 }
+    ],
+    "boss": [
+      { "file": "boss.tmx", "weight": 1 }
+    ],
+    "exit": [
+      { "file": "exit.tmx", "weight": 1 }
+    ],
+    "combat_standard": [
+      { "file": "combat_standard.tmx", "weight": 1 }
+    ],
+    "platform_ascent": [
+      { "file": "platform_ascent.tmx", "weight": 1 }
+    ],
+    "shop_interior": [
+      { "file": "shop_interior.tmx", "weight": 1 }
+    ],
+    "treasure_maze": [
+      { "file": "treasure_maze.tmx", "weight": 1 }
+    ],
+    "duality_test": [
+      { "file": "duality_test.tmx", "weight": 1 }
+    ]
+  }
+}

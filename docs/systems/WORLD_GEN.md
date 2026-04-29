@@ -12,6 +12,8 @@ version_anchor: v0.11.71
 
 Deterministic room-graph generation, zone planning, tile synthesis, puzzle/ability postprocess, and hub world assembly.
 
+For hands-on room, zone, and level-design workflow, see `docs/guides/LEVEL_AUTHORING_GUIDE.md`.
+
 ## Primary Java owners
 
 - Graph and room generation core:
@@ -52,14 +54,16 @@ Deterministic room-graph generation, zone planning, tile synthesis, puzzle/abili
 | `TREASURE_MAZE`  | `treasure_maze`    | yes      | Maze + high-loot (authored layout) |
 | `BOSS`           | `boss`             | yes      | Boss arena (authored layout)       |
 
-Template rooms resolve to `java/assets/rooms/templates/<id>.tmx`. Template-first lookup runs in both the `RoomTypeDefinition`-based path and the String-based `WorldGenerator` path. If no `.tmx` is found, generation falls through to procedural.
+Template rooms resolve through `data/room_template_catalog.json` first, then fall back to `java/assets/rooms/templates/<id>.tmx` and sorted `<id>_*.tmx` / `<id>-*.tmx` convention variants. Template-first lookup runs in both the `RoomTypeDefinition`-based path and the String-based `WorldGenerator` path. If no `.tmx` is found, generation falls through to procedural.
 
 ## Runtime flow
 
 1. Generate `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
 2. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
-   - Template types load their `.tmx` first; door openings carved by `carveDoors()`.
+   - Template types load a seed-selected `.tmx` variant first; door openings carved by `carveDoors()`.
    - Non-template types go through `ZonePlanner` → `RoomGenerator` procedural path.
+   - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
+   - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
 3. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
 4. Stitch unified layout for simulation and snapshot descriptors.
 5. Client renders tile output with blob autotile mapping and room metadata.
@@ -83,6 +87,55 @@ Template rooms resolve to `java/assets/rooms/templates/<id>.tmx`. Template-first
 - Generation is deterministic from seed and shape inputs.
 - Room type and neighbor direction metadata are required for correct door/path topology.
 - Server caches can accelerate tile and graph reconstruction without changing deterministic output.
+- Room shell safety is data-driven by `data/room_geometry_rules.json`.
+- Procedural room structure is data-driven by `data/room_structure_rules.json`.
+- Authored room template selection is data-driven by `data/room_template_catalog.json`.
+- Changing geometry rule values is replay-breaking because it changes deterministic tile output.
+- Changing structure rule values is replay-breaking because it changes deterministic zone plans and hazard placement.
+- Changing template catalog weights or files is replay-breaking because room seeds may resolve to different TMX layouts.
+- Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
+
+## Geometry rules
+
+`data/room_geometry_rules.json` controls the first runtime slice of data-driven room geometry:
+
+| Field | Meaning |
+| ----- | ------- |
+| `roomWidthTiles` / `roomHeightTiles` | Expected room tile dimensions; currently 128×128. |
+| `edgeWallThickness` | Solid wall thickness for top/side shell edges when no neighbor exists. |
+| `floorThickness` | Solid floor thickness for rooms without a downward neighbor. |
+| `doorHalfSpan` | Half-width of centered door openings. Total span is `doorHalfSpan * 2 + 1`. |
+| `horizontalDoorDepth` | How far left/right door openings are cleared into the room. |
+| `verticalDoorDepth` | How far top/down door openings are cleared into ceiling/floor rows. |
+
+This layer is intentionally below room grammar. It guarantees safe structure, while `ZonePlanner`, `ZoneTemplateLibrary`, and future room grammar passes decide the actual play-space shape.
+
+## Structure rules
+
+`data/room_structure_rules.json` controls the procedural zone plan before `RoomGenerator` mixes concrete 8x8 zone templates into tiles:
+
+| Field | Meaning |
+| ----- | ------- |
+| `fillMin` / `fillMax` | Range of obstacle or hazard zones placed before DECOR finalization. |
+| `lavaChance` / `iceChance` / `waterChance` | Chance that a placed obstacle zone becomes that hazard instead of plain `FILL`. |
+| `decorFillChance` | Chance that unresolved `DECOR` becomes solid terrain. |
+| `decorPlatformChance` | Chance that unresolved `DECOR` becomes one-way platform terrain. |
+| `decorWalkChance` | Chance that unresolved `DECOR` becomes walkable open space; remaining probability becomes `VOID`. |
+| `perimeterDepth` | How many outer zone rings are thickened into walls, except door corridors. |
+| `centerClearRadiusZones` | Radius around the room center forced back to `WALK` after finalization; useful for boss arenas. |
+
+These rules solve a different layer from TMX templates. Procedural rooms still mix `ZoneTemplateLibrary` patterns per `FILL`/`PLAT` zone; structure rules decide how many of those roles appear and where broad room constraints apply. Authored TMX templates bypass zone planning for their interior layout, then still receive runtime geometry enforcement for doors, walls, and floors.
+
+## Template catalog
+
+`data/room_template_catalog.json` lets authored room ids map to weighted TMX variants:
+
+| Field | Meaning |
+| ----- | ------- |
+| `roomTypes.<id>[].file` | TMX filename under `java/assets/rooms/templates/`. |
+| `roomTypes.<id>[].weight` | Relative deterministic selection weight; values below 1 clamp to 1. |
+
+Selection is deterministic from the room seed. Missing explicit files are ignored; if no explicit file exists for the room type, the loader falls back to discovered convention variants named `<id>.tmx`, `<id>_*.tmx`, or `<id>-*.tmx`. This keeps one-file rooms working while allowing authored sets such as `combat_standard_a.tmx`, `combat_standard_b.tmx`, and `combat_standard_c.tmx`.
 
 ## Legacy archive
 

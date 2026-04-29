@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.4
+version_anchor: v0.13.5
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,7 +21,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-04-29): v0.13.4 is shipped and verified. v0.13.5 is reserved for G0 signoff evidence/state sync and any G0-only blocker fixes.
+- Current release truth (2026-04-29): v0.13.5 is the world-generation authoring/rules release candidate pending tag workflow completion.
 - Release assets verified for v0.13.4: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.4.zip`.
 - G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
 - G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
@@ -29,7 +29,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next release candidate: v0.13.5 (G0 signoff evidence + state sync; code changes only for G0 blockers).
+- Next G0 evidence target: v0.13.6 (G0 signoff evidence + state sync; code changes only for G0 blockers).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-29`):
   - CI green for `2439062` (`v0.13.4`)
@@ -61,6 +61,15 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Pygame prototype extraction phase-4 cutover is complete in this repo: launcher fallback to `demo_game.py` is removed, CI/release default lanes are Java-first, and migrated prototype runtime paths now live in `VainAsher/indie-ninja-prototype`.
 - **Engine Platform Phases A-C complete (2026-04-19)**: Content definition system (`ContentLoader`, `ContentRegistry`, JSON-schema-validated definitions), `GameConfig` balance constants, animation manifest + hot-reload, Tiled TMX room loader (4 templates), Yarn Spinner dialogue format (23 files), in-game DevConsole (backtick toggle, 14 commands), Gradle `buildAssets` pipeline (436 files, SHA-256). Module extraction: `:shadowascent` module created - `sim.*` and `world.*` moved out of `:core`; `EntityTypeRegistry` + `ShadowAscentEntityTypeBootstrap` added; `:core` published as `engine-core` Maven artifact to GitHub Packages. All server tests pass.
 - **Engine Platform Phase D complete (2026-04-19)**: Save checksums (`savegame.sha256` SHA-256 sidecar, verified on load with corrupt-save fallback). Perf regression gate (`TickDurationRegressionTest` â€” 2000-tick run, 5 ms ceiling, `perf_baseline.json`). Multi-slot save support (`user_data/saves/slot_N/`, `SlotSelectScreen`, legacy single-slot auto-migration). `tools/validate_animation_manifest.py` validates manifest against registry at authoring time.
+
+## Session Handover - 2026-04-29 (v0.13.5 - world generation authoring rules)
+
+- **Date:** 2026-04-29
+- **Branch:** master
+- **Version:** v0.13.5 release candidate for data-driven world-generation authoring.
+- **Completed:** room geometry rules, runtime room geometry enforcement, strict TMX geometry validation, room structure rules, seeded template catalog variants, catalog validation, authored TMX shell cleanup, and a comprehensive level authoring guide.
+- **Validation:** Python template validator unit tests PASS; canonical Java TMX strict geometry + catalog validation PASS; root editor TMX strict geometry PASS; `RoomGeometryRulesTest` PASS; `RoomStructureRulesTest` PASS; `RoomTemplateCatalogTest` PASS; `WorldGraphGenerationTest` PASS.
+- **G0 status:** G0/P0-10 remains open. The previous `v0.13.5` evidence target is superseded by this world-generation release; use the next G0 evidence target before closing P0-10.
 
 ## Session Handover - 2026-04-29 (v0.13.4 - Phase 2 CutsceneManager shipped)
 
