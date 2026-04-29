@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.6
+version_anchor: v0.13.7
 ---
 
 # Layered Hybrid World Generator
@@ -122,11 +122,50 @@ layout refactors.
 - [x] `python tools/check_docs_freshness.py --emit-report`
 - [x] `git diff --check`
 
+## Slice 3: Progression Graph Layer
+
+**Goal:** Add deterministic macro progression models before section/layout
+placement so the generator can reason about central hubs, region hubs, dungeon
+beats, requirements, grants, and critical path solvability before it places
+rooms.
+
+**Architecture:**
+
+- Add `com.indieniinja.world.progression`.
+- Keep this layer pure and independent from server persistence and legacy
+  `WorldGraph` runtime generation.
+- Generate a central hub, region hubs, dungeon nodes, optional branches, and a
+  critical path from the world seed.
+- Validate solvability by walking reachable nodes while accumulating grants.
+- Append the progression graph to deterministic worldgen snapshot exports and
+  bump `GeneratorSchemaVersion.CURRENT`.
+
+### Tasks
+
+- [x] Add TDD coverage for deterministic graph generation and seed-sweep
+  solvability.
+- [x] Implement `WorldProgressionGraph`.
+- [x] Implement `WorldProgressionGenerator`.
+- [x] Implement `ProgressionValidator` and `ProgressionValidationResult`.
+- [x] Append `progressionGraph` to `WorldGenerationSnapshotCommand`.
+- [x] Update system, architecture, authoring, changelog, and current-state docs.
+- [x] Run focused verification.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --tests com.indieniinja.world.progression.WorldProgressionGeneratorTest --no-daemon`
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.progression.WorldProgressionGeneratorTest --no-daemon`
+- [x] `cd java; .\gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=12 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345-v3.json" --no-daemon`
+- [x] `python tools/check_version_sync.py --tag v0.13.7`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.6`.
-- **Release scope:** Slice 1 and Slice 2 only, because together they provide
-  authored zone patches plus deterministic inspection tooling.
+- **Next tag:** `v0.13.7`.
+- **Release scope:** Slice 3 only, because it adds the pure progression graph
+  layer and updates snapshot schema version 3.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

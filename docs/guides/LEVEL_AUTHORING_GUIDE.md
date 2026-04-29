@@ -8,12 +8,13 @@ Use this as the working reference for designing levels, room templates, procedur
 
 The runtime builds playable space in layers:
 
-1. **World graph**: chooses rooms, room types, seeds, and neighbor directions.
-2. **Room selection**: chooses either an authored TMX template or procedural generation.
-3. **Zone plan**: procedural rooms get a 16x16 grid of zone roles.
-4. **Zone expansion**: each zone becomes an 8x8 tile patch.
-5. **Geometry enforcement**: walls, floors, and door corridors are normalized.
-6. **Postprocess**: entities, puzzle gates, pickups, NPCs, bosses, and portals are placed.
+1. **Progression graph**: chooses central hub, region hubs, dungeon beats, grants, requirements, and critical path.
+2. **World graph**: chooses rooms, room types, seeds, and neighbor directions.
+3. **Room selection**: chooses either an authored TMX template or procedural generation.
+4. **Zone plan**: procedural rooms get a 16x16 grid of zone roles.
+5. **Zone expansion**: each zone becomes an 8x8 tile patch.
+6. **Geometry enforcement**: walls, floors, and door corridors are normalized.
+7. **Postprocess**: entities, puzzle gates, pickups, NPCs, bosses, and portals are placed.
 
 Authored TMX templates skip the procedural zone plan for their interior, but they still receive geometry enforcement. Procedural rooms use data-driven structure rules plus zone templates.
 
@@ -54,7 +55,36 @@ java/shadowascent/src/main/java/com/indieniinja/world/RoomTemplateCatalog.java
 java/shadowascent/src/main/java/com/indieniinja/world/ZonePatchTemplateLibrary.java
 java/shadowascent/src/main/java/com/indieniinja/world/RoomGeometryRules.java
 java/shadowascent/src/main/java/com/indieniinja/world/RoomStructureRules.java
+java/shadowascent/src/main/java/com/indieniinja/world/progression/WorldProgressionGraph.java
+java/shadowascent/src/main/java/com/indieniinja/world/progression/WorldProgressionGenerator.java
+java/shadowascent/src/main/java/com/indieniinja/world/progression/ProgressionValidator.java
 ```
+
+## Designing Progression Graph Content
+
+Think about level structure first as macro beats:
+
+```text
+central hub -> region hubs -> dungeon entry -> trial/reward -> lock gate -> boss
+```
+
+The progression graph layer records:
+
+- region requirements
+- dungeon requirements
+- rewards/grants
+- optional branches
+- critical-path order
+- services such as save/shop
+
+Every required ability or key-like grant must appear before any required node
+that needs it. `ProgressionValidator` checks this by walking reachable nodes
+from `central_hub` while accumulating grants. Generated graphs are deterministic
+from the world seed and covered by seed-sweep tests.
+
+Current boundary: this layer does not yet replace room templates, zone patches,
+room structure rules, or the live server layout. Later slices will use this
+progression graph to choose section templates and spatial layout.
 
 ## Room Types
 

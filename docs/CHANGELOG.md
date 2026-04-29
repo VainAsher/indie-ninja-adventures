@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.6
+version_anchor: v0.13.7
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.7] - 2026-04-29 (Worldgen progression graph layer)
+
+### Added
+
+- **Progression graph layer**: `com.indieniinja.world.progression` now models deterministic central hub, region hub, dungeon node, optional branch, critical path, grant, and requirement structure above legacy room generation.
+- **Progression solvability validation**: `ProgressionValidator` verifies required nodes are reachable while accumulating grants; seed-sweep tests cover 250 generated graphs.
+- **Snapshot progression export**: `WorldGenerationSnapshotCommand` now includes a `progressionGraph` block in deterministic JSON exports.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and `version.json.generator_schema_version` are now `3` because snapshot exports include the new progression graph block.
+
+### Compatibility
+
+- **replay**: no runtime replay change; this layer is not yet consumed by live room generation.
+- **snapshot schema**: changed from generator schema `2` to `3`.
+- **save**: no schema change.
+- **protocol**: no change.
 
 ---
 

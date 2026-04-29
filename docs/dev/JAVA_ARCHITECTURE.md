@@ -365,6 +365,25 @@ Multi-room graph generator. `WorldGraph.generate(seed, numRooms, WorldShape)` re
 
 **`WorldShape` enum:** `SNAKE, BRANCHY, BLOB, SPIRAL, TREE, GRID` (with `rev` and `straight` biases)
 
+#### Progression Graph (`world/progression/`)
+
+Pure macro progression layer above `WorldGraph`. This is implemented for
+deterministic modelling, validation, and snapshot export now; later
+section/layout slices will consume it for room placement.
+
+| Class | Role |
+|-------|------|
+| `WorldProgressionGraph` | Immutable container for central hub, region hubs, dungeon nodes, optional branches, critical path, and snapshot serialization. |
+| `WorldProgressionGenerator` | Deterministically creates macro progression from world seed. |
+| `ProgressionValidator` | Walks reachable progression nodes while accumulating grants; fails if any required node remains blocked. |
+| `ProgressionValidationResult` | Validation outcome, reachable ids, collected grants, and blocked required node ids. |
+
+Current graph levels are `CENTRAL_HUB`, `REGION_HUB`, and `DUNGEON`.
+Requirements/grants use the same ability-id vocabulary as runtime progression
+systems (`double_jump`, `dash`, `wall_jump`, `shuriken`, `teleport`,
+`ninjutsu`), but this layer does not yet mutate player state or server
+persistence.
+
 #### `RoomGenerator`
 Generates tile content for a specific `RoomType`, delegating to `WorldGenerator` for base layout then stamping room-type-specific content.
 

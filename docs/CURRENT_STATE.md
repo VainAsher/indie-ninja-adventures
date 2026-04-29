@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-29
-version_anchor: v0.13.6
+version_anchor: v0.13.7
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,20 +21,20 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-04-29): v0.13.6 is the layered worldgen snapshots and zone patches release candidate pending tag workflow completion.
-- Release assets verified for v0.13.5: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.5.zip`.
+- Current release truth (2026-04-29): v0.13.7 is the worldgen progression graph layer release candidate pending tag workflow completion.
+- Release assets verified for v0.13.6: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.6.zip`.
 - G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
 - G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next G0 evidence target: v0.13.7 (G0 signoff evidence + state sync; code changes only for G0 blockers).
+- Next G0 evidence target: v0.13.8 (G0 signoff evidence + state sync; code changes only for G0 blockers).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-29`):
-  - CI green for `69e8e5d` (`v0.13.5`)
-  - Release workflow green for tag `v0.13.5`
-  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.5.zip`
+  - CI green for `8daee4f` (`v0.13.6`)
+  - Release workflow green for tag `v0.13.6`
+  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.6.zip`
   - Local gates passed: version sync, docs freshness, client/server tests, client/server shadow JARs
   - G0 signoff still requires 5 first-session records before P0-10 can close
 
@@ -71,13 +71,14 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Validation:** Python template validator unit tests PASS; canonical Java TMX strict geometry + catalog validation PASS; root editor TMX strict geometry PASS; `RoomGeometryRulesTest` PASS; `RoomStructureRulesTest` PASS; `RoomTemplateCatalogTest` PASS; `WorldGraphGenerationTest` PASS.
 - **G0 status:** G0/P0-10 remains open. The previous `v0.13.5` evidence target is superseded by this world-generation release; use the next G0 evidence target before closing P0-10.
 
-## Active Slice - Layered hybrid generator, Slice 1
+## Active Slice - Layered hybrid generator, Slice 3
 
-- **Status:** Implementing after v0.13.5 release.
+- **Status:** Implementing after v0.13.6 release.
 - **Plan:** [`docs/plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md`](plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md).
-- **Completed in this slice:** data-driven Tiled 8x8 zone patch catalog, runtime `ZonePatchTemplateLibrary`, sample `FILL`/`PLAT` patches in Java/runtime and root editor paths, zone patch validator, and authoring docs.
-- **Validation:** `ZonePatchTemplateLibraryTest` PASS; existing `ZoneTemplateLibraryTest` PASS; Java and root zone template validation PASS.
-- **Next slice:** generator schema version + deterministic JSON snapshot CLI, so later graph/layout/refactor work has a stable inspection and regression baseline.
+- **Completed in this slice:** deterministic progression graph model, generator, solvability validator, seed-sweep tests, and snapshot export of the macro progression graph.
+- **Validation:** `WorldProgressionGeneratorTest` PASS; `WorldGenerationSnapshotCommandTest` PASS.
+- **Next slice:** section templates for authored pacing chunks.
+- **Compatibility:** no live replay/save/protocol change yet. Generator snapshot schema changes from `2` to `3`.
 
 ## Session Handover - 2026-04-29 (v0.13.4 - Phase 2 CutsceneManager shipped)
 

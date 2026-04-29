@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-21
-version_anchor: v0.13.6
+version_anchor: v0.13.7
 ---
 
 # World Generation and Layout (Java)
@@ -58,15 +58,47 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
 
 ## Runtime flow
 
-1. Generate `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
-2. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
+1. Generate macro progression graph from seed — assigns central hub, region hubs, dungeon nodes, requirements, grants, optional branches, and critical path.
+2. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
+3. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
    - Template types load a seed-selected `.tmx` variant first; door openings carved by `carveDoors()`.
    - Non-template types go through `ZonePlanner` → `RoomGenerator` procedural path.
    - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
    - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
-3. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
-4. Stitch unified layout for simulation and snapshot descriptors.
-5. Client renders tile output with blob autotile mapping and room metadata.
+4. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
+5. Stitch unified layout for simulation and snapshot descriptors.
+6. Client renders tile output with blob autotile mapping and room metadata.
+
+## Progression graph layer
+
+`WorldProgressionGenerator.generate(worldSeed)` creates the macro progression
+graph above room placement. This is a pure model layer in
+`com.indieniinja.world.progression`; it does not yet alter server runtime,
+`WorldGraph` persistence, room layout, or tile generation.
+
+Current model responsibilities:
+
+| Model | Purpose |
+| ----- | ------- |
+| `WorldProgressionGraph` | Container for central hub, region hubs, dungeon nodes, critical path, and snapshot serialization. |
+| `WorldProgressionGenerator` | Deterministic world-seed generator for macro progression beats. |
+| `ProgressionValidator` | Solvability check that walks reachable nodes while accumulating grants. |
+| `ProgressionValidationResult` | Validation outcome, reachable ids, collected grants, and blocked required nodes. |
+
+The generated graph contains:
+
+- `central_hub` as the root.
+- 3-4 region hubs selected deterministically from the world seed.
+- required dungeon beats per region: entry, trial, gate, and boss.
+- optional treasure branches.
+- ability/key-style grants that appear before later requirements.
+
+The validator requires every non-optional node to become reachable from
+`central_hub`. Optional nodes may remain gated, but current generated optional
+treasure branches are also reachable after their region grant.
+
+This layer is intentionally above `WorldGraph`. Later section/layout slices will
+consume it to choose authored section templates and spatial structure.
 
 ## Snapshot export
 
@@ -88,6 +120,7 @@ The command writes:
 | `seedStreams` | Stable stream identifiers reserved for graph, room, zone, and autotile layers. |
 | `bounds` | Min/max room-grid bounds and room-space dimensions. |
 | `rooms[]` | Stable room ids, grid coordinates, type ids, room seeds, biome indexes, sorted neighbor dirs, and tile CRC checksums. |
+| `progressionGraph` | Macro progression snapshot with world nodes, region hubs, dungeon nodes, and critical path ids. |
 
 The first snapshot schema is graph-centric. Later layered-generator slices should
 append section, socket, anchor, validator, and megamap blocks instead of
