@@ -56,36 +56,109 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Engine Platform Phases A-C complete (2026-04-19)**: Content definition system (`ContentLoader`, `ContentRegistry`, JSON-schema-validated definitions), `GameConfig` balance constants, animation manifest + hot-reload, Tiled TMX room loader (4 templates), Yarn Spinner dialogue format (23 files), in-game DevConsole (backtick toggle, 14 commands), Gradle `buildAssets` pipeline (436 files, SHA-256). Module extraction: `:shadowascent` module created - `sim.*` and `world.*` moved out of `:core`; `EntityTypeRegistry` + `ShadowAscentEntityTypeBootstrap` added; `:core` published as `engine-core` Maven artifact to GitHub Packages. All server tests pass.
 - **Engine Platform Phase D complete (2026-04-19)**: Save checksums (`savegame.sha256` SHA-256 sidecar, verified on load with corrupt-save fallback). Perf regression gate (`TickDurationRegressionTest` â€” 2000-tick run, 5 ms ceiling, `perf_baseline.json`). Multi-slot save support (`user_data/saves/slot_N/`, `SlotSelectScreen`, legacy single-slot auto-migration). `tools/validate_animation_manifest.py` validates manifest against registry at authoring time.
 
-## Session Handover — 2026-04-29
+## Session Handover — 2026-04-29 (v0.13.3 — Phase 1 CutsceneManager + JAR fix)
 
 - **Date:** 2026-04-29
-- **Branch:** master | **HEAD:** 4a54186
-- **Version:** v0.13.2 — released and verified
-- **Systems touched:** `cutscene` package (new — 8 classes), `GameScreen`, `DialogueManager`, `StoryManager`, `SaveData`, `SaveManager`, CHANGELOG, ROADMAP, README, CURRENT_STATE, PLAN_CUTSCENE_MANAGER, devlog, version.json, build.gradle.kts
-- **What was built (Phase 1 CutsceneManager — CS-01–CS-10):**
-  - `CutsceneStepType` enum, `SkipPolicy` enum, `StartCondition`, `CutsceneLoadException`
-  - `CutsceneStep` data model with `Builder` pattern (type, flag, speaker, textKey, duration, target, entity)
-  - `CutsceneDefinition` data model — id, version, act, blocking, skipPolicy, startConditions, completionFlags, steps
-  - `CutsceneLoader` — loads `data/cutscenes/*.json` via `Gdx.files.internal`; headless-safe `loadString()` for tests; skips invalid files with ERROR log; deterministic alphabetical order
-  - `CutsceneManager` — `start(id)`, `start(id, force)`, `tick(delta)`, `skip()`, `complete()`, `interrupt()`, `emergencyStop()`, `resetCompleted(id)`, `setOnCompleteCallback()`; Phase 2 step types accepted with warning log
-  - `DialogueManager.startInline(speaker, text)` — synthetic single-node dialogue tree for inline cutscene dialogue
-  - `StoryManager.hasFlag(key)` — boolean convenience wrapper
-  - `SaveData.completedCutscenes` (`List<String>`) — persisted; null-safe on old save load
-  - `SaveManager.completedCutscenes()` live `Set<String>` — survives `liveData` replacement on reload via separate `completedCutscenesSet` field
-  - `GameScreen`: `CutsceneManager` init after `saveManager.load()`, `tick()` in render loop, `cutscenePlayerLocked` gate in `gameplayInputEnabled()`, 4 DevConsole commands (`cutscene list/play/reset/flags`)
-  - `data/cutscenes/act1_linzi_first_appearance.json` — Linzi's first appearance; sets `act1_linzi_met` + `linzi_arrived` flags
-  - 36 new tests passing: `CutsceneLoaderTest`(9), `CutsceneManagerTest`(13), `CutsceneCompletionFlagTest`(4), `CutsceneSkipPolicyTest`(7), `CutsceneSaveRoundtripTest`(3)
-- **Validation run:**
-  - `.\gradlew.bat :client:shadowJar` — BUILD SUCCESSFUL
-  - `.\gradlew.bat :client:test` — 36 new cutscene tests PASS; all prior tests stable
-  - `python tools/check_version_sync.py` — OK v0.13.2
-  - `python tools/check_docs_freshness.py --emit-report` — PASS (0 warnings)
-  - CI: success (master push `5c679bd` + version bump `ebbe32e` + plan closure `4a54186`)
-  - Release: success — `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.2.zip` verified
-- **Known issues / risks:**
-  - `cutscene play act1_linzi_first_appearance` wired in DevConsole but not live-smoke-tested through launcher runtime — requires manual smoke next session.
-  - Phase 2 step types (camera/entity) are forwarded with a warning log but produce no effect — authoring Phase 2 scenes before CS-11–CS-13 are implemented will silently no-op those steps.
-  - No hub name HUD (step 1 of G0 PARTIAL since v0.13.0) — deferred past Phase 2.
+- **Branch:** master | **HEAD:** a3ba321
+- **Version:** v0.13.3 — released and verified (CI ✓, Release ✓, 3 assets)
+- **Session summary:** Built the full Phase 1 data-driven CutsceneManager from scratch, shipped as v0.13.2. Found and fixed a P0 runtime bug (CutsceneLoader's `isDirectory()` call always returns false in a fat JAR), shipped fix as v0.13.3. Confirmed working via live launcher smoke test.
+
+---
+
+### What was built — Phase 1 CutsceneManager (CS-01–CS-10, v0.13.2)
+
+**New package:** `java/client/src/main/java/com/indieniinja/client/game/cutscene/`
+
+| File | Purpose |
+| --- | --- |
+| `CutsceneStepType.java` | Enum of all step types (Phase 1 + Phase 2 stubs) |
+| `SkipPolicy.java` | NEVER / ALWAYS / ALLOW_AFTER_FIRST_VIEW / DEBUG_ONLY |
+| `StartCondition.java` | `flagNotSet` / `flagSet` condition pair; `isMet(StoryManager)` |
+| `CutsceneLoadException.java` | Checked load error with cause chaining |
+| `CutsceneStep.java` | Step data class with Builder; `fromMap()` factory |
+| `CutsceneDefinition.java` | Full scene data model; `fromMap()` factory; `conditionsMet()` |
+| `CutsceneLoader.java` | Reads `data/cutscenes/index.json` then loads each file by explicit path |
+| `CutsceneManager.java` | Runtime state machine: start/tick/skip/complete/emergencyStop/resetCompleted |
+
+**Existing files modified:**
+
+- `DialogueManager.java` — added `startInline(speaker, text)`: synthetic single-node dialogue tree for cutscene dialogue without Yarn files
+- `StoryManager.java` — added `hasFlag(key)` boolean shorthand
+- `SaveData.java` — added `completedCutscenes List<String>` (null-safe on old save load)
+- `SaveManager.java` — added live `completedCutscenesSet` that survives `liveData` replacement on reload; `completedCutscenes()` accessor
+- `GameScreen.java` — CutsceneManager init after `saveManager.load()`, `tick()` in render loop, `cutscenePlayerLocked` gate in `gameplayInputEnabled()`, 4 DevConsole commands
+
+**Data files:**
+
+- `data/cutscenes/index.json` — manifest listing all cutscene filenames (JAR-safe; do NOT skip this when adding new scenes)
+- `data/cutscenes/act1_linzi_first_appearance.json` — first Act I scene: lock → 3× dialogue → set_flag ×2 → unlock; sets `act1_linzi_met` + `linzi_arrived`
+
+**Tests (36 new, all passing):**
+
+- `CutsceneLoaderTest` (9) — valid load, invalid step skip, missing id exception, deterministic order
+- `CutsceneManagerTest` (13) — start/tick/complete, second-start rejection, lock/unlock, set_flag, wait countdown, dialogue pause, completion flags, emergencyStop, resetCompleted
+- `CutsceneCompletionFlagTest` (4) — flag written on finish, id tracked, one-shot no-restart, emergencyStop unlocks
+- `CutsceneSkipPolicyTest` (7) — NEVER/ALWAYS/ALLOW_AFTER_FIRST_VIEW/DEBUG_ONLY behaviour
+- `CutsceneSaveRoundtripTest` (3) — ids survive save/reload; null field defaults to empty
+
+**Plan:** [`docs/plans/implementing/PLAN_CUTSCENE_MANAGER.md`](plans/implementing/PLAN_CUTSCENE_MANAGER.md) — Phase 1 COMPLETE, Phase 2 NOT STARTED
+
+---
+
+### P0 fix — CutsceneLoader JAR runtime (v0.13.3)
+
+**Bug:** `Gdx.files.internal("data/cutscenes").isDirectory()` always returns `false` for classpath paths inside a fat JAR. The loader silently returned an empty map; every `cutscene play <id>` call failed with `[ERR] unknown id`.
+
+**Fix:** Replaced directory-listing with explicit index file approach:
+
+1. `CutsceneLoader.loadAll()` reads `data/cutscenes/index.json` (a JSON array of filenames)
+2. Loads each file by explicit `Gdx.files.internal("data/cutscenes/<name>")` — individual paths work from JAR classpath
+3. `loadAll(FileHandle dir)` overload retained for tests; skips `index.json` itself
+
+**Rule for future authoring:** Every new `data/cutscenes/*.json` file **must** be added to `data/cutscenes/index.json` or the loader will not find it.
+
+**Live smoke test (confirmed 2026-04-29):**
+
+- `cutscene list` → `[unseen] act1_linzi_first_appearance (7 steps, ALLOW_AFTER_FIRST_VIEW)`
+- `cutscene play act1_linzi_first_appearance` → player locks, Linzi speaks 3 lines, flags set, player unlocks ✓
+
+---
+
+### Validation
+
+- `.\gradlew.bat :client:shadowJar` — BUILD SUCCESSFUL
+- `.\gradlew.bat :client:test` — all 36 cutscene tests PASS
+- `python tools/check_version_sync.py` — OK v0.13.3
+- CI: success on all master pushes + tag
+- Release v0.13.3: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-29-v0.13.3.zip` ✓
+- Live DevConsole smoke: `cutscene play act1_linzi_first_appearance` ✓
+
+---
+
+### Known issues / risks going into Phase 2
+
+| Risk | Detail |
+| --- | --- |
+| Phase 2 step types silently no-op | `camera_*` and `entity_*` steps log a warning and do nothing — authoring them before CS-11–CS-13 are implemented won't crash but won't work |
+| No hub name HUD | Step 1 of G0 has been PARTIAL since v0.13.0 — deferred |
+| `buildAll` Gradle undeclared dep | Workaround: use `:shadowascent:compileJava :client:compileJava :client:shadowJar` |
+
+---
+
+### First action for the next agent
+
+1. Read [`docs/plans/implementing/PLAN_CUTSCENE_MANAGER.md`](plans/implementing/PLAN_CUTSCENE_MANAGER.md) — Phase 2 starts at CS-11
+
+2. **CS-11:** Add `setCutsceneFocus(float worldX, float worldY)`, `panTo(float worldX, float worldY, float duration)`, `restorePlayerFollow()` to `GameCamera`
+3. **CS-12:** Wire `CAMERA_FOCUS`, `CAMERA_PAN`, `CAMERA_RESTORE_PLAYER` step types into `CutsceneManager.tick()`
+4. **CS-13:** Wire `ENTITY_FACE`, `ENTITY_MOVE_TO`, `ENTITY_SET_VISIBLE`, `ENTITY_PLAY_ANIM` step types
+5. **CS-14:** `CutsceneMarkerRegistry` — named positions from `data/cutscenes/markers.json`
+6. **CS-15:** NPC-interaction → cutscene trigger path in `GameScreen`
+7. **CS-16:** Author the remaining 5 Act I cutscene JSON files (add each to `index.json`)
+8. **CS-17–18:** Camera restore tests + G0 integration test
+9. **Target version:** v0.13.4
+
+- **Compatibility:** replay: no | save: additive | protocol: no
   - `buildAll` Gradle task has pre-existing undeclared dependency; workaround: `:shadowascent:compileJava :client:compileJava :client:shadowJar`.
 - **Compatibility:** replay: no | save: additive (`completedCutscenes` added; old saves load cleanly with empty set) | protocol: no
 - **Active plan:** [`docs/plans/implementing/PLAN_CUTSCENE_MANAGER.md`](plans/implementing/PLAN_CUTSCENE_MANAGER.md) — Phase 1 COMPLETE, Phase 2 NOT STARTED
