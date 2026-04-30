@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.12
+version_anchor: v0.13.15
 ---
 
 # Layered Hybrid World Generator
@@ -355,11 +355,51 @@ bundle from deterministic worldgen snapshots.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 9: Worldgen Lab Prototype
+
+**Goal:** Add a fast, static inspection loop for single-seed formation review
+and batch seed quality sweeps.
+
+**Architecture:**
+
+- Add `com.indieniinja.world.lab`.
+- Emit deterministic `labReport` snapshot metadata with per-room tile counts,
+  room type counts, warning counts, and quality score.
+- Detect connected room borders that are open outside configured door spans.
+- Add `tools/worldgen_lab.py` with single-snapshot `render` and multi-seed
+  `batch` commands.
+- Append `labReport` to deterministic worldgen snapshot exports and bump
+  `GeneratorSchemaVersion.CURRENT` to `9`.
+
+### Tasks
+
+- [x] Add TDD coverage for deterministic lab reports.
+- [x] Add TDD coverage for connected-edge shell diagnostics.
+- [x] Add TDD coverage for snapshot `labReport` inclusion.
+- [x] Add Python render and batch CLI coverage.
+- [x] Implement `WorldgenLabReport`.
+- [x] Implement `WorldgenLabAnalyzer`.
+- [x] Append `labReport` to `WorldGenerationSnapshotCommand`.
+- [x] Add `tools/worldgen_lab.py`.
+- [x] Update system, authoring, changelog, current-state, roadmap, README, and
+  version metadata docs.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `python tools/test_worldgen_lab.py`
+- [x] `python tools/check_version_sync.py --tag v0.13.15`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.12`.
-- **Release scope:** Slice 8 only, because it adds megamap snapshot metadata,
-  viewer/export tooling, and updates snapshot schema version 8.
+- **Next tag:** `v0.13.15`.
+- **Release scope:** Worldgen Lab prototype, because it adds lab snapshot
+  metadata, static report tooling, batch sweeps, and updates snapshot schema
+  version 9.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

@@ -64,6 +64,8 @@ java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplate.j
 java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplateLibrary.java
 java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapSnapshot.java
 java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapStitcher.java
+java/shadowascent/src/main/java/com/indieniinja/world/lab/WorldgenLabAnalyzer.java
+java/shadowascent/src/main/java/com/indieniinja/world/lab/WorldgenLabReport.java
 ```
 
 ## Designing Progression Graph Content
@@ -251,6 +253,54 @@ python tools/render_worldgen_snapshot.py java/shadowascent/build/worldgen-snapsh
 ```
 
 The bundle writes `overlay.txt`, `metrics.json`, and `megamap.svg`.
+
+## Iterating With Worldgen Lab
+
+Use Worldgen Lab when you want to compare formations quickly, find seeds with
+weak geometry, or decide which rule/template needs tuning.
+
+Single-seed workflow:
+
+```bash
+cd java
+./gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=20 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345.json" --no-daemon
+cd ..
+python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/seed-12345.json --out build/worldgen-lab/seed-12345
+```
+
+Open `build/worldgen-lab/seed-12345/index.html` and inspect:
+
+| File | Use |
+| ---- | --- |
+| `index.html` | Report page with megamap preview and warning summary. |
+| `megamap.svg` | Static visual layout preview. |
+| `metrics.json` | Full machine-readable snapshot/lab metrics. |
+| `overlay.txt` | Plain text minimap for diffs and issue notes. |
+
+Batch workflow over existing snapshots:
+
+```bash
+python tools/worldgen_lab.py batch --snapshots java/shadowascent/build/worldgen-snapshots --out build/worldgen-lab/batch --failures 5
+```
+
+Batch workflow that generates snapshots:
+
+```bash
+python tools/worldgen_lab.py batch --seeds 25 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep --failures 5
+```
+
+Read `summary.csv` first. Sort by `qualityScore` ascending and
+`warningCountTotal` descending. The `failures/` folder renders the lowest
+quality seeds so you can inspect them without manually opening every snapshot.
+
+How to act on warnings:
+
+| Pattern | Likely tuning target |
+| ------- | -------------------- |
+| One room type repeats warnings | Fix that TMX template, catalog variant, or room-specific structure rule. |
+| One edge direction repeats across room types | Check `data/room_geometry_rules.json` and shared shell enforcement. |
+| Quality drops only on dense layouts | Reduce `fillMax`, `decorFillChance`, or hazard chances in structure rules. |
+| Low variety but no warnings | Add catalog variants or adjust template weights. |
 
 Overlay symbols:
 
@@ -507,8 +557,8 @@ cd java
 The snapshot records generator schema version, seed streams, progression graph,
 loaded section templates, hybrid layout assignments, socket/anchor contracts,
 validation reports, megamap exports, room graph data, neighbor directions,
-biome indexes, and per-room tile checksums. Use it as the baseline artifact for
-future room/zone authoring changes.
+biome indexes, per-room tile checksums, and `labReport` metrics. Use it as the
+baseline artifact for future room/zone authoring changes.
 
 ## Room Structure Rules
 
@@ -638,6 +688,7 @@ Run these before tagging a generation/content release:
 
 ```bash
 python tools/test_validate_room_templates.py
+python tools/test_worldgen_lab.py
 python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json
 python tools/validate_room_templates.py --dir assets/rooms/templates --strict-geometry
 cd java

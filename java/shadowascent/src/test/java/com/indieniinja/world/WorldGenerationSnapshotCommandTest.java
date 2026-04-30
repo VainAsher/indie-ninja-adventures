@@ -55,5 +55,8 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("megamap").get("seams")).isNotEmpty();
         assertThat(root.get("megamap").get("metrics").get("stitchedTileCount").asInt()).isGreaterThan(0);
         assertThat(root.get("megamap").get("overlayRows")).isNotEmpty();
+        assertThat(root.get("labReport").get("overallStatus").asText()).isNotBlank();
+        assertThat(root.get("labReport").get("qualityScore").asInt()).isBetween(0, 100);
+        assertThat(root.get("labReport").get("rooms")).hasSize(root.get("roomCountActual").asInt());
     }
 }

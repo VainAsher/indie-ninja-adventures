@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.14
+version_anchor: v0.13.15
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.15] - 2026-04-30 (Worldgen Lab prototype)
+
+### Added
+
+- **Worldgen Lab report metadata**: deterministic snapshots now include a
+  `labReport` block with per-room tile counts, type counts, quality score,
+  warning counts, and edge-shell diagnostics for connected rooms.
+- **Worldgen Lab tooling**: added `tools/worldgen_lab.py` with `render` and
+  `batch` commands. Single-seed reports write `index.html`, `megamap.svg`,
+  `metrics.json`, and `overlay.txt`; batch sweeps write `summary.csv`,
+  `summary.json`, and rendered worst-seed bundles.
+- **Coverage**: added Java analyzer/snapshot tests and Python lab CLI tests.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and
+  `version.json.generator_schema_version` are now `9` because snapshots include
+  lab analysis metadata.
+
+### Compatibility
+
+- **snapshot schema**: changed from generator schema `8` to `9`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: no live world placement change; this is inspection and
+  iteration tooling for tuning room geometry, formation quality, and warnings.
 
 ## [0.13.14] - 2026-04-30 (Connected-edge room shell collision)
 

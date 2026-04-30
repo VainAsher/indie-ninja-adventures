@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.indieniinja.world.contracts.SocketAnchorPlanner;
 import com.indieniinja.world.layout.HybridLayoutPlan;
 import com.indieniinja.world.layout.HybridLayoutPlanner;
+import com.indieniinja.world.lab.WorldgenLabAnalyzer;
 import com.indieniinja.world.megamap.MegamapStitcher;
 import com.indieniinja.world.progression.WorldProgressionGenerator;
 import com.indieniinja.world.progression.WorldProgressionGraph;
@@ -95,6 +96,7 @@ public final class WorldGenerationSnapshotCommand {
             socketAnchorPlan
         ).toSnapshot());
         root.put("megamap", MegamapStitcher.stitch(seed, requestedRooms, shape, graph).toSnapshot());
+        root.put("labReport", WorldgenLabAnalyzer.analyze(seed, graph).toMap());
         root.put("rooms", rooms(graph));
         return root;
     }

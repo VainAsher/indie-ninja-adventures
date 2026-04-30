@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.12
+version_anchor: v0.13.15
 ---
 
 # World Generation and Layout (Java)
@@ -38,6 +38,9 @@ For hands-on room, zone, and level-design workflow, see `docs/guides/LEVEL_AUTHO
 - Megamap export:
   - `java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapSnapshot.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapStitcher.java`
+- Lab analysis:
+  - `java/shadowascent/src/main/java/com/indieniinja/world/lab/WorldgenLabReport.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/world/lab/WorldgenLabAnalyzer.java`
 - Postprocess pipeline:
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/RoomPostProcessor.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/AbilityLayer.java`
@@ -85,9 +88,11 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
    - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
    - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
 8. Emit megamap snapshot metadata — continuous room origins, seams, overlays, metrics, and autotile preview checksums.
-9. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
-10. Stitch unified layout for simulation and snapshot descriptors.
-11. Client renders tile output with blob autotile mapping and room metadata.
+9. Emit lab report metadata — per-room tile counts, warning counts, quality
+   score, and connected-edge shell diagnostics for authoring iteration.
+10. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
+11. Stitch unified layout for simulation and snapshot descriptors.
+12. Client renders tile output with blob autotile mapping and room metadata.
 
 ## Progression graph layer
 
@@ -219,6 +224,46 @@ python tools/render_worldgen_snapshot.py java/shadowascent/build/worldgen-snapsh
 
 It writes `overlay.txt`, `metrics.json`, and `megamap.svg`.
 
+## Worldgen Lab prototype
+
+`WorldgenLabAnalyzer.analyze(worldSeed, graph)` emits the snapshot `labReport`
+block. It is intentionally read-only: it generates the same per-room grids as
+the snapshot exporter, counts solid/platform/passable tiles, aggregates room
+type usage, and flags connected room borders that are open outside the legal
+door span.
+
+Current warning categories:
+
+| Warning | Meaning |
+| ------- | ------- |
+| `connected_up_edge_open_outside_door` | A room with an upward connection has top-shell air outside the door corridor. |
+| `connected_down_edge_open_outside_door` | A room with a downward connection has bottom-floor air outside the door corridor. |
+| `connected_left_edge_open_outside_door` | A room with a left connection has side-shell air outside the door corridor. |
+| `connected_right_edge_open_outside_door` | A room with a right connection has side-shell air outside the door corridor. |
+
+Render a single snapshot:
+
+```bash
+python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/seed-12345.json --out build/worldgen-lab/seed-12345
+```
+
+Batch existing snapshots and render the lowest-quality seeds:
+
+```bash
+python tools/worldgen_lab.py batch --snapshots java/shadowascent/build/worldgen-snapshots --out build/worldgen-lab/batch --failures 5
+```
+
+Or generate and summarize a quick seed sweep:
+
+```bash
+python tools/worldgen_lab.py batch --seeds 25 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep --failures 5
+```
+
+Use `summary.csv` to sort by `qualityScore` and warning totals. If warnings
+cluster on one room type, tune that room's TMX template or structure rules. If
+warnings cluster on one edge direction across many room types, tune
+`data/room_geometry_rules.json` or the shared shell enforcement.
+
 ## Snapshot export
 
 `WorldGenerationSnapshotCommand` exports a deterministic JSON snapshot for a
@@ -245,6 +290,7 @@ The command writes:
 | `socketAnchorPlan` | Deterministic connection contracts plus resolved anchor world bounds. |
 | `validationReport` | Deterministic validation outcome, issues, and bounded repair actions. |
 | `megamap` | Continuous-map room origins, seams, overlays, metrics, and autotile preview checksums. |
+| `labReport` | Per-room lab metrics, quality score, type counts, and warning counts for tuning formations. |
 
 Future live-placement work should consume or extend the megamap block instead
 of replacing the command.
