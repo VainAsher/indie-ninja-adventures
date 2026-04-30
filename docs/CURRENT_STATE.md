@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.13
+version_anchor: v0.13.14
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,20 +21,20 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-04-30): v0.13.13 is the unified world void-collision seal release target.
-- Release assets verified for v0.13.12: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.12.zip`.
+- Current release truth (2026-04-30): v0.13.14 is the connected-edge room shell collision release target.
+- Release assets verified for v0.13.13: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.13.zip`.
 - G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
 - G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next G0 evidence target: v0.13.14 (G0 signoff evidence + state sync; code changes only for G0 blockers).
+- Next G0 evidence target: v0.13.15 (G0 signoff evidence + state sync; code changes only for G0 blockers).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-30`):
-  - CI green for `cca4d31` (`v0.13.12`)
-  - Release workflow green for tag `v0.13.12`
-  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.12.zip`
+  - CI green for `0e5d8f8` (`v0.13.13`)
+  - Release workflow green for tag `v0.13.13`
+  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.13.zip`
   - Local gates passed: version sync, docs freshness, client/server tests, client/server shadow JARs
   - G0 signoff still requires 5 first-session records before P0-10 can close
 
@@ -71,11 +71,17 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Validation:** Python template validator unit tests PASS; canonical Java TMX strict geometry + catalog validation PASS; root editor TMX strict geometry PASS; `RoomGeometryRulesTest` PASS; `RoomStructureRulesTest` PASS; `RoomTemplateCatalogTest` PASS; `WorldGraphGenerationTest` PASS.
 - **G0 status:** G0/P0-10 remains open. The previous `v0.13.5` evidence target is superseded by this world-generation release; use the next G0 evidence target before closing P0-10.
 
-## Active Hotfix - Unified world void collision
+## Active Hotfix - Connected-edge room shell collision
 
-- **Status:** Preparing v0.13.13 release.
+- **Status:** Preparing v0.13.14 release.
+- **Completed:** connected room edges now retain full solid wall/floor shells outside configured door corridors; procedural generation re-enforces room shells after late terrain variation passes.
+- **Validation:** red/green connected-down-edge regression PASS; `:shadowascent:test` PASS; related world graph suites PASS; full server/client tests and shadow JARs PASS.
+- **Compatibility:** replay/collision behavior can change for seeds that previously exposed open connected edges; save/protocol unchanged; generator snapshot schema remains `8`.
+
+## Completed Hotfix - Unified world void collision
+
+- **Status:** Released as v0.13.13.
 - **Completed:** missing room-grid cells inside unified world bounds are sealed with solid collision in both unified layout construction paths; a regression covers generated plans with empty interior cells.
-- **Validation:** focused regression PASS; related world graph suites PASS; full server test PASS; client/server shadow JAR build PASS.
 - **Compatibility:** replay/collision behavior can change for seeds that previously exposed fall-through void cells; save/protocol unchanged; generator snapshot schema remains `8`.
 
 ## Completed Slice - Layered hybrid generator, Slice 8

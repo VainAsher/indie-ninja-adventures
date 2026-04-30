@@ -25,40 +25,27 @@ public final class RoomGeometryEnforcer {
         int edge = Math.min(rules.edgeWallThickness(), Math.min(rows, cols));
         int floor = Math.min(rules.floorThickness(), rows);
 
-        boolean hasUp = neighborDirs.contains("up");
-        boolean hasDown = neighborDirs.contains("down");
-        boolean hasLeft = neighborDirs.contains("left");
-        boolean hasRight = neighborDirs.contains("right");
-
-        if (!hasUp) {
-            for (int r = 0; r < edge; r++) {
-                for (int c = 0; c < cols; c++) {
-                    grid[r][c] = WorldGenerator.SOLID;
-                }
+        for (int r = 0; r < edge; r++) {
+            for (int c = 0; c < cols; c++) {
+                grid[r][c] = WorldGenerator.SOLID;
             }
         }
 
-        if (!hasDown) {
-            for (int r = rows - floor; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    grid[r][c] = WorldGenerator.SOLID;
-                }
+        for (int r = rows - floor; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                grid[r][c] = WorldGenerator.SOLID;
             }
         }
 
-        if (!hasLeft) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < edge; c++) {
-                    grid[r][c] = WorldGenerator.SOLID;
-                }
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < edge; c++) {
+                grid[r][c] = WorldGenerator.SOLID;
             }
         }
 
-        if (!hasRight) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = cols - edge; c < cols; c++) {
-                    grid[r][c] = WorldGenerator.SOLID;
-                }
+        for (int r = 0; r < rows; r++) {
+            for (int c = cols - edge; c < cols; c++) {
+                grid[r][c] = WorldGenerator.SOLID;
             }
         }
     }

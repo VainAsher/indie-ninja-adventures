@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.13
+version_anchor: v0.13.14
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.14] - 2026-04-30 (Connected-edge room shell collision)
+
+### Added
+
+- **Connected-edge floor regression**: added coverage that proves rooms with a
+  downward connection keep a solid floor shell outside the actual door corridor.
+
+### Changed
+
+- **Room shell enforcement**: room geometry now builds a solid shell on every
+  edge first, then carves only configured door corridors. Connected rooms no
+  longer lose the rest of their wall or floor on that side.
+- **Late-pass protection**: procedural room generation re-runs shell
+  enforcement after features, cave smoothing, and blob variation so later
+  terrain passes cannot reopen room borders.
+
+### Compatibility
+
+- **snapshot schema**: no change; generator schema remains `8`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: replay/collision outcomes can change for generated
+  rooms that previously had open connected edges outside their door corridors.
 
 ## [0.13.13] - 2026-04-30 (Unified world void collision seal)
 

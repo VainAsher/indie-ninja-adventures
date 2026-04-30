@@ -42,6 +42,24 @@ class RoomGeometryRulesTest {
     }
 
     @Test
+    void connectedDownEdgeKeepsFloorOutsideDoorCorridor() {
+        byte[][] zones = emptyZones();
+
+        byte[][] grid = RoomGenerator.generate(zones, Set.of("down"), 1777562291895L, "combat", 4);
+
+        for (int r = 126; r < 128; r++) {
+            for (int c = 0; c < 128; c++) {
+                if (c >= 59 && c <= 69) {
+                    continue;
+                }
+                assertThat(grid[r][c])
+                    .as("down-connected floor shell row %d col %d", r, c)
+                    .isEqualTo(WorldGenerator.SOLID);
+            }
+        }
+    }
+
+    @Test
     void loadFromJsonOverridesDefaults() throws Exception {
         Path config = tempDir.resolve("room_geometry_rules.json");
         Files.writeString(config, """

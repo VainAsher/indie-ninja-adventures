@@ -84,6 +84,7 @@ public final class RoomGenerator {
         FeaturePlacer.place(grid, biomeIndex, roomSeed, neighborDirs);
         smoothCaveTerrain(grid, biomeIndex);
         addBlobVariationFromDef(grid, zones, roomSeed, def);
+        RoomGeometryEnforcer.enforce(grid, neighborDirs, RULES);
         return grid;
     }
 
@@ -129,6 +130,7 @@ public final class RoomGenerator {
         FeaturePlacer.place(grid, biomeIndex, roomSeed, neighborDirs);
         smoothCaveTerrain(grid, biomeIndex);
         addBlobVariation(grid, zones, roomSeed, roomType);
+        RoomGeometryEnforcer.enforce(grid, neighborDirs, RULES);
 
         return grid;
     }
