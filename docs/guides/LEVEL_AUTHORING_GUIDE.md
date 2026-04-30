@@ -86,9 +86,9 @@ that needs it. `ProgressionValidator` checks this by walking reachable nodes
 from `central_hub` while accumulating grants. Generated graphs are deterministic
 from the world seed and covered by seed-sweep tests.
 
-Current boundary: this layer does not yet replace room templates, zone patches,
-room structure rules, or the live server layout. Later slices will use this
-progression graph to choose section templates and spatial layout.
+Current boundary: this layer does not replace room templates, zone patches,
+room structure rules, or the live server layout. It now feeds the hybrid layout
+snapshot planner for inspection.
 
 ## Designing Section Templates
 
@@ -159,9 +159,30 @@ Authoring guidance:
 - Put gameplay-critical placements in `anchors` so validation can reason about them later.
 - Keep socket names descriptive: side + height band + traversal, for example `west_low_walk`.
 
-Current boundary: section templates are loaded and exported in deterministic
-snapshots. They are not yet consumed by live world placement; that starts in the
-hybrid BSP/grid layout slice.
+Current boundary: section templates are loaded, exported, and assigned to a
+deterministic hybrid layout plan. They are not yet consumed by live server room
+placement.
+
+## Inspecting Hybrid Layout Plans
+
+Hybrid layout plans show where authored section templates would sit before
+room instantiation. They are useful for checking pacing and footprint pressure
+without booting the game.
+
+The snapshot `hybridLayout` block contains:
+
+| Field | Use |
+| ----- | --- |
+| `bounds` | Total planned section-grid bounds. |
+| `assignments[]` | Progression node id, template id, biome, kind, partition id, footprint position, size, and optional flag. |
+| `connections[]` | Assigned progression child links that future socket/corridor layers must satisfy. |
+
+Authoring guidance:
+
+- If a section is too large, it pushes later assignments into later rows. Keep critical-path sections compact until the viewer slice lands.
+- Use `kind` consistently. The layout planner maps progression tags to section kinds such as `key_trial`, `boss_approach`, and `shop_save_loop`.
+- A template can be used outside its authored biome as a deterministic fallback when no same-biome template exists. Add biome-specific variants when a section’s geometry or theme matters.
+- Treat current layout coordinates as planning metadata, not final runtime room coordinates.
 
 ## Room Types
 
@@ -403,9 +424,10 @@ cd java
 ```
 
 The snapshot records generator schema version, seed streams, progression graph,
-loaded section templates, room graph data, neighbor directions, biome indexes,
-and per-room tile checksums. Use it as the baseline artifact for future
-room/zone authoring changes until the visual map viewer slice lands.
+loaded section templates, hybrid layout assignments, room graph data, neighbor
+directions, biome indexes, and per-room tile checksums. Use it as the baseline
+artifact for future room/zone authoring changes until the visual map viewer
+slice lands.
 
 ## Room Structure Rules
 

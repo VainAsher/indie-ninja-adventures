@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.8
+version_anchor: v0.13.9
 ---
 
 # World Generation and Layout (Java)
@@ -26,6 +26,9 @@ For hands-on room, zone, and level-design workflow, see `docs/guides/LEVEL_AUTHO
 - Section templates:
   - `java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplate.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplateLibrary.java`
+- Hybrid layout:
+  - `java/shadowascent/src/main/java/com/indieniinja/world/layout/HybridLayoutPlan.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/world/layout/HybridLayoutPlanner.java`
 - Postprocess pipeline:
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/RoomPostProcessor.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/AbilityLayer.java`
@@ -63,15 +66,16 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
 
 1. Generate macro progression graph from seed — assigns central hub, region hubs, dungeon nodes, requirements, grants, optional branches, and critical path.
 2. Load authored section templates — describes pacing chunks, footprints, edge rules, required sockets, mutable zones, and anchor candidates.
-3. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
-4. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
+3. Generate hybrid layout plan — assigns section footprints to deterministic grid coordinates and emits progression-edge connections.
+4. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
+5. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
    - Template types load a seed-selected `.tmx` variant first; door openings carved by `carveDoors()`.
    - Non-template types go through `ZonePlanner` → `RoomGenerator` procedural path.
    - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
    - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
-5. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
-6. Stitch unified layout for simulation and snapshot descriptors.
-7. Client renders tile output with blob autotile mapping and room metadata.
+6. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
+7. Stitch unified layout for simulation and snapshot descriptors.
+8. Client renders tile output with blob autotile mapping and room metadata.
 
 ## Progression graph layer
 
@@ -108,8 +112,7 @@ consume it to choose authored section templates and spatial structure.
 
 Section templates live in `data/worldgen/sections/*.json` and are loaded by
 `SectionTemplateLibrary`. They are authored pacing chunks between macro
-progression and concrete rooms. Slice 4 loads and exports these templates only;
-hybrid BSP/grid placement will consume them in the next slice.
+progression and concrete rooms.
 
 Current fields:
 
@@ -127,6 +130,25 @@ Current fields:
 
 The loader sorts templates by id for deterministic exports and skips malformed
 files so invalid draft content does not break legacy world generation.
+
+## Hybrid layout layer
+
+`HybridLayoutPlanner.plan(worldSeed, progressionGraph, sectionTemplates)` turns
+progression nodes into section assignments. The current implementation is a
+conservative deterministic grid planner: critical-path sections are placed in
+readable order, optional sections move into a lower row, and assigned
+progression child links become layout connections.
+
+Current model responsibilities:
+
+| Model | Purpose |
+| ----- | ------- |
+| `HybridLayoutPlan` | Snapshot container for bounds, section assignments, and connections. |
+| `HybridLayoutPlanner` | Selects section templates for progression nodes and assigns non-overlapping grid footprints. |
+
+This layer still does not replace live server `WorldGraph` placement or room
+tile generation. It gives tooling and later slices an inspectable spatial plan
+before sockets, anchors, validation, repair, and megamap stitching consume it.
 
 ## Snapshot export
 
@@ -150,6 +172,7 @@ The command writes:
 | `rooms[]` | Stable room ids, grid coordinates, type ids, room seeds, biome indexes, sorted neighbor dirs, and tile CRC checksums. |
 | `progressionGraph` | Macro progression snapshot with world nodes, region hubs, dungeon nodes, and critical path ids. |
 | `sectionTemplates` | Loaded authored section templates with count and stable template metadata. |
+| `hybridLayout` | Deterministic section-footprint bounds, assignments, and assigned progression-edge connections. |
 
 The first snapshot schema is graph-centric. Later layered-generator slices should
 append section, socket, anchor, validator, and megamap blocks instead of
@@ -183,7 +206,7 @@ replacing the command.
 - Changing structure rule values is replay-breaking because it changes deterministic zone plans and hazard placement.
 - Changing template catalog weights or files is replay-breaking because room seeds may resolve to different TMX layouts.
 - Changing zone patch catalog weights or files is replay-breaking because procedural zone expansion may stamp different tile patches.
-- Changing section templates is snapshot-schema-visible now and will become replay-breaking once the layout layer consumes sections.
+- Changing section templates or hybrid layout policy is snapshot-schema-visible now and will become replay-breaking once live room placement consumes section assignments.
 - Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
 - Authored zone patch TMX files and catalog entries can be checked with `python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json`.
 

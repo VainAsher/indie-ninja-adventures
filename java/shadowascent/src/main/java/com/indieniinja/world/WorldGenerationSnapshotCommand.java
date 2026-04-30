@@ -2,7 +2,9 @@ package com.indieniinja.world;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.indieniinja.world.layout.HybridLayoutPlanner;
 import com.indieniinja.world.progression.WorldProgressionGenerator;
+import com.indieniinja.world.progression.WorldProgressionGraph;
 import com.indieniinja.world.sections.SectionTemplateLibrary;
 
 import java.io.IOException;
@@ -33,6 +35,7 @@ public final class WorldGenerationSnapshotCommand {
     private static final List<String> SEED_STREAMS = List.of(
         "world_graph",
         "world_graph::back_edges",
+        "section_layout::<nodeId>",
         "room_synthesis::<roomId>",
         "zone_patch::<roomId>",
         "autotile::<roomId>"
@@ -71,8 +74,11 @@ public final class WorldGenerationSnapshotCommand {
         root.put("bounds", bounds.toJson());
         root.put("startRoomId", roomId(graph.startRoom()));
         root.put("exitRoomId", roomId(graph.exitRoom()));
-        root.put("progressionGraph", WorldProgressionGenerator.generate(seed).toSnapshot());
-        root.put("sectionTemplates", SectionTemplateLibrary.loadDefault().summarySnapshot());
+        WorldProgressionGraph progressionGraph = WorldProgressionGenerator.generate(seed);
+        SectionTemplateLibrary sectionTemplates = SectionTemplateLibrary.loadDefault();
+        root.put("progressionGraph", progressionGraph.toSnapshot());
+        root.put("sectionTemplates", sectionTemplates.summarySnapshot());
+        root.put("hybridLayout", HybridLayoutPlanner.plan(seed, progressionGraph, sectionTemplates).toSnapshot());
         root.put("rooms", rooms(graph));
         return root;
     }

@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.8
+version_anchor: v0.13.9
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.9] - 2026-04-30 (Worldgen hybrid layout plan)
+
+### Added
+
+- **Hybrid layout layer**: `com.indieniinja.world.layout` now emits deterministic section-footprint assignments above legacy room generation.
+- **Layout connections**: `HybridLayoutPlanner` converts assigned progression child edges into inspectable section-to-section connections.
+- **Snapshot layout export**: `WorldGenerationSnapshotCommand` now includes a `hybridLayout` block with bounds, assignments, and connections.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and `version.json.generator_schema_version` are now `5` because snapshot exports include hybrid layout metadata.
+- Snapshot seed streams now reserve `section_layout::<nodeId>` for deterministic section placement.
+
+### Compatibility
+
+- **replay**: no runtime replay change; hybrid layout metadata is exported but not yet consumed by live room placement.
+- **snapshot schema**: changed from generator schema `4` to `5`.
+- **save**: no schema change.
+- **protocol**: no change.
 
 ---
 

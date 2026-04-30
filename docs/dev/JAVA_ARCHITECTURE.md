@@ -395,8 +395,22 @@ exported through deterministic worldgen snapshots.
 | `SectionTemplate` | Immutable section contract: id, biome, kind, footprint, local node kinds, edge rules, required sockets, mutable zones, and anchor candidates. |
 | `SectionTemplateLibrary` | Loads templates from disk, sorts them deterministically, selects by biome/kind/seed, and emits snapshot metadata. |
 
-This layer is not yet consumed by live `WorldGraph` placement. Slice 5 will use
-these templates as the authored input for hybrid BSP/grid layout.
+This layer is consumed by the pure hybrid layout planner, but not yet by live
+server `WorldGraph` placement.
+
+#### Hybrid Layout (`world/layout/`)
+
+Pure section-footprint layout layer above legacy room generation. It selects
+authored section templates for progression nodes, assigns them to deterministic
+grid coordinates, and exports assigned progression-edge connections.
+
+| Class | Role |
+|-------|------|
+| `HybridLayoutPlan` | Immutable snapshot container for bounds, section assignments, and connections. |
+| `HybridLayoutPlanner` | Deterministically places non-overlapping section footprints from progression + section-template inputs. |
+
+This layer is metadata-only for now. It does not instantiate rooms, alter
+`WorldGraph.generate(...)`, or change server persistence.
 
 #### `RoomGenerator`
 Generates tile content for a specific `RoomType`, delegating to `WorldGenerator` for base layout then stamping room-type-specific content.

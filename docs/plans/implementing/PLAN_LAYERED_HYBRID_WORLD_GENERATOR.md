@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.8
+version_anchor: v0.13.9
 ---
 
 # Layered Hybrid World Generator
@@ -82,8 +82,9 @@ There are 8 planned slices total:
 4. **Section templates:** complete in this plan.
    Add authored section schemas for key trials, locks,
    shortcuts, boss approaches, shops, saves, and region entrances.
-5. **Hybrid BSP/grid layout:** place section footprints with BSP macro space and
-   local grid connectivity.
+5. **Hybrid BSP/grid layout:** complete in this plan.
+   Place section footprints with deterministic macro grid space and local
+   connectivity metadata.
 6. **Sockets and anchors:** make room/section joins and gameplay placements
    explicit contracts.
 7. **Validation and repair:** add progression, reachability, and bounded repair
@@ -200,11 +201,47 @@ pacing chunks before placing rooms.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 5: Hybrid BSP/Grid Layout
+
+**Goal:** Turn macro progression nodes and authored section templates into an
+inspectable deterministic layout plan before concrete room instantiation.
+
+**Architecture:**
+
+- Add `com.indieniinja.world.layout`.
+- Place selected section footprints into deterministic room-grid coordinates.
+- Preserve progression-edge connectivity between assigned sections.
+- Keep the layer pure: no server persistence, no live `WorldGraph` replacement,
+  and no tile generation changes yet.
+- Append `hybridLayout` to deterministic worldgen snapshot exports and bump
+  `GeneratorSchemaVersion.CURRENT`.
+
+### Tasks
+
+- [x] Add TDD coverage for deterministic layout output.
+- [x] Add TDD coverage for non-overlapping section footprints.
+- [x] Add TDD coverage for assigned progression child connections.
+- [x] Implement `HybridLayoutPlan`.
+- [x] Implement `HybridLayoutPlanner`.
+- [x] Append `hybridLayout` to `WorldGenerationSnapshotCommand`.
+- [x] Update system, architecture, authoring, changelog, and current-state docs.
+- [x] Run focused verification.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.layout.HybridLayoutPlannerTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `cd java; .\gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=12 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345-v5.json" --no-daemon`
+- [x] `python tools/check_version_sync.py --tag v0.13.9`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.8`.
-- **Release scope:** Slice 4 only, because it adds the pure section-template
-  layer and updates snapshot schema version 4.
+- **Next tag:** `v0.13.9`.
+- **Release scope:** Slice 5 only, because it adds the pure hybrid layout
+  planning layer and updates snapshot schema version 5.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

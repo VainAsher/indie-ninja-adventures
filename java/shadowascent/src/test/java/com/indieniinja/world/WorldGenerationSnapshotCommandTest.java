@@ -44,5 +44,7 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("progressionGraph").get("criticalPath")).isNotEmpty();
         assertThat(root.get("sectionTemplates").get("templateCount").asInt()).isGreaterThanOrEqualTo(1);
         assertThat(root.get("sectionTemplates").get("templates").get(0).hasNonNull("id")).isTrue();
+        assertThat(root.get("hybridLayout").get("assignments")).isNotEmpty();
+        assertThat(root.get("hybridLayout").get("connections")).isNotEmpty();
     }
 }
