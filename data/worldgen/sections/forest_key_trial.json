@@ -1,0 +1,32 @@
+{
+  "id": "forest_key_trial",
+  "biome": "forest",
+  "kind": "key_trial",
+  "footprint": { "gridW": 3, "gridH": 2 },
+  "nodeKinds": ["entry", "platform_trial", "reward", "shortcut"],
+  "edgeRules": [
+    { "from": "entry", "to": "platform_trial" },
+    { "from": "platform_trial", "to": "reward" },
+    { "from": "reward", "to": "shortcut" },
+    { "from": "shortcut", "to": "entry" }
+  ],
+  "requiredSockets": ["west_low_walk", "east_mid_jump"],
+  "mutableZones": [
+    { "x": 8, "y": 10, "w": 12, "h": 5, "role": "enemy_pool" },
+    { "x": 30, "y": 14, "w": 8, "h": 4, "role": "detail_fill" }
+  ],
+  "anchors": [
+    {
+      "id": "reward_anchor",
+      "kind": "key_reward",
+      "phase": "global",
+      "localBounds": { "x": 42, "y": 12, "w": 3, "h": 2 },
+      "tags": ["critical", "visible"],
+      "weight": 1.0,
+      "quotaGroup": "critical_rewards",
+      "minDistance": 0,
+      "requires": [],
+      "forbids": []
+    }
+  ]
+}

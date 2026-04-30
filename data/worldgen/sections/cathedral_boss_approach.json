@@ -1,0 +1,30 @@
+{
+  "id": "cathedral_boss_approach",
+  "biome": "cathedral",
+  "kind": "boss_approach",
+  "footprint": { "gridW": 3, "gridH": 1 },
+  "nodeKinds": ["entry", "combat", "threshold", "boss_door"],
+  "edgeRules": [
+    { "from": "entry", "to": "combat" },
+    { "from": "combat", "to": "threshold" },
+    { "from": "threshold", "to": "boss_door" }
+  ],
+  "requiredSockets": ["west_mid_walk", "east_mid_walk"],
+  "mutableZones": [
+    { "x": 20, "y": 12, "w": 18, "h": 6, "role": "combat_pool" }
+  ],
+  "anchors": [
+    {
+      "id": "boss_door_anchor",
+      "kind": "boss_door",
+      "phase": "global",
+      "localBounds": { "x": 56, "y": 14, "w": 4, "h": 4 },
+      "tags": ["critical", "gate"],
+      "weight": 1.0,
+      "quotaGroup": "critical_gates",
+      "minDistance": 0,
+      "requires": ["region_key"],
+      "forbids": []
+    }
+  ]
+}

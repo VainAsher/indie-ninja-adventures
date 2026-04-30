@@ -3,6 +3,7 @@ package com.indieniinja.world;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.indieniinja.world.progression.WorldProgressionGenerator;
+import com.indieniinja.world.sections.SectionTemplateLibrary;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -71,6 +72,7 @@ public final class WorldGenerationSnapshotCommand {
         root.put("startRoomId", roomId(graph.startRoom()));
         root.put("exitRoomId", roomId(graph.exitRoom()));
         root.put("progressionGraph", WorldProgressionGenerator.generate(seed).toSnapshot());
+        root.put("sectionTemplates", SectionTemplateLibrary.loadDefault().summarySnapshot());
         root.put("rooms", rooms(graph));
         return root;
     }

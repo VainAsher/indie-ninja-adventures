@@ -2,8 +2,8 @@
 doc_type: system_doc
 status: living
 owner: core-team
-last_updated: 2026-04-21
-version_anchor: v0.13.7
+last_updated: 2026-04-30
+version_anchor: v0.13.8
 ---
 
 # World Generation and Layout (Java)
@@ -23,6 +23,9 @@ For hands-on room, zone, and level-design workflow, see `docs/guides/LEVEL_AUTHO
   - `java/shadowascent/src/main/java/com/indieniinja/world/RoomGenerator.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/SeedHierarchy.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/AutotileResolver.java`
+- Section templates:
+  - `java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplate.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplateLibrary.java`
 - Postprocess pipeline:
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/RoomPostProcessor.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/AbilityLayer.java`
@@ -59,15 +62,16 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
 ## Runtime flow
 
 1. Generate macro progression graph from seed — assigns central hub, region hubs, dungeon nodes, requirements, grants, optional branches, and critical path.
-2. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
-3. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
+2. Load authored section templates — describes pacing chunks, footprints, edge rules, required sockets, mutable zones, and anchor candidates.
+3. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
+4. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
    - Template types load a seed-selected `.tmx` variant first; door openings carved by `carveDoors()`.
    - Non-template types go through `ZonePlanner` → `RoomGenerator` procedural path.
    - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
    - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
-4. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
-5. Stitch unified layout for simulation and snapshot descriptors.
-6. Client renders tile output with blob autotile mapping and room metadata.
+5. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
+6. Stitch unified layout for simulation and snapshot descriptors.
+7. Client renders tile output with blob autotile mapping and room metadata.
 
 ## Progression graph layer
 
@@ -100,6 +104,30 @@ treasure branches are also reachable after their region grant.
 This layer is intentionally above `WorldGraph`. Later section/layout slices will
 consume it to choose authored section templates and spatial structure.
 
+## Section template layer
+
+Section templates live in `data/worldgen/sections/*.json` and are loaded by
+`SectionTemplateLibrary`. They are authored pacing chunks between macro
+progression and concrete rooms. Slice 4 loads and exports these templates only;
+hybrid BSP/grid placement will consume them in the next slice.
+
+Current fields:
+
+| Field | Meaning |
+| ----- | ------- |
+| `id` | Stable template id used in snapshots and future layout selection. |
+| `biome` | Biome/theme this section is intended for. |
+| `kind` | Pacing purpose, such as `key_trial`, `shop_save_loop`, or `boss_approach`. |
+| `footprint.gridW/gridH` | Planned section footprint in room-grid units. |
+| `nodeKinds[]` | Local beats inside the section. |
+| `edgeRules[]` | Directed local beat links used by future layout validation. |
+| `requiredSockets[]` | Socket ids or categories the future layout layer must satisfy. |
+| `mutableZones[]` | Bounds that procedural dressing can alter inside the authored section. |
+| `anchors[]` | Candidate placements for rewards, services, locks, enemies, or set pieces. |
+
+The loader sorts templates by id for deterministic exports and skips malformed
+files so invalid draft content does not break legacy world generation.
+
 ## Snapshot export
 
 `WorldGenerationSnapshotCommand` exports a deterministic JSON snapshot for a
@@ -121,6 +149,7 @@ The command writes:
 | `bounds` | Min/max room-grid bounds and room-space dimensions. |
 | `rooms[]` | Stable room ids, grid coordinates, type ids, room seeds, biome indexes, sorted neighbor dirs, and tile CRC checksums. |
 | `progressionGraph` | Macro progression snapshot with world nodes, region hubs, dungeon nodes, and critical path ids. |
+| `sectionTemplates` | Loaded authored section templates with count and stable template metadata. |
 
 The first snapshot schema is graph-centric. Later layered-generator slices should
 append section, socket, anchor, validator, and megamap blocks instead of
@@ -149,10 +178,12 @@ replacing the command.
 - Procedural room structure is data-driven by `data/room_structure_rules.json`.
 - Authored room template selection is data-driven by `data/room_template_catalog.json`.
 - Authored 8x8 zone patch selection is data-driven by `data/zone_template_catalog.json`.
+- Authored section pacing chunks are data-driven by `data/worldgen/sections/*.json`.
 - Changing geometry rule values is replay-breaking because it changes deterministic tile output.
 - Changing structure rule values is replay-breaking because it changes deterministic zone plans and hazard placement.
 - Changing template catalog weights or files is replay-breaking because room seeds may resolve to different TMX layouts.
 - Changing zone patch catalog weights or files is replay-breaking because procedural zone expansion may stamp different tile patches.
+- Changing section templates is snapshot-schema-visible now and will become replay-breaking once the layout layer consumes sections.
 - Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
 - Authored zone patch TMX files and catalog entries can be checked with `python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json`.
 

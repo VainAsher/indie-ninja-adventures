@@ -2,8 +2,8 @@
 doc_type: implementation_plan
 status: implementing
 owner: core-team
-last_updated: 2026-04-29
-version_anchor: v0.13.7
+last_updated: 2026-04-30
+version_anchor: v0.13.8
 ---
 
 # Layered Hybrid World Generator
@@ -79,7 +79,8 @@ There are 8 planned slices total:
    seed stream metadata, and a deterministic JSON snapshot CLI.
 3. **Progression graph layer:** add world, region, and dungeon progression
    models with solvability tests.
-4. **Section templates:** add authored section schemas for key trials, locks,
+4. **Section templates:** complete in this plan.
+   Add authored section schemas for key trials, locks,
    shortcuts, boss approaches, shops, saves, and region entrances.
 5. **Hybrid BSP/grid layout:** place section footprints with BSP macro space and
    local grid connectivity.
@@ -161,11 +162,49 @@ rooms.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 4: Section Templates
+
+**Goal:** Add an authored section-template contract between macro progression
+graphs and concrete room layout so future layout slices can pick reusable
+pacing chunks before placing rooms.
+
+**Architecture:**
+
+- Add `com.indieniinja.world.sections`.
+- Load deterministic JSON section templates from `data/worldgen/sections/*.json`.
+- Model footprints, local node kinds, edge rules, required sockets, mutable
+  zones, and anchor candidates.
+- Append `sectionTemplates` to deterministic worldgen snapshot exports and bump
+  `GeneratorSchemaVersion.CURRENT`.
+- Keep this as a pure data/export layer; hybrid placement consumes it in Slice 5.
+
+### Tasks
+
+- [x] Add TDD coverage for loading complete section template data.
+- [x] Add TDD coverage for deterministic biome/kind selection.
+- [x] Add TDD coverage for stable snapshot ordering.
+- [x] Implement `SectionTemplate`.
+- [x] Implement `SectionTemplateLibrary`.
+- [x] Add starter authored section JSON files.
+- [x] Append `sectionTemplates` to `WorldGenerationSnapshotCommand`.
+- [x] Update system, architecture, authoring, changelog, and current-state docs.
+- [x] Run focused verification.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.sections.SectionTemplateLibraryTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `cd java; .\gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=12 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345-v4.json" --no-daemon`
+- [x] `python tools/check_version_sync.py --tag v0.13.8`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.7`.
-- **Release scope:** Slice 3 only, because it adds the pure progression graph
-  layer and updates snapshot schema version 3.
+- **Next tag:** `v0.13.8`.
+- **Release scope:** Slice 4 only, because it adds the pure section-template
+  layer and updates snapshot schema version 4.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

@@ -42,5 +42,7 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("rooms").get(0).hasNonNull("tileChecksum")).isTrue();
         assertThat(root.get("progressionGraph").get("centralHubId").asText()).isEqualTo("central_hub");
         assertThat(root.get("progressionGraph").get("criticalPath")).isNotEmpty();
+        assertThat(root.get("sectionTemplates").get("templateCount").asInt()).isGreaterThanOrEqualTo(1);
+        assertThat(root.get("sectionTemplates").get("templates").get(0).hasNonNull("id")).isTrue();
     }
 }

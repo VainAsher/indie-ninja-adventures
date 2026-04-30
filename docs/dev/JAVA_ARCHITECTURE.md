@@ -384,6 +384,20 @@ systems (`double_jump`, `dash`, `wall_jump`, `shuriken`, `teleport`,
 `ninjutsu`), but this layer does not yet mutate player state or server
 persistence.
 
+#### Section Templates (`world/sections/`)
+
+Pure authored-section data layer between progression graphs and future spatial
+layout. Templates are JSON files under `data/worldgen/sections/` and are
+exported through deterministic worldgen snapshots.
+
+| Class | Role |
+|-------|------|
+| `SectionTemplate` | Immutable section contract: id, biome, kind, footprint, local node kinds, edge rules, required sockets, mutable zones, and anchor candidates. |
+| `SectionTemplateLibrary` | Loads templates from disk, sorts them deterministically, selects by biome/kind/seed, and emits snapshot metadata. |
+
+This layer is not yet consumed by live `WorldGraph` placement. Slice 5 will use
+these templates as the authored input for hybrid BSP/grid layout.
+
 #### `RoomGenerator`
 Generates tile content for a specific `RoomType`, delegating to `WorldGenerator` for base layout then stamping room-type-specific content.
 

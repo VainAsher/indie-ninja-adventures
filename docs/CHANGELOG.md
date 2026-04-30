@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-29
-version_anchor: v0.13.7
+last_updated: 2026-04-30
+version_anchor: v0.13.8
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.8] - 2026-04-30 (Worldgen section templates)
+
+### Added
+
+- **Section template layer**: `com.indieniinja.world.sections` now loads authored JSON section templates for pacing chunks between macro progression and room placement.
+- **Authored section data**: starter templates under `data/worldgen/sections/` cover key trials, shop/save loops, and boss approaches with footprints, edge rules, required sockets, mutable zones, and anchor candidates.
+- **Snapshot section export**: `WorldGenerationSnapshotCommand` now includes a deterministic `sectionTemplates` block for tooling and future layout slices.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and `version.json.generator_schema_version` are now `4` because snapshot exports include section template metadata.
+
+### Compatibility
+
+- **replay**: no runtime replay change; section templates are loaded/exported but not yet consumed by live room placement.
+- **snapshot schema**: changed from generator schema `3` to `4`.
+- **save**: no schema change.
+- **protocol**: no change.
 
 ---
 

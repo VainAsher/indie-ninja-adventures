@@ -1,0 +1,42 @@
+{
+  "id": "hollow_shop_save_loop",
+  "biome": "hollow",
+  "kind": "shop_save_loop",
+  "footprint": { "gridW": 2, "gridH": 1 },
+  "nodeKinds": ["entry", "save", "shop", "return"],
+  "edgeRules": [
+    { "from": "entry", "to": "save" },
+    { "from": "save", "to": "shop" },
+    { "from": "shop", "to": "return" }
+  ],
+  "requiredSockets": ["west_low_walk", "east_low_walk"],
+  "mutableZones": [
+    { "x": 16, "y": 16, "w": 10, "h": 4, "role": "safe_detail" }
+  ],
+  "anchors": [
+    {
+      "id": "save_anchor",
+      "kind": "save_point",
+      "phase": "global",
+      "localBounds": { "x": 22, "y": 18, "w": 2, "h": 2 },
+      "tags": ["safe", "service"],
+      "weight": 1.0,
+      "quotaGroup": "services",
+      "minDistance": 8,
+      "requires": [],
+      "forbids": ["boss"]
+    },
+    {
+      "id": "shop_anchor",
+      "kind": "shop",
+      "phase": "global",
+      "localBounds": { "x": 36, "y": 18, "w": 3, "h": 2 },
+      "tags": ["safe", "service"],
+      "weight": 1.0,
+      "quotaGroup": "services",
+      "minDistance": 8,
+      "requires": [],
+      "forbids": ["boss"]
+    }
+  ]
+}

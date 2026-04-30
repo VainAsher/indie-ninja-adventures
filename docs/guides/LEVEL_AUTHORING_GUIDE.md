@@ -9,12 +9,13 @@ Use this as the working reference for designing levels, room templates, procedur
 The runtime builds playable space in layers:
 
 1. **Progression graph**: chooses central hub, region hubs, dungeon beats, grants, requirements, and critical path.
-2. **World graph**: chooses rooms, room types, seeds, and neighbor directions.
-3. **Room selection**: chooses either an authored TMX template or procedural generation.
-4. **Zone plan**: procedural rooms get a 16x16 grid of zone roles.
-5. **Zone expansion**: each zone becomes an 8x8 tile patch.
-6. **Geometry enforcement**: walls, floors, and door corridors are normalized.
-7. **Postprocess**: entities, puzzle gates, pickups, NPCs, bosses, and portals are placed.
+2. **Section templates**: describe authored pacing chunks such as trials, shop/save loops, boss approaches, shortcuts, and entrances.
+3. **World graph**: chooses rooms, room types, seeds, and neighbor directions.
+4. **Room selection**: chooses either an authored TMX template or procedural generation.
+5. **Zone plan**: procedural rooms get a 16x16 grid of zone roles.
+6. **Zone expansion**: each zone becomes an 8x8 tile patch.
+7. **Geometry enforcement**: walls, floors, and door corridors are normalized.
+8. **Postprocess**: entities, puzzle gates, pickups, NPCs, bosses, and portals are placed.
 
 Authored TMX templates skip the procedural zone plan for their interior, but they still receive geometry enforcement. Procedural rooms use data-driven structure rules plus zone templates.
 
@@ -41,6 +42,7 @@ data/room_geometry_rules.json
 data/room_structure_rules.json
 data/room_template_catalog.json
 data/zone_template_catalog.json
+data/worldgen/sections/*.json
 data/entities/rooms/types/*.json
 ```
 
@@ -58,6 +60,8 @@ java/shadowascent/src/main/java/com/indieniinja/world/RoomStructureRules.java
 java/shadowascent/src/main/java/com/indieniinja/world/progression/WorldProgressionGraph.java
 java/shadowascent/src/main/java/com/indieniinja/world/progression/WorldProgressionGenerator.java
 java/shadowascent/src/main/java/com/indieniinja/world/progression/ProgressionValidator.java
+java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplate.java
+java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplateLibrary.java
 ```
 
 ## Designing Progression Graph Content
@@ -85,6 +89,79 @@ from the world seed and covered by seed-sweep tests.
 Current boundary: this layer does not yet replace room templates, zone patches,
 room structure rules, or the live server layout. Later slices will use this
 progression graph to choose section templates and spatial layout.
+
+## Designing Section Templates
+
+Section templates are JSON pacing chunks. They are not room TMX files and they
+do not yet place rooms by themselves. They define the shape of a design beat so
+future layout, socket, anchor, and validation layers can consume it.
+
+Put section files here:
+
+```text
+data/worldgen/sections/
+```
+
+Minimum useful fields:
+
+| Field | Use |
+| ----- | --- |
+| `id` | Stable id such as `forest_key_trial`. |
+| `biome` | Theme selector such as `forest`, `hollow`, or `cathedral`. |
+| `kind` | Pacing selector such as `key_trial`, `shop_save_loop`, or `boss_approach`. |
+| `footprint` | Room-grid footprint: `{ "gridW": 3, "gridH": 2 }`. |
+| `nodeKinds` | Local beats inside the section. |
+| `edgeRules` | Directed links between local beats. |
+| `requiredSockets` | Join contracts that future layout must satisfy. |
+| `mutableZones` | Bounds where procedural detail can alter authored structure. |
+| `anchors` | Candidate placements for rewards, saves, shops, gates, enemies, or set pieces. |
+
+Example:
+
+```json
+{
+  "id": "forest_key_trial",
+  "biome": "forest",
+  "kind": "key_trial",
+  "footprint": { "gridW": 3, "gridH": 2 },
+  "nodeKinds": ["entry", "platform_trial", "reward", "shortcut"],
+  "edgeRules": [
+    { "from": "entry", "to": "platform_trial" },
+    { "from": "platform_trial", "to": "reward" },
+    { "from": "reward", "to": "shortcut" }
+  ],
+  "requiredSockets": ["west_low_walk", "east_mid_jump"],
+  "mutableZones": [
+    { "x": 8, "y": 10, "w": 12, "h": 5, "role": "enemy_pool" }
+  ],
+  "anchors": [
+    {
+      "id": "reward_anchor",
+      "kind": "key_reward",
+      "phase": "global",
+      "localBounds": { "x": 42, "y": 12, "w": 3, "h": 2 },
+      "tags": ["critical", "visible"],
+      "weight": 1.0,
+      "quotaGroup": "critical_rewards",
+      "minDistance": 0,
+      "requires": [],
+      "forbids": []
+    }
+  ]
+}
+```
+
+Authoring guidance:
+
+- Use `kind` to describe purpose, not geometry. `key_trial` is better than `three_wide_room`.
+- Keep `nodeKinds` small and readable; they are pacing beats, not individual tiles.
+- Put repeatable procedural detail in `mutableZones`.
+- Put gameplay-critical placements in `anchors` so validation can reason about them later.
+- Keep socket names descriptive: side + height band + traversal, for example `west_low_walk`.
+
+Current boundary: section templates are loaded and exported in deterministic
+snapshots. They are not yet consumed by live world placement; that starts in the
+hybrid BSP/grid layout slice.
 
 ## Room Types
 
@@ -325,10 +402,10 @@ cd java
 ./gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=20 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345.json" --no-daemon
 ```
 
-The snapshot records generator schema version, seed streams, room graph data,
-neighbor directions, biome indexes, and per-room tile checksums. Use it as the
-baseline artifact for future room/zone authoring changes until the visual map
-viewer slice lands.
+The snapshot records generator schema version, seed streams, progression graph,
+loaded section templates, room graph data, neighbor directions, biome indexes,
+and per-room tile checksums. Use it as the baseline artifact for future
+room/zone authoring changes until the visual map viewer slice lands.
 
 ## Room Structure Rules
 
