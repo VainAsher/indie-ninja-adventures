@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.16
+version_anchor: v0.13.17
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.17] - 2026-04-30 (Worldgen Lab Act 1 baseline)
+
+### Added
+
+- **Act 1 baseline command**: `tools/worldgen_lab.py act1` now renders seed
+  `420` as the canonical Act 1 worldgen baseline, with generated output rooted
+  at `build/worldgen-lab/act1-seed-420` by default.
+- **Pipeline visibility**: lab reports now include `pipeline.json` and
+  `pipeline.svg`, summarizing progression, layout, socket/anchor, validation,
+  megamap, and lab-analysis stages in the static report.
+- **Before/after compare**: `tools/worldgen_lab.py compare` writes
+  `compare.html`, `compare.json`, and `compare.csv` with quality-score deltas,
+  warning deltas, and room checksum change counts for seed tuning.
+
+### Compatibility
+
+- **snapshot schema**: unchanged at generator schema `10`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: no live generation behavior change; this is authoring
+  and inspection tooling for the existing snapshot format.
 
 ## [0.13.16] - 2026-04-30 (Worldgen Lab detail view)
 

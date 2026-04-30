@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.16
+version_anchor: v0.13.17
 ---
 
 # World Generation and Layout (Java)
@@ -224,7 +224,7 @@ python tools/render_worldgen_snapshot.py java/shadowascent/build/worldgen-snapsh
 
 It writes `overlay.txt`, `metrics.json`, and `megamap.svg`.
 
-## Worldgen Lab prototype
+## Worldgen Lab
 
 `WorldgenLabAnalyzer.analyze(worldSeed, graph)` emits the snapshot `labReport`
 block. It is intentionally read-only: it generates the same per-room grids as
@@ -247,6 +247,16 @@ Render a single snapshot:
 python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/seed-12345.json --out build/worldgen-lab/seed-12345
 ```
 
+Render the Act 1 vertical-slice baseline seed:
+
+```bash
+python tools/worldgen_lab.py act1 --out build/worldgen-lab/act1-seed-420
+```
+
+`act1` defaults to seed `420`, 20 rooms, and `BLOB` shape. Use this when
+tuning formation rules for the Act 1 baseline so before/after changes are
+measured against the same deterministic world.
+
 The render bundle includes:
 
 | File | Purpose |
@@ -254,6 +264,8 @@ The render bundle includes:
 | `index.html` | Static report with macro map, expanded world detail, warning summary, and room links. |
 | `megamap.svg` | Compact room-graph overview. |
 | `world-detail.svg` | Expanded world view where each room shows a miniature tile preview. |
+| `pipeline.svg` | Static stage strip for progression, layout, sockets/anchors, validation, megamap, and lab analysis. |
+| `pipeline.json` | Machine-readable pipeline stage summary for quick comparisons and issue capture. |
 | `rooms/<room>.svg` | Per-room detail view with 16x16 zone plan and 128x128 tile preview. |
 | `metrics.json` | Machine-readable snapshot, lab report, legends, and metrics. |
 | `overlay.txt` | Plain text macro minimap. |
@@ -269,6 +281,17 @@ Or generate and summarize a quick seed sweep:
 ```bash
 python tools/worldgen_lab.py batch --seeds 25 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep --failures 5
 ```
+
+Compare a baseline snapshot or rendered bundle against a candidate:
+
+```bash
+python tools/worldgen_lab.py compare --base build/worldgen-lab/act1-seed-420 --candidate build/worldgen-lab/act1-seed-420-after-rule-change --out build/worldgen-lab/act1-compare
+```
+
+The compare bundle writes `compare.html`, `compare.json`, and `compare.csv`.
+Use it after changing geometry rules, structure rules, room templates, zone
+patches, or validation policy. Important fields are `qualityDelta`,
+`warningDeltas`, and `roomChecksumChanges`.
 
 Use `summary.csv` to sort by `qualityScore` and warning totals. If warnings
 cluster on one room type, tune that room's TMX template or structure rules. If

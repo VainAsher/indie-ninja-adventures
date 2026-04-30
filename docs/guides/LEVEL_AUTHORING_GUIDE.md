@@ -268,12 +268,23 @@ cd ..
 python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/seed-12345.json --out build/worldgen-lab/seed-12345
 ```
 
+Act 1 vertical-slice baseline workflow:
+
+```bash
+python tools/worldgen_lab.py act1 --out build/worldgen-lab/act1-seed-420
+```
+
+Seed `420` is the current Act 1 worldgen baseline. Keep using that seed when
+you are comparing room formations during this tuning lane.
+
 Open `build/worldgen-lab/seed-12345/index.html` and inspect:
 
 | File | Use |
 | ---- | --- |
 | `index.html` | Report page with megamap preview and warning summary. |
 | `megamap.svg` | Static visual layout preview. |
+| `pipeline.svg` | Generation-stage strip for progression, layout, sockets/anchors, validation, megamap, and lab analysis. |
+| `pipeline.json` | Machine-readable pipeline stage summary. |
 | `world-detail.svg` | Expanded world preview with each room drawn as an internal tile miniature. |
 | `rooms/<room>.svg` | Per-room zone plan and tile preview. |
 | `metrics.json` | Full machine-readable snapshot/lab metrics. |
@@ -291,6 +302,17 @@ Batch workflow that generates snapshots:
 python tools/worldgen_lab.py batch --seeds 25 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep --failures 5
 ```
 
+Before/after compare workflow:
+
+```bash
+python tools/worldgen_lab.py compare --base build/worldgen-lab/act1-seed-420 --candidate build/worldgen-lab/act1-seed-420-after-rule-change --out build/worldgen-lab/act1-compare
+```
+
+Use `compare.html` after changing geometry rules, structure rules, TMX
+templates, zone patch weights, or validation rules. Focus on `qualityDelta`,
+`warningDeltas`, and `roomChecksumChanges`; if checksum changes are high, open
+the changed room SVGs and verify the new formation is intentional.
+
 Read `summary.csv` first. Sort by `qualityScore` ascending and
 `warningCountTotal` descending. The `failures/` folder renders the lowest
 quality seeds so you can inspect them without manually opening every snapshot.
@@ -306,6 +328,8 @@ How to act on warnings:
 
 Use the detail files for deeper diagnosis:
 
+- Start with `pipeline.svg`; if validation or socket/anchor stages warn, inspect
+  the corresponding raw snapshot block before changing room art.
 - Start with `world-detail.svg` to find rooms whose interior silhouettes look
   too empty, too dense, or visually repetitive.
 - Open `rooms/<room>.svg` for the room in question.

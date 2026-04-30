@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.16
+version_anchor: v0.13.17
 ---
 
 # Layered Hybrid World Generator
@@ -72,7 +72,9 @@ template pool.
 
 ## Future Slices
 
-There are 8 planned slices total:
+The original layered-generator plan had 8 core runtime/snapshot slices. Tooling
+has continued in follow-up lab slices so generated formations can be inspected
+and tuned safely before live placement consumes every layer:
 
 1. **Tiled zone patch templates:** complete in this plan.
 2. **Generator schema and snapshots:** add `GeneratorSchemaVersion`, explicit
@@ -93,6 +95,13 @@ There are 8 planned slices total:
    passes.
 8. **Megamap stitcher and viewer:** complete in this plan.
    Export continuous maps, overlays, metrics, and diffable golden seeds.
+9. **Worldgen Lab prototype:** complete in this plan.
+   Add static render and batch-sweep tooling over deterministic snapshots.
+10. **Worldgen Lab detail view:** complete in this plan.
+    Add zone/tile-level inspection artifacts.
+11. **Worldgen Lab Act 1 baseline:** active in this plan.
+    Promote seed `420` as the Act 1 baseline, expose pipeline stages, and add
+    before/after compare reports.
 
 ## Slice 2: Generator Schema and Snapshots
 
@@ -425,12 +434,42 @@ and batch seed quality sweeps.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 11: Worldgen Lab Act 1 Baseline
+
+**Goal:** Make seed `420` the canonical Act 1 worldgen baseline and make
+formation tuning a repeatable before/after loop.
+
+**Architecture:**
+
+- Add `tools/worldgen_lab.py act1` as the one-command seed `420` baseline path.
+- Render `pipeline.svg` and `pipeline.json` from existing snapshot stage data.
+- Add `tools/worldgen_lab.py compare` for quality, warning, and checksum deltas.
+- Keep generator snapshot schema at `10`; this slice changes tooling output only.
+
+### Tasks
+
+- [x] Add TDD coverage for pipeline artifacts in render output.
+- [x] Add TDD coverage for Act 1 baseline rendering from an existing snapshot.
+- [x] Add TDD coverage for compare deltas.
+- [x] Implement `act1`, pipeline artifacts, and `compare`.
+- [x] Update system, authoring, changelog, current-state, roadmap, README, and
+  version metadata docs.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `python tools/test_worldgen_lab.py`
+- [x] `python tools/check_version_sync.py --tag v0.13.17`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.16`.
-- **Release scope:** Worldgen Lab detail view, because it adds zone/tile detail
-  to lab snapshot metadata, renders expanded world and per-room SVGs, and
-  updates snapshot schema version 10.
+- **Next tag:** `v0.13.17`.
+- **Release scope:** Worldgen Lab Act 1 baseline, because it adds the seed `420`
+  baseline command, pipeline stage artifacts, and before/after compare reports.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.16
+version_anchor: v0.13.17
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,7 +21,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-04-30): v0.13.16 is the Worldgen Lab detail view release target.
+- Current release truth (2026-04-30): v0.13.17 is the Worldgen Lab Act 1 baseline release target.
 - Release assets verified for v0.13.13: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.13.zip`.
 - G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
 - G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
@@ -29,7 +29,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next G0 evidence target: v0.13.17 (G0 signoff evidence + state sync; code changes only for G0 blockers).
+- Next G0 evidence target: v0.13.18 (G0 signoff evidence + state sync; code changes only for G0 blockers).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-30`):
   - CI green for `0e5d8f8` (`v0.13.13`)
@@ -71,9 +71,20 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Validation:** Python template validator unit tests PASS; canonical Java TMX strict geometry + catalog validation PASS; root editor TMX strict geometry PASS; `RoomGeometryRulesTest` PASS; `RoomStructureRulesTest` PASS; `RoomTemplateCatalogTest` PASS; `WorldGraphGenerationTest` PASS.
 - **G0 status:** G0/P0-10 remains open. The previous `v0.13.5` evidence target is superseded by this world-generation release; use the next G0 evidence target before closing P0-10.
 
-## Active Slice - Worldgen Lab detail view
+## Active Slice - Worldgen Lab Act 1 baseline
 
-- **Status:** Preparing v0.13.16 release.
+- **Status:** Preparing v0.13.17 release.
+- **Completed:** seed `420` is now the first-class Act 1 worldgen baseline
+  through `tools/worldgen_lab.py act1`; lab reports include pipeline stage
+  artifacts; `tools/worldgen_lab.py compare` supports before/after seed tuning.
+- **Validation:** `tools/test_worldgen_lab.py` PASS locally for the baseline,
+  pipeline, batch, render, and compare paths.
+- **Compatibility:** no live replay/save/protocol change; generator snapshot
+  schema remains `10`.
+
+## Completed Slice - Worldgen Lab detail view
+
+- **Status:** Released as v0.13.16.
 - **Completed:** deterministic zone rows, full tile preview rows, expanded
   world detail SVG, and per-room SVG detail outputs for diagnosing generation
   formations below the room-graph level.

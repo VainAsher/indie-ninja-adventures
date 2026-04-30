@@ -2,8 +2,8 @@
 doc_type: workflow
 status: living
 owner: release-team
-last_updated: 2026-04-22
-version_anchor: v0.12.01
+last_updated: 2026-04-30
+version_anchor: v0.13.17
 ---
 
 # Release Checklist
@@ -17,6 +17,13 @@ Reference protocol: [ITERATION_RELEASE_PROTOCOL.md](ITERATION_RELEASE_PROTOCOL.m
 - [ ] Java tests + build pass:
   - [ ] `cd java`
   - [ ] `gradle :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+- [ ] If the slice changes worldgen snapshots, lab tooling, room rules, zone
+  templates, or level-authoring data, run the worldgen gates:
+  - [ ] `python tools/test_worldgen_lab.py`
+  - [ ] `cd java`
+  - [ ] `gradle :shadowascent:test --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+  - [ ] Generate or render the relevant baseline, currently seed `420`:
+    `python tools/worldgen_lab.py act1 --out build/worldgen-lab/act1-seed-420`
 
 ## Documentation Gate
 

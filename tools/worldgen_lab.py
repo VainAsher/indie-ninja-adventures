@@ -2,6 +2,7 @@ import argparse
 import csv
 import html
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -77,6 +78,8 @@ def render_snapshot(snapshot_path: Path, out_dir: Path) -> list[Path]:
     metrics_path = out_dir / "metrics.json"
     svg_path = out_dir / "megamap.svg"
     world_detail_path = out_dir / "world-detail.svg"
+    pipeline_json_path = out_dir / "pipeline.json"
+    pipeline_svg_path = out_dir / "pipeline.svg"
     index_path = out_dir / "index.html"
     rooms_dir = out_dir / "rooms"
 
@@ -85,10 +88,22 @@ def render_snapshot(snapshot_path: Path, out_dir: Path) -> list[Path]:
     metrics_path.write_text(json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     svg_path.write_text(render_svg([str(row) for row in overlay_rows], metrics), encoding="utf-8")
     world_detail_path.write_text(render_world_detail_svg(snapshot, metrics), encoding="utf-8")
+    pipeline = build_pipeline_summary(snapshot, act1_baseline=snapshot.get("worldSeed") == 420)
+    pipeline_json_path.write_text(json.dumps(pipeline, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    pipeline_svg_path.write_text(render_pipeline_svg(pipeline), encoding="utf-8")
     room_paths = render_room_svgs(lab_report, rooms_dir)
-    index_path.write_text(render_html(metrics, lab_report, room_paths), encoding="utf-8")
+    index_path.write_text(render_html(metrics, lab_report, pipeline, room_paths), encoding="utf-8")
 
-    return [index_path, svg_path, world_detail_path, metrics_path, overlay_path, *room_paths]
+    return [
+        index_path,
+        svg_path,
+        world_detail_path,
+        pipeline_svg_path,
+        pipeline_json_path,
+        metrics_path,
+        overlay_path,
+        *room_paths,
+    ]
 
 
 def build_metrics(snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -140,12 +155,33 @@ def render_svg(overlay_rows: list[str], metrics: dict[str, Any]) -> str:
     return "\n".join(parts) + "\n"
 
 
-def render_html(metrics: dict[str, Any], lab_report: dict[str, Any], room_paths: list[Path] | None = None) -> str:
+def render_html(
+    metrics: dict[str, Any],
+    lab_report: dict[str, Any],
+    pipeline: dict[str, Any] | None = None,
+    room_paths: list[Path] | None = None,
+) -> str:
     seed = html.escape(str(metrics.get("worldSeed")))
     status = html.escape(str(lab_report.get("overallStatus", "unknown")))
     score = html.escape(str(lab_report.get("qualityScore", "unknown")))
     warning_counts = lab_report.get("warningCounts", {})
     warnings = json.dumps(warning_counts, indent=2, sort_keys=True)
+    pipeline_stages = pipeline.get("stages", []) if isinstance(pipeline, dict) else []
+    act1_badge = "Act 1 vertical slice baseline" if isinstance(pipeline, dict) and pipeline.get("act1Baseline") else ""
+    act1_badge_markup = f'<span class="badge">{html.escape(act1_badge)}</span>' if act1_badge else ""
+    stage_cards = []
+    for stage in pipeline_stages:
+        if not isinstance(stage, dict):
+            continue
+        status = str(stage.get("status", "unknown"))
+        stage_cards.append(
+            '<div class="metric">'
+            f"<strong>{html.escape(str(stage.get('name', 'stage')))}</strong><br>"
+            f"{html.escape(status)}<br>"
+            f"<small>{html.escape(str(stage.get('summary', '')))}</small>"
+            "</div>"
+        )
+    stage_markup = "\n".join(stage_cards)
     rooms = lab_report.get("rooms", [])
     rows = []
     if isinstance(rooms, list):
@@ -174,7 +210,8 @@ def render_html(metrics: dict[str, Any], lab_report: dict[str, Any], room_paths:
         "    body { background: #0d1117; color: #c9d1d9; font-family: system-ui, sans-serif; margin: 24px; }\n"
         "    pre, code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }\n"
         "    .metrics { display: flex; gap: 24px; flex-wrap: wrap; margin: 16px 0; }\n"
-        "    .metric { border: 1px solid #30363d; border-radius: 6px; padding: 12px; min-width: 120px; }\n"
+        "    .metric { border: 1px solid #30363d; border-radius: 6px; padding: 12px; min-width: 120px; max-width: 260px; }\n"
+        "    .badge { color: #0d1117; background: #f2cc60; border-radius: 4px; padding: 3px 6px; font-size: 12px; }\n"
         "    img { image-rendering: pixelated; max-width: 100%; border: 1px solid #30363d; background: #0d1117; }\n"
         "    table { border-collapse: collapse; margin-top: 16px; width: 100%; }\n"
         "    th, td { border: 1px solid #30363d; padding: 6px 8px; text-align: left; }\n"
@@ -183,10 +220,14 @@ def render_html(metrics: dict[str, Any], lab_report: dict[str, Any], room_paths:
         "</head>\n"
         "<body>\n"
         f"  <h1>Worldgen Lab Seed {seed}</h1>\n"
+        f"  <p>{act1_badge_markup}</p>\n"
         '  <div class="metrics">\n'
         f'    <div class="metric"><strong>Status</strong><br>{status}</div>\n'
         f'    <div class="metric"><strong>Quality</strong><br>{score}</div>\n'
         "  </div>\n"
+        "  <h2>Pipeline</h2>\n"
+        '  <img src="pipeline.svg" alt="Worldgen pipeline stages">\n'
+        f'  <div class="metrics">{stage_markup}</div>\n'
         "  <h2>Expanded World Detail</h2>\n"
         '  <img src="world-detail.svg" alt="Expanded world detail">\n'
         "  <h2>Macro Map</h2>\n"
@@ -196,10 +237,128 @@ def render_html(metrics: dict[str, Any], lab_report: dict[str, Any], room_paths:
         f"  <tbody>{room_table}</tbody></table>\n"
         "  <h2>Warnings</h2>\n"
         f"  <pre>{html.escape(warnings)}</pre>\n"
-        '  <p><a href="metrics.json">metrics.json</a> <a href="overlay.txt">overlay.txt</a></p>\n'
+        '  <p><a href="metrics.json">metrics.json</a> <a href="pipeline.json">pipeline.json</a> <a href="overlay.txt">overlay.txt</a></p>\n'
         "</body>\n"
         "</html>\n"
     )
+
+
+def build_pipeline_summary(snapshot: dict[str, Any], act1_baseline: bool = False) -> dict[str, Any]:
+    lab_report = snapshot.get("labReport") if isinstance(snapshot.get("labReport"), dict) else {}
+    progression = snapshot.get("progressionGraph") if isinstance(snapshot.get("progressionGraph"), dict) else {}
+    layout = snapshot.get("hybridLayout") if isinstance(snapshot.get("hybridLayout"), dict) else {}
+    sockets = snapshot.get("socketAnchorPlan") if isinstance(snapshot.get("socketAnchorPlan"), dict) else {}
+    validation = snapshot.get("validationReport") if isinstance(snapshot.get("validationReport"), dict) else {}
+    megamap = snapshot.get("megamap") if isinstance(snapshot.get("megamap"), dict) else {}
+    rooms = lab_report.get("rooms") if isinstance(lab_report.get("rooms"), list) else []
+    warning_counts = lab_report.get("warningCounts") if isinstance(lab_report.get("warningCounts"), dict) else {}
+    stages = [
+        stage(
+            "progressionGraph",
+            bool(progression),
+            f"{list_len(progression.get('nodes'))} nodes, {list_len(progression.get('criticalPath'))} critical-path steps",
+        ),
+        stage(
+            "hybridLayout",
+            bool(layout),
+            f"{list_len(layout.get('assignments'))} assignments, {list_len(layout.get('connections'))} connections",
+        ),
+        stage(
+            "socketAnchorPlan",
+            bool(sockets),
+            f"{list_len(sockets.get('connectionContracts'))} contracts, {list_len(sockets.get('resolvedAnchors'))} anchors",
+        ),
+        stage(
+            "validationReport",
+            validation.get("valid") is True,
+            f"valid={validation.get('valid', 'unknown')}, issues={validation.get('issueCount', 'unknown')}",
+        ),
+        stage(
+            "megamap",
+            bool(megamap),
+            f"{list_len(megamap.get('rooms'))} stitched rooms, {list_len(megamap.get('seams'))} seams",
+        ),
+        stage(
+            "labReport",
+            lab_report.get("overallStatus") == "pass",
+            f"{len(rooms)} rooms, {sum_numeric_values(warning_counts)} warnings, score={lab_report.get('qualityScore', 'unknown')}",
+        ),
+    ]
+    return {
+        "act1Baseline": bool(act1_baseline),
+        "worldSeed": snapshot.get("worldSeed"),
+        "shape": snapshot.get("shape"),
+        "roomCountRequested": snapshot.get("roomCountRequested"),
+        "roomCountActual": snapshot.get("roomCountActual"),
+        "generatorSchemaVersion": snapshot.get("generatorSchemaVersion"),
+        "stages": stages,
+    }
+
+
+def stage(name: str, ok: bool, summary: str) -> dict[str, Any]:
+    return {"name": name, "status": "pass" if ok else "warn", "summary": summary}
+
+
+def list_len(value: Any) -> int:
+    return len(value) if isinstance(value, list) else 0
+
+
+def render_pipeline_svg(pipeline: dict[str, Any]) -> str:
+    stages = pipeline.get("stages") if isinstance(pipeline.get("stages"), list) else []
+    width = max(720, len(stages) * 150 + 48)
+    height = 190
+    title = f"seed {pipeline.get('worldSeed')} schema {pipeline.get('generatorSchemaVersion')}"
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#0d1117"/>',
+        f'<text x="24" y="28" fill="#c9d1d9" font-family="monospace" font-size="14">{html.escape(title)}</text>',
+    ]
+    x = 24
+    y = 58
+    box_w = 128
+    box_h = 82
+    for index, item in enumerate(stages):
+        if not isinstance(item, dict):
+            continue
+        color = "#3fb950" if item.get("status") == "pass" else "#f2cc60"
+        parts.append(f'<rect x="{x}" y="{y}" width="{box_w}" height="{box_h}" fill="#161b22" stroke="{color}" stroke-width="2" rx="4"/>')
+        parts.append(
+            f'<text x="{x + 8}" y="{y + 22}" fill="#c9d1d9" font-family="monospace" font-size="11">'
+            f'{html.escape(str(item.get("name", ""))[:18])}</text>'
+        )
+        parts.append(
+            f'<text x="{x + 8}" y="{y + 42}" fill="{color}" font-family="monospace" font-size="10">'
+            f'{html.escape(str(item.get("status", "")))}</text>'
+        )
+        parts.extend(wrapped_svg_text(str(item.get("summary", "")), x + 8, y + 58, 18, 2))
+        if index < len(stages) - 1:
+            line_x = x + box_w
+            parts.append(f'<line x1="{line_x}" y1="{y + box_h / 2}" x2="{line_x + 20}" y2="{y + box_h / 2}" stroke="#8b949e" stroke-width="2"/>')
+            parts.append(f'<path d="M {line_x + 20} {y + box_h / 2} l -6 -4 v 8 z" fill="#8b949e"/>')
+        x += 150
+    parts.append("</svg>")
+    return "\n".join(parts) + "\n"
+
+
+def wrapped_svg_text(text: str, x: int, y: int, line_chars: int, max_lines: int) -> list[str]:
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = word if not current else current + " " + word
+        if len(candidate) > line_chars and current:
+            lines.append(current)
+            current = word
+            if len(lines) >= max_lines:
+                break
+        else:
+            current = candidate
+    if current and len(lines) < max_lines:
+        lines.append(current)
+    return [
+        f'<text x="{x}" y="{y + index * 12}" fill="#8b949e" font-family="monospace" font-size="9">{html.escape(line)}</text>'
+        for index, line in enumerate(lines)
+    ]
 
 
 def render_world_detail_svg(snapshot: dict[str, Any], metrics: dict[str, Any]) -> str:
@@ -434,6 +593,180 @@ def command_batch(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_act1(args: argparse.Namespace) -> int:
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    snapshot_path = out_dir / "snapshot.json"
+    if args.snapshot:
+        shutil.copyfile(Path(args.snapshot), snapshot_path)
+    else:
+        generate_single_snapshot(
+            seed=args.seed,
+            rooms=args.rooms,
+            shape=args.shape,
+            snapshot_path=snapshot_path,
+        )
+    written = render_snapshot(snapshot_path, out_dir)
+    for path in written:
+        print(path)
+    return 0
+
+
+def command_compare(args: argparse.Namespace) -> int:
+    base = read_snapshot(resolve_snapshot_path(Path(args.base)))
+    candidate = read_snapshot(resolve_snapshot_path(Path(args.candidate)))
+    report = build_compare_report(base, candidate)
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "compare.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    write_compare_csv(report, out_dir / "compare.csv")
+    (out_dir / "compare.html").write_text(render_compare_html(report), encoding="utf-8")
+    print(out_dir / "compare.html")
+    print(out_dir / "compare.json")
+    print(out_dir / "compare.csv")
+    return 0
+
+
+def resolve_snapshot_path(path: Path) -> Path:
+    if path.is_file():
+        return path
+    snapshot = path / "snapshot.json"
+    metrics = path / "metrics.json"
+    if snapshot.exists():
+        return snapshot
+    if metrics.exists():
+        return metrics
+    raise ValueError(f"{path} is not a snapshot JSON file or lab output directory")
+
+
+def build_compare_report(base: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    base_lab = base.get("labReport") if isinstance(base.get("labReport"), dict) else {}
+    candidate_lab = candidate.get("labReport") if isinstance(candidate.get("labReport"), dict) else {}
+    base_quality = numeric_or_zero(base_lab.get("qualityScore"))
+    candidate_quality = numeric_or_zero(candidate_lab.get("qualityScore"))
+    warning_deltas = diff_numeric_maps(
+        base_lab.get("warningCounts") if isinstance(base_lab.get("warningCounts"), dict) else {},
+        candidate_lab.get("warningCounts") if isinstance(candidate_lab.get("warningCounts"), dict) else {},
+    )
+    checksum_changes = room_checksum_changes(base.get("rooms"), candidate.get("rooms"))
+    return {
+        "worldSeed": candidate.get("worldSeed", base.get("worldSeed")),
+        "sameWorldSeed": base.get("worldSeed") == candidate.get("worldSeed"),
+        "base": snapshot_summary(base),
+        "candidate": snapshot_summary(candidate),
+        "qualityDelta": candidate_quality - base_quality,
+        "warningDeltas": warning_deltas,
+        "roomChecksumChanges": checksum_changes,
+    }
+
+
+def snapshot_summary(snapshot: dict[str, Any]) -> dict[str, Any]:
+    lab = snapshot.get("labReport") if isinstance(snapshot.get("labReport"), dict) else {}
+    return {
+        "worldSeed": snapshot.get("worldSeed"),
+        "shape": snapshot.get("shape"),
+        "generatorSchemaVersion": snapshot.get("generatorSchemaVersion"),
+        "qualityScore": lab.get("qualityScore"),
+        "overallStatus": lab.get("overallStatus"),
+        "warningCountTotal": sum_numeric_values(lab.get("warningCounts") if isinstance(lab.get("warningCounts"), dict) else {}),
+        "roomCountActual": snapshot.get("roomCountActual"),
+    }
+
+
+def diff_numeric_maps(base: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    keys = sorted(set(base) | set(candidate))
+    return {
+        key: numeric_or_zero(candidate.get(key)) - numeric_or_zero(base.get(key))
+        for key in keys
+        if numeric_or_zero(candidate.get(key)) - numeric_or_zero(base.get(key)) != 0
+    }
+
+
+def numeric_or_zero(value: Any) -> int | float:
+    return value if isinstance(value, (int, float)) else 0
+
+
+def room_checksum_changes(base_rooms: Any, candidate_rooms: Any) -> int:
+    base_map = room_checksums(base_rooms)
+    candidate_map = room_checksums(candidate_rooms)
+    keys = set(base_map) | set(candidate_map)
+    return sum(1 for key in keys if base_map.get(key) != candidate_map.get(key))
+
+
+def room_checksums(rooms: Any) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    if not isinstance(rooms, list):
+        return out
+    for room in rooms:
+        if not isinstance(room, dict):
+            continue
+        room_id = room.get("id", room.get("roomKey"))
+        if room_id is not None:
+            out[str(room_id)] = room.get("tileChecksum")
+    return out
+
+
+def write_compare_csv(report: dict[str, Any], path: Path) -> None:
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["metric", "value"])
+        writer.writerow(["worldSeed", report.get("worldSeed")])
+        writer.writerow(["sameWorldSeed", report.get("sameWorldSeed")])
+        writer.writerow(["qualityDelta", report.get("qualityDelta")])
+        writer.writerow(["roomChecksumChanges", report.get("roomChecksumChanges")])
+        for key, value in sorted((report.get("warningDeltas") or {}).items()):
+            writer.writerow([f"warningDelta.{key}", value])
+
+
+def render_compare_html(report: dict[str, Any]) -> str:
+    warning_rows = "\n".join(
+        f"<tr><td>{html.escape(str(key))}</td><td>{html.escape(str(value))}</td></tr>"
+        for key, value in sorted((report.get("warningDeltas") or {}).items())
+    )
+    base = json.dumps(report.get("base", {}), indent=2, sort_keys=True)
+    candidate = json.dumps(report.get("candidate", {}), indent=2, sort_keys=True)
+    return (
+        "<!doctype html>\n"
+        '<html lang="en">\n'
+        "<head><meta charset=\"utf-8\"><title>Worldgen Lab Compare</title>\n"
+        "<style>body{background:#0d1117;color:#c9d1d9;font-family:system-ui,sans-serif;margin:24px}"
+        "pre,code{font-family:ui-monospace,Consolas,monospace}table{border-collapse:collapse}"
+        "td,th{border:1px solid #30363d;padding:6px 8px;text-align:left}.metric{display:inline-block;border:1px solid #30363d;border-radius:6px;padding:12px;margin:6px}</style></head>\n"
+        "<body>\n"
+        f"<h1>Worldgen Lab Compare Seed {html.escape(str(report.get('worldSeed')))}</h1>\n"
+        f"<div class=\"metric\"><strong>Quality Delta</strong><br>{html.escape(str(report.get('qualityDelta')))}</div>\n"
+        f"<div class=\"metric\"><strong>Room Checksum Changes</strong><br>{html.escape(str(report.get('roomChecksumChanges')))}</div>\n"
+        f"<div class=\"metric\"><strong>Same Seed</strong><br>{html.escape(str(report.get('sameWorldSeed')))}</div>\n"
+        "<h2>Warning Deltas</h2>\n"
+        f"<table><thead><tr><th>Warning</th><th>Delta</th></tr></thead><tbody>{warning_rows}</tbody></table>\n"
+        "<h2>Base</h2>\n"
+        f"<pre>{html.escape(base)}</pre>\n"
+        "<h2>Candidate</h2>\n"
+        f"<pre>{html.escape(candidate)}</pre>\n"
+        '<p><a href="compare.json">compare.json</a> <a href="compare.csv">compare.csv</a></p>\n'
+        "</body></html>\n"
+    )
+
+
+def generate_single_snapshot(seed: int, rooms: int, shape: str, snapshot_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    java_dir = repo_root / "java"
+    gradle = java_dir / ("gradlew.bat" if sys.platform.startswith("win") else "gradlew")
+    subprocess.run(
+        [
+            str(gradle),
+            ":shadowascent:worldgenSnapshot",
+            f"-Pseed={seed}",
+            f"-Prooms={rooms}",
+            f"-Pshape={shape}",
+            f"-Pout={snapshot_path.resolve()}",
+            "--no-daemon",
+        ],
+        cwd=java_dir,
+        check=True,
+    )
+
+
 def generate_snapshots(args: argparse.Namespace, out_dir: Path) -> Path:
     if args.seeds is None or args.rooms is None or args.shape is None:
         raise ValueError("batch generated mode requires --seeds, --rooms, --shape, and --out")
@@ -446,19 +779,7 @@ def generate_snapshots(args: argparse.Namespace, out_dir: Path) -> Path:
 
     for seed in range(1, args.seeds + 1):
         snapshot_path = snapshots_dir / f"seed-{seed}.json"
-        subprocess.run(
-            [
-                str(gradle),
-                ":shadowascent:worldgenSnapshot",
-                f"-Pseed={seed}",
-                f"-Prooms={args.rooms}",
-                f"-Pshape={args.shape}",
-                f"-Pout={snapshot_path}",
-                "--no-daemon",
-            ],
-            cwd=java_dir,
-            check=True,
-        )
+        generate_single_snapshot(seed, args.rooms, args.shape, snapshot_path)
     return snapshots_dir
 
 
@@ -554,6 +875,20 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument("--out", required=True, help="Output directory.")
     batch.add_argument("--failures", type=int, default=5, help="Number of worst snapshots to render.")
     batch.set_defaults(func=command_batch)
+
+    act1 = subparsers.add_parser("act1", help="Generate and render the Act 1 seed-420 baseline report.")
+    act1.add_argument("--seed", type=int, default=420, help="Act 1 baseline seed.")
+    act1.add_argument("--rooms", type=int, default=20, help="Room count for generated snapshot mode.")
+    act1.add_argument("--shape", default="BLOB", help="World shape for generated snapshot mode.")
+    act1.add_argument("--snapshot", help="Use an existing snapshot instead of invoking Gradle.")
+    act1.add_argument("--out", default="build/worldgen-lab/act1-seed-420", help="Output directory.")
+    act1.set_defaults(func=command_act1)
+
+    compare = subparsers.add_parser("compare", help="Compare two snapshots or rendered lab directories.")
+    compare.add_argument("--base", required=True, help="Base snapshot JSON file or lab output directory.")
+    compare.add_argument("--candidate", required=True, help="Candidate snapshot JSON file or lab output directory.")
+    compare.add_argument("--out", required=True, help="Output directory.")
+    compare.set_defaults(func=command_compare)
 
     return parser
 

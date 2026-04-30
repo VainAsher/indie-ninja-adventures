@@ -23,12 +23,12 @@
 
 ## Task 1: Java Detail Snapshot Data
 
-- [ ] **Step 1: Add failing Java assertions**
+- [x] **Step 1: Add failing Java assertions**
 
 Add assertions that every generated room metric exposes `zoneRows` with 16 rows,
 `tilePreviewRows` with 128 rows, `neighborDirs`, `biomeIndex`, and legends.
 
-- [ ] **Step 2: Run focused Java test red**
+- [x] **Step 2: Run focused Java test red**
 
 Run:
 
@@ -37,18 +37,18 @@ cd java
 .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --no-daemon
 ```
 
-- [ ] **Step 3: Implement analyzer detail fields**
+- [x] **Step 3: Implement analyzer detail fields**
 
 Use `ZonePlanner.plan(room.seed, roomType, dirs)` before tile generation.
 Encode zone rows as role-symbol strings and tile preview rows as tile-symbol
 strings. Keep full 128x128 rows for inspectability.
 
-- [ ] **Step 4: Bump schema and snapshot assertions**
+- [x] **Step 4: Bump schema and snapshot assertions**
 
 Set `GeneratorSchemaVersion.CURRENT = 10` and update snapshot tests to expect
 detail rows under `labReport.rooms[0]`.
 
-- [ ] **Step 5: Run focused Java tests green**
+- [x] **Step 5: Run focused Java tests green**
 
 Run:
 
@@ -59,13 +59,13 @@ cd java
 
 ## Task 2: Python Detail Renderer
 
-- [ ] **Step 1: Add failing Python render assertions**
+- [x] **Step 1: Add failing Python render assertions**
 
 Update `tools/test_worldgen_lab.py` fixture snapshots with one room containing
 `zoneRows` and `tilePreviewRows`. Assert `world-detail.svg` and
 `rooms/<roomKey>.svg` are written.
 
-- [ ] **Step 2: Run Python test red**
+- [x] **Step 2: Run Python test red**
 
 Run:
 
@@ -73,7 +73,7 @@ Run:
 python tools/test_worldgen_lab.py
 ```
 
-- [ ] **Step 3: Implement detail SVG rendering**
+- [x] **Step 3: Implement detail SVG rendering**
 
 Add functions in `tools/worldgen_lab.py` to render:
 
@@ -81,7 +81,7 @@ Add functions in `tools/worldgen_lab.py` to render:
 - per-room SVGs under `rooms/`
 - links in `index.html`
 
-- [ ] **Step 4: Run Python tests green**
+- [x] **Step 4: Run Python tests green**
 
 Run:
 
@@ -91,17 +91,17 @@ python tools/test_worldgen_lab.py
 
 ## Task 3: Docs, Gates, Release
 
-- [ ] **Step 1: Update authoring/system docs**
+- [x] **Step 1: Update authoring/system docs**
 
 Document `world-detail.svg`, `rooms/*.svg`, zone symbols, tile symbols, and how
 to diagnose rule/template problems.
 
-- [ ] **Step 2: Update release metadata**
+- [x] **Step 2: Update release metadata**
 
 Set version to `0.13.16`, generator schema to `10`, and add changelog/current
 state entries for the detail view.
 
-- [ ] **Step 3: Run gates**
+- [x] **Step 3: Run gates**
 
 Run:
 
@@ -116,7 +116,7 @@ cd ..
 git diff --check
 ```
 
-- [ ] **Step 4: Commit, tag, push, verify**
+- [x] **Step 4: Commit, tag, push, verify**
 
 Commit as `feat(worldgen): add lab detail view`, tag `v0.13.16`, push master
 and tag, then verify CI, Release, and release assets.
