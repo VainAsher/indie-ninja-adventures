@@ -88,13 +88,13 @@ from the world seed and covered by seed-sweep tests.
 
 Current boundary: this layer does not replace room templates, zone patches,
 room structure rules, or the live server layout. It now feeds the hybrid layout
-snapshot planner for inspection.
+and socket/anchor snapshot planners for inspection.
 
 ## Designing Section Templates
 
 Section templates are JSON pacing chunks. They are not room TMX files and they
 do not yet place rooms by themselves. They define the shape of a design beat so
-future layout, socket, anchor, and validation layers can consume it.
+layout, socket, anchor, and future validation layers can consume it.
 
 Put section files here:
 
@@ -112,7 +112,7 @@ Minimum useful fields:
 | `footprint` | Room-grid footprint: `{ "gridW": 3, "gridH": 2 }`. |
 | `nodeKinds` | Local beats inside the section. |
 | `edgeRules` | Directed links between local beats. |
-| `requiredSockets` | Join contracts that future layout must satisfy. |
+| `requiredSockets` | Join contracts that the socket planner resolves. |
 | `mutableZones` | Bounds where procedural detail can alter authored structure. |
 | `anchors` | Candidate placements for rewards, saves, shops, gates, enemies, or set pieces. |
 
@@ -158,10 +158,11 @@ Authoring guidance:
 - Put repeatable procedural detail in `mutableZones`.
 - Put gameplay-critical placements in `anchors` so validation can reason about them later.
 - Keep socket names descriptive: side + height band + traversal, for example `west_low_walk`.
+- Use `phase: "global"` for anchors that should participate in whole-map pacing or validation.
 
-Current boundary: section templates are loaded, exported, and assigned to a
-deterministic hybrid layout plan. They are not yet consumed by live server room
-placement.
+Current boundary: section templates are loaded, exported, assigned to a
+deterministic hybrid layout plan, and resolved into socket/anchor snapshot
+contracts. They are not yet consumed by live server room placement.
 
 ## Inspecting Hybrid Layout Plans
 
@@ -183,6 +184,28 @@ Authoring guidance:
 - Use `kind` consistently. The layout planner maps progression tags to section kinds such as `key_trial`, `boss_approach`, and `shop_save_loop`.
 - A template can be used outside its authored biome as a deterministic fallback when no same-biome template exists. Add biome-specific variants when a section’s geometry or theme matters.
 - Treat current layout coordinates as planning metadata, not final runtime room coordinates.
+
+## Inspecting Socket and Anchor Contracts
+
+The snapshot `socketAnchorPlan` block shows how authored section contracts
+resolve after layout assignment:
+
+| Field | Use |
+| ----- | --- |
+| `connectionContracts[]` | Source/destination node ids, parsed socket metadata, match status, and policy. |
+| `resolvedAnchors[]` | Anchor id, kind, local bounds, world bounds, tags, quotas, and requirements. |
+
+Socket ids should follow `side_band_traversal`:
+
+| Part | Examples |
+| ---- | -------- |
+| `side` | `west`, `east`, `north`, `south` |
+| `band` | `low`, `mid`, `high` |
+| `traversal` | `walk`, `jump`, `wall_climb`, `dash` |
+
+`matched` connections can be joined directly by later corridor/stitching work.
+`needs_transition` connections need a transition room, corridor, door band
+adjustment, or authored replacement before live placement consumes the plan.
 
 ## Room Types
 
@@ -424,10 +447,10 @@ cd java
 ```
 
 The snapshot records generator schema version, seed streams, progression graph,
-loaded section templates, hybrid layout assignments, room graph data, neighbor
-directions, biome indexes, and per-room tile checksums. Use it as the baseline
-artifact for future room/zone authoring changes until the visual map viewer
-slice lands.
+loaded section templates, hybrid layout assignments, socket/anchor contracts,
+room graph data, neighbor directions, biome indexes, and per-room tile
+checksums. Use it as the baseline artifact for future room/zone authoring
+changes until the visual map viewer slice lands.
 
 ## Room Structure Rules
 

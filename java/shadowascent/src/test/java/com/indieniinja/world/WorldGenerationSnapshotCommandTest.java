@@ -46,5 +46,7 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("sectionTemplates").get("templates").get(0).hasNonNull("id")).isTrue();
         assertThat(root.get("hybridLayout").get("assignments")).isNotEmpty();
         assertThat(root.get("hybridLayout").get("connections")).isNotEmpty();
+        assertThat(root.get("socketAnchorPlan").get("connectionContracts")).isNotEmpty();
+        assertThat(root.get("socketAnchorPlan").get("resolvedAnchors")).isNotEmpty();
     }
 }

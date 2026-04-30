@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.9
+version_anchor: v0.13.10
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.10] - 2026-04-30 (Worldgen socket and anchor contracts)
+
+### Added
+
+- **Socket/anchor planning layer**: added `SocketAnchorPlan` and
+  `SocketAnchorPlanner` under `java/shadowascent/src/main/java/com/indieniinja/world/contracts/`.
+  The layer resolves section `requiredSockets` into connection contracts and
+  converts section anchor candidates into world-space bounds for deterministic
+  snapshot inspection.
+- **Snapshot export**: `WorldGenerationSnapshotCommand` now emits
+  `socketAnchorPlan.connectionContracts[]` and
+  `socketAnchorPlan.resolvedAnchors[]`.
+- **Tests**: added focused coverage for deterministic socket/anchor planning,
+  world-space anchor resolution, connection contract creation, and snapshot
+  export inclusion.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and `version.json.generator_schema_version`
+  are now `6` because snapshots include socket/anchor contract metadata.
+- Snapshot seed streams now reserve `socket_anchor::<layoutId>` for deterministic
+  contract and anchor resolution.
+
+### Compatibility
+
+- **snapshot schema**: changed from generator schema `5` to `6`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: no live world placement change; this is still an
+  inspectable metadata layer above legacy room generation.
 
 ## [0.13.9] - 2026-04-30 (Worldgen hybrid layout plan)
 

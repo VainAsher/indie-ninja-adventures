@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.9
+version_anchor: v0.13.10
 ---
 
 # Layered Hybrid World Generator
@@ -85,7 +85,8 @@ There are 8 planned slices total:
 5. **Hybrid BSP/grid layout:** complete in this plan.
    Place section footprints with deterministic macro grid space and local
    connectivity metadata.
-6. **Sockets and anchors:** make room/section joins and gameplay placements
+6. **Sockets and anchors:** complete in this plan.
+   Make room/section joins and gameplay placements
    explicit contracts.
 7. **Validation and repair:** add progression, reachability, and bounded repair
    passes.
@@ -237,11 +238,49 @@ inspectable deterministic layout plan before concrete room instantiation.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 6: Sockets and Anchors
+
+**Goal:** Resolve section socket requirements and gameplay anchor candidates
+into deterministic world-space metadata before validation and megamap stitching.
+
+**Architecture:**
+
+- Add `com.indieniinja.world.contracts`.
+- Parse section `requiredSockets` into explicit side, band, traversal, width,
+  and clearance contracts.
+- Convert section `anchors[]` from local template bounds into world-space bounds
+  using hybrid layout assignments.
+- Emit connection contracts for hybrid layout edges, marking direct matches or
+  transition-room needs without changing live `WorldGraph` placement.
+- Append `socketAnchorPlan` to deterministic worldgen snapshot exports and bump
+  `GeneratorSchemaVersion.CURRENT`.
+
+### Tasks
+
+- [x] Add TDD coverage for deterministic socket/anchor output.
+- [x] Add TDD coverage for anchor world-bounds resolution.
+- [x] Add TDD coverage for connection contract creation.
+- [x] Implement `SocketAnchorPlan`.
+- [x] Implement `SocketAnchorPlanner`.
+- [x] Append `socketAnchorPlan` to `WorldGenerationSnapshotCommand`.
+- [x] Update system, architecture, authoring, changelog, and current-state docs.
+- [x] Run focused verification.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.contracts.SocketAnchorPlannerTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `cd java; .\gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=12 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345-v6.json" --no-daemon`
+- [x] `python tools/check_version_sync.py --tag v0.13.10`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.9`.
-- **Release scope:** Slice 5 only, because it adds the pure hybrid layout
-  planning layer and updates snapshot schema version 5.
+- **Next tag:** `v0.13.10`.
+- **Release scope:** Slice 6 only, because it adds the pure socket/anchor
+  contract layer and updates snapshot schema version 6.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

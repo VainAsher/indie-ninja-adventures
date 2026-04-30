@@ -412,6 +412,21 @@ grid coordinates, and exports assigned progression-edge connections.
 This layer is metadata-only for now. It does not instantiate rooms, alter
 `WorldGraph.generate(...)`, or change server persistence.
 
+#### Socket and Anchor Contracts (`world/contracts/`)
+
+Pure contract layer above hybrid layout and below later validation/stitching.
+It resolves authored section sockets and anchors into deterministic snapshot
+metadata without changing live room placement.
+
+| Class | Role |
+|-------|------|
+| `SocketAnchorPlan` | Immutable snapshot container for connection contracts and resolved anchor world bounds. |
+| `SocketAnchorPlanner` | Parses section `requiredSockets`, matches layout connections, and converts section-local anchors into world coordinates. |
+
+Connection contracts use `matched` for compatible direct joins and
+`needs_transition` when a later corridor or transition room must bridge socket
+differences. This layer is still metadata-only for now.
+
 #### `RoomGenerator`
 Generates tile content for a specific `RoomType`, delegating to `WorldGenerator` for base layout then stamping room-type-specific content.
 

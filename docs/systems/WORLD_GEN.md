@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.9
+version_anchor: v0.13.10
 ---
 
 # World Generation and Layout (Java)
@@ -29,6 +29,9 @@ For hands-on room, zone, and level-design workflow, see `docs/guides/LEVEL_AUTHO
 - Hybrid layout:
   - `java/shadowascent/src/main/java/com/indieniinja/world/layout/HybridLayoutPlan.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/layout/HybridLayoutPlanner.java`
+- Socket and anchor contracts:
+  - `java/shadowascent/src/main/java/com/indieniinja/world/contracts/SocketAnchorPlan.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/world/contracts/SocketAnchorPlanner.java`
 - Postprocess pipeline:
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/RoomPostProcessor.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/AbilityLayer.java`
@@ -67,15 +70,16 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
 1. Generate macro progression graph from seed — assigns central hub, region hubs, dungeon nodes, requirements, grants, optional branches, and critical path.
 2. Load authored section templates — describes pacing chunks, footprints, edge rules, required sockets, mutable zones, and anchor candidates.
 3. Generate hybrid layout plan — assigns section footprints to deterministic grid coordinates and emits progression-edge connections.
-4. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
-5. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
+4. Resolve socket and anchor plan — converts section sockets into connection contracts and section anchors into world-space bounds.
+5. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
+6. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
    - Template types load a seed-selected `.tmx` variant first; door openings carved by `carveDoors()`.
    - Non-template types go through `ZonePlanner` → `RoomGenerator` procedural path.
    - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
    - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
-6. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
-7. Stitch unified layout for simulation and snapshot descriptors.
-8. Client renders tile output with blob autotile mapping and room metadata.
+7. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
+8. Stitch unified layout for simulation and snapshot descriptors.
+9. Client renders tile output with blob autotile mapping and room metadata.
 
 ## Progression graph layer
 
@@ -148,7 +152,23 @@ Current model responsibilities:
 
 This layer still does not replace live server `WorldGraph` placement or room
 tile generation. It gives tooling and later slices an inspectable spatial plan
-before sockets, anchors, validation, repair, and megamap stitching consume it.
+before validation, repair, and megamap stitching consume it.
+
+## Socket and anchor contract layer
+
+`SocketAnchorPlanner.plan(worldSeed, hybridLayout, sectionTemplates)` resolves
+authored section contracts into deterministic metadata:
+
+| Field | Purpose |
+| ----- | ------- |
+| `connectionContracts[]` | One contract per assigned layout connection, with source/destination socket shape and match status. |
+| `resolvedAnchors[]` | Gameplay anchor candidates converted from local section bounds to world-space bounds. |
+| `status` | `matched` when traversal tags and height bands are compatible, otherwise `needs_transition`. |
+
+Socket ids currently use the convention `side_band_traversal`, for example
+`west_low_walk` or `east_mid_jump`. The planner parses those ids into side,
+height band, traversal tags, width, and clearance metadata. This is still a pure
+snapshot layer; it does not carve corridors or instantiate entities yet.
 
 ## Snapshot export
 
@@ -173,10 +193,10 @@ The command writes:
 | `progressionGraph` | Macro progression snapshot with world nodes, region hubs, dungeon nodes, and critical path ids. |
 | `sectionTemplates` | Loaded authored section templates with count and stable template metadata. |
 | `hybridLayout` | Deterministic section-footprint bounds, assignments, and assigned progression-edge connections. |
+| `socketAnchorPlan` | Deterministic connection contracts plus resolved anchor world bounds. |
 
-The first snapshot schema is graph-centric. Later layered-generator slices should
-append section, socket, anchor, validator, and megamap blocks instead of
-replacing the command.
+Later layered-generator slices should append validator and megamap blocks
+instead of replacing the command.
 
 ## Method-level call graphs
 
@@ -206,7 +226,7 @@ replacing the command.
 - Changing structure rule values is replay-breaking because it changes deterministic zone plans and hazard placement.
 - Changing template catalog weights or files is replay-breaking because room seeds may resolve to different TMX layouts.
 - Changing zone patch catalog weights or files is replay-breaking because procedural zone expansion may stamp different tile patches.
-- Changing section templates or hybrid layout policy is snapshot-schema-visible now and will become replay-breaking once live room placement consumes section assignments.
+- Changing section templates, hybrid layout policy, or socket/anchor resolution is snapshot-schema-visible now and will become replay-breaking once live room placement consumes section assignments.
 - Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
 - Authored zone patch TMX files and catalog entries can be checked with `python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json`.
 

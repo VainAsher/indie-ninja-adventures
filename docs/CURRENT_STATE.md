@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.9
+version_anchor: v0.13.10
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,20 +21,20 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-04-30): v0.13.9 is the worldgen hybrid layout plan release target for Slice 5.
-- Release assets verified for v0.13.8: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.8.zip`.
+- Current release truth (2026-04-30): v0.13.10 is the worldgen socket and anchor contract release target for Slice 6.
+- Release assets verified for v0.13.9: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.9.zip`.
 - G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
 - G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next G0 evidence target: v0.13.10 (G0 signoff evidence + state sync; code changes only for G0 blockers).
+- Next G0 evidence target: v0.13.11 (G0 signoff evidence + state sync; code changes only for G0 blockers).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-30`):
-  - CI green for `0f74886` (`v0.13.8`)
-  - Release workflow green for tag `v0.13.8`
-  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.8.zip`
+  - CI green for `edee541` (`v0.13.9`)
+  - Release workflow green for tag `v0.13.9`
+  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.9.zip`
   - Local gates passed: version sync, docs freshness, client/server tests, client/server shadow JARs
   - G0 signoff still requires 5 first-session records before P0-10 can close
 
@@ -71,14 +71,14 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Validation:** Python template validator unit tests PASS; canonical Java TMX strict geometry + catalog validation PASS; root editor TMX strict geometry PASS; `RoomGeometryRulesTest` PASS; `RoomStructureRulesTest` PASS; `RoomTemplateCatalogTest` PASS; `WorldGraphGenerationTest` PASS.
 - **G0 status:** G0/P0-10 remains open. The previous `v0.13.5` evidence target is superseded by this world-generation release; use the next G0 evidence target before closing P0-10.
 
-## Active Slice - Layered hybrid generator, Slice 5
+## Active Slice - Layered hybrid generator, Slice 6
 
-- **Status:** Implementing after v0.13.8 release.
+- **Status:** Implementing after v0.13.9 release.
 - **Plan:** [`docs/plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md`](plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md).
-- **Completed in this slice:** deterministic hybrid layout plan model, section footprint assignment, non-overlap layout checks, progression-edge connection export, and snapshot export of layout metadata.
-- **Validation:** `HybridLayoutPlannerTest` PASS; `WorldGenerationSnapshotCommandTest` PASS.
-- **Next slice:** sockets and anchors for explicit section/room joins and gameplay placements.
-- **Compatibility:** no live replay/save/protocol change yet. Generator snapshot schema changes from `4` to `5`.
+- **Completed in this slice:** deterministic socket/anchor plan model, section socket parsing, connection contract export, anchor world-bounds resolution, and snapshot export of socket/anchor metadata.
+- **Validation:** `SocketAnchorPlannerTest` PASS; `WorldGenerationSnapshotCommandTest` PASS.
+- **Next slice:** validation and repair passes for progression/reachability and bounded fallback.
+- **Compatibility:** no live replay/save/protocol change yet. Generator snapshot schema changes from `5` to `6`.
 
 ## Session Handover - 2026-04-29 (v0.13.4 - Phase 2 CutsceneManager shipped)
 

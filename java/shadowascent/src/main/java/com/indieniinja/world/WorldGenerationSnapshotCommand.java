@@ -2,6 +2,8 @@ package com.indieniinja.world;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.indieniinja.world.contracts.SocketAnchorPlanner;
+import com.indieniinja.world.layout.HybridLayoutPlan;
 import com.indieniinja.world.layout.HybridLayoutPlanner;
 import com.indieniinja.world.progression.WorldProgressionGenerator;
 import com.indieniinja.world.progression.WorldProgressionGraph;
@@ -36,6 +38,7 @@ public final class WorldGenerationSnapshotCommand {
         "world_graph",
         "world_graph::back_edges",
         "section_layout::<nodeId>",
+        "socket_anchor::<layoutId>",
         "room_synthesis::<roomId>",
         "zone_patch::<roomId>",
         "autotile::<roomId>"
@@ -76,9 +79,11 @@ public final class WorldGenerationSnapshotCommand {
         root.put("exitRoomId", roomId(graph.exitRoom()));
         WorldProgressionGraph progressionGraph = WorldProgressionGenerator.generate(seed);
         SectionTemplateLibrary sectionTemplates = SectionTemplateLibrary.loadDefault();
+        HybridLayoutPlan hybridLayout = HybridLayoutPlanner.plan(seed, progressionGraph, sectionTemplates);
         root.put("progressionGraph", progressionGraph.toSnapshot());
         root.put("sectionTemplates", sectionTemplates.summarySnapshot());
-        root.put("hybridLayout", HybridLayoutPlanner.plan(seed, progressionGraph, sectionTemplates).toSnapshot());
+        root.put("hybridLayout", hybridLayout.toSnapshot());
+        root.put("socketAnchorPlan", SocketAnchorPlanner.plan(seed, hybridLayout, sectionTemplates).toSnapshot());
         root.put("rooms", rooms(graph));
         return root;
     }
