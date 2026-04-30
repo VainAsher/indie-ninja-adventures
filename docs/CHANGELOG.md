@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.12
+version_anchor: v0.13.13
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.13] - 2026-04-30 (Unified world void collision seal)
+
+### Added
+
+- **Regression coverage**: added a generated-world layout test that finds an
+  empty room-grid cell inside the unified world bounds and verifies it now has
+  solid collision.
+
+### Changed
+
+- **Unified world collision**: `LevelLayout` now seals missing room-grid cells
+  inside generated world bounds with solid collision in both unified layout
+  construction paths. This prevents players, NPCs, and dropped objects from
+  falling through dark void cells between generated rooms.
+
+### Compatibility
+
+- **snapshot schema**: no change; generator schema remains `8`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: replay/collision outcomes may change for worlds that
+  previously exposed empty interior grid cells as fall-through void space.
 
 ## [0.13.12] - 2026-04-30 (Worldgen megamap export and viewer)
 

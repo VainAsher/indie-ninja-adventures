@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.12
+version_anchor: v0.13.13
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,20 +21,20 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-04-30): v0.13.12 is the worldgen megamap export and viewer release target for Slice 8.
-- Release assets verified for v0.13.11: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.11.zip`.
+- Current release truth (2026-04-30): v0.13.13 is the unified world void-collision seal release target.
+- Release assets verified for v0.13.12: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.12.zip`.
 - G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
 - G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next G0 evidence target: v0.13.13 (G0 signoff evidence + state sync; code changes only for G0 blockers).
+- Next G0 evidence target: v0.13.14 (G0 signoff evidence + state sync; code changes only for G0 blockers).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 - Latest release verification (`2026-04-30`):
-  - CI green for `fe6603d` (`v0.13.11`)
-  - Release workflow green for tag `v0.13.11`
-  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.11.zip`
+  - CI green for `cca4d31` (`v0.13.12`)
+  - Release workflow green for tag `v0.13.12`
+  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.12.zip`
   - Local gates passed: version sync, docs freshness, client/server tests, client/server shadow JARs
   - G0 signoff still requires 5 first-session records before P0-10 can close
 
@@ -71,9 +71,16 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Validation:** Python template validator unit tests PASS; canonical Java TMX strict geometry + catalog validation PASS; root editor TMX strict geometry PASS; `RoomGeometryRulesTest` PASS; `RoomStructureRulesTest` PASS; `RoomTemplateCatalogTest` PASS; `WorldGraphGenerationTest` PASS.
 - **G0 status:** G0/P0-10 remains open. The previous `v0.13.5` evidence target is superseded by this world-generation release; use the next G0 evidence target before closing P0-10.
 
-## Active Slice - Layered hybrid generator, Slice 8
+## Active Hotfix - Unified world void collision
 
-- **Status:** Implementing after v0.13.11 release.
+- **Status:** Preparing v0.13.13 release.
+- **Completed:** missing room-grid cells inside unified world bounds are sealed with solid collision in both unified layout construction paths; a regression covers generated plans with empty interior cells.
+- **Validation:** focused regression PASS; related world graph suites PASS; full server test PASS; client/server shadow JAR build PASS.
+- **Compatibility:** replay/collision behavior can change for seeds that previously exposed fall-through void cells; save/protocol unchanged; generator snapshot schema remains `8`.
+
+## Completed Slice - Layered hybrid generator, Slice 8
+
+- **Status:** Released as v0.13.12.
 - **Plan:** [`docs/plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md`](plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md).
 - **Completed in this slice:** deterministic megamap snapshot model, continuous room origins, seam metadata, overlay rows, tile metrics, autotile preview checksum, and snapshot renderer bundle tooling.
 - **Validation:** `MegamapStitcherTest` PASS; `WorldGenerationSnapshotCommandTest` PASS; `tools/test_render_worldgen_snapshot.py` PASS.

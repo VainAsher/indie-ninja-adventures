@@ -868,6 +868,8 @@ public final class LevelLayout {
         float spawnX = 0f, spawnY = 0f;
         WorldGraph.RoomNode startRoom = graph.startRoom();
 
+        sealMissingRoomCells(combinedHash, graph, minGX, minGY, maxGX, maxGY, COLS, ROWS, TILE);
+
         for (WorldGraph.RoomNode room : graph.allRooms()) {
             int offX = (room.gridX - minGX) * ROOM_PX;
             int offY = (room.gridY - minGY) * ROOM_PX;
@@ -984,6 +986,8 @@ public final class LevelLayout {
         float spawnX = 0f, spawnY = 0f;
         WorldGraph.RoomNode startRoom = graph.startRoom();
 
+        sealMissingRoomCells(combinedHash, graph, minGX, minGY, maxGX, maxGY, COLS, ROWS, TILE);
+
         for (WorldGraph.RoomNode room : graph.allRooms()) {
             int offX = (room.gridX - minGX) * ROOM_PX;
             int offY = (room.gridY - minGY) * ROOM_PX;
@@ -1088,5 +1092,29 @@ public final class LevelLayout {
         return new LevelLayout(startRoom.seed, totalCols, totalRows, combinedHash,
             allEnemies, allPickups, allNpcs, firstBoss,
             allPortals, allFalling, allMoving, spawnX, spawnY, allDoorTiles);
+    }
+
+    private static void sealMissingRoomCells(
+            SpatialHash hash,
+            WorldGraph graph,
+            int minGX,
+            int minGY,
+            int maxGX,
+            int maxGY,
+            int roomCols,
+            int roomRows,
+            int tileSize) {
+        int roomPxW = roomCols * tileSize;
+        int roomPxH = roomRows * tileSize;
+        for (int gy = minGY; gy <= maxGY; gy++) {
+            for (int gx = minGX; gx <= maxGX; gx++) {
+                if (graph.roomAt(gx, gy) != null) {
+                    continue;
+                }
+                int offX = (gx - minGX) * roomPxW;
+                int offY = (gy - minGY) * roomPxH;
+                hash.insert(new TileRect(offX, offY, roomPxW, roomPxH, false, WorldGenerator.SOLID));
+            }
+        }
     }
 }

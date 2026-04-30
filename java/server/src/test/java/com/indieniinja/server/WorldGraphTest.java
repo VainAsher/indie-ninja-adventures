@@ -1,6 +1,8 @@
 package com.indieniinja.server;
 
 import com.indieniinja.sim.LevelLayout;
+import com.indieniinja.physics.TileRect;
+import com.indieniinja.world.WorldGenerator;
 import com.indieniinja.world.WorldGraph;
 import com.indieniinja.world.WorldGraph.RoomNode;
 import com.indieniinja.world.WorldGraph.RoomType;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -121,7 +124,55 @@ class WorldGraphTest {
             .anySatisfy(n -> assertThat(n.type()).startsWith("echo_trigger_"));
     }
 
+    @Test
+    void unifiedLayoutSealsEmptyRoomCellsInsideWorldBounds() {
+        long seed = 1777553169203L;
+        WorldGraph graph = WorldGraph.generate(seed, 10, WorldShape.BLOB);
+        PuzzlePlan plan = PuzzlePlanner.plan(graph, seed);
+
+        Optional<int[]> emptyCell = firstEmptyCellInsideBounds(graph);
+        assertThat(emptyCell).as("fixture seed must create at least one empty grid cell").isPresent();
+
+        LevelLayout layout = LevelLayout.buildUnifiedWorldLayoutFromPlan(graph, plan, "lantern_heights");
+        Bounds bounds = bounds(graph);
+        int[] cell = emptyCell.orElseThrow();
+        float centerX = ((cell[0] - bounds.minX()) * WorldGraph.ROOM_W + WorldGraph.ROOM_W / 2) * 32f;
+        float centerY = ((cell[1] - bounds.minY()) * WorldGraph.ROOM_H + WorldGraph.ROOM_H / 2) * 32f;
+
+        assertThat(layout.spatialHash.candidates(centerX, centerY, 32f, 32f))
+            .extracting(TileRect::tileType)
+            .contains(WorldGenerator.SOLID);
+    }
+
     private static String roomKey(RoomNode r) {
         return r.gridX + "," + r.gridY;
     }
+
+    private static Optional<int[]> firstEmptyCellInsideBounds(WorldGraph graph) {
+        Bounds bounds = bounds(graph);
+        for (int gy = bounds.minY(); gy <= bounds.maxY(); gy++) {
+            for (int gx = bounds.minX(); gx <= bounds.maxX(); gx++) {
+                if (graph.roomAt(gx, gy) == null) {
+                    return Optional.of(new int[]{gx, gy});
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Bounds bounds(WorldGraph graph) {
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        for (RoomNode room : graph.allRooms()) {
+            minX = Math.min(minX, room.gridX);
+            minY = Math.min(minY, room.gridY);
+            maxX = Math.max(maxX, room.gridX);
+            maxY = Math.max(maxY, room.gridY);
+        }
+        return new Bounds(minX, minY, maxX, maxY);
+    }
+
+    private record Bounds(int minX, int minY, int maxX, int maxY) {}
 }
