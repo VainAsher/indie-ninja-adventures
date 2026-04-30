@@ -3,6 +3,7 @@ package com.indieniinja.world.lab;
 import com.indieniinja.world.RoomGeometryRules;
 import com.indieniinja.world.WorldGenerator;
 import com.indieniinja.world.WorldGraph;
+import com.indieniinja.world.ZonePlanner;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,6 +16,8 @@ import java.util.TreeSet;
 
 public final class WorldgenLabAnalyzer {
     private static final RoomGeometryRules RULES = RoomGeometryRules.loadDefault();
+    private static final Map<String, String> ZONE_LEGEND = zoneLegend();
+    private static final Map<String, String> TILE_LEGEND = tileLegend();
 
     private WorldgenLabAnalyzer() {}
 
@@ -36,6 +39,8 @@ public final class WorldgenLabAnalyzer {
             overallStatus,
             qualityScore,
             rooms.size(),
+            ZONE_LEGEND,
+            TILE_LEGEND,
             typeCounts,
             warningCounts,
             rooms
@@ -48,6 +53,7 @@ public final class WorldgenLabAnalyzer {
             Map<String, Integer> warningCounts) {
         Set<String> dirs = new TreeSet<>(room.neighborDirs());
         String roomType = room.type.id();
+        byte[][] zones = ZonePlanner.plan(room.seed, roomType, dirs);
         byte[][] grid = WorldGenerator.generate(
             room.seed,
             WorldGraph.ROOM_W,
@@ -58,7 +64,7 @@ public final class WorldgenLabAnalyzer {
         );
         typeCounts.merge(roomType, 1, Integer::sum);
         WorldgenLabReport.RoomLabMetrics metrics =
-            analyzeRoomGrid(room.gridX + "," + room.gridY, roomType, dirs, grid);
+            analyzeRoomGrid(room.gridX + "," + room.gridY, roomType, dirs, room.biomeIndex, zones, grid);
         for (String warning : metrics.warnings()) {
             warningCounts.merge(warning, 1, Integer::sum);
         }
@@ -70,14 +76,29 @@ public final class WorldgenLabAnalyzer {
             String roomType,
             Collection<String> neighborDirs,
             byte[][] grid) {
+        return analyzeRoomGrid(roomKey, roomType, neighborDirs, -1, new byte[0][0], grid);
+    }
+
+    public static WorldgenLabReport.RoomLabMetrics analyzeRoomGrid(
+            String roomKey,
+            String roomType,
+            Collection<String> neighborDirs,
+            int biomeIndex,
+            byte[][] zones,
+            byte[][] grid) {
         TileCounts counts = countTiles(grid);
-        List<String> warnings = edgeShellWarnings(grid, new TreeSet<>(neighborDirs));
+        Set<String> dirs = new TreeSet<>(neighborDirs);
+        List<String> warnings = edgeShellWarnings(grid, dirs);
         return new WorldgenLabReport.RoomLabMetrics(
             roomKey,
             roomType,
+            new ArrayList<>(dirs),
+            biomeIndex,
             counts.solidTiles(),
             counts.platformTiles(),
             counts.airTiles(),
+            encodeZoneRows(zones),
+            encodeTileRows(grid),
             warnings
         );
     }
@@ -174,6 +195,106 @@ public final class WorldgenLabAnalyzer {
             || tile == WorldGenerator.LAVA
             || tile == WorldGenerator.DOOR_LOCKED
             || tile == WorldGenerator.CLIMBABLE;
+    }
+
+    private static List<String> encodeZoneRows(byte[][] zones) {
+        List<String> rows = new ArrayList<>();
+        if (zones == null) return rows;
+        for (byte[] row : zones) {
+            StringBuilder out = new StringBuilder();
+            if (row != null) {
+                for (byte zone : row) {
+                    out.append(zoneSymbol(zone));
+                }
+            }
+            rows.add(out.toString());
+        }
+        return rows;
+    }
+
+    private static List<String> encodeTileRows(byte[][] grid) {
+        List<String> rows = new ArrayList<>();
+        if (grid == null) return rows;
+        for (byte[] row : grid) {
+            StringBuilder out = new StringBuilder();
+            if (row != null) {
+                for (byte tile : row) {
+                    out.append(tileSymbol(tile));
+                }
+            }
+            rows.add(out.toString());
+        }
+        return rows;
+    }
+
+    private static char zoneSymbol(byte zone) {
+        return switch (zone) {
+            case ZonePlanner.DECOR -> '?';
+            case ZonePlanner.WALK -> '.';
+            case ZonePlanner.FILL -> '#';
+            case ZonePlanner.PLAT -> '=';
+            case ZonePlanner.DOOR -> 'D';
+            case ZonePlanner.VOID -> ' ';
+            case ZonePlanner.SAVE -> 'V';
+            case ZonePlanner.SHOP -> '$';
+            case ZonePlanner.LOOT -> 'T';
+            case ZonePlanner.CHUTE -> 'v';
+            case ZonePlanner.CLIMB -> 'C';
+            case ZonePlanner.CONN -> '+';
+            case ZonePlanner.LAVA -> '^';
+            case ZonePlanner.ICE -> 'i';
+            case ZonePlanner.WATER -> '~';
+            default -> '!';
+        };
+    }
+
+    private static char tileSymbol(byte tile) {
+        return switch (tile) {
+            case WorldGenerator.AIR -> '.';
+            case WorldGenerator.SOLID -> '#';
+            case WorldGenerator.PLATFORM -> '=';
+            case WorldGenerator.ICE -> 'i';
+            case WorldGenerator.WATER -> '~';
+            case WorldGenerator.LAVA -> '^';
+            case WorldGenerator.DOOR_LOCKED -> 'L';
+            case WorldGenerator.GAS -> 'g';
+            case WorldGenerator.CLIMBABLE -> 'c';
+            default -> '!';
+        };
+    }
+
+    private static Map<String, String> zoneLegend() {
+        Map<String, String> out = new LinkedHashMap<>();
+        out.put("?", "decor");
+        out.put(".", "walk");
+        out.put("#", "fill");
+        out.put("=", "platform");
+        out.put("D", "door");
+        out.put(" ", "void");
+        out.put("V", "save");
+        out.put("$", "shop");
+        out.put("T", "loot");
+        out.put("v", "chute");
+        out.put("C", "climb");
+        out.put("+", "connector");
+        out.put("^", "lava");
+        out.put("i", "ice");
+        out.put("~", "water");
+        return out;
+    }
+
+    private static Map<String, String> tileLegend() {
+        Map<String, String> out = new LinkedHashMap<>();
+        out.put(".", "air");
+        out.put("#", "solid");
+        out.put("=", "platform");
+        out.put("i", "ice");
+        out.put("~", "water");
+        out.put("^", "lava");
+        out.put("L", "locked_door");
+        out.put("g", "gas");
+        out.put("c", "climbable");
+        return out;
     }
 
     private record TileCounts(int solidTiles, int platformTiles, int airTiles) {}

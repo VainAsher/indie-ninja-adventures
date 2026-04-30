@@ -40,4 +40,29 @@ class WorldgenLabAnalyzerTest {
         assertThat(report.warningCounts().getOrDefault("connected_right_edge_open_outside_door", 0)).isZero();
         assertThat(report.overallStatus()).isEqualTo("pass");
     }
+
+    @Test
+    void generatedRoomMetricsIncludeZoneAndTileDetail() {
+        WorldGraph graph = WorldGraph.generate(12345L, 4, WorldGraph.WorldShape.BLOB);
+
+        WorldgenLabReport report = WorldgenLabAnalyzer.analyze(12345L, graph);
+        WorldgenLabReport.RoomLabMetrics room = report.rooms().get(0);
+        @SuppressWarnings("unchecked")
+        var roomMap = (java.util.Map<String, Object>) room.toMap();
+
+        assertThat(room.biomeIndex()).isBetween(0, 11);
+        assertThat(room.neighborDirs()).isNotNull();
+        assertThat(room.zoneRows()).hasSize(16);
+        assertThat(room.zoneRows()).allSatisfy(row -> assertThat(row).hasSize(16));
+        assertThat(room.tilePreviewRows()).hasSize(128);
+        assertThat(room.tilePreviewRows()).allSatisfy(row -> assertThat(row).hasSize(128));
+        assertThat(report.zoneLegend()).containsEntry("D", "door");
+        assertThat(report.tileLegend()).containsEntry("#", "solid");
+        assertThat(roomMap).containsKeys(
+            "neighborDirs",
+            "biomeIndex",
+            "zoneRows",
+            "tilePreviewRows"
+        );
+    }
 }

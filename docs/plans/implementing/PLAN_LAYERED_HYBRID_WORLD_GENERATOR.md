@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.15
+version_anchor: v0.13.16
 ---
 
 # Layered Hybrid World Generator
@@ -394,12 +394,43 @@ and batch seed quality sweeps.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 10: Worldgen Lab Detail View
+
+**Goal:** Make the lab useful for room internals, not just macro topology.
+
+**Architecture:**
+
+- Extend `WorldgenLabReport` room metrics with neighbor directions, biome
+  index, 16x16 zone rows, 128x128 tile preview rows, and legends.
+- Render a large `world-detail.svg` with expanded room miniatures.
+- Render `rooms/<room>.svg` files with zone and tile previews side by side.
+- Bump `GeneratorSchemaVersion.CURRENT` to `10`.
+
+### Tasks
+
+- [x] Add TDD coverage for zone/tile detail in Java lab reports.
+- [x] Add TDD coverage for detail artifacts in Python render output.
+- [x] Implement Java zone/tile detail export.
+- [x] Implement `world-detail.svg` and per-room SVG rendering.
+- [x] Update system, authoring, changelog, current-state, roadmap, README, and
+  version metadata docs.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `python tools/test_worldgen_lab.py`
+- [x] `python tools/check_version_sync.py --tag v0.13.16`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.15`.
-- **Release scope:** Worldgen Lab prototype, because it adds lab snapshot
-  metadata, static report tooling, batch sweeps, and updates snapshot schema
-  version 9.
+- **Next tag:** `v0.13.16`.
+- **Release scope:** Worldgen Lab detail view, because it adds zone/tile detail
+  to lab snapshot metadata, renders expanded world and per-room SVGs, and
+  updates snapshot schema version 10.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

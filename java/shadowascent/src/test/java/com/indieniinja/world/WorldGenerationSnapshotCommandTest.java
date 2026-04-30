@@ -58,5 +58,7 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("labReport").get("overallStatus").asText()).isNotBlank();
         assertThat(root.get("labReport").get("qualityScore").asInt()).isBetween(0, 100);
         assertThat(root.get("labReport").get("rooms")).hasSize(root.get("roomCountActual").asInt());
+        assertThat(root.get("labReport").get("rooms").get(0).get("zoneRows")).hasSize(16);
+        assertThat(root.get("labReport").get("rooms").get(0).get("tilePreviewRows")).hasSize(128);
     }
 }

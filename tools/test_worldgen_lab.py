@@ -19,16 +19,39 @@ def run_worldgen_lab(*args: str) -> subprocess.CompletedProcess[str]:
 
 def test_render_writes_html_svg_metrics_and_overlay(tmp_path: Path) -> None:
     snapshot = tmp_path / "snapshot.json"
+    zone_rows = ["D..............."] + ["................" for _ in range(15)]
+    tile_rows = ["#" * 128, "#" + "." * 126 + "#"] + ["." * 128 for _ in range(126)]
     snapshot.write_text(
         json.dumps(
             {
                 "worldSeed": 123,
-                "megamap": {"overlayRows": ["S.", ".E"], "rooms": [], "metrics": {"roomCount": 2}},
+                "megamap": {
+                    "overlayRows": ["S.", ".E"],
+                    "rooms": [
+                        {"id": "0,0", "gridX": 0, "gridY": 0, "type": "start"},
+                    ],
+                    "metrics": {"roomCount": 2},
+                },
                 "labReport": {
                     "overallStatus": "pass",
                     "qualityScore": 100,
                     "warningCounts": {},
-                    "rooms": [],
+                    "zoneLegend": {"D": "door", ".": "walk"},
+                    "tileLegend": {"#": "solid", ".": "air"},
+                    "rooms": [
+                        {
+                            "roomKey": "0,0",
+                            "roomType": "start",
+                            "neighborDirs": ["up"],
+                            "biomeIndex": 1,
+                            "solidTiles": 130,
+                            "platformTiles": 0,
+                            "airTiles": 16254,
+                            "zoneRows": zone_rows,
+                            "tilePreviewRows": tile_rows,
+                            "warnings": [],
+                        }
+                    ],
                 },
             }
         ),
@@ -41,22 +64,45 @@ def test_render_writes_html_svg_metrics_and_overlay(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert (out / "index.html").exists()
     assert (out / "megamap.svg").exists()
+    assert (out / "world-detail.svg").exists()
     assert (out / "metrics.json").exists()
     assert (out / "overlay.txt").exists()
+    assert (out / "rooms" / "0_0.svg").exists()
 
 
 def write_snapshot(path: Path, seed: int, quality_score: int, status: str = "pass") -> None:
+    zone_rows = ["D..............."] + ["................" for _ in range(15)]
+    tile_rows = ["#" * 128, "#" + "." * 126 + "#"] + ["." * 128 for _ in range(126)]
     path.write_text(
         json.dumps(
             {
                 "worldSeed": seed,
                 "shape": "BLOB",
-                "megamap": {"overlayRows": ["S.", ".E"], "rooms": [], "metrics": {"roomCount": 2}},
+                "megamap": {
+                    "overlayRows": ["S.", ".E"],
+                    "rooms": [{"id": "0,0", "gridX": 0, "gridY": 0, "type": "start"}],
+                    "metrics": {"roomCount": 2},
+                },
                 "labReport": {
                     "overallStatus": status,
                     "qualityScore": quality_score,
                     "warningCounts": {},
-                    "rooms": [],
+                    "zoneLegend": {"D": "door", ".": "walk"},
+                    "tileLegend": {"#": "solid", ".": "air"},
+                    "rooms": [
+                        {
+                            "roomKey": "0,0",
+                            "roomType": "start",
+                            "neighborDirs": ["up"],
+                            "biomeIndex": 1,
+                            "solidTiles": 130,
+                            "platformTiles": 0,
+                            "airTiles": 16254,
+                            "zoneRows": zone_rows,
+                            "tilePreviewRows": tile_rows,
+                            "warnings": [],
+                        }
+                    ],
                 },
             }
         ),

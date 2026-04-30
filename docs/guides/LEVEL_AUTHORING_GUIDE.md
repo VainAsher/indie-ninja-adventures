@@ -274,6 +274,8 @@ Open `build/worldgen-lab/seed-12345/index.html` and inspect:
 | ---- | --- |
 | `index.html` | Report page with megamap preview and warning summary. |
 | `megamap.svg` | Static visual layout preview. |
+| `world-detail.svg` | Expanded world preview with each room drawn as an internal tile miniature. |
+| `rooms/<room>.svg` | Per-room zone plan and tile preview. |
 | `metrics.json` | Full machine-readable snapshot/lab metrics. |
 | `overlay.txt` | Plain text minimap for diffs and issue notes. |
 
@@ -301,6 +303,35 @@ How to act on warnings:
 | One edge direction repeats across room types | Check `data/room_geometry_rules.json` and shared shell enforcement. |
 | Quality drops only on dense layouts | Reduce `fillMax`, `decorFillChance`, or hazard chances in structure rules. |
 | Low variety but no warnings | Add catalog variants or adjust template weights. |
+
+Use the detail files for deeper diagnosis:
+
+- Start with `world-detail.svg` to find rooms whose interior silhouettes look
+  too empty, too dense, or visually repetitive.
+- Open `rooms/<room>.svg` for the room in question.
+- Compare the left 16x16 zone plan with the right 128x128 tile preview.
+- If the zone plan is wrong, tune `data/room_structure_rules.json`,
+  `ZonePlanner`, or section/socket expectations.
+- If the zone plan is good but the tile preview is wrong, tune
+  `data/zone_template_catalog.json`, authored 8x8 zone patches, TMX templates,
+  or geometry enforcement.
+
+Important symbols:
+
+| Symbol | Zone role | Tile role |
+| ------ | --------- | --------- |
+| `.` | walk | air |
+| `#` | fill | solid |
+| `=` | platform | platform |
+| `D` | door | not used |
+| `V` | save | not used |
+| `$` | shop | not used |
+| `T` | loot | not used |
+| `v` | chute | not used |
+| `C` | climb | climbable uses `c` |
+| `^` | lava | lava |
+| `i` | ice | ice |
+| `~` | water | water |
 
 Overlay symbols:
 

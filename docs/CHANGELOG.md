@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.15
+version_anchor: v0.13.16
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.16] - 2026-04-30 (Worldgen Lab detail view)
+
+### Added
+
+- **Zone detail export**: `labReport.rooms[]` now includes each room's 16x16
+  `zoneRows`, neighbor directions, biome index, and zone legend.
+- **Tile preview export**: `labReport.rooms[]` now includes compact 128x128
+  `tilePreviewRows` plus a tile legend for room-level geometry inspection.
+- **Expanded lab rendering**: `tools/worldgen_lab.py render` now writes
+  `world-detail.svg` and `rooms/<room>.svg` files so designers can inspect
+  room internals instead of only the macro room graph.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and
+  `version.json.generator_schema_version` are now `10` because snapshots include
+  zone and tile preview detail.
+
+### Compatibility
+
+- **snapshot schema**: changed from generator schema `9` to `10`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: no live generation behavior change; this is richer
+  inspection output for tuning formations.
 
 ## [0.13.15] - 2026-04-30 (Worldgen Lab prototype)
 

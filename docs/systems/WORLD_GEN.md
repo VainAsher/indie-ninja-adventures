@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.15
+version_anchor: v0.13.16
 ---
 
 # World Generation and Layout (Java)
@@ -229,8 +229,8 @@ It writes `overlay.txt`, `metrics.json`, and `megamap.svg`.
 `WorldgenLabAnalyzer.analyze(worldSeed, graph)` emits the snapshot `labReport`
 block. It is intentionally read-only: it generates the same per-room grids as
 the snapshot exporter, counts solid/platform/passable tiles, aggregates room
-type usage, and flags connected room borders that are open outside the legal
-door span.
+type usage, exports 16x16 zone role rows and 128x128 tile preview rows, and
+flags connected room borders that are open outside the legal door span.
 
 Current warning categories:
 
@@ -246,6 +246,17 @@ Render a single snapshot:
 ```bash
 python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/seed-12345.json --out build/worldgen-lab/seed-12345
 ```
+
+The render bundle includes:
+
+| File | Purpose |
+| ---- | ------- |
+| `index.html` | Static report with macro map, expanded world detail, warning summary, and room links. |
+| `megamap.svg` | Compact room-graph overview. |
+| `world-detail.svg` | Expanded world view where each room shows a miniature tile preview. |
+| `rooms/<room>.svg` | Per-room detail view with 16x16 zone plan and 128x128 tile preview. |
+| `metrics.json` | Machine-readable snapshot, lab report, legends, and metrics. |
+| `overlay.txt` | Plain text macro minimap. |
 
 Batch existing snapshots and render the lowest-quality seeds:
 
@@ -263,6 +274,38 @@ Use `summary.csv` to sort by `qualityScore` and warning totals. If warnings
 cluster on one room type, tune that room's TMX template or structure rules. If
 warnings cluster on one edge direction across many room types, tune
 `data/room_geometry_rules.json` or the shared shell enforcement.
+
+Zone symbols in `zoneRows`:
+
+| Symbol | Role |
+| ------ | ---- |
+| `.` | walk |
+| `#` | fill |
+| `=` | platform |
+| `D` | door |
+| `V` | save |
+| `$` | shop |
+| `T` | loot |
+| `v` | chute |
+| `C` | climb |
+| `+` | connector |
+| `^` | lava |
+| `i` | ice |
+| `~` | water |
+
+Tile symbols in `tilePreviewRows`:
+
+| Symbol | Tile |
+| ------ | ---- |
+| `.` | air |
+| `#` | solid |
+| `=` | platform |
+| `i` | ice |
+| `~` | water |
+| `^` | lava |
+| `L` | locked door |
+| `g` | gas |
+| `c` | climbable |
 
 ## Snapshot export
 
