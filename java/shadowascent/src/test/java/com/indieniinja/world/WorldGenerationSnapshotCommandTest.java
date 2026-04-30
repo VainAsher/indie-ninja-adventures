@@ -51,5 +51,9 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("validationReport").get("valid").asBoolean()).isTrue();
         assertThat(root.get("validationReport").get("reachableCriticalAnchorCount").asInt())
             .isGreaterThanOrEqualTo(1);
+        assertThat(root.get("megamap").get("rooms")).hasSize(root.get("roomCountActual").asInt());
+        assertThat(root.get("megamap").get("seams")).isNotEmpty();
+        assertThat(root.get("megamap").get("metrics").get("stitchedTileCount").asInt()).isGreaterThan(0);
+        assertThat(root.get("megamap").get("overlayRows")).isNotEmpty();
     }
 }

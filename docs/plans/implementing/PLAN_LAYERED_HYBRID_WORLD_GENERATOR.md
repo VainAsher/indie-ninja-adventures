@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.11
+version_anchor: v0.13.12
 ---
 
 # Layered Hybrid World Generator
@@ -91,8 +91,8 @@ There are 8 planned slices total:
 7. **Validation and repair:** complete in this plan.
    Add progression, reachability, and bounded repair
    passes.
-8. **Megamap stitcher and viewer:** export continuous maps, overlays, metrics,
-   and diffable golden seeds.
+8. **Megamap stitcher and viewer:** complete in this plan.
+   Export continuous maps, overlays, metrics, and diffable golden seeds.
 
 ## Slice 2: Generator Schema and Snapshots
 
@@ -314,11 +314,52 @@ plan.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 8: Megamap Stitcher and Viewer Export
+
+**Goal:** Export continuous-map inspection metadata and a fast local viewer
+bundle from deterministic worldgen snapshots.
+
+**Architecture:**
+
+- Add `com.indieniinja.world.megamap`.
+- Normalize legacy `WorldGraph` room coordinates into a continuous tile-space
+  megamap descriptor.
+- Emit room origins, seam rectangles, overlay rows, tile metrics, autotile
+  preview checksums, and a golden-seed key.
+- Add `tools/render_worldgen_snapshot.py` for authoring-friendly text/SVG
+  bundles from snapshot JSON.
+- Append `megamap` to deterministic worldgen snapshot exports and bump
+  `GeneratorSchemaVersion.CURRENT`.
+
+### Tasks
+
+- [x] Add TDD coverage for deterministic megamap output.
+- [x] Add TDD coverage for room origin, seam, overlay, and metrics export.
+- [x] Add TDD coverage for renderer bundle output.
+- [x] Implement `MegamapSnapshot`.
+- [x] Implement `MegamapStitcher`.
+- [x] Append `megamap` to `WorldGenerationSnapshotCommand`.
+- [x] Add `tools/render_worldgen_snapshot.py`.
+- [x] Update system, architecture, authoring, changelog, and current-state docs.
+- [x] Run focused verification.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.megamap.MegamapStitcherTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `python tools/test_render_worldgen_snapshot.py`
+- [x] `cd java; .\gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=12 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345-v8.json" --no-daemon`
+- [x] `python tools/render_worldgen_snapshot.py java/shadowascent/build/worldgen-snapshots/seed-12345-v8.json --out build/worldgen-viewer/seed-12345-v8`
+- [x] `python tools/check_version_sync.py --tag v0.13.12`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.11`.
-- **Release scope:** Slice 7 only, because it adds the pure validation/repair
-  report layer and updates snapshot schema version 7.
+- **Next tag:** `v0.13.12`.
+- **Release scope:** Slice 8 only, because it adds megamap snapshot metadata,
+  viewer/export tooling, and updates snapshot schema version 8.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

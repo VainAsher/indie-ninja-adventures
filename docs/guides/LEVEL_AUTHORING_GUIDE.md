@@ -62,6 +62,8 @@ java/shadowascent/src/main/java/com/indieniinja/world/progression/WorldProgressi
 java/shadowascent/src/main/java/com/indieniinja/world/progression/ProgressionValidator.java
 java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplate.java
 java/shadowascent/src/main/java/com/indieniinja/world/sections/SectionTemplateLibrary.java
+java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapSnapshot.java
+java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapStitcher.java
 ```
 
 ## Designing Progression Graph Content
@@ -227,6 +229,41 @@ Authoring guidance:
 - `replace` means choose a different compatible section template.
 - `regenerate` means the enclosing progression branch or section should be
   rebuilt from a different deterministic stream.
+
+## Reading Megamap Exports
+
+The snapshot `megamap` block gives you a continuous-map review surface before
+the live server consumes layered section placement:
+
+| Field | Use |
+| ----- | --- |
+| `bounds` | Overall stitched room-grid and tile-space size. |
+| `rooms[]` | Room id, grid coordinate, continuous tile origin, dimensions, type, biome, and checksum. |
+| `seams[]` | Connected-room joins with direction and tile-space seam rectangle. |
+| `overlayRows[]` | Compact text minimap for quick layout review. |
+| `metrics` | Stamped/empty/passable/solid/platform/hazard tile counts plus stitched checksum. |
+| `autotileSummary` | Edge-mask preview checksum for solid-like tiles. |
+
+Render a local review bundle after exporting a snapshot:
+
+```bash
+python tools/render_worldgen_snapshot.py java/shadowascent/build/worldgen-snapshots/seed-12345-v8.json --out build/worldgen-viewer/seed-12345-v8
+```
+
+The bundle writes `overlay.txt`, `metrics.json`, and `megamap.svg`.
+
+Overlay symbols:
+
+| Symbol | Meaning |
+| ------ | ------- |
+| `S` | start room |
+| `E` | exit room |
+| `B` | boss room |
+| `$` | shop room |
+| `T` | treasure room |
+| `P` | platform room |
+| `#` | combat or generic room |
+| `.` | empty grid cell |
 
 ## Room Types
 
@@ -469,9 +506,9 @@ cd java
 
 The snapshot records generator schema version, seed streams, progression graph,
 loaded section templates, hybrid layout assignments, socket/anchor contracts,
-validation reports, room graph data, neighbor directions, biome indexes, and
-per-room tile checksums. Use it as the baseline artifact for future room/zone
-authoring changes until the visual map viewer slice lands.
+validation reports, megamap exports, room graph data, neighbor directions,
+biome indexes, and per-room tile checksums. Use it as the baseline artifact for
+future room/zone authoring changes.
 
 ## Room Structure Rules
 

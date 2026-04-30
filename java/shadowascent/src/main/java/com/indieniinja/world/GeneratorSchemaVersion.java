@@ -7,7 +7,7 @@ package com.indieniinja.world;
  * semantics change in a way that affects regression baselines.
  */
 public final class GeneratorSchemaVersion {
-    public static final int CURRENT = 7;
+    public static final int CURRENT = 8;
 
     private GeneratorSchemaVersion() {}
 }

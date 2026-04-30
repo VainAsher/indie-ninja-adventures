@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.11
+version_anchor: v0.13.12
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.12] - 2026-04-30 (Worldgen megamap export and viewer)
+
+### Added
+
+- **Megamap snapshot layer**: added `MegamapSnapshot` and `MegamapStitcher`
+  under `java/shadowascent/src/main/java/com/indieniinja/world/megamap/`.
+  The layer normalizes generated room coordinates into one continuous tile
+  canvas and emits room origins, seam rectangles, overlay rows, metrics, and
+  checksums for deterministic inspection.
+- **Viewer/export tooling**: added `tools/render_worldgen_snapshot.py` to
+  render snapshot `megamap` blocks into `overlay.txt`, `metrics.json`, and
+  `megamap.svg` bundles for fast authoring review.
+- **Tests**: added focused coverage for deterministic megamap stitching,
+  seam/metric export, snapshot inclusion, and renderer bundle output.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and `version.json.generator_schema_version`
+  are now `8` because snapshots include megamap and viewer-export metadata.
+- Snapshot seed streams now reserve `megamap::<worldSeed>` for deterministic
+  continuous-map export.
+
+### Compatibility
+
+- **snapshot schema**: changed from generator schema `7` to `8`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: no live world placement change; this remains an
+  inspectable metadata and tooling layer above legacy room generation.
 
 ## [0.13.11] - 2026-04-30 (Worldgen validation and repair report)
 

@@ -441,6 +441,19 @@ recommendations without mutating live room generation.
 Repair actions are advisory in this slice. Runtime geometry repair and section
 regeneration are deferred to later integration.
 
+#### Megamap Export (`world/megamap/`)
+
+Pure snapshot layer that normalizes generated rooms into continuous tile-space
+metadata for viewer overlays and golden-seed diffs.
+
+| Class | Role |
+|-------|------|
+| `MegamapSnapshot` | Snapshot container for bounds, room stamps, seams, overlay rows, metrics, and autotile preview data. |
+| `MegamapStitcher` | Stamps legacy `WorldGraph` rooms into continuous coordinates and emits deterministic seam and metric metadata. |
+
+The companion `tools/render_worldgen_snapshot.py` script turns the snapshot
+`megamap` block into `overlay.txt`, `metrics.json`, and `megamap.svg`.
+
 #### `RoomGenerator`
 Generates tile content for a specific `RoomType`, delegating to `WorldGenerator` for base layout then stamping room-type-specific content.
 

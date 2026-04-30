@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.indieniinja.world.contracts.SocketAnchorPlanner;
 import com.indieniinja.world.layout.HybridLayoutPlan;
 import com.indieniinja.world.layout.HybridLayoutPlanner;
+import com.indieniinja.world.megamap.MegamapStitcher;
 import com.indieniinja.world.progression.WorldProgressionGenerator;
 import com.indieniinja.world.progression.WorldProgressionGraph;
 import com.indieniinja.world.sections.SectionTemplateLibrary;
@@ -41,6 +42,7 @@ public final class WorldGenerationSnapshotCommand {
         "section_layout::<nodeId>",
         "socket_anchor::<layoutId>",
         "validation::<layoutId>",
+        "megamap::<worldSeed>",
         "room_synthesis::<roomId>",
         "zone_patch::<roomId>",
         "autotile::<roomId>"
@@ -92,6 +94,7 @@ public final class WorldGenerationSnapshotCommand {
             hybridLayout,
             socketAnchorPlan
         ).toSnapshot());
+        root.put("megamap", MegamapStitcher.stitch(seed, requestedRooms, shape, graph).toSnapshot());
         root.put("rooms", rooms(graph));
         return root;
     }

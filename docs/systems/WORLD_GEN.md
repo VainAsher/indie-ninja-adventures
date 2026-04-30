@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.11
+version_anchor: v0.13.12
 ---
 
 # World Generation and Layout (Java)
@@ -35,6 +35,9 @@ For hands-on room, zone, and level-design workflow, see `docs/guides/LEVEL_AUTHO
 - Validation and repair reporting:
   - `java/shadowascent/src/main/java/com/indieniinja/world/validation/GenerationValidationReport.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/validation/GenerationValidationPlanner.java`
+- Megamap export:
+  - `java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapSnapshot.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/world/megamap/MegamapStitcher.java`
 - Postprocess pipeline:
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/RoomPostProcessor.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/AbilityLayer.java`
@@ -81,9 +84,10 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
    - Non-template types go through `ZonePlanner` → `RoomGenerator` procedural path.
    - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
    - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
-8. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
-9. Stitch unified layout for simulation and snapshot descriptors.
-10. Client renders tile output with blob autotile mapping and room metadata.
+8. Emit megamap snapshot metadata — continuous room origins, seams, overlays, metrics, and autotile preview checksums.
+9. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
+10. Stitch unified layout for simulation and snapshot descriptors.
+11. Client renders tile output with blob autotile mapping and room metadata.
 
 ## Progression graph layer
 
@@ -191,6 +195,30 @@ Current checks:
 This layer records what should be patched, replaced, or regenerated, but it does
 not mutate geometry yet. Later repair/stitching work can consume these actions.
 
+## Megamap snapshot layer
+
+`MegamapStitcher.stitch(worldSeed, requestedRooms, shape, worldGraph)` emits a
+compact continuous-map descriptor for tooling and golden-seed diffs.
+
+Current export fields:
+
+| Field | Purpose |
+| ----- | ------- |
+| `bounds` | Normalized room-grid and tile-space extent for the stitched map. |
+| `rooms[]` | Stable room ids, grid coordinates, continuous tile origins, room size, type, biome, and tile checksum. |
+| `seams[]` | Unique connected-room seam rectangles with source, destination, direction, bounds, and passability marker. |
+| `overlayRows[]` | Text minimap rows for fast visual review. |
+| `metrics` | Room/seam counts, stamped vs empty tile counts, passable/solid/platform/hazard counts, and stitched checksum. |
+| `autotileSummary` | Deterministic edge-mask preview checksum for solid-like tiles. |
+
+The companion tool renders this block without booting the client:
+
+```bash
+python tools/render_worldgen_snapshot.py java/shadowascent/build/worldgen-snapshots/seed-12345-v8.json --out build/worldgen-viewer/seed-12345-v8
+```
+
+It writes `overlay.txt`, `metrics.json`, and `megamap.svg`.
+
 ## Snapshot export
 
 `WorldGenerationSnapshotCommand` exports a deterministic JSON snapshot for a
@@ -216,9 +244,10 @@ The command writes:
 | `hybridLayout` | Deterministic section-footprint bounds, assignments, and assigned progression-edge connections. |
 | `socketAnchorPlan` | Deterministic connection contracts plus resolved anchor world bounds. |
 | `validationReport` | Deterministic validation outcome, issues, and bounded repair actions. |
+| `megamap` | Continuous-map room origins, seams, overlays, metrics, and autotile preview checksums. |
 
-Later layered-generator slices should append megamap blocks instead of replacing
-the command.
+Future live-placement work should consume or extend the megamap block instead
+of replacing the command.
 
 ## Method-level call graphs
 
@@ -248,7 +277,10 @@ the command.
 - Changing structure rule values is replay-breaking because it changes deterministic zone plans and hazard placement.
 - Changing template catalog weights or files is replay-breaking because room seeds may resolve to different TMX layouts.
 - Changing zone patch catalog weights or files is replay-breaking because procedural zone expansion may stamp different tile patches.
-- Changing section templates, hybrid layout policy, socket/anchor resolution, or validation/repair policy is snapshot-schema-visible now and will become replay-breaking once live room placement consumes section assignments.
+- Changing section templates, hybrid layout policy, socket/anchor resolution,
+  validation/repair policy, or megamap export semantics is snapshot-schema-visible
+  now and will become replay-breaking once live room placement consumes section
+  assignments.
 - Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
 - Authored zone patch TMX files and catalog entries can be checked with `python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json`.
 
