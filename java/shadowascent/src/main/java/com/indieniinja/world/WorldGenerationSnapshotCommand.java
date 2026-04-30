@@ -8,6 +8,7 @@ import com.indieniinja.world.layout.HybridLayoutPlanner;
 import com.indieniinja.world.progression.WorldProgressionGenerator;
 import com.indieniinja.world.progression.WorldProgressionGraph;
 import com.indieniinja.world.sections.SectionTemplateLibrary;
+import com.indieniinja.world.validation.GenerationValidationPlanner;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,6 +40,7 @@ public final class WorldGenerationSnapshotCommand {
         "world_graph::back_edges",
         "section_layout::<nodeId>",
         "socket_anchor::<layoutId>",
+        "validation::<layoutId>",
         "room_synthesis::<roomId>",
         "zone_patch::<roomId>",
         "autotile::<roomId>"
@@ -80,10 +82,16 @@ public final class WorldGenerationSnapshotCommand {
         WorldProgressionGraph progressionGraph = WorldProgressionGenerator.generate(seed);
         SectionTemplateLibrary sectionTemplates = SectionTemplateLibrary.loadDefault();
         HybridLayoutPlan hybridLayout = HybridLayoutPlanner.plan(seed, progressionGraph, sectionTemplates);
+        var socketAnchorPlan = SocketAnchorPlanner.plan(seed, hybridLayout, sectionTemplates);
         root.put("progressionGraph", progressionGraph.toSnapshot());
         root.put("sectionTemplates", sectionTemplates.summarySnapshot());
         root.put("hybridLayout", hybridLayout.toSnapshot());
-        root.put("socketAnchorPlan", SocketAnchorPlanner.plan(seed, hybridLayout, sectionTemplates).toSnapshot());
+        root.put("socketAnchorPlan", socketAnchorPlan.toSnapshot());
+        root.put("validationReport", GenerationValidationPlanner.validate(
+            progressionGraph,
+            hybridLayout,
+            socketAnchorPlan
+        ).toSnapshot());
         root.put("rooms", rooms(graph));
         return root;
     }

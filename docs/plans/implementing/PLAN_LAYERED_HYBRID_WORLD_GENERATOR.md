@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.10
+version_anchor: v0.13.11
 ---
 
 # Layered Hybrid World Generator
@@ -88,7 +88,8 @@ There are 8 planned slices total:
 6. **Sockets and anchors:** complete in this plan.
    Make room/section joins and gameplay placements
    explicit contracts.
-7. **Validation and repair:** add progression, reachability, and bounded repair
+7. **Validation and repair:** complete in this plan.
+   Add progression, reachability, and bounded repair
    passes.
 8. **Megamap stitcher and viewer:** export continuous maps, overlays, metrics,
    and diffable golden seeds.
@@ -276,11 +277,48 @@ into deterministic world-space metadata before validation and megamap stitching.
 - [x] `git diff --check`
 - [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
 
+## Slice 7: Validation and Repair Report
+
+**Goal:** Validate the layered metadata stack and emit deterministic bounded
+repair recommendations before megamap stitching or live placement consumes the
+plan.
+
+**Architecture:**
+
+- Add `com.indieniinja.world.validation`.
+- Reuse `ProgressionValidator` for macro progression solvability.
+- Validate every hybrid layout connection has a socket contract.
+- Validate critical anchors belong to reachable progression nodes.
+- Emit repair actions by tier: `patch`, `replace`, and `regenerate`.
+- Append `validationReport` to deterministic worldgen snapshot exports and bump
+  `GeneratorSchemaVersion.CURRENT`.
+
+### Tasks
+
+- [x] Add TDD coverage for deterministic validation reports.
+- [x] Add TDD coverage for generated-plan validation.
+- [x] Add TDD coverage for missing-contract repair recommendations.
+- [x] Implement `GenerationValidationReport`.
+- [x] Implement `GenerationValidationPlanner`.
+- [x] Append `validationReport` to `WorldGenerationSnapshotCommand`.
+- [x] Update system, architecture, authoring, changelog, and current-state docs.
+- [x] Run focused verification.
+- [x] Run release gates.
+
+### Verification
+
+- [x] `cd java; .\gradlew.bat :shadowascent:test --tests com.indieniinja.world.validation.GenerationValidationPlannerTest --tests com.indieniinja.world.WorldGenerationSnapshotCommandTest --no-daemon`
+- [x] `cd java; .\gradlew.bat :shadowascent:worldgenSnapshot -Pseed=12345 -Prooms=12 -Pshape=BLOB "-Pout=build/worldgen-snapshots/seed-12345-v7.json" --no-daemon`
+- [x] `python tools/check_version_sync.py --tag v0.13.11`
+- [x] `python tools/check_docs_freshness.py --emit-report`
+- [x] `git diff --check`
+- [x] `cd java; .\gradlew.bat :server:test :client:test :server:shadowJar :client:shadowJar --no-daemon`
+
 ## Release Plan
 
-- **Next tag:** `v0.13.10`.
-- **Release scope:** Slice 6 only, because it adds the pure socket/anchor
-  contract layer and updates snapshot schema version 6.
+- **Next tag:** `v0.13.11`.
+- **Release scope:** Slice 7 only, because it adds the pure validation/repair
+  report layer and updates snapshot schema version 7.
 - **Pre-tag gates:** follow `docs/workflow/RELEASE_CHECKLIST.md`.
 - **Post-push gates:** verify CI and Release workflows, then confirm release
   assets include client/server JARs and docs archive.

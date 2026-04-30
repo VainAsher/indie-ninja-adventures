@@ -3,7 +3,7 @@ doc_type: system_doc
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.10
+version_anchor: v0.13.11
 ---
 
 # World Generation and Layout (Java)
@@ -32,6 +32,9 @@ For hands-on room, zone, and level-design workflow, see `docs/guides/LEVEL_AUTHO
 - Socket and anchor contracts:
   - `java/shadowascent/src/main/java/com/indieniinja/world/contracts/SocketAnchorPlan.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/contracts/SocketAnchorPlanner.java`
+- Validation and repair reporting:
+  - `java/shadowascent/src/main/java/com/indieniinja/world/validation/GenerationValidationReport.java`
+  - `java/shadowascent/src/main/java/com/indieniinja/world/validation/GenerationValidationPlanner.java`
 - Postprocess pipeline:
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/RoomPostProcessor.java`
   - `java/shadowascent/src/main/java/com/indieniinja/world/postprocess/AbilityLayer.java`
@@ -71,15 +74,16 @@ Template rooms resolve through `data/room_template_catalog.json` first, then fal
 2. Load authored section templates — describes pacing chunks, footprints, edge rules, required sockets, mutable zones, and anchor candidates.
 3. Generate hybrid layout plan — assigns section footprints to deterministic grid coordinates and emits progression-edge connections.
 4. Resolve socket and anchor plan — converts section sockets into connection contracts and section anchors into world-space bounds.
-5. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
-6. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
+5. Validate layered metadata — checks progression, layout connection contracts, critical anchors, and repair recommendations.
+6. Generate legacy `WorldGraph` from seed and shape — assigns `RoomType` to each `RoomNode`.
+7. Build per-room zone grid (`ZonePlanner`) then tile grid (`RoomGenerator`/`WorldGenerator`).
    - Template types load a seed-selected `.tmx` variant first; door openings carved by `carveDoors()`.
    - Non-template types go through `ZonePlanner` → `RoomGenerator` procedural path.
    - `RoomStructureRules` drives room-level zone grammar before zones expand into 8x8 tile templates.
    - `RoomGeometryRules` and `RoomGeometryEnforcer` apply shared wall, floor, and door-corridor rules to both procedural rooms and loaded TMX templates.
-7. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
-8. Stitch unified layout for simulation and snapshot descriptors.
-9. Client renders tile output with blob autotile mapping and room metadata.
+8. Apply postprocess/puzzle layers for gates, puzzles, and entity planning.
+9. Stitch unified layout for simulation and snapshot descriptors.
+10. Client renders tile output with blob autotile mapping and room metadata.
 
 ## Progression graph layer
 
@@ -170,6 +174,23 @@ Socket ids currently use the convention `side_band_traversal`, for example
 height band, traversal tags, width, and clearance metadata. This is still a pure
 snapshot layer; it does not carve corridors or instantiate entities yet.
 
+## Validation and repair report layer
+
+`GenerationValidationPlanner.validate(progressionGraph, hybridLayout,
+socketAnchorPlan)` emits a deterministic `GenerationValidationReport`.
+
+Current checks:
+
+| Check | Failure kind | Repair tier |
+| ----- | ------------ | ----------- |
+| Required progression nodes are reachable | `blocked_progression_node` | `regenerate` |
+| Every layout edge has a socket contract | `missing_connection_contract` | `replace` |
+| Critical anchors live on reachable nodes | `unreachable_critical_anchor` | `regenerate` |
+| Socket contracts need a bridge | warning repair action only | `patch` |
+
+This layer records what should be patched, replaced, or regenerated, but it does
+not mutate geometry yet. Later repair/stitching work can consume these actions.
+
 ## Snapshot export
 
 `WorldGenerationSnapshotCommand` exports a deterministic JSON snapshot for a
@@ -194,9 +215,10 @@ The command writes:
 | `sectionTemplates` | Loaded authored section templates with count and stable template metadata. |
 | `hybridLayout` | Deterministic section-footprint bounds, assignments, and assigned progression-edge connections. |
 | `socketAnchorPlan` | Deterministic connection contracts plus resolved anchor world bounds. |
+| `validationReport` | Deterministic validation outcome, issues, and bounded repair actions. |
 
-Later layered-generator slices should append validator and megamap blocks
-instead of replacing the command.
+Later layered-generator slices should append megamap blocks instead of replacing
+the command.
 
 ## Method-level call graphs
 
@@ -226,7 +248,7 @@ instead of replacing the command.
 - Changing structure rule values is replay-breaking because it changes deterministic zone plans and hazard placement.
 - Changing template catalog weights or files is replay-breaking because room seeds may resolve to different TMX layouts.
 - Changing zone patch catalog weights or files is replay-breaking because procedural zone expansion may stamp different tile patches.
-- Changing section templates, hybrid layout policy, or socket/anchor resolution is snapshot-schema-visible now and will become replay-breaking once live room placement consumes section assignments.
+- Changing section templates, hybrid layout policy, socket/anchor resolution, or validation/repair policy is snapshot-schema-visible now and will become replay-breaking once live room placement consumes section assignments.
 - Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
 - Authored zone patch TMX files and catalog entries can be checked with `python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json`.
 

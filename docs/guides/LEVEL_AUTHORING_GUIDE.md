@@ -207,6 +207,27 @@ Socket ids should follow `side_band_traversal`:
 `needs_transition` connections need a transition room, corridor, door band
 adjustment, or authored replacement before live placement consumes the plan.
 
+## Reading Validation and Repair Reports
+
+The snapshot `validationReport` block tells you whether the layered metadata is
+ready for later stitching:
+
+| Field | Use |
+| ----- | --- |
+| `valid` | `true` when no blocking metadata issues were found. |
+| `progressionValid` | `true` when all required progression nodes are reachable. |
+| `reachableCriticalAnchorCount` | Count of critical key/door/boss anchors on reachable nodes. |
+| `issues[]` | Blocking problems such as missing connection contracts. |
+| `repairActions[]` | Bounded repair recommendations grouped by `patch`, `replace`, or `regenerate`. |
+
+Authoring guidance:
+
+- `patch` usually means a corridor, socket band, or transition-room bridge can
+  solve the issue.
+- `replace` means choose a different compatible section template.
+- `regenerate` means the enclosing progression branch or section should be
+  rebuilt from a different deterministic stream.
+
 ## Room Types
 
 Room type ids are lowercase strings such as:
@@ -448,9 +469,9 @@ cd java
 
 The snapshot records generator schema version, seed streams, progression graph,
 loaded section templates, hybrid layout assignments, socket/anchor contracts,
-room graph data, neighbor directions, biome indexes, and per-room tile
-checksums. Use it as the baseline artifact for future room/zone authoring
-changes until the visual map viewer slice lands.
+validation reports, room graph data, neighbor directions, biome indexes, and
+per-room tile checksums. Use it as the baseline artifact for future room/zone
+authoring changes until the visual map viewer slice lands.
 
 ## Room Structure Rules
 

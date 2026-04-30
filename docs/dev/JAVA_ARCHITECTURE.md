@@ -427,6 +427,20 @@ Connection contracts use `matched` for compatible direct joins and
 `needs_transition` when a later corridor or transition room must bridge socket
 differences. This layer is still metadata-only for now.
 
+#### Validation and Repair Reports (`world/validation/`)
+
+Pure validation/reporting layer above progression, layout, and socket/anchor
+metadata. It emits deterministic validation status plus bounded repair
+recommendations without mutating live room generation.
+
+| Class | Role |
+|-------|------|
+| `GenerationValidationReport` | Snapshot container for validity, issues, critical-anchor reachability, and repair actions. |
+| `GenerationValidationPlanner` | Runs progression/layout/anchor checks and maps failures to `patch`, `replace`, or `regenerate` repair tiers. |
+
+Repair actions are advisory in this slice. Runtime geometry repair and section
+regeneration are deferred to later integration.
+
 #### `RoomGenerator`
 Generates tile content for a specific `RoomType`, delegating to `WorldGenerator` for base layout then stamping room-type-specific content.
 

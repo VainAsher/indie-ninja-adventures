@@ -48,5 +48,8 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("hybridLayout").get("connections")).isNotEmpty();
         assertThat(root.get("socketAnchorPlan").get("connectionContracts")).isNotEmpty();
         assertThat(root.get("socketAnchorPlan").get("resolvedAnchors")).isNotEmpty();
+        assertThat(root.get("validationReport").get("valid").asBoolean()).isTrue();
+        assertThat(root.get("validationReport").get("reachableCriticalAnchorCount").asInt())
+            .isGreaterThanOrEqualTo(1);
     }
 }

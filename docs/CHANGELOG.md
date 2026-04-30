@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.10
+version_anchor: v0.13.11
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.11] - 2026-04-30 (Worldgen validation and repair report)
+
+### Added
+
+- **Validation/repair metadata layer**: added `GenerationValidationReport` and
+  `GenerationValidationPlanner` under `java/shadowascent/src/main/java/com/indieniinja/world/validation/`.
+  The layer validates macro progression reachability, layout connection
+  contract coverage, and critical anchor reachability without mutating live room
+  generation.
+- **Bounded repair recommendations**: validation reports now emit deterministic
+  repair actions with `patch`, `replace`, and `regenerate` tiers for later
+  automated repair work.
+- **Snapshot export**: `WorldGenerationSnapshotCommand` now emits a
+  `validationReport` block.
+- **Tests**: added focused coverage for deterministic validation reports,
+  generated-plan validation, missing-contract repair recommendations, and
+  snapshot export inclusion.
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` and `version.json.generator_schema_version`
+  are now `7` because snapshots include validation and repair metadata.
+- Snapshot seed streams now reserve `validation::<layoutId>` for deterministic
+  validation/repair reporting.
+
+### Compatibility
+
+- **snapshot schema**: changed from generator schema `6` to `7`.
+- **save**: no schema change.
+- **protocol**: no change.
+- **runtime behavior**: no live world placement change; this is still an
+  inspectable metadata layer above legacy room generation.
 
 ## [0.13.10] - 2026-04-30 (Worldgen socket and anchor contracts)
 
