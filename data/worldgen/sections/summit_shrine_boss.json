@@ -1,0 +1,12 @@
+{
+  "id": "summit_shrine_boss",
+  "kind": "boss_approach",
+  "biome": "lantern",
+  "anchors": [
+    { "id": "siren_spawn",        "kind": "boss",   "localBounds": {"x": 55, "y": 12, "w": 18, "h": 20} },
+    { "id": "npc_illusion_upper", "kind": "enemy",  "localBounds": {"x": 70, "y": 22, "w": 30, "h": 8} },
+    { "id": "npc_illusion_mid",   "kind": "enemy",  "localBounds": {"x": 15, "y": 45, "w": 40, "h": 8} },
+    { "id": "npc_illusion_lower", "kind": "enemy",  "localBounds": {"x": 80, "y": 67, "w": 30, "h": 8} },
+    { "id": "aen_collapse_mark",  "kind": "event",  "localBounds": {"x": 8,  "y": 112, "w": 12, "h": 8} }
+  ]
+}

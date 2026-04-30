@@ -13,28 +13,28 @@
   },
   "roomTypes": {
     "combat": {
-      "fillMin": 10,
-      "fillMax": 16,
-      "lavaChance": 0.2,
-      "iceChance": 0.1,
-      "waterChance": 0.1,
-      "decorFillChance": 0.38,
-      "decorPlatformChance": 0.38,
-      "decorWalkChance": 0.14,
-      "perimeterDepth": 2,
-      "centerClearRadiusZones": 0
+      "fillMin": 1,
+      "fillMax": 2,
+      "lavaChance": 0.0,
+      "iceChance": 0.0,
+      "waterChance": 0.08,
+      "decorFillChance": 0.25,
+      "decorPlatformChance": 0.45,
+      "decorWalkChance": 0.20,
+      "perimeterDepth": 1,
+      "centerClearRadiusZones": 1
     },
     "platform": {
-      "fillMin": 8,
-      "fillMax": 13,
-      "lavaChance": 0.1,
-      "iceChance": 0.25,
-      "waterChance": 0.15,
-      "decorFillChance": 0.3,
-      "decorPlatformChance": 0.5,
-      "decorWalkChance": 0.12,
-      "perimeterDepth": 2,
-      "centerClearRadiusZones": 0
+      "fillMin": 1,
+      "fillMax": 2,
+      "lavaChance": 0.0,
+      "iceChance": 0.0,
+      "waterChance": 0.08,
+      "decorFillChance": 0.25,
+      "decorPlatformChance": 0.45,
+      "decorWalkChance": 0.20,
+      "perimeterDepth": 1,
+      "centerClearRadiusZones": 1
     },
     "treasure": {
       "fillMin": 12,
@@ -85,28 +85,28 @@
       "centerClearRadiusZones": 0
     },
     "start": {
-      "fillMin": 3,
-      "fillMax": 5,
-      "lavaChance": 0.1,
-      "iceChance": 0.1,
-      "waterChance": 0.1,
-      "decorFillChance": 0.12,
-      "decorPlatformChance": 0.28,
-      "decorWalkChance": 0.3,
-      "perimeterDepth": 2,
-      "centerClearRadiusZones": 0
+      "fillMin": 1,
+      "fillMax": 2,
+      "lavaChance": 0.0,
+      "iceChance": 0.0,
+      "waterChance": 0.08,
+      "decorFillChance": 0.25,
+      "decorPlatformChance": 0.45,
+      "decorWalkChance": 0.20,
+      "perimeterDepth": 1,
+      "centerClearRadiusZones": 1
     },
     "exit": {
-      "fillMin": 3,
-      "fillMax": 5,
-      "lavaChance": 0.1,
-      "iceChance": 0.1,
-      "waterChance": 0.1,
-      "decorFillChance": 0.12,
-      "decorPlatformChance": 0.28,
-      "decorWalkChance": 0.3,
-      "perimeterDepth": 2,
-      "centerClearRadiusZones": 0
+      "fillMin": 1,
+      "fillMax": 2,
+      "lavaChance": 0.0,
+      "iceChance": 0.0,
+      "waterChance": 0.08,
+      "decorFillChance": 0.25,
+      "decorPlatformChance": 0.45,
+      "decorWalkChance": 0.20,
+      "perimeterDepth": 1,
+      "centerClearRadiusZones": 1
     }
   }
 }

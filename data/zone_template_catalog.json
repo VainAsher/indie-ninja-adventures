@@ -1,17 +1,22 @@
 {
   "roles": {
     "fill": {
-      "fallbackWeight": 6,
+      "fallbackWeight": 5,
       "templates": [
         { "file": "fill/solid_block.tmx", "weight": 1 },
-        { "file": "fill/hollow_shell.tmx", "weight": 1 }
+        { "file": "fill/hollow_shell.tmx", "weight": 1 },
+        { "file": "fill/root_column.tmx", "weight": 2, "biomeIndexes": [1] },
+        { "file": "fill/rock_shelf.tmx", "weight": 2, "biomeIndexes": [1] }
       ]
     },
     "plat": {
-      "fallbackWeight": 6,
+      "fallbackWeight": 4,
       "templates": [
         { "file": "plat/center_bar.tmx", "weight": 1 },
-        { "file": "plat/split_ledge.tmx", "weight": 1 }
+        { "file": "plat/split_ledge.tmx", "weight": 1 },
+        { "file": "plat/branch_bar.tmx", "weight": 2, "biomeIndexes": [1] },
+        { "file": "plat/stepped_rise.tmx", "weight": 2, "biomeIndexes": [1] },
+        { "file": "plat/overhang.tmx", "weight": 1, "biomeIndexes": [1] }
       ]
     }
   }

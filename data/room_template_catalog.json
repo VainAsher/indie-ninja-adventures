@@ -26,6 +26,9 @@
     ],
     "duality_test": [
       { "file": "duality_test.tmx", "weight": 1 }
+    ],
+    "hub": [
+      { "file": "hub.tmx", "weight": 1 }
     ]
   }
 }

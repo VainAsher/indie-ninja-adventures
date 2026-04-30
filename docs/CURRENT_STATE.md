@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.17
+version_anchor: v0.13.18
 replaces: docs/HANDOVER.md
 ---
 

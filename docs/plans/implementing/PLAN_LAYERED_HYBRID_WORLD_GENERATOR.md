@@ -3,7 +3,7 @@ doc_type: implementation_plan
 status: implementing
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.17
+version_anchor: v0.13.18
 ---
 
 # Layered Hybrid World Generator

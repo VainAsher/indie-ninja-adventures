@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.17
+version_anchor: v0.13.18
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.18] - 2026-04-30 (Act I Vertical Slice — Level Design & Worldgen Authoring)
+
+### Added
+
+- **Lantern Heights hub TMX** (`java/assets/rooms/templates/hub.tmx`): Three-tier authored hub room — ground tier (spawn/Samson/Marcel), mid tier (Sophia/Hazel platforms), upper tier (mission board/Linzi), sealed shrine gate (GID 6) at upper-right. Registered in `data/room_template_catalog.json`.
+- **Section template: Lantern Heights** (`data/worldgen/sections/lantern_heights_hub.json`): NPC anchors for samson, sophia, marcel, hazel, linzi, mission_board, shrine_gate. HubStateMachine-compatible; tile layer never changes, only anchor activation.
+- **Section template: Summit Shrine boss** (`data/worldgen/sections/summit_shrine_boss.json`): Anchors for siren_spawn, three illusion enemy tiers, aen_collapse_mark event trigger.
+- **Act I start room** (`java/assets/rooms/templates/start.tmx`): Ceiling portal entry, wide one-way landing platform (Y≈55), two lower platforms for depth read. 15–20 second traversal target.
+- **Act I exit room** (`java/assets/rooms/templates/exit.tmx`): Left-wall mid-height entry, three staggered climbing platforms, portal landing shelf at upper-right (Y≈22).
+- **Summit Shrine boss arena** (`java/assets/rooms/templates/boss.tmx`): Heavy 8-row floor (rows 120–127), three staggered combat tiers, open Siren clear zone at top. Single authored variant — no procedural fallback.
+- **Forest biome zone patches** (5 new files in `java/assets/rooms/zone_templates/`):
+  - `fill/root_column.tmx` — 2-wide solid column with air pocket near top; reads as tree root / wall-jump pillar.
+  - `fill/rock_shelf.tmx` — L-shaped solid: flat base with raised right side; creates mid-obstacle ledge.
+  - `plat/branch_bar.tmx` — 6-wide one-way platform offset left; reads as tree branch.
+  - `plat/stepped_rise.tmx` — two half-width platforms at different heights; two-step ascent read.
+  - `plat/overhang.tmx` — one-way platform with solid block beneath left end; creates overhang geometry.
+- **Zone template catalog** (`data/zone_template_catalog.json`): Registered all 5 forest patches with `biomeIndexes:[1]` restriction, fill fallbackWeight 5, plat fallbackWeight 4.
+
+### Changed
+
+- **Act I structure rules** (`data/room_structure_rules.json`): Applied Act I tuning to `combat`, `platform`, `start`, and `exit` room types — fillMin 1, fillMax 2, lavaChance 0.0, iceChance 0.0, waterChance 0.08, decorPlatformChance 0.45, centerClearRadiusZones 1, perimeterDepth 1. Eliminates lava and over-dense fill from first-session rooms.
+
+### Compatibility
+
+- **snapshot schema**: unchanged at generator schema `10`. Worldgen lab compare: quality 100, 0 warnings, 0 regressions (seed 420, 20 rooms, BLOB).
+- **save**: no schema change.
+- **protocol**: no change.
+- **replay**: structure rule and zone catalog changes are replay-breaking for any world generated after this version. Existing saves at v0.13.17 and prior are unaffected (seed-locked).
 
 ---
 

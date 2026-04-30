@@ -1,0 +1,14 @@
+{
+  "id": "lantern_heights_hub",
+  "biome": "lantern",
+  "kind": "hub_home",
+  "anchors": [
+    { "id": "samson_spawn",  "kind": "npc",         "localBounds": {"x": 30, "y": 110, "w": 4, "h": 8} },
+    { "id": "sophia_spawn",  "kind": "npc",         "localBounds": {"x": 20, "y": 62,  "w": 4, "h": 8} },
+    { "id": "marcel_spawn",  "kind": "npc",         "localBounds": {"x": 90, "y": 110, "w": 4, "h": 8} },
+    { "id": "hazel_spawn",   "kind": "npc",         "localBounds": {"x": 80, "y": 62,  "w": 4, "h": 8} },
+    { "id": "linzi_spawn",   "kind": "npc",         "localBounds": {"x": 60, "y": 38,  "w": 4, "h": 8} },
+    { "id": "mission_board", "kind": "service",     "localBounds": {"x": 65, "y": 35,  "w": 8, "h": 10} },
+    { "id": "shrine_gate",   "kind": "locked_door", "localBounds": {"x": 112, "y": 22, "w": 6, "h": 12} }
+  ]
+}
