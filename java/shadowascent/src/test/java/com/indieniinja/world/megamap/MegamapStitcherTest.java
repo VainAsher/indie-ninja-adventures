@@ -14,7 +14,7 @@ class MegamapStitcherTest {
         MegamapSnapshot second = MegamapStitcher.stitch(12345L, 12, WorldGraph.WorldShape.BLOB, graph);
 
         assertThat(first.toSnapshot()).isEqualTo(second.toSnapshot());
-        assertThat(first.goldenSeedKey()).isEqualTo("schema-8-seed-12345-shape-BLOB-rooms-12");
+        assertThat(first.goldenSeedKey()).isEqualTo("schema-10-seed-12345-shape-BLOB-rooms-12");
     }
 
     @Test

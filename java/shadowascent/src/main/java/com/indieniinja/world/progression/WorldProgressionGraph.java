@@ -85,6 +85,7 @@ public final class WorldProgressionGraph {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("worldSeed", worldSeed);
         out.put("centralHubId", centralHub.id());
+        out.put("nodes", allNodes().stream().map(ProgressionNode::toSnapshot).toList());
         out.put("worldNodes", worldNodes.stream().map(ProgressionNode::toSnapshot).toList());
         out.put("regionHubs", regionHubs.stream().map(RegionHub::toSnapshot).toList());
         out.put("dungeonNodes", dungeonNodes.stream().map(ProgressionNode::toSnapshot).toList());
