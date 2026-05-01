@@ -492,6 +492,11 @@ public final class GameScreen implements Screen {
                 cutsceneMarkers,
                 cutsceneEntityOverrides);
         cutsceneTriggerRouter = new com.indieniinja.client.game.cutscene.CutsceneTriggerRouter(cutsceneManager);
+        cutsceneManager.setOnCompleteCallback(completedId -> {
+            if ("act1_aen_of_lantern_heights".equals(completedId)) {
+                startMissionFlow("act1_social_grounding", "cutscene_complete");
+            }
+        });
         registerCutsceneDevCommands();
         missionManager.setOnMissionComplete(() -> {
             requestMultiplayerMissionObjectivePickupClear(
@@ -525,6 +530,9 @@ public final class GameScreen implements Screen {
             // Build initial minimap data and then rehydrate persisted solo runtime state.
             refreshSoloWorldRoomCache();
             restoreSoloRuntimeStateFromSave();
+            if (replayPath == null && cutsceneTriggerRouter != null) {
+                cutsceneTriggerRouter.onCampaignStart();
+            }
         }
         shopOverlay.setOnTrade(req -> {
             if (networkClient == null) return;
@@ -2479,15 +2487,9 @@ public final class GameScreen implements Screen {
             }
             case "open_shop"     -> { /* stub — shop UI not yet implemented */ }
             case "advance_act"   -> storyManager.advanceAct();
-            case "siren_start_first_trial" -> {
-                setStoryFlagAndTriggerCutscene("siren_intro_seen", "true");
-                setStoryFlagAndTriggerCutscene("siren_onboarding_complete", "true");
-                startMissionFlow("demo_coin_run", "siren_dialogue");
-            }
-            case "siren_open_mission_board" -> {
-                setStoryFlagAndTriggerCutscene("siren_intro_seen", "true");
-                setStoryFlagAndTriggerCutscene("siren_onboarding_complete", "true");
-                openMissionSelectOverlay("siren_dialogue");
+            case "siren_start_first_trial", "siren_open_mission_board" -> {
+                storyManager.setFlag("siren_intro_seen", "true");
+                storyManager.setFlag("siren_onboarding_complete", "true");
             }
             // Known authored narrative events from data/dialogues.json.
             // Preserve them as story flags even when they do not map to an immediate gameplay action.

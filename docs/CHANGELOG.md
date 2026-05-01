@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-01
-version_anchor: v0.13.23
+version_anchor: v0.13.24
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.24] - 2026-05-01 (G0 P0 Blockers — Slice 3: Tai cutscene auto-trigger + act flow)
+
+### Added
+
+- **P0-G0-02:** `CAMPAIGN_START` trigger type added to `CutsceneTriggerType` enum.
+- **P0-G0-02:** `CutsceneTrigger.matches()` short-circuits on `CAMPAIGN_START` (no target id required).
+- **P0-G0-02:** `CutsceneTrigger.fromMap()` allows missing `id` field for `campaign_start` event.
+- **P0-G0-02:** `CutsceneTriggerRouter.onCampaignStart()` — fires first matching `CAMPAIGN_START` cutscene.
+- **P0-G0-02:** `GameScreen` calls `onCampaignStart()` after save restore on solo campaign start (non-replay).
+- **P0-G0-03:** `GameScreen` registers `onCompleteCallback` on `CutsceneManager`; auto-starts `act1_social_grounding` when `act1_aen_of_lantern_heights` completes.
+- `tutorial_elder.yarn` rewritten to Instructor Tai's authored voice (calm mentor, speaks to Aen as a resident, not a visitor).
+
+### Changed
+
+- `act1_aen_of_lantern_heights.json` trigger changed from `npc_interact:instructor_tai` to `campaign_start` — cutscene fires on first session load instead of requiring the player to find and interact with Tai.
+- `siren_start_first_trial` and `siren_open_mission_board` dialogue event handlers stripped of gameplay actions (`startMissionFlow`, `openMissionSelectOverlay`). Story flags still stored; game actions removed. Siren is not an Act I quest giver.
+
+### Compatibility
+
+- save: no impact
+- replay: no impact
+- protocol: no impact
 
 ---
 

@@ -5,7 +5,9 @@ import java.util.Map;
 
 public record CutsceneTrigger(CutsceneTriggerType type, String id) {
     public boolean matches(CutsceneTriggerType type, String id) {
-        return this.type == type && this.id != null && this.id.equals(id);
+        if (this.type != type) return false;
+        if (type == CutsceneTriggerType.CAMPAIGN_START) return true;
+        return this.id != null && this.id.equals(id);
     }
 
     public static CutsceneTrigger fromMap(Map<String, Object> map, String cutsceneId, int index) {
@@ -14,14 +16,16 @@ public record CutsceneTrigger(CutsceneTriggerType type, String id) {
         if (event == null || event.isBlank()) {
             throw new CutsceneLoadException(cutsceneId + " trigger[" + index + "]: missing 'event'");
         }
-        if (id == null || id.isBlank()) {
-            throw new CutsceneLoadException(cutsceneId + " trigger[" + index + "]: missing 'id'");
-        }
+        CutsceneTriggerType type;
         try {
-            return new CutsceneTrigger(CutsceneTriggerType.valueOf(event.toUpperCase(Locale.ROOT)), id);
+            type = CutsceneTriggerType.valueOf(event.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             throw new CutsceneLoadException(cutsceneId + " trigger[" + index + "]: unknown event '" + event + "'");
         }
+        if (type != CutsceneTriggerType.CAMPAIGN_START && (id == null || id.isBlank())) {
+            throw new CutsceneLoadException(cutsceneId + " trigger[" + index + "]: missing 'id'");
+        }
+        return new CutsceneTrigger(type, id != null ? id : "");
     }
 
     private static String str(Map<String, Object> map, String key) {

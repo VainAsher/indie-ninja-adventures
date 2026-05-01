@@ -2,7 +2,7 @@
 
 **Vain Asher Gaming** — A narrative-driven single-player Metroidvania. A hollowed ninja climbs a fractured spirit world across seven acts, guided by Yin/Yang emotional mechanics and a hub that breathes, corrupts, and recovers.
 
-> Version: **v0.13.23** | Status: Controlled Act I vertical-slice playtest | Platform: Windows | Engine: Java 21 + libGDX + Netty
+> Version: **v0.13.24** | Status: Controlled Act I vertical-slice playtest | Platform: Windows | Engine: Java 21 + libGDX + Netty
 
 ---
 

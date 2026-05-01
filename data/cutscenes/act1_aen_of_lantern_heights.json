@@ -6,7 +6,7 @@
   "blocking": true,
   "skip_policy": "allow_after_first_view",
   "triggers": [
-    { "event": "npc_interact", "id": "instructor_tai" }
+    { "event": "campaign_start" }
   ],
   "start_conditions": [
     { "flag_not_set": "act1_aen_of_lantern_heights_seen" }

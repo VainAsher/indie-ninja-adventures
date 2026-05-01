@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-30T17:46:30.542045+00:00",
+  "generated": "2026-05-01T20:24:30.887711+00:00",
   "root": "assets",
   "count": 520,
   "files": [
@@ -11,7 +11,7 @@
     {
       "path": "asset_manifest.json",
       "size": 96557,
-      "sha256": "03a89314f48605549a6881aa6b0206c6cf136e6d6e4ae1432187ad99d53a38c4"
+      "sha256": "09ed15db36b4957f9a59c8b31fbc2ab0ce9ea0f3b0e2957fa0aba2bbb4eeab2f"
     },
     {
       "path": "audio/sfx/dash.wav",
