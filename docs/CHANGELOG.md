@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.18
+version_anchor: v0.13.19
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.19] - 2026-05-01 (Authored Campaign Progression Graph)
+
+### Added
+
+- **Authored progression graph** (`data/worldgen/progressions/act1.json`): Act I campaign progression — Lantern Heights hub → 3 forest mission dungeons → Summit Shrine boss. Replaces the generic seeded generator for campaign ID `act1`. Critical path: `lantern_heights_hub → act1_mission_1 → act1_mission_2 → act1_mission_3 → summit_shrine`. Node sequencing enforced via mission completion grants (`mission_1_complete` → `mission_2_complete` → `mission_3_complete` → `aen_awakening`).
+- **`AuthoredProgressionLoader`**: Loads `data/worldgen/progressions/{campaignId}.json` and returns a `WorldProgressionGraph` with `source: "authored"`. Falls back to procedural generator if campaign ID is null, blank, or file not found. Path search mirrors `SectionTemplateLibrary` pattern; test-overridable via `ninja.progressionRoot` system property.
+- **`source` field** on `WorldProgressionGraph`: Snapshot now includes `"source": "authored"` or `"source": "procedural"`. Surfaced in worldgen lab pipeline panel as `[authored]` / `[procedural]` suffix on the progressionGraph stage summary.
+- **`--campaign-id` arg** on `WorldGenerationSnapshotCommand`: Routes to `AuthoredProgressionLoader`; falls back to procedural if omitted.
+- **`-PcampaignId` Gradle property** on `:shadowascent:worldgenSnapshot` task.
+- **`worldgen_lab.py act1` command** now passes `campaignId=act1` automatically.
+- **`AuthoredProgressionLoaderTest`** (6 tests): load act1, fallback on unknown ID, fallback on null/blank, snapshot source field, procedural source field.
+
+### How to add Act II
+
+Add `data/worldgen/progressions/act2.json` with your hub, dungeon, and boss nodes. Pass `-PcampaignId=act2` to `worldgenSnapshot` or `--campaign-id act2` to the snapshot command. No Java changes required.
+
+### Compatibility
+
+- **snapshot schema**: unchanged at generator schema `10`. Lab compare: quality 100, 0 warnings, validation `valid=True, issues=0` for seed 420 + campaignId=act1.
+- **save / protocol**: no change.
+- **replay**: progression graph changes are replay-breaking for newly generated worlds; existing v0.13.18 saves unaffected.
 
 ---
 

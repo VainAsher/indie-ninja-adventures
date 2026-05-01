@@ -1,0 +1,63 @@
+{
+  "id": "act1",
+  "description": "Shadow Ascent Act I — Lantern Heights vertical slice",
+  "centralHub": {
+    "id": "lantern_heights_hub",
+    "kind": "central_hub",
+    "biome": "lantern",
+    "difficultyBand": "low",
+    "tags": ["safe", "hub", "return_point", "act1"],
+    "requires": [],
+    "grants": [],
+    "children": ["act1_mission_1", "act1_mission_2", "act1_mission_3", "summit_shrine"]
+  },
+  "nodes": [
+    {
+      "id": "act1_mission_1",
+      "kind": "dungeon",
+      "biome": "forest",
+      "difficultyBand": "low",
+      "tags": ["dungeon", "mission", "ability_trial", "act1"],
+      "requires": [],
+      "grants": ["mission_1_complete"],
+      "children": ["act1_mission_2"]
+    },
+    {
+      "id": "act1_mission_2",
+      "kind": "dungeon",
+      "biome": "forest",
+      "difficultyBand": "low",
+      "tags": ["dungeon", "mission", "ability_trial", "act1"],
+      "requires": ["mission_1_complete"],
+      "grants": ["mission_2_complete"],
+      "children": ["act1_mission_3"]
+    },
+    {
+      "id": "act1_mission_3",
+      "kind": "dungeon",
+      "biome": "forest",
+      "difficultyBand": "low",
+      "tags": ["dungeon", "mission", "ability_trial", "act1"],
+      "requires": ["mission_2_complete"],
+      "grants": ["mission_3_complete"],
+      "children": ["summit_shrine"]
+    },
+    {
+      "id": "summit_shrine",
+      "kind": "dungeon",
+      "biome": "lantern",
+      "difficultyBand": "low",
+      "tags": ["boss", "scripted_loss", "act1_climax"],
+      "requires": ["mission_3_complete"],
+      "grants": ["aen_awakening"],
+      "children": []
+    }
+  ],
+  "criticalPath": [
+    "lantern_heights_hub",
+    "act1_mission_1",
+    "act1_mission_2",
+    "act1_mission_3",
+    "summit_shrine"
+  ]
+}

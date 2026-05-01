@@ -3,13 +3,13 @@ doc_type: roadmap
 status: living
 owner: core-team
 last_updated: 2026-04-30
-version_anchor: v0.13.18
+version_anchor: v0.13.19
 ---
 # Development Roadmap
 
 Vain Asher Gaming's: **Shadow Ascent: The Hollowed Ninja**
 
-Last Updated: 2026-04-30 | Version: v0.13.18 | Platform: Java 21 + libGDX + Netty
+Last Updated: 2026-05-01 | Version: v0.13.19 | Platform: Java 21 + libGDX + Netty
 
 ---
 

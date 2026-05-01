@@ -256,7 +256,8 @@ def build_pipeline_summary(snapshot: dict[str, Any], act1_baseline: bool = False
         stage(
             "progressionGraph",
             bool(progression),
-            f"{list_len(progression.get('nodes'))} nodes, {list_len(progression.get('criticalPath'))} critical-path steps",
+            f"{list_len(progression.get('nodes'))} nodes, {list_len(progression.get('criticalPath'))} critical-path steps"
+            + (f" [{progression.get('source', 'procedural')}]" if progression else ""),
         ),
         stage(
             "hybridLayout",
@@ -605,6 +606,7 @@ def command_act1(args: argparse.Namespace) -> int:
             rooms=args.rooms,
             shape=args.shape,
             snapshot_path=snapshot_path,
+            campaign_id="act1",
         )
     written = render_snapshot(snapshot_path, out_dir)
     for path in written:
@@ -748,23 +750,24 @@ def render_compare_html(report: dict[str, Any]) -> str:
     )
 
 
-def generate_single_snapshot(seed: int, rooms: int, shape: str, snapshot_path: Path) -> None:
+def generate_single_snapshot(
+    seed: int, rooms: int, shape: str, snapshot_path: Path, campaign_id: str | None = None
+) -> None:
     repo_root = Path(__file__).resolve().parents[1]
     java_dir = repo_root / "java"
     gradle = java_dir / ("gradlew.bat" if sys.platform.startswith("win") else "gradlew")
-    subprocess.run(
-        [
-            str(gradle),
-            ":shadowascent:worldgenSnapshot",
-            f"-Pseed={seed}",
-            f"-Prooms={rooms}",
-            f"-Pshape={shape}",
-            f"-Pout={snapshot_path.resolve()}",
-            "--no-daemon",
-        ],
-        cwd=java_dir,
-        check=True,
-    )
+    gradle_args = [
+        str(gradle),
+        ":shadowascent:worldgenSnapshot",
+        f"-Pseed={seed}",
+        f"-Prooms={rooms}",
+        f"-Pshape={shape}",
+        f"-Pout={snapshot_path.resolve()}",
+        "--no-daemon",
+    ]
+    if campaign_id:
+        gradle_args.append(f"-PcampaignId={campaign_id}")
+    subprocess.run(gradle_args, cwd=java_dir, check=True)
 
 
 def generate_snapshots(args: argparse.Namespace, out_dir: Path) -> Path:

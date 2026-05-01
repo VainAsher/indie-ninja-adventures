@@ -7,6 +7,7 @@ import com.indieniinja.world.layout.HybridLayoutPlan;
 import com.indieniinja.world.layout.HybridLayoutPlanner;
 import com.indieniinja.world.lab.WorldgenLabAnalyzer;
 import com.indieniinja.world.megamap.MegamapStitcher;
+import com.indieniinja.world.progression.AuthoredProgressionLoader;
 import com.indieniinja.world.progression.WorldProgressionGenerator;
 import com.indieniinja.world.progression.WorldProgressionGraph;
 import com.indieniinja.world.sections.SectionTemplateLibrary;
@@ -53,12 +54,16 @@ public final class WorldGenerationSnapshotCommand {
 
     public static void main(String[] args) throws Exception {
         Options options = Options.parse(args);
-        writeSnapshot(options.seed(), options.rooms(), options.shape(), options.out());
+        writeSnapshot(options.seed(), options.rooms(), options.shape(), options.campaignId(), options.out());
     }
 
     static void writeSnapshot(long seed, int rooms, WorldGraph.WorldShape shape, Path out) throws IOException {
+        writeSnapshot(seed, rooms, shape, null, out);
+    }
+
+    static void writeSnapshot(long seed, int rooms, WorldGraph.WorldShape shape, String campaignId, Path out) throws IOException {
         WorldGraph graph = WorldGraph.generate(seed, rooms, shape);
-        Map<String, Object> snapshot = snapshot(seed, rooms, shape, graph);
+        Map<String, Object> snapshot = snapshot(seed, rooms, shape, campaignId, graph);
 
         Path parent = out.toAbsolutePath().getParent();
         if (parent != null) {
@@ -68,7 +73,7 @@ public final class WorldGenerationSnapshotCommand {
     }
 
     private static Map<String, Object> snapshot(
-            long seed, int requestedRooms, WorldGraph.WorldShape shape, WorldGraph graph) {
+            long seed, int requestedRooms, WorldGraph.WorldShape shape, String campaignId, WorldGraph graph) {
         Bounds bounds = Bounds.from(graph);
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("generatorSchemaVersion", GeneratorSchemaVersion.CURRENT);
@@ -82,7 +87,11 @@ public final class WorldGenerationSnapshotCommand {
         root.put("bounds", bounds.toJson());
         root.put("startRoomId", roomId(graph.startRoom()));
         root.put("exitRoomId", roomId(graph.exitRoom()));
-        WorldProgressionGraph progressionGraph = WorldProgressionGenerator.generate(seed);
+        if (campaignId != null && !campaignId.isBlank()) {
+            root.put("campaignId", campaignId);
+        }
+        WorldProgressionGraph progressionGraph = AuthoredProgressionLoader.load(campaignId, seed)
+                .orElseGet(() -> WorldProgressionGenerator.generate(seed));
         SectionTemplateLibrary sectionTemplates = SectionTemplateLibrary.loadDefault();
         HybridLayoutPlan hybridLayout = HybridLayoutPlanner.plan(seed, progressionGraph, sectionTemplates);
         var socketAnchorPlan = SocketAnchorPlanner.plan(seed, hybridLayout, sectionTemplates);
@@ -174,11 +183,12 @@ public final class WorldGenerationSnapshotCommand {
         }
     }
 
-    private record Options(long seed, int rooms, WorldGraph.WorldShape shape, Path out) {
+    private record Options(long seed, int rooms, WorldGraph.WorldShape shape, String campaignId, Path out) {
         static Options parse(String[] args) {
             long seed = 1L;
             int rooms = 20;
             WorldGraph.WorldShape shape = WorldGraph.WorldShape.BLOB;
+            String campaignId = null;
             Path out = Paths.get("build", "worldgen-snapshots", "snapshot.json");
 
             for (int i = 0; i < args.length; i++) {
@@ -197,6 +207,10 @@ public final class WorldGenerationSnapshotCommand {
                         shape = WorldGraph.WorldShape.valueOf(required(arg, value).toUpperCase());
                         i++;
                     }
+                    case "--campaign-id" -> {
+                        campaignId = required(arg, value);
+                        i++;
+                    }
                     case "--out", "--export-json" -> {
                         out = Paths.get(required(arg, value));
                         i++;
@@ -208,7 +222,7 @@ public final class WorldGenerationSnapshotCommand {
             if (rooms < 1) {
                 throw new IllegalArgumentException("--rooms must be >= 1");
             }
-            return new Options(seed, rooms, shape, out);
+            return new Options(seed, rooms, shape, campaignId, out);
         }
 
         private static String required(String arg, String value) {
@@ -220,7 +234,7 @@ public final class WorldGenerationSnapshotCommand {
 
         private static String usage() {
             return "Usage: WorldGenerationSnapshotCommand --seed <long> --rooms <int> "
-                + "--shape <BLOB|BRANCHY|SNAKE|SPIRAL|TREE|GRID> --out <snapshot.json>";
+                + "--shape <BLOB|BRANCHY|SNAKE|SPIRAL|TREE|GRID> --campaign-id <id> --out <snapshot.json>";
         }
     }
 }

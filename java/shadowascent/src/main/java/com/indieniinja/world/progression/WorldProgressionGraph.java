@@ -26,6 +26,7 @@ public final class WorldProgressionGraph {
     private final List<RegionHub> regionHubs;
     private final List<ProgressionNode> dungeonNodes;
     private final List<ProgressionNode> criticalPath;
+    private final String source;
 
     public WorldProgressionGraph(
             long worldSeed,
@@ -34,12 +35,24 @@ public final class WorldProgressionGraph {
             List<RegionHub> regionHubs,
             List<ProgressionNode> dungeonNodes,
             List<ProgressionNode> criticalPath) {
+        this(worldSeed, centralHub, worldNodes, regionHubs, dungeonNodes, criticalPath, "procedural");
+    }
+
+    public WorldProgressionGraph(
+            long worldSeed,
+            ProgressionNode centralHub,
+            List<ProgressionNode> worldNodes,
+            List<RegionHub> regionHubs,
+            List<ProgressionNode> dungeonNodes,
+            List<ProgressionNode> criticalPath,
+            String source) {
         this.worldSeed = worldSeed;
         this.centralHub = Objects.requireNonNull(centralHub, "centralHub");
         this.worldNodes = List.copyOf(worldNodes);
         this.regionHubs = List.copyOf(regionHubs);
         this.dungeonNodes = List.copyOf(dungeonNodes);
         this.criticalPath = List.copyOf(criticalPath);
+        this.source = source == null || source.isBlank() ? "procedural" : source;
     }
 
     public long worldSeed() {
@@ -66,6 +79,10 @@ public final class WorldProgressionGraph {
         return criticalPath;
     }
 
+    public String source() {
+        return source;
+    }
+
     public List<ProgressionNode> allNodes() {
         List<ProgressionNode> nodes = new ArrayList<>(worldNodes.size() + dungeonNodes.size());
         nodes.addAll(worldNodes);
@@ -84,6 +101,7 @@ public final class WorldProgressionGraph {
     public Map<String, Object> toSnapshot() {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("worldSeed", worldSeed);
+        out.put("source", source);
         out.put("centralHubId", centralHub.id());
         out.put("nodes", allNodes().stream().map(ProgressionNode::toSnapshot).toList());
         out.put("worldNodes", worldNodes.stream().map(ProgressionNode::toSnapshot).toList());

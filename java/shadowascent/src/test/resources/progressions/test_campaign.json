@@ -1,0 +1,36 @@
+{
+  "id": "test_campaign",
+  "centralHub": {
+    "id": "test_hub",
+    "kind": "central_hub",
+    "biome": "forest",
+    "difficultyBand": "low",
+    "tags": ["safe", "hub"],
+    "requires": [],
+    "grants": [],
+    "children": ["dungeon_a", "dungeon_b"]
+  },
+  "nodes": [
+    {
+      "id": "dungeon_a",
+      "kind": "dungeon",
+      "biome": "forest",
+      "difficultyBand": "low",
+      "tags": ["dungeon", "mission"],
+      "requires": [],
+      "grants": [],
+      "children": ["dungeon_b"]
+    },
+    {
+      "id": "dungeon_b",
+      "kind": "boss_arena",
+      "biome": "forest",
+      "difficultyBand": "low",
+      "tags": ["boss"],
+      "requires": ["dungeon_a"],
+      "grants": ["test_grant"],
+      "children": []
+    }
+  ],
+  "criticalPath": ["test_hub", "dungeon_a", "dungeon_b"]
+}

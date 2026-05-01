@@ -22,10 +22,16 @@ tasks.register<JavaExec>("worldgenSnapshot") {
     description = "Export a deterministic world-generation JSON snapshot."
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.indieniinja.world.WorldGenerationSnapshotCommand")
-    args(
+
+    val campaignId = (findProperty("campaignId") as String?)?.takeIf { it.isNotBlank() }
+    val baseArgs = mutableListOf(
         "--seed", (findProperty("seed") as String?) ?: "1",
         "--rooms", (findProperty("rooms") as String?) ?: "20",
         "--shape", (findProperty("shape") as String?) ?: "BLOB",
         "--out", (findProperty("out") as String?) ?: "build/worldgen-snapshots/snapshot.json",
     )
+    if (campaignId != null) {
+        baseArgs += listOf("--campaign-id", campaignId)
+    }
+    args(baseArgs)
 }
