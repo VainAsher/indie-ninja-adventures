@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-01
-version_anchor: v0.13.21
+version_anchor: v0.13.22
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.22] - 2026-05-01 (G0 P0 Blockers — Slice 1: Mission data fixes)
+
+### Fixed
+
+- **P0-G0-05 (minimum):** `samson_q1_dojo` now has `guaranteed_boss_exit: true` — player can no longer be stranded in the sparring mission world without an exit portal.
+- **P0-G0-06 (data):** `linzi_q1` now requires all four villager quests to be COMPLETED before appearing (`samson_q1_dojo`, `sophia_q1_cartography`, `marcel_q1_forge`, `hazel_q1_gentle`). Previously the `unlock_requirements` field was silently ignored by the Java parser; the canonical `requires` field is now set correctly.
+- **P0-G0-06 (data):** `act1_social_grounding` greet objectives now include Sophia and Marcel (previously only Tai, Samson, and Hazel were listed).
+
+### Compatibility
+
+- save: no impact
+- protocol: no impact
+- replay: no impact
 
 ---
 

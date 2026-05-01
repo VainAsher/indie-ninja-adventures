@@ -123,6 +123,36 @@ The original workloop is excellent for implementation discipline, but the new di
 
 ### Latest loop note
 
+`2026-05-01 00:00:00 +01:00`
+
+- G0 session 1 ran against v0.13.21 (launcher install, CAMPAIGN, clean slot 1). Result: **FAIL**.
+  - Evidence: `docs/reports/manual-runtime/g0-v0.13.21-session-1.md`
+  - Steps 1–3 pass; steps 4–14 fail or are blocked by 6 P0 blockers.
+  - Route cannot be re-run until all 6 P0-G0-01 through P0-G0-06 are resolved.
+  - 4 sessions remaining to close G0/P0-10 (must use clean save each time).
+- **Design clarification (critical):** Linzi and the Siren are the same character at different campaign phases.
+  - `siren_phase1-4` NPC IDs are Linzi's later evolution — Linzi = Siren, not two characters.
+  - Linzi/Siren must not appear in the Act I hub until a specific campaign beat has passed.
+  - The correct gate: Linzi spawns only after `samson_q1_complete AND sophia_q1_complete AND marcel_q1_complete AND hazel_q1_complete` are all set.
+  - **GDD §1.5 Runtime Alignment Addendum is incorrect.** Its claim "Siren is the explicit first quest giver in Act I" contradicts this. Addendum must be corrected before any further implementation work on Linzi/Siren.
+  - `siren_start_first_trial` and `siren_open_mission_board` event handlers in `GameScreen` (currently fire `demo_coin_run` on day one) are incorrectly wired and must be removed or rewritten.
+  - `siren_first_quest.yarn` is written as a day-one reveal; belongs to a far-future beat and must be removed from Act I routing.
+- **Data discovery during triage:** All four villager q1 missions already exist in `data/missions.json`:
+  - `samson_q1_dojo`, `sophia_q1_cartography`, `marcel_q1_forge`, `hazel_q1_gentle` — dialogue events wired in `*_act0.yarn` files.
+  - **Gap:** `linzi_q1` only requires `act1_social_grounding`, not the four individual completions.
+  - **Gap:** `act1_social_grounding` lists only Tai, Samson, Hazel — Sophia and Marcel are missing.
+
+**Active work queue for P0-10 G0 blockers:**
+
+- **P0-G0-01** Hub visual identity — Add hub name + time-of-day to `HudRenderer`; read from `HubRegistry`. No design gate.
+- **P0-G0-02** Tai onboarding auto-trigger — Change cutscene trigger to `campaign_start`; rewrite `tutorial_elder.yarn` to Tai voice. No design gate.
+- **P0-G0-03** Auto mission flow from spawn — Wire social grounding auto-trigger after Tai cutscene; remove siren day-one event handlers. No design gate.
+- **P0-G0-04** Exit portal to wrong world — Fix `handleSoloPortalTravel` for `transition_type=mission_return` to return to hub. No design gate.
+- **P0-G0-05** Samson sparring soft-lock — Add `guaranteed_boss_exit` to `samson_q1_dojo`. **Design gate: decide sparring mechanic** (scripted ghost, dummy, or scripted loss — `samson_ghost` enemy type already defined in missions.json).
+- **P0-G0-06** Linzi gate broken — Gate `linzi_q1` behind all four `*_q1_complete` flags; add Sophia + Marcel to `act1_social_grounding` objectives; remove siren from hub spawn until Linzi beat. No design gate.
+
+- P0-G0-05 design escalation: `samson_q1_dojo` already defines `samson_ghost` as opponent (enemy type in missions.json). Decision needed: scripted ghost opponent, training dummy, or scripted loss? This is the only blocker with an open design gate.
+
 `2026-04-29 11:30:00 +01:00`
 
 - State sync after v0.13.4 release: CutsceneManager Phase 2 has shipped, and this document remains the active implementation plan.

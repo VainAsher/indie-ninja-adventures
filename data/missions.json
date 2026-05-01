@@ -1763,6 +1763,7 @@
       "unlock_requirements": [
         "samson_q1_accepted"
       ],
+      "guaranteed_boss_exit": true,
       "act": 0,
       "story_trigger": "samson_q1_complete",
       "hub_impact": {
@@ -2369,6 +2370,16 @@
         },
         {
           "type": "talk_to_npc",
+          "description": "Say hello to Sophia",
+          "location": "sophia"
+        },
+        {
+          "type": "talk_to_npc",
+          "description": "Find Marcel",
+          "location": "marcel"
+        },
+        {
+          "type": "talk_to_npc",
           "description": "Say hello to Hazel",
           "location": "hazel"
         }
@@ -2405,7 +2416,7 @@
       "enemy_types": [],
       "hazards": [],
       "time_limit": null,
-      "unlock_requirements": ["act1_social_grounding"],
+      "requires": ["samson_q1_dojo", "sophia_q1_cartography", "marcel_q1_forge", "hazel_q1_gentle"],
       "act": 0,
       "story_trigger": "linzi_arrived",
       "hub_impact": {
