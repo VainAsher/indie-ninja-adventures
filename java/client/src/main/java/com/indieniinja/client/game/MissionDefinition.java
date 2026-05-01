@@ -31,27 +31,38 @@ public final class MissionDefinition {
     public final List<String>         enemyTypes;
     public final float                timeLimit;   // seconds, 0 = none
     public final int                  act;         // min act when available
+    /** Authored campaign node this mission maps to (optional, informational). */
+    public final String               progressionNodeId;
+    /** Mission IDs that must be COMPLETED before this mission is available. */
+    public final List<String>         requires;
+    /** When true, the exit room of the generated world is typed as a boss room. */
+    public final boolean              guaranteedBossExit;
 
     public MissionDefinition(String missionId, String missionName, String description,
                              String region, int difficulty, int roomCount, String shape,
                              List<MissionObjective> objectives,
                              List<String> requiredAbilities, List<String> unlockAbilities,
                              int rewardCurrency, List<String> enemyTypes,
-                             float timeLimit, int act) {
-        this.missionId        = missionId;
-        this.missionName      = missionName;
-        this.description      = description;
-        this.region           = region;
-        this.difficulty       = difficulty;
-        this.roomCount        = roomCount;
-        this.shape            = shape;
-        this.objectives       = objectives;
-        this.requiredAbilities= requiredAbilities;
-        this.unlockAbilities  = unlockAbilities;
-        this.rewardCurrency   = rewardCurrency;
-        this.enemyTypes       = enemyTypes;
-        this.timeLimit        = timeLimit;
-        this.act              = act;
+                             float timeLimit, int act,
+                             String progressionNodeId, List<String> requires,
+                             boolean guaranteedBossExit) {
+        this.missionId          = missionId;
+        this.missionName        = missionName;
+        this.description        = description;
+        this.region             = region;
+        this.difficulty         = difficulty;
+        this.roomCount          = roomCount;
+        this.shape              = shape;
+        this.objectives         = objectives;
+        this.requiredAbilities  = requiredAbilities;
+        this.unlockAbilities    = unlockAbilities;
+        this.rewardCurrency     = rewardCurrency;
+        this.enemyTypes         = enemyTypes;
+        this.timeLimit          = timeLimit;
+        this.act                = act;
+        this.progressionNodeId  = progressionNodeId != null ? progressionNodeId : "";
+        this.requires           = requires != null ? requires : new ArrayList<>();
+        this.guaranteedBossExit = guaranteedBossExit;
     }
 
     // ── JSON loading ─────────────────────────────────────────────────────────
@@ -116,10 +127,14 @@ public final class MissionDefinition {
         if (rewards != null) rewardCurrency = rewards.getInt("currency", 0);
 
         float timeLimit = m.getFloat("time_limit", 0f);
+        String progressionNodeId = str(m, "progression_node_id", null);
+        List<String> requires    = strList(m, "requires");
+        boolean guaranteedBossExit = m.getBoolean("guaranteed_boss_exit", false);
 
         return new MissionDefinition(id, name, desc, region, difficulty, roomCount, shape,
                                      objectives, reqAbilities, unlockAbilities,
-                                     rewardCurrency, enemyTypes, timeLimit, act);
+                                     rewardCurrency, enemyTypes, timeLimit, act,
+                                     progressionNodeId, requires, guaranteedBossExit);
     }
 
     private static String str(JsonValue v, String key, String def) {

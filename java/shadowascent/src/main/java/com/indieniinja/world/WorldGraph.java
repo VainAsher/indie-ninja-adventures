@@ -118,12 +118,24 @@ public final class WorldGraph {
     private final Map<Long, RoomNode> rooms;
     private final RoomNode            startRoom;
     private final RoomNode            exitRoom;
+    /**
+     * When true, the exit room should be rendered/generated as a boss room.
+     * Set via {@link #withBossExit()}. Internally the exit room retains EXIT type
+     * so graph invariants hold; callers use {@link #bossExit()} to override the wire type.
+     */
+    private final boolean             bossExit;
 
     private WorldGraph(Map<Long, RoomNode> rooms, RoomNode startRoom, RoomNode exitRoom) {
+        this(rooms, startRoom, exitRoom, false);
+    }
+
+    private WorldGraph(Map<Long, RoomNode> rooms, RoomNode startRoom, RoomNode exitRoom,
+                       boolean bossExit) {
         this.rooms = Collections.unmodifiableMap(new LinkedHashMap<>(
                 Objects.requireNonNull(rooms, "rooms")));
         this.startRoom = Objects.requireNonNull(startRoom, "startRoom");
-        this.exitRoom = Objects.requireNonNull(exitRoom, "exitRoom");
+        this.exitRoom  = Objects.requireNonNull(exitRoom, "exitRoom");
+        this.bossExit  = bossExit;
     }
 
     /**
@@ -161,6 +173,17 @@ public final class WorldGraph {
     public Collection<RoomNode> allRooms()          { return rooms.values(); }
     public RoomNode           roomAt(int gx, int gy){ return rooms.get(key(gx, gy)); }
     public int                size()                { return rooms.size(); }
+    /** True if the exit room should be generated as a boss room. */
+    public boolean            bossExit()            { return bossExit; }
+
+    /**
+     * Return a copy of this graph with the bossExit flag set to true.
+     * The exit room retains EXIT type so graph invariants hold; consumers use
+     * {@link #bossExit()} to override the room-type wire at layout time.
+     */
+    public WorldGraph withBossExit() {
+        return new WorldGraph(rooms, startRoom, exitRoom, true);
+    }
 
     /**
      * Return the room adjacent to (gx, gy) in the given cardinal direction,

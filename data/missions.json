@@ -2412,6 +2412,95 @@
         "linzi_arrived": true,
         "hub_shadow_seed": 1
       }
+    },
+    {
+      "mission_id": "act1_mission_1",
+      "mission_name": "The First Trial",
+      "description": "Aen's first step beyond the safety of Lantern Heights.",
+      "region": "lantern",
+      "difficulty": 1,
+      "room_count": 6,
+      "shape": "blob",
+      "act": 1,
+      "progression_node_id": "act1_mission_1",
+      "requires": [],
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Clear the dungeon"
+        }
+      ],
+      "required_abilities": [],
+      "unlock_abilities": [],
+      "rewards": { "currency": 20 },
+      "enemy_types": ["goblin", "slime"]
+    },
+    {
+      "mission_id": "act1_mission_2",
+      "mission_name": "The Second Trial",
+      "description": "Deeper into the wilds — the path narrows.",
+      "region": "lantern",
+      "difficulty": 1,
+      "room_count": 7,
+      "shape": "blob",
+      "act": 1,
+      "progression_node_id": "act1_mission_2",
+      "requires": ["act1_mission_1"],
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Fight through the second dungeon"
+        }
+      ],
+      "required_abilities": [],
+      "unlock_abilities": [],
+      "rewards": { "currency": 25 },
+      "enemy_types": ["goblin", "skeleton"]
+    },
+    {
+      "mission_id": "act1_mission_3",
+      "mission_name": "The Third Trial",
+      "description": "Aen's strength is tested before the shrine.",
+      "region": "lantern",
+      "difficulty": 2,
+      "room_count": 8,
+      "shape": "blob",
+      "act": 1,
+      "progression_node_id": "act1_mission_3",
+      "requires": ["act1_mission_2"],
+      "objectives": [
+        {
+          "type": "kill_all_enemies",
+          "description": "Fight through the third dungeon"
+        }
+      ],
+      "required_abilities": [],
+      "unlock_abilities": [],
+      "rewards": { "currency": 30 },
+      "enemy_types": ["skeleton", "wolf"]
+    },
+    {
+      "mission_id": "summit_shrine",
+      "mission_name": "The Summit Shrine",
+      "description": "The Siren waits at the top. This is where everything changes.",
+      "region": "lantern",
+      "difficulty": 3,
+      "room_count": 8,
+      "shape": "snake",
+      "act": 1,
+      "progression_node_id": "summit_shrine",
+      "requires": ["act1_mission_3"],
+      "guaranteed_boss_exit": true,
+      "objectives": [
+        {
+          "type": "defeat_boss",
+          "description": "Face the Siren of the Veiled Vale"
+        }
+      ],
+      "required_abilities": [],
+      "unlock_abilities": [],
+      "rewards": { "currency": 0 },
+      "enemy_types": []
     }
   ]
 }

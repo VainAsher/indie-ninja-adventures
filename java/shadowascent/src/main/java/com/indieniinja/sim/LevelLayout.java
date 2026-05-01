@@ -870,13 +870,22 @@ public final class LevelLayout {
 
         sealMissingRoomCells(combinedHash, graph, minGX, minGY, maxGX, maxGY, COLS, ROWS, TILE);
 
+        boolean bossExitFlag = graph.bossExit();
+        WorldGraph.RoomNode exitRoom = graph.exitRoom();
+
         for (WorldGraph.RoomNode room : graph.allRooms()) {
             int offX = (room.gridX - minGX) * ROOM_PX;
             int offY = (room.gridY - minGY) * ROOM_PX;
 
+            // Boss-exit override: exit room uses boss.tmx geometry + boss entity spawns
+            String effectiveWire = room.type.wire();
+            if (bossExitFlag && room.gridX == exitRoom.gridX && room.gridY == exitRoom.gridY) {
+                effectiveWire = WorldGraph.RoomType.BOSS.wire();
+            }
+
             // ── Insert tile grid ──────────────────────────────────────────────
             byte[][] grid = WorldGenerator.generate(
-                room.seed, COLS, ROWS, room.neighborDirs(), room.type.wire());
+                room.seed, COLS, ROWS, room.neighborDirs(), effectiveWire);
             for (int r = 0; r < ROWS; r++) {
                 for (int c = 0; c < COLS; c++) {
                     byte tile = grid[r][c];
@@ -889,7 +898,7 @@ public final class LevelLayout {
 
             // ── Build per-room layout to get entity spawns (room-local) ──────
             LevelLayout roomLayout = buildProceduralLayout(
-                room.seed, room.neighborDirs(), room.type.wire(), masterHubId);
+                room.seed, room.neighborDirs(), effectiveWire, masterHubId);
 
             // Offset all spawns into world-space
             for (EnemySpawn e : roomLayout.enemySpawns)

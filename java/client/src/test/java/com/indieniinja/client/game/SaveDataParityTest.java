@@ -109,7 +109,8 @@ class SaveDataParityTest {
             0,
             List.of(),
             0f,
-            0
+            0,
+            null, List.of(), false
         );
     }
 }

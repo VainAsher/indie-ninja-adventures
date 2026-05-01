@@ -1228,6 +1228,10 @@ public final class GameScreen implements Screen {
             return;
         }
 
+        if (!missionManager.isUnlocked(missionId)) {
+            log.warn("[Mission] start blocked — prerequisites not met for '{}'", missionId);
+            return;
+        }
         clearPriorMultiplayerMissionPickupContractOnMissionSwitch(missionId);
         missionManager.startMission(missionId);
         multiplayerMissionPickupSeedMissionId = "";
@@ -1299,7 +1303,8 @@ public final class GameScreen implements Screen {
         int targetRooms = targetRoomCountForAct(def);
         WorldGraph.WorldShape shape = parseWorldShape(def.shape);
         long seed = System.currentTimeMillis();
-        initializeSoloSimulation(seed, Boolean.getBoolean("ninja.record"), targetRooms, shape);
+        initializeSoloSimulation(seed, Boolean.getBoolean("ninja.record"), targetRooms, shape,
+            "lantern_heights", def.guaranteedBossExit);
         seedSoloMissionObjectivePickups(def, objectiveItemCounts);
         refreshSoloWorldRoomCache();
         hudRenderer.notifyToast("WORLD BUILT: " + targetRooms + " ROOMS");
@@ -1949,11 +1954,19 @@ public final class GameScreen implements Screen {
     private void initializeSoloSimulation(
         long seed, boolean startRecording, int roomCount, WorldGraph.WorldShape worldShape, String hubId
     ) {
+        initializeSoloSimulation(seed, startRecording, roomCount, worldShape, hubId, false);
+    }
+
+    private void initializeSoloSimulation(
+        long seed, boolean startRecording, int roomCount, WorldGraph.WorldShape worldShape,
+        String hubId, boolean bossExit
+    ) {
         soloSeed = seed;
         String resolvedHubId = (hubId == null || hubId.isBlank()) ? "central_hub" : hubId;
         int generatedRoomCount = clampInt(roomCount, 4, 60);
         WorldGraph.WorldShape shape = worldShape == null ? WorldGraph.WorldShape.BLOB : worldShape;
         soloWorldGraph = WorldGraph.generate(seed, generatedRoomCount, shape);
+        if (bossExit) soloWorldGraph = soloWorldGraph.withBossExit();
         WorldGraph.RoomNode startRoom = soloWorldGraph.startRoom();
         soloCurrentGridX = startRoom.gridX;
         soloCurrentGridY = startRoom.gridY;

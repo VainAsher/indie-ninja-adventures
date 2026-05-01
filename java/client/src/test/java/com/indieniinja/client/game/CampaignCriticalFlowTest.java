@@ -100,7 +100,8 @@ class CampaignCriticalFlowTest {
             0,
             List.of(),
             timeLimit,
-            0
+            0,
+            null, List.of(), false
         );
     }
 }

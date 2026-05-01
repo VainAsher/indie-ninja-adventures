@@ -32,7 +32,7 @@ class MissionAuthoringProgressionCoverageTest {
     @Test
     void allAuthoredMissionsProgressThroughObjectiveAdaptersAndUnlockExit() throws Exception {
         Map<String, MissionDefinition> definitions = loadDefinitionsFromAuthoredMissions();
-        assertEquals(45, definitions.size(), "Expected authored campaign mission count to remain 45");
+        assertEquals(49, definitions.size(), "Expected authored campaign mission count to remain 49");
 
         int progressed = 0;
         EnumSet<ObjectiveType> seenTypes = EnumSet.noneOf(ObjectiveType.class);

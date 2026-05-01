@@ -183,7 +183,8 @@ class GameScreenSaveRestoreTest {
                 0,
                 List.of(),
                 0f,
-                0
+                0,
+                null, List.of(), false
             );
             missions = new MissionManager(Map.of("demo_coin_run", demo));
             f.set(screen, missions);

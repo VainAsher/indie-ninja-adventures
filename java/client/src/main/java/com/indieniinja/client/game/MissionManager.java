@@ -70,12 +70,29 @@ public final class MissionManager {
     public Map<String, Integer>  getObjectiveProgressView() { return objectiveProgressView; }
     public Map<String, Integer>  getObjectiveProgressSnapshot() { return new HashMap<>(objectiveProgress); }
 
+    /**
+     * True if all prerequisite missions in def.requires are COMPLETED.
+     * Empty requires list is always unlocked.
+     */
+    public boolean isUnlocked(String missionId) {
+        MissionDefinition def = definitions.get(missionId);
+        if (def == null) return false;
+        for (String req : def.requires) {
+            if (states.getOrDefault(req, MissionState.NOT_STARTED) != MissionState.COMPLETED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /** All available mission definitions ordered by difficulty (for mission menu UI). */
     public List<MissionDefinition> availableMissions(int currentAct) {
         List<MissionDefinition> out = new ArrayList<>();
         for (MissionDefinition d : definitions.values()) {
             MissionState s = states.getOrDefault(d.missionId, MissionState.NOT_STARTED);
-            if (s != MissionState.COMPLETED && d.act <= currentAct) out.add(d);
+            if (s != MissionState.COMPLETED && d.act <= currentAct && isUnlocked(d.missionId)) {
+                out.add(d);
+            }
         }
         out.sort((a, b) -> Integer.compare(a.difficulty, b.difficulty));
         return out;
