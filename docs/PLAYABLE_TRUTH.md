@@ -3,7 +3,7 @@ doc_type: playable_truth
 status: living
 owner: qa-team
 last_updated: 2026-05-01
-version_anchor: v0.13.20
+version_anchor: v0.13.21
 ---
 
 # Playable Truth
@@ -16,7 +16,7 @@ Read this before running any test. Read this before sending any feedback. Read t
 
 ## Current build
 
-Version: **v0.13.4**
+Version: **v0.13.21**
 Platform: Windows desktop — launcher install only
 Audience: Internal QA and controlled first-session testers
 Mode: Campaign (solo, no server required)
@@ -59,11 +59,13 @@ Linzi as useful and flattering, not yet threatening.
 | ------ | ------ | ----- |
 | Core movement (walk, jump, crouch, dash) | Tunable | Physics feel is solid; dash distance may still need tuning |
 | Basic combat (attack, knockdown, kill) | Tunable | Unarmed vs armed distinction works; combo depth is post-Act I |
-| Hub navigation | Working | Lantern Heights layout is authored; NPCs are placed |
-| NPC interaction + dialogue | Working | Samson, Sophia, Marcel, Hazel, Linzi dialogue authored and routing |
-| Social missions (greet, spar, help) | Working | Act I objective sequence authored |
-| Linzi's first mission | Working | Praise-first framing; no villain flags yet |
-| Hub change after Linzi's influence | Working | One subtle NPC/environment shift after Linzi mission accepted |
+| Hub navigation | Broken | Hub has no name display, no time-of-day; Lantern Heights has no visual identity — G0 P0-G0-01 |
+| Instructor Tai onboarding | Broken | Fires as rapid toast notifications; no character context, no dialogue UI — G0 P0-G0-02 |
+| NPC interaction + dialogue | Partial | NPCs interactable but hard to find spatially; Linzi NPC → mission trigger not wired — G0 P0-G0-06 |
+| Social missions (greet, spar, help) | Partial | Social grounding completable; exit portal routes to wrong world, not hub — G0 P0-G0-04 |
+| Sparring objective with Samson | Broken | Objective undefined, no opponent/mechanics, no exit — soft-locks — G0 P0-G0-05 |
+| Linzi's first mission | Broken | Dialogue does not trigger acceptance; waypoint missions not completable — G0 P0-G0-06 |
+| Hub change after Linzi's influence | Untested | Blocked by upstream failures |
 | Yin and Yang companion orbs | Working | Visible as silver/gold orbiting companions beside Aen |
 | Save and load | Working | Hub state, story flags, and mission progress persist |
 | Controls (keyboard) | Working | Move, jump, attack, interact, map |
