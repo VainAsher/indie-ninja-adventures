@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-01
-version_anchor: v0.13.22
+version_anchor: v0.13.23
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.23] - 2026-05-01 (G0 P0 Blockers — Slice 2: Hub visual identity)
+
+### Added
+
+- **P0-G0-01:** Hub name and time-of-day banner in `HudRenderer` for campaign mode.
+  - `HudRenderer.setHubIdentity(String displayName, String timeOfDay)` — sets the top-centre banner.
+  - `GameScreen` calls `setHubIdentity` whenever `snap.hubId` changes; reads display name from `HubRegistry` and time-of-day from a static mapping (`lantern_heights` → `"At Dawn"`).
+  - Banner renders hub name in warm gold, time-of-day subtitle in muted amber below it.
+
+### Compatibility
+
+- save: no impact
+- protocol: no impact
+- replay: no impact
 
 ---
 

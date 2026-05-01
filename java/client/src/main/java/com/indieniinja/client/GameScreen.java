@@ -109,6 +109,8 @@ public final class GameScreen implements Screen {
     private float                  soloSpawnY       = 0f;
     /** Hub the solo player is currently in — mirrors SaveData.currentHubId for in-session tracking. */
     private String                 soloCurrentHubId = "central_hub";
+    /** Last hub id for which the HUD hub-identity banner was set — avoids redundant updates. */
+    private String                 prevHubIdForBanner = "";
     /** Records per-frame inputs in solo mode when -Dninja.record=true is set. */
     private final com.indieniinja.sim.InputRecorder soloRecorder = new com.indieniinja.sim.InputRecorder();
     /** Non-null during replay playback — drives inputs instead of the keyboard. */
@@ -257,6 +259,15 @@ public final class GameScreen implements Screen {
     private String lastMissionToastId = "";
     /** Active multiplayer mission pickup seed contract tracked client-side for lifecycle clear events. */
     private String multiplayerMissionPickupSeedMissionId = "";
+
+    /** Map hub id to its authored time-of-day label for the HUD banner. */
+    private static String hubTimeOfDay(String hubId) {
+        if (hubId == null) return "";
+        return switch (hubId) {
+            case "lantern_heights" -> "At Dawn";
+            default                -> "";
+        };
+    }
 
     /**
      * Resolve dialogue tree id for an NPC.
@@ -941,6 +952,15 @@ public final class GameScreen implements Screen {
                 String snapHub = snap.hubId != null ? snap.hubId : "";
                 int    snapAct = storyManager != null ? storyManager.currentAct().wire() : 0;
                 musicManager.playZone(snapHub, snapAct);
+            }
+
+            // ── Hub identity banner (campaign mode) ───────────────────────────
+            String snapHubId = snap.hubId != null ? snap.hubId : "";
+            if (hudRenderer != null && !snapHubId.equals(prevHubIdForBanner)) {
+                prevHubIdForBanner = snapHubId;
+                com.indieniinja.world.HubRegistry.HubDef hubDef =
+                    com.indieniinja.world.HubRegistry.get(snapHubId);
+                hudRenderer.setHubIdentity(hubDef.displayName(), hubTimeOfDay(snapHubId));
             }
 
             // ── Cache world rooms from full snapshots (empty on delta frames) ──

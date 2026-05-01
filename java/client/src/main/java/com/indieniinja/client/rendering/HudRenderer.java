@@ -80,6 +80,9 @@ public final class HudRenderer {
     private final java.util.List<String> missionTrackerLines = new java.util.ArrayList<>();
     private boolean missionTrackerExitLocked = false;
     private float missionTrackerTimerSec = 0f;
+    // Hub identity banner (campaign mode — set on hub entry).
+    private String hubDisplayName = "";
+    private String hubTimeOfDay   = "";
     // Scripted-loss splash continue button bounds (screen-space, y-up).
     private float scriptedLossBtnX = 0f;
     private float scriptedLossBtnY = 0f;
@@ -380,7 +383,27 @@ public final class HudRenderer {
                     font.draw(hudBatch, "SANDBOX  MODE", sw * 0.5f - 60f, sh - 6f);
                     font.setColor(Color.WHITE);
                 }
-                case "campaign" -> { /* mission HUD handled by DialogueOverlay */ }
+                case "campaign" -> {
+                    // Hub name + time-of-day banner — top-centre, campaign mode only.
+                    if (!hubDisplayName.isBlank()) {
+                        font.getData().setScale(1.3f);
+                        font.setColor(0.98f, 0.88f, 0.55f, 0.90f);
+                        com.badlogic.gdx.graphics.g2d.GlyphLayout nameLayout =
+                            new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, hubDisplayName.toUpperCase());
+                        font.draw(hudBatch, hubDisplayName.toUpperCase(),
+                            (sw - nameLayout.width) * 0.5f, sh - 8f);
+                        if (!hubTimeOfDay.isBlank()) {
+                            font.getData().setScale(0.85f);
+                            font.setColor(0.78f, 0.70f, 0.52f, 0.75f);
+                            com.badlogic.gdx.graphics.g2d.GlyphLayout todLayout =
+                                new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, hubTimeOfDay);
+                            font.draw(hudBatch, hubTimeOfDay,
+                                (sw - todLayout.width) * 0.5f, sh - 24f);
+                        }
+                        font.getData().setScale(1f);
+                        font.setColor(Color.WHITE);
+                    }
+                }
             }
         }
 
@@ -484,6 +507,12 @@ public final class HudRenderer {
         if (text == null || text.isBlank()) return;
         toastTexts.add(text);
         toastTtls.add(TOAST_TTL);
+    }
+
+    /** Set the hub identity banner shown in campaign mode (empty strings hide each line). */
+    public void setHubIdentity(String displayName, String timeOfDay) {
+        this.hubDisplayName = displayName == null ? "" : displayName;
+        this.hubTimeOfDay   = timeOfDay   == null ? "" : timeOfDay;
     }
 
     /** Update active mission tracker data (empty title hides the panel). */
