@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-04-30
-version_anchor: v0.13.19
+last_updated: 2026-05-01
+version_anchor: v0.13.20
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.20] - 2026-05-01 (Runtime Campaign Progression Wiring)
+
+### Added
+
+- **Act I mission definitions** (`data/missions.json`): 4 authored missions — `act1_mission_1`, `act1_mission_2`, `act1_mission_3`, `summit_shrine` — each with `progression_node_id`, `requires[]`, difficulty scaling, and appropriate objectives.
+- **Mission prerequisite sequencing**: `MissionDefinition.requires[]` field lists mission IDs that must be COMPLETED before a mission is available. `MissionManager.isUnlocked()` enforces this chain. `availableMissions()` and `GameScreen.startMissionFlow()` both gate on prerequisite state. Act I enforces the linear order: mission 1 → 2 → 3 → summit_shrine.
+- **Guaranteed boss exit** (`guaranteed_boss_exit: true` on `summit_shrine`): `WorldGraph.withBossExit()` copies the graph with a flag that causes `LevelLayout.buildUnifiedWorldLayout()` to override the exit room wire type to `"boss"`. Siren boss spawn is guaranteed in the summit_shrine mission world regardless of procedural room count.
+- **`MissionDefinition.progressionNodeId`**: Links each runtime mission to its authored campaign node (informational, no runtime gate).
+- **Tests**: `MissionSequencingTest` (6 cases — unlock chain, gate enforcement, available-missions filter), `WorldGraphBossExitTest` (4 cases — flag default, withBossExit copy, room preservation, type invariant). Mission count updated to 49 in `MissionAuthoringProgressionCoverageTest`.
+
+### Compatibility
+
+- **save / protocol**: no change.
+- **replay**: no change (room type override only affects newly generated mission worlds).
+- **missions.json**: additive — existing missions unmodified; 4 new Act I entries appended.
 
 ---
 
