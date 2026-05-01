@@ -22,6 +22,13 @@ public final class WorldgenLabAnalyzer {
     private WorldgenLabAnalyzer() {}
 
     public static WorldgenLabReport analyze(long worldSeed, WorldGraph graph) {
+        return analyze(worldSeed, graph, QualitySignals.empty());
+    }
+
+    public static WorldgenLabReport analyze(
+            long worldSeed,
+            WorldGraph graph,
+            QualitySignals qualitySignals) {
         Map<String, Integer> typeCounts = new LinkedHashMap<>();
         Map<String, Integer> warningCounts = new LinkedHashMap<>();
         List<WorldgenLabReport.RoomLabMetrics> rooms = graph.allRooms().stream()
@@ -32,18 +39,56 @@ public final class WorldgenLabAnalyzer {
             .toList();
 
         int warningTotal = warningCounts.values().stream().mapToInt(Integer::intValue).sum();
-        int qualityScore = Math.max(0, 100 - warningTotal * 10);
-        String overallStatus = warningTotal == 0 ? "pass" : "fail";
+        ScoreBreakdown scores = computeScores(warningTotal, qualitySignals);
+        String overallStatus = warningTotal == 0 && scores.transitionDebtPenalty() == 0 ? "pass" : "fail";
         return new WorldgenLabReport(
             worldSeed,
             overallStatus,
-            qualityScore,
+            scores.qualityScoreV2(),
+            scores.qualityScoreV1(),
+            scores.qualityScoreV2(),
+            scores.transitionDebtPenalty(),
+            scores.criticalPathVarietyScore(),
+            scores.socketCompatibilityScore(),
             rooms.size(),
             ZONE_LEGEND,
             TILE_LEGEND,
             typeCounts,
             warningCounts,
             rooms
+        );
+    }
+
+    static ScoreBreakdown computeScores(int warningTotal, QualitySignals rawSignals) {
+        QualitySignals signals = rawSignals != null ? rawSignals.normalized() : QualitySignals.empty();
+        int qualityScoreV1 = clampScore(100 - Math.max(0, warningTotal) * 10);
+        int transitionDebtPenalty = percentage(
+            signals.mandatoryTransitionDebtCount(),
+            signals.mandatoryEdgeCount(),
+            0
+        );
+        int criticalPathVarietyScore = percentage(
+            signals.criticalPathUniqueTemplateCount(),
+            signals.criticalPathTemplateCount(),
+            100
+        );
+        int socketCompatibilityScore = percentage(
+            signals.matchedSocketContracts(),
+            signals.totalSocketContracts(),
+            100
+        );
+        int qualityScoreV2 = clampScore((int) Math.round(
+            qualityScoreV1 * 0.40
+                + (100 - transitionDebtPenalty) * 0.30
+                + criticalPathVarietyScore * 0.15
+                + socketCompatibilityScore * 0.15
+        ));
+        return new ScoreBreakdown(
+            qualityScoreV1,
+            qualityScoreV2,
+            transitionDebtPenalty,
+            criticalPathVarietyScore,
+            socketCompatibilityScore
         );
     }
 
@@ -296,6 +341,53 @@ public final class WorldgenLabAnalyzer {
         out.put("c", "climbable");
         return out;
     }
+
+    private static int percentage(int numerator, int denominator, int emptyFallback) {
+        int safeNumerator = Math.max(0, numerator);
+        int safeDenominator = Math.max(0, denominator);
+        if (safeDenominator == 0) {
+            return clampScore(emptyFallback);
+        }
+        double ratio = (double) Math.min(safeNumerator, safeDenominator) / safeDenominator;
+        return clampScore((int) Math.round(ratio * 100.0));
+    }
+
+    private static int clampScore(int value) {
+        return Math.max(0, Math.min(100, value));
+    }
+
+    public record QualitySignals(
+            int mandatoryTransitionDebtCount,
+            int mandatoryEdgeCount,
+            int criticalPathUniqueTemplateCount,
+            int criticalPathTemplateCount,
+            int matchedSocketContracts,
+            int totalSocketContracts) {
+        public static QualitySignals empty() {
+            return new QualitySignals(0, 0, 0, 0, 0, 0);
+        }
+
+        QualitySignals normalized() {
+            int safeMandatoryEdgeCount = Math.max(0, mandatoryEdgeCount);
+            int safeCriticalPathTemplateCount = Math.max(0, criticalPathTemplateCount);
+            int safeTotalSocketContracts = Math.max(0, totalSocketContracts);
+            return new QualitySignals(
+                Math.max(0, mandatoryTransitionDebtCount),
+                safeMandatoryEdgeCount,
+                Math.max(0, criticalPathUniqueTemplateCount),
+                safeCriticalPathTemplateCount,
+                Math.max(0, matchedSocketContracts),
+                safeTotalSocketContracts
+            );
+        }
+    }
+
+    record ScoreBreakdown(
+            int qualityScoreV1,
+            int qualityScoreV2,
+            int transitionDebtPenalty,
+            int criticalPathVarietyScore,
+            int socketCompatibilityScore) {}
 
     private record TileCounts(int solidTiles, int platformTiles, int airTiles) {}
 }

@@ -46,7 +46,9 @@ public record SocketAnchorPlan(
             SocketContract fromSocket,
             SocketContract toSocket,
             String status,
-            String policy) {
+            String policy,
+            boolean mandatory,
+            String transitionStrategy) {
         public ConnectionContract {
             fromNodeId = requireText(fromNodeId, "fromNodeId");
             toNodeId = requireText(toNodeId, "toNodeId");
@@ -54,6 +56,9 @@ public record SocketAnchorPlan(
             toSocket = toSocket != null ? toSocket : SocketContract.missing("missing_to");
             status = status == null || status.isBlank() ? "needs_transition" : status;
             policy = policy == null || policy.isBlank() ? "progression_edge" : policy;
+            transitionStrategy = transitionStrategy == null || transitionStrategy.isBlank()
+                ? "none"
+                : transitionStrategy;
         }
 
         Map<String, Object> toSnapshot() {
@@ -64,6 +69,8 @@ public record SocketAnchorPlan(
             out.put("toSocket", toSocket.toSnapshot());
             out.put("status", status);
             out.put("policy", policy);
+            out.put("mandatory", mandatory);
+            out.put("transitionStrategy", transitionStrategy);
             return out;
         }
     }

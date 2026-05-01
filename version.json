@@ -1,7 +1,7 @@
 {
-  "version": "0.13.20",
+  "version": "0.13.21",
   "build": "production",
-  "build_date": "2026-04-30",
-  "generator_schema_version": 10,
+  "build_date": "2026-05-01",
+  "generator_schema_version": 11,
   "min_launcher_version": "1.1.0"
 }

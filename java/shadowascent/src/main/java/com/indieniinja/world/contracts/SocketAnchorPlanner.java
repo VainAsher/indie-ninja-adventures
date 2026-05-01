@@ -7,9 +7,11 @@ import com.indieniinja.world.sections.SectionTemplateLibrary;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,10 @@ import java.util.stream.Collectors;
  */
 public final class SocketAnchorPlanner {
     private static final int SECTION_GRID_TILE_SIZE = 64;
+    private static final Set<String> VALID_SIDES = Set.of("north", "south", "east", "west");
+    private static final Set<String> VALID_BANDS = Set.of("low", "mid", "high");
+    private static final Set<String> TRANSITION_STRATEGY_TAGS = Set.of(
+        "transition", "bridge", "ladder", "portal", "door", "climb", "vault", "shaft");
 
     private SocketAnchorPlanner() {}
 
@@ -29,6 +35,7 @@ public final class SocketAnchorPlanner {
         if (layout == null || templates == null || layout.assignments().isEmpty()) {
             return new SocketAnchorPlan(worldSeed, List.of(), List.of());
         }
+        SocketPolicy socketPolicy = SocketPolicy.fromSystemProperties();
 
         Map<String, SectionTemplate> templatesById = templates.templates().stream()
             .collect(Collectors.toMap(SectionTemplate::id, template -> template, (first, ignored) -> first));
@@ -43,21 +50,29 @@ public final class SocketAnchorPlanner {
 
             SectionTemplate fromTemplate = templatesById.get(from.get().templateId());
             SectionTemplate toTemplate = templatesById.get(to.get().templateId());
+            String direction = direction(from.get(), to.get());
             SocketAnchorPlan.SocketContract fromSocket = chooseSocket(
                 fromTemplate,
-                socket -> socket.side().equals(direction(from.get(), to.get()))
+                socket -> socket.side().equals(direction),
+                socketPolicy
             );
             SocketAnchorPlan.SocketContract toSocket = chooseSocket(
                 toTemplate,
-                socket -> socket.side().equals(opposite(direction(from.get(), to.get())))
+                socket -> socket.side().equals(opposite(direction)),
+                socketPolicy
             );
+            boolean isCompatible = compatible(fromSocket, toSocket);
+            boolean mandatory = !from.get().optional() && !to.get().optional();
+            String policy = (mandatory ? "mandatory_" : "optional_") + connection.policy();
             contracts.add(new SocketAnchorPlan.ConnectionContract(
                 connection.fromNodeId(),
                 connection.toNodeId(),
                 fromSocket,
                 toSocket,
-                compatible(fromSocket, toSocket) ? "matched" : "needs_transition",
-                connection.policy()
+                isCompatible ? "matched" : "needs_transition",
+                policy,
+                mandatory,
+                isCompatible ? "direct" : deriveTransitionStrategy(fromSocket, toSocket)
             ));
         }
 
@@ -103,12 +118,13 @@ public final class SocketAnchorPlanner {
 
     private static SocketAnchorPlan.SocketContract chooseSocket(
             SectionTemplate template,
-            Predicate<SocketAnchorPlan.SocketContract> preferred) {
+            Predicate<SocketAnchorPlan.SocketContract> preferred,
+            SocketPolicy policy) {
         if (template == null || template.requiredSockets().isEmpty()) {
             return SocketAnchorPlan.SocketContract.missing("missing");
         }
         List<SocketAnchorPlan.SocketContract> sockets = template.requiredSockets().stream()
-            .map(SocketAnchorPlanner::parseSocket)
+            .map(id -> parseSocket(id, policy))
             .toList();
         return sockets.stream()
             .filter(preferred)
@@ -116,13 +132,17 @@ public final class SocketAnchorPlanner {
             .orElse(sockets.get(0));
     }
 
-    private static SocketAnchorPlan.SocketContract parseSocket(String id) {
+    private static SocketAnchorPlan.SocketContract parseSocket(String id, SocketPolicy policy) {
         String[] parts = id == null ? new String[0] : id.split("_");
         String side = parts.length > 0 && !parts[0].isBlank() ? parts[0] : "unknown";
         String band = parts.length > 1 && !parts[1].isBlank() ? parts[1] : "mid";
         List<String> tags = parts.length > 2
             ? Arrays.stream(parts).skip(2).filter(part -> !part.isBlank()).toList()
             : List.of("walk");
+        if (policy.strictGrammar()
+                && (!VALID_SIDES.contains(side) || !VALID_BANDS.contains(band))) {
+            return SocketAnchorPlan.SocketContract.missing(id != null ? id : "missing");
+        }
         int width = tags.contains("jump") ? 3 : 4;
         int clearanceH = band.equals("low") ? 4 : 6;
         return new SocketAnchorPlan.SocketContract(id, side, band, tags, width, width, clearanceH);
@@ -173,5 +193,30 @@ public final class SocketAnchorPlanner {
 
     private static SocketAnchorPlan.Bounds bounds(SectionTemplate.Bounds bounds) {
         return new SocketAnchorPlan.Bounds(bounds.x(), bounds.y(), bounds.w(), bounds.h());
+    }
+
+    private static String deriveTransitionStrategy(
+            SocketAnchorPlan.SocketContract from,
+            SocketAnchorPlan.SocketContract to) {
+        Set<String> tags = new LinkedHashSet<>();
+        from.traversalTags().stream()
+            .filter(TRANSITION_STRATEGY_TAGS::contains)
+            .sorted()
+            .forEach(tags::add);
+        to.traversalTags().stream()
+            .filter(TRANSITION_STRATEGY_TAGS::contains)
+            .sorted()
+            .forEach(tags::add);
+        if (tags.isEmpty()) {
+            return "none";
+        }
+        return String.join("+", tags);
+    }
+
+    private record SocketPolicy(boolean strictGrammar) {
+        private static SocketPolicy fromSystemProperties() {
+            return new SocketPolicy(Boolean.parseBoolean(
+                System.getProperty("ninja.socketContractStrict", "false")));
+        }
     }
 }

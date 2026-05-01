@@ -644,8 +644,18 @@ def resolve_snapshot_path(path: Path) -> Path:
 def build_compare_report(base: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
     base_lab = base.get("labReport") if isinstance(base.get("labReport"), dict) else {}
     candidate_lab = candidate.get("labReport") if isinstance(candidate.get("labReport"), dict) else {}
-    base_quality = numeric_or_zero(base_lab.get("qualityScore"))
-    candidate_quality = numeric_or_zero(candidate_lab.get("qualityScore"))
+    base_quality = lab_metric(base_lab, "qualityScore", fallback="qualityScoreV2")
+    candidate_quality = lab_metric(candidate_lab, "qualityScore", fallback="qualityScoreV2")
+    base_quality_v1 = lab_metric(base_lab, "qualityScoreV1", fallback="qualityScore")
+    candidate_quality_v1 = lab_metric(candidate_lab, "qualityScoreV1", fallback="qualityScore")
+    base_quality_v2 = lab_metric(base_lab, "qualityScoreV2", fallback="qualityScore")
+    candidate_quality_v2 = lab_metric(candidate_lab, "qualityScoreV2", fallback="qualityScore")
+    base_transition_penalty = lab_metric(base_lab, "transitionDebtPenalty")
+    candidate_transition_penalty = lab_metric(candidate_lab, "transitionDebtPenalty")
+    base_variety = lab_metric(base_lab, "criticalPathVarietyScore")
+    candidate_variety = lab_metric(candidate_lab, "criticalPathVarietyScore")
+    base_socket = lab_metric(base_lab, "socketCompatibilityScore")
+    candidate_socket = lab_metric(candidate_lab, "socketCompatibilityScore")
     warning_deltas = diff_numeric_maps(
         base_lab.get("warningCounts") if isinstance(base_lab.get("warningCounts"), dict) else {},
         candidate_lab.get("warningCounts") if isinstance(candidate_lab.get("warningCounts"), dict) else {},
@@ -657,6 +667,11 @@ def build_compare_report(base: dict[str, Any], candidate: dict[str, Any]) -> dic
         "base": snapshot_summary(base),
         "candidate": snapshot_summary(candidate),
         "qualityDelta": candidate_quality - base_quality,
+        "qualityV1Delta": candidate_quality_v1 - base_quality_v1,
+        "qualityV2Delta": candidate_quality_v2 - base_quality_v2,
+        "transitionDebtPenaltyDelta": candidate_transition_penalty - base_transition_penalty,
+        "criticalPathVarietyScoreDelta": candidate_variety - base_variety,
+        "socketCompatibilityScoreDelta": candidate_socket - base_socket,
         "warningDeltas": warning_deltas,
         "roomChecksumChanges": checksum_changes,
     }
@@ -668,7 +683,12 @@ def snapshot_summary(snapshot: dict[str, Any]) -> dict[str, Any]:
         "worldSeed": snapshot.get("worldSeed"),
         "shape": snapshot.get("shape"),
         "generatorSchemaVersion": snapshot.get("generatorSchemaVersion"),
-        "qualityScore": lab.get("qualityScore"),
+        "qualityScore": lab_metric(lab, "qualityScore", fallback="qualityScoreV2"),
+        "qualityScoreV1": lab_metric(lab, "qualityScoreV1", fallback="qualityScore"),
+        "qualityScoreV2": lab_metric(lab, "qualityScoreV2", fallback="qualityScore"),
+        "transitionDebtPenalty": lab_metric(lab, "transitionDebtPenalty"),
+        "criticalPathVarietyScore": lab_metric(lab, "criticalPathVarietyScore"),
+        "socketCompatibilityScore": lab_metric(lab, "socketCompatibilityScore"),
         "overallStatus": lab.get("overallStatus"),
         "warningCountTotal": sum_numeric_values(lab.get("warningCounts") if isinstance(lab.get("warningCounts"), dict) else {}),
         "roomCountActual": snapshot.get("roomCountActual"),
@@ -686,6 +706,15 @@ def diff_numeric_maps(base: dict[str, Any], candidate: dict[str, Any]) -> dict[s
 
 def numeric_or_zero(value: Any) -> int | float:
     return value if isinstance(value, (int, float)) else 0
+
+
+def lab_metric(lab: dict[str, Any], key: str, fallback: str | None = None) -> int | float:
+    value = numeric_or_zero(lab.get(key))
+    if value != 0 or key in lab:
+        return value
+    if fallback:
+        return numeric_or_zero(lab.get(fallback))
+    return 0
 
 
 def room_checksum_changes(base_rooms: Any, candidate_rooms: Any) -> int:
@@ -715,6 +744,11 @@ def write_compare_csv(report: dict[str, Any], path: Path) -> None:
         writer.writerow(["worldSeed", report.get("worldSeed")])
         writer.writerow(["sameWorldSeed", report.get("sameWorldSeed")])
         writer.writerow(["qualityDelta", report.get("qualityDelta")])
+        writer.writerow(["qualityV1Delta", report.get("qualityV1Delta")])
+        writer.writerow(["qualityV2Delta", report.get("qualityV2Delta")])
+        writer.writerow(["transitionDebtPenaltyDelta", report.get("transitionDebtPenaltyDelta")])
+        writer.writerow(["criticalPathVarietyScoreDelta", report.get("criticalPathVarietyScoreDelta")])
+        writer.writerow(["socketCompatibilityScoreDelta", report.get("socketCompatibilityScoreDelta")])
         writer.writerow(["roomChecksumChanges", report.get("roomChecksumChanges")])
         for key, value in sorted((report.get("warningDeltas") or {}).items()):
             writer.writerow([f"warningDelta.{key}", value])
@@ -737,6 +771,11 @@ def render_compare_html(report: dict[str, Any]) -> str:
         "<body>\n"
         f"<h1>Worldgen Lab Compare Seed {html.escape(str(report.get('worldSeed')))}</h1>\n"
         f"<div class=\"metric\"><strong>Quality Delta</strong><br>{html.escape(str(report.get('qualityDelta')))}</div>\n"
+        f"<div class=\"metric\"><strong>Quality V1 Delta</strong><br>{html.escape(str(report.get('qualityV1Delta')))}</div>\n"
+        f"<div class=\"metric\"><strong>Quality V2 Delta</strong><br>{html.escape(str(report.get('qualityV2Delta')))}</div>\n"
+        f"<div class=\"metric\"><strong>Transition Debt Penalty Delta</strong><br>{html.escape(str(report.get('transitionDebtPenaltyDelta')))}</div>\n"
+        f"<div class=\"metric\"><strong>Critical Path Variety Delta</strong><br>{html.escape(str(report.get('criticalPathVarietyScoreDelta')))}</div>\n"
+        f"<div class=\"metric\"><strong>Socket Compatibility Delta</strong><br>{html.escape(str(report.get('socketCompatibilityScoreDelta')))}</div>\n"
         f"<div class=\"metric\"><strong>Room Checksum Changes</strong><br>{html.escape(str(report.get('roomChecksumChanges')))}</div>\n"
         f"<div class=\"metric\"><strong>Same Seed</strong><br>{html.escape(str(report.get('sameWorldSeed')))}</div>\n"
         "<h2>Warning Deltas</h2>\n"

@@ -2,8 +2,8 @@
 doc_type: playable_truth
 status: living
 owner: qa-team
-last_updated: 2026-04-29
-version_anchor: v0.13.4
+last_updated: 2026-05-01
+version_anchor: v0.13.20
 ---
 
 # Playable Truth
@@ -67,6 +67,8 @@ Linzi as useful and flattering, not yet threatening.
 | Yin and Yang companion orbs | Working | Visible as silver/gold orbiting companions beside Aen |
 | Save and load | Working | Hub state, story flags, and mission progress persist |
 | Controls (keyboard) | Working | Move, jump, attack, interact, map |
+| Worldgen validation semantics | Working | `validationReport.valid=true` now implies critical-path traversal is contract-safe, not only shell geometry-complete |
+| Act I template variety | Working | Forest trial and Lantern approach critical-path sections now have multiple authored variants, reducing seed-to-seed repetition |
 
 ---
 

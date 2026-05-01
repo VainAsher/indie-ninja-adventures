@@ -9,6 +9,11 @@ public record WorldgenLabReport(
         long worldSeed,
         String overallStatus,
         int qualityScore,
+        int qualityScoreV1,
+        int qualityScoreV2,
+        int transitionDebtPenalty,
+        int criticalPathVarietyScore,
+        int socketCompatibilityScore,
         int roomCount,
         Map<String, String> zoneLegend,
         Map<String, String> tileLegend,
@@ -21,6 +26,11 @@ public record WorldgenLabReport(
         out.put("worldSeed", worldSeed);
         out.put("overallStatus", overallStatus);
         out.put("qualityScore", qualityScore);
+        out.put("qualityScoreV1", qualityScoreV1);
+        out.put("qualityScoreV2", qualityScoreV2);
+        out.put("transitionDebtPenalty", transitionDebtPenalty);
+        out.put("criticalPathVarietyScore", criticalPathVarietyScore);
+        out.put("socketCompatibilityScore", socketCompatibilityScore);
         out.put("roomCount", roomCount);
         out.put("zoneLegend", new LinkedHashMap<>(zoneLegend));
         out.put("tileLegend", new LinkedHashMap<>(tileLegend));

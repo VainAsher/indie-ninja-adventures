@@ -1,0 +1,31 @@
+{
+  "id": "lantern_boss_approach_sanctum",
+  "biome": "lantern",
+  "kind": "boss_approach",
+  "footprint": { "gridW": 2, "gridH": 2 },
+  "nodeKinds": ["entry", "sanctum_loop", "threshold", "boss_door"],
+  "edgeRules": [
+    { "from": "entry", "to": "sanctum_loop" },
+    { "from": "sanctum_loop", "to": "threshold" },
+    { "from": "threshold", "to": "boss_door" }
+  ],
+  "requiredSockets": ["west_low_walk", "east_mid_jump", "north_mid_climb"],
+  "mutableZones": [
+    { "x": 12, "y": 18, "w": 16, "h": 8, "role": "illusion_wave" },
+    { "x": 28, "y": 34, "w": 12, "h": 8, "role": "elite_wave" }
+  ],
+  "anchors": [
+    {
+      "id": "boss_door_anchor_sanctum",
+      "kind": "boss_door",
+      "phase": "global",
+      "localBounds": { "x": 40, "y": 18, "w": 4, "h": 4 },
+      "tags": ["critical", "gate"],
+      "weight": 1.0,
+      "quotaGroup": "critical_gates",
+      "minDistance": 0,
+      "requires": ["region_key"],
+      "forbids": []
+    }
+  ]
+}

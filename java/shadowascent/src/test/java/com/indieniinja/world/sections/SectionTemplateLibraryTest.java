@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SectionTemplateLibraryTest {
 
@@ -72,6 +73,73 @@ class SectionTemplateLibraryTest {
 
         assertThat(library.toSnapshot()).extracting(node -> node.get("id"))
             .containsExactly("a_entry", "z_shortcut");
+    }
+
+    @Test
+    void validationIssuesAreSortedDeterministically() throws Exception {
+        Path root = tempDir.resolve("sections");
+        Files.createDirectories(root);
+        Files.writeString(root.resolve("z_bad.json"), """
+            {
+              "id": "z_bad",
+              "biome": "forest",
+              "kind": "key_trial",
+              "footprint": { "gridW": 2, "gridH": 1 },
+              "requiredSockets": ["west_low_walk"],
+              "edgeRules": [{ "from": "entry", "to": "reward" }],
+              "anchors": [{ "id": "a", "kind": "reward" }]
+            }
+            """);
+        Files.writeString(root.resolve("a_bad.json"), """
+            {
+              "id": "a_bad",
+              "biome": "forest",
+              "kind": "key_trial",
+              "footprint": { "gridW": 2, "gridH": 1 },
+              "nodeKinds": ["entry", "reward"],
+              "edgeRules": [{ "from": "entry", "to": "reward" }],
+              "requiredSockets": ["west-low-walk"],
+              "anchors": [{ "id": "a", "kind": "reward" }]
+            }
+            """);
+
+        SectionTemplateLibrary library = SectionTemplateLibrary.load(root);
+
+        assertThat(library.validationIssues()).extracting(SectionTemplateValidationIssue::file)
+            .isSorted();
+    }
+
+    @Test
+    void strictModeFailsLoadWhenErrorsExist() throws Exception {
+        Path root = tempDir.resolve("sections");
+        Files.createDirectories(root);
+        Files.writeString(root.resolve("bad.json"), """
+            {
+              "id": "bad_template",
+              "biome": "forest",
+              "kind": "key_trial",
+              "footprint": { "gridW": 2, "gridH": 1 },
+              "edgeRules": [{ "from": "entry", "to": "reward" }],
+              "requiredSockets": ["west_low_walk"],
+              "anchors": [{ "id": "a", "kind": "reward" }]
+            }
+            """);
+
+        String prior = System.getProperty("ninja.sectionTemplateStrict");
+        System.setProperty("ninja.sectionTemplateStrict", "true");
+        try {
+            assertThatThrownBy(() -> SectionTemplateLibrary.load(root))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Strict section template validation failed")
+                .hasMessageContaining("missing_required_field")
+                .hasMessageContaining("nodeKinds");
+        } finally {
+            if (prior == null) {
+                System.clearProperty("ninja.sectionTemplateStrict");
+            } else {
+                System.setProperty("ninja.sectionTemplateStrict", prior);
+            }
+        }
     }
 
     private static void writeSection(

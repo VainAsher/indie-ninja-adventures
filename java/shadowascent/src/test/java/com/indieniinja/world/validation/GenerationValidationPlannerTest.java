@@ -37,10 +37,11 @@ class GenerationValidationPlannerTest {
 
         GenerationValidationReport report = GenerationValidationPlanner.validate(graph, layout, socketAnchorPlan);
 
-        assertThat(report.valid()).isTrue();
+        assertThat(report.valid()).isFalse();
         assertThat(report.progressionValid()).isTrue();
         assertThat(report.reachableCriticalAnchorCount()).isGreaterThanOrEqualTo(1);
-        assertThat(report.toSnapshot().get("issueCount")).isEqualTo(0);
+        assertThat(report.issues()).extracting(GenerationValidationReport.Issue::kind)
+            .contains("critical_path_transition_debt");
     }
 
     @Test
@@ -61,5 +62,38 @@ class GenerationValidationPlannerTest {
             .contains("missing_connection_contract");
         assertThat(report.repairActions()).extracting(GenerationValidationReport.RepairAction::tier)
             .contains("replace");
+    }
+
+    @Test
+    void optionalTransitionDebtDoesNotInvalidateReport() {
+        WorldProgressionGraph graph = WorldProgressionGenerator.generate(12345L);
+        HybridLayoutPlan layout = new HybridLayoutPlan(
+            1L,
+            new HybridLayoutPlan.Bounds(0, 0, 0, 0),
+            List.of(),
+            List.of()
+        );
+        SocketAnchorPlan socketAnchorPlan = new SocketAnchorPlan(
+            1L,
+            List.of(new SocketAnchorPlan.ConnectionContract(
+                "region_a_entry",
+                "region_a_treasure",
+                new SocketAnchorPlan.SocketContract("east_mid_jump", "east", "mid", List.of("jump"), 3, 3, 6),
+                new SocketAnchorPlan.SocketContract("west_low_walk", "west", "low", List.of("walk"), 4, 4, 4),
+                "needs_transition",
+                "optional_progression_edge",
+                false,
+                "none"
+            )),
+            List.of()
+        );
+
+        GenerationValidationReport report = GenerationValidationPlanner.validate(graph, layout, socketAnchorPlan);
+
+        assertThat(report.valid()).isTrue();
+        assertThat(report.issues()).extracting(GenerationValidationReport.Issue::kind)
+            .contains("optional_transition_debt");
+        assertThat(report.issues()).extracting(GenerationValidationReport.Issue::severity)
+            .contains("warning");
     }
 }

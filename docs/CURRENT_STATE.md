@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-04-30
-version_anchor: v0.13.19
+last_updated: 2026-05-01
+version_anchor: v0.13.21
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,22 +21,17 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-04-30): v0.13.17 is the Worldgen Lab Act 1 baseline release target.
-- Release assets verified for v0.13.13: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.13.zip`.
+- Current release truth (2026-05-01): v0.13.21 — Worldgen Vision Execution (schema hardening, traversal contracts, content variety, quality scoring v2).
+- Release assets verified for v0.13.20: `ninja-client-all.jar`, `ninja-server-all.jar`.
 - G0/P0-10 is not closed yet: 5 first-session records are still required before `ROADMAP.md` can mark G0 complete.
 - G0 evidence packet: [`docs/reports/manual-runtime/g0-v0.13.5-signoff.md`](reports/manual-runtime/g0-v0.13.5-signoff.md).
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
+- Worldgen runtime adoption plan: [`docs/plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md`](plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md) — RFC stub; not yet scheduled.
 - Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
 - Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof).
-- Next G0 evidence target: v0.13.18 (G0 signoff evidence + state sync; code changes only for G0 blockers).
+- Next G0 evidence target: collect 5 first-session records (unchanged from previous target).
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
-- Latest release verification (`2026-04-30`):
-  - CI green for `0e5d8f8` (`v0.13.13`)
-  - Release workflow green for tag `v0.13.13`
-  - Assets verified: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-04-30-v0.13.13.zip`
-  - Local gates passed: version sync, docs freshness, client/server tests, client/server shadow JARs
-  - G0 signoff still requires 5 first-session records before P0-10 can close
 
 ## Runtime Reality (Implemented)
 
@@ -81,6 +76,32 @@ Canonical runtime and handover snapshot for the active Java stack.
   pipeline, batch, render, and compare paths.
 - **Compatibility:** no live replay/save/protocol change; generator snapshot
   schema remains `10`.
+
+## Active Slice - Worldgen vision execution (schema 11)
+
+- **Status:** Implemented in branch work and validated locally (2026-05-01).
+- **Completed:**
+  - strict section schema validator with deterministic issue ordering and opt-in strict load mode (`-Dninja.sectionTemplateStrict=true`)
+  - critical-path transition debt policy (`critical_path_transition_debt`) so unresolved mandatory `needs_transition` contracts now invalidate validation
+  - Act I template variety expansion (`forest:key_trial` + `lantern:boss_approach`) and authoring guardrails (`docs/guides/WORLDGEN_SECTION_AUTHORING.md`)
+  - worldgen lab quality scoring V2 metrics: `transitionDebtPenalty`, `criticalPathVarietyScore`, `socketCompatibilityScore`, plus migration fields `qualityScoreV1` and `qualityScoreV2`
+- **Snapshot baseline regenerated:** `java/shadowascent/build/worldgen-snapshots/act1-seed-420.json`
+  - schema: `11`
+  - validation: `valid=false`, issues: `critical_path_transition_debt` x2
+  - lab quality: `qualityScoreV1=100`, `qualityScoreV2=66`, `transitionDebtPenalty=67`, `criticalPathVarietyScore=75`, `socketCompatibilityScore=33`
+- **Baseline compare (schema 10 -> 11):** `build/worldgen-lab/act1-compare/compare.json`
+  - `qualityDelta=-34` (`qualityV1Delta=0`, `qualityV2Delta=-34`)
+  - `transitionDebtPenaltyDelta=67`, `criticalPathVarietyScoreDelta=75`, `socketCompatibilityScoreDelta=33`
+  - `warningDeltas={}` (no shell-geometry warning regression)
+  - `roomChecksumChanges=20` (expected snapshot-level worldgen output drift due schema/policy/content changes)
+- **Validation evidence:**
+  - `./gradlew.bat :shadowascent:test --tests com.indieniinja.world.sections.SectionTemplateLibraryTest --tests com.indieniinja.world.layout.HybridLayoutPlannerTest --tests com.indieniinja.world.validation.GenerationValidationPlannerTest --tests com.indieniinja.world.progression.WorldProgressionGeneratorTest --tests com.indieniinja.world.progression.AuthoredProgressionLoaderTest --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --no-daemon` PASS
+  - `./gradlew.bat :shadowascent:worldgenSnapshot -Pseed=420 -Prooms=20 -Pshape=BLOB -PcampaignId=act1 "-Pout=build/worldgen-snapshots/act1-seed-420.json" --no-daemon` PASS
+  - `python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/act1-seed-420.json --out build/worldgen-lab/act1-seed-420` PASS
+  - `python tools/test_worldgen_lab.py` PASS
+- **Manual smoke:** launcher-based G0 smoke (`PLAYABLE_TRUTH.md` steps 1-13 + `worldgen info`) is the first action required from the tester on the v0.13.21 artifact.
+- **Compatibility:** snapshot schema changes from `10` to `11` (breaking for tools that assume schema 10 fields only). Save/protocol remain unchanged. Replay: no change (worldgen changes affect newly generated worlds only).
+- **Deferred — seed sweep:** 1..250 seed sweep not run this session. Deferred to the next worldgen tuning loop. Track via `PLAN_WORLDGEN_RUNTIME_ADOPTION.md`.
 
 ## Completed Slice - Worldgen Lab detail view
 

@@ -3,6 +3,7 @@ package com.indieniinja.world;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.indieniinja.world.contracts.SocketAnchorPlanner;
+import com.indieniinja.world.contracts.SocketAnchorPlan;
 import com.indieniinja.world.layout.HybridLayoutPlan;
 import com.indieniinja.world.layout.HybridLayoutPlanner;
 import com.indieniinja.world.lab.WorldgenLabAnalyzer;
@@ -22,6 +23,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.zip.CRC32;
@@ -94,7 +96,8 @@ public final class WorldGenerationSnapshotCommand {
                 .orElseGet(() -> WorldProgressionGenerator.generate(seed));
         SectionTemplateLibrary sectionTemplates = SectionTemplateLibrary.loadDefault();
         HybridLayoutPlan hybridLayout = HybridLayoutPlanner.plan(seed, progressionGraph, sectionTemplates);
-        var socketAnchorPlan = SocketAnchorPlanner.plan(seed, hybridLayout, sectionTemplates);
+        SocketAnchorPlan socketAnchorPlan = SocketAnchorPlanner.plan(seed, hybridLayout, sectionTemplates);
+        WorldgenLabAnalyzer.QualitySignals qualitySignals = qualitySignals(progressionGraph, hybridLayout, socketAnchorPlan);
         root.put("progressionGraph", progressionGraph.toSnapshot());
         root.put("sectionTemplates", sectionTemplates.summarySnapshot());
         root.put("hybridLayout", hybridLayout.toSnapshot());
@@ -105,9 +108,52 @@ public final class WorldGenerationSnapshotCommand {
             socketAnchorPlan
         ).toSnapshot());
         root.put("megamap", MegamapStitcher.stitch(seed, requestedRooms, shape, graph).toSnapshot());
-        root.put("labReport", WorldgenLabAnalyzer.analyze(seed, graph).toMap());
+        root.put("labReport", WorldgenLabAnalyzer.analyze(seed, graph, qualitySignals).toMap());
         root.put("rooms", rooms(graph));
         return root;
+    }
+
+    private static WorldgenLabAnalyzer.QualitySignals qualitySignals(
+            WorldProgressionGraph progressionGraph,
+            HybridLayoutPlan hybridLayout,
+            SocketAnchorPlan socketAnchorPlan) {
+        int mandatoryEdges = 0;
+        int mandatoryTransitionDebt = 0;
+        int matchedSockets = 0;
+        int totalSockets = socketAnchorPlan.connectionContracts().size();
+        for (SocketAnchorPlan.ConnectionContract contract : socketAnchorPlan.connectionContracts()) {
+            if (contract.mandatory()) {
+                mandatoryEdges++;
+                if ("needs_transition".equals(contract.status()) && "none".equals(contract.transitionStrategy())) {
+                    mandatoryTransitionDebt++;
+                }
+            }
+            if ("matched".equals(contract.status())) {
+                matchedSockets++;
+            }
+        }
+
+        Set<String> criticalPathNodeIds = progressionGraph.criticalPath().stream()
+            .map(WorldProgressionGraph.ProgressionNode::id)
+            .filter(Objects::nonNull)
+            .collect(TreeSet::new, TreeSet::add, TreeSet::addAll);
+        List<String> criticalPathTemplateIds = hybridLayout.assignments().stream()
+            .filter(assignment -> !assignment.optional())
+            .filter(assignment -> criticalPathNodeIds.contains(assignment.nodeId()))
+            .map(HybridLayoutPlan.SectionAssignment::templateId)
+            .sorted()
+            .toList();
+        int criticalPathTemplateCount = criticalPathTemplateIds.size();
+        int criticalPathUniqueTemplateCount = (int) criticalPathTemplateIds.stream().distinct().count();
+
+        return new WorldgenLabAnalyzer.QualitySignals(
+            mandatoryTransitionDebt,
+            mandatoryEdges,
+            criticalPathUniqueTemplateCount,
+            criticalPathTemplateCount,
+            matchedSockets,
+            totalSockets
+        );
     }
 
     private static List<Map<String, Object>> rooms(WorldGraph graph) {

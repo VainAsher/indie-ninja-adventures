@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-01
-version_anchor: v0.13.20
+version_anchor: v0.13.21
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -15,6 +15,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
 
 ---
+
+## [0.13.21] - 2026-05-01 (Worldgen Vision Execution)
+
+### Added
+
+- **Strict section template validation lane (WG-A):**
+  - `SectionTemplateValidator` + `SectionTemplateValidationIssue` with deterministic issue ordering
+  - opt-in strict load gate via `-Dninja.sectionTemplateStrict=true`
+  - explicit schema issues in snapshot export under `sectionTemplates.validationIssues`
+- **Traversal contract policy lane (WG-B):**
+  - mandatory vs optional connection policy surfaced in `socketAnchorPlan.connectionContracts[]`
+  - `transitionStrategy` metadata on connection contracts
+  - critical-path transition debt issue kind: `critical_path_transition_debt`
+  - optional debt issue kind: `optional_transition_debt` (warning)
+- **Authored variety lane (WG-C):**
+  - new Act I section templates:
+    - `forest_key_trial_canopy`
+    - `forest_key_trial_ruins`
+    - `forest_key_trial_riverbank`
+    - `lantern_boss_approach_ascension`
+    - `lantern_boss_approach_sanctum`
+  - backfilled full schema fields in `lantern_heights_hub.json` and `summit_shrine_boss.json`
+  - new data guardrail test: `SectionTemplateVarietyDataTest`
+  - new authoring guide: `docs/guides/WORLDGEN_SECTION_AUTHORING.md`
+- **Quality scoring lane (WG-D):**
+  - V2 lab metrics added to `labReport`: `transitionDebtPenalty`, `criticalPathVarietyScore`, `socketCompatibilityScore`
+  - migration window fields: `qualityScoreV1` and `qualityScoreV2`
+  - compare tooling now emits V2 deltas in `compare.json` and `compare.csv`
+
+### Changed
+
+- `GeneratorSchemaVersion.CURRENT` bumped from `10` to `11`.
+- `version.json.generator_schema_version` updated to `11`.
+- Act I baseline snapshot regenerated at:
+  - `java/shadowascent/build/worldgen-snapshots/act1-seed-420.json`
+- `docs/systems/WORLD_GEN.md` updated with:
+  - strict section schema contract table and migration policy
+  - socket grammar `side_band_traversal[_modifier...]`
+  - strict socket parsing property `-Dninja.socketContractStrict=true`
+  - traversal compatibility matrix and updated validation semantics
+
+### Compatibility
+
+- **snapshot schema:** changed from `10` to `11` (breaking for tooling that assumes only schema 10 payload shape).
+- **save / protocol:** no change.
+- **runtime route (G0):** no intended player-visible route change; generator validation semantics and authoring data quality gates are stricter.
 
 ## [0.13.20] - 2026-05-01 (Runtime Campaign Progression Wiring)
 

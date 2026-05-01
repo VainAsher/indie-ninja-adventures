@@ -1,0 +1,33 @@
+{
+  "id": "forest_key_trial_canopy",
+  "biome": "forest",
+  "kind": "key_trial",
+  "footprint": { "gridW": 3, "gridH": 2 },
+  "nodeKinds": ["entry", "canopy_gap", "switch_gate", "reward", "return_loop"],
+  "edgeRules": [
+    { "from": "entry", "to": "canopy_gap" },
+    { "from": "canopy_gap", "to": "switch_gate" },
+    { "from": "switch_gate", "to": "reward" },
+    { "from": "reward", "to": "return_loop" },
+    { "from": "return_loop", "to": "entry" }
+  ],
+  "requiredSockets": ["west_low_walk", "east_high_climb"],
+  "mutableZones": [
+    { "x": 10, "y": 22, "w": 20, "h": 10, "role": "enemy_pool" },
+    { "x": 34, "y": 10, "w": 16, "h": 6, "role": "platform_shuffle" }
+  ],
+  "anchors": [
+    {
+      "id": "reward_anchor_canopy",
+      "kind": "key_reward",
+      "phase": "global",
+      "localBounds": { "x": 46, "y": 8, "w": 3, "h": 2 },
+      "tags": ["critical", "high_ground"],
+      "weight": 1.0,
+      "quotaGroup": "critical_rewards",
+      "minDistance": 0,
+      "requires": [],
+      "forbids": []
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import com.indieniinja.world.progression.WorldProgressionGraph;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -47,14 +48,36 @@ public final class GenerationValidationPlanner {
 
         Set<String> contractKeys = new HashSet<>();
         for (SocketAnchorPlan.ConnectionContract contract : socketAnchorPlan.connectionContracts()) {
-            contractKeys.add(contract.fromNodeId() + "->" + contract.toNodeId());
+            String scope = contract.fromNodeId() + "->" + contract.toNodeId();
+            contractKeys.add(scope);
             if ("needs_transition".equals(contract.status())) {
                 repairs.add(new GenerationValidationReport.RepairAction(
                     "patch",
                     "insert_transition_room",
-                    contract.fromNodeId() + "->" + contract.toNodeId(),
+                    scope,
                     "socket bands or traversal tags do not directly match"
                 ));
+                if (contract.mandatory() && "none".equals(contract.transitionStrategy())) {
+                    issues.add(new GenerationValidationReport.Issue(
+                        "critical_path_transition_debt",
+                        scope,
+                        "error",
+                        "mandatory progression edge needs transition but has no explicit strategy"
+                    ));
+                    repairs.add(new GenerationValidationReport.RepairAction(
+                        "replace",
+                        "replace_section_template",
+                        scope,
+                        "choose templates whose required sockets match directly or define a transition strategy"
+                    ));
+                } else if (!contract.mandatory()) {
+                    issues.add(new GenerationValidationReport.Issue(
+                        "optional_transition_debt",
+                        scope,
+                        "warning",
+                        "optional branch requires a transition bridge"
+                    ));
+                }
             }
         }
 
@@ -103,7 +126,9 @@ public final class GenerationValidationPlanner {
             }
         }
 
-        boolean valid = progression.valid() && issues.isEmpty();
+        boolean hasErrorIssue = issues.stream()
+            .anyMatch(issue -> "error".equals(normalize(issue.severity())));
+        boolean valid = progression.valid() && !hasErrorIssue;
         return new GenerationValidationReport(
             valid,
             progression.valid(),
@@ -111,5 +136,9 @@ public final class GenerationValidationPlanner {
             issues,
             repairs
         );
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 }

@@ -2,7 +2,7 @@
 doc_type: index
 status: living
 owner: core-team
-last_updated: 2026-04-30
+last_updated: 2026-05-01
 version_anchor: v0.13.17
 replaces: docs/INDEX.md (2026-03-28)
 ---
@@ -38,6 +38,7 @@ This index tracks only the active documentation system for the Java v0.13.x line
   - [plans/implementing/PLAN_SHADOW_ASCENT.md](plans/implementing/PLAN_SHADOW_ASCENT.md)
   - [plans/implementing/PLAN_CUTSCENE_MANAGER.md](plans/implementing/PLAN_CUTSCENE_MANAGER.md)
   - [plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md](plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md)
+  - [plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md](plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md)
 - Completed:
   - [plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md](plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md)
   - [plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md](plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md)
@@ -117,6 +118,7 @@ This index tracks only the active documentation system for the Java v0.13.x line
 - [dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md)
 - [dev/JAVA_SETUP.md](dev/JAVA_SETUP.md)
 - [QUICK_START.md](QUICK_START.md)
+- [guides/WORLDGEN_SECTION_AUTHORING.md](guides/WORLDGEN_SECTION_AUTHORING.md)
 
 ## Systems (Java Canonical)
 

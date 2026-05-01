@@ -1,0 +1,30 @@
+{
+  "id": "lantern_boss_approach_ascension",
+  "biome": "lantern",
+  "kind": "boss_approach",
+  "footprint": { "gridW": 3, "gridH": 1 },
+  "nodeKinds": ["entry", "ascent", "threshold", "boss_door"],
+  "edgeRules": [
+    { "from": "entry", "to": "ascent" },
+    { "from": "ascent", "to": "threshold" },
+    { "from": "threshold", "to": "boss_door" }
+  ],
+  "requiredSockets": ["west_mid_jump", "east_mid_jump"],
+  "mutableZones": [
+    { "x": 14, "y": 14, "w": 20, "h": 8, "role": "elite_wave" }
+  ],
+  "anchors": [
+    {
+      "id": "boss_door_anchor_ascension",
+      "kind": "boss_door",
+      "phase": "global",
+      "localBounds": { "x": 54, "y": 12, "w": 4, "h": 4 },
+      "tags": ["critical", "gate"],
+      "weight": 1.0,
+      "quotaGroup": "critical_gates",
+      "minDistance": 0,
+      "requires": ["region_key"],
+      "forbids": []
+    }
+  ]
+}

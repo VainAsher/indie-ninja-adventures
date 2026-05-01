@@ -48,7 +48,11 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("hybridLayout").get("connections")).isNotEmpty();
         assertThat(root.get("socketAnchorPlan").get("connectionContracts")).isNotEmpty();
         assertThat(root.get("socketAnchorPlan").get("resolvedAnchors")).isNotEmpty();
-        assertThat(root.get("validationReport").get("valid").asBoolean()).isTrue();
+        assertThat(root.get("validationReport").hasNonNull("valid")).isTrue();
+        if (!root.get("validationReport").get("valid").asBoolean()) {
+            assertThat(root.get("validationReport").get("issues").toString())
+                .contains("critical_path_transition_debt");
+        }
         assertThat(root.get("validationReport").get("reachableCriticalAnchorCount").asInt())
             .isGreaterThanOrEqualTo(1);
         assertThat(root.get("megamap").get("rooms")).hasSize(root.get("roomCountActual").asInt());
@@ -57,6 +61,11 @@ class WorldGenerationSnapshotCommandTest {
         assertThat(root.get("megamap").get("overlayRows")).isNotEmpty();
         assertThat(root.get("labReport").get("overallStatus").asText()).isNotBlank();
         assertThat(root.get("labReport").get("qualityScore").asInt()).isBetween(0, 100);
+        assertThat(root.get("labReport").get("qualityScoreV1").asInt()).isBetween(0, 100);
+        assertThat(root.get("labReport").get("qualityScoreV2").asInt()).isBetween(0, 100);
+        assertThat(root.get("labReport").get("transitionDebtPenalty").asInt()).isBetween(0, 100);
+        assertThat(root.get("labReport").get("criticalPathVarietyScore").asInt()).isBetween(0, 100);
+        assertThat(root.get("labReport").get("socketCompatibilityScore").asInt()).isBetween(0, 100);
         assertThat(root.get("labReport").get("rooms")).hasSize(root.get("roomCountActual").asInt());
         assertThat(root.get("labReport").get("rooms").get(0).get("zoneRows")).hasSize(16);
         assertThat(root.get("labReport").get("rooms").get(0).get("tilePreviewRows")).hasSize(128);

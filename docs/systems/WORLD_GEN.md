@@ -2,7 +2,7 @@
 doc_type: system_doc
 status: living
 owner: core-team
-last_updated: 2026-04-30
+last_updated: 2026-05-01
 version_anchor: v0.13.17
 ---
 
@@ -131,22 +131,43 @@ Section templates live in `data/worldgen/sections/*.json` and are loaded by
 `SectionTemplateLibrary`. They are authored pacing chunks between macro
 progression and concrete rooms.
 
-Current fields:
+### Section schema contract (strict mode aware)
 
-| Field | Meaning |
-| ----- | ------- |
-| `id` | Stable template id used in snapshots and future layout selection. |
-| `biome` | Biome/theme this section is intended for. |
-| `kind` | Pacing purpose, such as `key_trial`, `shop_save_loop`, or `boss_approach`. |
-| `footprint.gridW/gridH` | Planned section footprint in room-grid units. |
-| `nodeKinds[]` | Local beats inside the section. |
-| `edgeRules[]` | Directed local beat links used by future layout validation. |
-| `requiredSockets[]` | Socket ids or categories the future layout layer must satisfy. |
-| `mutableZones[]` | Bounds that procedural dressing can alter inside the authored section. |
-| `anchors[]` | Candidate placements for rewards, services, locks, enemies, or set pieces. |
+| Field | Required for most kinds | Required for `hub_home` / `boss_approach` | Notes |
+| ----- | ----------------------- | ------------------------------------------ | ----- |
+| `id` | yes | yes | Stable template id for deterministic selection and snapshots. |
+| `biome` | yes | yes | Biome/theme target for template filtering. |
+| `kind` | yes | yes | Pacing purpose, e.g. `key_trial`, `shop_save_loop`, `boss_approach`. |
+| `footprint.gridW/gridH` | yes | no | Positive grid dimensions in room-grid units. |
+| `nodeKinds[]` | yes (non-empty) | no | Local beat list; required for navigable authored sections. |
+| `edgeRules[]` | yes (non-empty) | no | Directed links (`from`/`to`) between `nodeKinds`. |
+| `requiredSockets[]` | yes (non-empty) | no | Socket tokens (underscore grammar) consumed by contract planning. |
+| `anchors[]` | yes (non-empty) | yes (non-empty) | Placement candidates (at least `id` + `kind` per anchor). |
+| `mutableZones[]` | no | no | Optional procedural dressing bounds. |
 
-The loader sorts templates by id for deterministic exports and skips malformed
-files so invalid draft content does not break legacy world generation.
+`SectionTemplateLibrary` always emits deterministic validation issues
+(`validationIssues`) sorted by file/field/kind for stable CI logs. In default
+mode, malformed templates still load leniently where possible to preserve
+legacy generation flow while exposing actionable issues.
+
+Enable strict contract enforcement with:
+
+```bash
+cd java
+./gradlew.bat :shadowascent:test -Dninja.sectionTemplateStrict=true --tests com.indieniinja.world.sections.SectionTemplateLibraryTest --no-daemon
+```
+
+In strict mode, any schema error fails load with issue kind, field path, and
+repair action so malformed authored content is CI-failing instead of silently
+defaulted.
+
+### Migration policy for legacy partial templates
+
+- Default mode remains backward-compatible for draft/legacy section files.
+- Strict mode should be enabled in CI and release gates once authoring data is
+  migrated for the target campaign.
+- When migrating old templates, fix validation issues in deterministic order
+  (top of the strict-mode error list first) to avoid chasing non-stable logs.
 
 ## Hybrid layout layer
 
@@ -182,6 +203,26 @@ Socket ids currently use the convention `side_band_traversal`, for example
 `west_low_walk` or `east_mid_jump`. The planner parses those ids into side,
 height band, traversal tags, width, and clearance metadata. This is still a pure
 snapshot layer; it does not carve corridors or instantiate entities yet.
+Socket ids use grammar `side_band_traversal[_modifier...]`:
+
+- `west_low_walk`
+- `east_mid_jump`
+- `north_high_climb_bridge`
+
+Set strict grammar mode with `-Dninja.socketContractStrict=true` to reject
+unknown `side` or `band` tokens. In strict mode, unknown side/band tokens are
+downgraded to `unknown` socket contracts, which force `needs_transition`.
+
+Compatibility matrix for core traversal tags:
+
+| Traversal tag | Default width | Typical use |
+| ------------- | ------------- | ----------- |
+| `walk` | 4 | Flat corridor or ledge join |
+| `jump` | 3 | Gap crossing or vertical offset join |
+| `climb` | 4 | Vertical traversal with climbable support |
+
+Sockets are directly compatible only when traversal tags overlap and the band
+distance is within one step (`low <-> mid <-> high`).
 
 ## Validation and repair report layer
 
@@ -195,7 +236,9 @@ Current checks:
 | Required progression nodes are reachable | `blocked_progression_node` | `regenerate` |
 | Every layout edge has a socket contract | `missing_connection_contract` | `replace` |
 | Critical anchors live on reachable nodes | `unreachable_critical_anchor` | `regenerate` |
-| Socket contracts need a bridge | warning repair action only | `patch` |
+| Mandatory edge needs transition without explicit strategy | `critical_path_transition_debt` | `replace` |
+| Optional edge needs transition | `optional_transition_debt` (`warning`) | `patch` |
+| Any socket mismatch requiring a bridge room | repair action `insert_transition_room` | `patch` |
 
 This layer records what should be patched, replaced, or regenerated, but it does
 not mutate geometry yet. Later repair/stitching work can consume these actions.

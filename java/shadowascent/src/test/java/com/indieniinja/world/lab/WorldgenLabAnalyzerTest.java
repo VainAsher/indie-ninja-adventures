@@ -65,4 +65,40 @@ class WorldgenLabAnalyzerTest {
             "tilePreviewRows"
         );
     }
+
+    @Test
+    void v2ScorePenalizesTraversalDebtWhenShellWarningsAreZero() {
+        WorldgenLabAnalyzer.ScoreBreakdown scores = WorldgenLabAnalyzer.computeScores(
+            0,
+            new WorldgenLabAnalyzer.QualitySignals(
+                3, 3,
+                1, 3,
+                0, 3
+            )
+        );
+
+        assertThat(scores.qualityScoreV1()).isEqualTo(100);
+        assertThat(scores.transitionDebtPenalty()).isEqualTo(100);
+        assertThat(scores.criticalPathVarietyScore()).isEqualTo(33);
+        assertThat(scores.socketCompatibilityScore()).isEqualTo(0);
+        assertThat(scores.qualityScoreV2()).isLessThan(scores.qualityScoreV1());
+    }
+
+    @Test
+    void scoreComputationClampsEdgeCasesIntoValidRange() {
+        WorldgenLabAnalyzer.ScoreBreakdown scores = WorldgenLabAnalyzer.computeScores(
+            999,
+            new WorldgenLabAnalyzer.QualitySignals(
+                -4, -1,
+                -2, -3,
+                -5, -6
+            )
+        );
+
+        assertThat(scores.qualityScoreV1()).isBetween(0, 100);
+        assertThat(scores.qualityScoreV2()).isBetween(0, 100);
+        assertThat(scores.transitionDebtPenalty()).isBetween(0, 100);
+        assertThat(scores.criticalPathVarietyScore()).isBetween(0, 100);
+        assertThat(scores.socketCompatibilityScore()).isBetween(0, 100);
+    }
 }

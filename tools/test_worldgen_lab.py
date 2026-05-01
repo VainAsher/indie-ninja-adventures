@@ -115,6 +115,11 @@ def write_snapshot(path: Path, seed: int, quality_score: int, status: str = "pas
                 "labReport": {
                     "overallStatus": status,
                     "qualityScore": quality_score,
+                    "qualityScoreV1": quality_score,
+                    "qualityScoreV2": quality_score,
+                    "transitionDebtPenalty": 0,
+                    "criticalPathVarietyScore": 100,
+                    "socketCompatibilityScore": 100,
                     "warningCounts": {},
                     "zoneLegend": {"D": "door", ".": "walk"},
                     "tileLegend": {"#": "solid", ".": "air"},
@@ -199,8 +204,16 @@ def test_compare_reports_quality_warning_and_room_checksum_deltas(tmp_path: Path
     report = json.loads((out / "compare.json").read_text(encoding="utf-8"))
     assert report["worldSeed"] == 420
     assert report["qualityDelta"] == 15
+    assert report["qualityV1Delta"] == 15
+    assert report["qualityV2Delta"] == 15
+    assert report["transitionDebtPenaltyDelta"] == 0
+    assert report["criticalPathVarietyScoreDelta"] == 0
+    assert report["socketCompatibilityScoreDelta"] == 0
     assert report["roomChecksumChanges"] == 1
     assert report["warningDeltas"]["connected_down_edge_open_outside_door"] == 1
+    csv_lines = (out / "compare.csv").read_text(encoding="utf-8")
+    assert "qualityV2Delta,15" in csv_lines
+    assert "transitionDebtPenaltyDelta,0" in csv_lines
 
 
 def run_tests() -> None:

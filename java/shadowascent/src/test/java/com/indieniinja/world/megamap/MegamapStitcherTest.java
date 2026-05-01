@@ -1,5 +1,6 @@
 package com.indieniinja.world.megamap;
 
+import com.indieniinja.world.GeneratorSchemaVersion;
 import com.indieniinja.world.WorldGraph;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,9 @@ class MegamapStitcherTest {
         MegamapSnapshot second = MegamapStitcher.stitch(12345L, 12, WorldGraph.WorldShape.BLOB, graph);
 
         assertThat(first.toSnapshot()).isEqualTo(second.toSnapshot());
-        assertThat(first.goldenSeedKey()).isEqualTo("schema-10-seed-12345-shape-BLOB-rooms-12");
+        assertThat(first.goldenSeedKey()).isEqualTo(
+            "schema-" + GeneratorSchemaVersion.CURRENT + "-seed-12345-shape-BLOB-rooms-12"
+        );
     }
 
     @Test

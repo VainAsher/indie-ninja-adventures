@@ -2,6 +2,19 @@
   "id": "lantern_heights_hub",
   "biome": "lantern",
   "kind": "hub_home",
+  "footprint": { "gridW": 3, "gridH": 2 },
+  "nodeKinds": ["entry_plaza", "services_lane", "mission_board", "shrine_gate"],
+  "edgeRules": [
+    { "from": "entry_plaza", "to": "services_lane" },
+    { "from": "services_lane", "to": "mission_board" },
+    { "from": "mission_board", "to": "shrine_gate" },
+    { "from": "services_lane", "to": "shrine_gate" }
+  ],
+  "requiredSockets": ["west_low_walk", "east_low_walk", "north_mid_climb"],
+  "mutableZones": [
+    { "x": 20, "y": 30, "w": 80, "h": 16, "role": "ambient_population" },
+    { "x": 10, "y": 85, "w": 95, "h": 24, "role": "safe_detail" }
+  ],
   "anchors": [
     { "id": "samson_spawn",  "kind": "npc",         "localBounds": {"x": 30, "y": 110, "w": 4, "h": 8} },
     { "id": "sophia_spawn",  "kind": "npc",         "localBounds": {"x": 20, "y": 62,  "w": 4, "h": 8} },

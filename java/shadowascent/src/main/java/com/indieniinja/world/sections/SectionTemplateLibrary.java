@@ -26,13 +26,17 @@ public final class SectionTemplateLibrary {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final List<SectionTemplate> templates;
+    private final List<SectionTemplateValidationIssue> validationIssues;
 
-    private SectionTemplateLibrary(List<SectionTemplate> templates) {
+    private SectionTemplateLibrary(
+            List<SectionTemplate> templates,
+            List<SectionTemplateValidationIssue> validationIssues) {
         this.templates = List.copyOf(templates != null ? templates : List.of());
+        this.validationIssues = List.copyOf(validationIssues != null ? validationIssues : List.of());
     }
 
     public static SectionTemplateLibrary empty() {
-        return new SectionTemplateLibrary(List.of());
+        return new SectionTemplateLibrary(List.of(), List.of());
     }
 
     public static SectionTemplateLibrary loadDefault() {
@@ -59,22 +63,32 @@ public final class SectionTemplateLibrary {
         }
 
         List<SectionTemplate> loaded = new ArrayList<>();
+        List<SectionTemplateValidationIssue> issues = new ArrayList<>();
         try (Stream<Path> stream = Files.walk(root)) {
             stream
                 .filter(Files::isRegularFile)
                 .filter(path -> path.getFileName().toString().endsWith(".json"))
                 .sorted(Comparator.comparing(path -> root.relativize(path).toString()))
-                .forEach(path -> parse(path).ifPresent(loaded::add));
+                .forEach(path -> parse(root, path, loaded, issues));
         } catch (IOException ignored) {
             return empty();
         }
 
         loaded.sort(Comparator.comparing(SectionTemplate::id));
-        return new SectionTemplateLibrary(loaded);
+        issues.sort(SectionTemplateValidationIssue.sortOrder());
+        SectionTemplateLibrary library = new SectionTemplateLibrary(loaded, issues);
+        if (strictModeEnabled() && issues.stream().anyMatch(SectionTemplateValidationIssue::isError)) {
+            throw strictModeFailure(root, issues);
+        }
+        return library;
     }
 
     public List<SectionTemplate> templates() {
         return templates;
+    }
+
+    public List<SectionTemplateValidationIssue> validationIssues() {
+        return validationIssues;
     }
 
     public Optional<SectionTemplate> select(String biome, String kind, long seed) {
@@ -97,9 +111,30 @@ public final class SectionTemplateLibrary {
             .toList();
     }
 
-    private static Optional<SectionTemplate> parse(Path path) {
+    private static void parse(
+            Path root,
+            Path path,
+            List<SectionTemplate> loaded,
+            List<SectionTemplateValidationIssue> issues) {
         try {
-            JsonNode root = MAPPER.readTree(path.toFile());
+            JsonNode document = MAPPER.readTree(path.toFile());
+            Path relativePath = root.relativize(path);
+            issues.addAll(SectionTemplateValidator.validate(relativePath, document));
+            parseTemplate(document).ifPresent(loaded::add);
+        } catch (Exception ex) {
+            String relativePath = root.relativize(path).toString().replace('\\', '/');
+            issues.add(new SectionTemplateValidationIssue(
+                "malformed_json",
+                relativePath,
+                "$",
+                "error",
+                "template JSON could not be parsed: " + ex.getMessage(),
+                "fix JSON syntax so the file can be loaded"));
+        }
+    }
+
+    private static Optional<SectionTemplate> parseTemplate(JsonNode root) {
+        try {
             return Optional.of(new SectionTemplate(
                 text(root, "id"),
                 text(root, "biome"),
@@ -241,6 +276,44 @@ public final class SectionTemplateLibrary {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("templateCount", templates.size());
         out.put("templates", toSnapshot());
+        out.put("validationIssueCount", validationIssues.size());
+        out.put("validationIssues", validationIssues.stream()
+            .sorted(SectionTemplateValidationIssue.sortOrder())
+            .map(SectionTemplateValidationIssue::toSnapshot)
+            .toList());
         return out;
+    }
+
+    private static boolean strictModeEnabled() {
+        return Boolean.parseBoolean(System.getProperty("ninja.sectionTemplateStrict", "false"));
+    }
+
+    private static IllegalStateException strictModeFailure(
+            Path root, List<SectionTemplateValidationIssue> issues) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Strict section template validation failed for ")
+            .append(root.toString().replace('\\', '/'))
+            .append(" (")
+            .append(issues.size())
+            .append(" issue(s))");
+        for (SectionTemplateValidationIssue issue : issues.stream()
+            .sorted(SectionTemplateValidationIssue.sortOrder())
+            .toList()) {
+            builder.append(System.lineSeparator())
+                .append("- [")
+                .append(issue.severity())
+                .append("] ")
+                .append(issue.file())
+                .append(" :: ")
+                .append(issue.field())
+                .append(" :: ")
+                .append(issue.kind())
+                .append(" :: ")
+                .append(issue.message())
+                .append(" (repair: ")
+                .append(issue.repairAction())
+                .append(")");
+        }
+        return new IllegalStateException(builder.toString());
     }
 }
