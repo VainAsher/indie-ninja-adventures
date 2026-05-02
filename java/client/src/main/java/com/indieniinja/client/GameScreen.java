@@ -2265,8 +2265,14 @@ public final class GameScreen implements Screen {
             ? "unknown_hub"
             : soloCurrentHubId;
 
+        // Mission-return portals go back to the launch hub, not to the next-hub
+        // destination the level generator stamped on the portal entity.
+        String resolvedDestination = PORTAL_TRANSITION_MISSION_RETURN.equals(normalizedTransitionType)
+            ? originHubId
+            : destinationId;
+
         com.indieniinja.world.HubRegistry.HubDef hubDef =
-            com.indieniinja.world.HubRegistry.get(destinationId);
+            com.indieniinja.world.HubRegistry.get(resolvedDestination);
 
         // Ability gate — mirrors ServerProtocolHandler.handlePortalTravel() check.
         if (!hubDef.isAccessible(sp.unlockedAbilities)) {

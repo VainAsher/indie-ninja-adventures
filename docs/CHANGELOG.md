@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-05-01
-version_anchor: v0.13.24
+last_updated: 2026-05-02
+version_anchor: v0.13.25
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.25] - 2026-05-02 (G0 P0 Blockers — Slice 4: mission_return portal routing)
+
+### Fixed
+
+- **P0-G0-04:** `handleSoloPortalTravel()` — `mission_return` portals now route back to the launch hub (`originHubId`) instead of following the portal's generated `destinationId` (which was `HubRegistry.nextHub()`, the wrong hub). Player returns to `lantern_heights` with full state preserved.
+
+### Compatibility
+
+- save: no impact
+- replay: no impact
+- protocol: no impact
 
 ---
 
