@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-02
-version_anchor: v0.13.25
+version_anchor: v0.13.26
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.26] - 2026-05-02 (G0 P0 Blockers — Slice 5: Linzi NPC spawn gate)
+
+### Added
+
+- **P0-G0-06 code:** `GameSimulator.removeNpcsByCharacterId(String)` — removes all live NPCs matching a characterId from the sim roster.
+- **P0-G0-06 code:** `GameScreen.gateLinziSpawnBehindVillagerQuests()` — called after save restore on every hub load; removes Linzi from the live sim if any of `samson_q1_complete`, `sophia_q1_complete`, `marcel_q1_complete`, `hazel_q1_complete` are not `"true"`. When the player returns from the final villager mission, `initializeSoloSimulation` re-spawns Linzi and the gate passes cleanly.
+
+### Compatibility
+
+- save: no impact
+- replay: no impact
+- protocol: no impact
 
 ---
 

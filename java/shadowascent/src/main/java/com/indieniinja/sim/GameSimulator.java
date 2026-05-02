@@ -3286,6 +3286,12 @@ public final class GameSimulator {
      */
     public void removeNpc(String npcId) {
         npcs.removeIf(n -> n.id.equals(npcId));
+    }
+
+    /** Remove all NPCs whose characterId matches — used to gate story-driven NPCs. */
+    public void removeNpcsByCharacterId(String characterId) {
+        if (characterId == null || characterId.isBlank()) return;
+        npcs.removeIf(n -> characterId.equals(n.characterId));
         // EntityManager entities are tagged "npc" — find by physics reference identity
         // is complex; use a no-op removal that lets the entity tick harmlessly until
         // the next snapshot. The NPC won't appear in getSnapshot() once removed from

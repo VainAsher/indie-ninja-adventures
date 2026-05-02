@@ -260,6 +260,24 @@ public final class GameScreen implements Screen {
     /** Active multiplayer mission pickup seed contract tracked client-side for lifecycle clear events. */
     private String multiplayerMissionPickupSeedMissionId = "";
 
+    /**
+     * Remove Linzi from the live sim if the four villager q1 missions aren't all complete.
+     * Called after save restore so story flags are populated before the check runs.
+     * When the player returns from the final villager mission, initializeSoloSimulation
+     * re-spawns Linzi and this check passes — no re-add needed.
+     */
+    private void gateLinziSpawnBehindVillagerQuests() {
+        if (localSim == null || storyManager == null) return;
+        boolean allDone =
+            "true".equals(storyManager.getFlag("samson_q1_complete", ""))
+            && "true".equals(storyManager.getFlag("sophia_q1_complete", ""))
+            && "true".equals(storyManager.getFlag("marcel_q1_complete", ""))
+            && "true".equals(storyManager.getFlag("hazel_q1_complete", ""));
+        if (!allDone) {
+            localSim.removeNpcsByCharacterId("linzi");
+        }
+    }
+
     /** Map hub id to its authored time-of-day label for the HUD banner. */
     private static String hubTimeOfDay(String hubId) {
         if (hubId == null) return "";
@@ -530,6 +548,7 @@ public final class GameScreen implements Screen {
             // Build initial minimap data and then rehydrate persisted solo runtime state.
             refreshSoloWorldRoomCache();
             restoreSoloRuntimeStateFromSave();
+            gateLinziSpawnBehindVillagerQuests();
             if (replayPath == null && cutsceneTriggerRouter != null) {
                 cutsceneTriggerRouter.onCampaignStart();
             }
