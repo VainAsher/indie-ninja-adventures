@@ -1,0 +1,27 @@
+// Yarn Spinner — Samson sparring cutscene dialogue
+// Speaker: Samson, Lantern Heights senior resident
+// Voice: gruff, direct, respect given grudgingly — not praise, but acknowledgement
+title: samson_sparring_yield_1
+tags: cutscene
+---
+Samson: Enough. You're still standing. That's all I needed to know.
+===
+title: samson_sparring_yield_2
+tags: cutscene
+---
+Samson: Don't make that face. "Good enough" is the highest thing I say about anyone.
+===
+title: samson_follow_up
+tags: root
+---
+Samson: You want a rematch? Find me when you've got scars worth talking about.
+-> I'll be back.
+    Samson: I know.
+    <<stop>>
+-> Was that actually a compliment?
+    Samson: No.
+    <<stop>>
+-> What do I do now?
+    Samson: Ask someone else. I'm not the guidance type.
+    <<stop>>
+===

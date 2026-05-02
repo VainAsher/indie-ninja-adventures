@@ -1,0 +1,30 @@
+{
+  "id": "samson_sparring_complete",
+  "version": 1,
+  "mode": "campaign",
+  "act": 1,
+  "blocking": true,
+  "skip_policy": "never",
+  "triggers": [
+    { "event": "flag_change", "id": "samson_ghost_low_hp" }
+  ],
+  "start_conditions": [
+    { "flag_not_set": "samson_q1_complete" }
+  ],
+  "completion_flags": [],
+  "steps": [
+    { "type": "lock_player" },
+    { "type": "entity_face", "entity": "samson", "target": "player" },
+    {
+      "type": "dialogue",
+      "speaker": "Samson",
+      "text_key": "samson_sparring_yield_1"
+    },
+    {
+      "type": "dialogue",
+      "speaker": "Samson",
+      "text_key": "samson_sparring_yield_2"
+    },
+    { "type": "unlock_player" }
+  ]
+}

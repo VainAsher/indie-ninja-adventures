@@ -71,6 +71,9 @@ public final class SimBoss {
     public boolean facingRight = false;
     public boolean removed     = false;
 
+    // ── Yield state (training bout: boss concedes at HP threshold, not on death) ──
+    public boolean yielded = false;
+
     // ── Shadow Ascent M5 pattern fields ──────────────────────────────────────
     /** Siren: set to true when the scripted loss has fired (prevents double-trigger). */
     public boolean scriptedLossTriggered = false;
@@ -152,6 +155,7 @@ public final class SimBoss {
      * Respects invincibility frames; stuns briefly on rapid damage accumulation.
      */
     public boolean takeDamage(int dmg) {
+        if (yielded) return false; // training bout: no damage after conceding
         if (invincibilityTicks > 0) return false;
         if (aiState == BossAIState.PHASE_TRANSITION) return false; // immune during transition
         if (aiState == BossAIState.DEAD) return false;

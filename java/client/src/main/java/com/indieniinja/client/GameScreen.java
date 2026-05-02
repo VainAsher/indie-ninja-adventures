@@ -513,6 +513,8 @@ public final class GameScreen implements Screen {
         cutsceneManager.setOnCompleteCallback(completedId -> {
             if ("act1_aen_of_lantern_heights".equals(completedId)) {
                 startMissionFlow("act1_social_grounding", "cutscene_complete");
+            } else if ("samson_sparring_complete".equals(completedId)) {
+                completeActiveMissionWithCutsceneTrigger();
             }
         });
         registerCutsceneDevCommands();
@@ -1285,6 +1287,10 @@ public final class GameScreen implements Screen {
         java.util.Map<String, Integer> objectiveItemCounts = collectMissionObjectiveItemCounts(def);
         if (soloMode) {
             rebuildSoloWorldForMission(def, objectiveItemCounts);
+            if ("samson_q1_dojo".equals(missionId) && localSim != null) {
+                localSim.setBossYieldCallback(
+                    () -> setStoryFlagAndTriggerCutscene("samson_ghost_low_hp", "true"));
+            }
         } else {
             requestMultiplayerMissionObjectivePickups(def, objectiveItemCounts);
         }

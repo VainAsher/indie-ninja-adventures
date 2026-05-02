@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-02
-version_anchor: v0.13.26
+version_anchor: v0.13.27
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.27] - 2026-05-02 (G0 P0 Blockers — Slice 6: Samson sparring resolution)
+
+### Added
+
+- **P0-G0-05:** `SimBoss.yielded` field — when true, `takeDamage()` is a no-op (training bout: boss concedes, does not die).
+- **P0-G0-05:** `GameSimulator.setBossYieldCallback(Runnable)` — fires once when any boss HP drops to ≤1/3; sets `boss.yielded = true` to prevent further damage.
+- **P0-G0-05:** `GameScreen` registers the callback for `samson_q1_dojo` missions, firing `samson_ghost_low_hp` story flag → `CutsceneTriggerRouter.onFlagChange` → cutscene.
+- **P0-G0-05:** `GameScreen.onCompleteCallback` handles `samson_sparring_complete` → `completeActiveMissionWithCutsceneTrigger()`.
+- `data/cutscenes/samson_sparring_complete.json` — cutscene triggered by `samson_ghost_low_hp` flag; Samson concession dialogue; completion calls mission complete.
+- `data/dialogues/samson_sparring.yarn` — Samson's authored voice for sparring bout resolution and follow-up interaction.
+
+### Compatibility
+
+- save: no impact
+- replay: no impact
+- protocol: no impact
 
 ---
 

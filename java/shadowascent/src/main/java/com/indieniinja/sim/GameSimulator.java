@@ -115,6 +115,12 @@ public final class GameSimulator {
     private int lootSeq     = 0;
     private int echoSeq     = 0;
 
+    /** Fired once when any boss crosses the yield HP threshold (≤1/3). Used for training bouts. */
+    private Runnable bossYieldCallback = null;
+    private boolean  bossYieldFired    = false;
+
+    public void setBossYieldCallback(Runnable cb) { this.bossYieldCallback = cb; }
+
     // ── Game mode state ───────────────────────────────────────────────────────
     private GameMode gameMode    = GameMode.ARCADE;
     private int      arcadeScore = 0;
@@ -3026,6 +3032,15 @@ public final class GameSimulator {
                     s.stuck      = true;
                     s.stuckTimer = 0.1f;
                 }
+            }
+
+            // ── Training-bout yield threshold ─────────────────────────────────
+            if (!boss.yielded && !bossYieldFired
+                    && bossYieldCallback != null
+                    && boss.hpRatio() <= 1f / 3f) {
+                boss.yielded    = true;
+                bossYieldFired  = true;
+                bossYieldCallback.run();
             }
         }
     }
