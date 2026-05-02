@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-05-01
-version_anchor: v0.13.21
+last_updated: 2026-05-02
+version_anchor: v0.13.28
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,22 +21,22 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-05-01): v0.13.21 — Worldgen Vision Execution (schema hardening, traversal contracts, content variety, quality scoring v2).
-- Release assets verified for v0.13.21: `ninja-client-all.jar`, `ninja-server-all.jar`, `docs-archive-2026-05-01-v0.13.21.zip`.
-- G0/P0-10 is not closed yet. Session 1 of 5 run on 2026-05-01 against v0.13.21 — **FAIL**. 6 P0 blockers found; route cannot be completed.
+- Current release truth (2026-05-02): v0.13.28 — All 6 P0 G0 blockers resolved. Ready for G0 smoke session 2.
+- G0/P0-10 is not closed yet. Session 1 FAIL (v0.13.21, 2026-05-01). All 6 blockers from session 1 are now fixed.
 - G0 session 1 evidence: [`docs/reports/manual-runtime/g0-v0.13.21-session-1.md`](reports/manual-runtime/g0-v0.13.21-session-1.md)
-- G0 P0 blockers (must fix before session 2):
-  - P0-G0-01: Hub has no visual identity (no name display, no time-of-day)
-  - P0-G0-02: Instructor Tai onboarding is toast-only, no dialogue/cutscene/character context
-  - P0-G0-03: No automatic mission flow from spawn; player must manually open mission board
-  - P0-G0-04: Exit portal after social grounding routes to wrong world, not Lantern Heights
-  - P0-G0-05: Samson sparring mission soft-locks — no objective, no exit (most severe)
-  - P0-G0-06: Linzi NPC → mission trigger broken; waypoint missions not completable
+- G0 P0 blockers — status:
+  - P0-G0-01: **Fixed** v0.13.23 — Hub name + time-of-day banner in HUD
+  - P0-G0-02: **Fixed** v0.13.24 — Tai cutscene fires automatically on campaign start
+  - P0-G0-03: **Fixed** v0.13.24 — `act1_social_grounding` auto-starts after Tai cutscene
+  - P0-G0-04: **Fixed** v0.13.25 — Mission-return portal routes to origin hub
+  - P0-G0-05: **Fixed** v0.13.27 — Samson boss yields at ≤1/3 HP; sparring cutscene + mission completion
+  - P0-G0-06: **Fixed** v0.13.22 (data) + v0.13.26 (code) — Linzi gated behind 4× q1_complete flags
+- Slice handover notes: [`docs/reports/handover/`](reports/handover/)
+- Next required action: Run G0 smoke session 2 against v0.13.28. Need 5 passing first-session records to close P0-10.
 - Product direction: campaign-first single-player with optional multiplayer overlay.
 - Active execution plan: [`docs/plans/implementing/PLAN_SHADOW_ASCENT.md`](plans/implementing/PLAN_SHADOW_ASCENT.md)
 - Worldgen runtime adoption plan: [`docs/plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md`](plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md) — RFC stub; not yet scheduled.
-- Extraction closure archive: [`docs/archive/retired/2026-04-21_v0.11.71_pygame-extraction/`](archive/retired/2026-04-21_v0.11.71_pygame-extraction/)
-- Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof). Blocked on P0-G0-01–06.
+- Current milestone lane: M0 - Act I Lantern Dawn vertical slice (G0 golden route proof). Unblocked — ready for session 2.
 - Playable truth: [docs/PLAYABLE_TRUTH.md](PLAYABLE_TRUTH.md)
 
 ## Runtime Reality (Implemented)

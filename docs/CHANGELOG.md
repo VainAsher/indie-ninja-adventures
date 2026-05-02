@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-02
-version_anchor: v0.13.27
+version_anchor: v0.13.28
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.28] - 2026-05-02 (hotfix: cutscene index + CURRENT_STATE sync)
+
+### Fixed
+
+- `data/cutscenes/index.json` — added `samson_sparring_complete.json` (missing from Slice 6; `CutsceneLoader` reads the index file at runtime and would not have found the cutscene without this entry).
+
+### Changed
+
+- `docs/CURRENT_STATE.md` — updated version anchor to v0.13.28, all P0 G0 blockers marked fixed, next action set to G0 smoke session 2.
+
+### Compatibility
+
+- save: no impact
+- replay: no impact
+- protocol: no impact
 
 ---
 
