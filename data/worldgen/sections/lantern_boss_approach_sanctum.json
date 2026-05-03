@@ -9,7 +9,7 @@
     { "from": "sanctum_loop", "to": "threshold" },
     { "from": "threshold", "to": "boss_door" }
   ],
-  "requiredSockets": ["west_low_walk", "east_mid_jump", "north_mid_climb"],
+  "requiredSockets": ["west_mid_jump", "east_mid_jump", "north_mid_climb"],
   "mutableZones": [
     { "x": 12, "y": 18, "w": 16, "h": 8, "role": "illusion_wave" },
     { "x": 28, "y": 34, "w": 12, "h": 8, "role": "elite_wave" }

@@ -438,6 +438,7 @@ of replacing the command.
   assignments.
 - Authored TMX templates and catalog entries can be checked with `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`.
 - Authored zone patch TMX files and catalog entries can be checked with `python tools/validate_zone_templates.py --dir java/assets/rooms/zone_templates --catalog data/zone_template_catalog.json`.
+- Enemy placement is suppressed in rooms at section connection boundaries. Callers pass a `Set<String>` of seam room keys (from `PuzzlePlan.roomKey(gridX, gridY)`) to `RoomPostProcessor.process()` as the `seamRoomKeys` parameter. When a room's key is in the set, `EntityPlanner.placeEnemies()` returns `List.of()` immediately. This enforces the LayerProcGen effect-distance principle: no immediate combat engagement at section transitions. Omit the parameter (backward-compat overload) or pass `Collections.emptySet()` to disable seam clearance.
 
 ## Geometry rules
 

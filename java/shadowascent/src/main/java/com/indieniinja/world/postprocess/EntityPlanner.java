@@ -40,13 +40,20 @@ public final class EntityPlanner {
     /**
      * Place enemies on valid ground positions, respecting exclusion zones and
      * scaling count/type with BFS depth from {@code plan}.
+     *
+     * @param isSeamRoom when {@code true} this room sits at a section boundary —
+     *                   no enemies are placed so the player is not immediately
+     *                   engaged when crossing a section transition point.
      */
     public static List<LevelLayout.EnemySpawn> placeEnemies(
             byte[][] grid,
             WorldGraph.RoomNode room,
             PuzzlePlan plan,
             long roomSeed,
-            float spawnX, float spawnY) {
+            float spawnX, float spawnY,
+            boolean isSeamRoom) {
+
+        if (isSeamRoom) return List.of();
 
         long seed = SeedHierarchy.deriveFeature(roomSeed, "enemy");
         Random rng = new Random(seed);

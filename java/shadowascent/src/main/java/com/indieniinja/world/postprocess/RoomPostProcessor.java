@@ -9,7 +9,9 @@ import com.indieniinja.world.puzzle.AbilityGate;
 import com.indieniinja.world.puzzle.PuzzlePlan;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Orchestrates the post-processing passes applied to a tile grid after
@@ -33,18 +35,23 @@ public final class RoomPostProcessor {
     /**
      * Run all post-processing passes and produce a {@link RoomContent}.
      *
-     * @param grid      raw tile grid from RoomGenerator (not mutated)
-     * @param room      room descriptor from WorldGraph
-     * @param plan      puzzle plan for this hub (use PuzzlePlan.empty() until Phase 3)
-     * @param roomSeed  per-room seed for deterministic sub-seed derivation
-     * @param masterHubId hub id for portal destination lookup
+     * @param grid           raw tile grid from RoomGenerator (not mutated)
+     * @param room           room descriptor from WorldGraph
+     * @param plan           puzzle plan for this hub (use PuzzlePlan.empty() until Phase 3)
+     * @param roomSeed       per-room seed for deterministic sub-seed derivation
+     * @param masterHubId    hub id for portal destination lookup
+     * @param seamRoomKeys   room keys (from {@link com.indieniinja.world.puzzle.PuzzlePlan#roomKey})
+     *                       that sit at section boundaries — enemies are suppressed in these rooms
+     *                       to avoid placing hostiles directly at section transition points.
+     *                       Pass {@link Collections#emptySet()} to disable seam clearance.
      */
     public static RoomContent process(
             byte[][]           grid,
             WorldGraph.RoomNode room,
             PuzzlePlan          plan,
             long                roomSeed,
-            String              masterHubId) {
+            String              masterHubId,
+            Set<String>         seamRoomKeys) {
 
         // Deep-copy — never mutate caller's tile array
         byte[][] tiles = deepCopy(grid);
@@ -68,8 +75,9 @@ public final class RoomPostProcessor {
         float spawnX = spawn[0], spawnY = spawn[1];
 
         // ── Pass 4: Entity placement ──────────────────────────────────────────
+        boolean isSeam = seamRoomKeys.contains(roomKey);
         List<LevelLayout.EnemySpawn> enemies = EntityPlanner.placeEnemies(
-            tiles, room, plan, roomSeed, spawnX, spawnY);
+            tiles, room, plan, roomSeed, spawnX, spawnY, isSeam);
 
         List<LevelLayout.PickupSpawn> pickups = EntityPlanner.placePickups(
             tiles, room, enemies, roomSeed, spawnX, spawnY);
@@ -90,6 +98,16 @@ public final class RoomPostProcessor {
             puzzleSpawns, portals, falling, moving,
             spawnX, spawnY
         );
+    }
+
+    /** Backward-compatible overload — no seam clearance applied. */
+    public static RoomContent process(
+            byte[][]           grid,
+            WorldGraph.RoomNode room,
+            PuzzlePlan          plan,
+            long                roomSeed,
+            String              masterHubId) {
+        return process(grid, room, plan, roomSeed, masterHubId, Collections.emptySet());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

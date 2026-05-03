@@ -11,7 +11,7 @@
     { "from": "reward", "to": "return_loop" },
     { "from": "return_loop", "to": "entry" }
   ],
-  "requiredSockets": ["west_low_walk", "east_high_climb"],
+  "requiredSockets": ["west_mid_jump", "east_high_jump"],
   "mutableZones": [
     { "x": 10, "y": 22, "w": 20, "h": 10, "role": "enemy_pool" },
     { "x": 34, "y": 10, "w": 16, "h": 6, "role": "platform_shuffle" }

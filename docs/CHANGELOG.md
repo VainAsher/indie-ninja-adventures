@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-05-02
-version_anchor: v0.13.28
+last_updated: 2026-05-03
+version_anchor: v0.13.29
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.29] - 2026-05-03 (worldgen: socket compatibility + seam clearance + quality baseline)
+
+### Fixed
+
+- **WG-1:** `data/worldgen/sections/forest_key_trial_canopy.json` — `requiredSockets[0]` changed from `west_low_walk` to `west_mid_jump`; `requiredSockets[1]` changed from `east_high_climb` to `east_high_jump`. Root cause: mission chain entry incompatible with ruins→canopy contract; climb-exit had no compatible boss-approach entry.
+- **WG-1:** `data/worldgen/sections/lantern_boss_approach_sanctum.json` — `requiredSockets[0]` changed from `west_low_walk` to `west_mid_jump`. All forest trials exit `east_mid_jump`; sanctum entry must accept mid-jump.
+- Seed 420 Act I snapshot: `socketCompatibilityScore` 33→100, `transitionDebtPenalty` 67→0, `qualityScoreV2` 66→96, `valid` false→true.
+
+### Added
+
+- **WG-3:** `EntityPlanner.placeEnemies()` accepts `boolean isSeamRoom` — returns `List.of()` immediately when true (LayerProcGen effect-distance principle: no enemy placement at section transition boundaries).
+- **WG-3:** `RoomPostProcessor.process()` overload accepts `Set<String> seamRoomKeys`; backward-compatible overload (5 args) passes `Collections.emptySet()`.
+- **WG-3:** `EntityPlannerSeamClearanceTest` — 5 unit tests, all pass.
+- **WG-2:** 50-seed worldgen quality baseline sweep. Score range 60–80 (all fail). Root cause: Act II+ `critical_path_transition_debt` — expected, no templates authored. Data: `docs/reports/worldgen/sweep-50-v0.13.29.csv`, worst 5: `docs/reports/worldgen/sweep-50-failures.md`.
+- `docs/dev/LAYERPROCGEN_WORLDGEN_ANALYSIS.md` — framework analysis with 5 prioritised worldgen improvements.
+- `docs/systems/WORLD_GEN.md` — seam clearance contract added.
+
+### Compatibility
+
+- save: no impact
+- replay: breaking for worlds where seam-room enemy placement would have differed (new worlds only; seam clearance not yet wired to runtime `HybridLayoutPlan` path)
+- protocol: no impact
+- snapshot schema: 11 (unchanged)
 
 ---
 

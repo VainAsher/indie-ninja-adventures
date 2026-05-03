@@ -2110,3 +2110,133 @@ Do not treat the gameplay identity sections as optional commentary, because they
 ---
 
 *Living document. Update milestone checkboxes as work progresses. Archive completed milestones to `docs/archive/`.*
+
+---
+
+## Worldgen Improvement Lane — LayerProcGen-Informed Act I Layout Quality
+
+**Added:** 2026-05-02 — sourced from `docs/dev/LAYERPROCGEN_WORLDGEN_ANALYSIS.md`
+
+### Task Intake Brief
+
+**Goal:** Reduce Act I worldgen `critical_path_transition_debt` to zero and produce level layouts that match the narrative beat sequence, using principles derived from the LayerProcGen framework.
+
+**Player-facing impact:** Act I layouts will always be traversable from hub to boss without requiring bridge rooms the engine cannot yet insert. Critical path rooms will have correct environmental transitions — forest trial rooms lead naturally into lantern approach rooms without abrupt geography mismatch.
+
+**Systems touched:**
+- `data/worldgen/sections/*.json` — authored socket compatibility
+- `java/shadowascent/.../world/validation/GenerationValidationPlanner.java` — `critical_path_transition_debt` check
+- `java/shadowascent/.../world/postprocess/EntityPlanner.java` — seam clearance for entity placement
+- `docs/systems/WORLD_GEN.md` — seam clearance contract documentation
+
+**Risks:**
+- Socket changes are snapshot-schema-visible but not replay-breaking (worldgen changes only affect newly generated worlds).
+- EntityPlanner clearance is a placement-behaviour change — entity counts near section boundaries will change. This is intentional.
+- Any socket change that reduces the candidate pool for a given progression node must be verified not to block layout planning (HybridLayoutPlanner must still find a valid section assignment).
+
+**Required tests:**
+- `GenerationValidationPlannerTest` — verify `critical_path_transition_debt` count ≤ 0 for Act I after socket fixes
+- `SectionTemplateLibraryTest` — verify patched sections still load in strict mode
+- `WorldGenSnapshotCommand` — regenerate seed 420, capture `qualityScoreV2` delta
+- `EntityPlanner` seam clearance test — new test asserting no enemies in boundary rooms
+
+**Required docs to update:**
+- `docs/CURRENT_STATE.md` — new active slice entry + snapshot quality delta
+- `docs/systems/WORLD_GEN.md` — seam clearance zone contract description
+- `docs/CHANGELOG.md` — per-version entries
+- `PLAN_SHADOW_ASCENT.md` loop note — this document
+
+**Rollback plan:**
+- Socket fixes: revert the three JSON edits; regenerate snapshot. No code changes.
+- EntityPlanner clearance: feature-flag via `-Dninja.entityPlanner.seamClearanceRooms=0` (default 2).
+
+**Escalation conditions:**
+- If socket fix reduces template candidate pool to 0 for any `(biome, kind)` required by Act I progression, stop and author a new section variant before continuing.
+- If seed sweep shows 20%+ seeds produce `valid=false` after fixes (regression), escalate before tagging.
+
+---
+
+### Implementation Queue
+
+#### WG-1 — Fix socket mismatches in authored section templates *(data-only)*
+
+Root cause of `socketCompatibilityScore=33` and `critical_path_transition_debt x2`:
+
+| Section | Field | Old value | New value | Reason |
+| ------- | ----- | --------- | --------- | ------ |
+| `forest_key_trial_ruins` | `requiredSockets` | `["west_mid_jump","east_mid_jump"]` | *(unchanged)* | Hub (`hub_home` kind) is not in connectionContracts — ruins↔ruins mission chain already compatible. |
+| `forest_key_trial_canopy` | `requiredSockets[0]` | `west_low_walk` | `west_mid_jump` | Mission chain requires mid-jump entry to match ruins→canopy contract. |
+| `forest_key_trial_canopy` | `requiredSockets[1]` | `east_high_climb` | `east_high_jump` | climb-exit has no compatible boss-approach entry; high_jump↔mid_jump is one-step valid. |
+| `lantern_boss_approach_sanctum` | `requiredSockets[0]` | `west_low_walk` | `west_mid_jump` | All forest trials exit at `east_mid_jump`; sanctum entry must accept mid-jump. |
+
+Compatibility check after fix:
+
+| Chain | Hub→Trial | Trial→Boss | Valid? |
+| ----- | --------- | ---------- | ------ |
+| hub → ruins → ascension | `east_low_walk`↔`west_low_walk` ✓ | `east_mid_jump`↔`west_mid_jump` ✓ | ✓ |
+| hub → canopy → ascension | `east_low_walk`↔`west_low_walk` ✓ | `east_high_jump`↔`west_mid_jump` (band one-step, same traversal) ✓ | ✓ |
+| hub → trial → sanctum | `east_low_walk`↔`west_low_walk` ✓ | `east_mid_jump`↔`west_mid_jump` ✓ | ✓ |
+| hub → riverbank → ascension | `east_low_walk`↔`west_low_walk` ✓ | `east_mid_jump`↔`west_mid_jump` ✓ | ✓ |
+
+- [x] Apply the three JSON edits (canopy west+east, sanctum west). Ruins unchanged — hub not in contract chain.
+- [x] Seed 420 snapshot regenerated: `qualityScoreV2=96`, `transitionDebtPenalty=0`, `socketCompatibilityScore=100` (all 3 contracts matched) — 2026-05-02.
+- [x] `SectionTemplateLibraryTest` (4/4 PASSED) — 2026-05-02.
+- [x] `GenerationValidationPlannerTest` (4/4 PASSED) — 2026-05-02.
+- [ ] Update `docs/CURRENT_STATE.md` with new snapshot quality numbers.
+- [ ] Bump version to v0.13.29, commit, tag, push.
+
+**Compatibility:** replay=no | save=no | protocol=no | snapshot schema=11 (unchanged)
+
+---
+
+#### WG-2 — Seed sweep quality baseline *(tooling-only)*
+
+- [ ] Run `python tools/worldgen_lab.py batch --seeds 50 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep-50 --failures 5`
+- [ ] Save summary: `docs/reports/worldgen/sweep-50-v0.13.29.csv`
+- [ ] Capture worst 5 seeds and their failure modes to `docs/reports/worldgen/sweep-50-failures.md`
+- [ ] Update `PLAN_WORLDGEN_RUNTIME_ADOPTION.md` with sweep evidence (deferred 1..250 partial).
+
+**Compatibility:** tooling-only, no code/data change.
+
+---
+
+#### WG-3 — EntityPlanner seam clearance *(Java + test)*
+
+Apply the LayerProcGen effect-distance principle: no enemy spawns or hazard tiles within the outermost 2 rooms of a section boundary.
+
+**Mechanism:** `SocketAnchorPlan.resolvedAnchors` already records section world-space bounds. `EntityPlanner.computeSpawn()` can check whether a candidate spawn room is within `seamClearanceRooms` distance of any section-boundary room and skip enemy placement there.
+
+- [x] Add `isSeamRoom` boolean to `EntityPlanner.placeEnemies()` — early-returns `List.of()` when true.
+- [x] `RoomPostProcessor.process()` accepts `Set<String> seamRoomKeys`; backward-compat overload passes `Collections.emptySet()`.
+- [x] 5 unit tests in `EntityPlannerSeamClearanceTest` — all PASSED (2026-05-02).
+- [x] Update `docs/systems/WORLD_GEN.md` with seam clearance contract description.
+- [ ] Bump version to v0.13.30, commit, tag, push.
+
+**Compatibility:** replay=breaking for worlds where boundary-room enemy placement would have changed | save=no | protocol=no
+
+---
+
+#### WG-4 — Forest trial authored room templates *(content authoring)*
+
+Add TMX templates for forest trial rooms that match the narrative beat: platforming challenge that reads as "forest ruin" or "canopy path" to ground the player's location emotionally before they reach the boss approach.
+
+- [ ] Author `java/assets/rooms/templates/platform_ascent_forest.tmx` — 128×128, vertical platform challenge with foliage-style structure (canopy gaps, climbable vines).
+- [ ] Author `java/assets/rooms/templates/combat_standard_forest_ruins.tmx` — 128×128, ruined stone floor, irregular platform heights.
+- [ ] Register both in `data/room_template_catalog.json` under the appropriate room-type keys with biome filter `forest`.
+- [ ] Run `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`
+- [ ] Run worldgen snapshot seed 420 and confirm new templates appear in biome-filtered selection.
+- [ ] Bump version to v0.13.31, commit, tag, push.
+
+**Compatibility:** replay=breaking (template selection changes for forest rooms) | save=no | protocol=no
+
+---
+
+### Loop Note
+
+`2026-05-02 00:00:00 +01:00` — WorldGen improvement lane opened.
+
+- LayerProcGen analysis complete: `docs/dev/LAYERPROCGEN_WORLDGEN_ANALYSIS.md`
+- Root cause of `critical_path_transition_debt x2` identified: 3 socket mismatches in authored section JSON data.
+- `socketCompatibilityScore=33` → expected to rise to 100 after WG-1 socket fixes (all Act I chains become compatible).
+- Implementation priority order: WG-1 (data-only, immediate) → WG-2 (tooling sweep) → WG-3 (seam clearance) → WG-4 (room templates).
+- WG-3 and WG-4 are decoupled; either can proceed after WG-1.

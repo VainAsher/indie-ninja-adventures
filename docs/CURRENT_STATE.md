@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-05-02
-version_anchor: v0.13.28
+last_updated: 2026-05-03
+version_anchor: v0.13.29
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,7 +21,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-05-02): v0.13.28 — All 6 P0 G0 blockers resolved. Ready for G0 smoke session 2.
+- Current release truth (2026-05-03): v0.13.29 — WG-1/WG-2/WG-3 worldgen improvements. Act I socketCompatibilityScore 100, qualityScoreV2 96. Ready for G0 smoke session 2.
 - G0/P0-10 is not closed yet. Session 1 FAIL (v0.13.21, 2026-05-01). All 6 blockers from session 1 are now fixed.
 - G0 session 1 evidence: [`docs/reports/manual-runtime/g0-v0.13.21-session-1.md`](reports/manual-runtime/g0-v0.13.21-session-1.md)
 - G0 P0 blockers — status:
@@ -83,31 +83,31 @@ Canonical runtime and handover snapshot for the active Java stack.
 - **Compatibility:** no live replay/save/protocol change; generator snapshot
   schema remains `10`.
 
-## Active Slice - Worldgen vision execution (schema 11)
+## Active Slice - Worldgen vision execution (schema 11) + LayerProcGen improvements
 
-- **Status:** Implemented in branch work and validated locally (2026-05-01).
-- **Completed:**
-  - strict section schema validator with deterministic issue ordering and opt-in strict load mode (`-Dninja.sectionTemplateStrict=true`)
-  - critical-path transition debt policy (`critical_path_transition_debt`) so unresolved mandatory `needs_transition` contracts now invalidate validation
-  - Act I template variety expansion (`forest:key_trial` + `lantern:boss_approach`) and authoring guardrails (`docs/guides/WORLDGEN_SECTION_AUTHORING.md`)
-  - worldgen lab quality scoring V2 metrics: `transitionDebtPenalty`, `criticalPathVarietyScore`, `socketCompatibilityScore`, plus migration fields `qualityScoreV1` and `qualityScoreV2`
-- **Snapshot baseline regenerated:** `java/shadowascent/build/worldgen-snapshots/act1-seed-420.json`
-  - schema: `11`
-  - validation: `valid=false`, issues: `critical_path_transition_debt` x2
-  - lab quality: `qualityScoreV1=100`, `qualityScoreV2=66`, `transitionDebtPenalty=67`, `criticalPathVarietyScore=75`, `socketCompatibilityScore=33`
-- **Baseline compare (schema 10 -> 11):** `build/worldgen-lab/act1-compare/compare.json`
-  - `qualityDelta=-34` (`qualityV1Delta=0`, `qualityV2Delta=-34`)
-  - `transitionDebtPenaltyDelta=67`, `criticalPathVarietyScoreDelta=75`, `socketCompatibilityScoreDelta=33`
-  - `warningDeltas={}` (no shell-geometry warning regression)
-  - `roomChecksumChanges=20` (expected snapshot-level worldgen output drift due schema/policy/content changes)
-- **Validation evidence:**
-  - `./gradlew.bat :shadowascent:test --tests com.indieniinja.world.sections.SectionTemplateLibraryTest --tests com.indieniinja.world.layout.HybridLayoutPlannerTest --tests com.indieniinja.world.validation.GenerationValidationPlannerTest --tests com.indieniinja.world.progression.WorldProgressionGeneratorTest --tests com.indieniinja.world.progression.AuthoredProgressionLoaderTest --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --no-daemon` PASS
-  - `./gradlew.bat :shadowascent:worldgenSnapshot -Pseed=420 -Prooms=20 -Pshape=BLOB -PcampaignId=act1 "-Pout=build/worldgen-snapshots/act1-seed-420.json" --no-daemon` PASS
-  - `python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/act1-seed-420.json --out build/worldgen-lab/act1-seed-420` PASS
-  - `python tools/test_worldgen_lab.py` PASS
-- **Manual smoke:** launcher-based G0 smoke (`PLAYABLE_TRUTH.md` steps 1-13 + `worldgen info`) is the first action required from the tester on the v0.13.21 artifact.
-- **Compatibility:** snapshot schema changes from `10` to `11` (breaking for tools that assume schema 10 fields only). Save/protocol remain unchanged. Replay: no change (worldgen changes affect newly generated worlds only).
-- **Deferred — seed sweep:** 1..250 seed sweep not run this session. Deferred to the next worldgen tuning loop. Track via `PLAN_WORLDGEN_RUNTIME_ADOPTION.md`.
+- **Status:** WG-1 (socket fixes) + WG-3 (seam clearance) complete. WG-2 (seed sweep baseline) captured. 2026-05-03.
+- **Completed (this session):**
+  - WG-1: Fixed 3 socket mismatches in `data/worldgen/sections/` — canopy west (`west_low_walk`→`west_mid_jump`), canopy east (`east_high_climb`→`east_high_jump`), sanctum west (`west_low_walk`→`west_mid_jump`). Ruins unchanged (hub not in contract chain).
+  - WG-3: `EntityPlanner.placeEnemies()` gains `boolean isSeamRoom` — returns `List.of()` immediately when true. `RoomPostProcessor.process()` accepts `Set<String> seamRoomKeys`; backward-compat overload uses `Collections.emptySet()`. 5/5 tests PASS (`EntityPlannerSeamClearanceTest`).
+  - WG-2: 50-seed sweep baseline captured — `docs/reports/worldgen/sweep-50-v0.13.29.csv`.
+  - `docs/systems/WORLD_GEN.md` updated with seam clearance contract.
+  - `docs/dev/LAYERPROCGEN_WORLDGEN_ANALYSIS.md` authored (13-section analysis, 5 prioritised improvements).
+- **Snapshot baseline (seed 420, post WG-1):** `java/shadowascent/build/worldgen-snapshots/act1-seed-420.json`
+  - schema: `11`, `valid=true`
+  - lab quality: `qualityScoreV1=100`, `qualityScoreV2=96`, `transitionDebtPenalty=0`, `criticalPathVarietyScore=75`, `socketCompatibilityScore=100`
+  - All 3 Act I progression contracts: `status=matched`
+- **Seed sweep baseline (seeds 1–50, BLOB/20):** `docs/reports/worldgen/sweep-50-v0.13.29.csv`
+  - Score range: 60–80 (all `overallStatus=fail`)
+  - Root cause: `critical_path_transition_debt` on Act II+ nodes (archive, cathedral, cavern, foundry, spire). No templates authored yet — expected failure, not a regression.
+  - Worst 5: seeds 7 (60), 40 (61), 3 (63), 5 (64), 11 (65) — full breakdown at `docs/reports/worldgen/sweep-50-failures.md`.
+- **Validation evidence (this session):**
+  - `SectionTemplateLibraryTest` 4/4 PASS
+  - `GenerationValidationPlannerTest` 4/4 PASS
+  - `EntityPlannerSeamClearanceTest` 5/5 PASS
+- **Deferred:** Act II+ section template authoring (archive, cathedral, cavern, foundry, spire). WG-4 forest trial TMX templates. 1..250 full sweep. Track via `PLAN_SHADOW_ASCENT.md` WG lane.
+- **Prior slice (schema 11 initial):**
+  - strict section schema validator, critical-path transition debt policy, Act I template variety expansion, worldgen lab quality scoring V2 metrics
+  - Snapshot (pre-WG-1): `valid=false`, `qualityScoreV2=66`, `transitionDebtPenalty=67`, `socketCompatibilityScore=33`
 
 ## Completed Slice - Worldgen Lab detail view
 

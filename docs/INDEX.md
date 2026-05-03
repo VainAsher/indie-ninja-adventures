@@ -118,6 +118,7 @@ This index tracks only the active documentation system for the Java v0.13.x line
 
 - [dev/JAVA_ARCHITECTURE.md](dev/JAVA_ARCHITECTURE.md)
 - [dev/JAVA_SETUP.md](dev/JAVA_SETUP.md)
+- [dev/LAYERPROCGEN_WORLDGEN_ANALYSIS.md](dev/LAYERPROCGEN_WORLDGEN_ANALYSIS.md) — LayerProcGen principles and concrete worldgen improvement recommendations
 - [QUICK_START.md](QUICK_START.md)
 - [guides/WORLDGEN_SECTION_AUTHORING.md](guides/WORLDGEN_SECTION_AUTHORING.md)
 
