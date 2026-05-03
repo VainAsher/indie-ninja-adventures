@@ -16,7 +16,28 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
-## [v0.13.32] — 2026-05-03 — Procgen runtime integration (S9)
+## [0.13.33] - 2026-05-03 (UX slices D+C: UI readability + mouse input consistency)
+
+### Changed (UX — Slice D: UI readability)
+
+- `UiStyle`: added `FONT_SCALE_LARGE = 1.8f` and `FONT_SCALE_SMALL = 1.0f` constants (was `0.9f` per-screen — bumped for legibility). Added `HINT` color constant for footer hint lines.
+- `SlotSelectScreen` + `ModeSelectScreen`: font scale literals replaced with `UiStyle.FONT_SCALE_LARGE` / `UiStyle.FONT_SCALE_SMALL`; footer hint color replaced with `UiStyle.HINT`; inline `Color.WHITE` / dim-color expressions replaced with `UiStyle.TEXT` / `UiStyle.TEXT_DIM`; screen titles cleaned (`"SELECT  SAVE  SLOT"` → `"SELECT SAVE SLOT"`, etc.).
+- Footer hint text in `SlotSelectScreen` aligned to match `ModeSelectScreen` format.
+- Version sync fixes: `README.md`, `docs/ROADMAP.md`, `java/build.gradle.kts`, and `docs/CHANGELOG.md` heading format corrected to align with v0.13.32 (were still on `0.13.31` / used `v` prefix).
+
+### Changed (UX — Slice C: mouse input consistency)
+
+- `SlotSelectScreen`: added mouse hover + click detection (mirrors existing `ModeSelectScreen` pattern). Hovering a card now highlights it; single-click selects; double-click (click already-selected card) confirms. Keyboard navigation unchanged.
+- `SlotSelectScreen`: extracted `confirmSlot()` helper; keyboard ENTER/SPACE path uses same method.
+- Footer hint updated to include `"or click a card"` cue.
+
+### Compatibility
+
+- Visual-only + input-method change. No save format, protocol, or replay impact.
+
+---
+
+## [0.13.32] - 2026-05-03 (procgen runtime integration — S9)
 
 ### Added (dev tooling + runtime infrastructure — no player-visible change)
 

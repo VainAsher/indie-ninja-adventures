@@ -74,9 +74,9 @@ public final class ModeSelectScreen implements Screen {
             batch     = new SpriteBatch();
             shapes    = new ShapeRenderer();
             fontLarge = new BitmapFont();
-            fontLarge.getData().setScale(1.8f);
+            fontLarge.getData().setScale(UiStyle.FONT_SCALE_LARGE);
             fontSmall = new BitmapFont();
-            fontSmall.getData().setScale(0.9f);
+            fontSmall.getData().setScale(UiStyle.FONT_SCALE_SMALL);
         } else {
             batch = null;
             shapes = null;
@@ -147,9 +147,9 @@ public final class ModeSelectScreen implements Screen {
         batch.begin();
 
         // Screen title
-        fontLarge.setColor(Color.WHITE);
-        fontLarge.draw(batch, "SELECT  GAME  MODE",
-            sw * 0.5f - 140f, sh * 0.5f + CARD_H * 0.5f + 60f);
+        fontLarge.setColor(UiStyle.TEXT);
+        fontLarge.draw(batch, "SELECT GAME MODE",
+            sw * 0.5f - 120f, sh * 0.5f + CARD_H * 0.5f + 60f);
 
         for (int i = 0; i < MODE_COUNT; i++) {
             float x = startX + i * (CARD_W + CARD_GAP);
@@ -160,7 +160,7 @@ public final class ModeSelectScreen implements Screen {
             fontLarge.draw(batch, MODE_NAMES[i], x + 14f, cardY + CARD_H - 20f);
 
             // Description (split by \n)
-            fontSmall.setColor(sel ? Color.WHITE : new Color(0.55f, 0.55f, 0.60f, 1f));
+            fontSmall.setColor(sel ? UiStyle.TEXT : UiStyle.TEXT_DIM);
             String[] lines = MODE_DESC[i].split("\n");
             float lineY = cardY + CARD_H - 55f;
             for (String line : lines) {
@@ -176,11 +176,10 @@ public final class ModeSelectScreen implements Screen {
         }
 
         // Bottom hint
-        fontSmall.setColor(new Color(0.45f, 0.45f, 0.50f, 1f));
+        fontSmall.setColor(UiStyle.HINT);
         fontSmall.draw(batch, "[ ← → ] navigate    [ ENTER ] confirm    [ ESC ] back",
             sw * 0.5f - 210f, cardY - 20f);
 
-        fontSmall.setColor(Color.WHITE);
         batch.end();
 
         // ── Mouse hover detection ─────────────────────────────────────────────

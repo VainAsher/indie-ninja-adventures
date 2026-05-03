@@ -43,6 +43,14 @@ application {
     mainClass.set("com.indieniinja.client.DesktopLauncher")
 }
 
+// Pass -PprocgenRooms to the run task to enable the procgen room generator flag:
+//   ./gradlew :client:run -PprocgenRooms
+tasks.named<JavaExec>("run") {
+    if (project.hasProperty("procgenRooms")) {
+        jvmArgs("-Dninja.runtime.useProcgenRooms=true")
+    }
+}
+
 val repoRoot = projectDir.parentFile.parentFile  // java/client/ -> java/ -> repo root
 
 // Fat JAR: stable name ninja-client-all.jar (no version suffix — launcher uses fixed filename)

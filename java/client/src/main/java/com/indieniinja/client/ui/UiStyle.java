@@ -27,9 +27,14 @@ public final class UiStyle {
     public static final Color ACCENT   = new Color(0.20f, 0.75f, 0.45f, 1f);  // green
     public static final Color TEXT     = Color.WHITE;
     public static final Color TEXT_DIM = new Color(0.55f, 0.55f, 0.60f, 1f);
+    public static final Color HINT     = new Color(0.50f, 0.50f, 0.58f, 1f);  // footer hint lines
     public static final Color BTN_UP   = new Color(0.16f, 0.18f, 0.22f, 1f);
     public static final Color BTN_OVER = new Color(0.22f, 0.25f, 0.30f, 1f);
     public static final Color BTN_DOWN = new Color(0.10f, 0.12f, 0.15f, 1f);
+
+    // Font scale constants — shared across all manual-batch screens
+    public static final float FONT_SCALE_LARGE = 1.8f;
+    public static final float FONT_SCALE_SMALL = 1.0f;  // was 0.9 per-screen; bumped for legibility
 
     private UiStyle() {}
 

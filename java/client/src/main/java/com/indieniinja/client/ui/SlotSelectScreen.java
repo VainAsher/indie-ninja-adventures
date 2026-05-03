@@ -52,9 +52,9 @@ public final class SlotSelectScreen implements Screen {
             batch     = new SpriteBatch();
             shapes    = new ShapeRenderer();
             fontLarge = new BitmapFont();
-            fontLarge.getData().setScale(1.8f);
+            fontLarge.getData().setScale(UiStyle.FONT_SCALE_LARGE);
             fontSmall = new BitmapFont();
-            fontSmall.getData().setScale(0.9f);
+            fontSmall.getData().setScale(UiStyle.FONT_SCALE_SMALL);
         } else {
             this.slots = new SaveManager.SlotInfo[SaveManager.MAX_SLOTS];
             for (int i = 0; i < this.slots.length; i++) {
@@ -115,9 +115,9 @@ public final class SlotSelectScreen implements Screen {
         batch.getProjectionMatrix().setToOrtho2D(0, 0, sw, sh);
         batch.begin();
 
-        fontLarge.setColor(Color.WHITE);
-        fontLarge.draw(batch, "SELECT  SAVE  SLOT",
-            sw * 0.5f - 140f, sh * 0.5f + CARD_H * 0.5f + 60f);
+        fontLarge.setColor(UiStyle.TEXT);
+        fontLarge.draw(batch, "SELECT SAVE SLOT",
+            sw * 0.5f - 125f, sh * 0.5f + CARD_H * 0.5f + 60f);
 
         for (int i = 0; i < count; i++) {
             float  x    = startX + i * (CARD_W + CARD_GAP);
@@ -128,7 +128,7 @@ public final class SlotSelectScreen implements Screen {
             fontLarge.setColor(sel ? col : new Color(0.7f, 0.7f, 0.7f, 1f));
             fontLarge.draw(batch, "SLOT " + info.slot(), x + 14f, cardY + CARD_H - 20f);
 
-            fontSmall.setColor(sel ? Color.WHITE : new Color(0.55f, 0.55f, 0.60f, 1f));
+            fontSmall.setColor(sel ? UiStyle.TEXT : UiStyle.TEXT_DIM);
             if (info.isEmpty()) {
                 fontSmall.draw(batch, "New Game", x + 14f, cardY + CARD_H - 60f);
             } else if ("[corrupt]".equals(info.saveDate())) {
@@ -145,11 +145,27 @@ public final class SlotSelectScreen implements Screen {
         }
 
         // Footer hint
-        fontSmall.setColor(new Color(0.4f, 0.4f, 0.5f, 1f));
-        fontSmall.draw(batch, "LEFT/RIGHT — select    ENTER — confirm    ESC — back",
-            sw * 0.5f - 210f, 30f);
+        fontSmall.setColor(UiStyle.HINT);
+        fontSmall.draw(batch, "[ ← → ] navigate    [ ENTER ] confirm    [ ESC ] back    or click a card",
+            sw * 0.5f - 255f, 36f);
 
         batch.end();
+
+        // ── Mouse hover / click ───────────────────────────────────────────────
+        float mx = Gdx.input.getX();
+        float my = sh - Gdx.input.getY();  // flip Y (libGDX Y-up)
+        for (int i = 0; i < count; i++) {
+            float cx = startX + i * (CARD_W + CARD_GAP);
+            if (mx >= cx && mx <= cx + CARD_W && my >= cardY && my <= cardY + CARD_H) {
+                if (Gdx.input.justTouched()) {
+                    if (selectedIndex == i) confirmSlot();
+                    else selectedIndex = i;
+                } else {
+                    selectedIndex = i;
+                }
+                break;
+            }
+        }
     }
 
     private static Color cardColor(SaveManager.SlotInfo info) {
@@ -167,14 +183,15 @@ public final class SlotSelectScreen implements Screen {
         if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D))
             selectedIndex = (selectedIndex + 1) % count;
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            int slot = selectedIndex + 1;  // slots are 1-indexed
-            game.setScreen(new ModeSelectScreen(game, host, port, slot));
-        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE))
+            confirmSlot();
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             game.setScreen(new MainMenuScreen(game, host, port));
-        }
+    }
+
+    private void confirmSlot() {
+        game.setScreen(new ModeSelectScreen(game, host, port, selectedIndex + 1));
     }
 
     @Override public void resize(int w, int h) {}
