@@ -58,6 +58,8 @@ public final class PuzzleLayer {
                 case LEVER_DOOR  -> applyLeverDoor(tiles, puzzle, spawns, rng);
                 case BUTTON_SEQUENCE -> applyButtonSequence(tiles, puzzle, spawns, rng);
                 case ECHO_TRIGGER -> applyEchoTrigger(tiles, puzzle, spawns, rng);
+                case ASYMMETRIC_ABILITY_LOCK -> applyAsymmetricAbilityLock(tiles, puzzle, spawns, rng);
+                case SIMULTANEOUS_TIMING     -> applySimultaneousTiming(tiles, puzzle, spawns, rng);
                 default -> { /* TIMED_PLATFORM: future use */ }
             }
         }
@@ -206,6 +208,88 @@ public final class PuzzleLayer {
             triggerCol * TILE + TILE * 0.5f,
             triggerRow * TILE,
             doorId));
+    }
+
+    // ── ASYMMETRIC_ABILITY_LOCK ───────────────────────────────────────────────
+
+    /**
+     * Asymmetric Ability Lock puzzle slice:
+     * - place an auto-spawn echo marker (echo loops at this position indefinitely)
+     * - stamp a door that only unlocks when the player jumps within echo proximity
+     *
+     * Spawn markers emitted:
+     *   "aal_echo_<pid>"    type="aal_echo"    — GameSimulator spawns a looping echo here at room load
+     *   "aal_door_<pid>"    type="door"        — DOOR_LOCKED, unlocked by GameSimulator proximity+jump check
+     */
+    private static void applyAsymmetricAbilityLock(
+            byte[][] tiles, Puzzle puzzle,
+            List<RoomContent.PuzzleSpawn> spawns, Random rng) {
+
+        // Echo position: random floor spot on the left half
+        int echoCol = 10 + rng.nextInt(Math.max(1, COLS / 2 - 12));
+        int echoRow = findFloorBelow(tiles, echoCol);
+        if (echoRow < 0) return;
+
+        // Door position: to the right of echo, requires jump approach
+        int doorCol = echoCol + 18 + rng.nextInt(10);
+        doorCol = Math.min(COLS - 5, doorCol);
+        int doorRow = findChokeRow(tiles, doorCol);
+        if (doorRow < 0) return;
+
+        stampDoor(tiles, doorRow, doorCol);
+
+        String echoMarkerId = "aal_echo_" + puzzle.puzzleId;
+        String doorId       = "aal_door_" + puzzle.puzzleId;
+        spawns.add(new RoomContent.PuzzleSpawn(
+            echoMarkerId, "aal_echo",
+            echoCol * TILE + TILE * 0.5f,
+            echoRow * TILE,
+            doorId));
+        spawns.add(new RoomContent.PuzzleSpawn(
+            doorId, "door",
+            doorCol * TILE + TILE * 0.5f,
+            doorRow * TILE + TILE * 0.5f,
+            echoMarkerId));
+    }
+
+    // ── SIMULTANEOUS_TIMING ───────────────────────────────────────────────────
+
+    /**
+     * Simultaneous Timing puzzle slice:
+     * - place an interact trigger (player starts the echo replay)
+     * - stamp a door that unlocks when player matches echo jump input 3 times
+     *
+     * Spawn markers emitted:
+     *   "st_trigger_<pid>"  type="st_trigger"  — player interacts to start looping echo
+     *   "st_door_<pid>"     type="door"        — DOOR_LOCKED, unlocked by 3 sync successes
+     */
+    private static void applySimultaneousTiming(
+            byte[][] tiles, Puzzle puzzle,
+            List<RoomContent.PuzzleSpawn> spawns, Random rng) {
+
+        int triggerCol = 12 + rng.nextInt(Math.max(1, COLS / 2 - 14));
+        int triggerRow = findFloorBelow(tiles, triggerCol);
+        if (triggerRow < 0) return;
+
+        int doorCol = COLS / 2 + 10 + rng.nextInt(Math.max(1, COLS / 2 - 20));
+        doorCol = Math.min(COLS - 5, doorCol);
+        int doorRow = findChokeRow(tiles, doorCol);
+        if (doorRow < 0) return;
+
+        stampDoor(tiles, doorRow, doorCol);
+
+        String triggerId = "st_trigger_" + puzzle.puzzleId;
+        String doorId    = "st_door_"    + puzzle.puzzleId;
+        spawns.add(new RoomContent.PuzzleSpawn(
+            triggerId, "st_trigger",
+            triggerCol * TILE + TILE * 0.5f,
+            triggerRow * TILE,
+            doorId));
+        spawns.add(new RoomContent.PuzzleSpawn(
+            doorId, "door",
+            doorCol * TILE + TILE * 0.5f,
+            doorRow * TILE + TILE * 0.5f,
+            triggerId));
     }
 
     /** Stamp a 3-tile-wide DOOR_LOCKED column at (doorRow, doorCol). */

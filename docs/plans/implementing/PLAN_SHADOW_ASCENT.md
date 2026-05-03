@@ -1792,8 +1792,8 @@ but also for:
 - [x] `EchoRecorder` (600-tick ring buffer on `SimPlayer`)
 - [x] `SimEcho` (`ReplayPlayer`-driven, `recallable` flag)
 - [x] Authored echo trigger puzzle markers placed by `PuzzleLayer` and mapped as interactable NPC markers in unified layout
-- [ ] Puzzle archetype: **Asymmetric Ability Lock** (echo holds position)
-- [ ] Puzzle archetype: **Simultaneous Timing** (echo replicates past actions)
+- [x] Puzzle archetype: **Asymmetric Ability Lock** (echo holds position) — v0.13.31
+- [x] Puzzle archetype: **Simultaneous Timing** (echo replicates past actions) — v0.13.31
 - [ ] Proof token mechanic (`RoomType.LABYRINTH`, `TOKEN_GATE`)
 - [ ] `ValidationLayer` verifies all puzzles solvable with current ability set
 
@@ -2194,7 +2194,7 @@ Compatibility check after fix:
 - [x] Run `python tools/worldgen_lab.py batch --seeds 50 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep-50 --failures 5` — 2026-05-03.
 - [x] Save summary: `docs/reports/worldgen/sweep-50-v0.13.29.csv` — 2026-05-03.
 - [x] Capture worst 5 seeds and their failure modes to `docs/reports/worldgen/sweep-50-failures.md` — 2026-05-03.
-- [ ] Update `PLAN_WORLDGEN_RUNTIME_ADOPTION.md` with sweep evidence (deferred 1..250 partial).
+- [x] Update `PLAN_WORLDGEN_RUNTIME_ADOPTION.md` with sweep evidence (deferred 1..250 partial) — 2026-05-03.
 
 **Compatibility:** tooling-only, no code/data change.
 
@@ -2225,7 +2225,7 @@ Add TMX templates for forest trial rooms that match the narrative beat: platform
 - [x] Register both in `data/room_template_catalog.json` as weighted variants: `platform_ascent` (base w=2, forest w=1), `combat_standard` (base w=2, forest w=1). Note: catalog does not support biome filter field — variants are weighted globally. 2026-05-03.
 - [x] `validate_room_templates.py --strict-geometry --catalog` — all 12 templates OK. 2026-05-03.
 - [x] Seed 420 snapshot regenerated — `qualityScoreV2=96`, `valid=true`, `socketCompatibilityScore=100` (stable). `RoomTemplateCatalogTest` 3/3 PASS. 2026-05-03.
-- [ ] Bump version to v0.13.30, commit, tag, push.
+- [x] Bump version to v0.13.30, commit, tag, push — 2026-05-03.
 
 **Compatibility:** replay=breaking (template selection changes for forest rooms) | save=no | protocol=no
 

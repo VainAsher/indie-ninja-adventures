@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-05-03
-version_anchor: v0.13.30
+last_updated: 2026-05-02
+version_anchor: v0.13.31
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.31] - 2026-05-02 (M6: ASYMMETRIC_ABILITY_LOCK + SIMULTANEOUS_TIMING puzzle archetypes)
+
+### Added
+
+- **M6:** `PuzzleType.ASYMMETRIC_ABILITY_LOCK` — echo auto-spawns (looping, `aal_echo_<pid>`) at room load from NPC marker; `aal_door_<pid>` unlocks when any alive player jumps within 96px of the echo.
+- **M6:** `PuzzleType.SIMULTANEOUS_TIMING` — player interacts with `st_trigger_<pid>` NPC to start a non-recallable looping echo; `st_door_<pid>` unlocks after player matches the echo's jump input 3 times within ±4 ticks.
+- **M6:** `SimEcho.looping` flag — when true, `step()` restarts replay from tick 0 instead of deactivating on completion.
+- **M6:** `SimEcho.restart()` — resets all state fields for external restart (used by future ST sync-fail path).
+- **M6:** `PuzzleLayer.applyAsymmetricAbilityLock()` and `applySimultaneousTiming()` — stamp DOOR_LOCKED tiles and emit spawn descriptors.
+- **M6:** `GameSimulator.stepPuzzleChecks()` — per-tick AAL proximity+jump and ST jump-sync resolution.
+- **M6:** `GameSimulator` constructor auto-spawns looping echo for each `aal_echo_` NPC marker on room load.
+- **M6:** `LevelLayout.buildAalFixtureLayout()` and `buildStFixtureLayout()` — deterministic test fixtures for puzzle archetype unit tests.
+- **M6:** `AsymmetricAbilityLockTest` — 4 tests: echo auto-spawn, jump-in-range unlocks, jump-out-of-range no-unlock, looping persistence. All pass.
+- **M6:** `SimultaneousTimingTest` — 3 tests: ST spawn, 3-sync unlock, early recall fails. All pass.
+
+### Compatibility
+
+- save: no impact
+- replay: no impact (puzzle logic is server-authoritative; no new client messages)
+- protocol: no impact
+- snapshot schema: 11 (unchanged)
 
 ---
 

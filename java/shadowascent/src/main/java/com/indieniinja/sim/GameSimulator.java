@@ -142,6 +142,19 @@ public final class GameSimulator {
     private final Set<String> solvedPuzzles = new HashSet<>();
     /** Player slots that had interact=true in the previous tick (edge-detect). */
     private final Set<Integer> prevInteract = new HashSet<>();
+    /**
+     * SIMULTANEOUS_TIMING state: echoId → consecutive sync count.
+     * Door unlocks when count reaches ST_SYNC_REQUIRED.
+     */
+    private final Map<String, Integer> stSyncCount = new HashMap<>();
+    /** Tick tolerance for simultaneous-timing jump matching (±4 ticks). */
+    private static final int ST_SYNC_TOLERANCE = 4;
+    /** Number of successful syncs required to unlock a SIMULTANEOUS_TIMING door. */
+    private static final int ST_SYNC_REQUIRED  = 3;
+    /** Last tick the echo jumped for each echoId — used by ST sync check. */
+    private final Map<String, Long> stEchoJumpTick  = new HashMap<>();
+    /** Last tick the player jumped for each echo puzzle — used by ST sync check. */
+    private final Map<String, Long> stPlayerJumpTick = new HashMap<>();
 
     // ── Shadow Ascent M5 — narrative boss state ───────────────────────────────
     /** Optional HubStateMachine — injected by ZoneSimulationLoop for server mode;
@@ -269,6 +282,23 @@ public final class GameSimulator {
                 int shopTier = 1 + (int)(Math.abs(seed ^ npcId.hashCode()) % 3); // tier 1-3
                 shops.put(npcId, new SimShop(npcId, shopTier, seed ^ npcId.hashCode()));
             }
+        }
+
+        // ASYMMETRIC_ABILITY_LOCK: auto-spawn a looping echo for each aal_echo_ NPC marker.
+        // The echo loops indefinitely and acts as a position-hold visual for the puzzle.
+        for (SimNPC npc : npcs) {
+            if (!npc.type.startsWith("aal_echo_")) continue;
+            String pid = npc.type.substring("aal_echo_".length());
+            // Spawn with a minimal one-frame replay so the echo has something to loop
+            List<InputCommand> idleFrames = java.util.List.of(InputCommand.neutral(0));
+            ReplayPlayer idleReplay = ReplayPlayer.fromInputSequence(seed, 0, idleFrames);
+            SimEcho echo = new SimEcho(
+                "aal_echo_" + pid, 0,
+                npc.physics.x, npc.physics.y,
+                idleReplay, true, "unarmed", "silent");
+            echo.looping = true;
+            echoes.add(echo);
+            log.info("[puzzle] AAL echo auto-spawned: puzzle={} echoId={}", pid, echo.echoId);
         }
 
         // Lantern Heights Act I companion NPCs — authored named characters
@@ -547,6 +577,9 @@ public final class GameSimulator {
 
         // 8c. Puzzle lever/button interaction (interact key edge-triggered)
         stepLeverInteraction();
+
+        // 8d. Per-tick puzzle resolution: AAL proximity+jump, ST sync checks
+        stepPuzzleChecks();
 
         // 9. Boss AI + combat
         stepBosses();
@@ -2839,7 +2872,8 @@ public final class GameSimulator {
             float py = p.physics.y + p.physics.height * 0.5f;
             for (SimNPC npc : npcs) {
                 String t = npc.type;
-                if (!t.startsWith("lever_") && !t.startsWith("btn_") && !t.startsWith("echo_trigger_")) {
+                if (!t.startsWith("lever_") && !t.startsWith("btn_")
+                        && !t.startsWith("echo_trigger_") && !t.startsWith("st_trigger_")) {
                     continue;
                 }
                 float nx = npc.physics.x + npc.physics.width  * 0.5f;
@@ -2872,7 +2906,7 @@ public final class GameSimulator {
                             if (s.startsWith("btn_") && s.endsWith(suffix)) pressed++;
                         if (pressed >= 3) unlockDoor("reward_" + basePid);
                     }
-                } else {
+                } else if (t.startsWith("echo_trigger_")) {
                     // Echo trigger puzzle marker: "echo_trigger_<pid>" unlocks "echo_door_<pid>".
                     if (solvedPuzzles.contains(t)) break;
                     solvedPuzzles.add(t);
@@ -2892,8 +2926,125 @@ public final class GameSimulator {
                         log.info("[Playtest][Echo] event=door_unlock_skipped player={} slot={} marker={} reason=blank_puzzle_id",
                             p.playerId, p.slot, t);
                     }
+                } else {
+                    // Simultaneous timing trigger: "st_trigger_<pid>" starts a looping echo.
+                    // Door "st_door_<pid>" unlocks only when the player syncs jumps with the echo.
+                    if (solvedPuzzles.contains(t)) break;
+                    queueInteractionAnimation(p, "button", SimPlayer.INTERACT_BUTTON_TIME);
+                    log.info("[Playtest][Interaction] player={} slot={} type=st_trigger marker={}", p.playerId, p.slot, t);
+                    String pid = t.substring("st_trigger_".length());
+                    // Spawn a non-recallable looping echo — player must sync with it
+                    SimEcho spawned = spawnEchoFromPlayer(entry.getKey(), false);
+                    if (spawned != null) {
+                        spawned.looping = true;
+                        stSyncCount.put(spawned.echoId, 0);
+                        log.info("[Playtest][Echo] event=st_start player={} slot={} puzzle={} echoId={}",
+                            p.playerId, p.slot, pid, spawned.echoId);
+                    }
                 }
                 break;
+            }
+        }
+    }
+
+    /**
+     * Per-tick puzzle resolution for echo-based archetypes.
+     *
+     * <p>ASYMMETRIC_ABILITY_LOCK: For each looping echo whose id starts with "aal_echo_",
+     * unlock the linked door when any alive player jumps within {@code AAL_PROXIMITY_PX}
+     * of the echo's position.
+     *
+     * <p>SIMULTANEOUS_TIMING: For each active ST echo (tracked in stSyncCount), record
+     * the tick of the echo's jump and the player's jump separately. When the player's
+     * most recent jump is within ±{@code ST_SYNC_TOLERANCE} ticks of the echo's most
+     * recent jump, increment the sync count. On {@code ST_SYNC_REQUIRED} successes,
+     * unlock {@code st_door_<pid>}. If the echo completes a loop without reaching the
+     * required count, reset the count (the echo loops, so the player gets more chances).
+     */
+    private void stepPuzzleChecks() {
+        if (echoes.isEmpty()) return;
+
+        final float AAL_PROXIMITY_PX = 96f;
+        long currentTick = clock.getTickCount();
+
+        for (SimEcho echo : echoes) {
+            if (echo.failed) continue;
+
+            // ── ASYMMETRIC_ABILITY_LOCK ──────────────────────────────────────
+            if (echo.echoId.startsWith("aal_echo_")) {
+                String pid   = echo.echoId.substring("aal_echo_".length());
+                String doorId = "aal_door_" + pid;
+                if (solvedPuzzles.contains(doorId)) continue;
+
+                float ex = echo.x, ey = echo.y;
+                for (SimPlayer p : players.values()) {
+                    if (!p.isAlive()) continue;
+                    if (p.latestInput == null || !p.latestInput.jump) continue;
+                    float px = p.physics.x + p.physics.width  * 0.5f;
+                    float py = p.physics.y + p.physics.height * 0.5f;
+                    float dx = px - ex, dy = py - ey;
+                    if (dx*dx + dy*dy <= AAL_PROXIMITY_PX * AAL_PROXIMITY_PX) {
+                        boolean unlocked = unlockDoor(doorId);
+                        log.info("[Playtest][Echo] event=aal_unlock player={} puzzle={} door={} unlocked={}",
+                            p.playerId, pid, doorId, unlocked);
+                        break;
+                    }
+                }
+                continue;
+            }
+
+            // ── SIMULTANEOUS_TIMING ──────────────────────────────────────────
+            if (!stSyncCount.containsKey(echo.echoId)) continue;
+
+            String pid   = "";
+            // echoId format: "<hubId>_echo_<seq>" — puzzle id is stored in stSyncCount key
+            // Derive pid from the st_trigger_ that spawned this echo via npc scan
+            for (SimNPC npc : npcs) {
+                if (npc.type.startsWith("st_trigger_")) {
+                    pid = npc.type.substring("st_trigger_".length());
+                    break;
+                }
+            }
+            String doorId = "st_door_" + pid;
+            if (solvedPuzzles.contains(doorId)) continue;
+
+            // Track echo jump tick
+            if (echo.currentInput().jump) {
+                stEchoJumpTick.put(echo.echoId, currentTick);
+            }
+
+            // Track player jump tick and check sync
+            for (SimPlayer p : players.values()) {
+                if (!p.isAlive() || p.latestInput == null) continue;
+                if (p.latestInput.jump) {
+                    stPlayerJumpTick.put(echo.echoId, currentTick);
+                }
+                Long echoJump   = stEchoJumpTick.get(echo.echoId);
+                Long playerJump = stPlayerJumpTick.get(echo.echoId);
+                if (echoJump == null || playerJump == null) continue;
+                long diff = Math.abs(echoJump - playerJump);
+                if (diff <= ST_SYNC_TOLERANCE) {
+                    // Clear recorded ticks to prevent double-counting within tolerance window
+                    stEchoJumpTick.remove(echo.echoId);
+                    stPlayerJumpTick.remove(echo.echoId);
+                    int syncs = stSyncCount.merge(echo.echoId, 1, Integer::sum);
+                    log.info("[Playtest][Echo] event=st_sync player={} puzzle={} syncs={}/{}",
+                        p.playerId, pid, syncs, ST_SYNC_REQUIRED);
+                    if (syncs >= ST_SYNC_REQUIRED) {
+                        boolean unlocked = unlockDoor(doorId);
+                        log.info("[Playtest][Echo] event=st_unlock player={} puzzle={} door={} unlocked={}",
+                            p.playerId, pid, doorId, unlocked);
+                    }
+                    break;
+                }
+            }
+
+            // On loop restart, reset sync count (player gets another attempt)
+            if (echo.looping && echo.ticksPlayed() == 0L) {
+                stSyncCount.put(echo.echoId, 0);
+                stEchoJumpTick.remove(echo.echoId);
+                stPlayerJumpTick.remove(echo.echoId);
+                log.debug("[puzzle] ST echo looped — sync count reset: echoId={} puzzle={}", echo.echoId, pid);
             }
         }
     }
@@ -3284,6 +3435,7 @@ public final class GameSimulator {
     public List<SimPickup>         getPickups()  { return java.util.Collections.unmodifiableList(pickups); }
     public List<SimNPC>            getNpcs()     { return java.util.Collections.unmodifiableList(npcs); }
     public List<SimEcho>           getEchoes()   { return java.util.Collections.unmodifiableList(echoes); }
+    public java.util.Set<String>   getSolvedPuzzles() { return java.util.Collections.unmodifiableSet(solvedPuzzles); }
 
     /**
      * Dynamically spawn an NPC mid-simulation (hub evolution: hub state change).

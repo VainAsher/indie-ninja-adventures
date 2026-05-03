@@ -38,6 +38,11 @@ public final class SimEcho {
     public boolean completed = false;
     /** True when recalled early while recallable=false. */
     public boolean failed = false;
+    /**
+     * When true, the replay restarts from tick 0 each time it completes.
+     * Used by ASYMMETRIC_ABILITY_LOCK to keep the echo visible indefinitely.
+     */
+    public boolean looping = false;
 
     private long tickCursor = 0L;
     private InputCommand currentInput = InputCommand.neutral(0);
@@ -54,14 +59,19 @@ public final class SimEcho {
         this.echoType    = echoType != null ? echoType : "silent";
     }
 
-    /** Advance replay by one tick. */
+    /** Advance replay by one tick. Looping echoes restart automatically on completion. */
     public void step() {
         if (!active || replay == null) return;
 
         if (replay.isDone(tickCursor)) {
-            completed = true;
-            active = false;
-            return;
+            if (looping) {
+                tickCursor = 0L;
+                completed = false;
+            } else {
+                completed = true;
+                active = false;
+                return;
+            }
         }
 
         InputCommand cmd = pickCommand(replay.inputsForTick(tickCursor));
@@ -78,10 +88,20 @@ public final class SimEcho {
         }
 
         tickCursor++;
-        if (replay.isDone(tickCursor)) {
+        if (!looping && replay.isDone(tickCursor)) {
             completed = true;
             active = false;
         }
+    }
+
+    /** Restart playback from tick 0 (used by SIMULTANEOUS_TIMING on failed sync). */
+    public void restart() {
+        tickCursor = 0L;
+        completed = false;
+        failed = false;
+        active = true;
+        animState = "idle";
+        currentInput = InputCommand.neutral(ownerSlot);
     }
 
     /**

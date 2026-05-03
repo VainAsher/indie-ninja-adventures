@@ -389,6 +389,84 @@ public final class LevelLayout {
     }
 
     /**
+     * Fixture for ASYMMETRIC_ABILITY_LOCK tests.
+     * Flat room; one aal_echo_ NPC at center-floor; one DOOR_LOCKED tile registered so
+     * unlockDoor() can succeed. Player spawn is placed within AAL_PROXIMITY_PX (96px) of
+     * the echo for easy "in range" tests.
+     */
+    public static LevelLayout buildAalFixtureLayout(long seed, String puzzleId) {
+        final int TILE = 32;
+        final int W = 32;
+        final int H = 24;
+
+        SpatialHash hash = new SpatialHash();
+        for (int tx = 0; tx < W; tx++) {
+            hash.insert(new TileRect(tx * TILE, (H - 2) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect(tx * TILE, (H - 1) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 0; ty < H; ty++) {
+            hash.insert(new TileRect(0, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect((W - 1) * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+
+        float echoX = 15 * TILE;
+        float echoY = (H - 2) * TILE - SimNPC.DEFAULT_HEIGHT;
+        List<NPCSpawn> npcs = java.util.List.of(
+            new NPCSpawn("aal_echo_" + puzzleId, echoX, echoY, echoX - 4f, echoX + 4f)
+        );
+
+        TileRect doorTile = new TileRect(20 * TILE, (float)(H - 2) * TILE, TILE, 3 * TILE, false, WorldGenerator.DOOR_LOCKED);
+        hash.insert(doorTile);
+        Map<String, List<TileRect>> doors = java.util.Map.of(
+            "aal_door_" + puzzleId, java.util.List.of(doorTile));
+
+        // Spawn just below echo so proximity check always passes (same x)
+        float spawnX = echoX;
+        float spawnY = (H - 2) * TILE - 56f;
+        return new LevelLayout(seed, W, H, hash,
+            new ArrayList<>(), new ArrayList<>(), npcs, null,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), spawnX, spawnY, doors);
+    }
+
+    /**
+     * Fixture for SIMULTANEOUS_TIMING tests.
+     * Flat room; one st_trigger_ NPC within interaction range of player spawn;
+     * one DOOR_LOCKED tile registered so unlockDoor() can succeed.
+     */
+    public static LevelLayout buildStFixtureLayout(long seed, String puzzleId) {
+        final int TILE = 32;
+        final int W = 32;
+        final int H = 24;
+
+        SpatialHash hash = new SpatialHash();
+        for (int tx = 0; tx < W; tx++) {
+            hash.insert(new TileRect(tx * TILE, (H - 2) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect(tx * TILE, (H - 1) * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+        for (int ty = 0; ty < H; ty++) {
+            hash.insert(new TileRect(0, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+            hash.insert(new TileRect((W - 1) * TILE, (float) ty * TILE, TILE, TILE, false, WorldGenerator.SOLID));
+        }
+
+        float spawnX  = 8 * TILE;
+        float spawnY  = (H - 2) * TILE - 56f;
+        float markerX = spawnX + 36f;
+        float markerY = (H - 2) * TILE - SimNPC.DEFAULT_HEIGHT;
+        List<NPCSpawn> npcs = java.util.List.of(
+            new NPCSpawn("st_trigger_" + puzzleId, markerX, markerY, markerX - 4f, markerX + 4f)
+        );
+
+        TileRect doorTile = new TileRect(20 * TILE, (float)(H - 2) * TILE, TILE, 3 * TILE, false, WorldGenerator.DOOR_LOCKED);
+        hash.insert(doorTile);
+        Map<String, List<TileRect>> doors = java.util.Map.of(
+            "st_door_" + puzzleId, java.util.List.of(doorTile));
+
+        return new LevelLayout(seed, W, H, hash,
+            new ArrayList<>(), new ArrayList<>(), npcs, null,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), spawnX, spawnY, doors);
+    }
+
+    /**
      * Build a procedurally generated layout from a seed.
      *
      * Uses WorldGenerator to create a 128×128 tile grid with layered platforms
@@ -1052,9 +1130,9 @@ public final class LevelLayout {
                 switch (z.puzzleType()) {
                     case "key" ->
                         allPickups.add(new PickupSpawn(z.puzzleId(), offX + z.x(), offY + z.y()));
-                    case "lever", "button", "echo_trigger" -> {
+                    case "lever", "button", "echo_trigger", "aal_echo", "st_trigger" -> {
                         float px = offX + z.x();
-                        // NPC type = puzzleId (already carries the "lever_" / "btn_" prefix)
+                        // NPC type = puzzleId (carries the "lever_" / "btn_" / "aal_echo_" / "st_trigger_" prefix)
                         allNpcs.add(new NPCSpawn(z.puzzleId(),
                             px, offY + z.y(), px - 16f, px + 16f));
                     }
