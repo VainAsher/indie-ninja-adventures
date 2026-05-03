@@ -40,6 +40,7 @@ This index tracks only the active documentation system for the Java v0.13.x line
   - [plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md](plans/implementing/PLAN_LAYERED_HYBRID_WORLD_GENERATOR.md)
   - [plans/implementing/PLAN_WORLDGEN_VISION_EXECUTION.md](plans/implementing/PLAN_WORLDGEN_VISION_EXECUTION.md) — worldgen schema hardening, traversal contracts, Act I variety, quality scoring v2
   - [plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md](plans/implementing/PLAN_WORLDGEN_RUNTIME_ADOPTION.md) — RFC stub: promote worldgen validation to runtime gating
+  - [plans/implementing/PLAN_PROCGEN_LAB.md](plans/implementing/PLAN_PROCGEN_LAB.md) — standalone procgen lab: layered intent-driven generation, Swing UI, traversal validation
 - Completed:
   - [plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md](plans/completed/BRIEF_2026-04-21_SYSTEMS_DOCS_JAVA_REWRITE.md)
   - [plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md](plans/completed/PLAN_PHASE3_AUTHORITATIVE_SERVER.md)

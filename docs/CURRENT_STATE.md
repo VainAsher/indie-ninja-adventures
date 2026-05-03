@@ -2,8 +2,8 @@
 doc_type: current_state
 status: living
 owner: core-team
-last_updated: 2026-05-02
-version_anchor: v0.13.31
+last_updated: 2026-05-03
+version_anchor: v0.13.32
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,7 +21,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-05-02): v0.13.31 — M6 puzzle archetypes complete: ASYMMETRIC_ABILITY_LOCK (looping echo + 96px proximity jump unlock) and SIMULTANEOUS_TIMING (3-sync jump matching). 7 new unit tests, all pass. WG-1–WG-4 worldgen baseline also complete (v0.13.29–30).
+- Current release truth (2026-05-03): v0.13.32 — Procgen-lab S9 runtime integration: `Tile` constants realigned with live `WorldGenerator` (WATER=4, LAVA=5, LOCKED_DOOR=6); `:procgen-lab` added as compile dependency to `:shadowascent`; `LevelLayout.fromProcgenRoom()` converter and `buildProcgenGrid()` helper bridge procgen tile grids into the live physics pipeline; `ninja.runtime.useProcgenRooms` feature flag (default false) added to adoption plan. 4 new converter tests, 61 total passing.
 - G0/P0-10 is not closed yet. Session 1 FAIL (v0.13.21, 2026-05-01). All 6 blockers from session 1 are now fixed.
 - G0 session 1 evidence: [`docs/reports/manual-runtime/g0-v0.13.21-session-1.md`](reports/manual-runtime/g0-v0.13.21-session-1.md)
 - G0 P0 blockers — status:

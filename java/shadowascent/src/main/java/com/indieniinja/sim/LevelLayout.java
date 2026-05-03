@@ -10,6 +10,9 @@ import com.indieniinja.world.WorldGraph;
 import com.indieniinja.world.postprocess.RoomContent;
 import com.indieniinja.world.postprocess.RoomPostProcessor;
 import com.indieniinja.world.puzzle.PuzzlePlan;
+import com.indieniinja.procgen.model.GenConfig;
+import com.indieniinja.procgen.model.Tile;
+import com.indieniinja.procgen.room.GeneratedRoom;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -586,7 +589,13 @@ public final class LevelLayout {
         final int COLS = PhysicsConstants.ROOM_WIDTH_TILES;   // 128
         final int ROWS = PhysicsConstants.ROOM_HEIGHT_TILES;  // 128
 
-        byte[][] grid = WorldGenerator.generate(seed, COLS, ROWS, neighborDirs, roomType);
+        byte[][] grid;
+        if (Boolean.getBoolean("ninja.runtime.useProcgenRooms")) {
+            grid = buildProcgenGrid(seed, COLS, ROWS, neighborDirs, roomType);
+            log.info("[LevelLayout] useProcgenRooms=true seed={} type={}", seed, roomType);
+        } else {
+            grid = WorldGenerator.generate(seed, COLS, ROWS, neighborDirs, roomType);
+        }
 
         // ── Diagnostic: grid fingerprint (server-side collision grid) ─────────
         int solidCount = 0, platCount = 0;
@@ -904,6 +913,154 @@ public final class LevelLayout {
             content.spawnY,
             null
         );
+    }
+
+    /**
+     * Build a LevelLayout from a procgen-lab {@link com.indieniinja.procgen.room.GeneratedRoom}.
+     *
+     * Both grids are 128×128 tiles; each procgen tile maps to one 32px live tile (1:1).
+     * Procgen column-major [tileX][tileY] is iterated and TileRects are placed at
+     * (tileX*32, tileY*32). Tile constants are aligned between the two modules so
+     * values 0-8 pass through unchanged. Procgen-only markers (PICKUP, ENEMY_SPAWN,
+     * BOSS_SPAWN, SAVE_POINT, DOOR) become spawn descriptors or AIR. SPIKES → LAVA.
+     *
+     * Gated by system property {@code ninja.runtime.useProcgenRooms} — callers check
+     * before invoking; this method does not check the flag itself.
+     */
+    public static LevelLayout fromProcgenRoom(GeneratedRoom room, long seed) {
+        final int TILE = 32;
+        final int W    = GenConfig.ROOM_W; // 128
+        final int H    = GenConfig.ROOM_H; // 128
+
+        SpatialHash       hash    = new SpatialHash();
+        List<EnemySpawn>  enemies = new ArrayList<>();
+        List<PickupSpawn> pickups = new ArrayList<>();
+        List<NPCSpawn>    npcs    = new ArrayList<>();
+        BossSpawn         boss    = null;
+
+        // Fallback spawn: centre of room, near bottom
+        float spawnX = (W / 2f) * TILE + 14f;
+        float spawnY = (H - 4f) * TILE;
+
+        for (int tx = 0; tx < W; tx++) {
+            for (int ty = 0; ty < H; ty++) {
+                byte procTile = room.tiles[tx][ty];
+                float px = tx * TILE;
+                float py = ty * TILE;
+
+                // Extract spawn descriptors before remapping to live tile
+                switch (procTile) {
+                    case Tile.PICKUP ->
+                        pickups.add(new PickupSpawn("coin", px + TILE / 2f, py));
+                    case Tile.ENEMY_SPAWN ->
+                        enemies.add(new EnemySpawn("goblin", px + TILE / 2f, py,
+                            px - 3f * TILE, px + 3f * TILE));
+                    case Tile.SAVE_POINT ->
+                        npcs.add(new NPCSpawn("save_statue", px + TILE / 2f, py,
+                            px - TILE, px + TILE));
+                    case Tile.BOSS_SPAWN -> {
+                        if (boss == null)
+                            boss = new BossSpawn("shadow_warden", px + TILE / 2f, py);
+                    }
+                    default -> { /* no spawn for this tile */ }
+                }
+
+                byte liveTile = procgenToLiveTile(procTile);
+                if (liveTile != WorldGenerator.AIR) {
+                    boolean oneWay = (liveTile == WorldGenerator.PLATFORM);
+                    hash.insert(new TileRect(px, py, TILE, TILE, oneWay, liveTile));
+                }
+            }
+        }
+
+        // Derive spawn: highest walkable AIR cell above SOLID floor, scanning from centre out.
+        outer:
+        for (int dx = 0; dx < W / 2; dx++) {
+            for (int side = -1; side <= 1; side += 2) {
+                int tx = W / 2 + side * dx;
+                if (tx < 1 || tx >= W - 1) continue;
+                for (int ty = 1; ty < H - 2; ty++) {
+                    byte t     = room.tiles[tx][ty];
+                    byte below = room.tiles[tx][ty + 1];
+                    if ((t == Tile.AIR || t == Tile.DOOR)
+                        && (below == Tile.SOLID || below == Tile.PLATFORM)) {
+                        spawnX = tx * TILE + 14f;
+                        spawnY = ty * TILE;
+                        break outer;
+                    }
+                }
+            }
+        }
+
+        log.info("[LevelLayout] fromProcgenRoom seed={} enemies={} pickups={} boss={}",
+            seed, enemies.size(), pickups.size(),
+            boss != null ? boss.bossTypeWire() : "none");
+
+        return new LevelLayout(seed, W, H, hash, enemies, pickups, npcs, boss,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), spawnX, spawnY, null);
+    }
+
+    /** Maps a procgen-lab tile byte to the corresponding live WorldGenerator tile byte.
+     *  Constants 0-8 are aligned between modules and pass through unchanged. */
+    private static byte procgenToLiveTile(byte procTile) {
+        if (procTile <= 8) return procTile; // AIR, SOLID, PLATFORM, ICE, WATER, LAVA, LOCKED_DOOR, GAS, CLIMBABLE
+        return switch (procTile) {
+            case Tile.SPIKES -> WorldGenerator.LAVA;
+            // PICKUP, ENEMY_SPAWN, SAVE_POINT, BOSS_SPAWN, DOOR → AIR (handled as spawns above)
+            default -> WorldGenerator.AIR;
+        };
+    }
+
+    /**
+     * Generate a row-major tile grid using procgen-lab's RoomGenerator.
+     * Used when {@code ninja.runtime.useProcgenRooms=true} to replace WorldGenerator.
+     * Output is byte[ROWS][COLS] (row-major) so it is drop-in compatible with the
+     * rest of buildProceduralLayout's grid iteration.
+     */
+    private static byte[][] buildProcgenGrid(
+            long seed, int cols, int rows,
+            java.util.Collection<String> neighborDirs, String roomType) {
+        // Map wire strings to procgen enums
+        com.indieniinja.procgen.model.RoomType pType = switch (roomType) {
+            case "start"    -> com.indieniinja.procgen.model.RoomType.START;
+            case "boss"     -> com.indieniinja.procgen.model.RoomType.BOSS;
+            case "treasure" -> com.indieniinja.procgen.model.RoomType.TREASURE;
+            case "shop"     -> com.indieniinja.procgen.model.RoomType.SHOP;
+            case "exit"     -> com.indieniinja.procgen.model.RoomType.EXIT;
+            case "platform" -> com.indieniinja.procgen.model.RoomType.TRAVERSAL;
+            case "save"     -> com.indieniinja.procgen.model.RoomType.SAVE;
+            default         -> com.indieniinja.procgen.model.RoomType.COMBAT;
+        };
+        java.util.Set<com.indieniinja.procgen.model.Direction> dirs =
+            new java.util.HashSet<>();
+        for (String d : neighborDirs) {
+            switch (d) {
+                case "left"  -> dirs.add(com.indieniinja.procgen.model.Direction.LEFT);
+                case "right" -> dirs.add(com.indieniinja.procgen.model.Direction.RIGHT);
+                case "up"    -> dirs.add(com.indieniinja.procgen.model.Direction.UP);
+                case "down"  -> dirs.add(com.indieniinja.procgen.model.Direction.DOWN);
+            }
+        }
+        com.indieniinja.procgen.intent.RoomIntent intent =
+            new com.indieniinja.procgen.intent.RoomIntent(
+                pType,
+                com.indieniinja.procgen.model.Biome.DUNGEON,
+                1,
+                java.util.Set.of(),
+                dirs,
+                "neutral",
+                "reach_exit",
+                true);
+
+        GeneratedRoom room = new com.indieniinja.procgen.room.RoomGenerator()
+            .generate(intent, seed);
+
+        // Transpose column-major [x][y] → row-major [row][col] for grid compatibility
+        byte[][] grid = new byte[rows][cols];
+        for (int x = 0; x < cols; x++)
+            for (int y = 0; y < rows; y++)
+                grid[y][x] = procgenToLiveTile(room.tiles[x][y]);
+        return grid;
     }
 
     /**

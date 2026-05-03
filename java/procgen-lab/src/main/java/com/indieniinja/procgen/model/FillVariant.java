@@ -1,0 +1,20 @@
+package com.indieniinja.procgen.model;
+
+public enum FillVariant {
+    SOLID_8X8,
+    HOLLOW_BOX_8X8,
+
+    CAVE_STALACTITE,
+    CAVE_STALAGMITE,
+    CAVE_ROUGH_CHUNK,
+
+    DUNGEON_PILLAR,
+    DUNGEON_CRACKED_WALL,
+    DUNGEON_ARCH,
+
+    BUILDING_WALL_FRAME,
+    BUILDING_WINDOW_FRAME,
+
+    SEWER_PIPE_BLOCK,
+    FOREST_ROOT_MASS
+}

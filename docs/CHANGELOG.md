@@ -2,8 +2,8 @@
 doc_type: changelog
 status: living
 owner: core-team
-last_updated: 2026-05-02
-version_anchor: v0.13.31
+last_updated: 2026-05-03
+version_anchor: v0.13.32
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [v0.13.32] — 2026-05-03 — Procgen runtime integration (S9)
+
+### Added (dev tooling + runtime infrastructure — no player-visible change)
+
+- **Gen Lab S9 — runtime integration:** `Tile` constants in `:procgen-lab` realigned with live `WorldGenerator` (WATER 3→4, LAVA 4→5, LOCKED_DOOR 7→6, SPIKES 5→13, DOOR 6→14; CLIMBABLE=8 unchanged). `:procgen-lab` added as compile-time dependency to `:shadowascent`.
+- `LevelLayout.fromProcgenRoom(GeneratedRoom, long seed)` — converts a procgen-lab room 1:1 into a live `LevelLayout` (128×128 tiles at 32px). Gameplay marker tiles (PICKUP, ENEMY_SPAWN, BOSS_SPAWN, SAVE_POINT) become spawn descriptors; DOOR→AIR; SPIKES→LAVA.
+- `LevelLayout.buildProcgenGrid()` — private helper for `buildProceduralLayout`. Transposes procgen column-major grid to live row-major and maps `roomType` wire strings to `RoomIntent`.
+- `ninja.runtime.useProcgenRooms` feature flag (default `false`). When enabled, `buildProceduralLayout` draws its tile grid from `RoomGenerator` instead of `WorldGenerator`. Kill-switch: disable flag to revert instantly with no save or layout change.
+- Flag added to `PLAN_WORLDGEN_RUNTIME_ADOPTION.md` flag table alongside existing hybrid-layout flags.
+- `LevelLayoutProcgenTest` — 4 new tests: SOLID tile coverage, 32px scale correctness, WATER constant alignment, boss spawn extraction. Total test count: 61.
+
+### Compatibility
+
+- No save format change. `SaveData.worldSeed` already exists; room seeds derive as `worldSeed ^ roomId.hashCode()`.
+- `ninja.runtime.useProcgenRooms=false` (default) — no behavior change for players.
+- Tile constant realignment in `:procgen-lab` is internal to that module; the lab UI and all 57 existing tests unaffected.
+
+---
+
+## [Unreleased] — Generation Lab S4–S5
+
+### Added (dev tooling — no player impact)
+
+- **Gen Lab S4:** Full 10-pass room generation pipeline with traversal validation and 20-attempt regeneration loop. `TraversalValidator` BFS flood-fill checks walk, fall, jump (16-tile height), and dash ability gates.
+- **Gen Lab S5:** Swing debug UI skeleton. The `runLab` Gradle task opens a window showing the generated tile grid, seed control, pass log, and view-mode selector.
+- **Gen Lab S6:** Full view modes (tiles/zones/surface/variant/validation), hierarchy panel (JTree world→region→dungeon→room with room selection), inspector panel (zone cell detail), mouse zone picking, and validation overlay showing unreachable traversable space in red.
+- **Gen Lab S7:** Map renderers for world, region, dungeon (with selection highlight), and room minimap. Export dialog writes Tiled JSON and LDtk format files from the current room.
+- **Gen Lab S8:** Quest generation layer — four enums, five data classes (`Quest`, `QuestObjective`, `QuestReward`, `QuestPlan`, `FeatureRequest`), `QuestGenerator`, `QuestValidator`. `FeatureRequest` bridge feeds quest-driven tile placements into `GameplayFeaturePass`. All 57 tests pass.
+
+### Compatibility
+
+- save: no impact
+- replay: no impact
+- protocol: no impact
 
 ---
 

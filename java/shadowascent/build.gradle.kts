@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     api(project(":core"))
+    implementation(project(":procgen-lab"))
 
     // msgpack carried through for any sim DTOs that encode directly
     implementation("org.msgpack:msgpack-core:0.9.8")

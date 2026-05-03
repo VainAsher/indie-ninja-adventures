@@ -2,8 +2,8 @@
 doc_type: implementation_plan
 status: implementing
 owner: core-team
-last_updated: 2026-05-01
-version_anchor: v0.13.20
+last_updated: 2026-05-03
+version_anchor: v0.13.30
 ---
 
 # Plan: Worldgen Runtime Adoption
@@ -33,6 +33,7 @@ Out of scope:
 | `ninja.runtime.useHybridLayout` | `false` | Enables runtime consumption of `hybridLayout.assignments` for section placement hints. | Disable flag to immediately revert to legacy `WorldGraph` room placement only. |
 | `ninja.runtime.useSocketContracts` | `false` | Enables corridor/transition decisions from `socketAnchorPlan.connectionContracts`. | Disable flag to bypass contract-driven joins and use existing deterministic corridor logic. |
 | `ninja.runtime.enforceValidationDebt` | `false` | Prevents runtime publication of worlds with unresolved `critical_path_transition_debt`. | Disable flag to allow legacy publish semantics while logging debt. |
+| `ninja.runtime.useProcgenRooms` | `false` | Replaces `WorldGenerator.generate()` with `RoomGenerator.generate()` (procgen-lab) as the tile grid source inside `buildProceduralLayout`. Spawn logic and enemy/pickup placement are unchanged. Seeds derive from `SaveData.worldSeed ^ roomId.hashCode()`. | Disable flag to revert to `WorldGenerator` grid with no save or layout change required. |
 
 Flag precedence:
 
@@ -124,3 +125,13 @@ Required dashboards:
 - Should `enforceValidationDebt` block world publication hard, or downgrade to
   warning for one release window?
 - Do we need per-campaign flag granularity (`act1` only) before phase 3?
+
+## Seed Sweep Evidence (v0.13.29, 2026-05-03)
+
+Partial 1..50 sweep (deferred from 1..250 target). Full data: `docs/reports/worldgen/sweep-50-v0.13.29.csv`.
+
+- Score range: 60–80, all seeds `overallStatus=fail`
+- Root cause: `critical_path_transition_debt` on Act II+ nodes (archive, cathedral, cavern, foundry, spire) — no templates authored
+- Act I (seed 420): `qualityScoreV2=96`, `valid=true`, `socketCompatibilityScore=100` — fully resolved
+- Phase 0 entry criteria not yet met: candidate vs legacy disagreement not yet classified; debt count only trending down for Act I scope
+- Full 1..250 sweep and Phase 0 parity telemetry remain deferred until Act II+ templates reduce debt below target threshold
