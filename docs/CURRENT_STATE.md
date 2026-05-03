@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-05-03
-version_anchor: v0.13.34
+version_anchor: v0.13.35
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,7 +21,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-05-03): v0.13.34 — UX slice A: save slot deletion. `SaveManager.deleteSlot()` + red confirmation overlay in `SlotSelectScreen` (DEL key, ENTER=confirm, ESC=cancel). Precedes: v0.13.33 — UX slices D+C (UI readability + mouse input).
+- Current release truth (2026-05-03): v0.13.35 — UX slice B: launcher save-slot visibility. Play tab shows 3-slot live status strip; Saves tab has slot selector and reads Java SaveData format from `slot_N/`. Precedes: v0.13.34 — save slot deletion.
 - G0/P0-10 is not closed yet. Session 1 FAIL (v0.13.21, 2026-05-01). All 6 blockers from session 1 are now fixed.
 - G0 session 1 evidence: [`docs/reports/manual-runtime/g0-v0.13.21-session-1.md`](reports/manual-runtime/g0-v0.13.21-session-1.md)
 - G0 P0 blockers — status:

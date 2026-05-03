@@ -203,6 +203,23 @@ def _get_saves_dir() -> Path:
     return _get_user_data_dir() / "saves"
 
 
+def _get_slot_dir(slot_n: int) -> Path:
+    return _get_saves_dir() / f"slot_{slot_n}"
+
+
+def _read_slot_info(slot_n: int) -> "dict | None":
+    """Read basic save data from slot_N/savegame.json (Java SaveData flat JSON).
+    Returns a dict on success, {'_corrupt': True} on parse error, None if missing."""
+    path = _get_slot_dir(slot_n) / "savegame.json"
+    if not path.exists():
+        return None
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else None
+    except Exception:
+        return {"_corrupt": True}
+
+
 def _format_playtime(seconds: float) -> str:
     s = int(seconds)
     if s < 60:
@@ -711,6 +728,40 @@ class LauncherApp:
         ).pack(side="left", padx=(8, 0))
 
         self._load_profiles()
+
+        # ── Save-slot status strip ────────────────────────────────────────────
+        tk.Frame(ctrl, height=1, bg=BG_MID).pack(fill="x", pady=(6, 0))
+
+        slot_strip_hdr = tk.Frame(ctrl, bg=BG_DARK)
+        slot_strip_hdr.pack(fill="x", pady=(4, 0))
+        tk.Label(
+            slot_strip_hdr,
+            text="SAVE SLOTS",
+            font=("Consolas", 8, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(side="left")
+
+        slot_strip = tk.Frame(ctrl, bg=BG_DARK)
+        slot_strip.pack(fill="x", pady=(3, 0))
+        self._slot_badge_vars: list[tk.StringVar] = []
+        for i in range(1, 4):
+            var = tk.StringVar(value=f"Slot {i}  —")
+            self._slot_badge_vars.append(var)
+            lbl = tk.Label(
+                slot_strip,
+                textvariable=var,
+                font=("Consolas", 8),
+                fg=TEXT_DIM,
+                bg=BG_CARD,
+                anchor="w",
+                padx=8,
+                pady=3,
+                relief="flat",
+            )
+            lbl.pack(side="left", padx=(0, 6), fill="x", expand=True)
+        self._refresh_slot_badges()
 
         # Progress bar
         self._progress_var = tk.DoubleVar(value=0.0)
@@ -1857,7 +1908,41 @@ class LauncherApp:
         pad = tk.Frame(parent, bg=BG_DARK)
         pad.pack(fill="both", expand=True, padx=16, pady=(8, 6))
 
-        # Header
+        # ── Slot selector ─────────────────────────────────────────────────────
+        slot_hdr_row = tk.Frame(pad, bg=BG_DARK)
+        slot_hdr_row.pack(fill="x")
+        tk.Label(
+            slot_hdr_row,
+            text="SAVE SLOTS",
+            font=("Consolas", 9, "bold"),
+            fg=ACCENT,
+            bg=BG_DARK,
+            anchor="w",
+        ).pack(side="left")
+
+        self._saves_slot_var = tk.IntVar(value=1)
+        slot_btn_row = tk.Frame(pad, bg=BG_DARK)
+        slot_btn_row.pack(fill="x", pady=(4, 0))
+        for n in range(1, 4):
+            tk.Radiobutton(
+                slot_btn_row,
+                text=f"Slot {n}",
+                variable=self._saves_slot_var,
+                value=n,
+                font=("Consolas", 9),
+                fg=TEXT_PRIMARY,
+                bg=BG_DARK,
+                selectcolor=BG_MID,
+                activebackground=BG_DARK,
+                activeforeground=TEXT_SELECTED,
+                relief="flat",
+                cursor="hand2",
+                command=self._refresh_saves_display,
+            ).pack(side="left", padx=(0, 12))
+
+        tk.Frame(pad, height=1, bg=BG_MID).pack(fill="x", pady=(6, 0))
+
+        # ── Slot detail header ────────────────────────────────────────────────
         hdr_row = tk.Frame(pad, bg=BG_DARK)
         hdr_row.pack(fill="x")
         tk.Label(
@@ -2048,60 +2133,84 @@ class LauncherApp:
 
         self._refresh_saves_display()
 
+    # ── Slot badge helpers ────────────────────────────────────────────────────
+
+    def _refresh_slot_badges(self) -> None:
+        """Update the 3-slot strip in the Play tab from live save files."""
+        for i, var in enumerate(self._slot_badge_vars, start=1):
+            info = _read_slot_info(i)
+            if info is None:
+                var.set(f"Slot {i}  —  Empty")
+            elif info.get("_corrupt"):
+                var.set(f"Slot {i}  ⚠  Corrupt")
+            else:
+                playtime_s = info.get("totalPlaytime", 0.0)
+                mins = int(playtime_s // 60)
+                level = info.get("currentLevel") or "—"
+                var.set(f"Slot {i}  ●  {level}  ·  {mins}m")
+
     # ── Saves tab actions ─────────────────────────────────────────────────────
 
+    def _active_slot_dir(self) -> Path:
+        """Return the slot directory for whichever slot is selected in the Saves tab."""
+        n = getattr(self, "_saves_slot_var", None)
+        slot_n = n.get() if n is not None else 1
+        return _get_slot_dir(slot_n)
+
     def _refresh_saves_display(self) -> None:
-        saves_dir = _get_saves_dir()
-        save_path = saves_dir / "savegame.json"
+        slot_dir = self._active_slot_dir()
+        slot_n = self._saves_slot_var.get() if hasattr(self, "_saves_slot_var") else 1
+        save_path = slot_dir / "savegame.json"
+        slot_label = f"slot_{slot_n}/savegame.json"
+
         if not save_path.exists():
             self._save_status_var.set("Status:  (no save file)")
-            self._save_path_var.set("savegame.json  —  not found")
+            self._save_path_var.set(f"{slot_label}  —  not found")
             self._save_date_var.set("")
             for var in self._save_fields.values():
                 var.set("—")
             self._refresh_backups_list()
             return
         try:
-            wrapper = json.loads(save_path.read_text(encoding="utf-8"))
+            data = json.loads(save_path.read_text(encoding="utf-8"))
         except Exception:
             self._save_status_var.set("Status:  ✗ Parse error")
-            self._save_path_var.set("savegame.json  —  corrupted?")
+            self._save_path_var.set(f"{slot_label}  —  corrupted?")
             self._save_date_var.set("")
             self._refresh_backups_list()
             return
 
-        inner = wrapper.get("data", wrapper)  # flat or wrapped format
-        status = "OK" if inner else "? Unknown format"
+        # Java SaveData is a flat JSON object
+        status = "OK" if data else "? Unknown format"
         self._save_status_var.set(f"Status:  {status}")
+        ver = data.get("version", "?")
+        self._save_path_var.set(f"{slot_label}   version: {ver}")
+        self._save_date_var.set(f"Saved: {data.get('saveDate', '')}")
 
-        ver = wrapper.get("version", "?")
-        self._save_path_var.set(f"savegame.json   version: {ver}")
-        self._save_date_var.set(f"Saved: {inner.get('save_date', '')}")
-
-        camp = inner.get("campaign", {})
-        self._save_fields["hub"].set(camp.get("current_hub_id", "—"))
-        self._save_fields["currency"].set(str(camp.get("currency", 0)))
-        abilities = camp.get("unlocked_abilities", [])
+        # Campaign fields — Java flat keys
+        self._save_fields["hub"].set(data.get("currentLevel") or "—")
+        self._save_fields["currency"].set(str(data.get("currency", 0)))
+        abilities = data.get("unlockedAbilities") or []
         ab_str = ", ".join(abilities[:3]) + ("…" if len(abilities) > 3 else "")
         self._save_fields["abilities"].set(f"{len(abilities)}  ({ab_str})" if abilities else "0")
-        self._save_fields["missions"].set(str(len(camp.get("completed_missions", []))))
-        self._save_fields["bosses"].set(str(len(camp.get("defeated_bosses", []))))
-        self._save_fields["c_playtime"].set(_format_playtime(camp.get("total_play_time", 0.0)))
+        self._save_fields["missions"].set(str(len(data.get("completedMissions") or [])))
+        self._save_fields["bosses"].set(str(len(data.get("defeatedBosses") or [])))
+        self._save_fields["c_playtime"].set(_format_playtime(data.get("totalPlaytime", 0.0)))
 
-        stats = inner.get("statistics", {})
-        self._save_fields["deaths"].set(str(stats.get("total_deaths", 0)))
-        self._save_fields["jumps"].set(str(stats.get("total_jumps", 0)))
-        self._save_fields["dashes"].set(str(stats.get("total_dashes", 0)))
-        self._save_fields["coins"].set(str(stats.get("total_coins_collected", 0)))
-        self._save_fields["s_playtime"].set(_format_playtime(stats.get("total_playtime", 0.0)))
-        self._save_fields["perf_runs"].set(str(stats.get("perfect_runs", 0)))
+        # Statistics — Java flat keys
+        self._save_fields["deaths"].set("—")
+        self._save_fields["jumps"].set("—")
+        self._save_fields["dashes"].set("—")
+        self._save_fields["coins"].set("—")
+        self._save_fields["s_playtime"].set(_format_playtime(data.get("totalPlaytime", 0.0)))
+        self._save_fields["perf_runs"].set("—")
 
         self._refresh_backups_list()
 
     def _refresh_backups_list(self) -> None:
         for row in self._backups_tree.get_children():
             self._backups_tree.delete(row)
-        backups_dir = _get_saves_dir() / "backups"
+        backups_dir = self._active_slot_dir() / "backups"
         if not backups_dir.exists():
             return
         files = sorted(backups_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
@@ -2121,12 +2230,16 @@ class LauncherApp:
             )
 
     def _backup_save_now(self, *, silent: bool = False) -> "Path | None":
-        save_path = _get_saves_dir() / "savegame.json"
+        slot_dir = self._active_slot_dir()
+        slot_n = self._saves_slot_var.get() if hasattr(self, "_saves_slot_var") else 1
+        save_path = slot_dir / "savegame.json"
         if not save_path.exists():
             if not silent:
-                messagebox.showwarning("No Save", "No savegame.json found.", parent=self.root)
+                messagebox.showwarning(
+                    "No Save", f"No savegame.json found in Slot {slot_n}.", parent=self.root
+                )
             return None
-        backups_dir = _get_saves_dir() / "backups"
+        backups_dir = slot_dir / "backups"
         backups_dir.mkdir(parents=True, exist_ok=True)
         ts = time.strftime("%Y%m%d_%H%M%S")
         dest = backups_dir / f"savegame_{ts}.json"
@@ -2151,27 +2264,31 @@ class LauncherApp:
         ):
             return
         self._backup_save_now(silent=True)
-        dest = _get_saves_dir() / "savegame.json"
+        dest = self._active_slot_dir() / "savegame.json"
         dest.write_bytes(path.read_bytes())
         self._refresh_saves_display()
         messagebox.showinfo("Restored", f"Restore complete: {path.name}", parent=self.root)
 
     def _delete_save(self) -> None:
-        save_path = _get_saves_dir() / "savegame.json"
+        slot_n = self._saves_slot_var.get() if hasattr(self, "_saves_slot_var") else 1
+        save_path = self._active_slot_dir() / "savegame.json"
         if not save_path.exists():
-            messagebox.showwarning("No Save", "savegame.json not found.", parent=self.root)
+            messagebox.showwarning(
+                "No Save", f"Slot {slot_n} savegame.json not found.", parent=self.root
+            )
             return
         if not messagebox.askyesno(
             "Delete Save",
-            "Delete savegame.json?\n\nA backup will be created automatically before deletion.",
+            f"Delete Slot {slot_n} save?\n\nA backup will be created automatically before deletion.",
             parent=self.root,
         ):
             return
         bak = self._backup_save_now(silent=True)
         save_path.unlink()
         self._refresh_saves_display()
+        self._refresh_slot_badges()
         note = f"\nBackup saved as: {bak.name}" if bak else ""
-        messagebox.showinfo("Deleted", f"Save file deleted.{note}", parent=self.root)
+        messagebox.showinfo("Deleted", f"Slot {slot_n} save deleted.{note}", parent=self.root)
 
     # ── Tab 6: Settings ───────────────────────────────────────────────────────
 
@@ -3638,6 +3755,7 @@ class LauncherApp:
             msg = f"{label} exited (code {code}). Check the terminal for details."
         self.root.after(0, self.root.deiconify)
         self.root.after(0, self._status_var.set, msg)
+        self.root.after(0, self._refresh_slot_badges)
 
     def _decode_exit_code(self, code: int) -> str:
         name = self._EXIT_CODE_NAMES.get(code) or self._EXIT_CODE_NAMES.get(code & 0xFFFFFFFF)

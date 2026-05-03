@@ -16,6 +16,22 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.13.35] - 2026-05-03 (UX slice B: launcher save-slot visibility + saves tab multi-slot)
+
+### Changed
+
+- `launcher.py`: Added `_get_slot_dir(n)` and `_read_slot_info(n)` module-level helpers that read Java SaveData JSON from `user_data/saves/slot_N/savegame.json`.
+- Play tab: Added a SAVE SLOTS strip showing live state of all 3 slots (e.g. "Slot 1 ● Act I · 42m", "Slot 2 — Empty"). Strip refreshes automatically after the Java client exits so the launcher always reflects post-session save state.
+- Saves tab: Added a slot selector (Slot 1 / 2 / 3 radio buttons) at the top. All save display, backup, restore, and delete operations now operate on the selected slot directory instead of the legacy flat `savegame.json` path.
+- Saves tab: `_refresh_saves_display()` now reads flat Java SaveData JSON keys (`saveDate`, `totalPlaytime`, `currentLevel`, `unlockedAbilities`, `completedMissions`, `defeatedBosses`) rather than old Python nested `campaign` / `statistics` wrapper structure.
+- Saves tab: Delete operation calls `_refresh_slot_badges()` so the Play tab strip updates immediately.
+
+### Compatibility
+
+- Launcher-only change. No Java game, save format, or protocol impact.
+
+---
+
 ## [0.13.34] - 2026-05-03 (UX slice A: save slot deletion)
 
 ### Added
