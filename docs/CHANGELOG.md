@@ -16,6 +16,21 @@ Scope policy: this file is release-facing history only. Planning notes and sessi
 
 ---
 
+## [0.13.34] - 2026-05-03 (UX slice A: save slot deletion)
+
+### Added
+
+- `SaveManager.deleteSlot(int slotIndex)` — static method; deletes `user_data/saves/slot_N/` including all backups. Returns `false` if slot directory does not exist or Gdx is uninitialised; throws `IllegalArgumentException` for out-of-range index.
+- `SlotSelectScreen`: DELETE key on an occupied slot opens a red confirmation overlay ("DELETE SLOT N? ENTER=yes ESC=cancel"). Keyboard navigation is blocked while the overlay is open. Confirming deletes the slot and reloads the screen so the card shows "New Game" immediately.
+- DEL affordance is only shown in the footer hint when the selected slot is occupied.
+- `SaveManagerDeleteTest` — 2 unit tests: `deleteSlot_invalidIndex_throwsIllegalArgument`, `deleteSlot_noGdx_returnsFalse`.
+
+### Compatibility
+
+- Additive only. No save format, protocol, or replay impact. Existing saves unaffected.
+
+---
+
 ## [0.13.33] - 2026-05-03 (UX slices D+C: UI readability + mouse input consistency)
 
 ### Changed (UX — Slice D: UI readability)

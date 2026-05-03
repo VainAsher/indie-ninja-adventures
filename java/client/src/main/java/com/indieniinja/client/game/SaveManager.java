@@ -96,6 +96,23 @@ public final class SaveManager {
     }
 
     /**
+     * Delete all files for the given slot (savegame.json, .sha256, backups/).
+     * Safe to call before any manager is constructed. Returns true if the slot
+     * directory existed and was fully removed.
+     */
+    public static boolean deleteSlot(int slotIndex) {
+        if (slotIndex < 1 || slotIndex > MAX_SLOTS)
+            throw new IllegalArgumentException("slotIndex must be 1–" + MAX_SLOTS);
+        if (Gdx.files == null) return false;
+        String dir = "user_data/saves/slot_" + slotIndex + "/";
+        FileHandle fh = Gdx.files.local(dir);
+        if (!fh.exists()) return false;
+        fh.deleteDirectory();
+        log.info("[Save] Slot {} deleted", slotIndex);
+        return true;
+    }
+
+    /**
      * Return info for all slots without constructing full managers.
      * Safe to call before any game systems are initialised.
      */

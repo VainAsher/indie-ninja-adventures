@@ -19,6 +19,7 @@ import com.indieniinja.client.game.SaveManager;
  * transitions to ModeSelectScreen with the chosen slot index.
  *
  * Controls: LEFT/RIGHT or A/D to cycle, ENTER/SPACE to confirm, ESC to go back.
+ * DEL on an occupied slot opens a delete-confirmation overlay (ENTER=yes, ESC=cancel).
  */
 public final class SlotSelectScreen implements Screen {
 
@@ -29,13 +30,15 @@ public final class SlotSelectScreen implements Screen {
     private static final Color COL_EMPTY    = new Color(0.25f, 0.55f, 0.35f, 1f);
     private static final Color COL_OCCUPIED = new Color(0.35f, 0.55f, 1.00f, 1f);
     private static final Color COL_CORRUPT  = new Color(0.75f, 0.25f, 0.20f, 1f);
+    private static final Color COL_DELETE   = new Color(0.80f, 0.20f, 0.15f, 1f);
 
     private final NinjaGameClient       game;
     private final String                host;
     private final int                   port;
     private final SaveManager.SlotInfo[] slots;
 
-    private int selectedIndex = 0;
+    private int     selectedIndex    = 0;
+    private boolean confirmingDelete = false;
 
     private final SpriteBatch   batch;
     private final ShapeRenderer shapes;
@@ -144,14 +147,50 @@ public final class SlotSelectScreen implements Screen {
             }
         }
 
-        // Footer hint
+        // Footer hint — show DEL affordance only for occupied slots
         fontSmall.setColor(UiStyle.HINT);
-        fontSmall.draw(batch, "[ ← → ] navigate    [ ENTER ] confirm    [ ESC ] back    or click a card",
-            sw * 0.5f - 255f, 36f);
+        boolean selOccupied = !slots[selectedIndex].isEmpty();
+        String hint = selOccupied
+            ? "[ ← → ] select    [ ENTER ] start    [ DEL ] delete    [ ESC ] back    or click"
+            : "[ ← → ] select    [ ENTER ] start    [ ESC ] back    or click a card";
+        fontSmall.draw(batch, hint, sw * 0.5f - 270f, 36f);
+
+        // ── Delete-confirmation overlay ───────────────────────────────────────
+        if (confirmingDelete) {
+            float boxW = 400f, boxH = 110f;
+            float boxX = sw * 0.5f - boxW * 0.5f;
+            float boxY = sh * 0.5f - boxH * 0.5f;
+            batch.end();
+
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(new Color(0f, 0f, 0f, 0.80f));
+            shapes.rect(0, 0, sw, sh);
+            shapes.setColor(new Color(0.15f, 0.06f, 0.06f, 1f));
+            shapes.rect(boxX, boxY, boxW, boxH);
+            shapes.end();
+
+            shapes.begin(ShapeRenderer.ShapeType.Line);
+            shapes.setColor(COL_DELETE);
+            shapes.rect(boxX, boxY, boxW, boxH);
+            shapes.end();
+
+            batch.begin();
+            fontLarge.setColor(COL_DELETE);
+            fontLarge.draw(batch, "DELETE SLOT " + (selectedIndex + 1) + "?",
+                boxX + 20f, boxY + boxH - 18f);
+            fontSmall.setColor(UiStyle.TEXT_DIM);
+            fontSmall.draw(batch, "This cannot be undone.",
+                boxX + 20f, boxY + boxH - 52f);
+            fontSmall.setColor(UiStyle.HINT);
+            fontSmall.draw(batch, "[ ENTER ] confirm delete    [ ESC ] cancel",
+                boxX + 20f, boxY + 24f);
+            batch.end();
+            return;
+        }
 
         batch.end();
 
-        // ── Mouse hover / click ───────────────────────────────────────────────
+        // ── Mouse hover / click (skipped while confirm dialog is open) ────────
         float mx = Gdx.input.getX();
         float my = sh - Gdx.input.getY();  // flip Y (libGDX Y-up)
         for (int i = 0; i < count; i++) {
@@ -178,10 +217,25 @@ public final class SlotSelectScreen implements Screen {
         if (Gdx.input == null) return;
         int count = SaveManager.MAX_SLOTS;
 
+        if (confirmingDelete) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                SaveManager.deleteSlot(selectedIndex + 1);
+                game.setScreen(new SlotSelectScreen(game, host, port));
+            }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
+                confirmingDelete = false;
+            return;
+        }
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)  || Gdx.input.isKeyJustPressed(Input.Keys.A))
             selectedIndex = (selectedIndex - 1 + count) % count;
         if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D))
             selectedIndex = (selectedIndex + 1) % count;
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.DEL) || Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)) {
+            if (!slots[selectedIndex].isEmpty())
+                confirmingDelete = true;
+        }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE))
             confirmSlot();

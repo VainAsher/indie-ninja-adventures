@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-05-03
-version_anchor: v0.13.33
+version_anchor: v0.13.34
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,7 +21,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-05-03): v0.13.33 — UX slice D: UI readability centralisation. `UiStyle` now carries `FONT_SCALE_LARGE`, `FONT_SCALE_SMALL`, and `HINT` constants; all per-screen magic numbers replaced. Small font bumped 0.9→1.0 for legibility. Precedes: v0.13.32 — Procgen-lab S9 runtime integration.
+- Current release truth (2026-05-03): v0.13.34 — UX slice A: save slot deletion. `SaveManager.deleteSlot()` + red confirmation overlay in `SlotSelectScreen` (DEL key, ENTER=confirm, ESC=cancel). Precedes: v0.13.33 — UX slices D+C (UI readability + mouse input).
 - G0/P0-10 is not closed yet. Session 1 FAIL (v0.13.21, 2026-05-01). All 6 blockers from session 1 are now fixed.
 - G0 session 1 evidence: [`docs/reports/manual-runtime/g0-v0.13.21-session-1.md`](reports/manual-runtime/g0-v0.13.21-session-1.md)
 - G0 P0 blockers — status:
