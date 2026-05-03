@@ -3,7 +3,7 @@ doc_type: changelog
 status: living
 owner: core-team
 last_updated: 2026-05-03
-version_anchor: v0.13.29
+version_anchor: v0.13.30
 ---
 # Changelog — Shadow Ascent: The Hollowed Ninja
 
@@ -13,6 +13,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Scope policy: this file is release-facing history only. Planning notes and session logs live outside the changelog.
+
+---
+
+## [0.13.30] - 2026-05-03 (worldgen: forest trial room templates)
+
+### Added
+
+- **WG-4:** `java/assets/rooms/templates/platform_ascent_forest.tmx` — 128×128 vertical platforming challenge with staggered ascending platforms and climbable vine strips (tile 8). Matches narrative beat of forest canopy trial before boss approach.
+- **WG-4:** `java/assets/rooms/templates/combat_standard_forest_ruins.tmx` — 128×128 ruined stone combat arena with irregular floor elevation, ruin ledges, rubble pillar, and broken-floor gaps.
+- **WG-4:** Both templates registered in `data/room_template_catalog.json` as additional weighted variants: `platform_ascent` (base w=2, forest w=1), `combat_standard` (base w=2, forest w=1). Note: catalog does not yet support biome-filter field.
+- All 12 templates pass `validate_room_templates.py --strict-geometry`. `RoomTemplateCatalogTest` 3/3 PASS.
+
+### Compatibility
+
+- save: no impact
+- replay: breaking (template selection changes for platform_ascent and combat_standard room types — rooms with new seed assignments may pick forest variants)
+- protocol: no impact
+- snapshot schema: 11 (unchanged)
 
 ---
 

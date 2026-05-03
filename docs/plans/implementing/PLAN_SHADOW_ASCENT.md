@@ -2182,8 +2182,8 @@ Compatibility check after fix:
 - [x] Seed 420 snapshot regenerated: `qualityScoreV2=96`, `transitionDebtPenalty=0`, `socketCompatibilityScore=100` (all 3 contracts matched) — 2026-05-02.
 - [x] `SectionTemplateLibraryTest` (4/4 PASSED) — 2026-05-02.
 - [x] `GenerationValidationPlannerTest` (4/4 PASSED) — 2026-05-02.
-- [ ] Update `docs/CURRENT_STATE.md` with new snapshot quality numbers.
-- [ ] Bump version to v0.13.29, commit, tag, push.
+- [x] Update `docs/CURRENT_STATE.md` with new snapshot quality numbers — 2026-05-03.
+- [x] Bump version to v0.13.29, commit, tag, push — 2026-05-03.
 
 **Compatibility:** replay=no | save=no | protocol=no | snapshot schema=11 (unchanged)
 
@@ -2191,9 +2191,9 @@ Compatibility check after fix:
 
 #### WG-2 — Seed sweep quality baseline *(tooling-only)*
 
-- [ ] Run `python tools/worldgen_lab.py batch --seeds 50 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep-50 --failures 5`
-- [ ] Save summary: `docs/reports/worldgen/sweep-50-v0.13.29.csv`
-- [ ] Capture worst 5 seeds and their failure modes to `docs/reports/worldgen/sweep-50-failures.md`
+- [x] Run `python tools/worldgen_lab.py batch --seeds 50 --rooms 20 --shape BLOB --out build/worldgen-lab/sweep-50 --failures 5` — 2026-05-03.
+- [x] Save summary: `docs/reports/worldgen/sweep-50-v0.13.29.csv` — 2026-05-03.
+- [x] Capture worst 5 seeds and their failure modes to `docs/reports/worldgen/sweep-50-failures.md` — 2026-05-03.
 - [ ] Update `PLAN_WORLDGEN_RUNTIME_ADOPTION.md` with sweep evidence (deferred 1..250 partial).
 
 **Compatibility:** tooling-only, no code/data change.
@@ -2210,7 +2210,7 @@ Apply the LayerProcGen effect-distance principle: no enemy spawns or hazard tile
 - [x] `RoomPostProcessor.process()` accepts `Set<String> seamRoomKeys`; backward-compat overload passes `Collections.emptySet()`.
 - [x] 5 unit tests in `EntityPlannerSeamClearanceTest` — all PASSED (2026-05-02).
 - [x] Update `docs/systems/WORLD_GEN.md` with seam clearance contract description.
-- [ ] Bump version to v0.13.30, commit, tag, push.
+- [x] Bumped with WG-1 as v0.13.29 (single combined release) — 2026-05-03.
 
 **Compatibility:** replay=breaking for worlds where boundary-room enemy placement would have changed | save=no | protocol=no
 
@@ -2220,12 +2220,12 @@ Apply the LayerProcGen effect-distance principle: no enemy spawns or hazard tile
 
 Add TMX templates for forest trial rooms that match the narrative beat: platforming challenge that reads as "forest ruin" or "canopy path" to ground the player's location emotionally before they reach the boss approach.
 
-- [ ] Author `java/assets/rooms/templates/platform_ascent_forest.tmx` — 128×128, vertical platform challenge with foliage-style structure (canopy gaps, climbable vines).
-- [ ] Author `java/assets/rooms/templates/combat_standard_forest_ruins.tmx` — 128×128, ruined stone floor, irregular platform heights.
-- [ ] Register both in `data/room_template_catalog.json` under the appropriate room-type keys with biome filter `forest`.
-- [ ] Run `python tools/validate_room_templates.py --dir java/assets/rooms/templates --strict-geometry --catalog data/room_template_catalog.json`
-- [ ] Run worldgen snapshot seed 420 and confirm new templates appear in biome-filtered selection.
-- [ ] Bump version to v0.13.31, commit, tag, push.
+- [x] Author `java/assets/rooms/templates/platform_ascent_forest.tmx` — 128×128, staggered ascending platforms with climbable vine strips (tile 8). 2026-05-03.
+- [x] Author `java/assets/rooms/templates/combat_standard_forest_ruins.tmx` — 128×128, broken stone floor with ruin ledges, pillar rubble, irregular platform heights. 2026-05-03.
+- [x] Register both in `data/room_template_catalog.json` as weighted variants: `platform_ascent` (base w=2, forest w=1), `combat_standard` (base w=2, forest w=1). Note: catalog does not support biome filter field — variants are weighted globally. 2026-05-03.
+- [x] `validate_room_templates.py --strict-geometry --catalog` — all 12 templates OK. 2026-05-03.
+- [x] Seed 420 snapshot regenerated — `qualityScoreV2=96`, `valid=true`, `socketCompatibilityScore=100` (stable). `RoomTemplateCatalogTest` 3/3 PASS. 2026-05-03.
+- [ ] Bump version to v0.13.30, commit, tag, push.
 
 **Compatibility:** replay=breaking (template selection changes for forest rooms) | save=no | protocol=no
 

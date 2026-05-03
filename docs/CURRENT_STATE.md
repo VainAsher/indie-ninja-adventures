@@ -3,7 +3,7 @@ doc_type: current_state
 status: living
 owner: core-team
 last_updated: 2026-05-03
-version_anchor: v0.13.29
+version_anchor: v0.13.30
 replaces: docs/HANDOVER.md
 ---
 
@@ -21,7 +21,7 @@ Canonical runtime and handover snapshot for the active Java stack.
 
 ## Product State
 
-- Current release truth (2026-05-03): v0.13.29 — WG-1/WG-2/WG-3 worldgen improvements. Act I socketCompatibilityScore 100, qualityScoreV2 96. Ready for G0 smoke session 2.
+- Current release truth (2026-05-03): v0.13.30 — WG-1–WG-4 worldgen improvements. Act I socketCompatibilityScore 100, qualityScoreV2 96. 2 new forest trial room templates. Ready for G0 smoke session 2.
 - G0/P0-10 is not closed yet. Session 1 FAIL (v0.13.21, 2026-05-01). All 6 blockers from session 1 are now fixed.
 - G0 session 1 evidence: [`docs/reports/manual-runtime/g0-v0.13.21-session-1.md`](reports/manual-runtime/g0-v0.13.21-session-1.md)
 - G0 P0 blockers — status:

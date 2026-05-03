@@ -13,10 +13,12 @@
       { "file": "exit.tmx", "weight": 1 }
     ],
     "combat_standard": [
-      { "file": "combat_standard.tmx", "weight": 1 }
+      { "file": "combat_standard.tmx", "weight": 2 },
+      { "file": "combat_standard_forest_ruins.tmx", "weight": 1 }
     ],
     "platform_ascent": [
-      { "file": "platform_ascent.tmx", "weight": 1 }
+      { "file": "platform_ascent.tmx", "weight": 2 },
+      { "file": "platform_ascent_forest.tmx", "weight": 1 }
     ],
     "shop_interior": [
       { "file": "shop_interior.tmx", "weight": 1 }
