@@ -1,0 +1,10 @@
+metric,value
+worldSeed,420
+sameWorldSeed,True
+qualityDelta,-34
+qualityV1Delta,0
+qualityV2Delta,-34
+transitionDebtPenaltyDelta,67
+criticalPathVarietyScoreDelta,75
+socketCompatibilityScoreDelta,33
+roomChecksumChanges,20

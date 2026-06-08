@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Worldgen Lab</title>
+  <style>
+    body { background: #0d1117; color: #c9d1d9; font-family: system-ui, sans-serif; margin: 24px; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .metrics { display: flex; gap: 24px; flex-wrap: wrap; margin: 16px 0; }
+    .metric { border: 1px solid #30363d; border-radius: 6px; padding: 12px; min-width: 120px; max-width: 260px; }
+    .badge { color: #0d1117; background: #f2cc60; border-radius: 4px; padding: 3px 6px; font-size: 12px; }
+    img { image-rendering: pixelated; max-width: 100%; border: 1px solid #30363d; background: #0d1117; }
+    table { border-collapse: collapse; margin-top: 16px; width: 100%; }
+    th, td { border: 1px solid #30363d; padding: 6px 8px; text-align: left; }
+    a { color: #79c0ff; }
+  </style>
+</head>
+<body>
+  <h1>Worldgen Lab Seed 420</h1>
+  <p><span class="badge">Act 1 vertical slice baseline</span></p>
+  <div class="metrics">
+    <div class="metric"><strong>Status</strong><br>warn</div>
+    <div class="metric"><strong>Quality</strong><br>66</div>
+  </div>
+  <h2>Pipeline</h2>
+  <img src="pipeline.svg" alt="Worldgen pipeline stages">
+  <div class="metrics"><div class="metric"><strong>progressionGraph</strong><br>pass<br><small>5 nodes, 5 critical-path steps [authored]</small></div>
+<div class="metric"><strong>hybridLayout</strong><br>pass<br><small>4 assignments, 3 connections</small></div>
+<div class="metric"><strong>socketAnchorPlan</strong><br>pass<br><small>3 contracts, 4 anchors</small></div>
+<div class="metric"><strong>validationReport</strong><br>warn<br><small>valid=False, issues=2</small></div>
+<div class="metric"><strong>megamap</strong><br>pass<br><small>20 stitched rooms, 21 seams</small></div>
+<div class="metric"><strong>labReport</strong><br>warn<br><small>20 rooms, 0 warnings, score=66</small></div></div>
+  <h2>Expanded World Detail</h2>
+  <img src="world-detail.svg" alt="Expanded world detail">
+  <h2>Macro Map</h2>
+  <img src="megamap.svg" alt="World megamap">
+  <h2>Rooms</h2>
+  <table><thead><tr><th>Room</th><th>Type</th><th>Dirs</th><th>Biome</th><th>Warnings</th></tr></thead>
+  <tbody><tr><td><a href="rooms/7_1.svg">7,1</a></td><td>combat</td><td>down</td><td>1</td><td>0</td></tr>
+<tr><td><a href="rooms/7_2.svg">7,2</a></td><td>platform</td><td>down,right,up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/8_2.svg">8,2</a></td><td>treasure_maze</td><td>left</td><td>1</td><td>0</td></tr>
+<tr><td><a href="rooms/5_3.svg">5,3</a></td><td>shop</td><td>right</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/6_3.svg">6,3</a></td><td>combat_standard</td><td>down,left</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/7_3.svg">7,3</a></td><td>boss</td><td>down,right,up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/8_3.svg">8,3</a></td><td>combat</td><td>left,right</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/9_3.svg">9,3</a></td><td>exit</td><td>down,left</td><td>1</td><td>0</td></tr>
+<tr><td><a href="rooms/6_4.svg">6,4</a></td><td>platform</td><td>down,right,up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/7_4.svg">7,4</a></td><td>platform</td><td>down,left,right,up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/8_4.svg">8,4</a></td><td>treasure</td><td>left,right</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/9_4.svg">9,4</a></td><td>platform_ascent</td><td>left,right,up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/10_4.svg">10,4</a></td><td>combat</td><td>left</td><td>1</td><td>0</td></tr>
+<tr><td><a href="rooms/4_5.svg">4,5</a></td><td>platform</td><td>right</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/5_5.svg">5,5</a></td><td>shop</td><td>left,right</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/6_5.svg">6,5</a></td><td>start</td><td>down,left,right,up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/7_5.svg">7,5</a></td><td>combat_standard</td><td>down,left,right,up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/8_5.svg">8,5</a></td><td>platform</td><td>left</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/6_6.svg">6,6</a></td><td>combat</td><td>up</td><td>0</td><td>0</td></tr>
+<tr><td><a href="rooms/7_6.svg">7,6</a></td><td>combat</td><td>up</td><td>0</td><td>0</td></tr></tbody></table>
+  <h2>Warnings</h2>
+  <pre>{}</pre>
+  <p><a href="metrics.json">metrics.json</a> <a href="pipeline.json">pipeline.json</a> <a href="overlay.txt">overlay.txt</a></p>
+</body>
+</html>

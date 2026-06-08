@@ -1,0 +1,40 @@
+{
+  "act1Baseline": true,
+  "generatorSchemaVersion": 11,
+  "roomCountActual": 20,
+  "roomCountRequested": 20,
+  "shape": "BLOB",
+  "stages": [
+    {
+      "name": "progressionGraph",
+      "status": "pass",
+      "summary": "5 nodes, 5 critical-path steps [authored]"
+    },
+    {
+      "name": "hybridLayout",
+      "status": "pass",
+      "summary": "4 assignments, 3 connections"
+    },
+    {
+      "name": "socketAnchorPlan",
+      "status": "pass",
+      "summary": "3 contracts, 4 anchors"
+    },
+    {
+      "name": "validationReport",
+      "status": "warn",
+      "summary": "valid=False, issues=2"
+    },
+    {
+      "name": "megamap",
+      "status": "pass",
+      "summary": "20 stitched rooms, 21 seams"
+    },
+    {
+      "name": "labReport",
+      "status": "warn",
+      "summary": "20 rooms, 0 warnings, score=66"
+    }
+  ],
+  "worldSeed": 420
+}

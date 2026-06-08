@@ -90,3 +90,5 @@ ion.json
 launcher/launcher_config.json
 test_cp.bat
 java/core/src/main/java/com/indieniinja/world.zip
+# Generated worldgen lab review outputs (preserve curated evidence under docs/reports/)
+build/worldgen-lab/

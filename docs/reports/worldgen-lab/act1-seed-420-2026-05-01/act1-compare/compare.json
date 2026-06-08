@@ -1,0 +1,40 @@
+{
+  "base": {
+    "criticalPathVarietyScore": 0,
+    "generatorSchemaVersion": 10,
+    "overallStatus": "pass",
+    "qualityScore": 100,
+    "qualityScoreV1": 100,
+    "qualityScoreV2": 100,
+    "roomCountActual": 20,
+    "shape": "BLOB",
+    "socketCompatibilityScore": 0,
+    "transitionDebtPenalty": 0,
+    "warningCountTotal": 0,
+    "worldSeed": 420
+  },
+  "candidate": {
+    "criticalPathVarietyScore": 75,
+    "generatorSchemaVersion": 11,
+    "overallStatus": "fail",
+    "qualityScore": 66,
+    "qualityScoreV1": 100,
+    "qualityScoreV2": 66,
+    "roomCountActual": null,
+    "shape": "BLOB",
+    "socketCompatibilityScore": 33,
+    "transitionDebtPenalty": 67,
+    "warningCountTotal": 0,
+    "worldSeed": 420
+  },
+  "criticalPathVarietyScoreDelta": 75,
+  "qualityDelta": -34,
+  "qualityV1Delta": 0,
+  "qualityV2Delta": -34,
+  "roomChecksumChanges": 20,
+  "sameWorldSeed": true,
+  "socketCompatibilityScoreDelta": 33,
+  "transitionDebtPenaltyDelta": 67,
+  "warningDeltas": {},
+  "worldSeed": 420
+}

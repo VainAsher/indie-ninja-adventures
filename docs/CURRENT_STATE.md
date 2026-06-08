@@ -89,7 +89,7 @@ Canonical runtime and handover snapshot for the active Java stack.
   - schema: `11`
   - validation: `valid=false`, issues: `critical_path_transition_debt` x2
   - lab quality: `qualityScoreV1=100`, `qualityScoreV2=66`, `transitionDebtPenalty=67`, `criticalPathVarietyScore=75`, `socketCompatibilityScore=33`
-- **Baseline compare (schema 10 -> 11):** `build/worldgen-lab/act1-compare/compare.json`
+- **Baseline compare (schema 10 -> 11):** `docs/reports/worldgen-lab/act1-seed-420-2026-05-01/act1-compare/compare.json`
   - `qualityDelta=-34` (`qualityV1Delta=0`, `qualityV2Delta=-34`)
   - `transitionDebtPenaltyDelta=67`, `criticalPathVarietyScoreDelta=75`, `socketCompatibilityScoreDelta=33`
   - `warningDeltas={}` (no shell-geometry warning regression)
@@ -98,6 +98,7 @@ Canonical runtime and handover snapshot for the active Java stack.
   - `./gradlew.bat :shadowascent:test --tests com.indieniinja.world.sections.SectionTemplateLibraryTest --tests com.indieniinja.world.layout.HybridLayoutPlannerTest --tests com.indieniinja.world.validation.GenerationValidationPlannerTest --tests com.indieniinja.world.progression.WorldProgressionGeneratorTest --tests com.indieniinja.world.progression.AuthoredProgressionLoaderTest --tests com.indieniinja.world.lab.WorldgenLabAnalyzerTest --no-daemon` PASS
   - `./gradlew.bat :shadowascent:worldgenSnapshot -Pseed=420 -Prooms=20 -Pshape=BLOB -PcampaignId=act1 "-Pout=build/worldgen-snapshots/act1-seed-420.json" --no-daemon` PASS
   - `python tools/worldgen_lab.py render java/shadowascent/build/worldgen-snapshots/act1-seed-420.json --out build/worldgen-lab/act1-seed-420` PASS
+  - Preserved lab evidence: `docs/reports/worldgen-lab/act1-seed-420-2026-05-01/`
   - `python tools/test_worldgen_lab.py` PASS
 - **Manual smoke:** launcher-based G0 smoke (`PLAYABLE_TRUTH.md` steps 1-13 + `worldgen info`) is the first action required from the tester on the v0.13.21 artifact.
 - **Compatibility:** snapshot schema changes from `10` to `11` (breaking for tools that assume schema 10 fields only). Save/protocol remain unchanged. Replay: no change (worldgen changes affect newly generated worlds only).
